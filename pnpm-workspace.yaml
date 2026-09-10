@@ -1,0 +1,14 @@
+overrides:
+  '@types/react': 19.2.18
+  '@types/react-dom': 19.2.7
+  postcss: ^8.5.10
+  kysely: 0.28.17
+  sharp: ^0.35.3
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@swc/core'
+  - core-js-pure
+  - esbuild
+  - sharp
+  - unrs-resolver

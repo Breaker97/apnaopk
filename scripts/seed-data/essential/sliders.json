@@ -1,0 +1,372 @@
+[
+  {
+    "_id": {
+      "$oid": "6a90c980c14d31a66595aaee"
+    },
+    "name": "Hero Slider 1",
+    "handle": "new-slider-1787873664752",
+    "isActive": true,
+    "transition": "fade",
+    "autoplaySeconds": 4,
+    "slides": [
+      {
+        "id": "slide-mtc5tdzv",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "Go All in on \nBig Screen Action",
+          "description": "",
+          "cta": "Shop Now"
+        },
+        "ctaVariant": "dark",
+        "styles": {
+          "landscape": {
+            "heading": {
+              "weight": "300",
+              "size": 37,
+              "width": 100
+            },
+            "cta": {
+              "size": 16,
+              "width": 0
+            }
+          },
+          "square": {
+            "cta": {
+              "width": 0
+            }
+          },
+          "portrait": {
+            "cta": {
+              "size": 20,
+              "width": 100
+            }
+          }
+        },
+        "link": "",
+        "productId": "",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787875684984-aph2il/laptop.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#E4E3E6",
+          "gradient": {
+            "type": "linear",
+            "angle": 180,
+            "stops": [
+              {
+                "color": "#E4E3E6",
+                "at": 0
+              },
+              {
+                "color": "#ced0e8",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "top",
+            "gap": 19,
+            "scale": 138
+          },
+          "square": {
+            "gap": 7,
+            "scale": 72
+          },
+          "portrait": {
+            "gap": 26,
+            "scale": 73
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "center",
+            "v": "middle",
+            "scale": 85,
+            "rotation": 0,
+            "x": 0.6109979633401217,
+            "y": 23.054226843738398
+          },
+          "square": {
+            "scale": 100,
+            "x": 1.4369429774704368,
+            "y": 24.687533954998116
+          },
+          "portrait": {
+            "v": "middle",
+            "scale": 100,
+            "x": 0.7467261954856842,
+            "y": 16.95769381419967
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-27T23:34:24.755Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T09:11:14.586Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a90dbca9c9602fe66d62662"
+    },
+    "name": "New Slider",
+    "handle": "new-slider-1787878346153",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mtc8lnml",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "iPhone 16\non Sale!",
+          "description": "",
+          "cta": "Shop"
+        },
+        "ctaVariant": "outline",
+        "styles": {
+          "landscape": {
+            "heading": {
+              "size": 43,
+              "width": 93
+            },
+            "description": {
+              "width": 59
+            },
+            "cta": {
+              "weight": "800",
+              "size": 25,
+              "width": 0
+            }
+          },
+          "square": {
+            "heading": {
+              "size": 28,
+              "width": 100
+            },
+            "cta": {
+              "size": 14,
+              "width": 39
+            }
+          },
+          "portrait": {
+            "heading": {
+              "size": 19,
+              "width": 77
+            },
+            "cta": {
+              "size": 14,
+              "width": 100
+            }
+          }
+        },
+        "link": "",
+        "productId": "6a08870d380d244fd1bb61d2",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787878465490-4gxtyo/iphonr.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 180,
+            "stops": [
+              {
+                "color": "#eeeeee",
+                "at": 0
+              },
+              {
+                "color": "#d0d5d8",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "top",
+            "gap": 29,
+            "scale": 164
+          },
+          "square": {
+            "v": "top",
+            "gap": 13,
+            "scale": 103
+          },
+          "portrait": {
+            "h": "center",
+            "v": "top",
+            "gap": 0
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 59,
+            "rotation": -49,
+            "x": 2.735170570264766,
+            "y": 9.642311608961302
+          },
+          "square": {
+            "v": "bottom",
+            "scale": 66,
+            "rotation": -37,
+            "x": 0.23255813953488436,
+            "y": 18.604651162790702
+          },
+          "portrait": {
+            "h": "center",
+            "v": "bottom",
+            "scale": 94,
+            "rotation": 0,
+            "x": 0.19510210125229377,
+            "y": 7.59620094849695
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-28T00:52:26.185Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T09:22:39.847Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a91147f933a99cd2d2e5aa3"
+    },
+    "name": "Hero Slide 3",
+    "handle": "new-slider-1787892863171",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mtch7tcq",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "Apple Watches",
+          "description": "",
+          "cta": "Shop Now"
+        },
+        "ctaVariant": "outline",
+        "styles": {
+          "landscape": {
+            "cta": {
+              "size": 14
+            }
+          },
+          "square": {
+            "heading": {
+              "size": 30
+            },
+            "cta": {
+              "size": 12
+            }
+          }
+        },
+        "link": "",
+        "productId": "",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787893764933-qiqkbe/watch.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#C8E4FF",
+          "gradient": {
+            "type": "linear",
+            "angle": 0,
+            "stops": [
+              {
+                "color": "#ECFF98",
+                "at": 0
+              },
+              {
+                "color": "#C8E4FF",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 12,
+            "scale": 100
+          },
+          "square": {
+            "h": "left",
+            "v": "top"
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 34,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          },
+          "square": {
+            "h": "center",
+            "v": "bottom",
+            "scale": 71,
+            "x": 9.999999999999998,
+            "y": 6.046511627906977
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-28T04:54:23.186Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T08:00:00.232Z"
+    },
+    "__v": 0
+  }
+]

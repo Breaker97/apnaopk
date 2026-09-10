@@ -1,0 +1,205 @@
+[
+  {
+    "_id": {
+      "$oid": "6a90791fa8a12b22b27a0ca7"
+    },
+    "name": "Main Header",
+    "handle": "main-header",
+    "location": "header",
+    "description": "Primary navigation links shown in the store header.",
+    "items": [
+      {
+        "label": "Home",
+        "url": "/",
+        "type": "custom",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Blog",
+        "url": "/blog",
+        "type": "custom",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Track Order",
+        "url": "/track-order",
+        "type": "custom",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Contact Us",
+        "url": "/contact",
+        "type": "custom",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Become a Vendor",
+        "url": "/become-vendor",
+        "type": "custom",
+        "target": "_self",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-27T17:51:27.815Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T12:14:33.608Z"
+    },
+    "draftItems": null,
+    "hasUnpublishedChanges": false,
+    "pagesMenuMigratedAt": {
+      "$date": "2026-08-29T15:08:48.944Z"
+    },
+    "publishedAt": {
+      "$date": "2026-08-29T15:24:27.317Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a909dd0050bfb18a78dcd09"
+    },
+    "name": "Mega Menu",
+    "handle": "main-mega-menu",
+    "location": "header-mega",
+    "description": "Layered storefront mega menu shown from the header category menu.",
+    "items": [
+      {
+        "label": "Accessories",
+        "url": "/products?category=accessories",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916504284-jc75q5/ChatGPT_Image_Aug_23__2026__08_57_54_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Appliances",
+        "url": "/products?category=appliances",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916336167-1iyvjw/ChatGPT_Image_Aug_20__2026__11_54_56_AM.webp",
+        "children": []
+      },
+      {
+        "label": "Cameras & Smart Home",
+        "url": "/products?category=cameras-smart-home",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915969832-qfjsj8/ChatGPT_Image_Aug_19__2026__11_12_01_AM.webp",
+        "children": []
+      },
+      {
+        "label": "Gaming",
+        "url": "/products?category=gaming",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916056736-fqsi5u/ChatGPT_Image_Aug_20__2026__12_43_23_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Laptops. Tablets & PC",
+        "url": "/products?category=laptops-tablets-pc",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915882259-rqqaqq/ChatGPT_Image_Aug_19__2026__04_49_49_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Mobile Phones",
+        "url": "/products?category=mobile-phones",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887860046-pff58a/ChatGPT_Image_Aug_28__2026__08_44_21_AM.webp",
+        "children": [
+          {
+            "label": "Phones",
+            "url": "/products?category=phones",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889242869-wg429y/ChatGPT_Image_Aug_28__2026__09_53_38_AM.webp",
+            "children": [
+              {
+                "label": "Google",
+                "url": "/products?category=google",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890599847-e2h880/ChatGPT_Image_Aug_28__2026__10_13_58_AM.webp",
+                "children": []
+              },
+              {
+                "label": "Iphone",
+                "url": "/products?category=iphone",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887922966-vtv546/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Oneplus",
+                "url": "/products?category=oneplus",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787891457789-hv688h/ChatGPT_Image_Aug_28__2026__10_30_45_AM.webp",
+                "children": []
+              },
+              {
+                "label": "Samsung",
+                "url": "/products?category=samsung",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889553331-cgo8ig/ChatGPT_Image_Aug_28__2026__09_59_02_AM.webp",
+                "children": []
+              },
+              {
+                "label": "Xiaomi",
+                "url": "/products?category=xiaomi",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890671683-gnui5s/ChatGPT_Image_Aug_28__2026__10_17_36_AM.webp",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "PC Parts",
+        "url": "/products?category=pc-parts",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916660319-f3morw/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+        "children": []
+      },
+      {
+        "label": "TV & Audio",
+        "url": "/products?category=tv-audio",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916110749-jhcbm7/ChatGPT_Image_Aug_19__2026__09_56_38_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Wearable Technology",
+        "url": "/products?category=wearable-technology",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917107300-70b8da/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-27T20:28:00.200Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T05:31:49.798Z"
+    }
+  }
+]

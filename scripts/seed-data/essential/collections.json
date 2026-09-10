@@ -1,0 +1,822 @@
+[
+  {
+    "_id": {
+      "$oid": "6a0c174936954ff4ba2133a4"
+    },
+    "title": "Summer Vibe",
+    "slug": "summer-vive",
+    "handle": "summer-vive",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177178261-cquovs-image_312__1_.png",
+      "alt": "Summer Vive"
+    },
+    "collectionType": "manual",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Summer Vive",
+      "metaDescription": "Lorem Ipsum",
+      "handle": "summer-vive"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-19T07:54:49.598Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c183736954ff4ba2133a6"
+    },
+    "title": "Mother's Day",
+    "slug": "mother-s-day",
+    "handle": "mother-s-day",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177496890-kipmzt-image_336__1_.png",
+      "alt": "Mother's Day"
+    },
+    "collectionType": "manual",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "created-asc",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "seo": {
+      "pageTitle": "Mother's Day",
+      "metaDescription": "Lorem Ipsum",
+      "handle": "mother-s-day"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-19T07:58:47.683Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c185c36954ff4ba2133a7"
+    },
+    "title": "Winter Breeze",
+    "slug": "winter-breeze",
+    "handle": "winter-breeze",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177559541-6cqiqb-image_337__1_.png",
+      "alt": "Winter Breeze"
+    },
+    "collectionType": "manual",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "winter-breeze"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-19T07:59:24.836Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c18b436954ff4ba2133a8"
+    },
+    "title": "Nomad Tech",
+    "slug": "nomad-tech",
+    "handle": "nomad-tech",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177631696-ou611f-image_338__1_.png",
+      "alt": "Nomad Tech"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a088353894b3f639931fd09"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "nomad-tech"
+    },
+    "productCount": 1,
+    "createdAt": {
+      "$date": "2026-05-19T08:00:52.155Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c18fc36954ff4ba2133a9"
+    },
+    "title": "Adventure Stack",
+    "slug": "adventure-stack",
+    "handle": "adventure-stack",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177664117-00sfoe-image_339__1_.png",
+      "alt": "Adventure Stack"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a69e1a84e363f54275af9a4"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "adventure-stack"
+    },
+    "productCount": 1,
+    "createdAt": {
+      "$date": "2026-05-19T08:02:04.768Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c192036954ff4ba2133aa"
+    },
+    "title": "Elegant Party",
+    "slug": "elegant-party",
+    "handle": "elegant-party",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177731758-8dqgrh-image_340__1_.png",
+      "alt": "Elegant Party"
+    },
+    "collectionType": "manual",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "elegant-party"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-19T08:02:40.145Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c198136954ff4ba2133ab"
+    },
+    "title": "Hype Junkey",
+    "slug": "hype-junkey",
+    "handle": "hype-junkey",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177854172-iivij8-image_341__1_.png",
+      "alt": "Hype Junkey"
+    },
+    "collectionType": "manual",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Hype Junkey",
+      "metaDescription": "Lorem Ipsum",
+      "handle": "hype-junkey"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-19T08:04:17.046Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c19da36954ff4ba2133ad"
+    },
+    "title": "Adrenalin Rush",
+    "slug": "adrenalin-rush",
+    "handle": "adrenalin-rush",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177874083-voua9p-image_343__1_.png",
+      "alt": "Adrenalin Rush"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a0ac1345d747a63e3255ccd"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "adrenalin-rush"
+    },
+    "productCount": 1,
+    "createdAt": {
+      "$date": "2026-05-19T08:05:46.445Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c19f936954ff4ba2133ae"
+    },
+    "title": "Kid's Joy",
+    "slug": "kid-s-joy",
+    "handle": "kid-s-joy",
+    "description": "Lorem Ipsum",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779177971709-c5edst-image_342__1_.png",
+      "alt": "Kid's Joy"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a0aee1536954ff4ba213255"
+      },
+      {
+        "$oid": "6a08870d380d244fd1bb61d2"
+      },
+      {
+        "$oid": "6a088353894b3f639931fd09"
+      },
+      {
+        "$oid": "6a55dadb9deb890bddd5a0a2"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Kid's Joy",
+      "metaDescription": "Lorem Ipsum",
+      "handle": "kid-s-joy"
+    },
+    "productCount": 4,
+    "createdAt": {
+      "$date": "2026-05-19T08:06:17.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T10:22:27.652Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a7315d7054eb9d5e893edfe"
+    },
+    "title": "Mobile & Tablets",
+    "slug": "mobile-tablets",
+    "handle": "mobile-tablets",
+    "description": "Automatically curated Mobile & Tablets products.",
+    "descriptionHtml": "<p>Automatically curated Mobile & Tablets products.</p>",
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a55dadb9deb890bddd5a0a2"
+      },
+      {
+        "$oid": "6a0abe565d747a63e3255cb8"
+      },
+      {
+        "$oid": "6a088996380d244fd1bb61e3"
+      },
+      {
+        "$oid": "6a08870d380d244fd1bb61d2"
+      },
+      {
+        "$oid": "6a088353894b3f639931fd09"
+      },
+      {
+        "$oid": "6a08784e894b3f639931fc8c"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 1,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "seo": {
+      "pageTitle": "Mobile & Tablets",
+      "metaDescription": "Automatically curated Mobile & Tablets products.",
+      "handle": "mobile-tablets"
+    },
+    "productCount": 6,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:07.257Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785929202634-8ybv1m/ChatGPT_Image_Aug_5__2026__05_25_55_PM.webp",
+      "alt": "Mobile & Tablets"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315d8054eb9d5e893edff"
+    },
+    "title": "Computing",
+    "slug": "computing",
+    "handle": "computing",
+    "description": "Automatically curated Computing products.",
+    "descriptionHtml": "<p>Automatically curated Computing products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-computing"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 2,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Computing collection",
+      "metaDescription": "Shop the Computing collection.",
+      "handle": "computing"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:08.609Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.656Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786795132700-4mar1w/ChatGPT_Image_Aug_15__2026__12_13_30_PM.webp",
+      "alt": "Computing"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315d9054eb9d5e893ee00"
+    },
+    "title": "Audio & Wearables",
+    "slug": "audio-wearables",
+    "handle": "audio-wearables",
+    "description": "Automatically curated Audio & Wearables products.",
+    "descriptionHtml": "<p>Automatically curated Audio & Wearables products.</p>",
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a0ab9985d747a63e3255cad"
+      },
+      {
+        "$oid": "6a09b8586fc0e82b8d6b2770"
+      },
+      {
+        "$oid": "6a09b4f56fc0e82b8d6b275d"
+      }
+    ],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-audio-wearables"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 3,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "audio-wearables"
+    },
+    "productCount": 3,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:09.679Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786795163251-6zqyiq/ChatGPT_Image_Aug_15__2026__12_11_56_PM.webp",
+      "alt": "Audio & Wearables"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315da054eb9d5e893ee01"
+    },
+    "title": "Cameras & Smart Home",
+    "slug": "cameras-smart-home",
+    "handle": "cameras-smart-home",
+    "description": "Automatically curated Cameras & Smart Home products.",
+    "descriptionHtml": "<p>Automatically curated Cameras & Smart Home products.</p>",
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a0ac1345d747a63e3255ccd"
+      },
+      {
+        "$oid": "6a088d10380d244fd1bb622a"
+      },
+      {
+        "$oid": "6a088c00380d244fd1bb6229"
+      },
+      {
+        "$oid": "6a088ad4380d244fd1bb6228"
+      }
+    ],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-cameras-smart-home"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 4,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "cameras-smart-home"
+    },
+    "productCount": 4,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:10.748Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.636Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786795198054-uj1hgb/ChatGPT_Image_Aug_15__2026__12_17_18_PM2.webp",
+      "alt": "Cameras & Smart Home"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315db054eb9d5e893ee02"
+    },
+    "title": "Apparel",
+    "slug": "apparel",
+    "handle": "apparel",
+    "description": "Automatically curated Apparel products.",
+    "descriptionHtml": "<p>Automatically curated Apparel products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-apparel"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 5,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Apparel collection",
+      "metaDescription": "Shop the Apparel collection.",
+      "handle": "apparel"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:11.809Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.657Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786795218054-peeaun/ChatGPT_Image_Aug_15__2026__01_04_19_PM.webp",
+      "alt": "Apparel"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315dc054eb9d5e893ee03"
+    },
+    "title": "Footwear & Bags",
+    "slug": "footwear-bags",
+    "handle": "footwear-bags",
+    "description": "Automatically curated Footwear & Bags products.",
+    "descriptionHtml": "<p>Automatically curated Footwear & Bags products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-footwear-bags"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 6,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Footwear & Bags collection",
+      "metaDescription": "Shop the Footwear & Bags collection.",
+      "handle": "footwear-bags"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:12.875Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.658Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786795245281-pnvx8r/ChatGPT_Image_Aug_15__2026__02_02_42_PM.webp",
+      "alt": "Footwear & Bags"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315dd054eb9d5e893ee04"
+    },
+    "title": "Home & Kitchen",
+    "slug": "home-kitchen",
+    "handle": "home-kitchen",
+    "description": "Automatically curated Home & Kitchen products.",
+    "descriptionHtml": "<p>Automatically curated Home & Kitchen products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-home-kitchen"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 7,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Home & Kitchen collection",
+      "metaDescription": "Shop the Home & Kitchen collection.",
+      "handle": "home-kitchen"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:13.944Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.657Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786796215360-xein3o/ChatGPT_Image_Aug_15__2026__06_16_06_PM.webp",
+      "alt": "Home & Kitchen"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315de054eb9d5e893ee05"
+    },
+    "title": "Furniture & Decor",
+    "slug": "furniture-decor",
+    "handle": "furniture-decor",
+    "description": "Automatically curated Furniture & Decor products.",
+    "descriptionHtml": "<p>Automatically curated Furniture & Decor products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-furniture-decor"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 8,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Furniture & Decor collection",
+      "metaDescription": "Shop the Furniture & Decor collection.",
+      "handle": "furniture-decor"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:15.001Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.659Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786802813213-9mdusk/ChatGPT_Image_Aug_15__2026__08_05_32_PM.webp",
+      "alt": "Furniture & Decor"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315e0054eb9d5e893ee06"
+    },
+    "title": "Beauty & Wellness",
+    "slug": "beauty-wellness",
+    "handle": "beauty-wellness",
+    "description": "Automatically curated Beauty & Wellness products.",
+    "descriptionHtml": "<p>Automatically curated Beauty & Wellness products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "catalog-beauty-wellness"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 9,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Beauty & Wellness collection",
+      "metaDescription": "Shop the Beauty & Wellness collection.",
+      "handle": "beauty-wellness"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:16.058Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.660Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786803785504-28x5bm/ChatGPT_Image_Aug_15__2026__08_22_59_PM.webp",
+      "alt": "Beauty & Wellness"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7315e3054eb9d5e893ee09"
+    },
+    "title": "Tech Essentials",
+    "slug": "tech-essentials",
+    "handle": "tech-essentials",
+    "description": "Automatically curated Tech Essentials products.",
+    "descriptionHtml": "<p>Automatically curated Tech Essentials products.</p>",
+    "collectionType": "automated",
+    "products": [],
+    "conditions": [
+      {
+        "field": "tag",
+        "operator": "contains",
+        "value": "tech"
+      }
+    ],
+    "conditionMatch": "all",
+    "sortOrder": "created-desc",
+    "position": 12,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Tech Essentials collection",
+      "metaDescription": "Shop the Tech Essentials collection.",
+      "handle": "tech-essentials"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-05T10:52:19.264Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T00:27:47.679Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "/uploads/2026/08/1786804328518-t0fcbg/ChatGPT_Image_Aug_15__2026__08_32_01_PM.webp",
+      "alt": "Tech Essentials"
+    }
+  }
+]

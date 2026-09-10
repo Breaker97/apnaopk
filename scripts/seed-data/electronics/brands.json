@@ -1,0 +1,314 @@
+[
+  {
+    "_id": {
+      "$oid": "6a92888daa34b8f92ac36035"
+    },
+    "name": "Anker",
+    "slug": "anker",
+    "description": "Anker is a trusted global brand specializing in high-quality electronic accessories, including chargers, power banks, and cables. Renowned for reliability and innovation, Anker delivers products designed to enhance connectivity and convenience for everyday users and tech enthusiasts alike.",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787988014709-32cd0f/Anker-9579.webp",
+    "website": "https://www.anker.com/",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T07:21:49.231Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T07:21:49.231Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a92920daa34b8f92ac360a4"
+    },
+    "name": "Apple",
+    "slug": "apple",
+    "description": "Apple is a global leader in technology, renowned for its innovative products and seamless user experience. The brand offers premium devices including iPhones, MacBooks, and services designed to empower and inspire users worldwide.",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787990497914-gw3wpt/Apple-6176.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T08:02:21.432Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T08:02:21.432Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a929496aa34b8f92ac360af"
+    },
+    "name": "Samsung",
+    "slug": "samsung",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787991181581-m7fyrl/Samsung-4680.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T08:13:10.564Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T08:13:10.564Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9294d1aa34b8f92ac360b0"
+    },
+    "name": "Xioami",
+    "slug": "xioami",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787991231201-zfgwno/Xiaomi-1934.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T08:14:09.079Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T08:14:09.079Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a929506aa34b8f92ac360b1"
+    },
+    "name": "Google",
+    "slug": "google",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787991299020-i5ycfc/Google-4283.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T08:15:02.258Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T08:15:02.258Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9295a9aa34b8f92ac360b3"
+    },
+    "name": "Sony",
+    "slug": "sony",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787991461917-x8f6q6/Sony-3098.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T08:17:45.870Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T08:17:45.870Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a92d101ad426d112681ae3e"
+    },
+    "name": "Intel",
+    "slug": "intel",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788006644089-19selu/intel-01-1053.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-29T12:30:57.603Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T12:30:57.603Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a93fc9ae43b0a05f712984c"
+    },
+    "name": "Acer",
+    "slug": "acer",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788083344066-sej1xc/image_601__1_.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-30T09:49:14.772Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T09:49:14.772Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a941cd84c7e1d8b0a785bf7"
+    },
+    "name": "Dell",
+    "slug": "dell",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788091602326-5gb49m/4-2541.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-30T12:06:48.513Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T12:06:48.513Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a941cef4c7e1d8b0a785bfa"
+    },
+    "name": "Lenevo",
+    "slug": "lenevo",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788091627379-iz6xj3/Lenovo-4549.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-30T12:07:11.290Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T12:07:11.290Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a941d124c7e1d8b0a785bfb"
+    },
+    "name": "JBL",
+    "slug": "jbl",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788091662989-80iq5e/JBL-4053.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-30T12:07:46.108Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T12:07:46.108Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a941d2f4c7e1d8b0a785bfc"
+    },
+    "name": "Oneplus",
+    "slug": "oneplus",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788091679721-wdcpj8/Oneplus-9091.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-30T12:08:15.067Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T12:08:15.067Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9990038a17b3f75046c327"
+    },
+    "name": "Xbox",
+    "slug": "xbox",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788448739694-9dohbx/618TweYVMfL._AC_SF462_108.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-03T15:19:31.607Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T15:19:31.607Z"
+    },
+    "__v": 0
+  }
+]

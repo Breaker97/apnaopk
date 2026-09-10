@@ -1,0 +1,176 @@
+[
+  {
+    "_id": {
+      "$oid": "6a5c4650c832b3269d7581de"
+    },
+    "name": "Size",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "455a24bd-5895-4079-8e8f-f6795ce286a5",
+        "value": "Small",
+        "position": 0
+      },
+      {
+        "_id": "69d2f97c-5f81-4eac-899d-7b3d16e85585",
+        "value": "Medium",
+        "position": 1
+      },
+      {
+        "_id": "5c7e933f-3226-46f3-ac2d-d75e7e0633ae",
+        "value": "Large",
+        "position": 2
+      },
+      {
+        "_id": "84e5cc10-9d90-41ca-80eb-85544544bf4b",
+        "value": "Extra-Large",
+        "position": 3
+      }
+    ],
+    "position": 0,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-07-19T03:36:48.611Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-25T17:03:22.970Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a5eff8d4aeb2f6a170d9493"
+    },
+    "name": "Material",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "c4d2273b-8c97-4423-b2ac-3eb4af7f5879",
+        "value": "Cotton",
+        "position": 0
+      },
+      {
+        "_id": "69464db8-e1cb-40c8-97ea-227be4e7487f",
+        "value": "Plastic",
+        "position": 1
+      },
+      {
+        "_id": "5d45c549-a977-40e5-b225-a00f1509156c",
+        "value": "Wooden",
+        "position": 2
+      }
+    ],
+    "position": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-07-21T05:11:41.848Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-05T19:39:00.034Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a66e5342d9a3642cb8e87db"
+    },
+    "name": "Color",
+    "type": "color",
+    "visual": "color",
+    "values": [
+      {
+        "_id": "602fa1f0-c978-4873-978b-0a7be00e4db1",
+        "value": "Red",
+        "colorCode": "#ef4444",
+        "position": 0
+      },
+      {
+        "_id": "bd43ab74-f785-4e8c-bb6a-5851cc7b18c4",
+        "value": "Blue",
+        "colorCode": "#3b82f6",
+        "position": 1
+      },
+      {
+        "_id": "f08b78db-bfcd-4937-9613-4aebf3d60751",
+        "value": "Green",
+        "colorCode": "#22c55e",
+        "position": 2
+      },
+      {
+        "_id": "4bf83bdb-98bc-4b79-8145-dfa0f7c880ee",
+        "value": "Yellow",
+        "colorCode": "#eab308",
+        "position": 3
+      },
+      {
+        "_id": "ed3afc39-2e1f-40b7-8d8c-418ba7c14ab4",
+        "value": "Black",
+        "colorCode": "#171717",
+        "position": 4
+      }
+    ],
+    "position": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-07-27T04:57:24.990Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-08T13:33:53.427Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a672db42d9a3642cb8e8913"
+    },
+    "name": "Storage",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "b68cdd39-07ed-48e8-af82-c200949789bf",
+        "value": "WEE",
+        "position": 0
+      },
+      {
+        "_id": "2c3bed4f-5469-4261-87df-a369b1102be2",
+        "value": "MB",
+        "position": 1
+      },
+      {
+        "_id": "4b90b4c3-0a0d-4989-8a8f-2add538e0f2b",
+        "value": "GB",
+        "position": 2
+      }
+    ],
+    "position": 4,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-07-27T10:06:44.056Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-07T19:06:05.209Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a773015373f752202b845f0"
+    },
+    "name": "new",
+    "type": "text",
+    "visual": "radio",
+    "values": [],
+    "position": 5,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-08T13:33:09.354Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-08T13:33:09.354Z"
+    },
+    "__v": 0
+  }
+]

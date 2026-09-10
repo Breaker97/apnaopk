@@ -1,0 +1,26 @@
+# The image installs its own node_modules; the runner's pnpm symlink farm
+# must never be copied in.
+node_modules
+
+# The prebuilt .next IS shipped — only the compiler/image-optimizer cache is
+# dropped (the optimizer cache is recreated at runtime; mount a volume at
+# /app/.next/cache to keep it across deploys, see docs/STORAGE_SETUP.md).
+.next/cache
+
+# Never bake environment files into an image. Runtime env comes from the
+# deploy panel; build-time NEXT_PUBLIC_* values are inlined by the CI build.
+.env
+.env.*
+!.env.example
+
+.git
+.github
+tests
+tsconfig.tsbuildinfo
+.DS_Store
+*.swp
+.claude
+.agents
+.superpowers
+.trae
+.vercel

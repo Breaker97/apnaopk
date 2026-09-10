@@ -1,0 +1,417 @@
+[
+  {
+    "_id": {
+      "$oid": "6a7429a863acf9881cceefcc"
+    },
+    "name": "Uttara Branch",
+    "address": "Uttara, Dhaka",
+    "isDefault": false,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-06T06:28:56.963Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T18:13:12.260Z"
+    },
+    "__v": 1,
+    "vendorId": {
+      "$oid": "6a086b3d4f82afda4ea77ef9"
+    },
+    "mapsUrl": "",
+    "pickupEnabled": false,
+    "weeklyHours": [],
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        90.3890144,
+        23.7643863
+      ]
+    },
+    "fulfillmentPriority": 2,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true
+  },
+  {
+    "_id": {
+      "$oid": "6a76013e422b1d9ca7501dcc"
+    },
+    "vendorId": {
+      "$oid": "6a086b3d4f82afda4ea77ef9"
+    },
+    "name": "Main Branch",
+    "address": "Gulshan, Dhaka, 1212",
+    "isDefault": true,
+    "isActive": true,
+    "pickupEnabled": false,
+    "instructions": "",
+    "weeklyHours": [],
+    "createdAt": {
+      "$date": "2026-08-07T16:01:02.701Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T18:13:12.260Z"
+    },
+    "mapsUrl": "",
+    "fulfillsOnlineOrders": true,
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        90.3890144,
+        23.7643863
+      ]
+    },
+    "fulfillmentPriority": 0,
+    "pickupArea": ""
+  },
+  {
+    "_id": {
+      "$oid": "6a76013f422b1d9ca7501dcd"
+    },
+    "vendorId": {
+      "$oid": "6a6755d54eb452392a3f40cb"
+    },
+    "name": "Ghulshan Branch",
+    "address": "Ghulshan no-1, street demo 120, demo market place, floor-1, shop:22",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": true,
+    "pickupArea": "Ghulshan, Dhaka",
+    "instructions": "Counter 3-এ order number দেখান",
+    "weeklyHours": [
+      {
+        "weekday": 0,
+        "enabled": false,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 1,
+        "enabled": true,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 2,
+        "enabled": true,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 3,
+        "enabled": true,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 4,
+        "enabled": true,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 5,
+        "enabled": true,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 6,
+        "enabled": true,
+        "start": "09:00",
+        "end": "17:00"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-07T16:01:03.219Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:53:22.286Z"
+    },
+    "fulfillsOnlineOrders": false,
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        90.4256113,
+        23.7857042
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a76013f422b1d9ca7501dce"
+    },
+    "vendorId": {
+      "$oid": "6a6755d54eb452392a3f40cb"
+    },
+    "name": "Dhanmondi Branch",
+    "address": "Dhanmondi, street demo 125, demo market place, floor-1, shop:25",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": true,
+    "pickupArea": "Dhanmondi, Dhaka",
+    "instructions": "Counter 1-এ order number দেখান",
+    "weeklyHours": [
+      {
+        "weekday": 0,
+        "enabled": true,
+        "start": "10:00",
+        "end": "20:00"
+      },
+      {
+        "weekday": 1,
+        "enabled": true,
+        "start": "10:00",
+        "end": "20:00"
+      },
+      {
+        "weekday": 2,
+        "enabled": true,
+        "start": "10:00",
+        "end": "20:00"
+      },
+      {
+        "weekday": 3,
+        "enabled": true,
+        "start": "10:00",
+        "end": "20:00"
+      },
+      {
+        "weekday": 4,
+        "enabled": true,
+        "start": "10:00",
+        "end": "20:00"
+      },
+      {
+        "weekday": 5,
+        "enabled": false,
+        "start": "09:00",
+        "end": "17:00"
+      },
+      {
+        "weekday": 6,
+        "enabled": true,
+        "start": "09:00",
+        "end": "20:00"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-07T16:01:03.563Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:53:22.286Z"
+    },
+    "fulfillsOnlineOrders": false,
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        90.4256113,
+        23.7857042
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7de7554853e38afbcb2a1d"
+    },
+    "vendorId": {
+      "$oid": "6a095622dc2b7bb4ca29c35b"
+    },
+    "name": "Electronica XR Warehouse",
+    "isDefault": true,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-13T15:48:37.533Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-21T01:09:21.216Z"
+    },
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        114.0545429,
+        22.5445741
+      ]
+    },
+    "__v": 1,
+    "fulfillmentPriority": 0,
+    "fulfillsOnlineOrders": true,
+    "pickupEnabled": false,
+    "weeklyHours": []
+  },
+  {
+    "_id": {
+      "$oid": "6a7de7564853e38afbcb2a1e"
+    },
+    "vendorId": {
+      "$oid": "6a095a2edc2b7bb4ca29c367"
+    },
+    "name": "Haier Angie Warehouse",
+    "isDefault": true,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-13T15:48:38.039Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-13T15:50:26.639Z"
+    },
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -149.11109,
+        61.5995703
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a7e224b696948a278e153aa"
+    },
+    "vendorId": {
+      "$oid": "6a09506bdc2b7bb4ca29c354"
+    },
+    "name": "Main",
+    "address": "Colombo",
+    "isDefault": true,
+    "isActive": true,
+    "pickupEnabled": true,
+    "fulfillsOnlineOrders": true,
+    "fulfillmentPriority": 1,
+    "pickupArea": "",
+    "instructions": "",
+    "weeklyHours": [
+      {
+        "weekday": 0,
+        "enabled": false,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 1,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 2,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 3,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 4,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 5,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 6,
+        "enabled": false,
+        "start": "09:00",
+        "end": "18:00"
+      }
+    ],
+    "mapsUrl": "",
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -74.0060152,
+        40.7127281
+      ]
+    },
+    "createdAt": {
+      "$date": "2026-08-13T20:00:11.644Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-21T10:58:08.571Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a7e22a9696948a278e153ab"
+    },
+    "vendorId": {
+      "$oid": "6a09506bdc2b7bb4ca29c354"
+    },
+    "name": "Main2",
+    "address": "C",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": true,
+    "fulfillsOnlineOrders": true,
+    "fulfillmentPriority": 0,
+    "pickupArea": "",
+    "instructions": "",
+    "weeklyHours": [
+      {
+        "weekday": 0,
+        "enabled": false,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 1,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 2,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 3,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 4,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 5,
+        "enabled": true,
+        "start": "09:00",
+        "end": "18:00"
+      },
+      {
+        "weekday": 6,
+        "enabled": false,
+        "start": "09:00",
+        "end": "18:00"
+      }
+    ],
+    "mapsUrl": "",
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -74.0060152,
+        40.7127281
+      ]
+    },
+    "createdAt": {
+      "$date": "2026-08-13T20:01:45.043Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-21T10:58:08.568Z"
+    },
+    "__v": 0
+  }
+]

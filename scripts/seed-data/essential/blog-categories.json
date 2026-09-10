@@ -1,0 +1,92 @@
+[
+  {
+    "_id": {
+      "$oid": "6a0967f2dc2b7bb4ca29c371"
+    },
+    "name": "Sales & Marketing",
+    "slug": "sales-marketing",
+    "description": "",
+    "order": 0,
+    "isActive": true,
+    "postCount": 0,
+    "createdAt": {
+      "$date": "2026-05-17T07:02:10.312Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T07:02:10.312Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0994ecdc2b7bb4ca29c379"
+    },
+    "name": "Electronics Accessories",
+    "slug": "electronics-accessories",
+    "description": "",
+    "order": 0,
+    "isActive": true,
+    "postCount": 0,
+    "createdAt": {
+      "$date": "2026-05-17T10:14:04.758Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T10:14:04.758Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a099d0edc2b7bb4ca29c387"
+    },
+    "name": "Moblie banking",
+    "slug": "moblie-banking",
+    "description": "",
+    "order": 0,
+    "isActive": true,
+    "postCount": 0,
+    "createdAt": {
+      "$date": "2026-05-17T10:48:46.777Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T10:48:46.777Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a099eeddc2b7bb4ca29c389"
+    },
+    "name": "Productivity",
+    "slug": "productivity",
+    "description": "",
+    "order": 0,
+    "isActive": true,
+    "postCount": 0,
+    "createdAt": {
+      "$date": "2026-05-17T10:56:45.629Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T10:56:45.629Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a09a091dc2b7bb4ca29c38b"
+    },
+    "name": "Typography",
+    "slug": "typography",
+    "description": "",
+    "order": 0,
+    "isActive": true,
+    "postCount": 0,
+    "createdAt": {
+      "$date": "2026-05-17T11:03:45.375Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T11:03:45.375Z"
+    },
+    "__v": 0
+  }
+]

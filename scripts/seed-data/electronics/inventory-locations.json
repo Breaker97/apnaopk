@@ -1,0 +1,64 @@
+[
+  {
+    "_id": {
+      "$oid": "6a907908a8a12b22b27a0c34"
+    },
+    "vendorId": {
+      "$oid": "6a907901a8a12b22b27a0c1c"
+    },
+    "name": "Store Front",
+    "address": "400 Retail Ave, New York, NY 10002",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 0,
+    "weeklyHours": [],
+    "createdAt": {
+      "$date": "2026-08-27T17:51:04.479Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-07T11:04:10.652Z"
+    },
+    "__v": 0,
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -73.9536363,
+        40.7577038
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a907908a8a12b22b27a0c33"
+    },
+    "vendorId": {
+      "$oid": "6a907901a8a12b22b27a0c1c"
+    },
+    "name": "Warehouse",
+    "address": "100 Warehouse Blvd, New York, NY 10001",
+    "isDefault": true,
+    "isActive": true,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 0,
+    "weeklyHours": [],
+    "createdAt": {
+      "$date": "2026-08-27T17:51:04.478Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-07T11:04:10.652Z"
+    },
+    "__v": 0,
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -73.9536363,
+        40.7577038
+      ]
+    }
+  }
+]

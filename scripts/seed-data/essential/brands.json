@@ -1,0 +1,237 @@
+[
+  {
+    "_id": {
+      "$oid": "6a58c766196686edf4f0d235"
+    },
+    "name": "Apple",
+    "slug": "apple",
+    "description": "Apple is a global leader in innovative technology, renowned for its sleek design and cutting-edge products like the iPhone, Mac, and iPad. Committed to quality and user experience, Apple blends style with functionality to enhance everyday life.",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/ai-generated/1784203028519-knupr0-ai-brand-image_edit-1784203028515.png",
+    "website": "",
+    "order": 0,
+    "isActive": false,
+    "featured": true,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": {
+      "$date": "2026-07-24T01:29:34.084Z"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-07-16T11:58:30.451Z"
+    },
+    "updatedAt": {
+      "$date": "2026-07-24T01:29:34.084Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Apple",
+      "metaDescription": "Apple is a global leader in innovative technology, renowned for its sleek design and cutting-edge products like the iPhone, Mac, and iPad. Committed to quality and user experience, Apple blends style with functionality to enhance everyday life."
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a62c1528e6c5d91541eaf1b"
+    },
+    "name": "Apple",
+    "slug": "apple-1784856914134",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787767105664-z9rh2y/apple.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-07-24T01:35:14.135Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T17:58:30.635Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Apple"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a8f296e931a8eeaf3cb4787"
+    },
+    "name": "Asus",
+    "slug": "asus",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787767144990-o1vs4v/asus.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-26T17:59:10.516Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T17:59:10.516Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8f297e931a8eeaf3cb4788"
+    },
+    "name": "Benq",
+    "slug": "benq",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787767178938-fr696n/benq.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-26T17:59:26.865Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T17:59:41.861Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Benq"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a8f29a3931a8eeaf3cb4789"
+    },
+    "name": "AOC",
+    "slug": "aoc",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787767200239-nslc0x/aoc.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-26T18:00:03.529Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T18:00:03.529Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8f29c7931a8eeaf3cb478a"
+    },
+    "name": "Alogic",
+    "slug": "alogic",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787767237868-s8vdfs/alogic.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-26T18:00:39.576Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T18:00:39.576Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8f3475931a8eeaf3cb4803"
+    },
+    "name": "Samsung",
+    "slug": "samsung",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787769962946-2u9kij/samsung.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-26T18:46:13.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T18:46:13.409Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8f358a931a8eeaf3cb4807"
+    },
+    "name": "Huawei",
+    "slug": "huawei",
+    "description": "",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787770248883-bi99zy/huawei_copy.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-08-26T18:50:50.803Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T18:50:50.803Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a6879052d9a3642cb8e8a14"
+    },
+    "name": "Acer",
+    "slug": "nsjdnbebbeeb",
+    "description": "bsn.com",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787767126768-4yw9w5/acer.webp",
+    "website": "",
+    "order": 999,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": {
+      "$oid": "6a09506bdc2b7bb4ca29c354"
+    },
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "seo": {
+      "pageTitle": "Bdbdbdb",
+      "metaDescription": "Bdbdbdb"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-07-28T09:40:21.618Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-26T17:58:48.723Z"
+    },
+    "__v": 0,
+    "rejectionReason": ""
+  }
+]

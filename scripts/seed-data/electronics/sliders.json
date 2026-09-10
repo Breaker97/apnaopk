@@ -1,0 +1,421 @@
+[
+  {
+    "_id": {
+      "$oid": "6a910cd178f8f8611ac7f4bb"
+    },
+    "name": "New Slider",
+    "handle": "new-slider",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 3,
+    "slides": [
+      {
+        "id": "slide-mtcg2r9d",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "Go All in on\nBig Screen Action",
+          "description": "",
+          "cta": "Shop Now"
+        },
+        "ctaVariant": "dark",
+        "styles": {
+          "landscape": {
+            "heading": {
+              "weight": "300",
+              "size": 36,
+              "width": 75
+            }
+          },
+          "square": {
+            "heading": {
+              "width": 100
+            }
+          }
+        },
+        "link": "",
+        "productId": "",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917055882-toutn8/image_862.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 0,
+            "stops": [
+              {
+                "color": "#E5E4E7",
+                "at": 0
+              },
+              {
+                "color": "#DEDFE9",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "top",
+            "gap": 12,
+            "scale": 154
+          },
+          "square": {
+            "h": "center",
+            "v": "top",
+            "scale": 75
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "center",
+            "v": "middle",
+            "scale": 76,
+            "rotation": 0,
+            "x": 0.6611188900203667,
+            "y": 24.771784986907186
+          },
+          "square": {
+            "h": "center",
+            "v": "middle",
+            "scale": 100,
+            "x": 0.7985101744186046,
+            "y": 22.519985465116278
+          }
+        },
+        "alt": ""
+      },
+      {
+        "id": "slide-mtcvsbnt",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": true,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "iPad Mini",
+          "description": "with A17 or A18 chips",
+          "cta": "Shop Now"
+        },
+        "ctaVariant": "outline",
+        "styles": {
+          "landscape": {},
+          "square": {
+            "heading": {
+              "size": 27,
+              "width": 97
+            },
+            "description": {
+              "width": 100
+            },
+            "cta": {
+              "size": 11
+            }
+          },
+          "portrait": {
+            "heading": {
+              "width": 100
+            },
+            "description": {
+              "width": 100
+            }
+          }
+        },
+        "link": "",
+        "productId": "",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917465098-tphc9y/ipads.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "solid",
+          "color": "#f1f1f1"
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "top",
+            "gap": 12,
+            "scale": 141
+          },
+          "square": {
+            "gap": 5,
+            "scale": 105
+          },
+          "portrait": {
+            "gap": 0,
+            "scale": 93
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "center",
+            "v": "middle",
+            "scale": 67,
+            "rotation": 0,
+            "x": -0.09427507637474553,
+            "y": 20.793024439918536
+          },
+          "square": {
+            "scale": 81,
+            "x": 0.2818150399043242,
+            "y": 21.642406707360397
+          },
+          "portrait": {
+            "scale": 100,
+            "x": 0.7111872170136841,
+            "y": 16.781620357692923
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-28T04:21:37.270Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T20:07:56.108Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9174d9b5c203ac3d0fbbf1"
+    },
+    "name": "Hero Slider 2",
+    "handle": "new-slider-1787917529240",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mtcvxmnc",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "iPhones",
+          "description": "",
+          "cta": "Buy Now"
+        },
+        "ctaVariant": "outline",
+        "styles": {
+          "landscape": {
+            "heading": {
+              "size": 44
+            },
+            "cta": {
+              "size": 20
+            }
+          },
+          "square": {
+            "heading": {
+              "size": 39,
+              "width": 83
+            }
+          },
+          "portrait": {
+            "heading": {
+              "width": 100
+            }
+          }
+        },
+        "link": "",
+        "productId": "",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917779394-u2nhgb/image_326.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 225,
+            "stops": [
+              {
+                "color": "#F3F3F3",
+                "at": 0
+              },
+              {
+                "color": "#E3E6E8",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "top",
+            "gap": 12,
+            "scale": 192
+          },
+          "square": {
+            "gap": 12,
+            "scale": 102
+          },
+          "portrait": {
+            "h": "center",
+            "scale": 82
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 96,
+            "rotation": -36,
+            "x": 8.371388110997966,
+            "y": 12.678207739307537
+          },
+          "square": {
+            "v": "middle",
+            "scale": 100,
+            "x": 11.65008488549709,
+            "y": 13.637593322242223
+          },
+          "portrait": {
+            "h": "center",
+            "scale": 100,
+            "rotation": 0,
+            "x": -0.514148789786401,
+            "y": 19.685131099531525
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-28T11:45:29.247Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-05T13:16:21.003Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9175ecb5c203ac3d0fbbf3"
+    },
+    "name": "New Slider",
+    "handle": "new-slider-1787917804233",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mtcw3itx",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "countdown": false
+        },
+        "texts": {
+          "tagline": "",
+          "heading": "Apple Watches",
+          "description": "",
+          "cta": "Buy Now"
+        },
+        "ctaVariant": "outline",
+        "styles": {
+          "landscape": {
+            "heading": {
+              "size": 39,
+              "width": 100
+            },
+            "cta": {
+              "size": 20
+            }
+          }
+        },
+        "link": "",
+        "productId": "",
+        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917908470-wlzmhr/Rectangle_236.webp",
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 180,
+            "stops": [
+              {
+                "color": "#C8E4FF",
+                "at": 0
+              },
+              {
+                "color": "#ECFF98",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "top",
+            "gap": 12,
+            "scale": 138
+          },
+          "square": {
+            "h": "left",
+            "scale": 104
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 50,
+            "rotation": 0,
+            "x": 1.70848714358452,
+            "y": 2.844050043642712
+          },
+          "square": {
+            "scale": 100,
+            "x": 8.932651831809784,
+            "y": 14.459919857264651
+          },
+          "portrait": {
+            "scale": 100
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-08-28T11:50:04.235Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-05T13:16:51.470Z"
+    },
+    "__v": 0
+  }
+]

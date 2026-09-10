@@ -1,0 +1,252 @@
+[
+  {
+    "_id": {
+      "$oid": "6a912241050bfb18a78dcd5f"
+    },
+    "name": "Color",
+    "type": "color",
+    "visual": "color_label",
+    "values": [
+      {
+        "_id": "2fc1418a-4da3-4931-9360-91d4383f8192",
+        "value": "Cosmic Orange",
+        "colorCode": "#f94e15",
+        "position": 0
+      },
+      {
+        "_id": "a5101085-43d9-4d27-9c3c-856a09a6f3c1",
+        "value": "Deep Blue",
+        "colorCode": "#2a3551",
+        "position": 1
+      },
+      {
+        "_id": "4dc08e33-ba06-4d24-a901-19d690679026",
+        "value": "Sliver",
+        "colorCode": "#b4b1b1",
+        "position": 2
+      }
+    ],
+    "position": 0,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-28T05:53:05.494Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-05T05:16:59.162Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9122eb050bfb18a78dcd60"
+    },
+    "name": "Storage",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "55353d0f-156b-48b1-8c62-fa50e347d4a3",
+        "value": "1TB",
+        "position": 0
+      },
+      {
+        "_id": "a9add7e5-16cc-4c9d-aef0-9d63602af104",
+        "value": "256GB",
+        "position": 1
+      },
+      {
+        "_id": "d4b5f15e-e7af-437f-a6fd-24d688239359",
+        "value": "512GB",
+        "position": 2
+      },
+      {
+        "_id": "ba0faa32-8afb-4b64-a6a7-6efd0e78a481",
+        "value": "2TB",
+        "position": 3
+      }
+    ],
+    "position": 1,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-28T05:55:55.829Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T05:55:55.829Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9123f1050bfb18a78dcd61"
+    },
+    "name": "Region",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "83820359-93e6-4195-be68-f6550071e95c",
+        "value": "E-Sim JP",
+        "position": 0
+      },
+      {
+        "_id": "aef74239-4fd8-4594-87f7-064900102eaf",
+        "value": "E-Sim USA",
+        "position": 1
+      },
+      {
+        "_id": "ea37f28e-b6c7-48d7-b8a4-f33b6ce9fd24",
+        "value": "SIM-esim AUS",
+        "position": 2
+      }
+    ],
+    "position": 2,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-28T06:00:17.267Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T06:00:17.267Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9281f7aa34b8f92ac35fde"
+    },
+    "name": "Processor",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "4f279d2f-78e1-45da-a12f-2e303b319bb8",
+        "value": "10 Core CPU 10 Core GPU",
+        "position": 0
+      }
+    ],
+    "position": 3,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-29T06:53:43.459Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T06:53:43.459Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a92cbecad426d112681ae15"
+    },
+    "name": "Size",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "f7fdea46-6d7d-4b0c-b7af-9f829c5627bf",
+        "value": "11 inch",
+        "position": 0
+      },
+      {
+        "_id": "5efc37ed-c685-4aa7-ba7f-4f4365de6125",
+        "value": "13 inch",
+        "position": 1
+      }
+    ],
+    "position": 4,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-29T12:09:16.040Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T12:09:16.040Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9526f958f09f4f86618aff"
+    },
+    "name": "Sim",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "81fc16bd-9a17-454b-8f69-189f387daa60",
+        "value": "Dual",
+        "position": 0
+      },
+      {
+        "_id": "cbe40115-5671-4ac8-bba9-c88862149831",
+        "value": "Single",
+        "position": 1
+      }
+    ],
+    "position": 5,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-08-31T07:02:17.869Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-31T07:02:17.869Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a967481b6a910818198b805"
+    },
+    "name": "Network",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "43bc5e0c-5ada-461a-a34a-9415f76d7d8d",
+        "value": "Wi-Fi + Cell",
+        "position": 0
+      },
+      {
+        "_id": "84e09a01-efed-49d9-a136-60f4eb6b0dfa",
+        "value": "Wi-Fi",
+        "position": 1
+      }
+    ],
+    "position": 6,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-09-01T06:45:21.921Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-01T06:45:21.921Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9964d68a17b3f75046c2d1"
+    },
+    "name": "Network 2",
+    "type": "text",
+    "visual": "rectangle",
+    "values": [
+      {
+        "_id": "8eab3267-36ac-4890-8476-a7149b318e34",
+        "value": "GPS",
+        "position": 0
+      },
+      {
+        "_id": "2398e352-dad7-4d1e-9e98-6cdf221131f1",
+        "value": "LTE",
+        "position": 1
+      }
+    ],
+    "position": 7,
+    "isActive": true,
+    "createdAt": {
+      "$date": "2026-09-03T12:15:18.814Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T12:15:18.814Z"
+    },
+    "__v": 0
+  }
+]

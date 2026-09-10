@@ -1,0 +1,4913 @@
+{
+  "metadata": {
+    "title": "Minimart - 在线商城",
+    "description": "发现来自认证商家的优质商品。安心购物，享受顺畅配送。",
+    "keywords": "在线购物, 平台, 电子商务, 商品, 商家"
+  },
+  "products": {
+    "color": "颜色",
+    "size": "尺码"
+  },
+  "validation": {
+    "required": "Required",
+    "email": "Invalid email address",
+    "minLength": "Must be at least {min} characters",
+    "maxLength": "Must be at most {max} characters",
+    "pattern": "Invalid format"
+  },
+  "common": {
+    "home": "首页",
+    "settings": "设置",
+    "products": "商品",
+    "allProducts": "全部产品",
+    "categories": "类别",
+    "cart": "购物车",
+    "wishlist": "心愿单",
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出登录",
+    "search": "搜索",
+    "searchPlaceholder": "搜索商品...",
+    "loading": "加载中...",
+    "error": "发生错误",
+    "success": "成功",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "confirm": "确认",
+    "yes": "是",
+    "no": "否",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "viewAll": "查看全部",
+    "view": "查看",
+    "learnMore": "了解更多",
+    "getStarted": "开始",
+    "shopNow": "立即购买",
+    "addToCart": "加入购物车",
+    "buyNow": "立即购买",
+    "outOfStock": "缺货",
+    "inStock": "有货",
+    "price": "价格",
+    "quantity": "数量",
+    "total": "总计",
+    "subtotal": "小计",
+    "shipping": "运费",
+    "tax": "税费",
+    "discount": "折扣",
+    "free": "免费",
+    "new": "新品",
+    "sale": "促销",
+    "featured": "精选",
+    "popular": "热门",
+    "rating": "评分",
+    "reviews": "评价",
+    "noResults": "未找到结果",
+    "tryAgain": "重试",
+    "allRightsReserved": "保留所有权利",
+    "overview": "概览",
+    "management": "管理",
+    "multiVendorMarketplace": "多商家市场",
+    "onlineStore": "在线商店",
+    "notifications": "通知",
+    "account": "账户",
+    "selectLanguage": "选择语言",
+    "dashboard": "仪表盘",
+    "saved": "已保存",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "done": "完成",
+    "apply": "应用",
+    "sortBy": "排序",
+    "sortOptions": "排序选项",
+    "newest": "最新",
+    "mostPopular": "最受欢迎",
+    "bestRating": "评分最高",
+    "priceLowHigh": "价格：从低到高",
+    "priceHighLow": "价格：从高到低",
+    "filter": "筛选",
+    "filters": "筛选",
+    "clearAll": "清除全部",
+    "clearFilters": "清除筛选",
+    "colors": "颜色",
+    "sizes": "尺码",
+    "minPrice": "最低价",
+    "maxPrice": "最高价",
+    "min": "最低",
+    "max": "最高",
+    "allItems": "所有商品",
+    "showMore": "查看更多",
+    "findFavoriteProducts": "查找您喜欢的商品",
+    "allCategories": "所有类别",
+    "noCategories": "无类别",
+    "selectCategory": "选择类别",
+    "language": "语言",
+    "currency": "货币",
+    "welcome": "欢迎",
+    "myOrders": "我的订单",
+    "signIn": "登录",
+    "profile": "个人资料",
+    "aiSearch": "AI搜索",
+    "switchToLightMode": "切换到浅色模式",
+    "switchToDarkMode": "切换到深色模式",
+    "openCart": "打开购物车",
+    "noProductsFound": "未找到产品",
+    "pressEnterToSearch": "按 Enter 查看所有结果",
+    "noImage": "无图片",
+    "sponsored": "赞助",
+    "includesSponsored": "含付费推广位",
+    "decreaseQuantity": "减少数量",
+    "increaseQuantity": "增加数量",
+    "name": "姓名",
+    "email": "电子邮箱"
+  },
+  "wishlist": {
+    "title": "我的心愿单",
+    "empty": "您的心愿单是空的",
+    "emptyDescription": "点击心形图标收藏您喜欢的商品"
+  },
+  "profile": {
+    "title": "我的资料",
+    "subtitle": "管理您的账号设置",
+    "personalInfo": "个人信息",
+    "infoDesc": "更新您的姓名和联系方式",
+    "personal": "个人",
+    "firstName": "名",
+    "lastName": "姓",
+    "email": "邮箱",
+    "phone": "手机号",
+    "birthday": "生日",
+    "gender": "性别",
+    "selectGender": "选择性别",
+    "male": "男",
+    "female": "女",
+    "other": "其他",
+    "street": "街道地址",
+    "zipCode": "邮编",
+    "city": "城市",
+    "country": "国家/地区",
+    "selectCountry": "选择国家/地区",
+    "saveChanges": "保存更改",
+    "changePassword": "修改密码",
+    "oldPassword": "旧密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认密码",
+    "fullName": "姓名",
+    "updatePassword": "更新密码"
+  },
+  "account": {
+    "welcome": "欢迎回来，{name}！",
+    "overviewDesc": "您的账号概览",
+    "totalOrders": "订单总数",
+    "pendingOrders": "待处理订单",
+    "wishlistItems": "心愿单商品",
+    "recentOrders": "最近订单",
+    "noOrders": "您还没有下过单",
+    "startShopping": "开始购物",
+    "profile": "个人资料",
+    "profileDesc": "管理您的个人信息",
+    "orders": "我的订单",
+    "ordersDesc": "追踪和管理您的订单",
+    "wishlist": "心愿单",
+    "wishlistDesc": "保存以备后购",
+    "addresses": "收货地址",
+    "addressesDesc": "管理您的收货地址",
+    "paymentMethodsDesc": "管理您的支付方式",
+    "changePhoto": "更换头像",
+    "security": "安全",
+    "securityDescription": "管理您的账户安全设置",
+    "twoFactorAuth": "双重身份验证",
+    "twoFactorDescription": "为您的账户增加一层额外安全保护",
+    "twoFactorEnabledInfo": "您的账户已启用双重身份验证。登录时需要输入来自认证应用的验证码。",
+    "twoFactorDisabledInfo": "通过在密码之外要求认证应用验证码来保护您的账户。",
+    "confirmDisable2FA": "请输入密码以确认关闭",
+    "disable2FA": "关闭双重身份验证",
+    "setup2FA": "设置双重身份验证",
+    "step1": "步骤 1：扫描二维码",
+    "scanQRDescription": "请使用认证应用（Google Authenticator、Authy 等）扫描此二维码",
+    "cantScanQR": "无法扫描？请手动输入此代码：",
+    "step2": "步骤 2：输入验证码",
+    "enterCodeDescription": "请输入认证应用中的 6 位验证码以完成验证",
+    "backupCodes": "备用代码",
+    "backupCodesDescription": "请将这些备用代码保存在安全位置。若无法访问认证应用，可使用这些代码登录。",
+    "copyBackupCodes": "复制全部代码",
+    "activeSessions": "活跃会话",
+    "activeSessionsDescription": "管理您当前活跃的登录会话",
+    "currentSessionInfo": "您当前已在此设备登录。如发现可疑活动，可退出其他所有会话。",
+    "signOutAllSessions": "退出其他所有会话",
+    "passwordRequired": "需要输入密码",
+    "setup2FAFailed": "2FA 设置失败",
+    "invalidVerificationCode": "验证码无效",
+    "twoFactorEnabledSuccess": "双重身份验证已成功启用！",
+    "disable2FAFailed": "无法关闭 2FA",
+    "twoFactorDisabledSuccess": "双重身份验证已关闭。",
+    "revokeSessionsFailed": "无法撤销会话",
+    "revokeSessionsSuccess": "已撤销其他所有会话",
+    "genericTryAgain": "发生错误，请重试。",
+    "qrCodeAlt": "2FA 二维码"
+  },
+  "customerProfile": {
+    "loyaltyPoints": "积分",
+    "loyaltyTier": "会员等级",
+    "bronze": "青铜",
+    "silver": "白银",
+    "gold": "黄金",
+    "platinum": "铂金",
+    "preferences": "偏好设置",
+    "preferencesDesc": "管理您的购物偏好和通知",
+    "preferencesSaved": "偏好设置已成功保存",
+    "emailNotifications": "邮件通知",
+    "orderUpdates": "订单更新",
+    "orderUpdatesDesc": "接收订单状态变更通知",
+    "promotions": "促销与优惠",
+    "promotionsDesc": "接收独家优惠和促销邮件",
+    "newsletter": "新闻简报",
+    "newsletterDesc": "每周新产品和趋势更新",
+    "priceDrops": "降价提醒",
+    "priceDropsDesc": "当愿望清单中的商品降价时收到通知",
+    "backInStock": "到货提醒",
+    "backInStockDesc": "当缺货商品重新上架时收到通知",
+    "marketingPreferences": "营销偏好",
+    "marketingOptIn": "营销邮件",
+    "marketingOptInDesc": "接收营销通讯和特别优惠",
+    "totalSpent": "总消费",
+    "avgOrderValue": "平均订单金额",
+    "memberSince": "注册时间"
+  },
+  "addresses": {
+    "title": "我的收货地址",
+    "subtitle": "管理您的收货地址",
+    "deliveryAddresses": "收货地址",
+    "deliveryDesc": "添加和管理地址以便快速结算",
+    "savedAddresses": "已保存地址",
+    "savedAddressesDesc": "您保存的收货地址",
+    "addNew": "新增地址",
+    "addFirst": "添加您的第一个地址",
+    "noAddresses": "您尚未添加任何地址",
+    "addAddress": "添加新地址",
+    "editAddress": "编辑地址",
+    "formDescription": "输入收货地址详情",
+    "default": "默认",
+    "setDefault": "设为默认",
+    "deleteTitle": "删除地址",
+    "deleteDescription": "确定要删除此地址吗？此操作无法撤销。"
+  },
+  "payment": {
+    "title": "支付方式",
+    "subtitle": "管理您保存的支付方式",
+    "noMethods": "您尚未添加任何支付方式",
+    "addFirst": "添加支付方式",
+    "addCard": "添加银行卡",
+    "cardNumber": "卡号",
+    "cardHolder": "持卡人",
+    "expiryDate": "有效期",
+    "expirationDate": "有效期",
+    "cvv": "安全码",
+    "primary": "主要",
+    "setDefault": "设为主要",
+    "saveCard": "保存银行卡",
+    "secureMessage": "您的这笔交易受 SSL 加密保护",
+    "deleteTitle": "删除支付方式",
+    "deleteDescription": "确定要删除此支付方式吗？此操作无法撤销。"
+  },
+  "categories": {
+    "electronics": "电子产品",
+    "fashion": "时尚",
+    "homeGarden": "家居与園艺",
+    "sports": "体育"
+  },
+  "nav": {
+    "home": "首页",
+    "products": "商品",
+    "categories": "分类",
+    "deals": "优惠",
+    "newArrivals": "新品上架",
+    "bestSellers": "畅销",
+    "aboutUs": "关于我们",
+    "contactUs": "联系我们",
+    "help": "帮助",
+    "faq": "常见问题",
+    "allProducts": "全部商品",
+    "collections": "合集",
+    "wishlist": "心愿单",
+    "blog": "博客",
+    "getHelp": "获取帮助"
+  },
+  "productsPage": {
+    "empty": "未找到商品",
+    "filters": {
+      "minPrice": "最低价格",
+      "maxPrice": "最高价格",
+      "sortOptions": {
+        "mostPopular": "最受欢迎",
+        "bestRating": "评分最高",
+        "newest": "最新",
+        "priceLowHigh": "价格从低到高",
+        "priceHighLow": "价格从高到低"
+      }
+    }
+  },
+  "storeCollectionsPage": {
+    "headerSubtitle": "浏览我们精选的合集",
+    "emptyCollectionsTitle": "暂无合集",
+    "emptyCollectionsDescription": "欢迎稍后回来查看精选商品合集。",
+    "productCount": "{count, plural, one {# 件商品} other {# 件商品}}"
+  },
+  "storeCategoryDetailPage": {
+    "productsCount": "{count, plural, one {# 件商品} other {# 件商品}}",
+    "empty": "No products found in this category.",
+    "title": "选购<em>{name}</em>",
+    "featuredProducts": "精选商品",
+    "brands": "品牌"
+  },
+  "storeProductsPage": {
+    "title": "选购<em>全部商品</em>",
+    "brands": "品牌",
+    "featuredProducts": "精选商品"
+  },
+  "storeCategoriesPage": {
+    "searchPlaceholder": "搜索 分类..."
+  },
+  "storeCollectionDetailPage": {
+    "productsCount": "{count, plural, one {# 件商品} other {# 件商品}}",
+    "sortByLabel": "排序方式：",
+    "sortPlaceholder": "排序方式",
+    "sortOptions": {
+      "featured": "精选",
+      "bestSelling": "热销",
+      "aToZ": "A-Z",
+      "zToA": "Z-A",
+      "priceLowHigh": "价格：从低到高",
+      "priceHighLow": "价格：从高到低",
+      "newest": "最新"
+    },
+    "emptyProductsTitle": "未找到商品",
+    "emptyProductsDescription": "该合集暂无商品，欢迎稍后再来！",
+    "pagination": {
+      "previous": "上一页",
+      "next": "下一页",
+      "pageOf": "第 {current} / {total} 页"
+    }
+  },
+  "auth": {
+    "welcomeBack": "欢迎回来",
+    "createAccount": "创建账号",
+    "signIn": "登录",
+    "signUp": "注册",
+    "signOut": "退出登录",
+    "email": "邮箱",
+    "password": "密码",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "confirmPassword": "确认密码",
+    "fullName": "姓名",
+    "phoneNumber": "手机号",
+    "forgotPassword": "忘记密码？",
+    "resetPassword": "重置密码",
+    "noAccount": "还没有账号？",
+    "hasAccount": "已有账号？",
+    "orContinueWith": "或使用以下方式继续",
+    "termsAgreement": "创建账号即表示你同意我们的",
+    "termsOfService": "服务条款",
+    "privacyPolicy": "隐私政策",
+    "and": "和",
+    "shopAsCustomer": "以顾客身份购物",
+    "sellAsVendor": "以商家身份销售",
+    "iWantTo": "我想",
+    "forgotPasswordDescription": "Enter your email and we'll send you a reset link",
+    "sendResetLink": "Send reset link",
+    "backToLogin": "Back to login",
+    "createAccountDescription": "Enter your details to get started",
+    "verify": "验证",
+    "trustThisDevice": "在此设备上信任 30 天",
+    "errors": {
+      "invalidCredentials": "邮箱或密码不正确。",
+      "accountLocked": "登录失败次数过多。该账号已锁定 {duration}。",
+      "accountLockedUnknown": "登录失败次数过多。该账号已锁定几分钟。",
+      "durationMinutes": "{count, plural, other {# 分钟}}",
+      "durationSeconds": "{count, plural, other {# 秒}}",
+      "tooManyRequests": "此设备尝试次数过多，请等待一分钟后重试。",
+      "invalidCredentialsWithAttempts": "邮箱或密码不正确。还剩 {count, plural, other {#}} 次尝试，之后账号将被锁定。"
+    }
+  },
+  "home": {
+    "heroTitle": "欢迎来到 {storeName}",
+    "heroSubtitle": "发现来自认证商家的优质商品。安心购物，享受顺畅配送直达家门。",
+    "shopByCategory": "按分类选购",
+    "shopByCategoryDescription": "浏览按分类整理的丰富商品",
+    "viewAllCategories": "查看所有分类",
+    "whyChooseUs": "为什么选择 {storeName}？",
+    "whyChooseUsDescription": "我们提供为你打造的最佳购物体验",
+    "startSelling": "在 {storeName} 开始销售",
+    "startSellingBadge": "商家计划",
+    "startSellingDescription": "加入成千上万的商家，触达数百万客户。轻松上手、强大工具、专属支持。",
+    "getStartedFree": "免费开始",
+    "becomeASeller": "成为商家",
+    "topVendorsRating": "评分",
+    "topVendorsSold": "销量",
+    "topVendorsPrice": "价格",
+    "topVendorsGoToShop": "前往店铺",
+    "scrollLeft": "向左滚动",
+    "scrollRight": "向右滚动",
+    "countdownDays": "Days",
+    "countdownHours": "Hours",
+    "countdownMinutes": "Mins",
+    "countdownSeconds": "Secs",
+    "copyCode": "Copy code",
+    "verifiedCustomer": "Verified customer",
+    "collectionProductsCount": "{count} products",
+    "previewingDraft": "Previewing draft",
+    "exitPreview": "Exit preview",
+    "startingAt": "Starting at",
+    "countdownEndsIn": "距结束"
+  },
+  "features": {
+    "wideSelection": "丰富选择",
+    "wideSelectionDescription": "来自认证商家的海量商品",
+    "secureShoping": "安全购物",
+    "secureShopingDescription": "你的数据采用企业级安全保护",
+    "fastDelivery": "快速配送",
+    "fastDeliveryDescription": "快速可靠的送货上门",
+    "easyPayments": "便捷支付",
+    "easyPaymentsDescription": "多种支付方式，购物更省心",
+    "verifiedVendors": "认证商家",
+    "verifiedVendorsDescription": "所有商家均经过审核，保障品质",
+    "support247": "24/7 支持",
+    "support247Description": "全天候客户支持"
+  },
+  "product": {
+    "description": "详情",
+    "specifications": "规格",
+    "reviews": "评价",
+    "relatedProducts": "相关商品",
+    "customerReviews": "用户评价",
+    "writeReview": "写评价",
+    "addToWishlist": "加入心愿单",
+    "removeFromWishlist": "从心愿单移除",
+    "share": "分享",
+    "compare": "对比",
+    "sku": "SKU",
+    "category": "分类",
+    "tags": "标签",
+    "vendor": "商家",
+    "visitStore": "访问店铺",
+    "stockStatus": "库存状态",
+    "availability": "可用性",
+    "addToCart": "加入购物车",
+    "inStock": "有货",
+    "outOfStock": "缺货",
+    "priceOnRequest": "价格面议",
+    "requestQuote": "索取报价",
+    "sendQuoteRequest": "发送请求",
+    "quoteRequestHelp": "请告诉我们您对 {product} 的需求，我们会回复报价。",
+    "quoteRequestSent": "请求已发送",
+    "quoteRequestSentHelp": "谢谢，我们已收到您的请求，会尽快回复报价。",
+    "quotePhoneOptional": "电话（选填）",
+    "quoteCompanyOptional": "公司（选填）",
+    "quoteMessageOptional": "留言（选填）",
+    "quoteMessagePlaceholder": "数量、交货日期、规格…"
+  },
+  "cart": {
+    "yourCart": "你的购物车",
+    "shoppingCart": "购物车",
+    "emptyCart": "购物车为空",
+    "emptyCartDescription": "你还没有将任何商品加入购物车。",
+    "continueShopping": "继续购物",
+    "updateCart": "更新购物车",
+    "clearCart": "清空购物车",
+    "checkout": "去结算",
+    "proceedToCheckout": "前往结算",
+    "orderSummary": "订单摘要",
+    "applyCoupon": "使用优惠券",
+    "removeCoupon": "移除优惠券",
+    "couponCode": "优惠码",
+    "apply": "应用",
+    "itemRemoved": "已从购物车移除商品",
+    "itemAdded": "已加入购物车",
+    "cartCleared": "购物车已清空",
+    "freeShipping": "你已满足免运费条件！",
+    "freeShippingRemaining": "再加 {amount} 即可免运费",
+    "estimateShipping": "估算运费",
+    "products": {
+      "color": "颜色",
+      "size": "尺码"
+    }
+  },
+  "checkout": {
+    "checkout": "结算",
+    "shippingInformation": "配送信息",
+    "shippingAddress": "收货地址",
+    "billingAddress": "账单地址",
+    "sameAsShipping": "与收货地址相同",
+    "paymentMethod": "支付方式",
+    "placeOrder": "提交订单",
+    "orderPlaced": "订单提交成功！",
+    "orderNumber": "订单号",
+    "estimatedDelivery": "预计送达",
+    "firstName": "名",
+    "lastName": "姓",
+    "address": "街道地址",
+    "city": "城市",
+    "state": "州/省",
+    "postalCode": "邮编",
+    "country": "国家/地区",
+    "phone": "电话",
+    "cashOnDelivery": "货到付款",
+    "creditDebitCard": "信用卡/借记卡",
+    "securePayment": "你的支付信息已加密并安全保护",
+    "orderSuccess": "感谢你的订单！",
+    "orderSuccessDescription": "我们已收到你的订单并将尽快处理。你将收到包含订单详情的确认邮件。",
+    "downloadInvoice": "下载发票",
+    "orderConfirmation": "确认邮件已发送至你的邮箱",
+    "emptyCartMessage": "购物车为空。请在结算前添加一些商品。",
+    "title": "Checkout",
+    "contactInfo": "Contact Information",
+    "summary": "Order Summary",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "items": "Items",
+    "continue": "Continue to Payment",
+    "back": "Back to Information",
+    "processing": "Processing...",
+    "steps": {
+      "information": "Information",
+      "shipping": "Shipping",
+      "payment": "Payment"
+    },
+    "errors": {
+      "loadPaymentConfig": "Failed to load payment configuration",
+      "initPayment": "Failed to initialize payment",
+      "processPayment": "Failed to process payment"
+    },
+    "shippingMethod": "Shipping Method",
+    "selectShipping": "Select a shipping method",
+    "useSavedAddress": "使用已保存的地址",
+    "emailOrPhone": "电子邮件或手机号码",
+    "saveInfo": "保存此信息以供下次使用",
+    "payment": {
+      "payWithCard": "Pay with Card",
+      "payWithPayPal": "Pay with PayPal",
+      "payWhenReceive": "Pay when you receive",
+      "poweredByStripe": "Powered by Stripe",
+      "cardDetailsParams": "Card details are entered securely on Stripe after you continue.",
+      "paypalRedirect": "You will be redirected to PayPal to complete payment.",
+      "securePaypal": "Secure payment powered by PayPal",
+      "payOnDeliveryDescription": "You will pay when you receive your order",
+      "pesapalRedirect": "通过 Pesapal 使用移动支付或银行卡安全付款。",
+      "orangeMoneyRedirect": "使用 Orange Money 安全付款。您将通过手机生成的一次性验证码确认付款。",
+      "razorpayRedirect": "您将通过 Razorpay 安全完成付款。",
+      "paystackRedirect": "系统会将您跳转至 Paystack 完成付款。",
+      "iotecDetail": "使用 MTN 或 Airtel 移动支付，或使用银行卡付款。",
+      "iotecChannel": "支付渠道",
+      "iotecMobileMoney": "移动支付",
+      "iotecCard": "银行卡",
+      "iotecCardHint": "系统会将您跳转至 ioTec 的安全银行卡页面完成付款。",
+      "iotecPhoneLabel": "移动支付号码",
+      "iotecPhonePlaceholder": "例如 0772 123 456",
+      "iotecPhoneHint": "请输入要扣款的 MTN 或 Airtel 号码。该手机会收到确认付款的提示。",
+      "mtnMomoDetail": "使用 MTN Mobile Money 付款。您的手机将收到请求，请用 MoMo PIN 批准。",
+      "mtnMomoPhoneLabel": "移动钱包号码",
+      "mtnMomoPhonePlaceholder": "例如 0772 123 456",
+      "mtnMomoPhoneHint": "输入要扣款的 MTN 号码。该手机将收到批准付款的请求。"
+    },
+    "switchToPickup": "改为到店自提"
+  },
+  "orders": {
+    "myOrders": "我的订单",
+    "orderHistory": "订单记录",
+    "orderDetails": "订单详情",
+    "orderStatus": "订单状态",
+    "trackOrder": "追踪订单",
+    "viewOrders": "查看我的订单",
+    "reorder": "再次购买",
+    "cancelOrder": "取消订单",
+    "downloadInvoice": "发票",
+    "invoiceDownloadFailed": "下载发票失败",
+    "returnOrder": "退货",
+    "noOrders": "你还没有下过单",
+    "pending": "待处理",
+    "processing": "处理中",
+    "shipped": "已发货",
+    "delivered": "已送达",
+    "cancelled": "已取消",
+    "refunded": "已退款",
+    "backToOrders": "返回订单列表",
+    "placedOn": "下单时间",
+    "cancelling": "取消中...",
+    "cancelOrderTitle": "取消订单",
+    "cancelOrderDescription": "确定要取消此订单吗？此操作无法撤销。",
+    "keepOrder": "保留订单",
+    "orderCancelled": "订单已成功取消",
+    "orderCancelFailed": "取消订单失败",
+    "orderItems": "订单商品",
+    "orderUpdated": "订单状态已更新",
+    "orderUpdateFailed": "更新状态失败",
+    "searchPlaceholder": "按订单号搜索...",
+    "noOrdersFound": "未找到订单",
+    "markProcessing": "标记为处理中",
+    "markShipped": "标记为已发货",
+    "markDelivered": "标记为已送达",
+    "startShopping": "开始购物",
+    "browseProducts": "浏览商品",
+    "title": "我的订单",
+    "subtitle": "跟踪并管理您的订单",
+    "historyDesc": "查看您所有过去和当前的订单",
+    "shipments": "包裹",
+    "shipmentsDescription": "不同卖家的商品会分开发货并分别付款。",
+    "tracking": "物流跟踪",
+    "payment": {
+      "pending": "待付款",
+      "paid": "已付款",
+      "partially_paid": "部分付款",
+      "refunded": "已退款",
+      "partially_refunded": "部分退款"
+    }
+  },
+  "vendor": {
+    "vendorDashboard": "商家后台",
+    "dashboardSubtitle": "管理您的店铺和商品",
+    "myProducts": "我的商品",
+    "addProduct": "添加商品",
+    "editProduct": "编辑商品",
+    "productManagement": "商品管理",
+    "orderManagement": "订单管理",
+    "analytics": "数据分析",
+    "earnings": "收益",
+    "storeName": "店铺名称",
+    "storeDescription": "店铺描述",
+    "storeSettings": "店铺设置",
+    "overview": "概览",
+    "management": "管理",
+    "settingsDesc": "管理您的店铺资料和偏好设置",
+    "storeProfile": "店铺资料",
+    "storeProfileDesc": "管理店铺详情和品牌信息",
+    "payment": "支付",
+    "paymentSettings": "支付设置",
+    "paymentSettingsDesc": "管理支付方式和打款设置",
+    "notificationSettings": "通知设置",
+    "notificationSettingsDesc": "管理邮件和推送通知",
+    "accountSettings": "账户设置",
+    "accountSettingsDesc": "管理您的个人账户信息",
+    "viewStore": "View Store",
+    "viewOrders": "订单",
+    "productSummary": "商品状态汇总",
+    "active": "活跃",
+    "byStatus": "按状态",
+    "unableToLoadData": "Unable to load analytics data. Make sure you are a registered vendor.",
+    "salesChart": "销售额（近30天）",
+    "commission": "已支付佣金",
+    "activeProducts": "活跃商品",
+    "netEarnings": "净收益",
+    "pending": "待处理",
+    "recentOrders": "最近订单",
+    "topProducts": "热销商品",
+    "totalOrders": "总订单",
+    "totalProducts": "商品总数",
+    "totalRevenue": "总收入",
+    "pendingOrders": "Pending Orders",
+    "productStatus": "Product Status",
+    "becomeVendor": "Become a Vendor",
+    "becomeVendorDesc": "Start selling your products on our marketplace. Apply now and reach thousands of customers.",
+    "applicationForm": "Vendor Application",
+    "applicationDesc": "Fill out the form below to apply as a vendor. We'll review your application within 2-3 business days.",
+    "vendorPanel": "Vendor Panel",
+    "dashboard": "仪表盘",
+    "products": "商品",
+    "collections": "集合",
+    "orders": "订单",
+    "settings": "店铺设置",
+    "goToDashboard": "Go to Vendor Dashboard",
+    "registration": {
+      "title": "Start Selling on Minimart",
+      "subtitle": "Join thousands of successful sellers and reach millions of customers",
+      "confirmPassword": "Confirm Password",
+      "addressPlaceholder": "Address",
+      "phonePlaceholder": "Phone Number",
+      "startSelling": "Start Selling Today",
+      "joinUs": "Join thousands of successful sellers",
+      "submitButton": "Submit",
+      "storeNameLabel": "Store Name",
+      "storeDescLabel": "Store Description",
+      "streetLabel": "街道地址",
+      "cityLabel": "城市",
+      "cityPlaceholder": "New York",
+      "stateLabel": "省/州",
+      "statePlaceholder": "NY",
+      "postalCodeLabel": "邮编",
+      "postalCodePlaceholder": "10001",
+      "countryLabel": "国家",
+      "countryPlaceholder": "United States",
+      "websiteLabel": "Website",
+      "facebookPlaceholder": "https://facebook.com/yourstore",
+      "instagramPlaceholder": "https://instagram.com/yourstore",
+      "twitterPlaceholder": "https://twitter.com/yourstore",
+      "submitting": "Submitting...",
+      "applicationSubmitted": "Application Submitted!",
+      "saveDraft": "Save Draft",
+      "requiredField": "This field is required",
+      "minChars": "Minimum {count} characters required",
+      "averageRating": "4.8 average seller rating",
+      "loginRequired": "Login Required",
+      "applicationPending": "Application Under Review",
+      "applicationPendingDesc": "Your vendor application is being reviewed. We'll notify you once it's approved.",
+      "applicationApproved": "Application Approved!",
+      "applicationApprovedDesc": "Congratulations! Your vendor account is active. Start adding products now.",
+      "applicationRejected": "Application Rejected",
+      "applicationRejectedDesc": "Unfortunately, your application was not approved. Please contact support for more information.",
+      "applicationSuspended": "Account Suspended",
+      "applicationSuspendedDesc": "Your vendor account has been suspended. Please contact support.",
+      "optional": "Optional"
+    },
+    "productsPage": {
+      "subtitle": "管理您的商品",
+      "description": "查看并管理您的店铺商品"
+    },
+    "productsTable": {
+      "deleteConfirm": "确定要删除“{name}”吗？此操作无法撤销。",
+      "productDeleted": "商品删除成功",
+      "deleteFailed": "商品删除失败",
+      "status": "状态",
+      "allStatus": "全部状态",
+      "image": "图片",
+      "name": "名称",
+      "price": "价格",
+      "stock": "库存",
+      "actions": "操作",
+      "notAvailable": "无",
+      "uncategorized": "未分类",
+      "view": "查看"
+    },
+    "status": {
+      "published": "已发布",
+      "draft": "草稿",
+      "archived": "已归档",
+      "pending": "待处理",
+      "processing": "处理中",
+      "shipped": "已发货",
+      "delivered": "已送达",
+      "cancelled": "已取消"
+    },
+    "ordersTable": {
+      "title": "订单",
+      "loadFailed": "加载订单失败",
+      "updateFailed": "更新订单失败",
+      "updated": "订单已更新",
+      "guest": "访客",
+      "itemCount": "{count} 个商品",
+      "searchPlaceholder": "按订单号搜索",
+      "empty": "未找到订单",
+      "createOrder": "创建订单",
+      "cancelOrderTitle": "取消订单",
+      "cancelOrderDescription": "确定要取消此订单吗？",
+      "cancelOrderConfirm": "取消订单",
+      "cancelOrderKeep": "保留订单",
+      "cancelOrdersTitle": "取消订单",
+      "cancelOrdersDescription": "取消已选择的 {count} 个订单？",
+      "cancelOrdersConfirm": "取消订单",
+      "cancelOrdersKeep": "保留订单",
+      "bulkUpdatedAll": "已更新 {count} 个订单",
+      "bulkUpdatedSome": "已更新 {total} 个中的 {success} 个订单",
+      "bulkUpdatedNone": "所选订单均无法更新",
+      "bulkUpdateFailed": "更新所选订单失败",
+      "columns": {
+        "order": "订单",
+        "customer": "客户",
+        "date": "日期",
+        "payment": "付款",
+        "fulfillment": "履约",
+        "items": "商品",
+        "netSales": "净销售额",
+        "actions": "操作"
+      },
+      "tabs": {
+        "all": "全部",
+        "unfulfilled": "未履约",
+        "unpaid": "未付款",
+        "open": "进行中",
+        "archived": "已归档"
+      },
+      "filters": {
+        "fulfillment": "履约"
+      },
+      "actions": {
+        "markProcessing": "标记为处理中",
+        "markShipped": "标记为已发货",
+        "markDelivered": "标记为已送达",
+        "cancel": "取消",
+        "viewDetails": "查看详情",
+        "startProcessing": "开始处理",
+        "cancelOrder": "取消订单"
+      },
+      "shipDialog": {
+        "title": "标记为已发货",
+        "description": "发货前可选填写追踪号。",
+        "trackingLabel": "追踪号",
+        "trackingPlaceholder": "输入追踪号",
+        "confirm": "确认发货"
+      }
+    },
+    "paymentStatus": {
+      "pending": "待处理",
+      "paid": "已支付",
+      "partially_paid": "部分支付",
+      "refunded": "已退款",
+      "partially_refunded": "部分退款"
+    },
+    "fulfillmentStatus": {
+      "pending": "未履行",
+      "processing": "处理中",
+      "shipped": "运输中",
+      "delivered": "已送达",
+      "cancelled": "已取消"
+    },
+    "settingsForm": {
+      "logoUrl": "Logo 链接",
+      "bannerUrl": "横幅链接",
+      "website": "网站",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "twitter": "X / Twitter",
+      "accountName": "账户名称",
+      "accountNumber": "账号",
+      "bankName": "银行名称",
+      "routingNumber": "路由号码",
+      "swiftCode": "SWIFT 代码",
+      "payoutSchedule": "打款周期",
+      "payoutWeekly": "每周",
+      "payoutBiweekly": "每两周",
+      "payoutMonthly": "每月",
+      "minimumPayoutAmount": "最低打款金额",
+      "newOrders": "新订单",
+      "newOrdersDesc": "当客户下新订单时接收提醒。",
+      "orderStatusUpdates": "订单状态更新",
+      "orderStatusUpdatesDesc": "接收活动订单的提醒和状态更新。",
+      "lowStockAlerts": "低库存提醒",
+      "lowStockAlertsDesc": "当商品库存不足时通知我。",
+      "productTipsAndUpdates": "产品提示与更新",
+      "productTipsAndUpdatesDesc": "接收产品公告和卖家优化建议。",
+      "changePasswordDesc": "更新密码以保障您的卖家账户安全。",
+      "passwordMinLength": "新密码至少需要 8 个字符",
+      "passwordsDoNotMatch": "两次输入的密码不一致"
+    },
+    "untitledProduct": "未命名商品",
+    "dashboardWidgets": {
+      "noProductsYet": "暂无商品",
+      "noImage": "无图片",
+      "soldCount": "已售 {count}"
+    },
+    "charts": {
+      "noDataAvailable": "暂无数据",
+      "unknown": "未知",
+      "ordersCount": "{count} 个订单",
+      "noRecentOrders": "暂无最近订单"
+    },
+    "payoutsPage": {
+      "title": "Payouts",
+      "subtitle": "Track your settlement statements and payout statuses.",
+      "listSection": {
+        "title": "Payout Statements",
+        "searchPlaceholder": "Search payout number",
+        "columns": {
+          "details": "Details"
+        },
+        "empty": "No payouts found."
+      }
+    },
+    "payouts": "打款",
+    "storefront": {
+      "title": "{storeName}",
+      "subtitle": "浏览该商家的店铺商品。",
+      "noProducts": "该商家暂无商品。",
+      "notFound": "未找到商家店铺。"
+    },
+    "featureLocked": {
+      "staff": {
+        "title": "员工管理已锁定",
+        "description": "订阅付款确认后即可添加和管理员工。在此期间，您仍可继续准备您的店铺。"
+      },
+      "suggestions": {
+        "products": {
+          "title": "准备您的商品目录",
+          "description": "在等待期间添加商品、库存、分类、系列和品牌。"
+        },
+        "settings": {
+          "title": "配置您的店铺",
+          "description": "完成店铺信息、品牌形象、配送和通知设置。"
+        }
+      }
+    },
+    "planBilling": "套餐与账单",
+    "billing": {
+      "payNow": "继续付款",
+      "checkPhone": "请查看手机并确认付款请求。",
+      "paymentConfirmed": "付款已确认，您的套餐已生效。",
+      "paymentCanceled": "付款已取消，请重试。",
+      "paymentFailed": "无法发起付款",
+      "pollTimeout": "我们尚未确认付款。确认后您的套餐将自动生效。",
+      "renewalDueTitle": "订阅即将到期续费",
+      "renewalDueOn": "您的计费周期将于 {date} 结束。立即续费，让店铺不间断运营。",
+      "renewalDueSoon": "您的计费周期即将结束。立即续费，让店铺不间断运营。",
+      "renewNow": "立即续费",
+      "renewTitle": "续费您的套餐",
+      "renewDescription": "支付下一个计费周期，保持店铺正常运营。",
+      "pageTitle": "账单",
+      "pageSubtitle": "您的套餐、付款方式，以及所有已产生的费用。",
+      "planSubtitle": "您在市场平台的当前订阅。",
+      "noPlanTitle": "无付费套餐",
+      "noPlanSubtitle": "您当前没有付费套餐。请联系市场平台管理员为您开通。",
+      "price": "价格",
+      "renewsOn": "续订日期",
+      "periodEnds": "周期结束",
+      "trialEnds": "试用期结束",
+      "payingWith": "支付方式",
+      "commission": "佣金",
+      "pastDue": "此订阅已逾期。请结清费用以保持店铺正常运营。",
+      "pastDueUntil": "此订阅已逾期。请在 {date} 之前结清费用以保持店铺正常运营。",
+      "trial": "您正在免费试用中，暂时无需绑定支付方式。",
+      "trialUntil": "您正在免费试用中，无需绑定支付方式。首次付款需在 {date} 之前完成；在付款之前，您的店铺将保持关闭。",
+      "cancelScheduled": "此套餐将在当前周期结束时终止。",
+      "switchMethod": "切换支付方式",
+      "switchTitle": "切换支付方式",
+      "switchDescription": "此操作将使用您选择的方式支付下个周期，并停止 Stripe 自动续订。您已付费的天数将予以保留。",
+      "switchBlockedByChange": "切换支付方式前，请先完成或取消待处理的套餐变更。",
+      "switchToStripe": "设置自动续订",
+      "switchToStripeHint": "开启自动续订后，将在本周期结束时从您的银行卡扣款，您无需每次回来付款。今天不会产生任何扣款。",
+      "switchToStripeFailed": "无法开始切换到自动续订。",
+      "takeoverPending": "自动续订已设置，将在本周期结束时开始。",
+      "takeoverPendingOn": "自动续订已设置。将在本周期结束的 {date} 首次从您的银行卡扣款——在此之前一切不变。",
+      "takeoverStarted": "自动续订已设置。将在本周期结束时从您的银行卡扣款。",
+      "takeoverCancelled": "已取消切换。您仍按周期逐次付款。",
+      "stripeAutoRenewsSwitchable": "此套餐会自动续订。可在门户中更换银行卡或取消订阅，也可切换到其他支付方式——这将支付您的下个周期并停止自动续订。",
+      "managePortal": "在账单门户中管理",
+      "stripeAutoRenews": "此套餐会自动续订。可在门户中更换银行卡或取消订阅。",
+      "portalFailed": "无法打开账单门户。",
+      "payPeriod": "支付下个周期",
+      "switchHint": "您每个周期都可以使用不同的支付方式——结账时选择即可。",
+      "notRenewable": "此订阅当前不处于可续订状态。",
+      "noMethods": "暂无可用的支付方式。请联系市场平台管理员。",
+      "historyTitle": "账单历史",
+      "historySubtitle": "所有支付方式下已收费的每个周期。",
+      "historyEmpty": "尚未产生任何费用。",
+      "colDate": "日期",
+      "colPeriod": "周期",
+      "colMethod": "方式",
+      "colStatus": "状态",
+      "colAmount": "金额",
+      "refunded": "已退款",
+      "status": {
+        "active": "有效",
+        "trialing": "试用",
+        "past_due": "已逾期",
+        "incomplete": "等待付款",
+        "cancelled": "已取消",
+        "expired": "已过期"
+      },
+      "interval": {
+        "monthly": "月",
+        "yearly": "年"
+      },
+      "invoiceStatus": {
+        "paid": "已支付",
+        "open": "待支付",
+        "failed": "失败",
+        "void": "已作废",
+        "refunded": "已退款"
+      }
+    },
+    "boosts": "推广"
+  },
+  "adminProfile": {
+    "title": "个人资料",
+    "subtitle": "管理您的账户设置和偏好",
+    "personalInfo": "个人信息",
+    "personalInfoDesc": "更新您的姓名和联系方式",
+    "passwordDesc": "更新密码以确保账户安全",
+    "updatePassword": "更新密码",
+    "accountInfo": "账户",
+    "administrator": "管理员",
+    "twoFactor": "双重认证",
+    "twoFactorActive": "双重认证已启用",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "avatarUpdated": "头像已更新",
+    "avatarError": "头像上传失败"
+  },
+  "admin": {
+    "adminDashboard": "管理员面板",
+    "browseWebsite": "浏览网站",
+    "ordersPage": {
+      "plusMore": "+另外 {count} 个",
+      "item": "件",
+      "export": "导出",
+      "table": {
+        "purchased": "已购商品",
+        "date": "日期",
+        "customer": "客户",
+        "channel": "渠道",
+        "payment": "付款",
+        "fulfillment": "履约",
+        "delivery": "配送"
+      },
+      "channel": {
+        "pos": "POS",
+        "online": "在线商店"
+      },
+      "paymentStatus": {
+        "paid": "已支付",
+        "partiallyPaid": "部分支付",
+        "partiallyRefunded": "部分退款"
+      },
+      "fulfillment": {
+        "unfulfilled": "未履约",
+        "inTransit": "运输中",
+        "fulfilled": "已履约"
+      },
+      "delivery": {
+        "notShipped": "未发货",
+        "inTransit": "运输中"
+      },
+      "tabs": {
+        "all": "全部",
+        "unfulfilled": "未履约",
+        "unpaid": "未支付",
+        "open": "进行中",
+        "archived": "已归档"
+      },
+      "filters": {
+        "orderStatus": "订单状态"
+      },
+      "bulk": {
+        "cancelTitle": "取消订单",
+        "cancelDescription": "要取消 {count} 个订单吗？",
+        "cancelConfirm": "取消订单",
+        "cancelKeep": "保留订单",
+        "updatedSuccess": "已更新 {count} 个订单",
+        "updatedError": "部分订单更新失败"
+      },
+      "pagination": {
+        "showing": "显示",
+        "to": "到",
+        "of": "共",
+        "results": "条",
+        "rowsPerPage": "每页行数"
+      },
+      "stats": {
+        "totalOrders": {
+          "title": "订单总数",
+          "description": "全部订单记录"
+        },
+        "openOrders": {
+          "title": "进行中订单",
+          "description": "待处理、处理中或已发货"
+        },
+        "paidOrders": {
+          "title": "已支付订单",
+          "description": "付款已完成"
+        },
+        "totalRevenue": {
+          "title": "总收入",
+          "description": "已支付订单总金额"
+        },
+        "averageOrderValue": {
+          "title": "平均订单金额",
+          "description": "每个已支付订单的收入"
+        }
+      }
+    },
+    "orderDetails": {
+      "orderNumber": "订单 #{number}",
+      "placedOn": "下单时间",
+      "tracking": "追踪",
+      "print": "打印",
+      "back": "返回",
+      "moreActions": "更多操作",
+      "refundFull": "全额退款",
+      "refundPartial": "部分退款",
+      "markShipped": "标记为已发货",
+      "markShippedDescription": "添加承运人详细信息，以便客户和支持团队可以追踪配送。",
+      "carrier": "承运人",
+      "carrierPlaceholder": "DHL, FedEx, UPS",
+      "trackingNumber": "追踪号",
+      "trackingNumberPlaceholder": "追踪号",
+      "cancel": "取消",
+      "cancelOrderTitle": "取消订单",
+      "cancelOrderDescription": "取消订单会在订单仍有资格时恢复库存。",
+      "reason": "原因",
+      "cancelReasonPlaceholder": "订单历史的可选备注",
+      "keepOrder": "保留订单",
+      "cancelOrder": "取消订单",
+      "refundNotAvailable": "退款仅适用于已付款订单",
+      "enterRefundAmount": "输入部分退款金额",
+      "invalidRefundAmount": "输入有效的退款金额",
+      "refundReasonOptional": "退款原因（可选）",
+      "refundRecorded": "退款已记录",
+      "refundFailed": "退款失败",
+      "shippingLabelDownloaded": "运单已下载",
+      "shippingLabelCreated": "运单已创建",
+      "shippingLabelPrinted": "4 × 6 运单已发送至热敏打印机",
+      "shippingLabelFailed": "创建运单失败",
+      "shippingLabelPrintFailed": "打印运单失败",
+      "shippingLabelAddressIncomplete": "您的店铺地址不完整。请先在店铺设置中填写城市、省/州、邮政编码和国家/地区，然后再创建运单。",
+      "orderItems": "订单项目",
+      "splitShipment": "分批发货",
+      "splitShipmentDescription": "此订单包含来自多个供应商的项目，将分开发货。",
+      "item": "项目",
+      "price": "价格",
+      "quantity": "数量",
+      "total": "总计",
+      "sku": "SKU",
+      "subtotal": "小计",
+      "shipping": "运费",
+      "tax": "税费",
+      "discount": "折扣",
+      "totalLabel": "总计",
+      "timeline": "时间线",
+      "addMessagePlaceholder": "如果要添加消息...",
+      "post": "发布",
+      "noEventsYet": "暂无事件",
+      "by": "由",
+      "system": "系统",
+      "customer": "客户",
+      "guestCheckout": "访客结账",
+      "customerSince": "客户自",
+      "contactInfo": "联系信息",
+      "shippingAddress": "收货地址",
+      "billingAddress": "账单地址",
+      "payment": "支付",
+      "orderStatus": {
+        "pending": "待处理",
+        "processing": "处理中",
+        "shipped": "已发货",
+        "delivered": "已送达",
+        "cancelled": "已取消"
+      },
+      "paymentStatus": {
+        "pending": "待处理",
+        "paid": "已支付",
+        "partially_paid": "部分支付",
+        "refunded": "已退款",
+        "partially_refunded": "部分退款"
+      },
+      "overrideStatus": "覆盖状态",
+      "overrideStatusTitle": "覆盖订单状态",
+      "overrideStatusDescription": "绕过正常流程，将此订单改为任意状态。将连同您的理由记录在时间线中。",
+      "overrideNewStatus": "新状态",
+      "overrideReasonPlaceholder": "为什么需要这次覆盖？",
+      "overrideReinstateWarning": "恢复已取消的订单会重新占用库存。若其中任何商品已售罄，本次覆盖将被拒绝。"
+    },
+    "analyticsPage": {
+      "subtitle": "店铺表现与网站流量",
+      "onlineNow": "在线",
+      "visitors": "访客",
+      "totalVisitors": "总访客",
+      "pageviews": "页面浏览量",
+      "topSources": "主要来源",
+      "topPages": "热门页面",
+      "countries": "国家",
+      "devices": "设备",
+      "unknown": "未知",
+      "none": "（无）",
+      "directNone": "直接 / 无",
+      "poweredBy": "数据由 Plausible Analytics 提供",
+      "openDashboard": "打开 Plausible 面板",
+      "periods": {
+        "day": "今天",
+        "7d": "7天",
+        "30d": "30天",
+        "month": "本月",
+        "6mo": "6个月",
+        "12mo": "12个月"
+      },
+      "cards": {
+        "onlineNow": "当前在线",
+        "uniqueVisitors": "独立访客",
+        "totalPageviews": "总页面浏览量",
+        "totalVisits": "总访问次数",
+        "bounceRate": "跳出率",
+        "avgDuration": "平均时长"
+      },
+      "chart": {
+        "title": "访客与页面浏览量",
+        "description": "所选时间段内的流量变化"
+      },
+      "tabs": {
+        "browser": "浏览器",
+        "os": "系统",
+        "size": "尺寸"
+      },
+      "columns": {
+        "source": "来源",
+        "visitors": "访客",
+        "page": "页面",
+        "country": "国家",
+        "device": "设备"
+      },
+      "empty": {
+        "timeseries": "暂无时间序列数据",
+        "sources": "暂无来源数据",
+        "pages": "暂无页面数据",
+        "countries": "暂无国家数据",
+        "devices": "暂无设备数据"
+      },
+      "errors": {
+        "loadFailed": "加载分析数据失败"
+      },
+      "notConfigured": {
+        "title": "Plausible Analytics 未配置",
+        "description": "连接 Plausible Analytics 账户后即可查看实时访客、流量来源、页面分析等数据。",
+        "cta": "配置 Plausible Analytics"
+      },
+      "units": {
+        "minute": "分",
+        "second": "秒"
+      },
+      "time": {
+        "am": "am",
+        "pm": "pm"
+      }
+    },
+    "dashboardPage": {
+      "greeting": "早上好，James。",
+      "goodMorning": "早上好，{name}。",
+      "goodAfternoon": "下午好，{name}。",
+      "goodEvening": "晚上好，{name}。",
+      "subtitle": "以下是今天店铺的运营情况。",
+      "orders": "订单",
+      "cases": "个案例",
+      "ordersTitle": "订单",
+      "dateRange": "7月25日 - 8月25日",
+      "addActivity": "添加活动",
+      "sales": "销售",
+      "ordersDescription": "按项目拆分订单总量，并提供详细洞察。",
+      "showHighlights": "查看全部亮点",
+      "showSalesData": "查看全部销售数据",
+      "viewAllOrders": "查看所有订单",
+      "recentOrders": "最近订单",
+      "noRecentOrders": "暂无最近订单。",
+      "totalVisitors": "总访客",
+      "thisMonth": "本月",
+      "lastMonth": "上月",
+      "customer": "客户",
+      "pc": "件",
+      "pcs": "件",
+      "paymentMethod": "支付方式",
+      "totalPrice": "总价",
+      "orderLabel": "订单 {orderNumber}",
+      "stats": {
+        "inStoreSales": "门店销售",
+        "websiteSales": "网站销售",
+        "discount": "折扣",
+        "affiliate": "联盟",
+        "marketplace": "平台",
+        "refunds": "退款",
+        "inStore": "门店",
+        "online": "线上"
+      },
+      "status": {
+        "pending": "待处理",
+        "processing": "处理中",
+        "shipped": "已发货",
+        "delivered": "已送达",
+        "cancelled": "已取消"
+      },
+      "payment": {
+        "creditCard": "信用卡",
+        "paypal": "PayPal",
+        "cashOnDelivery": "货到付款",
+        "upi": "UPI",
+        "card": "银行卡"
+      },
+      "latestProducts": "最新产品",
+      "noLatestProducts": "未找到最新产品。"
+    },
+    "sidebar": {
+      "overview": "概览",
+      "orders": "订单",
+      "products": "商品",
+      "collections": "集合",
+      "categories": "分类",
+      "inventory": "库存",
+      "purchaseOrders": "采购单",
+      "transfers": "转移",
+      "giftCards": "礼品卡",
+      "customers": "客户",
+      "vendors": "商家",
+      "marketing": "营销",
+      "discounts": "折扣",
+      "content": "内容",
+      "markets": "市场",
+      "analytics": "分析",
+      "salesChannels": "销售渠道",
+      "onlineStore": "在线商店",
+      "homePage": "首页",
+      "theme": "主题",
+      "themes": "主题",
+      "pages": "页面",
+      "pos": "销售点",
+      "posStaff": "员工",
+      "posLocations": "位置",
+      "apps": "应用",
+      "addApp": "添加",
+      "addPage": "添加页面",
+      "dashboard": "仪表盘",
+      "navigation": "导航",
+      "checkout": "结算",
+      "productCard": "商品卡片",
+      "payments": "支付",
+      "payouts": "打款",
+      "transactions": "交易",
+      "reviews": "评价",
+      "blogPosts": "博客文章",
+      "blogCategories": "博客分类",
+      "blogComments": "评论",
+      "allPosts": "全部文章",
+      "aiStudio": "AI 工作室",
+      "boosts": "推广",
+      "boostCampaigns": "推广活动",
+      "boostPositions": "推广位置",
+      "customize": "Customize",
+      "finance": "财务",
+      "financeOverview": "总览",
+      "expenses": "支出",
+      "receivables": "应收款",
+      "financeReports": "报表",
+      "quotes": "报价"
+    },
+    "users": "用户",
+    "usersDesc": "管理用户与角色",
+    "vendors": "商家",
+    "vendorsDesc": "管理商家账号与审核",
+    "products": "商品",
+    "categories": "分类",
+    "orders": "订单",
+    "inventory": {
+      "title": "库存",
+      "subtitle": "管理商品库存水平",
+      "searchPlaceholder": "搜索商品...",
+      "export": "导出",
+      "import": "导入",
+      "tabs": {
+        "all": "全部",
+        "online": "在线",
+        "onlineStore": "在线商店",
+        "mainWarehouse": "主仓库",
+        "storifyWarehouse": "Storify 仓库",
+        "storeFront": "门店前台",
+        "secondaryStorage": "次级仓储"
+      },
+      "columns": {
+        "product": "商品",
+        "sku": "SKU",
+        "unavailable": "不可用",
+        "committed": "已占用",
+        "available": "可用",
+        "onHand": "现有库存"
+      },
+      "filters": {
+        "stockLevel": "库存水平",
+        "all": "全部",
+        "lowStock": "低库存",
+        "outOfStock": "缺货"
+      },
+      "actions": {
+        "adjustQuantity": "调整数量",
+        "save": "保存",
+        "cancel": "取消",
+        "saving": "保存中...",
+        "discard": "放弃"
+      },
+      "empty": "未找到库存项",
+      "learnMore": "了解更多库存管理",
+      "updateSuccess": "库存更新成功",
+      "updateError": "库存更新失败",
+      "csvHeaders": {
+        "product": "商品",
+        "variant": "变体",
+        "sku": "SKU",
+        "available": "可用",
+        "onHand": "现有库存"
+      },
+      "stats": {
+        "trackedSkus": "已跟踪 SKU",
+        "trackedSkusDescription": "目录中的商品变体",
+        "lowStock": "低库存",
+        "lowStockDescription": "库存不超过 10 的 SKU",
+        "outOfStock": "缺货",
+        "outOfStockDescription": "当前不可用的 SKU",
+        "onHandUnits": "现有库存单位",
+        "onHandUnitsDescription": "所有商品的总库存单位",
+        "locations": "地点",
+        "locationsDescription": "启用的库存地点"
+      },
+      "unsavedChanges": "{count, plural, other {# 项未保存的更改}}",
+      "unsavedChangesHint": "按 Esc 放弃，Ctrl+S 保存"
+    },
+    "vendorsManagement": {
+      "allVendors": "All Vendors",
+      "allVendorsDesc": "View and manage vendor profiles",
+      "searchPlaceholder": "Search store name...",
+      "status": {
+        "pending": "Pending",
+        "approved": "Active",
+        "suspended": "Suspended",
+        "rejected": "Rejected"
+      },
+      "table": {
+        "storeOwner": "Store & Owner",
+        "status": "Status",
+        "commission": "Commission",
+        "sales": "Sales",
+        "joined": "Joined",
+        "actions": "Actions",
+        "noVendors": "No vendors found",
+        "visitStore": "Visit Store",
+        "updateStatus": "Update Status",
+        "unknown": "Unknown"
+      },
+      "toasts": {
+        "statusSuccess": "Vendor status updated successfully",
+        "statusError": "Failed to update status"
+      }
+    },
+    "productsManagement": {
+      "title": "Products",
+      "subtitle": "Manage all products in the marketplace",
+      "addProduct": "Add Product",
+      "allProducts": "All Products",
+      "allProductsDesc": "View and manage products from all vendors",
+      "searchPlaceholder": "Search products...",
+      "status": {
+        "label": "Status",
+        "all": "All Status",
+        "published": "Published",
+        "draft": "Draft",
+        "archived": "Archived"
+      },
+      "table": {
+        "image": "Image",
+        "name": "Name",
+        "vendor": "Vendor",
+        "price": "Price",
+        "stock": "Stock",
+        "status": "Status",
+        "actions": "Actions",
+        "noProducts": "No products found",
+        "uncategorized": "Uncategorized",
+        "na": "N/A",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "deleteDialog": {
+        "title": "Delete Product",
+        "description": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+        "confirm": "Delete",
+        "cancel": "Cancel",
+        "success": "Product deleted successfully",
+        "error": "Failed to delete product"
+      }
+    },
+    "settings": {
+      "title": "设置",
+      "description": "管理您的商店配置",
+      "tabs": {
+        "general": "常规",
+        "security": "安全",
+        "appearance": "外观",
+        "payment": "支付",
+        "email": "电子邮件",
+        "orders": "订单",
+        "seo": "SEO",
+        "social": "社交",
+        "maintenance": "维护"
+      },
+      "general": {
+        "title": "常规设置",
+        "description": "配置您商店的基本信息",
+        "storeName": "商店名称",
+        "storeEmail": "商店电子邮件",
+        "phone": "电话号码",
+        "storeDomain": "店铺域名",
+        "address": "地址",
+        "storeDescription": "商店描述",
+        "defaultLanguage": "默认语言",
+        "defaultCurrency": "默认货币",
+        "logoUrl": "Logo URL",
+        "faviconUrl": "Favicon URL",
+        "save": "保存更改"
+      },
+      "appearance": {
+        "title": "外观",
+        "description": "自定义您商店的外观和感觉",
+        "primaryColor": "主色",
+        "secondaryColor": "次色",
+        "accentColor": "强调色",
+        "theme": "默认主题",
+        "themes": {
+          "light": "浅色",
+          "dark": "深色",
+          "system": "系统"
+        },
+        "save": "保存更改"
+      },
+      "payment": {
+        "stripe": {
+          "title": "Stripe",
+          "description": "配置 Stripe 支付网关",
+          "enable": "启用 Stripe 支付",
+          "publishableKey": "公钥",
+          "secretKey": "密钥",
+          "webhookSecret": "Webhook密钥",
+          "webhookSecretHint": "处理支付事件所需。请从Stripe仪表板 → 开发者 → Webhook获取"
+        },
+        "cod": {
+          "title": "货到付款",
+          "description": "配置货到付款选项",
+          "enable": "启用货到付款",
+          "instructions": "说明",
+          "placeholder": "向客户显示的说明...",
+          "codMinOrder": "Min Order Amount",
+          "codMaxOrder": "Max Order Amount"
+        },
+        "save": "保存支付设置",
+        "title": "支付设置",
+        "description": "Configure payment gateways and options",
+        "enableStripe": "Enable Stripe",
+        "stripePublishableKey": "Publishable Key",
+        "stripeWebhookSecret": "Webhook Secret",
+        "enablePayPal": "Enable PayPal",
+        "paypalClientId": "Client ID",
+        "paypalMode": "Mode",
+        "paypalSandbox": "Sandbox",
+        "paypalLive": "Live",
+        "paypalWebhookId": "Webhook ID",
+        "enableCOD": "Enable Cash on Delivery",
+        "codInstructions": "COD Instructions",
+        "codMinOrder": "Min Order Amount",
+        "codMaxOrder": "Max Order Amount",
+        "paypal": {
+          "title": "PayPal",
+          "description": "Configure PayPal payment gateway",
+          "enablePayPal": "Enable PayPal",
+          "paypalClientId": "Client ID",
+          "clientSecret": "客户端密钥",
+          "paypalMode": "Mode",
+          "paypalSandbox": "Sandbox",
+          "paypalLive": "Live",
+          "paypalWebhookId": "Webhook ID"
+        }
+      },
+      "email": {
+        "title": "电子邮件配置 (SMTP)",
+        "description": "通过 SMTP 配置电子邮件发送",
+        "enable": "启用 SMTP 电子邮件",
+        "host": "SMTP 主机",
+        "port": "SMTP 端口",
+        "username": "SMTP 用户名",
+        "password": "SMTP 密码",
+        "fromEmail": "发件人邮箱",
+        "fromName": "发件人名称",
+        "secure": "使用 SSL/TLS (用于端口 465)",
+        "test": {
+          "label": "测试邮件",
+          "placeholder": "test@example.com",
+          "button": "发送测试邮件",
+          "success": "测试邮件发送成功！",
+          "error": "测试邮件发送失败"
+        },
+        "save": "保存电子邮件设置"
+      },
+      "security": {
+        "title": "安全与访问控制",
+        "description": "Configure multi-vendor mode, session security, and password policies",
+        "tabs": {
+          "general": "General",
+          "2fa": "Two-Factor Auth",
+          "oauth": "OAuth",
+          "pos": "POS Access",
+          "vendor": "Vendor Permissions"
+        },
+        "multiVendor": {
+          "title": "店铺模式",
+          "label": "多商家模式",
+          "description": "启用平台功能：商家入驻、多店铺和商家控制台"
+        },
+        "emailVerification": {
+          "title": "Email Verification",
+          "required": "Require Email Verification",
+          "requiredDesc": "Users must verify email before accessing the store",
+          "vendorRequired": "Require for Vendors",
+          "vendorRequiredDesc": "Vendors must verify email before listing products"
+        },
+        "session": {
+          "title": "Session Security",
+          "duration": "Session Duration (days)",
+          "maxAttempts": "Max Login Attempts",
+          "lockout": "Lockout Duration (min)"
+        },
+        "rateLimiting": {
+          "enabled": "启用速率限制",
+          "adminPreset": "管理员 API",
+          "vendorPreset": "商家 API",
+          "checkoutPreset": "结账 / 支付",
+          "cartPreset": "购物车",
+          "couponPreset": "优惠券",
+          "authPreset": "认证 / 登录",
+          "ipPreset": "访客 / 公共（基于 IP）"
+        },
+        "passwordPolicy": {
+          "title": "Password Policy",
+          "minLength": "Minimum Password Length",
+          "uppercase": "Require Uppercase",
+          "numbers": "Require Numbers",
+          "specialChars": "Require Special Characters"
+        },
+        "save": "Save Security Settings",
+        "unlock": {
+          "label": "解锁账号",
+          "action": "解锁",
+          "hint": "清除该邮箱在所有被锁定设备上的登录失败次数。立即生效，无需保存。"
+        }
+      },
+      "seo": {
+        "title": "SEO 设置",
+        "description": "Configure search engine optimization",
+        "metaTitle": "Meta Title",
+        "metaTitlePlaceholder": "Your Store - Online Marketplace",
+        "metaDescription": "Meta Description",
+        "metaDescriptionPlaceholder": "Describe your store in 150-160 characters...",
+        "metaKeywords": "Meta Keywords",
+        "metaKeywordsPlaceholder": "ecommerce, online shopping, marketplace",
+        "save": "Save SEO Settings"
+      },
+      "social": {
+        "title": "社交媒体链接",
+        "description": "Add your social media profiles",
+        "facebook": "Facebook",
+        "twitter": "Twitter/X",
+        "instagram": "Instagram",
+        "youtube": "YouTube",
+        "save": "Save Social Links",
+        "facebookPlaceholder": "https://facebook.com/yourpage",
+        "twitterPlaceholder": "https://twitter.com/yourhandle",
+        "instagramPlaceholder": "https://instagram.com/yourprofile",
+        "youtubePlaceholder": "https://youtube.com/yourchannel",
+        "tiktok": "TikTok",
+        "tiktokPlaceholder": "https://tiktok.com/@yourhandle",
+        "linkedin": "LinkedIn",
+        "linkedinPlaceholder": "https://linkedin.com/company/yourcompany"
+      },
+      "maintenance": {
+        "title": "维护模式",
+        "description": "Control store availability",
+        "enable": "Enable Maintenance Mode",
+        "enableDesc": "When enabled, visitors will see a maintenance message",
+        "message": "Maintenance Message",
+        "messagePlaceholder": "We're currently undergoing maintenance. Please check back soon!",
+        "save": "Save Maintenance Settings"
+      },
+      "twoFactor": {
+        "title": "双重身份验证",
+        "description": "Enable and configure 2FA requirements for different user roles",
+        "enable": "Enable Two-Factor Authentication",
+        "enableDesc": "Allow users to set up 2FA for their accounts",
+        "requirements": "2FA Requirements by Role",
+        "admin": "Required for Administrators",
+        "adminDesc": "Admin accounts must enable 2FA",
+        "vendor": "Required for Vendors",
+        "vendorDesc": "Vendor accounts must enable 2FA",
+        "save": "Save 2FA Settings"
+      },
+      "oauth": {
+        "title": "OAuth / 社交登录",
+        "description": "Configure social login providers (Google, Facebook)",
+        "google": {
+          "label": "Google Sign-In",
+          "description": "Allow users to sign in with their Google account",
+          "clientId": "Google Client ID",
+          "clientSecret": "Google Client Secret",
+          "openConsole": "打开 Google Cloud Console",
+          "step1": "打开 Google Cloud Console，选择已有项目，或为本店新建一个项目。",
+          "step2": "在 APIs & Services → OAuth consent screen 中填写应用名称、支持邮箱和授权域名，然后发布应用。只要仍处于 Testing 状态，就只有你列出的测试用户能登录。",
+          "step3": "前往 Credentials → Create credentials → OAuth client ID，类型选择 Web application。",
+          "step4": "在 Authorized JavaScript origins 中添加：",
+          "step5": "在 Authorized redirect URIs 中添加：",
+          "step6": "把 Client ID 和 Client secret 填入上方字段并保存，然后点击“验证凭据”。新建的 Google 客户端可能需要几分钟才会生效。"
+        },
+        "facebook": {
+          "label": "Facebook Sign-In",
+          "description": "Allow users to sign in with their Facebook account",
+          "appId": "Facebook App ID",
+          "appSecret": "Facebook App Secret",
+          "openConsole": "打开 Meta for Developers",
+          "step1": "打开 Meta for Developers → My Apps → Create app，选择用途“Authenticate and request data from users with Facebook Login”。",
+          "step2": "为应用添加 Facebook Login 产品，然后打开 Facebook Login → Settings。",
+          "step3": "开启 Client OAuth login 和 Web OAuth login，并在 Valid OAuth Redirect URIs 中添加：",
+          "step4": "在 App settings → Basic 中，把 Site URL 设为",
+          "step4b": "并添加",
+          "step4c": "到 App domains。Meta 还要求填写隐私政策网址，应用才能上线。",
+          "step5": "把 App ID 和 App Secret 填入上方字段并保存，然后点击“验证凭据”。",
+          "step6": "把应用从 Development 切换为 Live。在此之前，只有在应用中拥有角色的人才能用 Facebook 登录。"
+        },
+        "save": "Save OAuth Settings",
+        "activeCount": "{count} 个已启用",
+        "envCredentials": "该提供商的凭据由环境变量设置——打开开关即可使用。",
+        "originMismatch": "你正在 {browser} 上浏览，但登录实际通过 {configured} 进行。请注册下方显示的网址，或将 BETTER_AUTH_URL / NEXT_PUBLIC_APP_URL 指向你真正使用的域名。",
+        "redirectUri": "已获授权的重定向 URI",
+        "javascriptOrigin": "已获授权的 JavaScript 来源",
+        "redirectUriHint": "请一字不差地粘贴到提供商的控制台——任何差异（包括末尾的斜杠）都会导致登录被拒绝。",
+        "httpsRequiredGoogle": "Google 只接受 HTTPS 重定向 URI（唯一例外是 http://localhost）。注册前请在正式域名下打开此页面。",
+        "httpsRequiredFacebook": "Meta 只接受公开的 HTTPS 重定向 URI，localhost 会被拒绝。注册前请在正式域名或 HTTPS 隧道下打开此页面。",
+        "copy": "复制",
+        "copyFailed": "无法复制该网址",
+        "setupGuide": "如何设置（分步说明）",
+        "verify": "验证凭据",
+        "verifyHint": "验证会向提供商核对 ID 和密钥。重定向 URI 是否已注册，只有真正登录一次才能确认。"
+      },
+      "pos": {
+        "title": "销售点（POS）访问",
+        "description": "Configure which roles can access the POS system",
+        "enable": "Enable POS System",
+        "enableDesc": "Allow in-store sales through the Point of Sale module",
+        "access": "POS Access by Role",
+        "admin": "Administrators",
+        "adminDesc": "Allow admins to make sales via POS",
+        "vendor": "Vendors",
+        "vendorDesc": "Allow vendors to make sales via POS for their products",
+        "save": "Save POS Settings",
+        "general": "General",
+        "language": "Language",
+        "defaultLocation": "Default POS Location ID",
+        "customize": "Customize",
+        "printedReceipts": "Printed receipts",
+        "checkout": "Checkout",
+        "offlinePayments": "Offline payments",
+        "orders": "Orders",
+        "orderNumberPrefix": "Order number prefix",
+        "orderNumberPrefixHint": "New POS orders use this prefix with a six-digit number, for example POS000017.",
+        "enabled": "已启用",
+        "disabled": "已禁用",
+        "accessDesc": "控制哪些用户角色可以访问POS终端",
+        "generalDesc": "配置POS的默认语言和位置",
+        "languageHint": "POS终端界面使用的语言",
+        "selectLocation": "选择位置",
+        "noLocation": "无默认位置",
+        "defaultBadge": "默认",
+        "locationIdPlaceholder": "输入位置ID",
+        "defaultLocationHint": "新POS订单默认使用的位置",
+        "checkoutDesc": "配置支付方式和结账行为",
+        "paymentMethods": "接受的支付方式",
+        "paymentCash": "现金",
+        "paymentCashDesc": "接受现金支付",
+        "paymentCard": "银行卡",
+        "paymentCardDesc": "接受信用卡/借记卡支付",
+        "paymentManual": "手动",
+        "paymentManualDesc": "自定义支付方式",
+        "offlinePaymentsDesc": "设备离线时处理支付",
+        "customizeDesc": "自定义POS终端的外观和行为",
+        "printedReceiptsDesc": "每次交易后打印收据",
+        "minutes": "分钟",
+        "receiptPrinter": "收据打印机",
+        "receiptPrinterPlaceholder": "例如：Star TSP143",
+        "ordersDesc": "配置POS订单的退货政策",
+        "days": "天",
+        "sound": "声音效果",
+        "soundDesc": "配置POS终端交互的音频反馈",
+        "soundEnable": "启用声音效果",
+        "soundEnableDesc": "在POS操作期间播放音频提示",
+        "soundVolume": "音量",
+        "soundAddToCart": "添加到购物车",
+        "soundAddToCartDesc": "将产品添加到购物车时发出提示音",
+        "soundPayment": "付款已接受",
+        "soundPaymentDesc": "处理付款时的声音",
+        "soundOrderComplete": "订单完成",
+        "soundOrderCompleteDesc": "订单完成时的提示音",
+        "soundError": "错误提示",
+        "soundErrorDesc": "错误和库存警告的提示音"
+      },
+      "vendorPermissions": {
+        "title": "商家默认权限",
+        "description": "为新商家配置默认权限",
+        "warning": "请先启用多商家模式后再配置商家权限。",
+        "manageProducts": "管理商品",
+        "viewOrders": "查看订单",
+        "manageOrders": "管理订单",
+        "manageSettings": "管理店铺设置",
+        "viewAnalytics": "查看数据分析",
+        "manageDiscounts": "Manage Discounts",
+        "managePayouts": "管理结算",
+        "accessPOS": "访问 POS",
+        "save": "保存商家权限"
+      },
+      "orders": {
+        "title": "订单设置",
+        "description": "Configure order and commission settings",
+        "prefix": "Order Number Prefix",
+        "taxRate": "Tax Rate (%)",
+        "shippingCost": "Default Shipping Cost ($)",
+        "freeShippingThreshold": "Free Shipping Threshold ($)",
+        "freeShippingPlaceholder": "Leave empty to disable",
+        "shippingHandledByZones": "运费区域已启用，因此这两个值不会被使用。费率来自配送与发货设置。",
+        "vendorCommission": "Vendor Commission",
+        "commissionRate": "Commission Rate (%)",
+        "minWithdrawal": "Min Withdrawal Amount ($)",
+        "save": "Save Order Settings"
+      },
+      "storage": {
+        "title": "存储设置",
+        "description": "配置媒体上传的文件存储提供商",
+        "checking": "检查中...",
+        "connected": "已连接",
+        "notConnected": "未连接",
+        "refresh": "刷新",
+        "accountId": "R2 账户 ID",
+        "cloudflareR2": "Cloudflare R2",
+        "cloudflareR2Desc": "S3 兼容存储，无出口费用",
+        "awsS3": "AWS S3",
+        "awsS3Desc": "Amazon S3 对象存储",
+        "endpoint": "Endpoint URL",
+        "region": "AWS 区域",
+        "bucketName": "Bucket 名称",
+        "accessKeyId": "访问密钥 ID",
+        "secretAccessKey": "秘密访问密钥",
+        "publicUrl": "公共 URL / CDN（可选）",
+        "testConnection": "测试连接",
+        "uploadSettings": "上传设置",
+        "pathPrefix": "路径前缀",
+        "save": "保存存储设置",
+        "switchDialog": {
+          "title": "切换存储提供商？",
+          "description": "切换存储提供商后，新上传的文件将存储到新的提供商。现有文件仍保留在之前的提供商中，可能需要迁移。",
+          "confirm": "确认",
+          "cancel": "取消"
+        },
+        "placeholder": {
+          "bucket": "my-bucket",
+          "region": "选择区域",
+          "accessKeyId": "AKIA...",
+          "r2AccessKeyId": "访问密钥 ID",
+          "secretKey": "输入秘密密钥",
+          "r2SecretKey": "您的 R2 秘密访问密钥",
+          "r2AccountId": "1234567890abcdef",
+          "cdnUrl": "https://cdn.example.com",
+          "r2Url": "https://pub-xxxx.r2.dev"
+        },
+        "help": {
+          "cloudfront": "用于提供上传文件的 CloudFront 或自定义域名",
+          "r2Domain": "用于提供上传文件的 R2.dev 子域名或自定义域名",
+          "r2FindOverview": "在 Cloudflare 控制台 → R2 → 概览中查找"
+        },
+        "minio": "MinIO",
+        "minioDesc": "Self-hosted S3 on your own server — no cloud account needed",
+        "digitalocean": "DigitalOcean Spaces",
+        "digitaloceanDesc": "Spaces object storage with a built-in CDN",
+        "providerConfig": "{provider} Configuration",
+        "minioEndpointHelp": "The MinIO API URL — port 9000 by default. Must be reachable from this server.",
+        "minioPublicUrlHelp": "Where browsers load the files from. Usually the same host; add a CDN or reverse-proxy URL here if you use one.",
+        "spacesPublicUrlHelp": "Leave blank to serve from the Space directly, or paste the CDN endpoint (…cdn.digitaloceanspaces.com) for edge caching.",
+        "localRetired": {
+          "title": "Local storage has been retired",
+          "body": "服务器上已有的文件仍可正常加载，但新的上传需要下方任意一个服务商。选择其一并填入凭据，然后打开“迁移已有文件”—— 那里有全部命令，以及下次部署前需要做的备份。"
+        },
+        "setup": {
+          "title": "{provider} 配置指南",
+          "docs": "完整说明：docs/STORAGE_SETUP.md",
+          "copy": "复制",
+          "copyFailed": "无法复制",
+          "console": {
+            "cloudflare_r2": "打开 Cloudflare 控制台",
+            "s3": "打开 AWS S3 控制台",
+            "minio": "打开 MinIO 安装指南",
+            "digitalocean": "打开 DigitalOcean Spaces"
+          },
+          "cloudflare_r2": {
+            "bucket": "在 Cloudflare 控制台中打开 R2 → Create bucket。存储桶名称填入上方的存储桶名称。",
+            "token": "R2 → Manage R2 API Tokens → Create API token，权限选择 Object Read & Write，并限定到该存储桶。将两段密钥分别填入上方的 Access Key ID 和 Secret Access Key —— 密钥只会显示一次。",
+            "account": "从 R2 概览页右侧栏复制 32 位的 Account ID，填入 R2 Account ID。",
+            "public": "存储桶 → Settings → Public access：启用 r2.dev 子域名或绑定自定义域名，然后把该地址粘贴到公开 URL。",
+            "test": "点击测试连接后保存。测试会上传一个探测文件并通过公开 URL 重新读取，因此跳过上一步就会失败。",
+            "caution": "没有公开 URL 时，即使凭据看起来完全正确，浏览器里每张商品图也会返回 403 —— 文件会退回到私有的 R2 端点，而该端点永远不允许匿名读取。自定义域名优于 r2.dev：Cloudflare 的 CDN 会直接响应已缓存的请求，不再计入存储桶费用。"
+          },
+          "s3": {
+            "bucket": "在 S3 控制台创建存储桶并记下所在区域 —— 必须与上面选择的区域一致。",
+            "iam": "IAM → 创建具有编程访问权限的用户，并授予该存储桶以下操作的策略：",
+            "public": "用存储桶策略开放公共读取，或在前面加一层 CloudFront，然后把得到的地址粘贴到公开 URL。",
+            "test": "把密钥对粘贴到上方，点击测试连接后保存。",
+            "caution": "新建存储桶默认开启 Block all public access。只有通过 CloudFront 分发时才保留该设置 —— 否则店铺里的每张图片都会返回 403。"
+          },
+          "minio": {
+            "run": "把 MinIO 与应用部署在一起 —— Coolify 和 Dokploy 都有一键模板。务必在 /data 挂载数据卷，否则下一次部署会带走所有已上传的文件。",
+            "keys": "打开 MinIO 控制台（默认端口 9001），创建存储桶，然后 Access Keys → Create access key。",
+            "public": "允许浏览器读取存储桶：",
+            "fields": "Endpoint URL 是 API 地址（端口 9000），不是控制台地址。区域保持 us-east-1 即可 —— MinIO 会忽略它。公开 URL 是浏览器访问存储桶的地址。",
+            "test": "点击测试连接后保存。",
+            "caution": "请在独立子域名上以 HTTPS 提供 MinIO。浏览器会拦截混合内容，http:// 端点会让 HTTPS 店铺的所有图片失效。"
+          },
+          "digitalocean": {
+            "space": "Spaces Object Storage → Create a Space。所选数据中心就是端点（nyc3、fra1、sgp1…），请选离顾客最近的一个，并在上面选择同一区域。",
+            "keys": "API → Spaces Keys → Generate New Key，把两段密钥分别填入 Access Key ID 和 Secret Access Key。",
+            "public": "Space → Settings → 将 File Listing 设为公开，或启用 CDN。",
+            "test": "留空公开 URL 表示直接从 Space 分发；填入 CDN 端点（…cdn.digitaloceanspaces.com）则从边缘节点分发。然后测试连接并保存。",
+            "caution": "Space 名称就是上面的存储桶名称，而且 Space 之后无法迁移到其他数据中心 —— 区域在创建时就已固定。"
+          }
+        },
+        "migration": {
+          "title": "迁移已有文件",
+          "intro": "选择服务商只会改变新上传文件的去向。此前上传的文件仍留在原处，并继续从原处加载，直到你把它们迁移过去。",
+          "step1": "先在上方配置服务商并点击测试连接 —— 迁移会上传到此处已保存的配置。",
+          "step2": "把已保存的凭据迁移到按服务商分开的结构。任何版本都可安全执行，执行过一次后再运行不会有任何改动。",
+          "step3": "上传本地文件，并改写数据库中对应的 URL。预演会列出每个文件且不写入任何内容。",
+          "step4": "检查店铺前台和媒体库。磁盘上的文件永远不会被删除，确认图片正常后请自行删除本地副本。",
+          "backup": "下次部署之前：如果你的更新方式会替换应用目录（cPanel 上传、zip 覆盖、没有挂载数据卷的容器），请先把媒体文件复制到服务器之外。替换目录会把它们一并删除。",
+          "note": "上传失败的文件会保留原本的本地 URL，因此中途失败也只会留下一个仍能正常运行的店铺，而不是半损坏的。重复运行是安全的。"
+        }
+      },
+      "analytics": {
+        "title": "数据分析集成",
+        "description": "Connect external analytics services",
+        "googleAnalyticsId": "Google Analytics ID",
+        "googleAnalyticsIdPlaceholder": "G-XXXXXXXXXX",
+        "googleTagManagerId": "Google Tag Manager ID",
+        "googleTagManagerIdPlaceholder": "GTM-XXXXXXX",
+        "facebookPixelId": "Facebook Pixel ID",
+        "facebookPixelIdPlaceholder": "123456789012345",
+        "tiktokPixelId": "TikTok Pixel ID",
+        "tiktokPixelIdPlaceholder": "C1234567890ABCDEF",
+        "plausibleTitle": "Plausible Analytics",
+        "plausibleDomain": "Site Domain",
+        "plausibleDomainPlaceholder": "yourdomain.com",
+        "plausibleDomainHelp": "Enter just the domain, e.g. yourdomain.com (no https://)",
+        "plausibleApiKey": "API Key",
+        "plausibleApiKeyPlaceholder": "Enter your Plausible API key",
+        "plausibleApiKeyHelp": "Found in Plausible → Settings → API Keys",
+        "plausibleSelfHosted": "Self-hosted instance",
+        "plausibleBaseUrl": "Custom Instance URL",
+        "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
+        "save": "Save Analytics Settings"
+      },
+      "loadError": "无法加载设置",
+      "unsavedChanges": {
+        "title": "未保存的更改",
+        "description": "要放弃未保存的更改并切换分区吗？",
+        "confirm": "放弃",
+        "cancel": "停留"
+      },
+      "search": "搜索设置",
+      "close": "Close settings",
+      "openMenu": "Open settings menu",
+      "closeMenu": "Close settings menu",
+      "attention": "需处理",
+      "disabled": "已禁用",
+      "unsaved": "未保存",
+      "locations": {
+        "title": "库存地点",
+        "description": "管理用于备货与履约的仓库和门店地点"
+      },
+      "shipping": {
+        "title": "配送与物流",
+        "codCollectedBy": {
+          "title": "由谁收取货到付款",
+          "description": "若卖家使用自有车队配送，现金由卖家收取并向您支付佣金。若由您的快递配送，则现金由您收取，并需向卖家支付其收益——此类订单只有管理员可标记为已付款。适用于新订单。",
+          "vendor": "卖家",
+          "platform": "本店"
+        }
+      },
+      "ai": {
+        "title": "AI 配置",
+        "description": "在此统一配置 AI 工作室的内容、SEO 和图像生成。",
+        "statusConfigured": "已配置",
+        "statusNotConfigured": "未配置",
+        "enabled": "启用 AI 功能",
+        "enabledHint": "控制仪表盘中 AI 工作室及所有 AI 按钮的开关。",
+        "apiKey": "OpenAI API 密钥",
+        "apiKeySetPlaceholder": "••••••••（已保存 — 输入新密钥以替换）",
+        "apiKeyHint": "供 AI 工作室和 AI 销售助手使用。留空则继续使用环境变量 OPENAI_API_KEY。",
+        "testConnection": "测试连接",
+        "testFailed": "连接测试失败",
+        "textModel": "文本模型",
+        "imageModel": "图像模型",
+        "modelDefault": "默认（推荐）",
+        "imageSize": "默认图像尺寸",
+        "imageQuality": "默认图像质量",
+        "imageQualityHint": "质量越高，单张图像的成本越高。",
+        "surfacesTitle": "AI 可用范围",
+        "surfacesHint": "可为仪表盘中的特定区域关闭 AI 生成功能。",
+        "surfaces": {
+          "products": "商品",
+          "categories": "分类",
+          "collections": "集合",
+          "brands": "品牌",
+          "blogPosts": "博客文章",
+          "contentPages": "内容页面",
+          "reviews": "评价与回复",
+          "heroBanner": "首页横幅"
+        },
+        "brandVoiceTitle": "品牌语调",
+        "brandVoiceHint": "适用于所有 AI 文本生成，除非请求中另有指定。",
+        "tone": "默认语气",
+        "toneNone": "无默认语气",
+        "brandInstructions": "风格指引（可选）",
+        "brandInstructionsPlaceholder": "例如：“面向户外爱好者撰写。句子简短。避免使用最高级形容词。”",
+        "accessTitle": "访问权限与每日限额",
+        "accessHint": "限额按每位用户每天计算。0 表示不限。",
+        "staffEnabled": "允许员工账号使用",
+        "vendorsEnabled": "允许商家账号使用",
+        "textLimit": "文本生成次数 / 用户 / 天",
+        "imageLimit": "图像生成次数 / 用户 / 天",
+        "imageLimitHint": "图像生成成本最高 — 建议为共享店铺设置上限。",
+        "imageStyle": "图像风格指引（可选）",
+        "imageStylePlaceholder": "例如：“柔和自然光，暖色中性调，道具简约。”",
+        "imageStyleHint": "适用于生成的图像（不含编辑操作），确保商品视觉效果符合品牌风格。",
+        "brandKitTitle": "品牌套件",
+        "brandKitHint": "生成图像及导出社交媒体尺寸时使用的颜色和 Logo。",
+        "primaryColor": "品牌主色",
+        "secondaryColor": "品牌次色",
+        "logoUrl": "品牌 Logo URL",
+        "logoUrlHint": "将您的 Logo 上传到店铺，然后将其 URL 粘贴到此处。在社交媒体导出中用作可选的品牌标识组合。"
+      },
+      "saveChanges": "保存更改",
+      "boosting": {
+        "title": "商品推广",
+        "description": "允许卖家付费在店铺各处的赞助位推广其商品。",
+        "enable": "启用推广",
+        "enableDescription": "总开关。关闭后店铺不会展示任何赞助内容，卖家也无法购买推广。",
+        "paymentMethods": "支付方式",
+        "paymentMethodsDescription": "卖家可通过哪些支付网关支付推广费用。凭据在「支付设置」中配置。",
+        "gatewayDisabledHint": "请先在「支付设置」中启用该网关",
+        "placements": "展示位",
+        "placementsDescription": "赞助商品在店铺中出现的位置。",
+        "placementHome": "首页版块",
+        "placementListing": "商店与分类列表",
+        "placementProductPage": "商品页轮播",
+        "listingSlots": "列表页阶梯深度",
+        "listingSlotsDescription": "在商店页和分类页展示阶梯前几名的数量（1–12）。低于该深度的位置在那里根本不会出现。",
+        "hideOutOfStock": "隐藏缺货商品",
+        "hideOutOfStockDescription": "已预订的商品若售罄将从展示位中移除，并按比例为商家计入当天的贷记。",
+        "managePositions": "管理推广位阶梯与定价",
+        "productPageSlots": "商品页阶梯深度",
+        "productPageSlotsDescription": "在商品页横排中展示阶梯前几名的数量（1–12）。",
+        "ladderDepth": "深于上述最大深度的位置不会在任何页面展示，也无法售出。",
+        "booking": "预订规则",
+        "bookingDescription": "商家最多可提前多久预订、单次预订最长可持续多久，以及未支付的结账保留日期多长时间。",
+        "bookingHorizonDays": "可预订天数范围",
+        "bookingHorizonDaysDescription": "日历向未来开放多少天（7–365）。",
+        "maxBookingDays": "单次预订最长天数",
+        "maxBookingDaysDescription": "防止单个商家在一次交易中占据某位置整个季度（1–365）。",
+        "holdMinutes": "结账保留时长（分钟）",
+        "holdMinutesDescription": "未支付的结账将日期从市场上保留多久（35–120）。低于 35 时 Stripe 会拒绝结账会话。"
+      },
+      "groups": {
+        "store": "商店",
+        "commerce": "交易",
+        "salesTools": "销售工具",
+        "communication": "沟通",
+        "authentication": "身份验证",
+        "growth": "增长",
+        "advanced": "高级"
+      }
+    },
+    "reports": "报表",
+    "pendingApprovals": "待审核",
+    "approveVendor": "通过商家",
+    "rejectVendor": "拒绝商家",
+    "pos": "销售点",
+    "posStaff": "员工",
+    "posLocations": "位置",
+    "productsPage": {
+      "stats": {
+        "totalProducts": {
+          "title": "总计 产品",
+          "description": "全部 catalog 产品"
+        },
+        "activeListings": {
+          "title": "启用中 Listings",
+          "description": "在线 on 店铺前台"
+        },
+        "draftProducts": {
+          "title": "草稿 产品",
+          "description": "待发布 publish"
+        },
+        "outOfStock": {
+          "title": "缺货",
+          "description": "需要 replenishment"
+        },
+        "inventoryUnits": {
+          "title": "库存 Units",
+          "description": "总计 sellable stock"
+        }
+      }
+    },
+    "collectionsPage": {
+      "stats": {
+        "totalCollections": {
+          "title": "总计 集合",
+          "description": "全部 集合 groups"
+        },
+        "activeCollections": {
+          "title": "启用中 集合",
+          "description": "可见 到 customers"
+        },
+        "manualCollections": {
+          "title": "手动 集合",
+          "description": "精选 按 admin"
+        },
+        "onlineStore": {
+          "title": "在线商店",
+          "description": "已发布 到 线上 channel"
+        },
+        "productsInCollections": {
+          "title": "产品 在 集合",
+          "description": "总计 assigned 产品 entries"
+        }
+      }
+    },
+    "categoriesPage": {
+      "stats": {
+        "totalCategories": {
+          "title": "总计 分类",
+          "description": "全部 分类 records"
+        },
+        "activeCategories": {
+          "title": "启用中 分类",
+          "description": "可见 在 店铺前台"
+        },
+        "inactiveCategories": {
+          "title": "停用 分类",
+          "description": "隐藏 from customers"
+        },
+        "parentCategories": {
+          "title": "父级 分类",
+          "description": "顶级-level taxonomy"
+        },
+        "assignedProducts": {
+          "title": "已分配 产品",
+          "description": "产品 mapped 到 分类"
+        }
+      }
+    },
+    "inventoryPage": {
+      "stats": {
+        "trackedSkus": {
+          "title": "已跟踪 SKUs",
+          "description": "产品 和 variants tracked"
+        },
+        "lowStockSkus": {
+          "title": "低 库存 SKUs",
+          "description": "库存 在...之间 1 和 10"
+        },
+        "outOfStock": {
+          "title": "缺货",
+          "description": "需要 replenishment"
+        },
+        "onHandUnits": {
+          "title": "On Hand Units",
+          "description": "总计 physical inventory"
+        },
+        "activeLocations": {
+          "title": "启用中 地点",
+          "description": "库存 地点 enabled"
+        }
+      }
+    },
+    "productsDataTable": {
+      "title": "商品",
+      "searchPlaceholder": "搜索 产品",
+      "rowActionsHeader": "操作",
+      "empty": "未找到商品",
+      "columns": {
+        "product": "产品",
+        "category": "分类",
+        "uncategorized": "未分类",
+        "status": "状态",
+        "inventory": "库存",
+        "price": "价格",
+        "availableIn": "可用 在"
+      },
+      "channels": {
+        "inStore": "在 商店",
+        "online": "线上"
+      },
+      "tabs": {
+        "all": "全部",
+        "active": "活跃",
+        "draft": "草稿",
+        "archived": "已归档"
+      },
+      "filters": {
+        "vendors": "商家",
+        "tag": "标签",
+        "statuses": "状态",
+        "all": "全部",
+        "active": "活跃",
+        "draft": "草稿",
+        "archived": "已归档"
+      },
+      "actions": {
+        "addProduct": "添加 产品",
+        "export": "导出",
+        "import": "导入",
+        "importExport": "导入 / 导出"
+      },
+      "bulkActions": {
+        "setActive": "设为启用",
+        "setDraft": "设为 草稿",
+        "setArchived": "设为 已归档",
+        "delete": "删除"
+      },
+      "rowActions": {
+        "view": "查看",
+        "edit": "编辑",
+        "delete": "删除"
+      },
+      "dialogs": {
+        "deleteSingle": {
+          "title": "删除 产品",
+          "description": "确定要删除吗 \"{name}\"? 此操作无法撤销。",
+          "confirm": "删除",
+          "cancel": "取消"
+        },
+        "deleteBulk": {
+          "title": "删除 产品",
+          "description": "确定要删除吗 {count} 产品? 此操作无法撤销。",
+          "confirm": "删除",
+          "cancel": "取消"
+        },
+        "updateStatus": {
+          "title": "更新 产品 状态",
+          "description": "设为 {count} 产品 到 \"{status}\"?",
+          "confirm": "更新",
+          "cancel": "取消"
+        }
+      },
+      "toasts": {
+        "fetchError": "失败 到 获取 产品",
+        "deleteSingleSuccess": "产品 已删除 成功",
+        "deleteSingleError": "失败 到 删除 产品",
+        "deleteBulkSuccess": "{count} 产品 已删除 成功",
+        "deleteBulkError": "失败 到 删除 部分 产品",
+        "updateSuccess": "{count} 产品 已更新",
+        "updateError": "失败 到 更新 {count} 产品"
+      }
+    },
+    "collectionsDataTable": {
+      "title": "集合",
+      "searchPlaceholder": "搜索 集合...",
+      "rowActionsHeader": "操作",
+      "empty": "没有 集合 找到",
+      "columns": {
+        "collection": "集合",
+        "type": "类型",
+        "products": "商品",
+        "status": "状态",
+        "availableIn": "可用 在"
+      },
+      "types": {
+        "manual": "手动",
+        "automated": "自动"
+      },
+      "channels": {
+        "inStore": "在 商店",
+        "online": "线上"
+      },
+      "tabs": {
+        "all": "全部",
+        "active": "活跃",
+        "draft": "草稿"
+      },
+      "filters": {
+        "type": "类型",
+        "all": "全部",
+        "manual": "手动",
+        "automated": "自动"
+      },
+      "actions": {
+        "export": "导出",
+        "import": "导入",
+        "addCollection": "添加 集合"
+      },
+      "bulkActions": {
+        "setActive": "设为启用",
+        "setDraft": "设为 草稿",
+        "delete": "删除"
+      },
+      "rowActions": {
+        "edit": "编辑",
+        "delete": "删除"
+      },
+      "dialogs": {
+        "deleteSingle": {
+          "title": "删除 集合",
+          "description": "确定要删除吗 \"{name}\"? 这不会删除该集合中的商品。",
+          "confirm": "删除",
+          "cancel": "取消"
+        },
+        "deleteBulk": {
+          "title": "删除 集合",
+          "description": "确定要删除吗 {count} 集合? 此操作无法撤销。",
+          "confirm": "删除",
+          "cancel": "取消"
+        },
+        "updateStatus": {
+          "title": "更新 集合 状态",
+          "description": "设为 {count} 集合 到 \"{status}\"?",
+          "confirm": "更新",
+          "cancel": "取消"
+        }
+      },
+      "toasts": {
+        "fetchError": "失败 到 获取 集合",
+        "deleteSingleSuccess": "集合 已删除 成功",
+        "deleteSingleError": "失败 到 删除 集合",
+        "deleteBulkSuccess": "{count} 集合 已删除 成功",
+        "deleteBulkError": "失败 到 删除 部分 集合",
+        "updateSuccess": "{count} 集合 已更新",
+        "updateError": "失败 到 更新 {count} 集合"
+      }
+    },
+    "categoriesDataTable": {
+      "title": "分类",
+      "searchPlaceholder": "搜索 分类...",
+      "rowActionsHeader": "操作",
+      "empty": "没有 分类 找到",
+      "columns": {
+        "category": "分类",
+        "parent": "父级",
+        "none": "-",
+        "products": "商品",
+        "status": "状态"
+      },
+      "tabs": {
+        "all": "全部",
+        "active": "活跃",
+        "inactive": "不活跃"
+      },
+      "status": {
+        "active": "active",
+        "inactive": "inactive"
+      },
+      "actions": {
+        "export": "导出",
+        "import": "导入",
+        "addCategory": "添加 分类"
+      },
+      "bulkActions": {
+        "setActive": "设为启用",
+        "setInactive": "设为停用",
+        "delete": "删除"
+      },
+      "rowActions": {
+        "edit": "编辑",
+        "delete": "删除"
+      },
+      "dialogs": {
+        "deleteSingle": {
+          "title": "删除 分类",
+          "description": "确定要删除吗 \"{name}\"? 此分类中的商品需要重新分类。",
+          "confirm": "删除",
+          "cancel": "取消"
+        },
+        "deleteBulk": {
+          "title": "删除 分类",
+          "description": "确定要删除吗 {count} 分类? 此操作无法撤销。",
+          "confirm": "删除",
+          "cancel": "取消"
+        },
+        "activate": {
+          "title": "启用 分类",
+          "confirm": "激活"
+        },
+        "deactivate": {
+          "title": "停用 分类",
+          "confirm": "停用"
+        },
+        "updateStatus": {
+          "description": "更新 {count} 分类 到 {status}?",
+          "cancel": "取消"
+        }
+      },
+      "toasts": {
+        "fetchError": "失败 到 获取 分类",
+        "deleteSingleSuccess": "分类 已删除 成功",
+        "deleteSingleError": "失败 到 删除 分类",
+        "deleteBulkSuccess": "{count} 分类 已删除 成功",
+        "deleteBulkError": "失败 到 删除 部分 分类",
+        "updateSuccess": "{count} 分类 已更新",
+        "updateError": "失败 到 更新 {count} 分类"
+      }
+    },
+    "transfers": {
+      "status": {
+        "draft": "草稿",
+        "ready_to_ship": "准备发货 到 ship",
+        "in_transit": "运输中",
+        "completed": "已完成",
+        "cancelled": "已取消"
+      },
+      "tabs": {
+        "all": "全部"
+      },
+      "list": {
+        "title": "转移",
+        "subtitle": "使用 Shopify 风格的调拨流程在地点之间移动库存。",
+        "createTransfer": "创建 调拨",
+        "searchPlaceholder": "搜索 按 调拨 编号, 地点, or 参考",
+        "loading": "加载中 调拨...",
+        "empty": "没有 调拨 找到",
+        "itemsSummary": "{units} 单位 跨 {lines} 行",
+        "columns": {
+          "transfer": "调拨",
+          "from": "从",
+          "to": "到",
+          "items": "项目",
+          "status": "状态",
+          "updated": "已更新"
+        }
+      },
+      "create": {
+        "title": "创建 调拨",
+        "fromLocation": "从 地点",
+        "toLocation": "到 地点",
+        "addLocation": "添加 地点",
+        "selectSourceLocation": "选择 来源 地点",
+        "selectDestinationLocation": "选择 目标 地点",
+        "reference": "参考",
+        "referencePlaceholder": "PO, batch, or internal note",
+        "internalNote": "内部 note",
+        "internalNotePlaceholder": "可选 notes for your team",
+        "searchPlaceholder": "搜索 产品 or SKU",
+        "selectSourceToLoad": "选择 a 来源 地点 到 加载 inventory",
+        "loadingInventory": "加载中 inventory...",
+        "noVariants": "没有 available variants 找到 在 this 地点",
+        "selectionSummary": "{lines} 行 已选择, {units} 总计 单位.",
+        "cancel": "取消",
+        "createTransfer": "创建 调拨",
+        "columns": {
+          "product": "产品",
+          "variant": "变体",
+          "sku": "SKU",
+          "available": "可用",
+          "transferQty": "调拨 数量"
+        },
+        "dialog": {
+          "addLocationTitle": "添加 地点",
+          "addLocationDescription": "创建一个新地点并将其用作 {target} 地点。",
+          "locationName": "地点 名称",
+          "locationNamePlaceholder": "Dhaka Warehouse",
+          "addressOptional": "地址 (optional)",
+          "addressPlaceholder": "Street, area, city",
+          "saveLocation": "保存 地点"
+        },
+        "toasts": {
+          "loadLocationsError": "加载位置失败",
+          "selectBothLocations": "请选择来源和目标地点",
+          "locationsMustDiffer": "来源和目标地点必须不同",
+          "selectItems": "添加 在 至少 一个 项目 到 调拨",
+          "createSuccess": "调拨 已创建",
+          "createError": "失败 到 创建 调拨",
+          "locationNameRequired": "位置名称是必填项",
+          "createLocationSuccess": "地点 已添加",
+          "createLocationError": "失败 到 创建 地点"
+        }
+      },
+      "details": {
+        "loading": "加载中 调拨...",
+        "backToTransfers": "返回 到 调拨",
+        "routeSummary": "{from} 到 {to}",
+        "reference": "参考",
+        "note": "备注",
+        "defaultVariant": "默认",
+        "meta": {
+          "created": "已创建",
+          "updated": "最后 已更新",
+          "totalUnits": "总计 单位"
+        },
+        "columns": {
+          "product": "产品",
+          "variant": "变体",
+          "sku": "SKU",
+          "qty": "数量"
+        },
+        "actions": {
+          "markReadyToShip": "标记 ready 到 ship",
+          "markInTransit": "标记 在 transit",
+          "markCompleted": "标记 completed",
+          "cancelTransfer": "取消 调拨"
+        },
+        "toasts": {
+          "loadError": "失败 到 加载 调拨",
+          "updateSuccess": "调拨 已更新",
+          "updateError": "失败 到 更新 调拨"
+        }
+      }
+    },
+    "phrases": {
+      "all": "全部",
+      "failed_to_fetch_customers": "Failed to fetch customers",
+      "delete_customer": "Delete customer",
+      "delete": "删除",
+      "cancel": "取消",
+      "customer_deleted_successfully": "Customer deleted successfully",
+      "failed_to_delete_customer": "Failed to delete customer",
+      "delete_customers": "Delete Customers",
+      "failed_to_delete_some_customers": "Failed to delete some customers",
+      "update_account_status": "Update account status",
+      "update": "更新",
+      "customer": "客户",
+      "unknown": "未知",
+      "account": "账户",
+      "active": "启用",
+      "inactive": "停用",
+      "banned": "封禁",
+      "loyalty_tier": "会员等级",
+      "bronze": "青铜",
+      "silver": "白银",
+      "gold": "黄金",
+      "platinum": "铂金",
+      "orders": "订单",
+      "spent": "消费",
+      "last_active": "最近活跃",
+      "tags": "标签",
+      "": "-",
+      "tier": "等级",
+      "tag": "标签",
+      "export": "导出",
+      "add_customer": "添加客户",
+      "set_active": "设为启用",
+      "set_inactive": "设为停用",
+      "set_banned": "设为封禁",
+      "view_details": "查看详情",
+      "edit": "编辑",
+      "customers": "客户",
+      "search_by_name_or_email": "按姓名或邮箱搜索",
+      "actions": "操作",
+      "no_customers_found": "未找到客户",
+      "failed_to_fetch_staff": "Failed to fetch staff",
+      "failed_to_fetch_staff_members": "Failed to fetch staff members",
+      "remove": "移除",
+      "remove_all": "Remove all",
+      "department": "部门",
+      "permissions": "权限",
+      "none": "无",
+      "joined": "加入时间",
+      "failed_to_fetch_vendors": "Failed to fetch vendors",
+      "failed_to_update_vendor": "Failed to update vendor",
+      "vendor_status_updated": "Vendor status updated",
+      "failed_to_update_vendor_status": "Failed to update vendor status",
+      "failed_to_update_account": "Failed to update account",
+      "vendor_account_status_updated": "Vendor account status updated",
+      "failed_to_update_account_status": "Failed to update account status",
+      "failed_to_delete_vendor": "Failed to delete vendor",
+      "vendor_deleted": "Vendor deleted",
+      "store_owner": "店铺与所有者",
+      "unknown_owner": "未知所有者",
+      "vendor_status": "商家状态",
+      "approved": "已通过",
+      "pending": "待审核",
+      "suspended": "已暂停",
+      "rejected": "已拒绝",
+      "commission": "佣金",
+      "sales": "销售额",
+      "add_vendor": "添加商家",
+      "details": "详情",
+      "edit_vendor": "编辑商家",
+      "visit_store": "访问店铺",
+      "approve_vendor": "通过商家",
+      "suspend_vendor": "暂停商家",
+      "ban_account": "封禁账户",
+      "activate_account": "启用账户",
+      "delete_vendor": "删除商家",
+      "vendors": "商家",
+      "search_vendors": "搜索商家...",
+      "no_vendors_found": "未找到商家",
+      "failed_to_load_discounts": "Failed to load discounts",
+      "discount_code_is_required": "Discount code is required",
+      "discount_value_must_be_greater_than_0": "Discount value must be greater than 0",
+      "end_date_is_required": "End date is required",
+      "failed_to_save_discount": "Failed to save discount",
+      "discount_created": "Discount created",
+      "discount_updated": "Discount updated",
+      "delete_discount": "Delete Discount",
+      "failed_to_delete_discount": "Failed to delete discount",
+      "discount_deleted": "Discount deleted",
+      "delete_discounts": "Delete Discounts",
+      "update_discount_status": "Update Discount Status",
+      "discount": "优惠",
+      "no_label": "No label",
+      "free_shipping": "免费送货",
+      "type": "类型",
+      "percentage": "百分比",
+      "fixed": "固定",
+      "value": "数值",
+      "status": "状态",
+      "expired": "已过期",
+      "usage": "使用情况",
+      "schedule": "时间",
+      "import": "导入",
+      "export_will_be_available_soon": "Export will be available soon",
+      "import_will_be_available_soon": "Import will be available soon",
+      "add_discount": "添加优惠",
+      "discounts": "优惠",
+      "search_code_label_or_description": "按代码、标签或描述搜索",
+      "no_discounts_found": "未找到优惠",
+      "edit_discount": "编辑优惠",
+      "create_discount": "创建优惠",
+      "configure_discount_rules_similar_to_shopify_coupon_settings": "Configure discount rules similar to Shopify coupon settings.",
+      "code": "代码",
+      "summer10": "SUMMER10",
+      "label": "标签",
+      "flash_sale": "Flash Sale",
+      "fixed_amount": "固定金额",
+      "minimum_order_amount": "最低订单金额",
+      "maximum_discount_cap": "最高优惠上限",
+      "optional": "可选",
+      "total_usage_limit": "总使用上限",
+      "per_customer_usage_limit": "每位客户使用上限",
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "description": "描述",
+      "optional_internal_note_for_this_discount": "Optional internal note for this discount",
+      "code_will_be_normalized_to_uppercase": "Code will be normalized to uppercase.",
+      "tax_is_calculated_after_discount_during_checkout": "Tax is calculated after discount during checkout.",
+      "expired_codes_are_automatically_rejected_in_checkout_validation": "Expired codes are automatically rejected in checkout validation.",
+      "saving": "保存中...",
+      "update_discount": "更新优惠",
+      "pos": "POS",
+      "manage_pos": "Manage POS",
+      "pos_create": "POS Create",
+      "pos_edit": "POS Edit",
+      "pos_delete": "POS Delete",
+      "manage_orders": "Manage Orders",
+      "create_orders": "Create Orders",
+      "edit_orders": "Edit Orders",
+      "delete_orders": "Delete Orders",
+      "products": "商品",
+      "manage_products": "Manage Products",
+      "create_products": "Create Products",
+      "edit_products": "Edit Products",
+      "delete_products": "Delete Products",
+      "manage_customers": "Manage Customers",
+      "create_customers": "Create Customers",
+      "edit_customers": "Edit Customers",
+      "inventory": "库存",
+      "manage_inventory": "Manage Inventory",
+      "create_inventory": "Create Inventory",
+      "edit_inventory": "Edit Inventory",
+      "delete_inventory": "Delete Inventory",
+      "analytics": "分析",
+      "restart_setup_access": "重新开放设置权限",
+      "payment_required": "待付款",
+      "guest": "访客",
+      "guest_customers_have_no_account_status": "访客顾客没有账户状态",
+      "last_order": "最近订单"
+    },
+    "customersPage": {
+      "stats": {
+        "totalCustomers": {
+          "title": "客户总数",
+          "description": "所有客户档案"
+        },
+        "activeAccounts": {
+          "title": "活跃账户",
+          "description": "可下单账户"
+        },
+        "vipCustomers": {
+          "title": "VIP 客户",
+          "description": "黄金与铂金等级"
+        },
+        "customerSpend": {
+          "title": "客户消费",
+          "description": "生命周期总消费"
+        },
+        "avgSpendPerCustomer": {
+          "title": "平均消费 / 客户",
+          "description": "平均客户价值"
+        }
+      }
+    },
+    "staffPage": {
+      "stats": {
+        "totalStaff": {},
+        "activeStaff": {
+          "description": "当前活跃"
+        },
+        "withPosAccess": {
+          "title": "具有 POS 权限",
+          "description": "可使用 POS 终端"
+        },
+        "inactiveStaff": {
+          "description": "已停用账户"
+        }
+      }
+    },
+    "vendorsPage": {
+      "stats": {
+        "totalVendors": {
+          "title": "商家总数",
+          "description": "所有已注册店铺"
+        },
+        "approvedVendors": {
+          "title": "已通过商家",
+          "description": "当前正在销售"
+        },
+        "pendingReview": {
+          "title": "待审核",
+          "description": "等待批准"
+        },
+        "flaggedVendors": {
+          "title": "异常商家",
+          "description": "已暂停或已拒绝"
+        },
+        "vendorSales": {
+          "title": "商家销售额",
+          "description": "商家生命周期总销售额"
+        }
+      }
+    },
+    "discountsPage": {
+      "stats": {
+        "totalDiscounts": {
+          "title": "优惠总数",
+          "description": "所有已配置优惠码"
+        },
+        "activeDiscounts": {
+          "title": "有效优惠",
+          "description": "结账时可用"
+        },
+        "totalRedemptions": {
+          "title": "总兑换次数",
+          "description": "在订单中的使用次数"
+        },
+        "expiringIn7Days": {
+          "title": "7 天内到期",
+          "description": "即将结束的优惠码"
+        }
+      }
+    },
+    "customersDataTable": {
+      "thisCustomer": "该客户",
+      "deleteSingleDescription": "确定要删除 {name} 吗？此操作无法撤销。",
+      "deleteBulkDescription": "删除已选择的 {count} 位客户？此操作无法撤销。",
+      "deleteBulkSuccess": "已成功删除 {count} 位客户",
+      "updateStatusDescription": "将已选择的 {count} 位客户状态设为“{status}”？",
+      "updateSuccess": "已更新 {count} 位客户",
+      "updateError": "更新 {count} 位客户失败"
+    },
+    "staffDataTable": {},
+    "discountsDataTable": {
+      "deleteBulkDescription": "确定要删除 {count} 个优惠吗？此操作无法撤销。",
+      "deleteBulkSuccess": "已删除 {count} 个优惠",
+      "deleteBulkError": "删除 {count} 个优惠失败",
+      "updateStatusDescription": "将 {count} 个优惠状态设为“{status}”？",
+      "updateSuccess": "已更新 {count} 个优惠",
+      "updateError": "更新 {count} 个优惠失败"
+    },
+    "onlineStoreThemePage": {
+      "badge": "在线商店",
+      "title": "主题",
+      "description": "选择基于行业标准电商模式的店铺主题，以提升清晰度、速度和转化率。",
+      "comingSoon": "即将推出",
+      "previewComingSoon": "预览即将推出",
+      "active": "已启用",
+      "themes": {
+        "essential": {
+          "name": "Classic Marketplace",
+          "description": "适用于通用零售目录和多品类陈列的均衡店铺风格。",
+          "styleNote": "层级清晰、浏览高效，并支持促销场景布局。"
+        },
+        "electronics": {
+          "name": "电子产品",
+          "description": "通过便于对比的卡片和性能亮点，强化高规格产品展示。",
+          "styleNote": "针对技术类商品、配件和功能丰富的商品详情流程进行了优化。"
+        },
+        "luxe": {
+          "name": "Fashion",
+          "description": "为高端时尚、美妆和生活方式品牌打造的编辑风视觉风格。",
+          "styleNote": "聚焦以图片为先的商品陈列与精致系列叙事。"
+        }
+      },
+      "activate": "使用此主题"
+    },
+    "homePageBuilder": {
+      "title": "页面构建器",
+      "subtitle": "拖拽排序 - 切换显示 - 编辑内容",
+      "preview": "预览",
+      "save": "保存",
+      "saving": "保存中...",
+      "hidden": "已隐藏",
+      "allChangesSaved": "所有更改均已保存。首页已与此编辑器完全同步。",
+      "sections": {
+        "hero": {
+          "title": "主视觉",
+          "subtitle": "主轮播、侧边促销和亮点内容"
+        },
+        "newArrivals": {
+          "title": "新品上架",
+          "subtitle": "最新商品板块标题"
+        },
+        "promoBanners": {
+          "title": "促销横幅",
+          "subtitle": "新品板块下方的两张促销卡片"
+        },
+        "featuredProducts": {
+          "title": "精选商品",
+          "subtitle": "商品发现板块标题"
+        },
+        "sponsoredProducts": {
+          "title": "赞助商品",
+          "subtitle": "付费推广位——商品来自进行中的卖家推广活动"
+        }
+      },
+      "row": {
+        "dragAria": "拖动 {title}",
+        "hideAria": "隐藏 {title}",
+        "showAria": "显示 {title}",
+        "editAria": "编辑 {title}"
+      },
+      "editor": {
+        "heroSlides": "主视觉幻灯片",
+        "slide": "幻灯片",
+        "label": "标签",
+        "title": "标题",
+        "description": "描述",
+        "heroSideBanners": "主视觉侧边横幅",
+        "banner": "横幅",
+        "eyebrow": "眉题",
+        "titleLine1": "标题第 1 行",
+        "titleLine2": "标题第 2 行",
+        "ctaLabel": "CTA 文案",
+        "imagePath": "图片路径",
+        "imageAlt": "图片替代文本",
+        "heroHighlights": "主视觉亮点",
+        "highlight": "亮点",
+        "sectionTitle": "板块标题",
+        "sectionSubtitle": "板块副标题",
+        "newArrivalsTitlePlaceholder": "新品上架",
+        "optionalSubtitlePlaceholder": "可选副标题",
+        "promoBanner": "促销横幅",
+        "buttonLabel": "按钮文案",
+        "featuredProductsHeading": "精选商品标题",
+        "featuredProductsPlaceholder": "留空以使用默认文案",
+        "heroUploadTitle": "将封面图片拖放到此处，或点击浏览",
+        "heroUploadDescription": "仅支持图片。使用 Ctrl+V 粘贴。",
+        "heroSizeGuide": "推荐尺寸：1360 x 314 像素",
+        "promotionsOffers": {
+          "slot": {
+            "tallLeft": "左侧高",
+            "tallMiddle": "中间高",
+            "squareTopRight1": "右上角方形",
+            "squareTopRight2": "右上角方形（带箭头）",
+            "wideBottomRight": "右下角宽幅"
+          },
+          "subtitle": "副标题（例如：环保达人）",
+          "discount": "折扣标签（例如：15% 特惠！）",
+          "showArrow": "显示箭头图标",
+          "theme": "主题",
+          "card": "卡片",
+          "savedToCard": "已保存到卡片图片"
+        },
+        "sponsoredTitlePlaceholder": "为你推荐",
+        "sponsoredLimit": "首页横排的阶梯深度",
+        "sponsoredHint": "这是一个混合陈列：已预订的阶梯位置出现在各自的位置上，其余以普通商品填充。当推广关闭或该深度内没有任何预订时，该板块会自动隐藏。"
+      },
+      "toasts": {
+        "saveSuccess": "首页板块保存成功",
+        "saveError": "首页板块保存失败"
+      }
+    },
+    "staffDashboardPage": {
+      "title": "员工仪表板",
+      "subtitle": "快速访问已分配的模块",
+      "openCta": "打开",
+      "noModulesTitle": "未分配任何模块",
+      "noModulesDescription": "你目前还没有任何员工模块的访问权限。请联系管理员分配权限。"
+    },
+    "staffDashboard": {
+      "quickAccess": "快速访问",
+      "todaysSnapshot": "今日概览",
+      "todaysRegister": "今日登记",
+      "recentPosSales": "最近的POS销售",
+      "recentPosSalesHint": "您最近的POS交易",
+      "noPosSales": "今日无POS销售",
+      "recentOrders": "最近订单",
+      "recentOrdersSubtitle": "您商店的最新订单",
+      "ordersToday": "今日订单",
+      "revenueToday": "今日营收",
+      "itemsToday": "今日售出商品",
+      "customersToday": "今日新客户",
+      "posSalesToday": "今日POS销售",
+      "posRevenueToday": "今日POS营收",
+      "posItemsToday": "今日POS商品",
+      "averageSale": "平均销售额",
+      "items": "商品",
+      "time": "时间",
+      "topProducts": "畅销产品",
+      "last30Days": "过去30天",
+      "noTopProducts": "暂无销售产品",
+      "unitsSold": "已售出",
+      "lowStock": "低库存警报",
+      "lowStockHint": "库存警告产品",
+      "noLowStock": "所有产品库存充足",
+      "outOfStock": "缺货",
+      "left": "剩余",
+      "latestCustomers": "最新客户",
+      "latestCustomersHint": "最近注册的的客户",
+      "noLatestCustomers": "暂无新客户"
+    },
+    "reviewsPage": {
+      "title": "评价",
+      "searchPlaceholder": "搜索评价",
+      "outOfReviews": "— 共 {count} 条评价",
+      "thisWeek": "本周",
+      "overallPerformance": "整体表现",
+      "performance": {
+        "excellent": "优秀",
+        "good": "良好",
+        "average": "一般",
+        "poor": "较差",
+        "none": "无数据"
+      },
+      "table": {
+        "product": "商品",
+        "reviewer": "评价人",
+        "review": "评价",
+        "date": "日期",
+        "status": "状态",
+        "actions": "操作"
+      },
+      "tabs": {
+        "all": "全部",
+        "published": "已发布",
+        "onHold": "待处理",
+        "withReply": "已回复",
+        "noReply": "待回复"
+      },
+      "filters": {
+        "status": "状态",
+        "rating": "评分"
+      },
+      "status": {
+        "published": "已发布",
+        "onHold": "待处理"
+      },
+      "verified": "已验证客户",
+      "unknownProduct": "未知商品",
+      "youReplied": "你回复了",
+      "reply": "回复",
+      "editReply": "编辑回复",
+      "replyToReview": "回复评价",
+      "replyHint": "您的回复会公开显示在店铺前台的该评价下方。",
+      "yourReply": "您的回复",
+      "aiReplyPlaceholder": "撰写对此评价的回复…",
+      "replyPlaceholder": "感谢你的反馈…",
+      "sendReply": "发送回复",
+      "removeReply": "删除回复",
+      "viewOnStore": "在店铺中查看",
+      "publish": "发布",
+      "unpublish": "取消发布",
+      "putOnHold": "设为待处理",
+      "empty": "暂无评价",
+      "delete": {
+        "title": "删除评价",
+        "description": "这将永久删除评价，并重新计算商品评分。"
+      },
+      "bulk": {
+        "publish": "发布",
+        "onHold": "设为待处理",
+        "deleteTitle": "删除评价",
+        "deleteDescription": "删除 {count} 条评价？此操作无法撤销。",
+        "updated": "已更新 {count} 条评价",
+        "deleted": "已删除 {count} 条评价"
+      },
+      "toast": {
+        "published": "评价已发布",
+        "onHold": "评价已设为待处理",
+        "deleted": "评价已删除",
+        "replySent": "回复已发送",
+        "replyUpdated": "回复已更新",
+        "replyRemoved": "回复已删除"
+      },
+      "starsAriaLabel": "{value} 星",
+      "reviewImageAlt": "评价图片 {index}"
+    },
+    "paymentsOverviewPage": {
+      "title": "支付",
+      "subtitle": "监控交易和退款。",
+      "subtitleMultiVendor": "监控交易、退款和打款健康状态。",
+      "actions": {
+        "transactions": "交易",
+        "refresh": "刷新"
+      },
+      "metrics": {
+        "paidRevenue": "已支付收入",
+        "refundedAmount": "退款金额",
+        "pendingPayments": "待处理付款",
+        "refundedOrders": "已退款订单",
+        "pendingPayoutAmount": "待打款金额",
+        "paidPayoutAmount": "已打款金额"
+      },
+      "gatewayHealth": {
+        "title": "网关状态",
+        "disabled": "已禁用",
+        "connected": "已连接",
+        "needsSetup": "需要设置"
+      },
+      "gateways": {
+        "stripe": "Stripe",
+        "paypal": "PayPal",
+        "cashOnDelivery": "货到付款"
+      },
+      "recentTransactions": {
+        "title": "最近交易",
+        "columns": {
+          "order": "订单",
+          "type": "类型",
+          "provider": "提供方",
+          "status": "状态",
+          "amount": "金额",
+          "date": "日期"
+        },
+        "empty": "暂无交易。"
+      },
+      "transactionTypes": {
+        "charge": "扣款",
+        "refund": "退款",
+        "adjustment": "调整"
+      },
+      "transactionStatuses": {
+        "pending": "待处理",
+        "succeeded": "成功",
+        "failed": "失败",
+        "cancelled": "已取消"
+      },
+      "providers": {
+        "stripe": "Stripe",
+        "paypal": "PayPal",
+        "razorpay": "Razorpay",
+        "paystack": "Paystack",
+        "cod": "货到付款",
+        "cash": "现金",
+        "manual": "手动",
+        "pos_card": "POS 卡",
+        "pos_cash": "POS 现金"
+      }
+    },
+    "payoutsPage": {
+      "title": "打款",
+      "subtitle": "创建商家结算批次并跟踪打款生命周期。",
+      "createSection": {
+        "title": "创建打款",
+        "selectVendor": "选择商家",
+        "periodStart": "周期开始",
+        "periodEnd": "周期结束",
+        "creating": "创建中...",
+        "create": "创建",
+        "optionalNote": "可选备注"
+      },
+      "listSection": {
+        "title": "打款批次",
+        "searchPlaceholder": "搜索打款编号",
+        "allStatuses": "全部状态",
+        "columns": {
+          "payout": "打款",
+          "vendor": "商家",
+          "status": "状态",
+          "amount": "金额",
+          "period": "周期",
+          "details": "详情"
+        },
+        "open": "打开",
+        "empty": "未找到打款记录。"
+      },
+      "statuses": {
+        "pending": "待处理",
+        "processing": "处理中",
+        "paid": "已打款",
+        "failed": "失败",
+        "cancelled": "已取消"
+      },
+      "pagination": {
+        "pageOf": "第 {page} 页，共 {totalPages} 页"
+      },
+      "toast": {
+        "requiredFields": "商家、开始日期和结束日期为必填项。",
+        "createSuccess": "打款已创建。",
+        "createError": "创建打款失败"
+      }
+    },
+    "paymentTransactionsPage": {
+      "title": "支付交易",
+      "subtitle": "查看所有扣款、退款和调整事件。",
+      "filters": {
+        "title": "筛选",
+        "searchPlaceholder": "按订单号或外部ID搜索",
+        "allStatuses": "全部状态",
+        "allTypes": "全部类型",
+        "allProviders": "全部提供方"
+      },
+      "table": {
+        "columns": {
+          "order": "订单",
+          "type": "类型",
+          "status": "状态",
+          "provider": "提供方",
+          "gross": "总额",
+          "net": "净额",
+          "date": "日期",
+          "details": "详情"
+        },
+        "viewOrder": "查看订单",
+        "empty": "未找到交易记录。"
+      },
+      "pagination": {
+        "pageOf": "第 {page} 页，共 {totalPages} 页"
+      },
+      "transactionTypes": {
+        "charge": "扣款",
+        "refund": "退款",
+        "adjustment": "调整"
+      },
+      "transactionStatuses": {
+        "succeeded": "成功",
+        "pending": "待处理",
+        "failed": "失败",
+        "cancelled": "已取消"
+      },
+      "providers": {
+        "stripe": "Stripe",
+        "paypal": "PayPal",
+        "cod": "货到付款",
+        "cash": "现金",
+        "manual": "手动",
+        "iotec": "ioTec Pay",
+        "pesapal": "Pesapal",
+        "orange_money": "Orange Money",
+        "manual_pending": "手动（待付款）"
+      }
+    },
+    "seoChecklist": {
+      "title": "SEO 检查清单",
+      "score": "得分",
+      "messages": {
+        "titleMissing": "请添加页面标题 — 否则搜索引擎将无内容可展示。",
+        "titleShort": "标题过短；30–70 个字符的排名效果最佳。",
+        "titleLong": "标题过长，在搜索结果中会被截断。",
+        "titleGood": "标题长度合适。",
+        "metaMissing": "请添加元描述 — 否则搜索结果将随机显示页面文本。",
+        "metaAuto": "元描述已根据内容自动填充；建议自行撰写以提升点击率。",
+        "metaShort": "元描述过短；70–160 个字符效果最佳。",
+        "metaLong": "元描述过长，将被截断。",
+        "metaGood": "元描述长度合适。",
+        "handleMissing": "请添加 URL 标识符。",
+        "handleAuto": "该标识符是根据标题自动生成的；请检查确认。",
+        "handleMessy": "该标识符包含异常字符或长度不合适；请保持简短并使用连字符。",
+        "handleGood": "URL 标识符格式良好。",
+        "contentThin": "内容过于单薄；更长、更实用的内容排名更好。",
+        "contentGood": "内容深度良好。",
+        "tagsMissing": "请添加一些标签以提升站内可发现性。",
+        "tagsGood": "已添加标签。"
+      }
+    },
+    "productForm": {
+      "boostRelease": {
+        "title": "该商品有已预订的推广日期",
+        "description": "将其下架会立即把 {days} 个已预订日期释放回平台日历。它们可被立刻再次售出，重新上架也无法收回。将为你计入 {credit} {currency} 的贷记。",
+        "descriptionDaysOnly": "将其下架会立即把 {days} 个已预订日期释放回平台日历。它们可被立刻再次售出，重新上架也无法收回。这些天数将按各自预订的日单价计入贷记。"
+      },
+      "fields": {
+        "priceOnRequest": "价格面议",
+        "quoteButtonLabel": "报价按钮文字"
+      },
+      "quote": {
+        "priceOnRequestHelp": "隐藏价格，改为显示“索取报价”按钮。",
+        "hiddenPricingTitle": "价格面议",
+        "hiddenPricingHelp": "顾客看到的是“价格面议”和一个报价按钮，而不是价格，且该商品无法加入购物车。关闭下方开关即可正常定价。"
+      }
+    },
+    "onlineStorePage": {
+      "sections": {
+        "customize": {
+          "title": "Customize",
+          "description": "Edit every storefront page — templates, landing pages, header and footer — in one visual editor."
+        }
+      }
+    },
+    "checkoutStudio": {
+      "brandNote": "结账页会自动使用店铺的 Logo 和主题配色，始终与您的品牌保持一致。",
+      "brandingLink": "品牌形象",
+      "layout": {
+        "description": "选择结账页周围的框架。专注模式会隐藏店铺页眉、页脚和助手，让买家专心完成付款。",
+        "focused": "专注结账",
+        "focusedHint": "只保留 Logo 和安全徽章的极简顶栏——没有任何干扰。",
+        "store": "店铺页眉和页脚",
+        "storeHint": "结账页显示在常规的店铺框架内。",
+        "title": "布局"
+      },
+      "policies": {
+        "add": "添加链接",
+        "description": "付款按钮下方的小链接——退货、隐私、条款。相对路径保持在店铺内。",
+        "hint": "没有标签或网址的链接会在保存时被删除。",
+        "labelPlaceholder": "退款政策",
+        "linkLabel": "链接标签",
+        "linkUrl": "链接网址",
+        "remove": "移除链接",
+        "title": "政策链接",
+        "visible": "显示"
+      },
+      "preview": "预览",
+      "reset": "重置",
+      "save": "保存",
+      "status": {
+        "live": "已上线",
+        "unsaved": "有未保存的更改"
+      },
+      "subtitle": "结账保留其久经验证的流程——在这里完成品牌化。步骤不可重新排序，因此付款永远不会出错。",
+      "themeLink": "主题设置",
+      "title": "结账",
+      "toast": {
+        "saveFailed": "无法保存结账设置",
+        "saved": "结账设置已保存"
+      },
+      "trust": {
+        "description": "买家在付款前看到的文字。",
+        "message": "信任提示语",
+        "messageHint": "显示在付款步骤下方。留空则使用内置的已翻译文案。",
+        "messagePlaceholder": "所有交易均已加密并受到保护。",
+        "showSecureBadge": "显示安全徽章",
+        "supportHint": "付款按钮下方的可选帮助文字。留空则隐藏。",
+        "supportPlaceholder": "有疑问？请发邮件至 support@yourstore.com",
+        "supportText": "客服提示语",
+        "title": "信任与安心"
+      }
+    },
+    "footerCms": {
+      "actions": {
+        "back": "返回",
+        "redo": "重做",
+        "redoAria": "重做页脚更改",
+        "redoTitle": "重做 (Ctrl+Shift+Z)",
+        "save": "保存",
+        "undo": "撤销",
+        "undoAria": "撤销页脚更改",
+        "undoTitle": "撤销 (Ctrl+Z)"
+      },
+      "brand": {
+        "description": "管理页脚的 Logo、简介、宽度和配色。",
+        "title": "品牌与布局"
+      },
+      "colors": {
+        "dark": "深色模式配色",
+        "light": "浅色模式配色"
+      },
+      "contact": {
+        "customFieldsHint": "这些值仅用于页脚，不会更改店铺信息。",
+        "customSource": "页脚专用联系方式",
+        "customSourceDescription": "仅在页脚使用不同的电话、邮箱或地址。",
+        "description": "为页脚显示的联系方式选择一个明确的来源。",
+        "editStoreInformation": "编辑店铺信息",
+        "notSet": "未设置",
+        "sourceLabel": "页脚联系方式来源",
+        "storeSource": "店铺信息（推荐）",
+        "storeSourceDescription": "自动与常规设置中的店铺信息保持同步。",
+        "synced": "自动同步",
+        "title": "联系方式"
+      },
+      "copyright": {
+        "title": "版权"
+      },
+      "defaults": {
+        "newColumn": "新栏目",
+        "newLink": "新链接"
+      },
+      "fields": {
+        "aboutDescription": "关于简介",
+        "accentColor": "强调色",
+        "address": "地址",
+        "borderColor": "边框颜色",
+        "copyrightText": "版权文字",
+        "email": "邮箱",
+        "footerBackgroundColor": "页脚背景色",
+        "footerLogo": "页脚 Logo",
+        "footerTextColor": "页脚文字颜色",
+        "fullWidthFooter": "全宽页脚",
+        "imageAlt": "图片替代文本",
+        "logoAlt": "Logo 替代文本",
+        "mutedTextColor": "次要文字颜色",
+        "paymentMethods": "支付方式",
+        "phone": "电话",
+        "showAboutDescription": "显示关于简介",
+        "showAddress": "显示地址",
+        "showContactInfo": "显示联系方式",
+        "showCopyright": "显示版权",
+        "showEmail": "显示邮箱",
+        "showFooterLogo": "显示页脚 Logo",
+        "showPaymentMethods": "显示支付方式",
+        "showPhone": "显示电话",
+        "showQuickPageLinks": "显示快捷页面链接",
+        "showSocialLinks": "显示社交链接",
+        "showStoreName": "显示店铺名称",
+        "showYear": "显示年份",
+        "widgetTitle": "组件标题"
+      },
+      "payment": {
+        "description": "上传显示在店铺页脚的支付方式图片。",
+        "title": "支付方式"
+      },
+      "preview": {
+        "contained": "限宽",
+        "darkMode": "深色模式预览",
+        "description": "下方的更改会立即显示在此预览中。",
+        "descriptionFallback": "为每一位顾客打造更好的购物体验。",
+        "fullWidth": "全宽",
+        "lightMode": "浅色模式预览",
+        "storeAddress": "店铺地址",
+        "title": "实时预览"
+      },
+      "quickLinks": {
+        "addColumn": "添加栏目",
+        "addLink": "添加链接",
+        "customLinks": "自定义链接",
+        "description": "管理产品、帮助、公司和法律页面的页脚栏目。",
+        "labelPlaceholder": "标签",
+        "menuSourceHint": "此栏目显示所选菜单的链接。请在 Online Store → Navigation 中编辑。",
+        "newTab": "新标签页",
+        "quickPage": "快捷页面",
+        "removeColumn": "移除栏目",
+        "removeLink": "移除链接",
+        "sameTab": "当前标签页",
+        "show": "显示",
+        "showLinkAria": "显示链接 {label}",
+        "source": "链接来源",
+        "title": "快捷页面链接"
+      },
+      "social": {
+        "title": "社交链接"
+      },
+      "status": {
+        "live": "已上线",
+        "unsaved": "未保存"
+      },
+      "title": "页脚",
+      "toast": {
+        "loadFailed": "无法加载页脚设置",
+        "loadSettingsFailed": "无法加载设置",
+        "saveFailed": "无法保存页脚设置",
+        "saved": "页脚设置已保存"
+      },
+      "widgets": {
+        "description": "逐一开关每个可见的页脚组件。",
+        "title": "页脚组件"
+      }
+    },
+    "headerStudio": {
+      "actions": {
+        "defaults": "恢复默认",
+        "discard": "放弃",
+        "publish": "发布"
+      },
+      "appPages": {
+        "account": "账户",
+        "addresses": "地址",
+        "becomeVendor": "成为卖家",
+        "blog": "博客",
+        "brands": "品牌",
+        "cart": "购物车",
+        "categories": "分类",
+        "checkout": "结账",
+        "collections": "系列",
+        "home": "首页",
+        "inbox": "收件箱",
+        "notifications": "通知",
+        "orders": "订单",
+        "preferences": "偏好设置",
+        "preorder": "预售",
+        "preorders": "预售订单",
+        "products": "商品",
+        "profile": "个人资料",
+        "returns": "退货",
+        "security": "安全",
+        "trackOrder": "订单跟踪",
+        "wishlist": "心愿单"
+      },
+      "brand": {
+        "description": "管理店铺页眉的 Logo 宽度和吸顶行为。",
+        "title": "品牌与布局"
+      },
+      "colors": {
+        "dark": "深色模式配色",
+        "light": "浅色模式配色"
+      },
+      "fields": {
+        "actionsGap": "按钮间距 (px)",
+        "categoryMenuLabel": "分类菜单标签",
+        "categoryMenuSide": "分类菜单位置",
+        "collectionsLabel": "系列标签",
+        "collectionsLimit": "系列数量上限",
+        "collectionsMenuSide": "系列菜单位置",
+        "desktopLogoWidth": "桌面端 Logo 宽度",
+        "desktopSearchWidth": "桌面端搜索框宽度",
+        "fullWidthHeader": "全宽页眉",
+        "headerBackgroundColor": "页眉背景色",
+        "headerTextColor": "页眉文字颜色",
+        "logoAlt": "Logo 替代文本",
+        "mobileCategoryLimit": "移动端分类上限",
+        "mobileLogoWidth": "移动端 Logo 宽度",
+        "promoImage": "推广图片",
+        "promoLink": "推广链接",
+        "promoSubtitle": "推广副标题",
+        "promoTitle": "推广标题",
+        "quickCategoryMaxLimit": "快捷分类最大数量",
+        "searchBackgroundColor": "搜索框背景色",
+        "searchBorderColor": "搜索框边框颜色",
+        "searchCategoryDropdown": "搜索框内的分类下拉",
+        "searchCornerRadius": "搜索框圆角",
+        "searchHeight": "搜索框高度",
+        "searchPlaceholder": "搜索占位文字",
+        "searchTextColor": "搜索框文字颜色",
+        "showAccountMenu": "显示账户菜单",
+        "showAccountSummary": "显示账户概要",
+        "showAiSearchButton": "显示 AI 搜索按钮",
+        "showCart": "显示购物车",
+        "showCategoryMenuButton": "显示分类菜单按钮",
+        "showCategoryPromoCard": "显示分类推广卡片",
+        "showCategoryShortcuts": "显示分类快捷方式",
+        "showCollections": "显示系列",
+        "showCollectionsMenu": "显示系列菜单",
+        "showContact": "联系按钮",
+        "showCurrencySelector": "显示货币选择器",
+        "showLabels": "显示按钮文字",
+        "showLanguageSelector": "显示语言选择器",
+        "showLocationPicker": "显示位置选择器",
+        "showMarketSelectors": "显示市场选择器",
+        "showMegaMenu": "显示大型菜单",
+        "showMobileSearch": "显示移动端搜索",
+        "showQuickCategory": "显示快捷分类",
+        "showSearchBar": "显示搜索栏",
+        "showSelectedPages": "显示所选页面",
+        "showThemeSelector": "显示主题选择器",
+        "showThemeToggle": "显示主题切换",
+        "showUtilityLinks": "显示实用链接",
+        "showWishlist": "显示心愿单",
+        "stickyHeader": "吸顶页眉",
+        "transparentHeader": "透明页眉"
+      },
+      "market": {
+        "description": "决定选择器是否出现在页眉。默认值保存在常规设置中。",
+        "title": "语言与货币"
+      },
+      "menuStructure": {
+        "createMenu": "创建导航菜单",
+        "description": "使用菜单构建器配置自定义链接、图标、徽章和多级大型菜单。",
+        "mainMenus": "主菜单与实用菜单",
+        "title": "菜单结构"
+      },
+      "mobile": {
+        "description": "在不影响桌面端的情况下调整移动端页眉。",
+        "title": "移动端抽屉"
+      },
+      "navigation": {
+        "categoryDescription": "为页眉菜单选择标签、数量上限和推广内容。",
+        "categoryTitle": "分类与系列菜单",
+        "megaHiddenHint": "大型菜单已保存，但仅在分类菜单可见时才会显示。"
+      },
+      "pages": {
+        "addLeft": "添加到左侧",
+        "addRight": "添加到右侧",
+        "added": "已添加",
+        "assignedHint": "拖动可重新排序或在两侧之间移动链接。",
+        "assignedLinks": "已分配的链接",
+        "deleteAria": "删除 {title}",
+        "description": "搜索应用页面、政策页面和自定义页面，只把需要的链接加入页眉。",
+        "dragAria": "拖动 {title} 以重新排序",
+        "emptyAssigned": "搜索并将页面添加到页眉的任意一侧。",
+        "hidden": "已隐藏",
+        "hiddenHint": "所选页面在店铺中隐藏。使用移除按钮可把博客等页面从页眉选择中去掉。",
+        "leftEmpty": "将主要导航页面拖放到这里。",
+        "leftSide": "左侧",
+        "leftSideDescription": "Logo 旁的主要链接。",
+        "linkCount": "{count} 个链接",
+        "moveAria": "将 {title} 移到{side}侧",
+        "moveLeft": "移到左侧",
+        "moveRight": "移到右侧",
+        "noMatches": "没有匹配的页面。",
+        "rightEmpty": "将实用或快捷页面拖放到这里。",
+        "rightSide": "右侧",
+        "rightSideDescription": "实用与操作链接。",
+        "searchPlaceholder": "搜索页面...",
+        "selected": "已选 {count} 个",
+        "sideLeft": "左",
+        "sideRight": "右",
+        "title": "页眉页面"
+      },
+      "position": {
+        "left": "左",
+        "right": "右"
+      },
+      "preview": {
+        "allCategories": "全部分类",
+        "categories": {
+          "accessories": "配件",
+          "bags": "箱包",
+          "beauty": "美妆",
+          "books": "图书",
+          "cameras": "相机",
+          "clothes": "服装",
+          "gaming": "游戏",
+          "home": "家居",
+          "shoes": "鞋履",
+          "sports": "运动",
+          "watches": "腕表"
+        },
+        "collections": "系列",
+        "contained": "限宽",
+        "customerAccount": "顾客账户",
+        "darkMode": "深色模式预览",
+        "description": "下方的更改会立即显示在此预览中。",
+        "desktop": "桌面端预览",
+        "fullWidth": "全宽",
+        "headerPromo": "页眉推广",
+        "lightMode": "浅色模式预览",
+        "loginAndOrders": "登录与订单",
+        "megaMenu": "大型菜单",
+        "mobile": "移动端预览",
+        "pagesLeft": "左侧 {count} 个页面",
+        "pagesRight": "右侧 {count} 个页面",
+        "searchProducts": "搜索商品...",
+        "theme": "主题",
+        "title": "实时预览"
+      },
+      "search": {
+        "colorHint": "搜索框的背景色和文字颜色在上方的浅色与深色配色组中设置。",
+        "description": "配置商品搜索和 AI 搜索快捷入口。",
+        "title": "搜索"
+      },
+      "status": {
+        "draft": "草稿更改",
+        "published": "已发布"
+      },
+      "style": {
+        "description": "选择一种桌面端布局。每张卡片会立即应用到表单——发布后才会上线。",
+        "presets": {
+          "centered": "居中 Logo",
+          "classic": "经典",
+          "classicRight": "分类靠右",
+          "compact": "紧凑",
+          "fullWidth": "全宽",
+          "minimal": "极简",
+          "searchBelow": "搜索在下方"
+        },
+        "title": "页眉样式"
+      },
+      "tabs": {
+        "brand": "品牌",
+        "mobile": "移动端",
+        "navigation": "导航",
+        "search": "搜索",
+        "widgets": "组件"
+      },
+      "title": "页眉工作室",
+      "toast": {
+        "loadFailed": "无法加载页眉设置",
+        "loadSettingsFailed": "无法加载设置",
+        "published": "页眉已发布",
+        "saveFailed": "无法保存页眉设置"
+      },
+      "widgets": {
+        "description": "无需改动店铺代码即可开关可选控件。",
+        "title": "页眉组件"
+      }
+    },
+    "storeBuilder": {
+      "actionFailed": "操作失败",
+      "addBlock": {
+        "benefit": "添加权益",
+        "card": "添加卡片",
+        "collection": "添加系列",
+        "image": "添加图片",
+        "item": "添加条目",
+        "slide": "添加幻灯片",
+        "tab": "添加标签页",
+        "tag": "添加标签"
+      },
+      "addSection": "添加版块",
+      "searchSections": "搜索版块…",
+      "searchSectionsEmpty": "没有与搜索匹配的版块。",
+      "backToPages": "返回页面列表",
+      "blocks": {
+        "benefit": "权益",
+        "card": "卡片",
+        "collection": "系列",
+        "image": "图片",
+        "item": "条目",
+        "slide": "幻灯片",
+        "tab": "标签页",
+        "tag": "标签"
+      },
+      "categories": {
+        "categories": "分类",
+        "content": "内容",
+        "more": "更多",
+        "products": "商品",
+        "promotions": "促销",
+        "saved": "已保存",
+        "suggested": "推荐"
+      },
+      "chromeCoreHint": "此版块的布局、配色和菜单在其专属设置表单中管理。",
+      "clearProduct": "清除商品",
+      "currentVersion": "当前上线",
+      "cutoverNote": "店铺仍在显示之前的首页配置。首次发布后将永久切换到此构建器。",
+      "deleteSaved": "删除已保存版块",
+      "discard": "放弃",
+      "discardDescription": "草稿将恢复为最近发布的版本。此操作无法撤销。",
+      "discardTitle": "放弃草稿更改？",
+      "discarded": "草稿已恢复为已发布版本",
+      "fields": {
+        "alt": "替代文本",
+        "answer": "回答",
+        "autoplaySeconds": "自动播放（秒）",
+        "backgroundColor": "背景色",
+        "body": "正文",
+        "buttonHref": "按钮链接",
+        "buttonLabel": "按钮文字",
+        "categoryIds": "分类",
+        "code": "优惠码",
+        "collection": "系列",
+        "collectionId": "系列",
+        "containerWidth": "容器宽度",
+        "countdownEndsAt": "倒计时结束",
+        "ctaLabel": "按钮文字",
+        "desktopColumns": "桌面端列数",
+        "endsAt": "结束于",
+        "featureImage": "特色图片",
+        "fullWidth": "全宽",
+        "galleryLayout": "图库布局",
+        "heading": "标题",
+        "height": "高度",
+        "icon": "图标",
+        "image": "图片",
+        "imagePosition": "图片位置",
+        "label": "标签",
+        "layout": "布局",
+        "limit": "数量上限",
+        "link": "链接",
+        "maxProducts": "最多显示商品数",
+        "minRating": "最低评分",
+        "mobileImage": "移动端图片",
+        "position": "内容位置",
+        "productId": "商品",
+        "productIds": "商品",
+        "question": "问题",
+        "showPrice": "显示价格",
+        "source": "来源",
+        "subheading": "副标题",
+        "subtitle": "副标题",
+        "tagline": "宣传语",
+        "text": "文字",
+        "textColor": "文字颜色",
+        "title": "标题",
+        "transition": "切换效果",
+        "url": "链接地址",
+        "width": "宽度"
+      },
+      "groupCutoverNote": "首次发布前店铺显示标准页眉和页脚；发布后该组将永久切换到构建器。",
+      "groupSubtitle": "这些版块显示在店铺的每一个页面上。发布后将应用于全店。",
+      "history": "版本历史",
+      "historyDescription": "此前发布的版本。恢复会将其放入草稿——只有发布后店铺才会改变。",
+      "historyEmpty": "暂无历史版本——下次发布后会显示在这里。",
+      "historyTitle": "版本历史",
+      "imageUploadTitle": "拖放图片，或点击浏览",
+      "landing": {
+        "create": "创建页面",
+        "delete": "删除",
+        "deleteDescription": "页面及其版块将被永久删除。已发布的页面会从店铺中消失。",
+        "deleteTitle": "删除此着陆页？",
+        "deleted": "着陆页已删除",
+        "draft": "草稿",
+        "edit": "编辑",
+        "empty": "暂无着陆页。创建一个，用版块搭建活动页或关于页。",
+        "handlePlaceholder": "url-handle",
+        "handleRequired": "请使用拉丁字母或数字填写 URL 标识——此标题无法自动转换。",
+        "live": "已上线",
+        "new": "新建页面",
+        "subtitle": "由主题引擎版块组成的页面，使用与首页相同的构建器编辑。",
+        "title": "着陆页",
+        "titlePlaceholder": "页面标题（如：关于我们）"
+      },
+      "landingSubtitle": "用版块搭建此页面。发布后将显示在 /pages/{handle}。",
+      "landingUnpublishedNote": "此页面尚未上线。发布后才会出现在 /pages/{handle}。",
+      "linkPlaceholder": "/products 或 https://…",
+      "livePreview": "实时预览",
+      "noColor": "无",
+      "openFooterSettings": "打开页脚设置",
+      "openHeaderSettings": "打开页眉设置",
+      "options": {
+        "all": "全部",
+        "banner": "横幅",
+        "bottom": "缩略图在下",
+        "classic": "经典",
+        "contained": "限宽",
+        "discount": "折扣",
+        "discounted": "促销中",
+        "fade": "淡入淡出",
+        "featured": "精选",
+        "fixed": "固定",
+        "full": "全宽",
+        "fullPadding": "全宽（带内边距）",
+        "fullHeight": "全宽 / 全高",
+        "fullHeightPadding": "全宽 / 全高（带内边距）",
+        "theme": "主题默认",
+        "gift": "礼品",
+        "grid": "图片网格",
+        "half": "1/2 屏",
+        "latest": "最新",
+        "left": "左",
+        "manual": "手动挑选",
+        "narrow": "窄",
+        "quarter": "1/4 屏",
+        "returns": "退货",
+        "right": "右",
+        "shield": "安全结账",
+        "showcase": "橱窗",
+        "slide": "滑动",
+        "support": "客服",
+        "fourFifths": "4/5 屏",
+        "threeFifths": "3/5 屏",
+        "threeQuarters": "3/4 屏",
+        "topLevel": "仅顶级",
+        "truck": "配送",
+        "wallet": "退款"
+      },
+      "pageFull": "此页面已满 — 请先删除一个板块再添加新的。",
+      "pending": "未保存…",
+      "preview": "预览",
+      "publish": "发布",
+      "publishDescription": "当前草稿将取代买家在店铺中看到的内容。",
+      "publishPageTitle": "发布此页面？",
+      "publishTitle": "发布首页？",
+      "published": "首页已发布",
+      "removeSection": "移除版块",
+      "requiredSection": "必需",
+      "restore": "恢复",
+      "restoredToDraft": "版本已恢复到草稿——请检查后发布。",
+      "save": "保存",
+      "saveFailed": "草稿保存失败",
+      "saveToLibrary": "保存到素材库",
+      "saved": "草稿已保存",
+      "savedEmpty": "暂无保存内容。点击任意版块行的书签图标，即可把配置好的版块存放在这里。",
+      "savedSectionName": "名称（如：夏季促销横幅）",
+      "savedToLibrary": "版块已保存到素材库",
+      "saving": "保存中…",
+      "searchProducts": "搜索商品…",
+      "sections": {
+        "announcement-bar": {
+          "description": "页眉上方的细公告条",
+          "name": "公告栏"
+        },
+        "become-vendor": {
+          "description": "平台卖家招募横幅",
+          "name": "成为卖家"
+        },
+        "blog-posts": {
+          "description": "最新文章网格",
+          "name": "博客文章"
+        },
+        "brand-list": {
+          "description": "品牌 Logo 条",
+          "name": "品牌列表",
+          "variants": {
+            "cards": "Logo 卡片",
+            "strip": "简洁 Logo 条"
+          }
+        },
+        "cart-main": {
+          "description": "购物车明细与订单摘要——页面的核心",
+          "name": "购物袋"
+        },
+        "category-header": {
+          "description": "分类图片、描述和商品数量",
+          "name": "分类页眉"
+        },
+        "category-list": {
+          "description": "分类横排——图片卡片或圆形磁贴",
+          "name": "分类列表",
+          "variants": {
+            "cards": "图片卡片",
+            "circles": "圆形条"
+          }
+        },
+        "category-main": {
+          "description": "分类的商品网格——页面的核心",
+          "name": "分类商品"
+        },
+        "category-mosaic": {
+          "description": "分类图片磁贴的便当式拼图",
+          "name": "分类拼图"
+        },
+        "collection-header": {
+          "description": "系列横幅、描述和排序",
+          "name": "系列页眉"
+        },
+        "collection-list": {
+          "description": "带商品数量的系列卡片",
+          "name": "系列列表"
+        },
+        "collection-main": {
+          "description": "系列的商品网格——页面的核心",
+          "name": "系列商品"
+        },
+        "countdown-offer": {
+          "description": "带倒计时的限时优惠条",
+          "name": "倒计时优惠",
+          "variants": {
+            "banner": "图片横幅",
+            "deals-panel": "优惠面板"
+          }
+        },
+        "coupon-banner": {
+          "description": "一键复制的优惠码条",
+          "name": "优惠券横幅"
+        },
+        "faq": {
+          "description": "问答折叠面板",
+          "name": "常见问题"
+        },
+        "featured-collection": {
+          "description": "来自单个系列的商品",
+          "name": "精选系列",
+          "variants": {
+            "carousel": "宽幅轮播",
+            "promo-row": "推广面板＋货架"
+          }
+        },
+        "footer-bar": {
+          "description": "链接栏目、联系方式和社交——页脚的核心",
+          "name": "页脚"
+        },
+        "header-bar": {
+          "description": "Logo、导航、搜索和操作——页眉的核心",
+          "name": "页眉"
+        },
+        "heading": {
+          "description": "位于一组版块之上的独立标题",
+          "name": "标题",
+          "variants": {
+            "plain": "左对齐",
+            "two-tone": "居中双色"
+          }
+        },
+        "gap": {
+          "name": "间距",
+          "description": "版块之间的垂直间距"
+        },
+        "image-gallery": {
+          "description": "带链接的图片条（Instagram 风格）",
+          "name": "图片画廊"
+        },
+        "image-text": {
+          "description": "图文分栏，带富文本和 CTA",
+          "name": "图片＋文字"
+        },
+        "product-browser": {
+          "description": "带分类标签的商品目录浏览器",
+          "name": "商品网格"
+        },
+        "product-grid": {
+          "description": "带箭头的精选商品货架",
+          "name": "商品轮播"
+        },
+        "product-group": {
+          "description": "带标签页的商品货架",
+          "name": "商品分组",
+          "variants": {
+            "centered": "居中标签页",
+            "standard": "标题＋侧边标签页"
+          }
+        },
+        "product-main": {
+          "description": "图库、购买框和描述——页面的核心",
+          "name": "商品信息",
+          "variants": {
+            "classic": "经典",
+            "electronics": "电子产品"
+          }
+        },
+        "product-related": {
+          "description": "按分类的\"猜你喜欢\"",
+          "name": "相关商品",
+          "variants": {
+            "classic": "经典",
+            "electronics": "电子产品"
+          }
+        },
+        "product-reviews": {
+          "description": "商品的评价流",
+          "name": "评价",
+          "variants": {
+            "classic": "经典",
+            "electronics": "电子产品"
+          }
+        },
+        "product-specification": {
+          "name": "规格参数",
+          "description": "将商品属性表作为独立板块",
+          "variants": {
+            "classic": "经典",
+            "electronics": "电子产品"
+          }
+        },
+        "product-sponsored": {
+          "description": "付费位与自然推荐混排",
+          "name": "赞助轮播"
+        },
+        "products-main": {
+          "description": "筛选、排序和商品网格——页面的核心",
+          "name": "商品列表"
+        },
+        "promotion-banner": {
+          "description": "叠加标题和 CTA 的单幅横幅",
+          "name": "促销横幅"
+        },
+        "promotion-grid": {
+          "description": "五个促销卡位的便当式拼图",
+          "name": "促销网格",
+          "variants": {
+            "bento": "三列便当式",
+            "split": "两端高塔＋宽条"
+          }
+        },
+        "rich-text": {
+          "description": "自由排版的文字",
+          "name": "富文本"
+        },
+        "service-benefits": {
+          "description": "权益条：配送、退货、客服",
+          "name": "服务保障"
+        },
+        "slideshow": {
+          "description": "带链接幻灯片的主视觉轮播",
+          "name": "幻灯片"
+        },
+        "sponsored-rail": {
+          "description": "付费推广位，自然商品补位",
+          "name": "赞助商品"
+        },
+        "testimonials": {
+          "description": "已审核的顾客评价",
+          "name": "顾客评价"
+        },
+        "top-tags": {
+          "description": "页眉下方的热门链接标签",
+          "name": "热门标签"
+        },
+        "vendor-list": {
+          "description": "带评分的卖家卡片",
+          "name": "优秀卖家"
+        }
+      },
+      "sectionsWord": "个版块",
+      "selectCollection": "选择一个系列…",
+      "singleton": "仅限一个",
+      "studio": {
+        "addSlide": "添加幻灯片",
+        "alignment": "内容位置",
+        "background": "背景",
+        "ctaHint": "按钮指向幻灯片链接（或关联的商品）。",
+        "ctaPlaceholder": "立即购买",
+        "elements": {
+          "countdown": "倒计时",
+          "cta": "CTA",
+          "description": "描述",
+          "heading": "标题",
+          "price": "价格",
+          "tagline": "宣传语"
+        },
+        "headingPlaceholder": "标题",
+        "mobileBackground": "移动端背景",
+        "priceNeedsProduct": "（请关联商品）",
+        "pricePreview": "低至",
+        "product": "商品",
+        "productHint": "价格元素和默认链接来自此商品。",
+        "showPrice": "显示价格",
+        "showcase": {
+          "card": "推广卡片",
+          "categoryRail": "分类栏",
+          "hint": "轮播左侧为分类栏，右侧为两张推广卡片。",
+          "title": "橱窗行"
+        }
+      },
+      "subtitle": "用版块搭建店铺首页。更改会自动保存为草稿，发布后即上线。",
+      "switcher": {
+        "cart": "购物车",
+        "category": "分类页",
+        "checkout": "结账",
+        "collection": "系列页",
+        "footer": "页脚",
+        "global": "全局",
+        "header": "页眉",
+        "home": "首页",
+        "label": "页面",
+        "landingPages": "着陆页",
+        "product": "商品详情",
+        "products": "商品列表",
+        "templates": "模板"
+      },
+      "templateCutoverNote": "首次发布前店铺显示内置默认模板；发布后将永久切换到此构建器。",
+      "templateSubtitle": "用版块搭建此模板。发布后所有匹配的店铺页面都会显示它。",
+      "title": "首页",
+      "toggleVisibility": "切换可见性",
+      "unknownSection": "当前目录中没有此版块类型。",
+      "unpublishedNote": "您有未发布的更改。发布之前，买家看到的仍是最近发布的版本。",
+      "variantLabel": "设计"
+    },
+    "themeSettings": {
+      "activateDescription": "每个主题都会保留自己的设置；以后切换回来不会丢失任何内容。请在下方选择如何处理页面布局。",
+      "activateTitle": "切换店铺主题？",
+      "activated": "主题已启用——店铺即刻切换，页面保持原样。",
+      "activatedAndPublished": "主题已启用，其起始布局已上线——打开 Customize 打造属于您的版本。",
+      "activatedWithStarter": "主题已启用，起始布局已载入首页草稿——请在 Customize 中检查后发布。",
+      "save": "保存设置",
+      "saveFailed": "保存失败",
+      "saved": "主题设置已保存",
+      "starterDraft": "仅将起始布局载入我的首页草稿",
+      "starterDraftHint": "在您从 Customize 发布之前，买家不会看到任何变化。",
+      "starterKeep": "保留我当前的布局",
+      "starterKeepHint": "只改变设计。所有页面保持原样。",
+      "starterPublish": "使用主题的起始布局（推荐）",
+      "starterPublishHint": "店铺立即换新，主题版块会关联到您自己的系列和商品。旧布局保留在版本历史中。",
+      "subtitle": "当前主题的设计选项。它们改变店铺的外观——页面内容仍在首页和页面构建器中。",
+      "title": "主题设置"
+    }
+  },
+  "footer": {
+    "aboutUs": "关于我们",
+    "careers": "招聘",
+    "press": "媒体",
+    "blog": "博客",
+    "helpCenter": "帮助中心",
+    "contactUs": "联系我们",
+    "shippingInfo": "配送信息",
+    "returns": "退换货",
+    "termsOfService": "服务条款",
+    "privacyPolicy": "隐私政策",
+    "cookiePolicy": "Cookie 政策",
+    "accessibility": "无障碍",
+    "newsletter": "订阅",
+    "subscribeDescription": "订阅我们的通讯，获取更新与专属优惠。",
+    "subscribe": "订阅",
+    "emailPlaceholder": "输入你的邮箱"
+  },
+  "errors": {
+    "pageNotFound": "页面未找到",
+    "pageNotFoundDescription": "你访问的页面不存在或已被移动。",
+    "serverError": "服务器错误",
+    "serverErrorDescription": "我们这边出了点问题，请稍后再试。",
+    "unauthorized": "未授权",
+    "unauthorizedDescription": "你无权访问此页面。",
+    "networkError": "网络错误",
+    "networkErrorDescription": "请检查网络连接并重试。"
+  },
+  "pos": {
+    "searchProducts": "搜索商品...",
+    "allProducts": "全部",
+    "noProducts": "未找到商品",
+    "noProductsHint": "尝试不同的搜索或分类",
+    "variants": "规格",
+    "selectVariant": "选择规格",
+    "inStock": "有库存",
+    "outOfStock": "缺货",
+    "currentSale": "当前销售",
+    "clearCart": "清空",
+    "emptyCart": "购物车中没有商品",
+    "addCustomer": "添加客户",
+    "searchCustomers": "按姓名、邮箱或电话搜索...",
+    "addNote": "为此订单添加备注...",
+    "subtotal": "小计",
+    "tax": "税费",
+    "total": "合计",
+    "charge": "收款",
+    "selectPaymentMethod": "选择支付方式",
+    "totalDue": "应付金额",
+    "cash": "现金",
+    "cashPayment": "接受现金支付",
+    "card": "银行卡",
+    "cardPayment": "信用卡或借记卡",
+    "manual": "手动",
+    "manualPayment": "自定义支付方式",
+    "cashTendered": "收到现金",
+    "change": "找零",
+    "orderComplete": "支付成功",
+    "orderNumber": "订单",
+    "orderFailed": "订单处理失败",
+    "printReceipt": "打印收据",
+    "newSale": "新销售",
+    "errorLoadingProducts": "加载商品失败",
+    "customer": {
+      "addCustomer": "添加客户",
+      "addCustomerDesc": "搜索现有客户或创建新客户",
+      "walkIn": "到店客户",
+      "walkInDesc": "无需客户详细信息",
+      "existingCustomer": "现有客户",
+      "createNew": "创建新客户",
+      "searchPlaceholder": "按姓名、电话或邮箱搜索...",
+      "searchHint": "输入至少2个字符进行搜索",
+      "noResults": "未找到客户",
+      "createInstead": "改为创建新客户",
+      "customerName": "客户姓名",
+      "namePlaceholder": "输入客户姓名",
+      "emailAddress": "电子邮箱",
+      "emailPlaceholder": "customer@example.com",
+      "phone": "电话",
+      "phonePlaceholder": "输入电话号码",
+      "nameEmailRequired": "姓名和邮箱为必填项",
+      "created": "客户创建成功",
+      "createError": "创建客户失败",
+      "save": "保存客户"
+    }
+  },
+  "locations": {
+    "title": "位置",
+    "name": "名称",
+    "address": "地址",
+    "status": "状态",
+    "active": "活跃",
+    "inactive": "不活跃",
+    "all": "全部",
+    "default": "默认",
+    "searchPlaceholder": "搜索位置...",
+    "empty": "未找到位置",
+    "addLocation": "添加位置",
+    "editLocation": "编辑位置",
+    "addDescription": "为您的店铺添加仓库、门店或自提点",
+    "editDescription": "更新位置详情",
+    "namePlaceholder": "例如：主店",
+    "addressPlaceholder": "输入位置地址",
+    "defaultLocation": "默认位置",
+    "defaultHint": "新的POS订单将默认使用此位置",
+    "activeLocation": "活跃",
+    "activeHint": "停用的位置不会出现在商品、库存和 POS 中",
+    "nameRequired": "位置名称是必填项",
+    "created": "位置创建成功",
+    "updated": "位置更新成功",
+    "deleted": "位置删除成功",
+    "activated": "位置已激活",
+    "deactivated": "位置已停用",
+    "setAsDefault": "默认位置已更新",
+    "setDefault": "设为默认",
+    "deactivate": "停用",
+    "activate": "激活",
+    "cannotDeleteDefault": "无法删除默认位置",
+    "deleteTitle": "删除位置",
+    "deleteDescription": "确定要删除{name}吗？此操作无法撤销。",
+    "fetchError": "加载位置失败",
+    "deleteError": "删除位置失败",
+    "updateError": "更新位置失败",
+    "saveError": "保存位置失败",
+    "actions": "操作"
+  },
+  "toast": {
+    "createdSuccess": "{resource}创建成功",
+    "updatedSuccess": "{resource}更新成功",
+    "deleted": "{resource}已删除",
+    "saved": "更改已保存",
+    "savedResource": "{resource}已保存",
+    "undo": "撤销",
+    "operationComplete": "操作完成",
+    "somethingWentWrong": "出了点问题"
+  },
+  "aiStudioHub": {
+    "title": "AI 工作室",
+    "subtitle": "使用 AI 创作商品内容、图像和 SEO — 已内置于店铺的每个表单中。",
+    "statusConfigured": "AI 已配置并可使用",
+    "statusNotConfigured": "AI 尚未配置",
+    "statusNotConfiguredHint": "请在“设置 → AI”中添加您的 OpenAI API 密钥（或在环境变量中设置 OPENAI_API_KEY）以启用 AI 功能。",
+    "showcaseTitle": "查看实际效果",
+    "showcaseSubtitle": "拖动滑块查看 — 来自 AI 图像工作室的一键增强效果。",
+    "showcaseBefore": "之前",
+    "showcaseAfter": "之后",
+    "showcaseCaption": "移除背景、增强、放大、擦除物体、调整大小与扩展 — 或用文字描述任意编辑需求。",
+    "cardsTitle": "您想创建什么？",
+    "cardProductContentTitle": "撰写商品内容",
+    "cardProductContentDescription": "根据简短提示生成标题、摘要和详细描述。",
+    "cardProductGraphicsTitle": "设计商品图像",
+    "cardProductGraphicsDescription": "在 AI 图像工作室中打开商品媒体以编辑或生成图像。",
+    "cardSeoTitle": "优化 SEO",
+    "cardSeoDescription": "一键填写搜索标题、元描述、URL 标识符和标签。",
+    "cardBlogTitle": "撰写博客文章",
+    "cardBlogDescription": "起草包含摘要、特色图片和 SEO 的完整文章。",
+    "cardAssetsTitle": "创建分类与品牌素材",
+    "cardAssetsDescription": "生成分类图片、图标、品牌徽标和合集封面。",
+    "cardHeroTitle": "设计首页横幅",
+    "cardHeroDescription": "生成尺寸完全适配首页的宽幅店铺横幅。",
+    "everywhereTitle": "内置于每个表单",
+    "everywhereSubtitle": "在商品、分类、集合、品牌、博客文章、评价和首页构建器中查找 AI 按钮。",
+    "howTitle": "使用方法",
+    "howStep1": "打开任意支持的表单",
+    "howStep2": "点击字段或媒体上的 AI 按钮",
+    "howStep3": "查看草稿，然后保存",
+    "configureCta": "配置 AI"
+  },
+  "aiStudio": {
+    "breadcrumbTitle": "AI 图像工作室",
+    "mediaTitle": "媒体",
+    "quickPromptTitle": "快速提示",
+    "uploadImage": "上传图片",
+    "badgeAi": "AI",
+    "badgeEdited": "已编辑",
+    "tabQuickPrompt": "快速提示",
+    "tabEffects": "效果",
+    "categoryPlaceholder": "分类",
+    "removeBackground": "移除背景",
+    "enhance": "增强",
+    "upscale": "放大",
+    "eraseObject": "擦除物体",
+    "resize": "调整大小",
+    "expand": "扩展",
+    "fit": "适应",
+    "compare": "对比",
+    "zoomIn": "放大视图",
+    "zoomOut": "缩小视图",
+    "holdToViewOriginal": "按住查看原图",
+    "previewAsCard": "预览为店铺卡片",
+    "exitPreview": "退出店铺预览",
+    "previewCardHint": "预览模式 — 查看该图像在您店铺商品卡片上的实际效果。",
+    "deleteImage": "删除此图像",
+    "openMediaPanel": "打开媒体面板",
+    "openQuickPrompts": "打开快速提示面板",
+    "cancel": "取消",
+    "noImageTitle": "未选择图像",
+    "noImageBody": "从媒体中选择一张图像、上传一张，或在下方提示中描述图像并让 AI 生成。",
+    "uploadImageAction": "上传图像",
+    "before": "之前",
+    "after": "之后",
+    "original": "原图",
+    "busyHint": "通常需要 10–30 秒",
+    "discardTitle": "放弃更改？",
+    "discardBody": "您编辑的图像尚未保存。如果现在离开，这些更改将会丢失。",
+    "keepEditing": "继续编辑",
+    "discard": "放弃",
+    "restoredDraft": "已恢复您未保存的更改",
+    "placeholderErase": "描述要擦除的内容，例如左侧的阴影。其他部分将保持不变。",
+    "placeholderGenerate": "描述您想要的图像，AI 将为您生成。",
+    "placeholderEdit": "描述您想要的结果。您的{subject}将保持不变。",
+    "applyEdit": "应用编辑",
+    "generateImage": "生成图像",
+    "autoGenerate": "自动生成",
+    "toneLabel": "语气",
+    "defaultTone": "默认语气",
+    "sizes": {
+      "square": "正方形",
+      "portrait": "竖版",
+      "landscape": "横版"
+    },
+    "presets": {
+      "categories": {
+        "electronics": "电子产品",
+        "fashion": "时尚与服饰",
+        "beauty": "美妆与护理",
+        "home": "家居与厨房",
+        "food": "食品与饮品",
+        "hero-layouts": "首页横幅"
+      },
+      "labels": {
+        "clean-white": "简洁白色",
+        "lifestyle-room": "生活场景房间",
+        "desk-setup": "书桌布置",
+        "gradient-studio": "渐变影棚",
+        "neon-accent": "霓虹点缀",
+        "editorial-studio": "编辑风影棚",
+        "street-style": "街头风格",
+        "marble-silk": "大理石与丝绸",
+        "golden-hour": "黄金时刻",
+        "marble-counter": "大理石台面",
+        "botanical-spa": "植物水疗",
+        "silk-drape": "丝绸垂坠",
+        "water-splash": "水花飞溅",
+        "cozy-living": "温馨客厅",
+        "wooden-table": "木质桌面",
+        "sunlit-shelf": "阳光置物架",
+        "minimal-concrete": "极简混凝土",
+        "rustic-wood": "复古木纹",
+        "cafe-scene": "咖啡馆场景",
+        "picnic-daylight": "日光野餐",
+        "dark-slate": "深灰石板",
+        "product-right": "商品居右",
+        "product-left": "商品居左",
+        "centered-campaign": "居中活动"
+      }
+    },
+    "export": {
+      "button": "导出",
+      "includeLogo": "包含品牌 Logo",
+      "fill": "填充画框",
+      "fit": "适应品牌色背景",
+      "sizes": {
+        "og": "链接 / OG 图片",
+        "square": "方形帖子",
+        "portrait": "竖版帖子",
+        "story": "快拍 / Reel",
+        "twitter": "横版 / X"
+      }
+    }
+  },
+  "location": {
+    "title": "位置",
+    "setLocation": "设置位置",
+    "chooseLocation": "选择您的位置",
+    "useMyLocation": "使用我的当前位置",
+    "nearMe": "我附近",
+    "radius": "范围",
+    "withinKm": "{km} 公里内",
+    "everywhere": "所有地区",
+    "searchCity": "搜索城市…",
+    "noCities": "未找到城市",
+    "recent": "最近使用",
+    "popular": "热门",
+    "showMoreCities": "显示其他 {count} 个",
+    "searchForMoreCities": "搜索以查找其他 {count} 个",
+    "clear": "清除",
+    "apply": "应用",
+    "permissionDenied": "无法获取您的位置。请改选城市。",
+    "unsupported": "您的浏览器不支持定位。",
+    "showAllLocations": "显示所有位置",
+    "kmAway": "{km} 公里外",
+    "veryClose": "就在附近",
+    "useExactLocation": "使用我的精确位置",
+    "exactLocationHint": "设置精确位置以按距离筛选。",
+    "resultCount": "{count, plural, =0 {没有商品} other {# 件商品}}",
+    "resultCountLoading": "统计中…",
+    "anyDistance": "不限",
+    "radiusUnitHint": "距离（公里）及匹配商品数",
+    "allLocations": "所有地区",
+    "radiusNeedsPoint": "使用当前位置即可按距离筛选。"
+  },
+  "chat": {
+    "channels": "渠道",
+    "liveChatSettings": {
+      "title": "平台在线聊天",
+      "enable": "启用在线聊天",
+      "enableHint": "为平台自营商品显示在线聊天。",
+      "availability": "可用时间",
+      "alwaysOnline": "始终在线",
+      "timezone": "时区",
+      "primaryColor": "主色",
+      "weeklySchedule": "每周排班",
+      "offlineMessage": "离线提示语",
+      "emailEscalation": "邮件升级提醒",
+      "escalateAfter": "多少分钟后升级",
+      "fallbackEmail": "平台备用邮箱",
+      "saved": "已保存在线聊天设置",
+      "saveFailed": "无法保存在线聊天设置",
+      "businessHoursOption": "营业时间",
+      "description": "设置可用时间、店面外观，以及未回复聊天的邮件升级提醒。",
+      "emailEscalationHint": "当有一条收到的消息一直未被回复时，向负责的商店发送邮件提醒。",
+      "save": "保存在线聊天设置",
+      "loadFailed": "无法加载在线聊天设置"
+    },
+    "templateAuthoring": {
+      "create": "创建文本模板",
+      "close": "关闭模板表单",
+      "name": "模板名称",
+      "language": "语言代码",
+      "category": "类别",
+      "utility": "实用类",
+      "marketing": "营销类",
+      "body": "正文",
+      "richButton": "可选的富文本按钮",
+      "buttonLabel": "按钮文字",
+      "submit": "提交 WhatsApp 文本模板",
+      "reviewNote": "新模板须经 Meta 审核后才能使用。",
+      "submitted": "模板已提交审核",
+      "submitFailed": "无法提交模板",
+      "securityRecommendation": "添加安全提示",
+      "codeExpiration": "验证码有效期（分钟）",
+      "footerOptional": "页脚（可选）",
+      "headerExampleLabel": "标题变量示例",
+      "noButtonOption": "无按钮",
+      "phoneNumberOption": "电话号码",
+      "quickReplyOption": "快捷回复",
+      "textHeaderOptional": "文本标题（可选）",
+      "websiteUrlOption": "网站链接",
+      "headerPlaceholder": "订单 {{1}} 更新",
+      "bodyPlaceholder": "您好 {{1}}，您的订单现在状态为 {{2}}。",
+      "placeholderHint": "请使用按顺序排列的占位符：{{1}}、{{2}}，以此类推。",
+      "authenticationNote": "身份验证模板的措辞由 Meta 统一控制，并会自动添加所需的复制验证码按钮。",
+      "bodyExampleLabel": "正文 {variable} 示例",
+      "submitForReview": "提交给 Meta 审核",
+      "submittedWithStatus": "模板已提交审核（状态：{status}）"
+    },
+    "signup": {
+      "whatsappTitle": "推荐：Meta 嵌入式注册",
+      "whatsappHint": "让 Meta 安全地选择并授权 WhatsApp Business 账号和电话号码，无需在 Storify 中粘贴访问令牌。",
+      "instagramTitle": "推荐：使用 Facebook 继续",
+      "instagramHint": "Meta 会授权与你的 Instagram 专业账号关联的 Facebook 主页，Storify 随即为其订阅消息 webhook，无需在 Storify 中粘贴访问令牌。",
+      "continue": "使用 Facebook 继续",
+      "sdkFailed": "无法加载 Facebook SDK",
+      "sdkInitFailed": "Facebook SDK 未初始化",
+      "whatsappConnected": "已通过嵌入式注册连接 WhatsApp",
+      "whatsappMissingDetails": "WhatsApp 接入流程未返回所需的账号信息",
+      "whatsappFailed": "无法完成 WhatsApp 注册",
+      "instagramConnected": "已连接 Instagram",
+      "instagramCancelled": "已取消 Facebook 登录",
+      "instagramFailed": "无法完成 Instagram 注册"
+    },
+    "chatWithVendor": "与卖家聊天",
+    "chatWithStore": "与商店聊天",
+    "startConversation": "发起对话",
+    "startDescription": "欢迎咨询库存、配送、规格或任何其他问题。",
+    "writeMessage": "输入消息…",
+    "sendMessage": "发送消息",
+    "messages": "消息",
+    "search": "搜索对话",
+    "noConversations": "暂无对话",
+    "noConversationsHint": "新的在线聊天对话将显示在这里。",
+    "loadOlder": "加载更早的消息",
+    "writeReply": "输入回复…",
+    "resolve": "标记为已解决",
+    "reopen": "重新打开",
+    "productAttached": "已附加商品信息",
+    "useTemplate": "使用 WhatsApp 模板",
+    "templateMessage": "WhatsApp 模板消息",
+    "templateDescription": "即使回复窗口已关闭，仍可发送已审核通过的模板。",
+    "approvedTemplate": "已审核模板",
+    "sendTemplate": "发送已审核模板",
+    "templateQueued": "WhatsApp 模板已排队",
+    "noTemplates": "没有缓存的已审核模板。请先在 WhatsApp 渠道设置中同步模板。",
+    "whatsappWindowClosed": "24 小时回复窗口已关闭。发送已审核的 WhatsApp 模板即可重新联系客户。",
+    "noMatchingConversations": "没有匹配的对话。",
+    "loadOlderConversations": "加载更早的对话",
+    "attachments": {
+      "alt": "聊天附件",
+      "open": "打开附件"
+    },
+    "assignment": {
+      "label": "负责客服",
+      "unassigned": "未分配",
+      "assignToMe": "分配给我",
+      "assigned": "对话已分配",
+      "removed": "已取消分配",
+      "loadFailed": "无法加载分配信息",
+      "updateFailed": "无法更新分配"
+    },
+    "deliveries": {
+      "refresh": "刷新",
+      "retry": "重试",
+      "deadLetter": "已放弃投递",
+      "attempt": "尝试次数",
+      "empty": "没有失败的服务商投递。",
+      "delivered": "消息已送达",
+      "queued": "重试已排队，但投递仍然失败",
+      "loadFailed": "无法加载投递失败记录",
+      "retryFailed": "无法重试投递",
+      "heading": "服务商投递失败",
+      "subtitle": "查看已用尽重试次数或仍可重试的服务商消息。"
+    },
+    "externalChannels": {
+      "chatOn": "在 {channel} 上与 {vendor} 聊天",
+      "whatsappProductMessage": "您好 {vendor}，我想咨询一下 {product}。",
+      "whatsappStoreMessage": "您好 {vendor}，我想咨询一下您的店铺。"
+    },
+    "attachFile": "添加附件",
+    "selectConversation": "请选择一个对话。",
+    "attachmentTooLarge": "聊天附件不能超过 16MB",
+    "whatsappTemplate": "WhatsApp 模板",
+    "closeComposer": "关闭模板编辑器",
+    "signIn": "登录",
+    "cancel": "取消",
+    "signInToChatTitle": "登录后即可开始聊天",
+    "signInToChatDescription": "你与商店的对话会保存在账户收件箱中，随时都能接着聊，也不会错过任何回复。",
+    "newConversation": "新建对话",
+    "draftProductContext": "你刚才浏览的商品已附加到这条消息中。",
+    "draftStoreContext": "你的消息将直接发送给你刚才浏览的商店。",
+    "channelConnections": {
+      "title": "Meta API 连接",
+      "webhookUrl": "Meta webhook 回调地址",
+      "copyWebhookUrl": "复制回调地址",
+      "copyFailed": "无法复制该地址",
+      "webhookUrlNotPublic": "Meta 仅接受公开的 HTTPS 回调地址。请先在正式域名（或隧道）上打开本页面，再进行注册。",
+      "setup": {
+        "title": "{provider} 设置指南",
+        "docs": "完整说明：docs/OMNICHANNEL_MESSAGING.md",
+        "whatsapp": {
+          "app": "创建一个 Meta 应用，并为其添加 WhatsApp 产品。",
+          "config": "创建一个授予以下权限的 Facebook Login for Business 配置，并把它的 ID 填入 META_WHATSAPP_CONFIGURATION_ID。",
+          "oauth": "在该配置的设置中，把本站域名加入 Allowed Domains for the JavaScript SDK，把本页完整网址加入 Valid OAuth Redirect URIs。",
+          "webhook": "在 Webhooks 中，用本页显示的回调地址和你的 META_WEBHOOK_VERIFY_TOKEN 完成注册，并订阅以下字段。",
+          "connect": "使用 Continue with Facebook，或在本页表单中填写账号 ID 与访问令牌。",
+          "caution": "在测试用户之外的人能给你发消息之前，Meta 要求完成商家验证并注册电话号码。"
+        },
+        "messenger": {
+          "app": "在同一个 Meta 应用中添加 Messenger 产品，并连接你管理的 Facebook 主页。",
+          "permissions": "为主页令牌申请以下权限。",
+          "webhook": "在 Webhooks 中，用本页显示的回调地址和你的 META_WEBHOOK_VERIFY_TOKEN 完成注册，并订阅以下字段。",
+          "token": "生成主页访问令牌，连同主页 ID 一起填入本页表单。",
+          "caution": "只有在 Meta 授予该权限后才开启 Human Agent 回复。它用于人工客服，不得用于自动化或推广消息。"
+        },
+        "instagram": {
+          "professional": "把该 Instagram 账号切换为专业账号（Business 或 Creator）。",
+          "page": "将其关联到你管理的 Facebook 主页——Instagram Direct 通过该主页接入，因此这一步是必需的。",
+          "allowAccess": "在 Instagram 应用中开启 Settings → Messages and story replies → Connected tools → Allow access to messages。",
+          "permissions": "在同一个 Meta 应用中添加 Instagram 产品，并申请以下权限。",
+          "webhook": "在 Webhooks 中，用本页显示的回调地址和你的 META_WEBHOOK_VERIFY_TOKEN 完成注册，并订阅以下字段。",
+          "connect": "使用 Continue with Facebook，或在本页表单中填写 Instagram 账号 ID 及所关联主页的访问令牌。",
+          "caution": "META_INSTAGRAM_CONFIGURATION_ID 必须是 Facebook Login for Business 配置。Instagram → API setup with Instagram login 下的 ID 属于另一个产品，其授权码会以 redirect_uri 错误兑换失败。"
+        },
+        "telegram": {
+          "botfather": "在 Telegram 中打开 @BotFather 并发送 /newbot。",
+          "token": "复制它返回的令牌，并填入机器人令牌字段。",
+          "connect": "点击连接。Storify 会自行注册 webhook，无需向任何后台粘贴内容。",
+          "share": "分享机器人的 t.me 链接，顾客即可发起会话。",
+          "caution": "Telegram 无需应用审核，也没有回复时限——机器人可以随时回复任何主动发起过对话的聊天。"
+        }
+      },
+      "noPermission": "你没有管理服务商连接的权限。",
+      "connected": "已连接",
+      "needsAttention": "需要处理",
+      "notConnected": "未连接",
+      "verify": "验证",
+      "disconnect": "断开连接",
+      "verified": "渠道连接已验证",
+      "disconnected": "渠道已断开连接",
+      "connectFailed": "无法连接渠道",
+      "wabaId": "WhatsApp Business 账号 ID",
+      "phoneNumberId": "电话号码 ID",
+      "publicWhatsApp": "公开的 WhatsApp 号码",
+      "publicWhatsAppHint": "可选值，用于覆盖店铺的一键聊天链接。",
+      "pageId": "Facebook 主页 ID",
+      "publicPageUsername": "Facebook 主页公开用户名",
+      "publicPageHint": "可选值，用于覆盖店铺的 m.me 链接。",
+      "instagramUserId": "Instagram 专业账号 ID",
+      "publicInstagramUsername": "Instagram 公开用户名",
+      "publicInstagramHint": "可选值，用于覆盖店铺的 ig.me 链接。",
+      "botToken": "来自 @BotFather 的机器人令牌",
+      "publicTelegramUsername": "机器人公开用户名",
+      "publicTelegramHint": "可选值，用于覆盖店铺的 t.me 链接；留空时自动取自机器人本身。",
+      "accessToken": "系统用户或主页访问令牌",
+      "accessTokenHint": "同步已审核的消息模板时需要。",
+      "humanAgent": "人工客服回复",
+      "humanAgentHint": "允许在最长七天内进行人工客服回复。请仅在 Meta 批准人工客服权限后启用；不得用于自动化或推广消息。",
+      "connectProvider": "连接 {provider}",
+      "description": "连接 WhatsApp Business 电话号码、Facebook 主页、Instagram 专业账号或 Telegram 机器人，即可在全渠道收件箱中接收和回复消息。访问令牌会被加密存储，API 绝不会返回。",
+      "webhookUrlHint": "在 Meta 开发者后台中使用此回调地址和服务器的 META_WEBHOOK_VERIFY_TOKEN。",
+      "businessAccount": "企业账号",
+      "publicContact": "公开联系方式",
+      "syncTemplates": "同步模板",
+      "syncTemplatesDone": "已同步 {count} 个已审核的 WhatsApp 模板",
+      "syncTemplatesFailed": "无法同步 WhatsApp 模板",
+      "loadFailed": "无法加载渠道连接",
+      "disconnectFailed": "无法断开渠道连接",
+      "verifyFailed": "无法验证渠道",
+      "connectedProvider": "已连接 {provider}",
+      "humanAgentEnabled": "已启用人工客服回复",
+      "humanAgentDisabled": "已停用人工客服回复",
+      "humanAgentFailed": "无法更新人工客服设置",
+      "orConnectManually": "或手动连接"
+    },
+    "providerWindowClosed": "{channel} 的回复窗口已关闭，在客户再次发送消息之前无法发送普通回复。",
+    "inbox": {
+      "adminTitle": "全渠道收件箱",
+      "staffTitle": "团队收件箱",
+      "staffHeading": "客户收件箱",
+      "staffSubtitle": "回复分配给你的卖家的对话。",
+      "vendorTitle": "卖家收件箱",
+      "vendorSubtitle": "在所有已连接的渠道上回复客户。",
+      "customerTitle": "与商店的对话",
+      "emptyStore": "暂无客户对话",
+      "emptyLiveChat": "暂无在线聊天对话",
+      "emptyCustomer": "你还没有发起过在线聊天"
+    },
+    "errors": {
+      "loadMessages": "无法加载消息",
+      "loadConversations": "无法加载对话",
+      "loadOlderMessages": "无法加载更早的消息",
+      "startConversation": "无法发起对话",
+      "sendMessage": "无法发送消息",
+      "sendAttachment": "无法发送附件",
+      "updateConversation": "无法更新对话"
+    },
+    "storeSupport": "商店客服",
+    "conversationCountOne": "{count} 个对话",
+    "conversationCount": "{count} 个对话",
+    "status": {
+      "all": "全部",
+      "open": "进行中",
+      "pending": "待处理",
+      "resolved": "已解决",
+      "closed": "已关闭",
+      "spam": "垃圾信息",
+      "unread": "未读"
+    },
+    "deliveryStatus": {
+      "queued": "排队中",
+      "sent": "已发送",
+      "delivered": "已送达",
+      "read": "已读",
+      "failed": "失败"
+    },
+    "templateComposer": {
+      "loadFailed": "无法加载模板",
+      "loadWhatsAppFailed": "无法加载 WhatsApp 模板",
+      "sendFailed": "无法发送模板",
+      "sendWhatsAppFailed": "无法发送 WhatsApp 模板"
+    },
+    "today": "今天",
+    "yesterday": "昨天",
+    "noMessagesYet": "暂无消息。",
+    "backToList": "返回会话列表",
+    "backToConversation": "返回会话",
+    "conversationDetails": "会话详情",
+    "mediaAndFiles": "媒体、文件和链接",
+    "media": "媒体",
+    "files": "文件",
+    "links": "链接",
+    "noMedia": "尚未共享任何媒体",
+    "noFiles": "尚未共享任何文件",
+    "noLinks": "尚未共享任何链接",
+    "subject": "主题",
+    "viewProduct": "查看商品"
+  },
+  "boosts": {
+    "title": "推广",
+    "empty": "暂无推广。推广商品以触达更多买家。",
+    "addAction": "推广商品",
+    "searchPlaceholder": "按位置或名称搜索",
+    "tabs": {
+      "all": "全部",
+      "active": "进行中",
+      "pending": "待付款",
+      "paused": "已暂停",
+      "expired": "已过期",
+      "canceled": "已取消",
+      "scheduled": "即将开始"
+    },
+    "status": {
+      "active": "进行中",
+      "paused": "已暂停",
+      "expired": "已过期",
+      "canceled": "已取消",
+      "pending_payment": "待付款",
+      "scheduled": "即将开始"
+    },
+    "table": {
+      "product": "商品",
+      "vendor": "卖家",
+      "price": "价格",
+      "status": "状态",
+      "window": "投放期",
+      "impressions": "展示量",
+      "clicks": "点击量",
+      "ctr": "点击率",
+      "actions": "操作",
+      "position": "位置",
+      "startsIn": "{days} 天后开始",
+      "startsToday": "今天开始"
+    },
+    "stats": {
+      "active": "进行中的推广",
+      "activeDescription": "当前正在投放",
+      "impressions": "展示量",
+      "impressionsDescription": "赞助展示，累计",
+      "clicks": "点击量",
+      "clicksDescription": "赞助点击，累计",
+      "ctr": "点击率",
+      "ctrDescription": "点击通过率",
+      "revenue": "推广收入",
+      "revenueDescription": "已付预订扣除退款，累计（商店货币）",
+      "upcoming": "即将开始",
+      "upcomingDescription": "已预订，未开始"
+    },
+    "admin": {
+      "title": "推广活动",
+      "empty": "暂无推广活动",
+      "create": "创建预订",
+      "createTitle": "创建预订（线下付款）",
+      "createDescription": "用于在支付网关之外收取的款项，或免费赠送某个展示位。日期会立即被占用，且无法再售给他人。",
+      "createConfirm": "创建预订",
+      "created": "预订已创建",
+      "createFailed": "创建预订失败",
+      "loadFailed": "无法加载商家和位置",
+      "loadProductsFailed": "无法加载商品",
+      "cancel": "取消",
+      "cancelTitle": "取消预订",
+      "cancelDescription": "从明天起的每个已预订日期会立即释放回日历并可重新售出。已投放的天数仍计费；释放的部分会计入商家的贷记，由你在支付网关退款。",
+      "pause": "暂停",
+      "resume": "恢复",
+      "product": "商品",
+      "vendor": "卖家",
+      "selectVendor": "选择卖家…",
+      "selectVendorFirst": "先选择商家以查看其商品",
+      "searchProducts": "搜索商品…",
+      "updated": "推广活动已更新",
+      "updateFailed": "推广活动更新失败",
+      "position": "位置",
+      "dates": "日期（UTC）",
+      "heldBy": "该位置已被预订：",
+      "amountOverride": "要记录的金额",
+      "amountOverrideHint": "留空则按标价 {amount} 收费。填写更低金额即免去差额；填 0 则免费。不能高于标价。",
+      "recordingBooking": "位置 {position} · {days} 天 · 记录 {amount} 为已付",
+      "markRefunded": "标记为已退款",
+      "markRefundedTitle": "标记为已退款",
+      "markRefundedDescription": "记录你已在支付服务商处退还了未结贷记。这只更新账目，不会转移任何资金。"
+    },
+    "purchase": {
+      "subtitle": "在推广位阶梯上按你选择的日期预订一个编号位置。",
+      "pickProduct": "选择商品",
+      "pickPayment": "选择支付方式",
+      "stepProduct": "商品",
+      "stepPayment": "付款",
+      "searchProducts": "搜索您的商品…",
+      "noProducts": "未找到已上架的商品",
+      "noMethods": "暂无可用的支付方式。请联系平台管理员。",
+      "boosting": "推广中：",
+      "days": "{days} 天",
+      "payNow": "支付并预订",
+      "card": "银行卡",
+      "mobileMoney": "移动支付",
+      "iotecPhone": "移动支付号码（乌干达）",
+      "mtnMomoPhone": "MTN 移动钱包号码",
+      "mtnMomoPhoneHint": "该手机将收到用 MoMo PIN 批准付款的请求。",
+      "checkPhone": "请查看手机并确认付款请求。",
+      "waitingTitle": "等待付款",
+      "pendingInfo": "付款仍在处理中——确认后推广将自动生效。",
+      "canceled": "付款已取消，请重试。",
+      "failed": "无法发起付款",
+      "loadFailed": "无法加载推广位阶梯",
+      "verifyFailed": "付款无法验证",
+      "pollTimeout": "我们尚未确认付款。确认后将自动生效。",
+      "stepSlot": "位置与日期",
+      "pickSlot": "选择位置和日期",
+      "perDay": "/天",
+      "noPositions": "目前还没有可购买的推广位置",
+      "pickPositionFirst": "选择一个位置以查看哪些日期空闲。",
+      "legendFree": "空闲",
+      "legendBooked": "已预订",
+      "legendYours": "你的",
+      "conflictInline": "该位置的这些日期已被占用，请重新选择。",
+      "slotTaken": "刚刚有人预订了该位置的 {days}。",
+      "slotTakenRetry": "在你选择期间，{days} 已被他人预订。请重新选择。",
+      "productBusy": "该商品在 {days} 已有排期。请选择其他日期或其他商品。",
+      "strictIndexNote": "你购买的是展示位 {position}。若当天你上方的位置未售出，该位会展示普通商品——你的位置不会上移。",
+      "reachDetail": "在列表页中，你的商品会出现在商店主页面和它所属的分类页面上。筛选结果和搜索结果永远不展示推广商品。",
+      "refundPolicy": "已投放的天数不予退款。未来的天数可以释放——平台按日单价计入贷记，并通过你的支付服务商退款。若商品缺货或下架，该天按比例计入贷记。",
+      "utcNote": "每天从 UTC 午夜到次日午夜计算。",
+      "utcShort": "UTC 天",
+      "oneCheckout": "每件商品同时只能有一个进行中的结账。更改位置或日期会把你的占位转移到新的选择。",
+      "holdExpires": "这些日期为你保留 {clock}",
+      "holdExpired": "你的占位已过期，日期已重新开放销售。",
+      "observedReach": "过去 30 天平均每天 {n} 次展示",
+      "positionStale": "以另一种货币定价——请让平台重新定价。",
+      "summaryLine": "位置 {position}",
+      "overMaxDays": "单次预订不能超过 {days} 天。",
+      "alreadyBooked": "已预订 {count} 次推广",
+      "availabilityFailed": "无法加载预订日历",
+      "booked": "你的预订已确认。",
+      "tooManyHolds": "你已有太多进行中的结账。请先完成或取消一个。"
+    },
+    "performance": {
+      "back": "全部推广",
+      "chartTitle": "每日表现",
+      "daysRemaining": "剩余天数",
+      "noData": "暂未记录到任何数据。买家看到您的赞助商品后，数据将会出现。",
+      "placements": "按展示位",
+      "placementHome": "首页",
+      "placementListing": "商品列表",
+      "placementPdp": "商品详情页",
+      "startsIn": "距开始",
+      "inDays": "{days} 天",
+      "daysRan": "已投放天数",
+      "bookedDays": "已预订天数",
+      "daysBooked": "{total} 天中已占 {booked} 天",
+      "legendServed": "已投放",
+      "legendPartial": "部分贷记",
+      "legendCredited": "已贷记",
+      "creditNote": "贷记的天数将通过你的支付服务商退款。"
+    },
+    "positions": {
+      "active": "启用",
+      "add": "添加位置",
+      "archive": "归档",
+      "archived": "已归档",
+      "createTitle": "添加位置",
+      "created": "位置已创建",
+      "currencyMismatch": "位置 {positions} 的定价货币与店铺货币（{currency}）不一致。请重新定价——在此之前商家无法结账。",
+      "deleteDescription": "位置编号即使在归档后仍被占用，因此删除是释放 #{position} 供新层级使用的唯一方式。若从今天起存在预订，则无法删除。",
+      "deleteFailed": "删除失败",
+      "deleteTitle": "删除此位置？",
+      "deleted": "位置已删除",
+      "derivedPrices": "7 天 {week} · 30 天 {month}",
+      "description": "描述（可选）",
+      "dialogDescription": "商家在该位置每预订一天，就按此价格付费。",
+      "editTitle": "编辑位置",
+      "empty": "暂无位置",
+      "emptyHint": "创建位置 1，即可开始出售最顶部的赞助展位。",
+      "horizonDays": "{days} 天",
+      "label": "名称",
+      "labelPlaceholder": "头部展位",
+      "labelRequired": "请输入名称",
+      "ladderGap": "位置 {positions} 尚未定义——这些展位将始终显示普通商品。",
+      "occupancy": "占用情况",
+      "occupancyBooked": "{total} 天中已预订 {booked} 天",
+      "occupancyFull": "已订满",
+      "occupancyNextFree": "下一个空闲日 {day}",
+      "perDay": "/ 天",
+      "position": "位置",
+      "positionLocked": "创建后无法更改位置编号——请归档此层级并新建一个。",
+      "positionRequired": "位置必须在 1 到 50 之间",
+      "pricePerDay": "每日价格",
+      "pricePerDayHint": "7 天 = {week} · 30 天 = {month}",
+      "priceRequired": "每日价格必须大于零",
+      "reach": "展示于",
+      "reachHome": "首页（前 {n}）",
+      "reachListing": "列表页（前 {n}）",
+      "reachProductPage": "商品页（前 {n}）",
+      "reachesNothing": "位置 {position} 不会在任何地方展示。请提高某个版位的展位数，或归档此层级。",
+      "saveFailed": "无法保存位置",
+      "status": "状态",
+      "subtitle": "商家按天预订一个位置。位置 N 显示在第 N 个展位；未售出的位置会显示普通商品，下方位置永远不会上移。",
+      "title": "位置阶梯",
+      "unarchive": "取消归档",
+      "updated": "位置已更新",
+      "delivery": "过去 30 天平均每天 {n} 次展示",
+      "deliveryNone": "暂无投放记录"
+    },
+    "cancel": {
+      "action": "取消预订",
+      "title": "取消此预订？",
+      "description": "这些日期会立即重新开放销售，其他人可以预订。你已支付的金额会计入贷记，并通过你的支付服务商退款。",
+      "confirm": "取消预订",
+      "done": "预订已取消",
+      "failed": "无法取消预订"
+    }
+  },
+  "install": {
+    "adminEmail": "邮箱",
+    "adminName": "您的姓名",
+    "adminPassword": "密码",
+    "adminTitle": "创建管理员账户",
+    "appUrl": "应用网址",
+    "appUrlHint": "请在 .env 中将 NEXT_PUBLIC_APP_URL 设为您店铺的网址",
+    "blockedHint": "请先解决以上问题再重新检查——问题解决前无法继续安装。",
+    "retry": "重新检查",
+    "authSecret": "认证密钥",
+    "back": "返回",
+    "checkTitle": "系统检查",
+    "checking": "正在检查您的环境…",
+    "continue": "继续",
+    "currency": "货币代码",
+    "database": "MongoDB 连接",
+    "databaseHint": "请检查 .env 中的 MONGODB_URI 和 MONGODB_DB_NAME，并确认数据库允许来自本服务器的连接",
+    "doneSubtitle": "使用刚创建的管理员账户登录。",
+    "doneTitle": "您的店铺已就绪",
+    "failed": "安装失败——请重试",
+    "finish": "安装",
+    "goToLogin": "前往登录",
+    "language": "默认语言",
+    "multiVendor": "多卖家平台",
+    "multiVendorHint": "允许其他卖家开店。之后可在设置中更改。",
+    "pos": "线下收银（POS）",
+    "posHint": "在门店当面销售并在收银台收款。之后可在设置中更改。",
+    "storageTitle": "媒体文件存放位置",
+    "storageSubtitle": "商品图片、视频和下载文件都存放在你自己的对象存储桶中。在下方任选一家服务商创建存储桶，然后粘贴其密钥。",
+    "storageFromEnv": "已在你的 .env 文件中找到存储凭据 — 这一步可以跳过。若在此填写，凭据将改为存入数据库，并优先生效。",
+    "storageProvider": "存储服务商",
+    "storageTest": "测试连接",
+    "storageTestFailed": "连接测试未能完成",
+    "storageLater": "稍后再设置存储",
+    "storageLaterHint": "现在先完成安装，之后在 设置 → 存储 中添加存储桶。在此之前无法上传文件。",
+    "storageField": {
+      "accountId": "账户 ID",
+      "region": "区域",
+      "regionSlug": "数据中心区域",
+      "endpoint": "Endpoint 地址",
+      "bucket": "存储桶名称",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "publicUrl": "公开访问地址"
+    },
+    "nodeTooOld": "需要 Node.js 22 或更高版本",
+    "storeName": "店铺名称",
+    "storeTitle": "店铺基本信息",
+    "subtitle": "几步之后即可开卖",
+    "templateTitle": "选择店铺模板",
+    "title": "设置您的店铺"
+  },
+  "compare": {
+    "title": "商品对比",
+    "subtitle": "把商品并排放置，查看它们的参数差异。",
+    "products": "商品",
+    "remove": "从对比中移除",
+    "notSpecified": "未提供",
+    "noAttributes": "这些商品暂无可对比的参数。",
+    "searchPlaceholder": "搜索商品...",
+    "searchLabel": "搜索要对比的商品",
+    "full": "请先移除一个商品再添加",
+    "added": "已添加",
+    "emptyTitle": "暂无可对比的商品",
+    "emptyHint": "在上方搜索以添加商品 — 一次最多四件。",
+    "add": "加入对比",
+    "short": "对比",
+    "bar": "对比 {count} 件",
+    "clear": "清空"
+  }
+}

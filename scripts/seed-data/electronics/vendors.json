@@ -1,0 +1,766 @@
+[
+  {
+    "_id": {
+      "$oid": "6a907901a8a12b22b27a0c1c"
+    },
+    "isDefault": true,
+    "storeName": "Storify",
+    "slug": "main-store",
+    "description": "Multi-vendor E-commerce Platform",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003217992-uyocld/logo.svg",
+    "banner": "/placeholder-vendor.png",
+    "status": "approved",
+    "storeActive": true,
+    "verified": true,
+    "commission": 0,
+    "rating": 4.359446636036758,
+    "totalSales": 151,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "123 Main Street",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "USA",
+      "coordinates": {
+        "lat": 40.7577038,
+        "lng": -73.9536363,
+        "formatted": "Main Street, Roosevelt Island, Manhattan Community Board 8, Manhattan, New York County, New York, 10044, United States",
+        "geocodedAt": "2026-09-07T11:04:10.464Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -73.9536363,
+          40.7577038
+        ]
+      }
+    },
+    "socialLinks": {
+      "instagram": "https://instagram.com/techgadgets"
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 50
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-08-27T17:50:57.382Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-07T11:04:10.467Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a90f09791e0057e1944ee9d"
+    },
+    "isDefault": false,
+    "storeName": "Storify Vendor Store",
+    "slug": "storify-vendor-store",
+    "description": "Default vendor account seeded for quick login and testing.",
+    "logo": "/placeholder-vendor.png",
+    "banner": "/placeholder-vendor.png",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 10,
+    "rating": 5,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "123 Vendor Lane",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "USA",
+      "phone": "+1 555-0200"
+    },
+    "socialLinks": {
+      "website": "https://storify.com"
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 50
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-08-28T02:21:11.539Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T02:21:11.539Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a97d80da843a901df252b96"
+    },
+    "isDefault": false,
+    "storeName": "Nova Mobile Hub",
+    "slug": "nova-mobile-hub",
+    "description": "Nova Mobile Hub offers the latest smartphones, tablets, mobile accessories and dependable charging solutions from popular technology brands.",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 10,
+    "commissionSource": "manual",
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "640 Hudson Market Avenue",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "US",
+      "phone": "+12125550101",
+      "coordinates": {
+        "lat": 40.7127281,
+        "lng": -74.0060152,
+        "formatted": "New York, United States",
+        "geocodedAt": "2026-09-02T08:30:21.567Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -74.0060152,
+          40.7127281
+        ]
+      }
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-09-02T08:02:21.456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T08:31:11.053Z"
+    },
+    "__v": 0,
+    "shipping": {
+      "codCollectedBy": "inherit"
+    },
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a97d80da843a901df252b96/2026/09/1788337784655-fpala6/banner.webp",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a97d80da843a901df252b96/2026/09/1788337689906-10rrw7/profile.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a980391ad6869b1f3756d93"
+    },
+    "isDefault": false,
+    "storeName": "Pixel Forge Computing",
+    "slug": "pixel-forge-computing",
+    "description": "Pixel Forge Computing provides laptops, desktop components, gaming accessories and reliable computing equipment for work and entertainment.",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 10,
+    "commissionSource": "manual",
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "921 Harbor Point Road",
+      "city": "San Francisco",
+      "state": "CA",
+      "postalCode": "94107",
+      "country": "US",
+      "phone": "+14155550102",
+      "coordinates": {
+        "lat": 37.7879363,
+        "lng": -122.4075201,
+        "formatted": "San Francisco, California, United States",
+        "geocodedAt": "2026-09-02T11:28:35.180Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -122.4075201,
+          37.7879363
+        ]
+      }
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-09-02T11:08:01.435Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T11:43:27.685Z"
+    },
+    "__v": 0,
+    "shipping": {
+      "codCollectedBy": "inherit"
+    },
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980391ad6869b1f3756d93/2026/09/1788348490097-8aa0y3/banner.webp",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980391ad6869b1f3756d93/2026/09/1788348476566-xynbnv/logo.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a980fbe60a6ffabdb09e524"
+    },
+    "isDefault": false,
+    "storeName": "Sonic Circuit Audio",
+    "slug": "sonic-circuit-audio",
+    "description": "Sonic Circuit Audio supplies quality headphones, speakers, microphones and home audio equipment for music, gaming and professional use.",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 10,
+    "commissionSource": "manual",
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "1847 Willow Creek Avenue",
+      "city": "Austin",
+      "state": "TX",
+      "postalCode": "78701",
+      "country": "US",
+      "phone": "+15125550103",
+      "coordinates": {
+        "lat": 30.2711286,
+        "lng": -97.7436995,
+        "formatted": "Austin, Travis County, Texas, United States",
+        "geocodedAt": "2026-09-02T12:41:17.107Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -97.7436995,
+          30.2711286
+        ]
+      }
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-09-02T11:59:58.894Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T12:41:17.282Z"
+    },
+    "__v": 0,
+    "shipping": {
+      "codCollectedBy": "inherit"
+    },
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980fbe60a6ffabdb09e524/2026/09/1788352849667-jhyeee/banner.webp",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980fbe60a6ffabdb09e524/2026/09/1788352842564-ix8cse/logo.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a9843bb5a9a9f71175330f7"
+    },
+    "isDefault": false,
+    "storeName": "Smart Haven Electronics",
+    "slug": "smart-haven-electronics",
+    "description": "Smart Haven Electronics brings practical smart-home devices, wearable technology and entertainment electronics together in one convenient store.",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 10,
+    "commissionSource": "manual",
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "317 Maple Grove Street",
+      "city": "Chicago",
+      "state": "IL",
+      "postalCode": "60607",
+      "country": "US",
+      "phone": "+13125550104",
+      "coordinates": {
+        "lat": 41.8755616,
+        "lng": -87.6244212,
+        "formatted": "Chicago, South Chicago Township, Cook County, Illinois, United States",
+        "geocodedAt": "2026-09-02T15:52:03.170Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -87.6244212,
+          41.8755616
+        ]
+      }
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-09-02T15:41:47.488Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T15:52:03.347Z"
+    },
+    "__v": 0,
+    "shipping": {
+      "codCollectedBy": "inherit"
+    },
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a9843bb5a9a9f71175330f7/2026/09/1788364284219-q7moe6/banner.webp",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a9843bb5a9a9f71175330f7/2026/09/1788364279029-bv0ggh/logo.webp"
+  }
+]

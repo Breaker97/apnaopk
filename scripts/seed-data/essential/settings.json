@@ -1,0 +1,1187 @@
+{
+  "general": {
+    "storeName": "Storify",
+    "storeEmail": "store@example.com",
+    "faviconUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/07/1782900679295-6j1t78-logo__3_.png",
+    "defaultLanguage": "en",
+    "defaultCurrency": "USD",
+    "supportedLanguages": [
+      "en",
+      "bn",
+      "ar",
+      "hi",
+      "zh",
+      "ja",
+      "es",
+      "fr",
+      "zu",
+      "de",
+      "ko",
+      "xh",
+      "ha",
+      "sw",
+      "ig",
+      "yo",
+      "af"
+    ],
+    "supportedCurrencies": [
+      "INR",
+      "USD",
+      "EUR",
+      "GBP",
+      "CNY",
+      "SAR",
+      "KES",
+      "KWD",
+      "OMR",
+      "ZAR",
+      "QAR",
+      "CAD",
+      "JPY",
+      "BDT",
+      "AUD",
+      "AED",
+      "NGN",
+      "BHD",
+      "PEN",
+      "TRY",
+      "PKR",
+      "UGX",
+      "DZD",
+      "CHF",
+      "GHS"
+    ],
+    "timezone": "UTC",
+    "storeAddress": "Main street, New York, 1000",
+    "storeDescription": "Storify is a modern self-hosted eCommerce platform built with Next.js for online stores,\nretail POS businesses, and multi-vendor marketplaces",
+    "storeDomain": "",
+    "storePhone": "+17759865200",
+    "darkModeLogoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778937611307-zmmdcy-group_401.png",
+    "logoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/06/1782487144557-a8d733-group_227.png",
+    "countryAvailability": {
+      "mode": "all",
+      "countryCodes": []
+    },
+    "appIconUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786946804140-vfdcja/favicon.webp"
+  },
+  "appearance": {
+    "primaryColor": "#2065d1",
+    "secondaryColor": "#f0f0ff",
+    "accentColor": "#d9d9d9",
+    "theme": "light",
+    "contrast": false,
+    "rtl": false,
+    "compact": false,
+    "navLayout": "mini",
+    "navColor": "integrate",
+    "presetColor": "default",
+    "borderRadius": "1rem",
+    "collapsedSidebar": false,
+    "customPresets": [
+      {
+        "id": "cp_08c42e7c-3c26-4a93-af5d-95631b020d90",
+        "name": "Custom 1",
+        "primaryColor": "#003994",
+        "secondaryColor": "#cccbcd",
+        "accentColor": "#cfebff"
+      }
+    ]
+  },
+  "orders": {
+    "prefix": "ORD",
+    "taxRate": 0.1,
+    "defaultShippingCost": 5,
+    "commission": {
+      "vendorRate": 10,
+      "minWithdrawalAmount": 1000
+    },
+    "freeShippingThreshold": 0,
+    "returns": {
+      "shippingRefund": "never",
+      "restockingFeePercent": 0,
+      "returnShippingFee": 0,
+      "refundAdminFeePercent": 0,
+      "refundAdminFeeCap": 0,
+      "billVendorCodShipping": false
+    }
+  },
+  "shipping": {
+    "enabled": true,
+    "delivery": {
+      "processingDaysMin": 0,
+      "processingDaysMax": 0,
+      "showEstimatedDelivery": true
+    },
+    "zones": [
+      {
+        "id": "91843b25-d99f-4297-ac32-e58c5d2e99f9",
+        "name": "Domestic",
+        "countries": [
+          "Bangladesh"
+        ],
+        "regions": [],
+        "isFallback": false,
+        "rates": [
+          {
+            "id": "e8517d43-cabc-429c-93ed-6fdebebd9077",
+            "name": "Standard Delivery",
+            "type": "flat",
+            "price": 30,
+            "minDays": 3,
+            "maxDays": 5,
+            "active": true
+          },
+          {
+            "id": "85eb5579-17aa-482f-869d-dd0fc898aeb5",
+            "name": "Express Delivery",
+            "type": "flat",
+            "price": 50,
+            "minDays": 1,
+            "maxDays": 2,
+            "active": true
+          }
+        ]
+      }
+    ],
+    "fallbackRate": {
+      "enabled": false,
+      "name": "Normal",
+      "price": 20,
+      "maxDays": 7,
+      "minDays": 5
+    },
+    "localPickup": {
+      "enabled": false,
+      "pickupAddress": "Uttar Badda",
+      "readyInDaysMin": 15,
+      "readyInDaysMax": 20
+    },
+    "origin": {
+      "country": "Bangladesh",
+      "city": "Dhaka",
+      "postalCode": "1212",
+      "address1": "123 demo street",
+      "state": ""
+    },
+    "customs": {
+      "enabled": false,
+      "dutyMode": "DDP"
+    },
+    "vendorShipping": {
+      "enabled": true
+    },
+    "weightUnit": "kg",
+    "automation": {
+      "enabled": true,
+      "includeCod": true,
+      "rateChoice": "fastest",
+      "buyLabel": true,
+      "markOrderShipped": true,
+      "restrictToCountries": [
+        "Bangladesh",
+        "United States"
+      ],
+      "minOrderValue": 1
+    },
+    "carriers": {
+      "enabled": true,
+      "labelStorage": "carrier_url",
+      "shippo": {
+        "enabled": false,
+        "mode": "test",
+        "labelFileType": "PDF_4x6",
+        "serviceTokenAllowList": [],
+        "testToken": ""
+      },
+      "shiprocket": {
+        "enabled": false,
+        "courierIdAllowList": []
+      }
+    },
+    "packages": [
+      {
+        "id": "default",
+        "name": "Default box",
+        "length": 30,
+        "width": 20,
+        "height": 15,
+        "dimensionUnit": "cm",
+        "emptyWeight": 0,
+        "weightUnit": "kg",
+        "isDefault": true,
+        "active": true
+      }
+    ],
+    "codCollectedBy": "vendor",
+    "courierTrackingLinks": []
+  },
+  "social": {
+    "facebookUrl": "https://www.facebook.com/",
+    "twitterUrl": "https://x.com/home",
+    "youtubeUrl": "https://www.youtube.com/",
+    "linkedinUrl": "https://www.linkedin.com/",
+    "tiktokUrl": "https://www.tiktok.com/en/",
+    "instagramUrl": "https://www.instagram.com/",
+    "share": {
+      "enabled": true,
+      "copyLink": true,
+      "nativeShare": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": false,
+      "custom": []
+    }
+  },
+  "maintenance": {
+    "enabled": false,
+    "allowedIPs": [],
+    "countdownEnabled": false,
+    "message": "We're making a few improvements behind the scenes. Thanks for your patience.",
+    "title": "Storify is temporarily offline",
+    "countdownEndsAt": "2026-07-31T11:24:00.000Z",
+    "backgroundImageUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/06/1780728775647-h2plf8-lono-removebg-preview.png"
+  },
+  "pos": {
+    "enabled": true,
+    "allowAdminSales": true,
+    "allowVendorSales": true,
+    "allowSellerSales": true,
+    "language": "en",
+    "customize": {
+      "smartGridEnabled": true,
+      "lockScreenTimeoutMinutes": 5,
+      "printedReceiptsEnabled": true,
+      "customerDisplayEnabled": true,
+      "soundEnabled": true,
+      "soundVolume": 100,
+      "soundAddToCart": true,
+      "soundOrderComplete": true,
+      "soundPayment": true,
+      "soundError": true,
+      "receiptPrinter": "ipp"
+    },
+    "checkout": {
+      "paymentMethods": [
+        "cash",
+        "manual",
+        "card",
+        "bank"
+      ],
+      "customerReceiptSelectionEnabled": true,
+      "offlinePaymentsEnabled": true
+    },
+    "orders": {
+      "orderNumberPrefix": "POS",
+      "returnRules": {
+        "enabled": true,
+        "windowDays": 30,
+        "allowWithoutReceipt": false
+      }
+    },
+    "allowVendorProducts": false
+  },
+  "multiVendorMode": {
+    "enabled": true,
+    "canManageProducts": true,
+    "canViewOrders": true,
+    "canManageOrders": true,
+    "canManageStoreSettings": true,
+    "canViewAnalytics": true,
+    "canManagePayouts": true,
+    "canAccessPOS": true,
+    "canManageStaff": true,
+    "canManageDiscounts": true
+  },
+  "aiSalesAgent": {
+    "enabled": false,
+    "model": "gpt-5-mini",
+    "temperature": 0.3,
+    "reasoningEffort": "minimal",
+    "maxRecommendations": 4,
+    "agentName": "Sales AI",
+    "greeting": "Hi! I can help you find products, compare options, add items to your cart, and check order status.",
+    "tone": "friendly",
+    "instructions": "",
+    "escalationMessage": "I can connect you with the store team for anything that needs a human review.",
+    "widget": {
+      "position": "bottom-right",
+      "primaryColor": "#0010f5",
+      "accentColor": "#a855f7",
+      "avatarUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1780037911101-kdhz8l-thumb.png",
+      "footerText": "Powered by Storify",
+      "headerTitle": "",
+      "width": 400,
+      "height": 580,
+      "showFooterText": true
+    },
+    "capabilities": {
+      "productQA": true,
+      "recommendations": true,
+      "cartActions": true,
+      "checkoutHandoff": true,
+      "orderStatus": true
+    },
+    "faq": []
+  },
+  "aiAuthoring": {
+    "enabled": false,
+    "textModel": "",
+    "imageModel": "",
+    "surfaces": {
+      "products": true,
+      "categories": true,
+      "collections": true,
+      "brands": true,
+      "blogPosts": true,
+      "contentPages": false,
+      "reviews": true,
+      "heroBanner": true
+    },
+    "imageDefaults": {
+      "size": "auto",
+      "quality": "high"
+    },
+    "brandVoice": {
+      "tone": "",
+      "instructions": "",
+      "imageStyle": ""
+    },
+    "brandKit": {
+      "primaryColor": "",
+      "secondaryColor": "",
+      "logoUrl": ""
+    },
+    "access": {
+      "staffEnabled": true,
+      "vendorsEnabled": true
+    },
+    "limits": {
+      "textPerUserPerDay": 0,
+      "imagePerUserPerDay": 0
+    }
+  },
+  "homePage": {
+    "sectionOrder": [
+      "hero",
+      "featuredCategories",
+      "newArrivals",
+      "sponsoredProducts",
+      "promotionsOffers",
+      "featuredProducts",
+      "topVendors",
+      "becomeVendor",
+      "topArticles",
+      "fromInstagram"
+    ],
+    "sections": {
+      "hero": {
+        "visible": true,
+        "slides": [
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938651538-7219pr-frame_30.png",
+            "alt": "",
+            "href": "/products/galaxy-s26-ultra-5g"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938698670-l5q29b-group_400.png",
+            "alt": "",
+            "href": "/products/iphone-17-pro-max"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938715341-ew8fe0-group_398__1_.png",
+            "alt": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938760672-hhwx9m-group_397__1_.png",
+            "alt": "",
+            "href": "/products/galaxy-a57-5g"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938770792-ibgaux-group_399__1_.png",
+            "alt": "",
+            "href": "/products/haier-h55m80fux-55-inch-mini-led-4k-smart-google-tv"
+          }
+        ]
+      },
+      "featuredCategories": {
+        "visible": true,
+        "title": "Featured Categories",
+        "limit": 8,
+        "categoryIds": [],
+        "source": "featured"
+      },
+      "newArrivals": {
+        "visible": true,
+        "title": "Product on Sale",
+        "subtitle": "",
+        "limit": 8,
+        "productIds": [],
+        "source": "discounted",
+        "desktopColumns": 4
+      },
+      "promotionsOffers": {
+        "visible": true,
+        "cards": [
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938867795-xe42dl-rectangle_231__1_.png",
+            "href": "/products/iphone-16-pro"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938877439-ez8tfm-group_245__1_.png",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/07/1784374944578-cu9sp5/1778938895452-itgt9v-group_250__1_.png",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938905822-bldzuu-rectangle_234__1_.png",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778938912747-tyua6a-rectangle_232.png",
+            "href": "/products"
+          }
+        ]
+      },
+      "topVendors": {
+        "visible": true,
+        "title": "Top Vendors",
+        "limit": 8
+      },
+      "featuredProducts": {
+        "visible": true,
+        "title": "",
+        "limit": 12,
+        "productIds": [],
+        "source": "all"
+      },
+      "topArticles": {
+        "visible": true,
+        "title": "Top Articles",
+        "limit": 9,
+        "desktopColumns": 4
+      },
+      "becomeVendor": {
+        "visible": true,
+        "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/06/1782815123636-m3u5gd-group_424__1_.png",
+        "title": "Start Selling With Us Today",
+        "subtitle": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
+        "buttonLabel": "Become a Vendor",
+        "buttonHref": "/become-vendor"
+      },
+      "fromInstagram": {
+        "visible": true,
+        "title": "From Instagram",
+        "items": [
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779040825691-v0891c-rectangle_296.png",
+            "href": "https://www.instagram.com/"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779040831955-y0u9pz-rectangle_298__1_.png",
+            "href": "https://www.instagram.com/"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779040836800-6knjq5-rectangle_297.png",
+            "href": "https://www.instagram.com/"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779040842531-og7wxj-rectangle_295.png",
+            "href": "https://www.instagram.com/"
+          },
+          {
+            "imageSrc": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779040845181-124dfd-rectangle_294.png",
+            "href": "https://www.instagram.com/"
+          }
+        ]
+      },
+      "sponsoredProducts": {
+        "visible": true,
+        "title": "Sponsored",
+        "limit": 8
+      }
+    }
+  },
+  "contentPages": {
+    "terms": {
+      "title": "Terms of Service",
+      "content": "<h2><strong>Last Updated:</strong> 17/05/2026</h2><p>Welcome to <strong>Storify</strong>. These Terms of Service explain the rules and conditions for using our website, marketplace, products, services, and related features. By accessing or using Storify, you agree to follow these Terms.</p><p>Please read them carefully before using our platform.</p><hr><h2>1. Introduction</h2><p>Storify is an online eCommerce platform that allows customers to browse, purchase, and manage products from different sellers and vendors. Our platform may include features such as product listings, vendor stores, online payments, order tracking, delivery management, customer support, and promotional offers.</p><p>By using Storify, you confirm that you understand and agree to these Terms of Service.</p><hr><h2>2. Eligibility</h2><p>To use Storify, you must be able to enter into a legally binding agreement under applicable law.</p><p>You agree that:</p><p>You will provide accurate and complete information.</p><p>You will not use the platform for illegal, harmful, or fraudulent activities.</p><p>You are responsible for keeping your account information safe.</p><p>If you are using Storify on behalf of a business or organization, you confirm that you have permission to accept these Terms on their behalf.</p><hr><h2>3. User Accounts</h2><p>Some features of Storify may require you to create an account. When creating an account, you agree to provide correct personal details such as your name, email address, phone number, shipping address, and other required information.</p><p>You are responsible for:</p><p>Maintaining the confidentiality of your login details.</p><p>All activities that happen under your account.</p><p>Updating your information when necessary.</p><p>Storify reserves the right to suspend or terminate accounts that provide false information, violate these Terms, or misuse the platform.</p><hr><h2>4. Products and Listings</h2><p>Storify allows vendors and sellers to list products for sale. We try to ensure that product information, prices, images, descriptions, and availability are accurate.</p><p>However, product details may sometimes contain errors or may change without prior notice.</p><p>Storify does not guarantee that:</p><p>Product descriptions are always error-free.</p><p>Product images exactly match the actual product.</p><p>All products will always be available.</p><p>Prices will remain the same at all times.</p><p>We reserve the right to correct errors, update product information, cancel orders, or remove listings when necessary.</p><hr><h2>5. Orders and Payments</h2><p>When you place an order through Storify, you agree to provide accurate billing, shipping, and payment information.</p><p>All orders are subject to acceptance and availability. Storify or the seller may cancel or reject an order if:</p><p>The product is unavailable.</p><p>Payment fails or is declined.</p><p>Incorrect pricing or product information is displayed.</p><p>Fraudulent or suspicious activity is detected.</p><p>Payment may be processed through third-party payment providers. Storify is not responsible for errors, delays, or issues caused by external payment services.</p><hr><h2>6. Shipping and Delivery</h2><p>Shipping times, delivery charges, and delivery availability may vary depending on the seller, product type, destination, and shipping method.</p><p>Estimated delivery dates are provided for convenience only and are not guaranteed.</p><p>Storify is not responsible for delays caused by:</p><p>Courier or logistics partners.</p><p>Incorrect shipping information.</p><p>Natural disasters or unexpected events.</p><p>Customs, regulations, or local restrictions.</p><p>Customers are responsible for providing a complete and accurate delivery address.</p><hr><h2>7. Returns, Refunds, and Cancellations</h2><p>Return, refund, and cancellation policies may vary depending on the product, seller, and applicable rules.</p><p>Customers may request a return, refund, or cancellation according to the policy shown on the product page or checkout page.</p><p>Refunds may be denied if:</p><p>The product has been used or damaged by the customer.</p><p>The return request is made after the allowed period.</p><p>The product is non-returnable.</p><p>The customer fails to provide required proof or information.</p><p>Approved refunds will be processed using the original payment method or another available method.</p><hr><h2>8. Vendor Responsibilities</h2><p>Vendors using Storify must provide accurate product information, pricing, inventory, shipping details, and customer support.</p><p>Vendors are responsible for:</p><p>Managing their product listings.</p><p>Fulfilling orders on time.</p><p>Handling customer questions and complaints.</p><p>Following applicable laws and business regulations.</p><p>Ensuring product quality and authenticity.</p><p>Storify reserves the right to remove vendor accounts, products, or stores that violate our policies or harm customers.</p><hr><h2>9. Prohibited Activities</h2><p>You agree not to use Storify for any unlawful or harmful purpose.</p><p>You must not:</p><p>Use fake or misleading information.</p><p>Attempt to hack, damage, or disrupt the platform.</p><p>Upload harmful code, viruses, or malicious content.</p><p>Use Storify for fraud, scams, or unauthorized transactions.</p><p>Copy or misuse our content, design, branding, or technology.</p><p>Harass, abuse, or harm other users, sellers, or support staff.</p><p>Violating these rules may result in account suspension, order cancellation, or legal action.</p><hr><h2>10. Intellectual Property</h2><p>All content, design, graphics, logos, icons, images, software, and platform features related to Storify are owned by Storify or licensed to us.</p><p>You may not copy, reproduce, modify, distribute, or use our intellectual property without written permission.</p><p>Vendors are responsible for ensuring that their uploaded product images, descriptions, logos, and other content do not violate any third-party rights.</p><hr><h2>11. Third-Party Services</h2><p>Storify may use third-party services for payment processing, shipping, analytics, communication, marketing, or other platform features.</p><p>These third-party services may have their own terms and privacy policies. Storify is not responsible for the actions, errors, or policies of third-party providers.</p><hr><h2>12. Promotions and Discounts</h2><p>Storify may offer discounts, coupons, gift cards, promotional campaigns, or special offers.</p><p>Promotions may be subject to specific conditions, including expiry dates, minimum order values, product restrictions, or usage limits.</p><p>Storify reserves the right to modify, cancel, or refuse any promotional offer at any time.</p><hr><h2>13. Limitation of Liability</h2><p>Storify aims to provide a reliable and secure shopping experience. However, we do not guarantee that the platform will always be available, error-free, or uninterrupted.</p><p>Storify will not be responsible for:</p><p>Indirect or unexpected losses.</p><p>Loss of profit, revenue, data, or business opportunities.</p><p>Delays, errors, or service interruptions.</p><p>Issues caused by vendors, customers, couriers, or third-party services.</p><p>Your use of Storify is at your own risk.</p><hr><h2>14. Account Suspension or Termination</h2><p>Storify may suspend or terminate your account if you:</p><p>Violate these Terms.</p><p>Misuse the platform.</p><p>Engage in suspicious or fraudulent activity.</p><p>Harm other users, vendors, or the platform.</p><p>We may also restrict access to certain services without prior notice when necessary for security, legal, or operational reasons.</p><hr><h2>15. Privacy</h2><p>Your privacy is important to us. Our collection and use of personal information are explained in our Privacy Policy.</p><p>By using Storify, you agree that we may collect and process your information according to our Privacy Policy.</p><hr><h2>16. Changes to These Terms</h2><p>Storify may update these Terms of Service from time to time. Any changes will be posted on this page with an updated “Last Updated” date.</p><p>By continuing to use Storify after changes are published, you agree to the updated Terms.</p><hr><h2>17. Contact Us</h2><p>If you have any questions about these Terms of Service, please contact us:</p><p><strong>Company Name:</strong> [Your Company Name]<br><strong>Email:</strong> [Your Support Email]<br><strong>Website:</strong> [Your Website URL]<br><strong>Address:</strong> [Your Business Address]</p><hr><h2>18. Final Note</h2><p>These Terms of Service are provided as demo content for Storify. You should review and customize them based on your business model, country, payment methods, vendor rules, refund policy, and legal requirements.</p>",
+      "visible": true
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "content": "<h2>1. Information We Collect</h2><p>We may collect the following types of information from you:</p><h3>Personal Information</h3><p>When you create an account or place an order, we may collect:</p><ul><li><p>Full name</p></li><li><p>Email address</p></li><li><p>Phone number</p></li><li><p>Billing address</p></li><li><p>Shipping address</p></li><li><p>Order details</p></li><li><p>Account login information</p></li></ul><h3>Payment Information</h3><p>Payments are processed securely through trusted third-party payment providers. We do not store your full credit card, debit card, or sensitive payment details on our servers.</p><h3>Technical Information</h3><p>When you visit our website, we may automatically collect:</p><ul><li><p>IP address</p></li><li><p>Browser type</p></li><li><p>Device information</p></li><li><p>Pages visited</p></li><li><p>Date and time of visit</p></li><li><p>Cookies and tracking data</p></li></ul><h2>2. How We Use Your Information</h2><p>We use your information to:</p><ul><li><p>Process and deliver orders</p></li><li><p>Create and manage customer accounts</p></li><li><p>Provide customer support</p></li><li><p>Send order updates and notifications</p></li><li><p>Improve our website, products, and services</p></li><li><p>Prevent fraud and unauthorized activity</p></li><li><p>Send promotional offers, only if you have agreed to receive them</p></li></ul><h2>3. Cookies and Tracking Technologies</h2><p>Storify may use cookies and similar technologies to improve your shopping experience. Cookies help us remember your preferences, keep you logged in, analyze website traffic, and provide a better user experience.</p><p>You can disable cookies from your browser settings, but some parts of the website may not function properly.</p><h2>4. Sharing Your Information</h2><p>We do not sell your personal information.</p><p>We may share necessary information with trusted service providers, such as:</p><ul><li><p>Payment processors</p></li><li><p>Shipping and delivery partners</p></li><li><p>Email notification services</p></li><li><p>Analytics providers</p></li><li><p>Customer support tools</p></li></ul><p>These providers only receive the information required to perform their services.</p><h2>5. Data Security</h2><p>We take reasonable security measures to protect your personal information from unauthorized access, misuse, loss, or disclosure.</p><p>However, no online platform can guarantee complete security. We recommend that you keep your account password safe and avoid sharing your login details with others.</p><h2>6. Order and Transaction Data</h2><p>We may store order and transaction records for business, accounting, legal, and customer support purposes. This helps us manage refunds, returns, invoices, and customer inquiries.</p><h2>7. Your Rights</h2><p>Depending on your location, you may have the right to:</p><ul><li><p>Access your personal data</p></li><li><p>Correct inaccurate information</p></li><li><p>Request deletion of your account or data</p></li><li><p>Opt out of marketing emails</p></li><li><p>Request a copy of your stored information</p></li></ul><p>To make a request, please contact us using the contact details below.</p><h2>8. Marketing Communications</h2><p>If you subscribe to our newsletter or promotional updates, we may send you marketing emails about new products, offers, and updates.</p><p>You can unsubscribe at any time by clicking the unsubscribe link in the email or contacting us directly.</p><h2>9. Third-Party Links</h2><p>Our website may contain links to third-party websites. We are not responsible for the privacy practices, content, or security of those external websites.</p><p>Please review their privacy policies before sharing any personal information.</p><h2>10. Children’s Privacy</h2><p>Our services are not intended for children under the age of 13. We do not knowingly collect personal information from children. If you believe that a child has provided us with personal data, please contact us so we can remove it.</p><h2>11. Changes to This Privacy Policy</h2><p>We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated “Last Updated” date.</p><p>We encourage you to review this page regularly to stay informed about how we protect your information.</p><h2>12. Contact Us</h2><p>If you have any questions about this Privacy Policy or how your data is handled, please contact us:</p><p><strong>Business Name:</strong> Storify<br><strong>Email:</strong> [<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline\" href=\"mailto:your-email@example.com\">your-email@example.com</a>]<br><strong>Website:</strong> [<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline\" href=\"http://your-website.com\">your-website.com</a>]<br><strong>Address:</strong> [Your Business Address]</p>",
+      "visible": true
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "content": "<p>This Cookie Policy explains how <strong>Storify</strong> uses cookies and similar technologies when you visit our website, browse products, create an account, or place an order.</p><p>By using our website, you agree to our use of cookies as described in this policy.</p><h2>1. What Are Cookies?</h2><p><em>Cookies are small text files stored on your device when you visit a website. They help the website remember your preferences, improve your shopping experience, and understand how visitors use the site.</em></p><p><em>Cookies can be temporary or stored for a longer period depending on their purpose.</em></p><h2>2. Why We Use Cookies</h2><p>Storify uses cookies to:</p><ul><li><p>Keep the website working properly</p></li><li><p>Remember items in your cart</p></li><li><p>Keep you logged into your account</p></li><li><p>Save your language, currency, and store preferences</p></li><li><p>Improve website speed and performance</p></li><li><p>Understand how customers use our website</p></li><li><p>Provide a better and more personalized shopping experience</p></li><li><p>Help protect our website from fraud and security risks</p></li></ul><h2>3. Types of Cookies We Use</h2><h2>Essential Cookies</h2><p>These cookies are required for the website to function correctly. Without these cookies, some features may not work properly.</p><p>Examples include:</p><ul><li><p>Login session cookies</p></li><li><p>Shopping cart cookies</p></li><li><p>Checkout process cookies</p></li><li><p>Security and authentication cookies</p></li></ul><h2>Performance and Analytics Cookies</h2><p>These cookies help us understand how visitors use our website. They allow us to improve page speed, product pages, navigation, and the overall user experience.</p><p>These cookies may collect information such as:</p><ul><li><p>Pages visited</p></li><li><p>Time spent on the website</p></li><li><p>Device and browser type</p></li><li><p>Traffic source</p></li><li><p>Website errors or performance issues</p></li></ul><h2>Preference Cookies</h2><p>Preference cookies help us remember your choices so you do not have to set them again each time you visit.</p><p>Examples include:</p><ul><li><p>Language preference</p></li><li><p>Currency preference</p></li><li><p>Recently viewed products</p></li><li><p>Store display preferences</p></li></ul><h2>Marketing Cookies</h2><p>Marketing cookies may be used to show relevant offers, promotions, or advertisements based on your browsing activity.</p><p>These cookies may help us measure the effectiveness of campaigns and improve our marketing content.</p><h2>4. Third-Party Cookies</h2><p>We may use trusted third-party services that place cookies on your device. These services may include:</p><ul><li><p>Payment gateways</p></li><li><p>Analytics tools</p></li><li><p>Advertising platforms</p></li><li><p>Customer support tools</p></li><li><p>Embedded content providers</p></li></ul><p>Third-party cookies are managed by their respective providers. We recommend reviewing their cookie and privacy policies for more details.</p><h2>5. How You Can Manage Cookies</h2><p>You can manage or disable cookies through your browser settings. Most browsers allow you to:</p><ul><li><p>View stored cookies</p></li><li><p>Delete existing cookies</p></li><li><p>Block cookies from specific websites</p></li><li><p>Block all cookies</p></li><li><p>Receive alerts before cookies are stored</p></li></ul><p>Please note that if you disable essential cookies, some parts of Storify may not work properly, including account login, cart, and checkout features.</p><h2>6. Cookie Consent</h2><p>Depending on your location, we may ask for your consent before using certain types of cookies, such as analytics or marketing cookies.</p><p>You can update your cookie preferences at any time if cookie settings are available on our website.</p><h2>7. Changes to This Cookie Policy</h2><p>We may update this Cookie Policy from time to time to reflect changes in our website, services, or legal requirements.</p><p>Any updates will be posted on this page with a new “Last Updated” date.</p><h2>8. Contact Us</h2><p>If you have any questions about this Cookie Policy or how we use cookies, please contact us:</p><p><strong>Business Name:</strong> Storify<br><strong>Email:</strong> <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline\" href=\"mailto:support@storify.com\">support@storify.com</a><br><strong>Website:</strong> <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline\" href=\"http://www.storify.com\">www.storify.com</a></p>",
+      "visible": true
+    },
+    "accessibility": {
+      "title": "Accessibility",
+      "content": "<p>At <strong>Storify</strong>, we are committed to making our website accessible and user-friendly for all customers, including people with disabilities. We believe everyone should be able to browse products, manage their account, place orders, and access information easily.</p><h2>1. Our Accessibility Commitment</h2><p>Storify aims to provide a smooth and inclusive shopping experience for all users. We work to improve the accessibility, usability, and performance of our website so that customers can use our services with confidence.</p><p>Our goal is to make the website easy to navigate, readable, and compatible with common devices, browsers, and assistive technologies.</p><h2>2. Accessibility Features</h2><p>Storify may include accessibility-friendly features such as:</p><ul><li><p>Clear and readable text</p></li><li><p>Simple page layouts</p></li><li><p>Keyboard-friendly navigation</p></li><li><p>Proper heading structure</p></li><li><p>Descriptive buttons and links</p></li><li><p>Image alt text where applicable</p></li><li><p>Responsive design for mobile, tablet, and desktop devices</p></li><li><p>Sufficient spacing between elements</p></li><li><p>Clear product details, prices, and checkout information</p></li></ul><h2>3. Keyboard Navigation</h2><p>We aim to make important website features usable with a keyboard, including:</p><ul><li><p>Navigating menus</p></li><li><p>Browsing products</p></li><li><p>Opening product details</p></li><li><p>Adding items to cart</p></li><li><p>Completing checkout forms</p></li><li><p>Accessing account pages</p></li></ul><p>Some interactive features may continue to be improved over time.</p><h2>4. Images and Product Content</h2><p>Storify may use product images, banners, icons, and promotional graphics. We try to provide clear product names, descriptions, and relevant text so customers can understand the product information even when images are not available.</p><h2>5. Forms and Checkout</h2><p>We aim to make account, contact, cart, and checkout forms easy to understand and complete.</p><p>This may include:</p><ul><li><p>Clear input labels</p></li><li><p>Helpful error messages</p></li><li><p>Required field indicators</p></li><li><p>Simple checkout steps</p></li><li><p>Easy-to-read order summaries</p></li></ul><h2>6. Continuous Improvements</h2><p>Accessibility is an ongoing process. We may update our website design, content, and features from time to time to improve the experience for all users.</p><p>We welcome feedback from customers and visitors to help us identify areas that need improvement.</p><h2>7. Third-Party Services</h2><p>Storify may use third-party services such as payment gateways, analytics tools, shipping tools, customer support widgets, or embedded content.</p><p>While we try to work with reliable service providers, we may not fully control the accessibility of third-party tools or external websites.</p><h2>8. Need Help?</h2><p>If you experience any difficulty using our website or accessing any part of Storify, please contact us. We will do our best to assist you and improve the issue where possible.</p><h2>9. Contact Us</h2><p>If you have any questions, feedback, or accessibility concerns, please contact us:</p><p><strong>Business Name:</strong> Storify<br><strong>Email:</strong> <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline\" href=\"mailto:support@storify.com\">support@storify.com</a><br><strong>Website:</strong> <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline\" href=\"http://www.storify.com\">www.storify.com</a></p>",
+      "visible": true
+    },
+    "contact": {
+      "title": "Contact Us",
+      "description": "Have a question about an order, product, vendor, or account? Our team is ready to help you find the right answer.",
+      "heroImageUrl": "/contact-hero-storify.png",
+      "getInTouchTitle": "Get in Touch",
+      "getInTouchDescription": "Reach us through the details below, or send a message and we will get back to you as soon as possible.",
+      "formTitle": "Send us a message",
+      "formDescription": "Share the details and our support team will route your message to the right person.",
+      "headOfficeTitle": "Head Office",
+      "emailTitle": "Email Us",
+      "phoneTitle": "Call Us",
+      "hoursTitle": "Support Hours",
+      "supportHours": "Sunday to Thursday, 9:00 AM - 6:00 PM",
+      "showMap": true,
+      "mapTitle": "Visit Our Store",
+      "mapDescription": "Use the map below to find our office location and plan your visit.",
+      "mapProvider": "google",
+      "mapAddress": "",
+      "mapLatitude": "",
+      "mapLongitude": "",
+      "mapZoom": 14,
+      "mapHeight": 440,
+      "mapEmbedUrl": "",
+      "mapButtonLabel": "Open in Google Maps",
+      "showSocialLinks": true,
+      "visible": true
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Find quick answers to common questions about shopping, shipping, and returns.",
+      "visible": true,
+      "items": [
+        {
+          "id": "faq-shipping",
+          "question": "How long does shipping take?",
+          "answer": "Standard shipping usually takes 3-7 business days depending on your location."
+        },
+        {
+          "id": "faq-returns",
+          "question": "What is your return policy?",
+          "answer": "You can return eligible items within 30 days of delivery. Items must be unused and in original packaging."
+        },
+        {
+          "id": "faq-tracking",
+          "question": "How can I track my order?",
+          "answer": "Once your order ships, you will receive a tracking link by email and in your account order history."
+        }
+      ]
+    },
+    "customPages": []
+  },
+  "header": {
+    "layout": {
+      "sticky": true,
+      "fullWidth": false,
+      "transparent": false,
+      "variant": "classic"
+    },
+    "brand": {
+      "logoUrl": "",
+      "logoAlt": "",
+      "darkLogoUrl": "",
+      "desktopLogoWidth": 144,
+      "mobileLogoWidth": 112
+    },
+    "colors": {
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000",
+      "searchBackgroundColor": "#ffffff",
+      "searchTextColor": "#111827",
+      "dark": {
+        "backgroundColor": "#050505",
+        "textColor": "#ffffff",
+        "searchBackgroundColor": "#111111",
+        "searchTextColor": "#ffffff"
+      },
+      "light": {
+        "backgroundColor": "#ffffff",
+        "textColor": "#000000",
+        "searchBackgroundColor": "#ffffff",
+        "searchTextColor": "#111827"
+      }
+    },
+    "search": {
+      "enabled": true,
+      "showAiButton": true,
+      "placeholder": "Search products...",
+      "borderColor": "#dddddd",
+      "borderRadius": 999,
+      "desktopWidth": 750,
+      "height": 38,
+      "showCategoryDropdown": false
+    },
+    "market": {
+      "showLanguageSelector": false,
+      "showCurrencySelector": false,
+      "defaultLanguage": "en",
+      "defaultCurrency": "USD"
+    },
+    "widgets": {
+      "showThemeToggle": true,
+      "showAccountMenu": true,
+      "showWishlist": true,
+      "showCart": true,
+      "showLocationPicker": true,
+      "gap": 24,
+      "showContact": false,
+      "showLabels": false
+    },
+    "categoryMenu": {
+      "enabled": true,
+      "label": "All Categories",
+      "quickLimit": 3,
+      "mobileLimit": 6,
+      "showPromoCard": true,
+      "promoTitle": "Galaxy S26 Ultra",
+      "promoSubtitle": "Galaxy AI",
+      "promoImageSrc": "/hero/airpods.svg",
+      "promoHref": "/products",
+      "showMegaMenu": true,
+      "showQuickLinks": false,
+      "position": "left",
+      "trigger": {
+        "style": "soft",
+        "borderRadius": 10,
+        "borderWidth": 0,
+        "useCustomColors": false,
+        "colors": {
+          "light": {
+            "backgroundColor": "#4f46e5",
+            "textColor": "#ffffff",
+            "borderColor": "#4f46e5"
+          },
+          "dark": {
+            "backgroundColor": "#6366f1",
+            "textColor": "#ffffff",
+            "borderColor": "#6366f1"
+          }
+        }
+      }
+    },
+    "collectionsMenu": {
+      "enabled": true,
+      "label": "Collections",
+      "limit": 12,
+      "position": "left"
+    },
+    "utilityMenu": {
+      "enabled": true
+    },
+    "pagesMenu": {
+      "enabled": true,
+      "pageKeys": [
+        "contact"
+      ],
+      "customPageIds": [],
+      "appPagePaths": [
+        "/track-order",
+        "/blog",
+        "/brands",
+        "/pre-order",
+        "/become-vendor",
+        "/products"
+      ],
+      "order": [
+        "app:/track-order",
+        "app:/blog",
+        "standard:contact",
+        "app:/brands",
+        "app:/pre-order",
+        "app:/become-vendor",
+        "app:/products"
+      ],
+      "positions": {
+        "app:/blog": "right",
+        "app:/track-order": "right",
+        "standard:contact": "right",
+        "app:/": "left",
+        "app:/brands": "left",
+        "app:/pre-order": "left",
+        "app:/become-vendor": "right",
+        "app:/products": "left"
+      }
+    },
+    "mobile": {
+      "showSearch": true,
+      "showAccountSummary": true,
+      "showCategoryShortcuts": true,
+      "showCollections": true,
+      "showMarketSelectors": true,
+      "showThemeSelector": true
+    }
+  },
+  "footer": {
+    "layout": {
+      "fullWidth": false
+    },
+    "brand": {
+      "logoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/06/1782487144557-a8d733-group_227.png",
+      "logoAlt": "",
+      "description": "Storify is a modern self-hosted eCommerce platform built with Next.js for online stores,\nretail POS businesses, and multi-vendor marketplaces"
+    },
+    "colors": {
+      "light": {
+        "backgroundColor": "#f8fafc",
+        "textColor": "#111827",
+        "mutedTextColor": "#6b7280",
+        "borderColor": "#e5e7eb",
+        "accentColor": "#2065D1"
+      },
+      "dark": {
+        "backgroundColor": "#050505",
+        "textColor": "#ffffff",
+        "mutedTextColor": "#d1d5db",
+        "borderColor": "#27272a",
+        "accentColor": "#60a5fa"
+      }
+    },
+    "widgets": {
+      "showLogo": true,
+      "showDescription": true,
+      "showContact": true,
+      "showSocialLinks": true,
+      "showLinkColumns": true,
+      "showCopyright": true,
+      "showPaymentMethods": true
+    },
+    "contact": {
+      "source": "store",
+      "title": "Contact",
+      "phone": "+17759865200",
+      "email": "store@example.com",
+      "address": "Main street, New York, 1000",
+      "showPhone": true,
+      "showEmail": true,
+      "showAddress": true
+    },
+    "social": {
+      "title": "Follow us",
+      "links": {
+        "facebookUrl": "https://www.facebook.com/",
+        "twitterUrl": "https://x.com/home",
+        "instagramUrl": "https://www.instagram.com/",
+        "youtubeUrl": "https://www.youtube.com/",
+        "linkedinUrl": "https://www.linkedin.com/",
+        "tiktokUrl": "https://www.tiktok.com/en/"
+      }
+    },
+    "linkColumns": [
+      {
+        "id": "products",
+        "title": "Products",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "Products",
+            "href": "/products",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Categories",
+            "href": "/categories",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Collections",
+            "href": "/collections",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "New Arrivals",
+            "href": "/products",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "help",
+        "title": "Help",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "Track Order",
+            "href": "/track-order",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "FAQ",
+            "href": "/faq",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Returns",
+            "href": "/returns",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Contact",
+            "href": "/contact",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "title": "Company",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "About Us",
+            "href": "/about",
+            "target": "_self",
+            "visible": false
+          },
+          {
+            "label": "Blog",
+            "href": "/blog",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Become a Vendor",
+            "href": "/become-vendor",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Career",
+            "href": "/career",
+            "target": "_self",
+            "visible": false
+          }
+        ]
+      },
+      {
+        "id": "legal",
+        "title": "Legal",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "Terms of Service",
+            "href": "/terms",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "/privacy",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Cookie Policy",
+            "href": "/cookies",
+            "target": "_self",
+            "visible": false
+          },
+          {
+            "label": "Accessibility",
+            "href": "/accessibility",
+            "target": "_self",
+            "visible": false
+          }
+        ]
+      }
+    ],
+    "copyright": {
+      "text": "All rights reserved.",
+      "showYear": true,
+      "showStoreName": true
+    },
+    "paymentMethods": {
+      "enabled": true,
+      "imageUrl": "",
+      "imageAlt": "Payment methods"
+    }
+  },
+  "vendorConfig": {
+    "plansEnabled": true,
+    "allowRegistration": true,
+    "autoApprove": false,
+    "freeTrialDays": 0,
+    "requirePlanSelection": true,
+    "requiredDocuments": [],
+    "paymentMethods": {
+      "stripe": true,
+      "paypal": true,
+      "razorpay": true,
+      "paystack": true,
+      "pesapal": true,
+      "iotec": true,
+      "orange_money": true,
+      "mtn_momo": true
+    }
+  },
+  "boosting": {
+    "enabled": true,
+    "listingSlots": 2,
+    "hideOutOfStock": true,
+    "paymentMethods": {
+      "stripe": true,
+      "paypal": true,
+      "razorpay": true,
+      "paystack": true,
+      "pesapal": true,
+      "iotec": true,
+      "orange_money": true,
+      "mtn_momo": true
+    },
+    "placements": {
+      "home": true,
+      "listing": true,
+      "productPage": true
+    },
+    "bookingHorizonDays": 60,
+    "holdMinutes": 45,
+    "maxBookingDays": 60,
+    "productPageSlots": 8
+  },
+  "onlineStore": {
+    "activeTheme": "essential",
+    "themeSettings": {
+      "essential": {
+        "containerWidth": "fixed"
+      },
+      "electronics": {
+        "containerWidth": "fixed",
+        "productGalleryLayout": "bottom"
+      }
+    }
+  },
+  "checkout": {
+    "layout": {
+      "chrome": "store"
+    },
+    "trust": {
+      "message": "",
+      "showSecureBadge": true,
+      "supportText": ""
+    },
+    "policyLinks": [
+      {
+        "label": "Refund policy",
+        "href": "/returns",
+        "visible": true
+      },
+      {
+        "label": "Privacy policy",
+        "href": "/privacy",
+        "visible": true
+      },
+      {
+        "label": "Terms of service",
+        "href": "/terms",
+        "visible": true
+      }
+    ]
+  },
+  "productCard": {
+    "template": "minimal",
+    "groups": [
+      {
+        "id": "g1",
+        "items": [
+          {
+            "key": "preview",
+            "on": true
+          },
+          {
+            "key": "swatch",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g2",
+        "items": [
+          {
+            "key": "brand",
+            "on": true
+          },
+          {
+            "key": "name",
+            "on": true
+          },
+          {
+            "key": "category",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g3",
+        "items": [
+          {
+            "key": "price",
+            "on": true
+          },
+          {
+            "key": "delivery",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g4",
+        "items": [
+          {
+            "key": "rating",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g5",
+        "items": [
+          {
+            "key": "stock",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g6",
+        "items": [
+          {
+            "key": "cart",
+            "on": true
+          }
+        ]
+      }
+    ],
+    "visibility": {
+      "cartButtonAlways": false,
+      "discountChip": true,
+      "discountChipOnImage": true,
+      "itemSold": true,
+      "ratingCount": true,
+      "ratingMinimized": false,
+      "variantCount": true
+    },
+    "style": {
+      "cardRadius": 12,
+      "cardPadding": 0,
+      "cardBackground": "",
+      "cardBorder": "",
+      "cardBorderWidth": 0,
+      "cardShadow": 0,
+      "previewBackground": "",
+      "previewRadius": 10,
+      "previewHeight": 0,
+      "previewHover": "zoom",
+      "groupGap": 12,
+      "itemGap": 6,
+      "cartBackground": "",
+      "cartBorder": "",
+      "cartBorderWidth": 0,
+      "cartRadius": 6,
+      "ratingColor": "",
+      "stockBackground": ""
+    }
+  },
+  "notifications": {
+    "admin": {
+      "newOrders": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "newCustomers": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "newVendors": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "returns": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "payments": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      }
+    },
+    "vendor": {
+      "applicationStatus": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "newOrders": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "returns": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      }
+    },
+    "customer": {
+      "orderUpdates": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "returnUpdates": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      }
+    },
+    "staff": {
+      "newOrders": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "newCustomers": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "returns": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "payments": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "lowStock": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      }
+    }
+  }
+}

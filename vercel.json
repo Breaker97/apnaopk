@@ -1,0 +1,44 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/email-deliveries",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/vendor-subscriptions",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/messaging-outbox",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/messaging-escalations",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/boosts",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/carrier-shipments",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/carrier-tracking",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/finance",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/orange-money-reconcile",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/mtn-momo-reconcile",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

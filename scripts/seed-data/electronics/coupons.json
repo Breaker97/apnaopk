@@ -1,0 +1,35 @@
+[
+  {
+    "_id": {
+      "$oid": "6a90791ba8a12b22b27a0c99"
+    },
+    "code": "TECH15",
+    "label": "Tech Sale",
+    "description": "15% off phones and accessories",
+    "type": "percentage",
+    "value": 15,
+    "minOrderAmount": 0,
+    "maxDiscount": 200,
+    "usageLimit": null,
+    "usedCount": 0,
+    "perUserLimit": 1,
+    "startDate": {
+      "$date": "2026-08-27T17:51:23.880Z"
+    },
+    "endDate": {
+      "$date": "2026-11-25T17:51:23.880Z"
+    },
+    "status": "active",
+    "vendorId": null,
+    "applicableProducts": [],
+    "applicableCategories": [],
+    "excludedProducts": [],
+    "createdAt": {
+      "$date": "2026-08-27T17:51:23.881Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T07:33:44.278Z"
+    },
+    "__v": 0
+  }
+]

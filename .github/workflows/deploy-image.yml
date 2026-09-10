@@ -1,0 +1,136 @@
+# Builds Storify on a GitHub-hosted runner and pushes a ready-to-run image to
+# GHCR, so the production server never runs `pnpm build` again. Full setup:
+# docs/DEPLOYMENT_COOLIFY.md
+name: Deploy image
+
+on:
+  push:
+    branches:
+      - main
+      - version-2.0-qa # every branch your panel deploys from belongs here
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-image-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm # version comes from package.json's packageManager
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Require NEXT_PUBLIC_APP_URL
+        if: ${{ vars.NEXT_PUBLIC_APP_URL == '' }}
+        run: |
+          echo "::error::Set NEXT_PUBLIC_APP_URL under Settings -> Secrets and variables -> Actions -> Variables. NEXT_PUBLIC_* values are inlined into the build, so it must equal the store's public URL."
+          exit 1
+
+      # The build's static-generation pass renders every locale page once and
+      # dies if the database doesn't respond (docs/UPGRADE.md -> "Build
+      # requirements"), and the sitemap/robots artifacts are baked from its
+      # content. Point this at the same database the deployed store serves —
+      # that is exactly what a build on the server uses today. See
+      # docs/DEPLOYMENT_COOLIFY.md.
+      - name: Require BUILD_MONGODB_URI
+        if: ${{ secrets.BUILD_MONGODB_URI == '' }}
+        run: |
+          echo "::error::Set the BUILD_MONGODB_URI secret to the store's MongoDB connection string (reachable from GitHub runners)."
+          exit 1
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # `next build` deliberately skips tsc (see next.config.ts), so CI is
+      # the type gate. Delete this step if you'd rather deploy past it.
+      - name: Type check
+        run: NODE_OPTIONS=--max-old-space-size=8192 pnpm typecheck
+
+      - name: Build
+        env:
+          MONGODB_URI: ${{ secrets.BUILD_MONGODB_URI }}
+          # Everything NEXT_PUBLIC_* is inlined at build time; set the repo
+          # Variables to the same values your store runs with today.
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_APP_NAME: ${{ vars.NEXT_PUBLIC_APP_NAME || 'Storify' }}
+          NEXT_PUBLIC_SUPPORT_EMAIL: ${{ vars.NEXT_PUBLIC_SUPPORT_EMAIL || '' }}
+          NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || '' }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '' }}
+          NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '' }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ vars.NEXT_PUBLIC_RAZORPAY_KEY_ID || '' }}
+          NEXT_PUBLIC_GA_ID: ${{ vars.NEXT_PUBLIC_GA_ID || '' }}
+          NEXT_PUBLIC_GTM_ID: ${{ vars.NEXT_PUBLIC_GTM_ID || '' }}
+          NEXT_PUBLIC_FACEBOOK_PIXEL_ID: ${{ vars.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || '' }}
+          NEXT_PUBLIC_TIKTOK_PIXEL_ID: ${{ vars.NEXT_PUBLIC_TIKTOK_PIXEL_ID || '' }}
+        run: pnpm build
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            # Stable tag consumed by the Coolify Docker Image resource.
+            type=raw,value=coolify
+            type=ref,event=branch
+            type=sha,prefix=
+
+      - name: Assemble & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Lives under deploy/ so no panel auto-detects it as a source build
+          file: deploy/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Optional: tells Dokploy to pull the fresh tag and restart. Without
+      # the three secrets this step is skipped and you press Deploy by hand.
+      - name: Trigger Dokploy redeploy
+        if: ${{ secrets.DOKPLOY_URL != '' && secrets.DOKPLOY_API_KEY != '' && secrets.DOKPLOY_APPLICATION_ID != '' }}
+        run: |
+          curl --fail-with-body -sS -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
+            -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"applicationId": "${{ secrets.DOKPLOY_APPLICATION_ID }}"}'
+
+      # Optional: after the image is safely in GHCR, ask Coolify to pull the
+      # fresh `coolify` tag and replace the running container. Copy both values
+      # from the application's Deploy Webhook screen into GitHub Actions
+      # repository secrets. With neither secret present, manual deploys work.
+      - name: Trigger Coolify redeploy
+        if: ${{ secrets.COOLIFY_WEBHOOK != '' && secrets.COOLIFY_TOKEN != '' }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request GET '${{ secrets.COOLIFY_WEBHOOK }}' \
+            --header 'Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}'

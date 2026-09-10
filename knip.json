@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "scripts/**/*.{mjs,ts}",
+    "lib/i18n/request.ts"
+  ],
+  "ignoreDependencies": [
+    "@fontsource/noto-sans",
+    "@fontsource/noto-sans-bengali"
+  ],
+  "ignore": [
+    "public/sw.js"
+  ]
+}

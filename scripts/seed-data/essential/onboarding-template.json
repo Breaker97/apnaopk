@@ -1,0 +1,192 @@
+[
+  {
+    "_id": {
+      "$oid": "6a608246ffd2bd9e599cac03"
+    },
+    "key": "default",
+    "steps": [
+      {
+        "id": "account",
+        "key": "account",
+        "kind": "account",
+        "enabled": true,
+        "system": true,
+        "fields": [
+          {
+            "id": "name",
+            "key": "name",
+            "widget": "text",
+            "placeholder": "Enter your full name",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "email",
+            "key": "email",
+            "widget": "email",
+            "placeholder": "Enter your email",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "password",
+            "key": "password",
+            "widget": "password",
+            "placeholder": "Enter password",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "confirmPassword",
+            "key": "confirmPassword",
+            "widget": "password",
+            "placeholder": "Confirm password",
+            "required": true,
+            "visible": true,
+            "system": true
+          }
+        ]
+      },
+      {
+        "id": "business",
+        "key": "business",
+        "kind": "business",
+        "enabled": true,
+        "system": true,
+        "fields": [
+          {
+            "id": "storeName",
+            "key": "storeName",
+            "widget": "text",
+            "placeholder": "Enter your store name",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "description",
+            "key": "description",
+            "widget": "textarea",
+            "placeholder": "Tell customers about your store",
+            "required": false,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "country",
+            "key": "country",
+            "widget": "country",
+            "placeholder": "Select country",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "state",
+            "key": "state",
+            "widget": "state",
+            "placeholder": "Select state",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "city",
+            "key": "city",
+            "widget": "text",
+            "placeholder": "Enter city",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "address",
+            "key": "address",
+            "widget": "text",
+            "placeholder": "Enter your complete address",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "pincode",
+            "key": "pincode",
+            "widget": "text",
+            "placeholder": "Enter pincode",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "phone",
+            "key": "phone",
+            "widget": "phone",
+            "required": false,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "businessLicense",
+            "key": "businessLicense",
+            "widget": "document",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "taxId",
+            "key": "taxId",
+            "widget": "text",
+            "placeholder": "Enter your tax or VAT number",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "taxCertificate",
+            "key": "taxCertificate",
+            "widget": "document",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "governmentId",
+            "key": "governmentId",
+            "widget": "document",
+            "required": false,
+            "visible": false,
+            "system": true
+          }
+        ]
+      },
+      {
+        "id": "subscription",
+        "key": "subscription",
+        "kind": "subscription",
+        "enabled": true,
+        "system": true,
+        "fields": []
+      },
+      {
+        "id": "review",
+        "key": "review",
+        "kind": "review",
+        "label": "Review",
+        "enabled": true,
+        "system": true,
+        "fields": []
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-07-22T08:41:42.524Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-16T15:45:42.638Z"
+    },
+    "__v": 14
+  }
+]

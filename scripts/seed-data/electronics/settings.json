@@ -1,0 +1,1642 @@
+{
+  "general": {
+    "storeName": "Storify",
+    "storeDescription": "Multi-vendor E-commerce Platform",
+    "storeEmail": "support@storify.com",
+    "storePhone": "+1 555-0100",
+    "storeAddress": "123 Main Street, New York, NY 10001",
+    "logoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003217992-uyocld/logo.svg",
+    "darkModeLogoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003362100-1sfkzj/logo__dark.svg",
+    "faviconUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003665853-eh8l41/favicon.svg",
+    "defaultLanguage": "en",
+    "defaultCurrency": "USD",
+    "supportedLanguages": [
+      "en",
+      "bn",
+      "ar",
+      "hi",
+      "zh",
+      "ja",
+      "ko",
+      "fr",
+      "es",
+      "de",
+      "zu",
+      "xh",
+      "ig",
+      "af",
+      "yo",
+      "ha",
+      "sw"
+    ],
+    "supportedCurrencies": [
+      "USD",
+      "EUR",
+      "GBP",
+      "BDT",
+      "INR",
+      "UGX",
+      "CNY",
+      "PKR",
+      "AUD",
+      "SAR",
+      "KES",
+      "DZD",
+      "BHD",
+      "TRY",
+      "JPY",
+      "CAD",
+      "AED",
+      "QAR",
+      "OMR",
+      "PEN",
+      "ZAR",
+      "NGN",
+      "KWD",
+      "XOF",
+      "GNF",
+      "MGA",
+      "XAF",
+      "SLE",
+      "CDF",
+      "BWP",
+      "RWF",
+      "TZS",
+      "LRD",
+      "ZMW",
+      "MWK"
+    ],
+    "timezone": "America/New_York",
+    "countryAvailability": {
+      "mode": "all",
+      "countryCodes": []
+    },
+    "appIconUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003482082-rw0rky/icon.svg",
+    "productSearchMode": "regex"
+  },
+  "appearance": {
+    "primaryColor": "#2065d1",
+    "secondaryColor": "#b5b5b5",
+    "accentColor": "#b7c5e6",
+    "theme": "light",
+    "contrast": false,
+    "rtl": false,
+    "collapsedSidebar": false,
+    "navLayout": "mini",
+    "navColor": "integrate",
+    "presetColor": "default",
+    "customPresets": [
+      {
+        "id": "cp_d178c1cd-25d3-4ea8-8bea-15fb0601b48e",
+        "name": "Custom 1",
+        "primaryColor": "#2065d1",
+        "secondaryColor": "#b5b5b5",
+        "accentColor": "#c5cfe7"
+      }
+    ]
+  },
+  "orders": {
+    "prefix": "ORD",
+    "taxRate": 0.08,
+    "freeShippingThreshold": 0,
+    "defaultShippingCost": 5,
+    "commission": {
+      "vendorRate": 10,
+      "minWithdrawalAmount": 50
+    },
+    "returns": {
+      "shippingRefund": "never",
+      "restockingFeePercent": 0,
+      "returnShippingFee": 0,
+      "refundAdminFeePercent": 0,
+      "refundAdminFeeCap": 0,
+      "billVendorCodShipping": false
+    }
+  },
+  "shipping": {
+    "enabled": true,
+    "weightUnit": "kg",
+    "origin": {
+      "country": "USA",
+      "state": "NY",
+      "city": "New York",
+      "postalCode": "10001",
+      "address1": "123 Main Street"
+    },
+    "delivery": {
+      "processingDaysMin": 1,
+      "processingDaysMax": 2,
+      "showEstimatedDelivery": true
+    },
+    "zones": [
+      {
+        "id": "e7025f05-bfec-47b2-91d4-3d11f8492fd7",
+        "name": "United States",
+        "countries": [
+          "USA"
+        ],
+        "regions": [],
+        "isFallback": false,
+        "rates": [
+          {
+            "id": "0957d27a-d690-4b7a-8ce9-8902cae408a4",
+            "name": "Economy",
+            "type": "flat",
+            "price": 5.99,
+            "minDays": 5,
+            "maxDays": 8,
+            "active": true
+          },
+          {
+            "id": "4034b8fc-8e43-433f-a9c0-554dc1f4031f",
+            "name": "Standard",
+            "type": "flat",
+            "price": 9.99,
+            "freeOver": 50,
+            "minDays": 3,
+            "maxDays": 5,
+            "active": true
+          },
+          {
+            "id": "3749835e-449d-488e-a2b6-5c9d6a5eb4ff",
+            "name": "Express",
+            "type": "flat",
+            "price": 25.99,
+            "minDays": 1,
+            "maxDays": 2,
+            "active": true
+          },
+          {
+            "id": "841b3e5e-9dc0-4a2f-9b36-d9525dcc7b8b",
+            "name": "Free Standard",
+            "type": "free_over",
+            "price": 0,
+            "freeOver": 75,
+            "minDays": 3,
+            "maxDays": 5,
+            "active": true
+          }
+        ]
+      }
+    ],
+    "fallbackRate": {
+      "enabled": false,
+      "name": "",
+      "price": 9.99,
+      "minDays": 3,
+      "maxDays": 5
+    },
+    "codCollectedBy": "vendor",
+    "customs": {
+      "enabled": false,
+      "dutyMode": "DDU"
+    },
+    "vendorShipping": {
+      "enabled": true
+    },
+    "carriers": {
+      "enabled": true,
+      "labelStorage": "carrier_url",
+      "shippo": {
+        "enabled": false,
+        "mode": "test",
+        "labelFileType": "PDF_4x6",
+        "serviceTokenAllowList": [],
+        "testToken": ""
+      },
+      "shiprocket": {
+        "enabled": false,
+        "courierIdAllowList": []
+      }
+    },
+    "packages": [
+      {
+        "id": "default",
+        "name": "Default box",
+        "length": 30,
+        "width": 20,
+        "height": 15,
+        "dimensionUnit": "cm",
+        "emptyWeight": 0,
+        "weightUnit": "kg",
+        "isDefault": true,
+        "active": true
+      }
+    ],
+    "automation": {
+      "enabled": true,
+      "includeCod": false,
+      "rateChoice": "cheapest",
+      "buyLabel": true,
+      "markOrderShipped": true,
+      "restrictToCountries": []
+    },
+    "courierTrackingLinks": []
+  },
+  "social": {
+    "share": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    }
+  },
+  "maintenance": {
+    "enabled": false,
+    "title": "Storify is temporarily offline",
+    "message": "We're making a few improvements behind the scenes. Thanks for your patience.",
+    "countdownEnabled": false,
+    "allowedIPs": []
+  },
+  "pos": {
+    "enabled": true,
+    "allowAdminSales": true,
+    "allowVendorSales": true,
+    "allowSellerSales": true,
+    "language": "en",
+    "customize": {
+      "printedReceiptsEnabled": false,
+      "soundEnabled": true,
+      "soundVolume": 50,
+      "soundAddToCart": true,
+      "soundOrderComplete": true,
+      "soundPayment": true,
+      "soundError": true
+    },
+    "checkout": {
+      "paymentMethods": [
+        "cash",
+        "card"
+      ],
+      "offlinePaymentsEnabled": false
+    },
+    "orders": {
+      "orderNumberPrefix": "POS"
+    }
+  },
+  "multiVendorMode": {
+    "enabled": true,
+    "canManageProducts": true,
+    "canViewOrders": true,
+    "canManageOrders": true,
+    "canManageStoreSettings": true,
+    "canViewAnalytics": true,
+    "canManageDiscounts": true,
+    "canManagePayouts": true,
+    "canAccessPOS": true,
+    "packPolicy": {
+      "catalog": true,
+      "aiStudio": true,
+      "orders": true,
+      "storefront": true,
+      "staff": true,
+      "inbox": true,
+      "analytics": true,
+      "discounts": true,
+      "boosts": true,
+      "payouts": true,
+      "pos": true
+    }
+  },
+  "aiSalesAgent": {
+    "enabled": false,
+    "model": "gpt-5-mini",
+    "temperature": 0.3,
+    "reasoningEffort": "minimal",
+    "maxRecommendations": 4,
+    "agentName": "Sales AI",
+    "greeting": "Hi! I can help you find products, compare options, add items to your cart, and check order status.",
+    "tone": "friendly",
+    "instructions": "",
+    "escalationMessage": "I can connect you with the store team for anything that needs a human review.",
+    "widget": {
+      "position": "bottom-right",
+      "primaryColor": "#7c3aed",
+      "accentColor": "#a855f7",
+      "footerText": "Powered by AI",
+      "headerTitle": "",
+      "width": 400,
+      "height": 680,
+      "showFooterText": true
+    },
+    "capabilities": {
+      "productQA": true,
+      "recommendations": true,
+      "cartActions": true,
+      "checkoutHandoff": true,
+      "orderStatus": true
+    },
+    "faq": []
+  },
+  "aiAuthoring": {
+    "enabled": false,
+    "textModel": "",
+    "imageModel": "",
+    "surfaces": {
+      "products": true,
+      "categories": true,
+      "collections": true,
+      "brands": true,
+      "blogPosts": true,
+      "contentPages": true,
+      "reviews": true,
+      "heroBanner": true
+    },
+    "imageDefaults": {
+      "size": "auto",
+      "quality": "high"
+    },
+    "brandVoice": {
+      "tone": "",
+      "instructions": "",
+      "imageStyle": ""
+    },
+    "brandKit": {
+      "primaryColor": "",
+      "secondaryColor": "",
+      "logoUrl": ""
+    },
+    "access": {
+      "staffEnabled": true,
+      "vendorsEnabled": true
+    },
+    "limits": {
+      "textPerUserPerDay": 0,
+      "imagePerUserPerDay": 0
+    }
+  },
+  "homePage": {
+    "sectionOrder": [
+      "hero",
+      "featuredCategories",
+      "newArrivals",
+      "promotionsOffers",
+      "featuredProducts",
+      "sponsoredProducts",
+      "topVendors",
+      "becomeVendor",
+      "topArticles",
+      "fromInstagram"
+    ],
+    "sections": {
+      "hero": {
+        "visible": true,
+        "slides": [
+          {
+            "imageSrc": "",
+            "alt": "",
+            "href": ""
+          }
+        ]
+      },
+      "featuredCategories": {
+        "visible": true,
+        "title": "Featured Categories",
+        "limit": 8
+      },
+      "newArrivals": {
+        "visible": true,
+        "title": "Products on Sale",
+        "subtitle": "",
+        "desktopColumns": 4
+      },
+      "promotionsOffers": {
+        "visible": true,
+        "cards": [
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          }
+        ]
+      },
+      "topVendors": {
+        "visible": true,
+        "title": "Top Vendors",
+        "limit": 8
+      },
+      "featuredProducts": {
+        "visible": true,
+        "title": ""
+      },
+      "topArticles": {
+        "visible": true,
+        "title": "Top Articles",
+        "limit": 9,
+        "desktopColumns": 4
+      },
+      "becomeVendor": {
+        "visible": true,
+        "imageSrc": "",
+        "title": "Start Selling With Us Today",
+        "subtitle": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
+        "buttonLabel": "Become a Vendor",
+        "buttonHref": "/become-vendor"
+      },
+      "fromInstagram": {
+        "visible": true,
+        "title": "From Instagram",
+        "items": [
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          }
+        ]
+      },
+      "sponsoredProducts": {
+        "limit": 8,
+        "title": "Recommended for you",
+        "visible": true
+      }
+    }
+  },
+  "contentPages": {
+    "terms": {
+      "title": "Terms of Service",
+      "content": "<h2>Terms of Service</h2><p>Add your store's terms of service here.</p>",
+      "visible": true
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "content": "<h2>Privacy Policy</h2><p>Add your privacy policy details here.</p>",
+      "visible": true
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "content": "<h2>Cookie Policy</h2><p>Describe the cookies your site uses and why.</p>",
+      "visible": true
+    },
+    "accessibility": {
+      "title": "Accessibility",
+      "content": "<h2>Accessibility</h2><p>Share your accessibility standards and support contact details.</p>",
+      "visible": true
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Find quick answers to common questions about shopping, shipping, and returns.",
+      "visible": true,
+      "items": [
+        {
+          "id": "faq-shipping",
+          "question": "How long does shipping take?",
+          "answer": "Standard shipping usually takes 3-7 business days depending on your location."
+        },
+        {
+          "id": "faq-returns",
+          "question": "What is your return policy?",
+          "answer": "You can return eligible items within 30 days of delivery. Items must be unused and in original packaging."
+        },
+        {
+          "id": "faq-tracking",
+          "question": "How can I track my order?",
+          "answer": "Once your order ships, you will receive a tracking link by email and in your account order history."
+        }
+      ]
+    },
+    "customPages": []
+  },
+  "header": {
+    "builder": {
+      "rows": [
+        {
+          "id": "a6327936-c9e8-477c-b3c7-1a62d48e4c44",
+          "columnCount": 3,
+          "align": {
+            "horizontal": "start",
+            "vertical": "center"
+          },
+          "background": {
+            "type": "solid"
+          },
+          "foreground": {
+            "type": "solid"
+          },
+          "height": 64,
+          "gap": 24,
+          "borderBottom": 0,
+          "borderColor": "#e5e7eb",
+          "blur": 0,
+          "hideOnScroll": false,
+          "columns": [
+            {
+              "id": "88be1b8d-dd4a-4165-9b3e-38a773dea5b4",
+              "width": 1,
+              "height": 0,
+              "justify": "start",
+              "align": {
+                "horizontal": "start",
+                "vertical": "center"
+              },
+              "gap": 16,
+              "items": [
+                {
+                  "id": "108ff1ac-7db4-49ad-8730-382ba331e5e6",
+                  "type": "brand",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "size": 130,
+                  "scrollSize": 120,
+                  "theme": "auto"
+                }
+              ]
+            },
+            {
+              "id": "93e45bf8-200c-4021-84dd-7613eed5c917",
+              "width": 4.5,
+              "height": 0,
+              "justify": "center",
+              "align": {
+                "horizontal": "center",
+                "vertical": "center"
+              },
+              "gap": 16,
+              "items": [
+                {
+                  "id": "knSp6zfaccVtA2CJqqXwl",
+                  "type": "location",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "size": 18,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showCaption": true,
+                  "caption": ""
+                },
+                {
+                  "id": "f4374ae7-b0bb-4946-9e03-6d0645a61bab",
+                  "type": "searchBar",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "placeholder": "Search products...",
+                  "roundness": 10,
+                  "borderThickness": 1,
+                  "height": 44,
+                  "textStyle": {
+                    "fontSize": 14,
+                    "fontWeight": 400,
+                    "letterSpacing": 0,
+                    "transform": "none",
+                    "italic": false,
+                    "underline": false,
+                    "fill": {
+                      "type": "solid",
+                      "color": "#949494"
+                    }
+                  },
+                  "background": {
+                    "type": "solid",
+                    "color": "#F3F3F3"
+                  },
+                  "border": "#f3f3f3",
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showCategoryFilter": true
+                }
+              ]
+            },
+            {
+              "id": "3b30d739-c1d5-4376-9b2d-8614f08df7ba",
+              "width": 1,
+              "height": 0,
+              "justify": "end",
+              "align": {
+                "horizontal": "start",
+                "vertical": "center"
+              },
+              "gap": 20,
+              "items": [
+                {
+                  "id": "5eb363f2-fedb-469b-b6da-2329bd7fe2b6",
+                  "type": "icons",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "keys": [
+                    "theme",
+                    "wishlist",
+                    "compare"
+                  ],
+                  "size": 20,
+                  "gap": 16,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showLabels": false
+                },
+                {
+                  "id": "5623bbe6-5a42-453d-8e16-b102d0f75c23",
+                  "type": "user",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "size": 20,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showLabel": true,
+                  "greeting": "Welcome",
+                  "label": "Login / Register"
+                },
+                {
+                  "id": "9548e13c-518d-42f2-a538-b300186d4671",
+                  "type": "icons",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "keys": [
+                    "cart"
+                  ],
+                  "size": 22,
+                  "gap": 16,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showLabels": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "e6586620-9e65-4bdb-85c7-0838a4a16577",
+          "columnCount": 2,
+          "align": {
+            "horizontal": "start",
+            "vertical": "center"
+          },
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "foreground": {
+            "type": "solid"
+          },
+          "height": 40,
+          "gap": 24,
+          "borderBottom": 0,
+          "borderColor": "#e5e7eb",
+          "blur": 0,
+          "hideOnScroll": true,
+          "columns": [
+            {
+              "id": "07b27a2f-e5eb-4739-9c6f-99f0bf05f1ed",
+              "width": 1,
+              "height": 0,
+              "justify": "start",
+              "align": {
+                "horizontal": "start",
+                "vertical": "center"
+              },
+              "gap": 16,
+              "items": [
+                {
+                  "id": "2f6195ab-4eae-44cd-b41f-e3b6fabe483a",
+                  "type": "categories",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "label": "All Categories",
+                  "showIcon": true,
+                  "icon": "menu",
+                  "showChevron": true,
+                  "openOn": "hover",
+                  "width": 0,
+                  "height": 44,
+                  "roundness": 10,
+                  "borderThickness": 0,
+                  "border": "#ff2929",
+                  "textStyle": {
+                    "fontSize": 15,
+                    "fontWeight": 600,
+                    "letterSpacing": 0,
+                    "transform": "none",
+                    "italic": false,
+                    "underline": false,
+                    "fill": {
+                      "type": "solid",
+                      "color": "#ffffff"
+                    }
+                  },
+                  "background": {
+                    "type": "solid",
+                    "color": "#366FFF"
+                  },
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "panel": {
+                    "background": {
+                      "type": "solid",
+                      "color": "#ffffff"
+                    },
+                    "foreground": {
+                      "type": "solid",
+                      "color": "#111827"
+                    },
+                    "width": 0,
+                    "itemRoundness": 999,
+                    "showIcons": true,
+                    "highlight": {
+                      "type": "solid",
+                      "color": "#f1f1f1"
+                    }
+                  }
+                },
+                {
+                  "id": "885051a8-9ad5-479b-a9e3-9f513ddecaf5",
+                  "type": "collections",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "label": "Collections",
+                  "showChevron": true,
+                  "limit": 8,
+                  "columns": 3,
+                  "showDescription": false,
+                  "showViewAll": true,
+                  "textStyle": {
+                    "fontSize": 14,
+                    "fontWeight": 500,
+                    "letterSpacing": 0,
+                    "transform": "none",
+                    "italic": false,
+                    "underline": false,
+                    "fill": {
+                      "type": "solid"
+                    }
+                  }
+                },
+                {
+                  "id": "GojW5xFyMbYifrAIo08ii",
+                  "type": "nav",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "justify": "start",
+                  "align": {
+                    "horizontal": "start",
+                    "vertical": "center"
+                  },
+                  "gap": 24,
+                  "textStyle": {
+                    "fontSize": 14,
+                    "fontWeight": 500,
+                    "letterSpacing": 0,
+                    "transform": "none",
+                    "italic": false,
+                    "underline": false,
+                    "fill": {
+                      "type": "solid"
+                    }
+                  },
+                  "background": {
+                    "type": "solid"
+                  },
+                  "links": [
+                    {
+                      "id": "9febb187-fd71-458a-a17b-8234ae2f2aa5",
+                      "label": "Products",
+                      "url": "/products",
+                      "icon": "",
+                      "description": "",
+                      "menu": "list",
+                      "children": []
+                    },
+                    {
+                      "id": "a02dd7cf-eb0d-435d-8307-b521fe063f4e",
+                      "label": "Brands",
+                      "url": "/brands",
+                      "icon": "",
+                      "description": "",
+                      "menu": "list",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "7d75db55-096c-4367-a60e-c746ed2e15c9",
+              "width": 1,
+              "height": 0,
+              "justify": "end",
+              "align": {
+                "horizontal": "end",
+                "vertical": "center"
+              },
+              "gap": 16,
+              "items": [
+                {
+                  "id": "5fed6b6d-e060-44f3-81fa-15a5f937cc0f",
+                  "type": "nav",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "justify": "end",
+                  "align": {
+                    "horizontal": "end",
+                    "vertical": "center"
+                  },
+                  "gap": 28,
+                  "textStyle": {
+                    "fontSize": 13,
+                    "fontWeight": 500,
+                    "letterSpacing": 0,
+                    "transform": "none",
+                    "italic": false,
+                    "underline": false,
+                    "fill": {
+                      "type": "solid",
+                      "color": "#6b7280"
+                    }
+                  },
+                  "background": {
+                    "type": "solid"
+                  },
+                  "links": [
+                    {
+                      "id": "d828b506-2883-4ff2-9af6-b7212e52f136",
+                      "label": "Track Order",
+                      "url": "/track-order",
+                      "icon": "glyph:package",
+                      "description": "",
+                      "menu": "list",
+                      "children": []
+                    },
+                    {
+                      "id": "6c46aaf1-88f0-4e33-a3ce-8208ddf1cba1",
+                      "label": "Blog",
+                      "url": "/blog",
+                      "icon": "glyph:rss",
+                      "description": "",
+                      "menu": "list",
+                      "children": []
+                    },
+                    {
+                      "id": "3bbe0ab8-96a4-4be6-aa34-daa9952cb821",
+                      "label": "Contact Us",
+                      "url": "/contact",
+                      "icon": "",
+                      "description": "",
+                      "menu": "list",
+                      "children": []
+                    },
+                    {
+                      "id": "4b9b5f10-bc78-41d0-922b-ce2c7c616462",
+                      "label": "Become a Vendor",
+                      "url": "/become-vendor",
+                      "icon": "",
+                      "description": "",
+                      "menu": "list",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "layout": {
+      "sticky": true,
+      "fullWidth": false,
+      "variant": "nav-top",
+      "color": "light"
+    },
+    "brand": {
+      "logoUrl": "",
+      "darkLogoUrl": "",
+      "logoAlt": "",
+      "desktopLogoWidth": 144,
+      "mobileLogoWidth": 112,
+      "colorModeLogo": "dark",
+      "transparentModeLogo": "auto"
+    },
+    "colors": {
+      "light": {
+        "backgroundColor": "#ffffff",
+        "textColor": "#111827",
+        "searchBackgroundColor": "#ffffff",
+        "searchTextColor": "#111827"
+      },
+      "dark": {
+        "backgroundColor": "#424242",
+        "textColor": "#ffffff",
+        "searchBackgroundColor": "#575757",
+        "searchTextColor": "#ffffff"
+      }
+    },
+    "search": {
+      "enabled": true,
+      "showAiButton": true,
+      "showCategoryDropdown": false,
+      "placeholder": "Search products...",
+      "desktopWidth": 640,
+      "height": 40,
+      "borderRadius": 999,
+      "borderColor": "#dddddd"
+    },
+    "market": {
+      "showLanguageSelector": false,
+      "showCurrencySelector": false,
+      "defaultLanguage": "en",
+      "defaultCurrency": "USD"
+    },
+    "mobile": {
+      "showSearch": true,
+      "showAccountSummary": true,
+      "showCategoryShortcuts": true,
+      "showCollections": true,
+      "showMarketSelectors": true,
+      "showThemeSelector": true
+    },
+    "widgets": {
+      "showThemeToggle": true,
+      "showAccountMenu": true,
+      "showWishlist": true,
+      "showCart": true,
+      "showLocationPicker": true,
+      "showContact": true,
+      "showCompare": true,
+      "showLabels": false,
+      "gap": 16
+    },
+    "categoryMenu": {
+      "enabled": true,
+      "position": "left",
+      "showMegaMenu": true,
+      "showQuickLinks": false,
+      "label": "All Categories",
+      "quickLimit": 3,
+      "mobileLimit": 8,
+      "showPromoCard": false,
+      "promoTitle": "",
+      "promoSubtitle": "",
+      "promoImageSrc": "",
+      "promoHref": "",
+      "trigger": {
+        "style": "filled",
+        "borderRadius": 20,
+        "borderWidth": 0,
+        "width": 232,
+        "height": 42,
+        "showIcon": true,
+        "icon": "menu",
+        "showChevron": true,
+        "openOn": "hover",
+        "openOnHome": false,
+        "useCustomColors": false,
+        "colors": {
+          "light": {
+            "backgroundColor": "#4f46e5",
+            "textColor": "#ffffff",
+            "borderColor": "#4f46e5"
+          },
+          "dark": {
+            "backgroundColor": "#6366f1",
+            "textColor": "#ffffff",
+            "borderColor": "#6366f1"
+          }
+        }
+      }
+    },
+    "collectionsMenu": {
+      "enabled": true,
+      "position": "left",
+      "label": "Collections",
+      "limit": 12
+    },
+    "utilityMenu": {
+      "enabled": true,
+      "placement": "menu"
+    },
+    "pagesMenu": {
+      "enabled": true,
+      "appPagePaths": [
+        "/blog",
+        "/track-order",
+        "/become-vendor",
+        "/",
+        "/products"
+      ],
+      "pageKeys": [
+        "contact"
+      ],
+      "customPageIds": [],
+      "order": [
+        "app:/blog",
+        "app:/track-order",
+        "standard:contact",
+        "app:/become-vendor"
+      ],
+      "positions": {
+        "app:/blog": "right",
+        "app:/track-order": "right",
+        "standard:contact": "right",
+        "app:/become-vendor": "right"
+      }
+    }
+  },
+  "footer": {
+    "layout": {
+      "fullWidth": false
+    },
+    "brand": {
+      "logoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003217992-uyocld/logo.svg",
+      "logoAlt": "",
+      "description": "Multi-vendor E-commerce Platform"
+    },
+    "colors": {
+      "light": {
+        "backgroundColor": "#f8fafc",
+        "textColor": "#111827",
+        "mutedTextColor": "#6b7280",
+        "borderColor": "#e5e7eb",
+        "accentColor": "#2065D1"
+      },
+      "dark": {
+        "backgroundColor": "#050505",
+        "textColor": "#ffffff",
+        "mutedTextColor": "#d1d5db",
+        "borderColor": "#27272a",
+        "accentColor": "#60a5fa"
+      }
+    },
+    "widgets": {
+      "showLogo": true,
+      "showDescription": true,
+      "showContact": true,
+      "showSocialLinks": true,
+      "showLinkColumns": true,
+      "showCopyright": true,
+      "showPaymentMethods": true
+    },
+    "contact": {
+      "source": "store",
+      "title": "Contact",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "showPhone": true,
+      "showEmail": true,
+      "showAddress": true
+    },
+    "social": {
+      "title": "Follow us",
+      "links": {
+        "facebookUrl": "",
+        "twitterUrl": "",
+        "instagramUrl": "",
+        "youtubeUrl": "",
+        "linkedinUrl": "",
+        "tiktokUrl": ""
+      }
+    },
+    "linkColumns": [
+      {
+        "id": "products",
+        "title": "Products",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "Products",
+            "href": "/products",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Categories",
+            "href": "/categories",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Brands",
+            "href": "/brands",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Collections",
+            "href": "/collections",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "New Arrivals",
+            "href": "/products",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "help",
+        "title": "Help",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "Track Order",
+            "href": "/track-order",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "FAQ",
+            "href": "/faq",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Returns",
+            "href": "/returns",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Contact",
+            "href": "/contact",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "title": "Company",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "About Us",
+            "href": "/about",
+            "target": "_self",
+            "visible": false
+          },
+          {
+            "label": "Blog",
+            "href": "/blog",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Careers",
+            "href": "/careers",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Become a Vendor",
+            "href": "/become-vendor",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "legal",
+        "title": "Legal",
+        "menuHandle": "",
+        "links": [
+          {
+            "label": "Terms of Service",
+            "href": "/terms",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "/privacy",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Cookie Policy",
+            "href": "/cookies",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Accessibility",
+            "href": "/accessibility",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      }
+    ],
+    "copyright": {
+      "text": "All rights reserved.",
+      "showYear": true,
+      "showStoreName": true
+    },
+    "paymentMethods": {
+      "enabled": true,
+      "imageUrl": "",
+      "imageAlt": "Payment methods"
+    }
+  },
+  "vendorConfig": {
+    "plansEnabled": true,
+    "allowRegistration": true,
+    "autoApprove": false,
+    "freeTrialDays": 0,
+    "requirePlanSelection": false,
+    "requiredDocuments": [],
+    "paymentMethods": {
+      "stripe": true,
+      "paypal": true,
+      "razorpay": true,
+      "paystack": true,
+      "pesapal": true,
+      "iotec": true
+    }
+  },
+  "boosting": {
+    "enabled": true,
+    "listingSlots": 2,
+    "productPageSlots": 8,
+    "hideOutOfStock": true,
+    "holdMinutes": 45,
+    "bookingHorizonDays": 60,
+    "maxBookingDays": 60,
+    "paymentMethods": {
+      "stripe": true,
+      "paypal": true,
+      "razorpay": true,
+      "paystack": true,
+      "pesapal": true,
+      "iotec": true
+    },
+    "placements": {
+      "home": true,
+      "listing": true,
+      "productPage": true
+    }
+  },
+  "onlineStore": {
+    "activeTheme": "electronics",
+    "themeSettings": {
+      "electronics": {
+        "colors": {
+          "light": {
+            "background": "",
+            "surface": "",
+            "surfaceAlt": "",
+            "text": "",
+            "textMuted": "",
+            "border": "",
+            "primary": "",
+            "onPrimary": "",
+            "secondary": "",
+            "onSecondary": "",
+            "accent": "",
+            "sale": "",
+            "rating": "",
+            "link": ""
+          },
+          "dark": {
+            "background": "",
+            "surface": "",
+            "surfaceAlt": "",
+            "text": "",
+            "textMuted": "",
+            "border": "",
+            "primary": "",
+            "onPrimary": "",
+            "secondary": "",
+            "onSecondary": "",
+            "accent": "",
+            "sale": "",
+            "rating": "",
+            "link": ""
+          },
+          "darkMode": "auto"
+        },
+        "type": {
+          "headingFont": "",
+          "bodyFont": "",
+          "headingWeight": "700",
+          "headingTracking": -0.03,
+          "headingTransform": "none",
+          "buttonFont": "body",
+          "buttonWeight": "600",
+          "buttonTransform": "none",
+          "buttonTracking": 0
+        },
+        "layout": {
+          "pageWidth": "1440",
+          "pagePadding": 16,
+          "sliderWidth": "fixed",
+          "sliderHeight": "threeQuarters"
+        },
+        "shape": {
+          "cardRadius": 10,
+          "buttonRadius": 555,
+          "inputRadius": "",
+          "badgeRadius": 4,
+          "cardBorder": 1,
+          "inputBorder": 1,
+          "cardShadow": "none",
+          "overlayShadow": "medium"
+        },
+        "buttons": {
+          "height": 44,
+          "hover": "darken"
+        }
+      }
+    }
+  },
+  "checkout": {
+    "layout": {
+      "chrome": "store"
+    },
+    "trust": {
+      "message": "",
+      "showSecureBadge": true,
+      "supportText": ""
+    },
+    "policyLinks": [
+      {
+        "label": "Refund policy",
+        "href": "/returns",
+        "visible": true
+      },
+      {
+        "label": "Privacy policy",
+        "href": "/privacy",
+        "visible": true
+      },
+      {
+        "label": "Terms of service",
+        "href": "/terms",
+        "visible": true
+      }
+    ]
+  },
+  "catalog": {
+    "outOfStockDisplay": "show"
+  },
+  "productCard": {
+    "template": "minimal",
+    "groups": [
+      {
+        "id": "g1",
+        "items": [
+          {
+            "key": "preview",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g2",
+        "items": [
+          {
+            "key": "swatch",
+            "on": true
+          },
+          {
+            "key": "name",
+            "on": true
+          },
+          {
+            "key": "price",
+            "on": true
+          },
+          {
+            "key": "rating",
+            "on": true
+          },
+          {
+            "key": "delivery",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "00d6079d-a368-4b9d-877d-e6b75497860f",
+        "items": [
+          {
+            "key": "cart",
+            "on": true
+          }
+        ]
+      }
+    ],
+    "visibility": {
+      "cartButtonAlways": false,
+      "discountChip": false,
+      "discountChipOnImage": true,
+      "itemSold": false,
+      "ratingCount": false,
+      "ratingMinimized": true,
+      "variantCount": false
+    },
+    "action": {
+      "cart": "add-to-cart",
+      "label": ""
+    },
+    "style": {
+      "cardRadius": 12,
+      "cardPadding": 0,
+      "cardBackground": "",
+      "cardBorder": "",
+      "cardBorderWidth": 0,
+      "cardShadow": 0,
+      "previewBackground": "",
+      "previewRadius": 6,
+      "previewAspect": "tall",
+      "previewHeight": 0,
+      "previewFit": "contain",
+      "previewPadding": 14,
+      "previewHover": "zoom",
+      "groupGap": 22,
+      "itemGap": 6,
+      "typography": {
+        "price": {
+          "weight": "",
+          "style": "",
+          "size": 18,
+          "color": ""
+        },
+        "cart": {
+          "weight": "",
+          "style": "",
+          "size": 12,
+          "color": ""
+        }
+      },
+      "pricePill": false,
+      "discountChipBackground": "#fd5863",
+      "discountChipColor": "#4f4f4f",
+      "cartVariant": "outline",
+      "cartBackground": "",
+      "cartBorder": "",
+      "cartBorderWidth": 0,
+      "cartRadius": 6,
+      "ratingColor": "",
+      "stockBackground": "",
+      "stockBorder": "",
+      "stockBorderWidth": 0,
+      "stockRadius": 6
+    }
+  },
+  "notifications": {
+    "admin": {
+      "newOrders": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "newCustomers": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "newVendors": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "returns": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "payments": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      }
+    },
+    "staff": {
+      "newOrders": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "newCustomers": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "returns": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "payments": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      },
+      "lowStock": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true
+      }
+    },
+    "vendor": {
+      "applicationStatus": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "newOrders": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "returns": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      }
+    },
+    "customer": {
+      "orderUpdates": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      },
+      "returnUpdates": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true
+      }
+    }
+  }
+}
