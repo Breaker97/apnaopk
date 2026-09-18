@@ -1,6 +1,6 @@
 import { isRecord } from "@/lib/utils";
+
 type LooseRecord = Record<string, unknown>;
-type ImportRow = Record<string, string>;
 
 type ImportedOption = {
   _id: string;
@@ -23,7 +23,28 @@ type ImportedOptionValue = {
   colorCode?: string;
 };
 
-type AdvancedProductImportRow = {
+type ImportedVariant = {
+  name: string;
+  optionValues: ImportedOptionValue[];
+  price: number;
+  stock: number;
+  requiresShipping: boolean;
+  sku?: string;
+  barcode?: string;
+  comparePrice?: number;
+  cost?: number;
+};
+
+/**
+ * One product of an advanced catalog, validated.
+ *
+ * A field the document leaves out stays `undefined` rather than taking a
+ * default: when the product already exists the importer keeps its stored value
+ * for that field, so re-importing a catalog that never mentions stock does not
+ * zero the shelf, and one that never mentions `featured` does not un-feature
+ * anything. New products get the model's defaults instead.
+ */
+type AdvancedProduct = {
   id: string;
   title: string;
   slug: string;
@@ -33,10 +54,10 @@ type AdvancedProductImportRow = {
   barcodeSource: string;
   description: string;
   shortDescription: string;
-  price: number;
+  price?: number;
   comparePrice?: number;
   cost?: number;
-  stock: number;
+  stock?: number;
   status: string;
   category: string;
   categoryId: string;
@@ -44,9 +65,9 @@ type AdvancedProductImportRow = {
   brandId: string;
   tags: string;
   images: string;
-  onlineStore: boolean;
-  pointOfSale: boolean;
-  featured: boolean;
+  onlineStore?: boolean;
+  pointOfSale?: boolean;
+  featured?: boolean;
   productType: string;
   weight: string;
   weightUnit: string;
@@ -54,32 +75,60 @@ type AdvancedProductImportRow = {
   hsCode: string;
   vendorId: string;
   productSource: string;
-  shipping: { isPhysicalProduct: boolean };
-  inventory: { tracked: boolean };
-  options: ImportedOption[];
-  variants: Array<Record<string, unknown>>;
-  digitalDelivery: { downloadLimit: number };
+  isPhysicalProduct?: boolean;
+  inventoryTracked?: boolean;
+  digitalDownloadLimit?: number;
+  options?: ImportedOption[];
+  variants?: ImportedVariant[];
 };
 
+const MAX_CATALOG_PRODUCTS = 1000;
+const MAX_OPTIONS = 5;
+const MAX_VARIANTS = 500;
+const MAX_DOWNLOAD_LIMIT = 1000;
+
 function text(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return "";
 }
 
-function number(value: unknown, fallback = 0): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
+function isAbsent(value: unknown) {
+  return value === undefined || value === null || text(value) === "";
 }
 
-function boolean(value: unknown, fallback: boolean): boolean {
+function optionalNumber(value: unknown, field: string): number | undefined {
+  if (isAbsent(value)) return undefined;
+  const parsed = typeof value === "number" ? value : Number(text(value));
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${field} must be a number of 0 or more.`);
+  }
+  return parsed;
+}
+
+function optionalCount(
+  value: unknown,
+  field: string,
+  max = Number.MAX_SAFE_INTEGER,
+): number | undefined {
+  const parsed = optionalNumber(value, field);
+  if (parsed !== undefined && (!Number.isInteger(parsed) || parsed > max)) {
+    throw new Error(
+      max === Number.MAX_SAFE_INTEGER
+        ? `${field} must be a whole number of 0 or more.`
+        : `${field} must be a whole number from 0 to ${max}.`,
+    );
+  }
+  return parsed;
+}
+
+function optionalBoolean(value: unknown, field: string): boolean | undefined {
   if (typeof value === "boolean") return value;
-  if (typeof value !== "string") return fallback;
-  if (["true", "1", "yes", "y", "on"].includes(value.trim().toLowerCase())) {
-    return true;
-  }
-  if (["false", "0", "no", "n", "off"].includes(value.trim().toLowerCase())) {
-    return false;
-  }
-  return fallback;
+  if (isAbsent(value)) return undefined;
+  const normalized = text(value).toLowerCase();
+  if (["true", "1", "yes", "y", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
+  throw new Error(`${field} must be true or false.`);
 }
 
 function list(value: unknown): string {
@@ -94,12 +143,11 @@ function optionKey(values: ImportedOptionValue[]) {
 }
 
 function normalizeOptions(input: unknown): ImportedOption[] {
-  if (input == null) return [];
   if (!Array.isArray(input)) {
     throw new Error("Product options must be an array.");
   }
-  if (input.length > 5) {
-    throw new Error("A product can have at most 5 options.");
+  if (input.length > MAX_OPTIONS) {
+    throw new Error(`A product can have at most ${MAX_OPTIONS} options.`);
   }
 
   const usedNames = new Set<string>();
@@ -217,61 +265,80 @@ function normalizeOverrides(
   return overrides;
 }
 
-function normalizeVariantRows(
+function normalizeVariants(
   options: ImportedOption[],
   rawVariants: unknown,
-  price: number,
-  stock: number,
-  isPhysicalProduct: boolean,
-) {
-  if (options.length === 0) return [];
+  product: { price?: number; stock?: number; isPhysicalProduct?: boolean },
+): ImportedVariant[] {
   const overrides = normalizeOverrides(rawVariants, options);
+  const isPhysicalProduct = product.isPhysicalProduct !== false;
+  if (options.length === 0) return [];
+
   return createCombinations(options).map((optionValues) => {
     const override = overrides.get(optionKey(optionValues));
-    const comparePrice = number(override?.comparePrice, NaN);
-    const cost = number(override?.cost, NaN);
+    const name = optionValues.map((value) => value.value).join(" / ");
+    const price = optionalNumber(override?.price, `Variant ${name} price`) ?? product.price;
+    // A variant with no price anywhere would go on sale for nothing.
+    if (price === undefined) {
+      throw new Error(
+        `Variant ${name} has no price. Set price on the product or on this variant.`,
+      );
+    }
+    const stock = optionalCount(override?.stock, `Variant ${name} stock`) ?? product.stock ?? 0;
+    const comparePrice = optionalNumber(override?.comparePrice, `Variant ${name} comparePrice`);
+    const cost = optionalNumber(override?.cost, `Variant ${name} cost`);
     const barcode = text(override?.barcode);
     const sku = text(override?.sku);
     return {
-      name: optionValues.map((value) => value.value).join(" / "),
+      name,
       optionValues,
-      price: number(override?.price, price),
-      stock: isPhysicalProduct ? number(override?.stock, stock) : 0,
+      price,
+      stock: isPhysicalProduct ? stock : 0,
       requiresShipping: isPhysicalProduct,
       ...(sku ? { sku } : {}),
       ...(barcode ? { barcode } : {}),
-      ...(Number.isFinite(comparePrice) ? { comparePrice } : {}),
-      ...(Number.isFinite(cost) ? { cost } : {}),
+      ...(comparePrice !== undefined ? { comparePrice } : {}),
+      ...(cost !== undefined ? { cost } : {}),
     };
   });
 }
 
-function normalizeProduct(raw: unknown): AdvancedProductImportRow {
+/**
+ * Validate one product of an advanced catalog. Throws with a message naming
+ * the problem; the importer reports it against this product alone, so one bad
+ * entry does not stop the rest of the catalog.
+ */
+export function normalizeAdvancedProduct(raw: unknown): AdvancedProduct {
   if (!isRecord(raw)) throw new Error("Every product must be an object.");
-  const isPhysicalProduct = boolean(raw.isPhysicalProduct, true);
-  const price = number(raw.price);
-  const stock = isPhysicalProduct ? number(raw.stock) : 0;
-  const options = normalizeOptions(raw.options);
-  const variantCount = options.reduce(
-    (count, option) => count * option.values.length,
-    1,
-  );
-  if (variantCount > 500) {
-    throw new Error("A product can have at most 500 variants.");
-  }
-  const variants = normalizeVariantRows(
-    options,
-    raw.variants,
-    price,
-    stock,
-    isPhysicalProduct,
-  );
-  const delivery = isRecord(raw.digitalDelivery) ? raw.digitalDelivery : {};
-  const downloadLimit = Math.min(1000, number(delivery.downloadLimit ?? raw.digitalDownloadLimit));
 
-  const comparePrice = number(raw.comparePrice, NaN);
-  const cost = number(raw.cost, NaN);
-  const row: AdvancedProductImportRow = {
+  const isPhysicalProduct = optionalBoolean(raw.isPhysicalProduct, "isPhysicalProduct");
+  const price = optionalNumber(raw.price, "price");
+  // A digital product has no stock to count, whatever the document says.
+  const stock = isPhysicalProduct === false ? 0 : optionalCount(raw.stock, "stock");
+
+  let options: ImportedOption[] | undefined;
+  let variants: ImportedVariant[] | undefined;
+  if (raw.options != null) {
+    options = normalizeOptions(raw.options);
+    const variantCount = options.reduce(
+      (count, option) => count * option.values.length,
+      1,
+    );
+    if (variantCount > MAX_VARIANTS) {
+      throw new Error(`A product can have at most ${MAX_VARIANTS} variants.`);
+    }
+    variants = normalizeVariants(options, raw.variants, {
+      price,
+      stock,
+      isPhysicalProduct,
+    });
+  } else if (raw.variants != null) {
+    throw new Error("Product variants require product options.");
+  }
+
+  const delivery = isRecord(raw.digitalDelivery) ? raw.digitalDelivery : {};
+
+  return {
     id: text(raw.id),
     title: text(raw.title ?? raw.name),
     slug: text(raw.slug ?? raw.handle),
@@ -282,8 +349,8 @@ function normalizeProduct(raw: unknown): AdvancedProductImportRow {
     description: text(raw.description),
     shortDescription: text(raw.shortDescription),
     price,
-    ...(Number.isFinite(comparePrice) ? { comparePrice } : {}),
-    ...(Number.isFinite(cost) ? { cost } : {}),
+    comparePrice: optionalNumber(raw.comparePrice, "comparePrice"),
+    cost: optionalNumber(raw.cost, "cost"),
     stock,
     status: text(raw.status),
     category: text(raw.category),
@@ -292,9 +359,9 @@ function normalizeProduct(raw: unknown): AdvancedProductImportRow {
     brandId: text(raw.brandId),
     tags: list(raw.tags),
     images: list(raw.images),
-    onlineStore: boolean(raw.onlineStore, true),
-    pointOfSale: boolean(raw.pointOfSale, false),
-    featured: boolean(raw.featured, false),
+    onlineStore: optionalBoolean(raw.onlineStore, "onlineStore"),
+    pointOfSale: optionalBoolean(raw.pointOfSale, "pointOfSale"),
+    featured: optionalBoolean(raw.featured, "featured"),
     productType: text(raw.productType),
     weight: text(raw.weight),
     weightUnit: text(raw.weightUnit),
@@ -302,24 +369,24 @@ function normalizeProduct(raw: unknown): AdvancedProductImportRow {
     hsCode: text(raw.hsCode),
     vendorId: text(raw.vendorId),
     productSource: text(raw.productSource),
-    shipping: { isPhysicalProduct },
-    inventory: { tracked: isPhysicalProduct },
+    isPhysicalProduct,
+    inventoryTracked: optionalBoolean(raw.inventoryTracked, "inventoryTracked"),
+    digitalDownloadLimit: optionalCount(
+      delivery.downloadLimit ?? raw.digitalDownloadLimit,
+      "digitalDelivery.downloadLimit",
+      MAX_DOWNLOAD_LIMIT,
+    ),
     options,
     variants,
-    digitalDelivery: { downloadLimit },
   };
-
-  return row;
 }
 
 /**
- * Parse an advanced catalog document. The return value uses the importer’s
- * flat row shape with structured fields encoded as JSON strings so CSV and
- * JSON ultimately share the same persistence code path.
+ * Read an advanced catalog document's envelope. Only a problem with the file as
+ * a whole throws here; each product is validated separately by
+ * `normalizeAdvancedProduct`.
  */
-export function parseAdvancedProductCatalog(
-  textContent: string,
-): AdvancedProductImportRow[] {
+export function parseAdvancedProductCatalog(textContent: string): unknown[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(textContent);
@@ -329,17 +396,23 @@ export function parseAdvancedProductCatalog(
   if (!isRecord(parsed) || !Array.isArray(parsed.products)) {
     throw new Error("Advanced product import JSON must contain a products array.");
   }
-  if (parsed.products.length > 1000) {
-    throw new Error("Import supports up to 1000 products at a time.");
+  if (parsed.products.length > MAX_CATALOG_PRODUCTS) {
+    throw new Error(`Import supports up to ${MAX_CATALOG_PRODUCTS} products at a time.`);
   }
-  return parsed.products.map(normalizeProduct);
+  return parsed.products;
 }
 
-/** Convert parsed JSON records to the flat row shape used by the importer. */
-export function flattenAdvancedProductCatalog(
-  products: AdvancedProductImportRow[],
-): ImportRow[] {
-  return products.map((product) => ({
+function cell(value: number | boolean | undefined) {
+  return value === undefined ? "" : String(value);
+}
+
+/**
+ * The importer's flat row for one advanced product. CSV and JSON share one
+ * persistence path, so structured fields travel as JSON strings and an absent
+ * field travels as an empty cell — which the importer reads as "keep".
+ */
+export function toImportValues(product: AdvancedProduct): Record<string, string> {
+  return {
     id: product.id,
     title: product.title,
     slug: product.slug,
@@ -349,10 +422,10 @@ export function flattenAdvancedProductCatalog(
     barcodeSource: product.barcodeSource,
     description: product.description,
     shortDescription: product.shortDescription,
-    price: String(product.price),
-    comparePrice: product.comparePrice == null ? "" : String(product.comparePrice),
-    cost: product.cost == null ? "" : String(product.cost),
-    stock: String(product.stock),
+    price: cell(product.price),
+    comparePrice: cell(product.comparePrice),
+    cost: cell(product.cost),
+    stock: cell(product.stock),
     status: product.status,
     category: product.category,
     categoryId: product.categoryId,
@@ -360,9 +433,9 @@ export function flattenAdvancedProductCatalog(
     brandId: product.brandId,
     tags: product.tags,
     images: product.images,
-    onlineStore: String(product.onlineStore),
-    pointOfSale: String(product.pointOfSale),
-    featured: String(product.featured),
+    onlineStore: cell(product.onlineStore),
+    pointOfSale: cell(product.pointOfSale),
+    featured: cell(product.featured),
     productType: product.productType,
     weight: product.weight,
     weightUnit: product.weightUnit,
@@ -370,10 +443,10 @@ export function flattenAdvancedProductCatalog(
     hsCode: product.hsCode,
     vendorId: product.vendorId,
     productSource: product.productSource,
-    isPhysicalProduct: String(product.shipping.isPhysicalProduct),
-    inventoryTracked: String(product.inventory.tracked),
-    options: JSON.stringify(product.options),
-    variants: JSON.stringify(product.variants),
-    digitalDownloadLimit: String(product.digitalDelivery.downloadLimit),
-  }));
+    isPhysicalProduct: cell(product.isPhysicalProduct),
+    inventoryTracked: cell(product.inventoryTracked),
+    digitalDownloadLimit: cell(product.digitalDownloadLimit),
+    options: product.options === undefined ? "" : JSON.stringify(product.options),
+    variants: product.variants === undefined ? "" : JSON.stringify(product.variants),
+  };
 }

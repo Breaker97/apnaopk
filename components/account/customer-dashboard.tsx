@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { signOutAndReload } from "@/lib/auth/auth-client";
 import { useCurrency } from "@/providers/currency-provider";
 import type { LoyaltyTier } from "@/types";
+import type { PendingReview } from "@/lib/catalog/review-eligibility";
+import { PendingReviewsCard } from "./pending-reviews-card";
 
 interface CustomerDashboardProps {
   locale: string;
@@ -50,6 +52,8 @@ interface CustomerDashboardProps {
     totalAmount: number;
     createdAt: string;
   }>;
+  /** Delivered products still waiting for the shopper's review. */
+  pendingReviews?: PendingReview[];
 }
 
 const statusColors: Record<string, string> = {
@@ -80,6 +84,7 @@ export function CustomerDashboard({
   locale,
   stats,
   recentOrders,
+  pendingReviews = [],
 }: CustomerDashboardProps) {
   const t = useTranslations();
   const { formatPrice } = useCurrency();
@@ -277,6 +282,11 @@ export function CustomerDashboard({
           );
         })}
       </div>
+
+      {/* Asked here, above the order list, because a delivered order is the
+          moment a shopper has something to say — and the list below would
+          otherwise only show them it arrived. */}
+      <PendingReviewsCard locale={locale} items={pendingReviews} />
 
       {/* Recent Orders */}
       <Card

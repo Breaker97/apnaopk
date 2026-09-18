@@ -91,6 +91,10 @@ export const CREDENTIAL_FIELD_PATHS: readonly string[] = [
   // Email delivery
   "email.smtp.password",
   "email.apiKey",
+  // SMS (Twilio). The Messaging Service SID and the From number stay visible:
+  // they are routing config, and the number is printed on every text anyway.
+  "sms.twilio.accountSid",
+  "sms.twilio.authToken",
   // Analytics. Only the Plausible API key is here: it is a real secret. The
   // four tracking IDs are not — `/api/settings/public` serves them in full to
   // every visitor, because the storefront cannot inject a tag it has not been

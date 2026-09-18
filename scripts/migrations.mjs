@@ -528,6 +528,46 @@ export const MIGRATIONS = [
       "Copy each paid order's gateway fee onto its charge transaction, so dashboard net stops equalling gross.",
   },
   {
+    name: "quote-offer-indexes",
+    script: "migrate-quote-offer-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "2.1",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Add the two quoterequests indexes the quote-price feature reads (shopper list, sign-in claim). Purely additive.",
+  },
+  {
+    name: "notification-delivery-indexes",
+    script: "migrate-notification-delivery-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "2.1",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Create the notification outbox indexes: one email and one text per event (emaildeliveries + smsdeliveries dedupeKey), Twilio receipt lookup, SMS retry sweep and log retention. Purely additive.",
+  },
+  {
+    name: "product-search",
+    script: "backfill-product-search.ts",
+    runner: "tsx",
+    envFiles: ENV_STRICT,
+    since: "2.1",
+    need: "required",
+    auto: true,
+    options: ["--rebuild"],
+    optionNotes: {
+      "--rebuild":
+        "Recompute every product, not only the ones the index has never seen. Only needed after a search-rule change.",
+    },
+    summary:
+      "Build the per-product search index the storefront search runs on, retire the old text index, and add the Search insights counters' indexes. Until it runs, search falls back to an unindexed substring match.",
+  },
+  {
     name: "phase3-indexes",
     script: "migrate-phase3-indexes.mjs",
     runner: "node",
@@ -575,7 +615,7 @@ export const MIGRATIONS = [
 ];
 
 /** Release sections, in upgrade order, for grouping `--list` output. */
-export const RELEASES = ["1.4", "1.5", "2.0"];
+export const RELEASES = ["1.4", "1.5", "2.0", "2.1"];
 
 const BY_NAME = new Map(MIGRATIONS.map((m) => [m.name, m]));
 

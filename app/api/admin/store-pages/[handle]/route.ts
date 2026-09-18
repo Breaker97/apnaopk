@@ -89,12 +89,12 @@ export const PATCH = withApi<{ handle: string }>(
                 history: [],
               },
             },
-            { new: true, upsert: true },
+            { returnDocument: "after", upsert: true },
           ).lean()
         : await StorePage.findOneAndUpdate(
             { key: ref.key },
             { $set: { draft } },
-            { new: true },
+            { returnDocument: "after" },
           ).lean();
 
     if (!doc) {

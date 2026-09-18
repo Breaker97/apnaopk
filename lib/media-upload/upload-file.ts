@@ -4,6 +4,8 @@ import { validateUpload } from "@/lib/storage";
 import type { StorageConfig, StorageService } from "@/lib/storage";
 import {
   convertImageToWebp,
+  imageDimensions,
+  isVectorImageType,
   shouldConvertToWebp,
   undecodableImageType,
 } from "./webp";
@@ -51,6 +53,14 @@ interface UploadMediaFileDependencies {
    * Cloud API only accepts JPEG and PNG for image messages.
    */
   preserveOriginalFormat?: boolean;
+  /**
+   * Store a VECTOR source (SVG) exactly as uploaded instead of rasterizing
+   * it to WebP. The brand logo's exception — it has to stay sharp at every
+   * size — and a privilege, not a flag a caller may simply ask for: raw SVG
+   * can carry script and is served from the store's own media host, so the
+   * route only honours it for someone who already manages store media.
+   */
+  keepVector?: boolean;
   /**
    * Mime types this ONE call may store even when the storage allowlist omits
    * them, because the caller has already validated the file against a stricter
@@ -130,6 +140,35 @@ function uploadConfig(dependencies: UploadMediaFileDependencies): StorageConfig 
   };
 }
 
+/**
+ * The upload as it will be stored when nothing re-encodes it.
+ *
+ * convertImageToWebp did two jobs beyond compression that a stored original
+ * still needs: it reported width/height, and by failing it kept bytes that
+ * are not a real image out of storage. `probePixels` asks for both — the
+ * caller turns it off for the two cases where a failed probe would mean
+ * nothing: a format libvips cannot read (BMP/ICO/HEIC, already identified by
+ * undecodableImageType) and a vector, which has no pixel size at all.
+ */
+async function storeAsUploaded(
+  buffer: Buffer,
+  fileName: string,
+  contentType: string,
+  probePixels: boolean,
+): Promise<PreparedUpload> {
+  const stored: PreparedUpload = {
+    buffer,
+    fileName,
+    contentType,
+    fileSize: buffer.length,
+  };
+  if (!probePixels) return stored;
+
+  const dimensions = await imageDimensions(buffer);
+  if (!dimensions) throw new Error("Unable to read the uploaded image");
+  return { ...stored, ...dimensions };
+}
+
 function assertValidUpload(
   config: StorageConfig,
   fileSize: number,
@@ -153,21 +192,27 @@ export async function uploadMediaFile(
 
   const originalBuffer = Buffer.from(await file.arrayBuffer());
   // A BMP/ICO/HEIC reaching the encoder fails outright, so it is stored as
-  // uploaded instead — see undecodableImageType. Corrupt bytes are not
-  // detected here and still surface as a conversion error.
+  // uploaded instead — see undecodableImageType. Corrupt bytes are a different
+  // matter and must still be refused: whichever branch runs below, one of them
+  // asks libvips to read the image and throws when it cannot.
+  const undecodable = undecodableImageType(originalBuffer);
   const convertsToWebp =
     type === "image" &&
     !dependencies.preserveOriginalFormat &&
-    shouldConvertToWebp(originalContentType) &&
-    !undecodableImageType(originalBuffer);
+    shouldConvertToWebp(originalContentType, {
+      keepVector: dependencies.keepVector,
+    }) &&
+    !undecodable;
   const prepared: PreparedUpload = convertsToWebp
     ? await convertImageToWebp(originalBuffer, file.name)
-    : {
-        buffer: originalBuffer,
-        fileName: file.name,
-        contentType: originalContentType,
-        fileSize: originalBuffer.length,
-      };
+    : await storeAsUploaded(
+        originalBuffer,
+        file.name,
+        originalContentType,
+        type === "image" &&
+          !undecodable &&
+          !isVectorImageType(originalContentType),
+      );
 
   assertValidUpload(config, prepared.fileSize, prepared.contentType);
 

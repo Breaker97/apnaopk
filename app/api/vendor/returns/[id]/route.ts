@@ -194,7 +194,7 @@ export const PUT = withApi<{ id: string }>(
     const returnRequest = await ReturnRequest.findByIdAndUpdate(
       id,
       { $set: updates },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     )
       .populate("customerId", "name email phone")
       .lean();

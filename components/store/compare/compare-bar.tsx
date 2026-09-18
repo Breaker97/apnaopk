@@ -33,7 +33,9 @@ export function CompareBar({ locale }: { locale: Locale }) {
       // Clears the mobile bottom nav, which is fixed at the same edge.
       style={{ bottom: "calc(4.25rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-background/95 py-1.5 pe-1.5 ps-4 shadow-lg backdrop-blur xl:mb-2">
+      {/* The shell and its CTA both take the theme's button radius, so the
+          CTA never sits square inside a pill (or round inside a box). */}
+      <div className="pointer-events-auto flex items-center gap-2 rounded-button border border-border bg-background/95 py-1.5 pe-1.5 ps-4 shadow-lg backdrop-blur xl:mb-2">
         <Scale className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="text-sm font-medium text-foreground">
           {t("compare.bar", { count: slugs.length })}
@@ -47,7 +49,8 @@ export function CompareBar({ locale }: { locale: Locale }) {
         </button>
         <Link
           href={buildCompareHref(locale, slugs, {})}
-          className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+          data-slot="button"
+          className="inline-flex items-center gap-1.5 bg-foreground px-4 py-2 text-sm font-semibold text-background transition-opacity hover:opacity-90"
         >
           {t("compare.short")}
           <ArrowRight className="size-4 rtl:rotate-180" aria-hidden />

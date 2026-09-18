@@ -16,6 +16,12 @@ type Payload = {
     grossSales: number;
     /** Signed correction carried in from an earlier payout; negative is a clawback. */
     adjustments?: number;
+    /** Commission owed on the vendor's own cash sales, deducted here. Inside `adjustments`. */
+    commissionOffset?: number;
+    /** Delivery charges the vendor earned, inside `netAmount`. */
+    shippingAmount?: number;
+    /** Store promotions owed on the vendor's cash sales, paid here. Inside `adjustments`. */
+    commissionCredit?: number;
     commissionAmount: number;
     netAmount: number;
     periodStart: string;
@@ -69,6 +75,15 @@ export function VendorPayoutDetails({
   if (!data) return <p className="text-muted-foreground">Payout not found.</p>;
 
   const payout = data.payout;
+  // The commission deduction sits inside `adjustments`; it has its own card,
+  // so this is what is left of the adjustment once it is taken out.
+  const otherAdjustments =
+    Math.round(
+      ((payout.adjustments ?? 0) +
+        (payout.commissionOffset ?? 0) -
+        (payout.commissionCredit ?? 0)) *
+        100,
+    ) / 100;
 
   return (
     <div className="space-y-6">
@@ -91,17 +106,52 @@ export function VendorPayoutDetails({
         without this column the difference reads as an arithmetic error.
       */}
       <div
-        className={`grid gap-4 ${payout.adjustments ? "md:grid-cols-4" : "md:grid-cols-3"}`}
+        className={`grid gap-4 sm:grid-cols-2 ${
+          [
+            otherAdjustments,
+            payout.commissionOffset,
+            payout.commissionCredit,
+            payout.shippingAmount,
+          ].filter(Boolean).length >= 2
+            ? "lg:grid-cols-5"
+            : otherAdjustments ||
+                payout.commissionOffset ||
+                payout.commissionCredit ||
+                payout.shippingAmount
+              ? "md:grid-cols-4"
+              : "md:grid-cols-3"
+        }`}
       >
         <Metric title="Gross Sales" value={formatPrice(payout.grossSales)} />
         <Metric
           title="Commission"
           value={formatPrice(payout.commissionAmount)}
         />
-        {payout.adjustments ? (
+        {payout.shippingAmount ? (
+          <Metric
+            title="Delivery charges"
+            value={formatPrice(payout.shippingAmount)}
+            hint="Charged to shoppers for parcels you delivered"
+          />
+        ) : null}
+        {payout.commissionOffset ? (
+          <Metric
+            title="Commission on cash sales"
+            value={formatPrice(-payout.commissionOffset)}
+            hint="Owed on sales you collected the money for yourself, deducted here instead of invoiced"
+          />
+        ) : null}
+        {payout.commissionCredit ? (
+          <Metric
+            title="Store promotions on cash sales"
+            value={formatPrice(payout.commissionCredit)}
+            hint="Discounts the store paid for on sales you collected, beyond the commission you owed"
+          />
+        ) : null}
+        {otherAdjustments ? (
           <Metric
             title="Adjustments"
-            value={formatPrice(payout.adjustments)}
+            value={formatPrice(otherAdjustments)}
             hint="Already paid to you on orders refunded since, recovered here"
           />
         ) : null}

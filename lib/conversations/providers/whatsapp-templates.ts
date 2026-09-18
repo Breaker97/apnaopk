@@ -452,7 +452,7 @@ export async function createWhatsAppTemplate(params: {
         syncedAt: new Date(),
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
   return serializeWhatsAppTemplate(template);
 }

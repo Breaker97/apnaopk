@@ -133,6 +133,10 @@ export const HEADER_ICON_KEYS = [
   "contact",
   "language",
   "currency",
+  // The hamburger, as a glyph in the cluster: opens the same drawer the
+  // standalone menu button and the phone's Menu tab do. Last, so a cluster
+  // reads search · account · bag · menu the way an apparel header does.
+  "menu",
 ] as const;
 export type HeaderIconKey = (typeof HEADER_ICON_KEYS)[number];
 
@@ -215,6 +219,60 @@ export function linkGlyph(icon: string): HeaderLinkGlyph | null {
 export const HEADER_NAV_MENUS = ["list", "grid"] as const;
 export type HeaderNavMenu = (typeof HEADER_NAV_MENUS)[number];
 
+/** The edge the menu button's side drawer slides in from. */
+export const HEADER_DRAWER_SIDES = ["left", "right"] as const;
+export type HeaderDrawerSide = (typeof HEADER_DRAWER_SIDES)[number];
+
+/** Trending terms under the search drawer's field — a row, not a list. */
+export const MAX_SEARCH_TRENDING = 8;
+/** Product rows under the search drawer. Past three it is a page, not a search. */
+export const MAX_SEARCH_DRAWER_COLLECTIONS = 3;
+
+/**
+ * The search drawer's field: a bordered box (its corners set by
+ * `drawerFieldRadius` — 999 is the pill), or only a line beneath the text.
+ */
+export const HEADER_SEARCH_DRAWER_FIELD_STYLES = ["outline", "underline"] as const;
+export type HeaderSearchDrawerFieldStyle =
+  (typeof HEADER_SEARCH_DRAWER_FIELD_STYLES)[number];
+
+/**
+ * A navigation menu, referenced by handle — the key menus are fetched by on
+ * the storefront, stable across a rename. Menu handles are slugs; anything
+ * else is dropped rather than carried into a cache key.
+ */
+function readMenuHandle(value: unknown): string {
+  const handle = readString(value, "").trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9_-]{0,99}$/.test(handle) ? handle : "";
+}
+
+function normalizeTrending(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const terms: string[] = [];
+  for (const entry of value) {
+    const term = readString(entry, "").trim().slice(0, 40);
+    // Case-folded for the duplicate check only: "Wallets" stays as typed.
+    const key = term.toLowerCase();
+    if (!term || seen.has(key)) continue;
+    seen.add(key);
+    terms.push(term);
+    if (terms.length === MAX_SEARCH_TRENDING) break;
+  }
+  return terms;
+}
+
+function normalizeCollectionIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .map((entry) => readString(entry, "").trim())
+        .filter((id) => /^[A-Za-z0-9_-]{1,64}$/.test(id)),
+    ),
+  ].slice(0, MAX_SEARCH_DRAWER_COLLECTIONS);
+}
+
 export interface HeaderNavLink {
   id: string;
   label: string;
@@ -225,6 +283,13 @@ export interface HeaderNavLink {
   description: string;
   /** The design this link's own dropdown uses. Meaningless without children. */
   menu: HeaderNavMenu;
+  /**
+   * A navigation menu, by handle, shown as this link's dropdown instead —
+   * the full-width panel of headed columns. Top-level links only. It wins
+   * over `children`, which stay stored, so unlinking the menu brings the
+   * list or grid dropdown straight back.
+   */
+  megaMenu: string;
   children: HeaderNavLink[];
 }
 
@@ -285,6 +350,32 @@ export interface HeaderSearchIconItem extends HeaderItemBase {
   roundness: number;
   background: HeaderBackground;
   foreground: HeaderFill;
+  /**
+   * A word beside the glyph — "Search", the way an apparel header labels
+   * its controls. The menu button carries the same pair.
+   */
+  showLabel: boolean;
+  label: string;
+  /**
+   * Open the search drawer — the panel that drops from the top with a wide
+   * field, trending terms and product rows — instead of expanding a field in
+   * place. Either style can open it; the capsule then stands for the field.
+   */
+  drawer: boolean;
+  /**
+   * Plain style, no drawer: a line under the field while it is open. Without
+   * one the open field is a bare caret beside the icon, with nothing to say
+   * where the typing goes.
+   */
+  fieldLine: boolean;
+  /** Terms shown under the drawer's field, as typed. */
+  trending: string[];
+  /** Collection ids, each a product row under the field. */
+  drawerCollections: string[];
+  /** The drawer's field: a bordered box, or a bottom line. */
+  drawerFieldStyle: HeaderSearchDrawerFieldStyle;
+  /** The bordered field's corners, px; 999 is a pill. */
+  drawerFieldRadius: number;
   /** Pill only: the capsule around the button. */
   width: number;
   pillRoundness: number;
@@ -369,6 +460,18 @@ export interface HeaderMenuButtonItem extends HeaderItemBase {
   foreground: HeaderFill;
   showLabel: boolean;
   label: string;
+  /**
+   * Open the editorial side drawer instead of the app drawer. Desktop only:
+   * the phone's Menu tab keeps the app drawer, with the account, market and
+   * theme controls a phone shopper relies on. With no menu linked the button
+   * falls back to the app drawer rather than opening an empty panel.
+   */
+  drawer: boolean;
+  /** The drawer's primary links, set large — a navigation menu, by handle. */
+  drawerMenu: string;
+  /** The quieter service links beneath them, by handle; "" for none. */
+  drawerSecondaryMenu: string;
+  drawerSide: HeaderDrawerSide;
 }
 
 /**
@@ -416,6 +519,13 @@ export interface HeaderIconsItem extends HeaderItemBase {
   size: number;
   gap: number;
   foreground: HeaderFill;
+  /**
+   * The glyphs themselves. Off makes the cluster a row of words — an
+   * apparel header's "Search · Account · Bag". Never off at the same time
+   * as `showLabels`: a cluster showing neither is an empty strip where a
+   * row of controls should be, which the normalizer refuses outright.
+   */
+  showIcons: boolean;
   showLabels: boolean;
 }
 
@@ -483,8 +593,18 @@ export interface HeaderLayoutRow {
    * top: the utility strip a shopper needs on arrival but not while reading.
    */
   hideOnScroll: boolean;
+  /**
+   * When a hidden row comes back. `auto` is the rule the row shipped with:
+   * a top row rides off with the page and returns at its top; a lower row
+   * returns as soon as the page scrolls up. `top` and `scrollUp` say so
+   * for any row.
+   */
+  returnOn: HeaderRowReturn;
   columns: HeaderLayoutColumn[];
 }
+
+export const HEADER_ROW_RETURNS = ["auto", "top", "scrollUp"] as const;
+export type HeaderRowReturn = (typeof HEADER_ROW_RETURNS)[number];
 
 export interface HeaderLayout {
   rows: HeaderLayoutRow[];
@@ -509,6 +629,11 @@ export const MAX_HEADER_BUTTONS = 4;
 const MAX_COLUMNS_KEPT = 3;
 const MAX_PADDING = 120;
 const MAX_DIMENSION = 400;
+
+/** A brand item's Size range and default, px. The footer's logo shares them. */
+export const MIN_HEADER_LOGO_SIZE = 16;
+export const MAX_HEADER_LOGO_SIZE = MAX_DIMENSION;
+export const DEFAULT_HEADER_LOGO_SIZE = 144;
 
 export function newId(): string {
   // nanoid, not crypto.randomUUID(): the latter is undefined outside a
@@ -644,6 +769,9 @@ function normalizeNavLinks(value: unknown, depth = 0): HeaderNavLink[] {
         icon: readString(entry.icon, "").slice(0, 1000),
         description: readString(entry.description, "").slice(0, 160),
         menu: readOneOf(entry.menu, HEADER_NAV_MENUS, "list"),
+        // Top-level only, like the dropdown itself: a sub-link has no
+        // dropdown of its own to put a menu in.
+        megaMenu: depth === 0 ? readMenuHandle(entry.megaMenu) : "",
         // One level only: a grandchild renders nowhere, so it is dropped
         // here instead of riding along as dead data.
         children: depth === 0 ? normalizeNavLinks(entry.children, 1) : [],
@@ -686,7 +814,7 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         id,
         type,
         padding: padding(0),
-        size: 144,
+        size: DEFAULT_HEADER_LOGO_SIZE,
         scrollSize: 0,
         theme: "auto",
       };
@@ -758,6 +886,14 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         roundness: 999,
         background: inheritBackground(),
         foreground: inheritFill(),
+        showLabel: false,
+        label: "Search",
+        drawer: false,
+        fieldLine: true,
+        trending: [],
+        drawerCollections: [],
+        drawerFieldStyle: "outline",
+        drawerFieldRadius: 999,
         width: 110,
         pillRoundness: 14,
         pillBackground: solidBackground("#ffffff"),
@@ -794,6 +930,7 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         size: 20,
         gap: 16,
         foreground: inheritFill(),
+        showIcons: true,
         showLabels: false,
       };
     case "user":
@@ -833,6 +970,10 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         foreground: inheritFill(),
         showLabel: false,
         label: "Menu",
+        drawer: false,
+        drawerMenu: "",
+        drawerSecondaryMenu: "",
+        drawerSide: "left",
       };
     case "location":
       return {
@@ -876,7 +1017,13 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
         id,
         type: "brand",
         padding: pad,
-        size: readNumber(value.size, base.size, 16, MAX_DIMENSION, 2),
+        size: readNumber(
+          value.size,
+          base.size,
+          MIN_HEADER_LOGO_SIZE,
+          MAX_HEADER_LOGO_SIZE,
+          2,
+        ),
         scrollSize: readNumber(value.scrollSize, base.scrollSize, 0, MAX_DIMENSION, 2),
         theme: readOneOf(value.theme, HEADER_BRAND_THEMES, base.theme),
       };
@@ -946,6 +1093,24 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
         roundness: readNumber(value.roundness, base.roundness, 0, 999, 2),
         background: normalizeBackgroundValue(value.background, base.background),
         foreground: normalizeBackgroundValue(value.foreground, base.foreground),
+        showLabel: readBoolean(value.showLabel, base.showLabel),
+        label: readString(value.label, base.label).slice(0, 40),
+        drawer: readBoolean(value.drawer, base.drawer),
+        fieldLine: readBoolean(value.fieldLine, base.fieldLine),
+        trending: normalizeTrending(value.trending),
+        drawerCollections: normalizeCollectionIds(value.drawerCollections),
+        drawerFieldStyle: readOneOf(
+          value.drawerFieldStyle,
+          HEADER_SEARCH_DRAWER_FIELD_STYLES,
+          base.drawerFieldStyle,
+        ),
+        drawerFieldRadius: readNumber(
+          value.drawerFieldRadius,
+          base.drawerFieldRadius,
+          0,
+          999,
+          2,
+        ),
         width: readNumber(value.width, base.width, 40, 400, 2),
         pillRoundness: readNumber(value.pillRoundness, base.pillRoundness, 0, 999, 2),
         pillBackground: normalizeBackgroundValue(
@@ -984,6 +1149,8 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
       };
     case "icons": {
       const keys = normalizeIconKeys(value.keys);
+      const showLabels = readBoolean(value.showLabels, base.showLabels);
+      const showIcons = readBoolean(value.showIcons, base.showIcons);
       return {
         id,
         type: "icons",
@@ -994,7 +1161,11 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
         size: readNumber(value.size, base.size, 12, 64, 2),
         gap: readNumber(value.gap, base.gap, 0, 60, 2),
         foreground: normalizeBackgroundValue(value.foreground, base.foreground),
-        showLabels: readBoolean(value.showLabels, base.showLabels),
+        // Both off would render an empty strip — the same refusal as an
+        // empty `keys`. The glyphs win the tie because they are what the
+        // cluster is for; a stored document can never say neither.
+        showIcons: showIcons || !showLabels,
+        showLabels,
       };
     }
     case "user":
@@ -1032,6 +1203,10 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
         foreground: normalizeBackgroundValue(value.foreground, base.foreground),
         showLabel: readBoolean(value.showLabel, base.showLabel),
         label: readString(value.label, base.label).slice(0, 40),
+        drawer: readBoolean(value.drawer, base.drawer),
+        drawerMenu: readMenuHandle(value.drawerMenu),
+        drawerSecondaryMenu: readMenuHandle(value.drawerSecondaryMenu),
+        drawerSide: readOneOf(value.drawerSide, HEADER_DRAWER_SIDES, base.drawerSide),
       };
     case "location":
       return {
@@ -1078,6 +1253,7 @@ export function createHeaderRow(
     borderColor: "#e5e7eb",
     blur: 0,
     hideOnScroll: false,
+    returnOn: "auto",
     ...overrides,
     columns:
       columns ?? Array.from({ length: columnCount }, () => createHeaderColumn()),
@@ -1144,6 +1320,7 @@ function normalizeRow(value: unknown): HeaderLayoutRow {
     borderColor: color(source.borderColor, base.borderColor),
     blur: readNumber(source.blur, base.blur, 0, 40, 2),
     hideOnScroll: readBoolean(source.hideOnScroll, base.hideOnScroll),
+    returnOn: readOneOf(source.returnOn, HEADER_ROW_RETURNS, base.returnOn),
     columns: columns.slice(0, MAX_COLUMNS_KEPT),
   };
 }
@@ -1163,6 +1340,22 @@ export function normalizeHeaderLayout(value: unknown): HeaderLayout {
 /** The columns a row actually renders, honouring `columnCount`. */
 export function visibleColumns(row: HeaderLayoutRow): HeaderLayoutColumn[] {
   return row.columns.slice(0, row.columnCount);
+}
+
+/**
+ * The logo item the storefront header draws from `lg` up: the first brand
+ * item in reading order, among the columns a row actually renders. Null on a
+ * layout without one.
+ */
+export function headerBrandItem(layout: HeaderLayout): HeaderBrandItem | null {
+  for (const row of layout.rows) {
+    for (const column of visibleColumns(row)) {
+      for (const item of column.items) {
+        if (item.type === "brand") return item;
+      }
+    }
+  }
+  return null;
 }
 
 export function findHeaderItem(
@@ -1226,4 +1419,32 @@ export function headerLocationSlot(
   return host
     ? { type: host.type as HeaderLocationSlot["type"], itemId: host.id }
     : null;
+}
+
+/**
+ * Every navigation menu a layout borrows, by handle: the side drawer's two
+ * lists (only where the button actually opens a drawer) and each nav link's
+ * dropdown. The storefront fetches exactly these and nothing more, so a
+ * header that links no menus costs no menu reads at all.
+ */
+export function collectLinkedMenuHandles(
+  layout: HeaderLayout | null | undefined,
+): string[] {
+  const handles = new Set<string>();
+  for (const row of layout?.rows ?? []) {
+    for (const column of visibleColumns(row)) {
+      for (const item of column.items) {
+        if (item.type === "menuButton" && item.drawer) {
+          if (item.drawerMenu) handles.add(item.drawerMenu);
+          if (item.drawerSecondaryMenu) handles.add(item.drawerSecondaryMenu);
+        }
+        if (item.type === "nav") {
+          for (const link of item.links) {
+            if (link.megaMenu) handles.add(link.megaMenu);
+          }
+        }
+      }
+    }
+  }
+  return [...handles];
 }

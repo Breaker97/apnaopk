@@ -44,20 +44,33 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { NumberInput } from "@/components/ui/number-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
 import {
+  FOOTER_LOGO_THEMES,
   getDefaultFooterSettings,
   normalizeFooterSettings,
   resolveFooterContactDetails,
+  resolveFooterLogoUrl,
+  resolveFooterLogoWidths,
   type FooterColorScheme,
   type FooterContactDetails,
-  type FooterContactSource,
   type FooterSettings,
+  type FooterSource,
 } from "@/lib/site-config/footer-config";
+import {
+  headerLogoWidths,
+  normalizeHeaderSettings,
+  type LogoWidths,
+} from "@/lib/site-config/header-config";
+import {
+  MAX_HEADER_LOGO_SIZE,
+  MIN_HEADER_LOGO_SIZE,
+} from "@/lib/site-config/header-layout";
 import { cn } from "@/lib/utils";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import { ColorField, FieldRow, SwitchRow } from "@/components/admin/online-store/builder-fields";
@@ -73,6 +86,7 @@ type SettingsPayload = {
   success?: boolean;
   data?: {
     footer?: unknown;
+    header?: unknown;
     general?: {
       storeName?: unknown;
       storeDescription?: unknown;
@@ -109,14 +123,27 @@ function getStoreContact(payload: SettingsPayload): FooterContactDetails {
   };
 }
 
+/** The store's light/dark logo pair, as Branding saved it. */
+interface StoreLogos {
+  storeLogoUrl: string;
+  storeDarkLogoUrl: string;
+}
+
+function getStoreLogos(payload: SettingsPayload): StoreLogos {
+  return {
+    storeLogoUrl: getString(payload.data?.general?.logoUrl).trim(),
+    storeDarkLogoUrl: getString(payload.data?.general?.darkModeLogoUrl).trim(),
+  };
+}
+
 function normalizeInitialFooter(payload: SettingsPayload): FooterSettings {
   const footer = normalizeFooterSettings(payload.data?.footer);
   const general = payload.data?.general;
   const social = payload.data?.social;
 
-  if (!footer.brand.logoUrl && getString(general?.logoUrl)) {
-    footer.brand.logoUrl = getString(general?.logoUrl);
-  }
+  // The logo is deliberately NOT pre-filled from the store's: a copy saved
+  // into the footer stops following Branding — that copy is what kept the
+  // light logo in the footer in dark mode.
   if (!footer.brand.description && getString(general?.storeDescription)) {
     footer.brand.description = getString(general?.storeDescription);
   }
@@ -178,6 +205,14 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
     email: "",
     address: "",
   });
+  const [storeLogos, setStoreLogos] = useState<StoreLogos>({
+    storeLogoUrl: "",
+    storeDarkLogoUrl: "",
+  });
+  // What "same size as the header" resolves to, read from the saved header.
+  const [headerLogo, setHeaderLogo] = useState<LogoWidths>(() =>
+    headerLogoWidths(normalizeHeaderSettings(undefined)),
+  );
   const footerRef = useRef<FooterSettings>(footer);
   const [initialFooter, setInitialFooter] = useState<FooterSettings>(
     getDefaultFooterSettings(),
@@ -199,6 +234,10 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
 
         const parsed = normalizeInitialFooter(payload);
         setStoreContact(getStoreContact(payload));
+        setStoreLogos(getStoreLogos(payload));
+        setHeaderLogo(
+          headerLogoWidths(normalizeHeaderSettings(payload.data?.header)),
+        );
         footerRef.current = parsed;
         setFooter(parsed);
         setInitialFooter(parsed);
@@ -295,10 +334,6 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
 
   const updateField = (path: string, value: unknown) => {
     commitFooterChange((current) => setNestedValue(current, path, value));
-  };
-
-  const updateContactSource = (source: FooterContactSource) => {
-    updateField("contact.source", source);
   };
 
   const updateColumn = (
@@ -465,7 +500,12 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
         }
       />
 
-      <FooterPreview footer={footer} storeContact={storeContact} />
+      <FooterPreview
+        footer={footer}
+        storeContact={storeContact}
+        storeLogos={storeLogos}
+        headerLogo={headerLogo}
+      />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="space-y-4">
@@ -477,14 +517,127 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <ImageUploadField
-                id="footer-logo"
-                label={t("fields.footerLogo")}
-                value={footer.brand.logoUrl}
-                onChange={(value) => updateField("brand.logoUrl", value)}
-                previewAlt={footer.brand.logoAlt || t("fields.footerLogo")}
-                previewClassName="h-full w-full object-contain"
+              <SourceOptions
+                id="footer-logo-source"
+                label={t("brand.logoSourceLabel")}
+                value={footer.brand.logoSource}
+                onChange={(source) => updateField("brand.logoSource", source)}
+                store={{
+                  title: t("brand.storeLogo"),
+                  description: t("brand.storeLogoDescription"),
+                }}
+                custom={{
+                  title: t("brand.customLogo"),
+                  description: t("brand.customLogoDescription"),
+                }}
               />
+              {footer.brand.logoSource === "store" ? (
+                <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant="secondary">{t("brand.synced")}</Badge>
+                    <Link
+                      href={`/${locale}/admin/online-store/theme?tab=branding`}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      {t("brand.editBranding")}
+                    </Link>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <StoreLogoSwatch
+                      label={t("brand.lightLogo")}
+                      url={storeLogos.storeLogoUrl}
+                    />
+                    <StoreLogoSwatch
+                      label={t("brand.darkLogo")}
+                      url={storeLogos.storeDarkLogoUrl}
+                      dark
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 rounded-lg border p-3">
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t("brand.customLogoHint")}
+                  </p>
+                  <ImageUploadField
+                    id="footer-logo"
+                    label={t("fields.footerLogo")}
+                    value={footer.brand.logoUrl}
+                    onChange={(value) => updateField("brand.logoUrl", value)}
+                    previewAlt={footer.brand.logoAlt || t("fields.footerLogo")}
+                    previewClassName="h-full w-full object-contain"
+                  />
+                  <ImageUploadField
+                    id="footer-dark-logo"
+                    label={t("fields.footerDarkLogo")}
+                    value={footer.brand.darkLogoUrl}
+                    onChange={(value) => updateField("brand.darkLogoUrl", value)}
+                    previewAlt={
+                      footer.brand.logoAlt || t("fields.footerDarkLogo")
+                    }
+                    previewClassName="h-full w-full bg-neutral-900 object-contain"
+                  />
+                </div>
+              )}
+              <div className="space-y-3">
+                <SwitchRow
+                  label={t("brand.matchHeaderSize")}
+                  checked={footer.brand.logoSize === 0}
+                  // Unticking starts from the header's size, so the logo
+                  // does not jump the moment it becomes editable.
+                  onChange={(match) =>
+                    updateField("brand.logoSize", match ? 0 : headerLogo.desktop)
+                  }
+                />
+                {footer.brand.logoSize === 0 ? (
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t("brand.matchHeaderSizeHint", {
+                      desktop: headerLogo.desktop,
+                      mobile: headerLogo.mobile,
+                    })}
+                  </p>
+                ) : (
+                  <FieldRow label={t("fields.logoWidth")}>
+                    <div className="relative">
+                      <NumberInput
+                        aria-label={t("fields.logoWidth")}
+                        min={MIN_HEADER_LOGO_SIZE}
+                        max={MAX_HEADER_LOGO_SIZE}
+                        step={1}
+                        value={footer.brand.logoSize}
+                        whenEmpty="keep"
+                        normalize={Math.round}
+                        onValueChange={(next) => {
+                          if (next !== undefined) {
+                            updateField("brand.logoSize", next);
+                          }
+                        }}
+                        className="pr-10"
+                      />
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                        px
+                      </span>
+                    </div>
+                  </FieldRow>
+                )}
+                <FieldRow label={t("fields.logoTheme")}>
+                  <NativeSelect
+                    value={footer.brand.logoTheme}
+                    onChange={(event) =>
+                      updateField(
+                        "brand.logoTheme",
+                        FOOTER_LOGO_THEMES.find(
+                          (theme) => theme === event.target.value,
+                        ) ?? "auto",
+                      )
+                    }
+                  >
+                    <option value="auto">{t("brand.logoThemeAuto")}</option>
+                    <option value="light">{t("brand.lightLogo")}</option>
+                    <option value="dark">{t("brand.darkLogo")}</option>
+                  </NativeSelect>
+                </FieldRow>
+              </div>
               <FieldRow label={t("fields.logoAlt")}>
                 <Input
                   value={footer.brand.logoAlt}
@@ -748,61 +901,20 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
                 />
               </FieldRow>
 
-              <RadioGroup
+              <SourceOptions
+                id="footer-contact-source"
+                label={t("contact.sourceLabel")}
                 value={footer.contact.source}
-                onValueChange={(value) =>
-                  updateContactSource(value === "custom" ? "custom" : "store")
-                }
-                className="grid gap-3 sm:grid-cols-2"
-                aria-label={t("contact.sourceLabel")}
-              >
-                <label
-                  htmlFor="footer-contact-source-store"
-                  className={cn(
-                    "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
-                    footer.contact.source === "store"
-                      ? "border-primary bg-primary/5"
-                      : "hover:bg-muted/50",
-                  )}
-                >
-                  <RadioGroupItem
-                    id="footer-contact-source-store"
-                    value="store"
-                    className="mt-0.5"
-                  />
-                  <span className="space-y-1">
-                    <span className="block text-sm font-medium">
-                      {t("contact.storeSource")}
-                    </span>
-                    <span className="block text-xs leading-5 text-muted-foreground">
-                      {t("contact.storeSourceDescription")}
-                    </span>
-                  </span>
-                </label>
-                <label
-                  htmlFor="footer-contact-source-custom"
-                  className={cn(
-                    "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
-                    footer.contact.source === "custom"
-                      ? "border-primary bg-primary/5"
-                      : "hover:bg-muted/50",
-                  )}
-                >
-                  <RadioGroupItem
-                    id="footer-contact-source-custom"
-                    value="custom"
-                    className="mt-0.5"
-                  />
-                  <span className="space-y-1">
-                    <span className="block text-sm font-medium">
-                      {t("contact.customSource")}
-                    </span>
-                    <span className="block text-xs leading-5 text-muted-foreground">
-                      {t("contact.customSourceDescription")}
-                    </span>
-                  </span>
-                </label>
-              </RadioGroup>
+                onChange={(source) => updateField("contact.source", source)}
+                store={{
+                  title: t("contact.storeSource"),
+                  description: t("contact.storeSourceDescription"),
+                }}
+                custom={{
+                  title: t("contact.customSource"),
+                  description: t("contact.customSourceDescription"),
+                }}
+              />
 
               {footer.contact.source === "store" ? (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -986,9 +1098,13 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
 function FooterPreview({
   footer,
   storeContact,
+  storeLogos,
+  headerLogo,
 }: {
   footer: FooterSettings;
   storeContact: FooterContactDetails;
+  storeLogos: StoreLogos;
+  headerLogo: LogoWidths;
 }) {
   const t = useTranslations("admin.footerCms");
   // The live store name — the preview has to show what the storefront footer
@@ -997,6 +1113,17 @@ function FooterPreview({
   const [previewMode, setPreviewMode] = useState<"light" | "dark">("light");
   const colors = footer.colors[previewMode];
   const contact = resolveFooterContactDetails(footer.contact, storeContact);
+  const logoUrl = resolveFooterLogoUrl({
+    brand: footer.brand,
+    ...storeLogos,
+    isDark: previewMode === "dark",
+    backgroundColor: colors.backgroundColor,
+  });
+  // The preview is the desktop footer, so it draws the `lg`-up width.
+  const logoWidth = resolveFooterLogoWidths(
+    footer.brand.logoSize,
+    headerLogo,
+  ).desktop;
   const socialCount = Object.values(footer.social.links).filter((value) =>
     value.trim(),
   ).length;
@@ -1073,14 +1200,19 @@ function FooterPreview({
             <div className="col-span-2">
               {footer.widgets.showLogo ? (
                 <div className="mb-4 flex items-center gap-2">
-                  {footer.brand.logoUrl ? (
-                    <AppImage
-                      src={footer.brand.logoUrl}
-                      alt={footer.brand.logoAlt || t("fields.footerLogo")}
-                      width={144}
-                      height={32}
-                      className="h-8 w-36 object-contain object-left"
-                    />
+                  {logoUrl ? (
+                    <span
+                      className="relative block max-w-full"
+                      style={{ width: logoWidth }}
+                    >
+                      <AppImage
+                        src={logoUrl}
+                        alt={footer.brand.logoAlt || t("fields.footerLogo")}
+                        width={Math.round(logoWidth)}
+                        height={Math.round(logoWidth / 4)}
+                        className="h-auto w-full object-contain object-left"
+                      />
+                    </span>
                   ) : (
                     <>
                       <Store
@@ -1208,6 +1340,109 @@ function PreviewContact({
     <div className="flex items-center gap-2">
       {icon}
       <span className="line-clamp-2">{children}</span>
+    </div>
+  );
+}
+
+/**
+ * "Follow the store" vs "footer only", as two radio cards. The store's value
+ * is the default everywhere it is offered: a footer-only value applies only
+ * after the admin picks it, so nothing copied silently goes stale.
+ */
+function SourceOptions({
+  id,
+  label,
+  value,
+  onChange,
+  store,
+  custom,
+}: {
+  id: string;
+  label: string;
+  value: FooterSource;
+  onChange: (source: FooterSource) => void;
+  store: { title: string; description: string };
+  custom: { title: string; description: string };
+}) {
+  const options = [
+    { source: "store", ...store },
+    { source: "custom", ...custom },
+  ] as const;
+
+  return (
+    <RadioGroup
+      value={value}
+      onValueChange={(next) => onChange(next === "custom" ? "custom" : "store")}
+      className="grid gap-3 sm:grid-cols-2"
+      aria-label={label}
+    >
+      {options.map((option) => (
+        <label
+          key={option.source}
+          htmlFor={`${id}-${option.source}`}
+          className={cn(
+            "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
+            value === option.source
+              ? "border-primary bg-primary/5"
+              : "hover:bg-muted/50",
+          )}
+        >
+          <RadioGroupItem
+            id={`${id}-${option.source}`}
+            value={option.source}
+            className="mt-0.5"
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-medium">{option.title}</span>
+            <span className="block text-xs leading-5 text-muted-foreground">
+              {option.description}
+            </span>
+          </span>
+        </label>
+      ))}
+    </RadioGroup>
+  );
+}
+
+/** One of the store's Branding logos, on the surface it is drawn for. */
+function StoreLogoSwatch({
+  label,
+  url,
+  dark = false,
+}: {
+  label: string;
+  url: string;
+  dark?: boolean;
+}) {
+  const t = useTranslations("admin.footerCms");
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div
+        className={cn(
+          "flex h-14 items-center rounded-md border px-3",
+          dark ? "bg-neutral-900" : "bg-white",
+        )}
+      >
+        {url ? (
+          <AppImage
+            src={url}
+            alt={label}
+            width={144}
+            height={32}
+            className="h-8 w-full object-contain object-left"
+          />
+        ) : (
+          <span
+            className={cn(
+              "text-xs",
+              dark ? "text-neutral-400" : "text-neutral-500",
+            )}
+          >
+            {t("brand.logoNotSet")}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

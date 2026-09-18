@@ -33,8 +33,10 @@ const fetchMosaicCategories = unstable_cache(
       }
 
       const query: Record<string, unknown> = { isActive: true };
+      // `parentId` — `parent` is the model's populate virtual, and filtering on
+      // it silently matched every category, sub-categories included.
       if (source === "featured") query.featured = true;
-      else query.parent = null;
+      else query.parentId = null;
       const categories = await Category.find(query)
         .select(select)
         .sort({ order: 1, name: 1 })

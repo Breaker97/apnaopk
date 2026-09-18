@@ -1,5 +1,6 @@
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import { isPurchaseClaimStale } from "@/lib/shipping/carrier-config";
+import { hasShippableItems } from "@/lib/shipping/packing";
 import type { ICarrierAutomationSettings } from "@/models/settings.model";
 import type { IShipment } from "@/models/shipment.model";
 import type { IOrder, SubOrder } from "@/types";
@@ -113,12 +114,10 @@ export function isAutoShipEligible(params: {
     return { eligible: false, reason: "pickup" };
   }
 
-  // The customs snapshot is absent for digital lines by construction, so its
-  // presence is the definition of "this line goes in a box".
-  const hasShippableItem = (subOrder.items || []).some(
-    (item) => item.customs?.weight !== undefined,
-  );
-  if (!hasShippableItem) {
+  // Read from each line's customs snapshot, so callers pass lines resolved by
+  // `withEffectiveCustoms` — a bank-transfer or older order carries no
+  // snapshot on its physical lines, and would read as nothing to ship.
+  if (!hasShippableItems(subOrder.items)) {
     return { eligible: false, reason: "nothing_shippable" };
   }
 

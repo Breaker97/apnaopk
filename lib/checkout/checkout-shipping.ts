@@ -323,14 +323,31 @@ export function allocateSubOrderShipping(
     vendorId: { toString: () => string };
     subtotal?: number;
     shippingCost?: number;
+    shippingDiscount?: number;
     shippingMethod?: unknown;
   }>,
   params: {
     vendorShippingCosts: Map<string, { cost: number; method: ResolvedShippingMethod }>;
     orderShippingCost: number;
     orderShippingMethod?: ResolvedShippingMethod;
+    /**
+     * A free-shipping coupon's discount by vendor, from the coupon's own
+     * `shippingShares`. Stamped per consignment so nothing downstream has to
+     * guess whose delivery was free: the ledger and the payout both used to
+     * spread it over every parcel, so one seller's coupon cost the others
+     * their delivery charge.
+     */
+    shippingDiscountByVendor?: Record<string, number>;
   },
 ) {
+  const stampDiscount = (sub: { vendorId: { toString: () => string }; shippingCost?: number; shippingDiscount?: number }) => {
+    const shares = params.shippingDiscountByVendor;
+    if (!shares) return;
+    const share = Math.max(0, Number(shares[sub.vendorId.toString()] || 0));
+    sub.shippingDiscount =
+      Math.round(Math.min(share, Math.max(0, Number(sub.shippingCost) || 0)) * 100) / 100;
+  };
+
   if (params.vendorShippingCosts.size > 0) {
     for (const sub of subOrders) {
       const entry = params.vendorShippingCosts.get(sub.vendorId.toString());
@@ -338,6 +355,7 @@ export function allocateSubOrderShipping(
         sub.shippingCost = entry.cost;
         sub.shippingMethod = entry.method;
       }
+      stampDiscount(sub);
     }
     return;
   }
@@ -368,5 +386,6 @@ export function allocateSubOrderShipping(
     allocated = Math.round((allocated + share) * 100) / 100;
     sub.shippingCost = share;
     sub.shippingMethod = params.orderShippingMethod;
+    stampDiscount(sub);
   });
 }

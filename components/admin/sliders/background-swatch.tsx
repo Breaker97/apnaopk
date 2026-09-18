@@ -70,11 +70,13 @@ export function BackgroundSwatchField({
   /** What is in the slot, named — the button says this, the swatch shows it. */
   const fill = !isSet
     ? tSafe("admin.storeBuilder.noColor", "None")
-    : value.type === "image"
-      ? labels.image
-      : value.type === "gradient"
-        ? labels.gradient
-        : labels.solid;
+    : value.type === "video"
+      ? labels.video
+      : value.type === "image"
+        ? labels.image
+        : value.type === "gradient"
+          ? labels.gradient
+          : labels.solid;
 
   return (
     <Popover>
@@ -139,6 +141,14 @@ function backgroundPickerLabels(tSafe: TSafe) {
     image: tSafe("admin.sliders.bg.image", "Image"),
     upload: tSafe("admin.sliders.bg.upload", "Upload Image"),
     direction: tSafe("admin.sliders.bg.direction", "Direction"),
+    darken: tSafe("admin.sliders.bg.darken", "Darken"),
+    video: tSafe("admin.sliders.bg.video", "Video"),
+    uploadVideo: tSafe("admin.sliders.bg.uploadVideo", "Upload Video"),
+    poster: tSafe("admin.sliders.bg.poster", "Poster"),
+    videoHint: tSafe(
+      "admin.sliders.bg.videoHint",
+      "Plays muted and looping. The poster shows first, and stands in where motion is reduced.",
+    ),
   };
 }
 
@@ -156,7 +166,10 @@ function backgroundPickerLabels(tSafe: TSafe) {
 export function editorBackground(value: unknown): SlideBackground {
   const normalized = normalizeBackground(value);
   const type = (value as { type?: unknown } | null)?.type;
-  return type === "solid" || type === "gradient" || type === "image"
+  return type === "solid" ||
+    type === "gradient" ||
+    type === "image" ||
+    type === "video"
     ? { ...normalized, type }
     : normalized;
 }

@@ -25,6 +25,7 @@ import {
 } from "./fulfillment";
 import { carrierAdapter } from "./registry";
 import { applyShipmentTrackingToOrder } from "@/lib/shipping/tracking-cascade";
+import { withEffectiveCustoms } from "./physical-lines";
 
 /**
  * The carrier work queue's worker.
@@ -161,7 +162,7 @@ export async function enqueueShipmentJob(params: {
         nextAttemptAt: new Date(),
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 
   if (!job || !isSettledJobStatus(job.status)) return job;
@@ -212,7 +213,7 @@ async function claimShipmentJob() {
       },
       $inc: { attempts: 1 },
     },
-    { new: true, sort: { nextAttemptAt: 1, _id: 1 } },
+    { returnDocument: "after", sort: { nextAttemptAt: 1, _id: 1 } },
   );
 }
 
@@ -330,6 +331,31 @@ async function loadJobContext(
   return { order, subOrder, customerEmail: customer?.email };
 }
 
+/**
+ * The order's consignments as the automation predicate must read them.
+ *
+ * `isAutoShipEligible` decides "is there anything to ship" from each line's
+ * customs snapshot, and a bank-transfer, manual or older order carries none on
+ * its physical lines — so every such order was skipped as `nothing_shippable`
+ * and never shipped itself. Resolved per order in one pass, and used only for
+ * the decision: the job still carries the stored sub-order.
+ */
+async function subOrdersForDecision(
+  subOrders: SubOrder[] | undefined,
+): Promise<SubOrder[]> {
+  const list = subOrders || [];
+  const resolved = await withEffectiveCustoms(
+    list.flatMap((entry) => entry.items || []),
+  );
+  let offset = 0;
+  return list.map((entry) => {
+    const count = (entry.items || []).length;
+    const items = resolved.slice(offset, offset + count);
+    offset += count;
+    return { ...entry, items };
+  });
+}
+
 async function runAutoShip(job: IShipmentJob) {
   const settings = await getSettings();
   const context = await loadJobContext(job);
@@ -350,9 +376,10 @@ async function runAutoShip(job: IShipmentJob) {
 
   // Re-checked at execution time, not just at enqueue: an order can be
   // cancelled, refunded or shipped by hand between the two.
+  const [decisionSubOrder] = await subOrdersForDecision([context.subOrder]);
   const decision = isAutoShipEligible({
     order: context.order,
-    subOrder: context.subOrder,
+    subOrder: decisionSubOrder!,
     automation: settings.shipping?.automation,
     carriersEnabled: Boolean(settings.shipping?.carriers?.enabled),
     existingShipment: existing,
@@ -432,7 +459,11 @@ async function runAutoShip(job: IShipmentJob) {
     maxAmount: automation.maxLabelCost,
   });
 
-  if (automation.markOrderShipped && shipment.trackingNumber) {
+  // `!== false`, as every other reader of this switch has it: the schema
+  // defaults it on, but a settings document written before the field existed
+  // has it absent — and a truthy check read that as "off", buying the label and
+  // leaving the order on processing.
+  if (automation.markOrderShipped !== false && shipment.trackingNumber) {
     await applyShipmentTrackingToOrder({
       orderId: String(context.order._id),
       subOrderId: context.subOrder._id
@@ -598,7 +629,7 @@ export async function queueAutoShipForOrder(
   if (!order) return { queued: 0 };
 
   let queued = 0;
-  for (const subOrder of order.subOrders || []) {
+  for (const subOrder of await subOrdersForDecision(order.subOrders)) {
     const existing = await Shipment.findOne({
       orderId: order._id,
       subOrderId: subOrder._id,
@@ -724,15 +755,34 @@ export async function sweepAutoShipCandidates(limit = 200) {
   }
 
   const now = Date.now();
+  const recentlyStarted = new Date(now - 7 * 24 * 60 * 60 * 1000);
   const orders = await Order.find({
     status: ORDER_STATUS.PROCESSING,
     "subOrders.status": ORDER_STATUS.PROCESSING,
-    // An order nobody shipped in a week is not going to start now, and the
-    // bound is what keeps this an index scan rather than a growing table walk.
-    createdAt: { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) },
-    $or: [
-      { autoShipCheckedAt: { $exists: false } },
-      { autoShipCheckedAt: { $lt: new Date(now - 5 * 60 * 1000) } },
+    $and: [
+      {
+        // An order nobody shipped in a week is not going to start now, and the
+        // bound is what keeps this an index scan rather than a growing table
+        // walk.
+        //
+        // Measured from when fulfilment STARTED as well as from when the order
+        // was placed, because on a pre-order those are months apart. A
+        // pre-order reserved in March and released in June was already well
+        // outside a window drawn from `createdAt` on the very day it became
+        // shippable, so the sweep — which is what GUARANTEES auto-shipping
+        // happens, every direct call being only an optimisation — silently
+        // skipped every pre-order there has ever been.
+        $or: [
+          { createdAt: { $gte: recentlyStarted } },
+          { processingAt: { $gte: recentlyStarted } },
+        ],
+      },
+      {
+        $or: [
+          { autoShipCheckedAt: { $exists: false } },
+          { autoShipCheckedAt: { $lt: new Date(now - 5 * 60 * 1000) } },
+        ],
+      },
     ],
   })
     .limit(limit)
@@ -741,7 +791,7 @@ export async function sweepAutoShipCandidates(limit = 200) {
   let queued = 0;
 
   for (const order of orders) {
-    for (const subOrder of order.subOrders || []) {
+    for (const subOrder of await subOrdersForDecision(order.subOrders)) {
       const existing = await Shipment.findOne({
         orderId: order._id,
         subOrderId: subOrder._id,

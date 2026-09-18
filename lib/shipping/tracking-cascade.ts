@@ -92,8 +92,14 @@ export async function applyShipmentTrackingToOrder(params: {
   }
 
   const now = new Date();
+  // Each step only over the status the previous one left. A carrier scan and
+  // a cancellation landing together both started from the same read, and the
+  // scan's unconditional write put a consignment that had just been cancelled
+  // and refunded back to `shipped` — the order-level step below was guarded,
+  // this one was not.
+  let expectedStatus = subOrder.status;
   for (const step of subPath2) {
-    await Order.updateOne(
+    const moved = await Order.updateOne(
       { _id: order._id },
       {
         $set: {
@@ -106,8 +112,12 @@ export async function applyShipmentTrackingToOrder(params: {
             : {}),
         },
       },
-      { arrayFilters: [{ "so._id": subOrder._id }] },
+      { arrayFilters: [{ "so._id": subOrder._id, "so.status": expectedStatus }] },
     );
+    if (moved.modifiedCount === 0) {
+      return { applied: false, reason: "conflict" };
+    }
+    expectedStatus = step.to;
   }
 
   if (Object.keys(subUpdates).length > 0) {
@@ -185,14 +195,10 @@ export async function applyShipmentTrackingToOrder(params: {
 
   // `notifyOrderStatus` dedupes on {type, orderNumber, status, role}, so a
   // webhook racing a manual mark-shipped cannot notify the customer twice.
-  if (refreshed.customerId) {
-    await notifyOrderStatus(
-      String(refreshed.customerId),
-      refreshed.orderNumber,
-      currentStatus,
-      String(refreshed._id),
-    ).catch(console.error);
-  }
+  await notifyOrderStatus({
+    orderId: String(refreshed._id),
+    status: currentStatus,
+  }).catch(console.error);
 
   const auditContext = createSystemAuditContext();
   await auditOrderStatus(auditContext, refreshed, {

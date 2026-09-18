@@ -1,11 +1,18 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Circle, Eye } from "lucide-react";
+import { Circle, Eye, HandCoins } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  InputDialog,
+  type InputDialogField,
+  type InputDialogValues,
+} from "@/components/ui/input-dialog";
+import { toast } from "@/components/ui/toast-notification";
+import { apiClient } from "@/lib/api/client";
 import { useCurrency } from "@/providers/currency-provider";
 import {
   DataTable,
@@ -30,7 +37,16 @@ type TransactionRow = {
   currency: string;
   externalId?: string;
   createdAt: string;
+  metadata?: {
+    settlement?: { required?: boolean; settledAt?: string | null } | null;
+  } | null;
 };
+
+/** A refund no gateway sent, still waiting for someone to record sending it. */
+function isAwaitingSettlement(row: TransactionRow) {
+  const settlement = row.metadata?.settlement;
+  return Boolean(settlement?.required && !settlement.settledAt);
+}
 
 function toReadableLabel(value: string) {
   return value
@@ -128,7 +144,7 @@ interface PaymentTransactionsTableProps {
   };
 }
 
-const TRANSACTION_FILTER_IDS = ["type", "provider"];
+const TRANSACTION_FILTER_IDS = ["type", "provider", "settlement"];
 
 export function PaymentTransactionsTable({
   locale,
@@ -144,6 +160,70 @@ export function PaymentTransactionsTable({
     filterIds: TRANSACTION_FILTER_IDS,
     defaultPageSize: 20,
   });
+
+  const [settlingRow, setSettlingRow] = useState<TransactionRow | null>(null);
+  const [settlementValues, setSettlementValues] = useState<InputDialogValues>({});
+  const [isSettling, setIsSettling] = useState(false);
+
+  const recordSettlement = useCallback(
+    async (values: InputDialogValues) => {
+      if (!settlingRow) return;
+      setIsSettling(true);
+      try {
+        await apiClient.patch(`/api/admin/payments/transactions/${settlingRow._id}`, {
+          action: "settle",
+          method: values.method?.trim(),
+          reference: values.reference?.trim() || undefined,
+          note: values.note?.trim() || undefined,
+        });
+        toast.success(
+          t.has("admin.paymentTransactionsPage.settlement.recorded")
+            ? t("admin.paymentTransactionsPage.settlement.recorded")
+            : "Refund recorded as sent",
+        );
+        setSettlingRow(null);
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error && error.message
+            ? error.message
+            : "The refund could not be recorded",
+        );
+      } finally {
+        setIsSettling(false);
+      }
+    },
+    [router, settlingRow, t],
+  );
+
+  const settlementFields = useMemo<InputDialogField[]>(
+    () => [
+      {
+        name: "method",
+        label: t.has("admin.paymentTransactionsPage.settlement.method")
+          ? t("admin.paymentTransactionsPage.settlement.method")
+          : "How it was sent",
+        placeholder: "Bank transfer, mobile money, cash, gateway…",
+        required: true,
+      },
+      {
+        name: "reference",
+        label: t.has("admin.paymentTransactionsPage.settlement.reference")
+          ? t("admin.paymentTransactionsPage.settlement.reference")
+          : "Reference",
+        placeholder: "Transfer or receipt reference",
+      },
+      {
+        name: "note",
+        label: t.has("admin.paymentTransactionsPage.settlement.note")
+          ? t("admin.paymentTransactionsPage.settlement.note")
+          : "Note",
+        multiline: true,
+        rows: 3,
+      },
+    ],
+    [t],
+  );
 
   // The "statuses" dropdown filter mirrors the active tab.
   const handleStatusChange = useCallback(
@@ -238,13 +318,22 @@ export function PaymentTransactionsTable({
         id: "status",
         header: t("admin.paymentTransactionsPage.table.columns.status"),
         cell: (row) => (
-          <Badge
-            variant="outline"
-            className={`gap-1.5 rounded-sm px-2 py-1 text-[12px] font-medium ${getStatusClasses(row.status)}`}
-          >
-            <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
-            {translateStatus(row.status)}
-          </Badge>
+          <div>
+            <Badge
+              variant="outline"
+              className={`gap-1.5 rounded-sm px-2 py-1 text-[12px] font-medium ${getStatusClasses(row.status)}`}
+            >
+              <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
+              {translateStatus(row.status)}
+            </Badge>
+            {isAwaitingSettlement(row) ? (
+              <span className="mt-1 block text-xs font-medium text-amber-700 dark:text-amber-300">
+                {t.has("admin.paymentTransactionsPage.settlement.awaiting")
+                  ? t("admin.paymentTransactionsPage.settlement.awaiting")
+                  : "Awaiting settlement"}
+              </span>
+            ) : null}
+          </div>
         ),
         className: "w-[140px]",
       },
@@ -377,6 +466,28 @@ export function PaymentTransactionsTable({
         ],
       },
       {
+        // Refunds no gateway sent, still waiting for someone to send them.
+        id: "settlement",
+        label: t.has("admin.paymentTransactionsPage.settlement.filter")
+          ? t("admin.paymentTransactionsPage.settlement.filter")
+          : "Settlement",
+        type: "select",
+        options: [
+          {
+            label: t.has("admin.paymentTransactionsPage.settlement.all")
+              ? t("admin.paymentTransactionsPage.settlement.all")
+              : "All",
+            value: "all",
+          },
+          {
+            label: t.has("admin.paymentTransactionsPage.settlement.awaiting")
+              ? t("admin.paymentTransactionsPage.settlement.awaiting")
+              : "Awaiting settlement",
+            value: "pending",
+          },
+        ],
+      },
+      {
         id: "provider",
         label: t("admin.paymentTransactionsPage.table.columns.provider"),
         type: "select",
@@ -411,6 +522,21 @@ export function PaymentTransactionsTable({
         icon: <Eye className="h-4 w-4" />,
         href: getOrderHref(row, locale),
       },
+      ...(isAwaitingSettlement(row)
+        ? [
+            {
+              id: "record-settlement",
+              label: t.has("admin.paymentTransactionsPage.settlement.record")
+                ? t("admin.paymentTransactionsPage.settlement.record")
+                : "Record refund sent",
+              icon: <HandCoins className="h-4 w-4" />,
+              onClick: () => {
+                setSettlementValues({});
+                setSettlingRow(row);
+              },
+            },
+          ]
+        : []),
     ],
     [locale, t],
   );
@@ -467,6 +593,33 @@ export function PaymentTransactionsTable({
         className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-sm"
         onRowClick={(row) => router.push(getOrderHref(row, locale))}
         emptyMessage={t("admin.paymentTransactionsPage.table.empty")}
+      />
+
+      <InputDialog
+        open={Boolean(settlingRow)}
+        onOpenChange={(open) => {
+          if (!open) setSettlingRow(null);
+        }}
+        title={
+          t.has("admin.paymentTransactionsPage.settlement.record")
+            ? t("admin.paymentTransactionsPage.settlement.record")
+            : "Record refund sent"
+        }
+        description={
+          settlingRow
+            ? `${settlingRow.orderNumber} · ${formatPrice(settlingRow.grossAmount)}`
+            : undefined
+        }
+        fields={settlementFields}
+        values={settlementValues}
+        onValuesChange={setSettlementValues}
+        onSubmit={(values) => void recordSettlement(values)}
+        submitText={
+          t.has("admin.paymentTransactionsPage.settlement.submit")
+            ? t("admin.paymentTransactionsPage.settlement.submit")
+            : "Record"
+        }
+        loading={isSettling}
       />
     </div>
   );

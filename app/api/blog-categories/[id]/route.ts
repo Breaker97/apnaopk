@@ -45,7 +45,7 @@ export const PUT = withApi<RouteParams>(
       }
     }
     const cat = await BlogCategory.findByIdAndUpdate(id, data, {
-      new: true,
+      returnDocument: "after",
     }).lean();
     if (!cat) throw new NotFoundError("Blog category");
     revalidateBlogContent();

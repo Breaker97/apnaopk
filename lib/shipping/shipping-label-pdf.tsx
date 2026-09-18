@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import sharp from "sharp";
 import { renderBarcodeSvg } from "@/lib/barcode/render";
+import { formatCurrency } from "@/lib/intl/money";
 
 interface ShippingLabelAddress {
   name: string;
@@ -35,6 +36,12 @@ interface ShippingLabelData {
     weightUnit?: string;
   };
   internalLabel?: boolean;
+  /**
+   * Cash the courier collects at the door — `cashOnDeliveryDue` in
+   * lib/shipping/carriers/build-request.ts, the figure a carrier booking sends.
+   * Absent on a prepaid parcel.
+   */
+  cashOnDelivery?: { amount: number; currency: string };
 }
 
 const styles = StyleSheet.create({
@@ -64,6 +71,16 @@ const styles = StyleSheet.create({
   label: { fontSize: 7, fontWeight: 700, marginBottom: 3 },
   name: { fontSize: 12, fontWeight: 700, marginBottom: 2 },
   addressLine: { fontSize: 9, lineHeight: 1.3 },
+  cod: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    backgroundColor: "#000",
+  },
+  codLabel: { fontSize: 9, fontWeight: 700, color: "#fff" },
+  codAmount: { fontSize: 14, fontWeight: 700, color: "#fff" },
   tracking: { alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#000" },
   trackingText: { fontSize: 12, fontWeight: 700, letterSpacing: 1.2, marginTop: 3 },
   barcode: { width: 250, height: 62, objectFit: "contain" },
@@ -120,6 +137,22 @@ function ShippingLabelDocument({
           <View style={styles.from}><AddressBlock label="FROM" address={data.from} /></View>
           <View style={styles.to}><AddressBlock label="SHIP TO" address={data.to} /></View>
         </View>
+        {data.cashOnDelivery ? (
+          <View style={styles.cod}>
+            <Text style={styles.codLabel}>CASH ON DELIVERY — COLLECT</Text>
+            {/* The ISO code, not the symbol: the label's built-in Helvetica
+                has no glyph for ৳, ₹ or ₦, and a courier reading a blank
+                box would not know what to collect. */}
+            <Text style={styles.codAmount}>
+              {formatCurrency(
+                data.cashOnDelivery.amount,
+                data.cashOnDelivery.currency,
+                "en-US",
+                { currencyDisplay: "code" },
+              )}
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.tracking}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image has no alt prop */}
           <Image src={barcodeDataUrl} style={styles.barcode} />

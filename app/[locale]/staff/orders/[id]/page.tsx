@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { OrderHeader } from "@/components/admin/order-details/order-header";
 import { OrderItems } from "@/components/admin/order-details/order-items";
+import { OrderConsignments } from "@/components/admin/order-details/order-consignments";
 import { OrderCustomer } from "@/components/admin/order-details/order-customer";
 import { OrderTimeline } from "@/components/admin/order-details/order-timeline";
 import { OrderTimelineSkeleton } from "@/components/admin/order-details/order-details-skeleton";
+import { OrderShipmentsCard } from "@/components/shipping/order-shipments-card";
 import { getOrderDetails, getOrderReturnRequests } from "@/lib/orders/order-details";
 import { requireStaffAreaAccess } from "@/lib/access/staff-area-guard";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
@@ -54,6 +56,21 @@ export default async function StaffOrderDetailsPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <OrderItems order={order} />
+          {/* Read-only here: cancelling a consignment refunds it, which is an admin's call. */}
+          <OrderConsignments order={order} canCancel={false} canOverride={false} />
+          {/* The admin carrier routes already admit staff with EDIT_ORDERS and
+              apply their location scope; only the panel was missing, so staff
+              who pack the parcels could not buy, print or track a label. */}
+          <OrderShipmentsCard
+            apiBase="/api/admin"
+            orderId={String(order._id)}
+            orderNumber={order.orderNumber}
+            readOnly={readOnly}
+            hidden={
+              order.digitalOnly === true ||
+              order.fulfillment?.method === "pickup"
+            }
+          />
           <Suspense fallback={<OrderTimelineSkeleton />}>
             <OrderTimeline
               orderId={String(order._id)}

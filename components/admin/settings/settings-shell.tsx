@@ -47,6 +47,7 @@ const SECTION_TO_PATH: Record<AdminSettingsSectionId, string> = {
   security: "security",
   payment: "payment",
   email: "email",
+  sms: "sms",
   notifications: "notifications",
   messaging: "messaging",
   orders: "orders",

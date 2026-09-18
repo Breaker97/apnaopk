@@ -72,20 +72,27 @@ export function buildInstanceFromCatalog(
 
 /**
  * Deep-copy an instance with FRESH ids (section and every block): what the
- * saved-sections library inserts, so two placements of the same entry never
- * collide on React keys, preview targeting, or write-side id uniqueness.
+ * saved-sections library inserts and what a row's Duplicate places under
+ * its original, so two placements never collide on React keys, preview
+ * targeting, or write-side id uniqueness.
+ *
+ * DEEP, not a spread: settings nest (a banner's slides, backgrounds,
+ * translated copy), and the slider editor patches nested objects in place —
+ * a shallow copy would leave the copy and its original editing each other,
+ * the reason `duplicateSlide` clones too. `id` is the caller's when it must
+ * know the copy's id before the copy exists (the builder opens it).
  */
 export function cloneSectionInstance(
   instance: SectionInstance,
+  id: string = crypto.randomUUID(),
 ): SectionInstance {
+  const copy = structuredClone(instance);
   return {
-    ...instance,
-    id: crypto.randomUUID(),
-    settings: { ...instance.settings },
-    blocks: instance.blocks?.map((block) => ({
+    ...copy,
+    id,
+    blocks: copy.blocks?.map((block) => ({
       ...block,
       id: crypto.randomUUID(),
-      settings: { ...block.settings },
     })),
   };
 }

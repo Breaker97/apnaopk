@@ -109,6 +109,24 @@ export function getIotecCredentials(params?: {
   return { clientId, clientSecret, walletId, mode };
 }
 
+/**
+ * ioTec ANSWERED, and the answer was an error.
+ *
+ * Kept apart from a request that never got an answer — a timeout, a dropped
+ * connection — because the two mean opposite things for a collection: a 4xx
+ * is a request ioTec refused, so no phone was prompted, while a missing answer
+ * may be a collection ioTec accepted and is already waiting on a PIN.
+ */
+export class IotecApiError extends Error {
+  constructor(
+    message: string,
+    readonly httpStatus: number,
+  ) {
+    super(message);
+    this.name = "IotecApiError";
+  }
+}
+
 async function readIotecJson<T>(response: Response, action: string): Promise<T> {
   const text = await response.text();
   let data: unknown = undefined;
@@ -139,7 +157,7 @@ async function readIotecJson<T>(response: Response, action: string): Promise<T> 
             typeof (data as { message?: unknown }).message === "string" &&
             (data as { message?: string }).message))) ||
       `HTTP ${response.status}`;
-    throw new Error(`ioTec ${action} failed: ${message}`);
+    throw new IotecApiError(`ioTec ${action} failed: ${message}`, response.status);
   }
 
   return (data ?? {}) as T;

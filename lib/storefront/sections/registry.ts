@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   SECTION_TITLE_SIZE_OPTIONS,
+  THEME_VARIANT_KEY,
   TITLE_SIZE_FIELD_KEY,
   VARIANT_FIELD_KEY,
 } from "./types";
@@ -16,6 +17,8 @@ import { promotionBanner } from "./definitions/promotion-banner";
 import { countdownOffer } from "./definitions/countdown-offer";
 import { couponBanner } from "./definitions/coupon-banner";
 import { featuredCollection } from "./definitions/featured-collection";
+import { getTheLook } from "./definitions/get-the-look";
+import { looksList } from "./definitions/looks-list";
 import { collectionList } from "./definitions/collection-list";
 import { brandList } from "./definitions/brand-list";
 import { categoryMosaic } from "./definitions/category-mosaic";
@@ -65,6 +68,8 @@ const DEFINITIONS: SectionDefinition[] = [
   productBrowser,
   productGroup,
   featuredCollection,
+  getTheLook,
+  looksList,
   sponsoredRail,
   categoryList,
   categoryMosaic,
@@ -118,6 +123,11 @@ function withVariantField(definition: SectionDefinition): SectionDefinition {
         `Section "${definition.type}" scopes field "${scoped.key}" to a variant but declares none`,
       );
     }
+    if (definition.designFollowsTheme) {
+      throw new Error(
+        `Section "${definition.type}" follows the template's design but declares no designs`,
+      );
+    }
     return definition;
   }
   if (definition.fields.some((field) => field.key === VARIANT_FIELD_KEY)) {
@@ -128,6 +138,13 @@ function withVariantField(definition: SectionDefinition): SectionDefinition {
   const keys = definition.variants.map((variant) => variant.key);
   if (new Set(keys).size !== keys.length) {
     throw new Error(`Section "${definition.type}" has duplicate variant keys`);
+  }
+  // "theme" is the reserved "follow the template" value; a design called that
+  // could never be pinned, because the resolver would read it as the template.
+  if (keys.includes(THEME_VARIANT_KEY)) {
+    throw new Error(
+      `Section "${definition.type}" names a design "${THEME_VARIANT_KEY}", which is reserved`,
+    );
   }
   // A field scoped to a variant that does not exist would simply never show
   // — a typo that reads as "the editor lost my control", so fail the build.
@@ -150,8 +167,10 @@ function withVariantField(definition: SectionDefinition): SectionDefinition {
       {
         key: VARIANT_FIELD_KEY,
         type: "select",
-        options: keys,
-        default: keys[0],
+        // A section that follows the template leads with "theme", so every
+        // document stored before it had designs keeps following the template.
+        options: definition.designFollowsTheme ? [THEME_VARIANT_KEY, ...keys] : keys,
+        default: definition.designFollowsTheme ? THEME_VARIANT_KEY : keys[0],
       },
     ],
   };
@@ -196,16 +215,31 @@ function withTitleSizeField(definition: SectionDefinition): SectionDefinition {
   };
 }
 
-/** The design a stored instance asks for, else the section's default. */
+/**
+ * The design a stored instance renders.
+ *
+ * A design key stored on the instance always wins — it is the merchant's
+ * pin. Otherwise a section that follows the template takes the design the
+ * active template names (`preferredVariants`, passed in by the renderer), and
+ * everything else falls back to the first design.
+ */
 export function resolveSectionVariant(
   def: SectionDefinition,
   settings: Record<string, unknown>,
+  preferredVariants?: Readonly<Record<string, string>>,
 ): SectionVariant | undefined {
   if (!def.variants?.length) return undefined;
   const key = settings[VARIANT_FIELD_KEY];
-  return (
-    def.variants.find((variant) => variant.key === key) ?? def.variants[0]
-  );
+  const pinned = def.variants.find((variant) => variant.key === key);
+  if (pinned) return pinned;
+  if (def.designFollowsTheme) {
+    const preferred = preferredVariants?.[def.type];
+    return (
+      def.variants.find((variant) => variant.key === preferred) ??
+      def.variants[0]
+    );
+  }
+  return def.variants[0];
 }
 
 function buildRegistry(): ReadonlyMap<string, SectionDefinition> {

@@ -27,6 +27,7 @@ export const adminShipmentScope: ScopeResolver = async ({
   orderId,
   subOrderId,
   intent,
+  requireSubOrder,
 }) => {
   const access = await assertAdminOrStaffPermissions(
     session,
@@ -38,6 +39,7 @@ export const adminShipmentScope: ScopeResolver = async ({
   return loadShipmentScope({
     orderId,
     subOrderId,
+    requireSubOrder,
     orderFilter: buildStaffOrderScopeFilter(access.staffScope),
   });
 };
@@ -52,6 +54,7 @@ export const vendorShipmentScope: ScopeResolver = async ({
   session,
   orderId,
   intent,
+  requireSubOrder,
 }) => {
   const user = session.user;
   const permission =
@@ -67,6 +70,7 @@ export const vendorShipmentScope: ScopeResolver = async ({
   return loadShipmentScope({
     orderId,
     vendorId,
+    requireSubOrder,
     orderFilter: { "subOrders.vendorId": vendor._id },
   });
 };

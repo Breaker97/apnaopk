@@ -5,11 +5,13 @@ import {
   DEFAULT_SLIDER_HEIGHT,
   MAX_SLIDER_CELLS,
   SLIDER_GRIDS,
+  SECTION_GRID_SPACING_FIELDS,
   SLIDER_HEIGHTS,
   SLIDER_WIDTHS,
   THEME_SLIDER_INHERIT,
   getSliderGrid,
   migrateSlideshowV1,
+  readSectionGridSpacing,
   readSliderCell,
   resolveSliderLayout,
   sliderCellIsFilled,
@@ -41,7 +43,7 @@ const FULL_HEIGHT_CLASS =
   "lg:h-[calc(100svh-var(--store-chrome-h,5rem))]";
 
 /**
- * The Hero Slider. The section is a GRID of cells (`slider-grids.ts` is the
+ * The Slider. The section is a GRID of cells (`slider-grids.ts` is the
  * layout vocabulary): each cell binds a saved Slider (Online Store →
  * Sliders) by handle or holds a static linked image, and the category-bar
  * grids reserve one area for the store's root-category rail. Slides
@@ -83,6 +85,8 @@ export const slideshow: SectionDefinition = {
       ],
       default: THEME_SLIDER_INHERIT,
     },
+    // Spacing and corners, shared with the Promotion Grid.
+    ...SECTION_GRID_SPACING_FIELDS,
   ],
   blocks: [
     {
@@ -113,6 +117,7 @@ export const slideshow: SectionDefinition = {
       const block = blocks[index];
       return block && block.visible ? readSliderCell(block.settings) : null;
     });
+    const spacing = readSectionGridSpacing(settings);
 
     // A grid with no assigned cell (and no category rail to carry it) has
     // nothing to show: null on the live storefront, a labelled outline in
@@ -122,7 +127,7 @@ export const slideshow: SectionDefinition = {
       !cells.some((cell) => cell && sliderCellIsFilled(cell))
     ) {
       return sectionEmptyState(ctx, {
-        title: "Hero Slider",
+        title: "Slider",
         hint: "Pick a saved slider or an image for each grid cell in the builder.",
       });
     }
@@ -133,8 +138,9 @@ export const slideshow: SectionDefinition = {
     const heightClass = fullHeight
       ? FULL_HEIGHT_CLASS
       : (HEIGHT_CLASSES[height] ?? HEIGHT_CLASSES[DEFAULT_SLIDER_HEIGHT]);
-    const roundedClass =
-      width === "full" || width === "fullHeight" ? "rounded-none" : "rounded-xl";
+    // Edge to edge means square: a rounded corner against the screen's own
+    // edge shows the page through the gap.
+    const edgeToEdge = width === "full" || width === "fullHeight";
 
     const gridNode = (
       <SectionGrid
@@ -142,21 +148,24 @@ export const slideshow: SectionDefinition = {
         cells={cells}
         locale={ctx.locale}
         heightClass={heightClass}
-        roundedClass={roundedClass}
+        gap={spacing.gap}
+        radius={edgeToEdge ? "0px" : spacing.radius}
       />
     );
 
     if (!fullBleed) {
       return (
         <section className="py-4 lg:py-6">
-          <div className="container mx-auto px-4">{gridNode}</div>
+          <div className="container mx-auto" style={{ paddingInline: spacing.sidePadding }}>
+            {gridNode}
+          </div>
         </section>
       );
     }
     if (width === "fullPadding" || width === "fullHeightPadding") {
       return (
         <section className="py-4">
-          <div className="px-4">{gridNode}</div>
+          <div style={{ paddingInline: spacing.sidePadding }}>{gridNode}</div>
         </section>
       );
     }
@@ -170,26 +179,29 @@ export const slideshow: SectionDefinition = {
     const heightClass = fullHeight
       ? FULL_HEIGHT_CLASS
       : (HEIGHT_CLASSES[height] ?? HEIGHT_CLASSES[DEFAULT_SLIDER_HEIGHT]);
-    const roundedClass =
-      width === "full" || width === "fullHeight" ? "rounded-none" : "rounded-xl";
+    const spacing = readSectionGridSpacing(settings);
+    const edgeToEdge = width === "full" || width === "fullHeight";
     const frame = (
       <SectionGridSkeleton
         grid={grid}
         heightClass={heightClass}
-        roundedClass={roundedClass}
+        gap={spacing.gap}
+        radius={edgeToEdge ? "0px" : spacing.radius}
       />
     );
     if (width === "fixed" || !width) {
       return (
         <section className="py-4 lg:py-6" aria-hidden>
-          <div className="container mx-auto px-4">{frame}</div>
+          <div className="container mx-auto" style={{ paddingInline: spacing.sidePadding }}>
+            {frame}
+          </div>
         </section>
       );
     }
     if (width === "fullPadding" || width === "fullHeightPadding") {
       return (
         <section className="py-4" aria-hidden>
-          <div className="px-4">{frame}</div>
+          <div style={{ paddingInline: spacing.sidePadding }}>{frame}</div>
         </section>
       );
     }

@@ -40,6 +40,8 @@ interface Brand {
     primary: string;
     secondary: string;
     accent: string;
+    /** Loading placeholders; "" = the neutral grey they wear by default. */
+    skeleton: string;
   };
   /** Light/dark the store opens in before a visitor picks one themselves. */
   defaultMode: ThemeMode;
@@ -56,6 +58,7 @@ interface BrandSource {
     primaryColor?: string | null;
     secondaryColor?: string | null;
     accentColor?: string | null;
+    skeletonColor?: string | null;
     theme?: unknown;
   } | null;
 }
@@ -103,6 +106,7 @@ export function resolveBrand(settings: unknown): Brand {
         DEFAULT_SECONDARY_COLOR,
       ),
       accent: brandColor(appearance.accentColor, DEFAULT_ACCENT_COLOR),
+      skeleton: normalizeColorToHex(appearance.skeletonColor) ?? "",
     },
     defaultMode: normalizeThemeMode(appearance.theme),
   };

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           },
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
 
     if (!profile) return notFoundResponse("Staff member");

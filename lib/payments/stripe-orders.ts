@@ -4,7 +4,12 @@ import {
   fetchStripePaymentFee,
   getStripeForSecretKey,
   isStripeSecretKeyConfigured,
+  stripeFeeFromIntent,
+  toStripeAmount,
 } from "@/lib/payments/stripe";
+import { checkoutCartFingerprint } from "@/lib/checkout/checkout-cart-fingerprint";
+import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
+import { preorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
 import { gatewayFeeUpdate } from "@/lib/payments/gateway-fee";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
@@ -95,6 +100,12 @@ type StripeOrderCartItem = {
   variantId?: string;
   quantity: number;
   price: number;
+  /**
+   * Set when the line was priced by a quote offer. The price it carries was
+   * already re-read from that offer when the payment was quoted, so this is
+   * only carried through to the order — it is not re-resolved here.
+   */
+  quoteId?: string;
   purchaseType?: string;
   preorderReleaseDate?: Date;
   preorderMessage?: string;
@@ -105,10 +116,18 @@ type StripeOrderCartItem = {
   preorderBatchName?: string;
 };
 
+/**
+ * A captured payment that no order could be built from, and whether it was
+ * sent back. The success page reads it to tell the shopper where their money
+ * went instead of waiting on an order that is never coming.
+ */
+export type StripePaymentRejection = { refunded: boolean };
+
 type FinalizeStripeOrderResult = {
   created: boolean;
   orderId?: string;
   orderNumber?: string;
+  rejected?: StripePaymentRejection;
 };
 
 function pickupSnapshotMatchesCurrentCart(
@@ -165,6 +184,131 @@ function stripeCartMatchesQuote(
 }
 
 /**
+ * The same guard for everything the subtotal cannot see: lines swapped for
+ * others that add up to the same figure — see `checkoutCartFingerprint`.
+ *
+ * A payment quoted before the fingerprint existed carries none, and is left to
+ * the subtotal check and, for a PaymentIntent, to {@link stripeChargeMatchesOrder}.
+ */
+function stripeCartMatchesFingerprint(
+  items: StripeOrderCartItem[],
+  metadataFingerprint?: string,
+): boolean {
+  if (!metadataFingerprint) return true;
+  return checkoutCartFingerprint(items) === metadataFingerprint;
+}
+
+/**
+ * A scoped coupon's discount by vendor, as the payment carried it. Anything
+ * unreadable is treated as absent, which shares the discount by sales — the
+ * behaviour an order had before the split was recorded at all.
+ */
+function parseCouponVendorShares(
+  raw: string | undefined,
+): Record<string, number> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    const shares: Record<string, number> = {};
+    for (const [vendorId, amount] of Object.entries(parsed)) {
+      const value = Number(amount);
+      if (Number.isFinite(value) && value >= 0) shares[vendorId] = value;
+    }
+    return shares;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * What each pre-order line leaves to be paid later, after the coupon — the
+ * figure the order records and the one the intent charged the rest of. Worked
+ * out from the same cart and the same coupon the intent was quoted from, so
+ * the two cannot disagree. See `preorderOutstandingAfterCoupon`.
+ */
+function preorderOutstandingByLine(
+  items: StripeOrderCartItem[],
+  metadata: { discount?: string; couponType?: string; couponVendorShares?: string },
+  currency: string,
+): (item: StripeOrderCartItem) => number | undefined {
+  const adjusted = preorderOutstandingAfterCoupon(
+    items.map((item) => {
+      const vendor = item.productId.vendorId;
+      return {
+        price: item.price,
+        quantity: item.quantity,
+        purchaseType: item.purchaseType,
+        preorderOutstandingAmount: item.preorderOutstandingAmount,
+        vendorId: vendor
+          ? String(typeof vendor === "object" ? (vendor as { _id: unknown })._id : vendor)
+          : null,
+      };
+    }),
+    {
+      goodsDiscount: isFreeShippingCouponType(metadata.couponType)
+        ? 0
+        : parseFloat(metadata.discount || "0") || 0,
+      vendorShares: parseCouponVendorShares(metadata.couponVendorShares),
+    },
+    currency,
+  );
+  const byLine = new Map(items.map((item, index) => [item, adjusted[index]]));
+  return (item) =>
+    item.purchaseType === PURCHASE_TYPE.PREORDER
+      ? (byLine.get(item) ?? item.preorderOutstandingAmount)
+      : item.preorderOutstandingAmount;
+}
+
+/** What the pre-order lines leave to be paid later — the figure the order records. */
+function preorderOutstandingOf(
+  items: StripeOrderCartItem[],
+  outstandingOf: (item: StripeOrderCartItem) => number | undefined,
+): number {
+  return items
+    .filter((item) => item.purchaseType === PURCHASE_TYPE.PREORDER)
+    .reduce((sum, item) => sum + Number(outstandingOf(item) || 0), 0);
+}
+
+/**
+ * Did Stripe actually take what this order is about to say was paid?
+ *
+ * The order records `total` as the price and `preorderOutstandingAmount` as
+ * still owed, and everything downstream reads the difference as money in.
+ * Nothing compared that difference with the charge, so the order could record
+ * a pre-order paid in full on a deposit's worth of card payment — or, the other
+ * way round, a balance still owed on a charge that had already taken all of it,
+ * which the balance flow would then take a second time.
+ *
+ * PaymentIntents only. A hosted Checkout Session charges line by line and
+ * rounds each deposit per unit, so its total is not an exact mirror of the
+ * order's; its cart is held to the fingerprint instead.
+ */
+function stripeChargeMatchesOrder(params: {
+  amountReceived: number | null | undefined;
+  chargedCurrency: string | null | undefined;
+  total: number;
+  outstanding: number;
+  currency: string;
+}): boolean {
+  if (
+    String(params.chargedCurrency || "").toLowerCase() !==
+    params.currency.toLowerCase()
+  ) {
+    return false;
+  }
+  if (typeof params.amountReceived !== "number") return false;
+  const dueNow = toStripeAmount(
+    Math.max(0, params.total - params.outstanding),
+    params.currency,
+  );
+  // One minor unit of slack for float residue; a real mismatch is a deposit.
+  return Math.abs(params.amountReceived - dueNow) <= 1;
+}
+
+/**
  * Handle a captured payment whose quote no longer matches the live cart:
  * write a permanent do-not-fulfil marker for the PaymentIntent on the cart,
  * auto-refund the payment, and alert admins.
@@ -179,10 +323,13 @@ async function rejectTamperedStripePayment(params: {
   paymentIntentId: string;
   cartId: string;
   settings: SettingsDocument;
-}): Promise<void> {
+  /** Why no order can be built; the default is the quote mismatch. */
+  why?: string;
+}): Promise<StripePaymentRejection> {
   const { paymentIntentId, cartId, settings } = params;
+  const why = params.why ?? "the cart changed after checkout was quoted";
   console.error(
-    "Stripe order rejected — cart changed after checkout was quoted:",
+    `Stripe order rejected — ${why}:`,
     cartId,
     paymentIntentId,
   );
@@ -200,8 +347,7 @@ async function rejectTamperedStripePayment(params: {
     }
   }
 
-  let refundNote =
-    "NOT auto-refunded — refund it manually from the Stripe dashboard";
+  let refunded = false;
   if (marked) {
     try {
       const credentials = resolveStripeCredentials(settings.payment?.stripe);
@@ -215,28 +361,33 @@ async function rejectTamperedStripePayment(params: {
           },
           { idempotencyKey: `tamper-refund-${paymentIntentId}` },
         );
-        refundNote = "auto-refunded in full";
+        refunded = true;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (/already been refunded|charge_already_refunded/i.test(message)) {
-        refundNote = "auto-refunded in full";
+        refunded = true;
       } else {
         console.error("Failed to auto-refund rejected Stripe payment:", err);
       }
     }
   }
+  const refundNote = refunded
+    ? "auto-refunded in full"
+    : "NOT auto-refunded — refund it manually from the Stripe dashboard";
 
   await import("@/lib/notifications/notifications")
     .then(({ notifyAdminsPaymentAnomaly }) =>
       notifyAdminsPaymentAnomaly({
         title: "Stripe payment rejected (cart mismatch)",
-        message: `Stripe payment ${paymentIntentId || "(unknown intent)"} was captured, but the cart changed after checkout was quoted. No order was created; the payment was ${refundNote}.`,
+        message: `Stripe payment ${paymentIntentId || "(unknown intent)"} was captured, but ${why}. No order was created; the payment was ${refundNote}.`,
         paymentIntentId,
         cartId,
       }),
     )
     .catch((err) => console.error("Failed to send payment anomaly alert:", err));
+
+  return { refunded };
 }
 
 /** True when this intent was previously tamper-rejected (and refunded). */
@@ -253,15 +404,22 @@ function isRejectedIntentForCart(
 /**
  * Stripe's cut, read from the balance transaction behind the intent.
  *
- * Best-effort by design: it costs one API call inside a webhook, and an order
- * must never fail to be created because a reporting figure was unavailable.
+ * Free when the caller already holds the intent with the fee expanded (/verify
+ * retrieves it that way). Otherwise one API call: a webhook payload names the
+ * charge by id only, and with async capture the balance transaction can still
+ * be unset when the intent is read, so a missing fee is asked for again.
+ * Best-effort by design: an order must never fail to be created because a
+ * reporting figure was unavailable.
  */
 async function resolveStripeFee(
   settings: SettingsDocument,
-  paymentIntentId: string,
+  source: StripeOrderSource,
 ) {
+  const { paymentIntentId, intent } = source;
   if (!paymentIntentId) return undefined;
   try {
+    const held = intent ? await stripeFeeFromIntent(intent) : undefined;
+    if (held) return held;
     const credentials = resolveStripeCredentials(settings.payment?.stripe);
     if (!isStripeSecretKeyConfigured(credentials.secretKey)) return undefined;
     return await fetchStripePaymentFee(
@@ -270,6 +428,57 @@ async function resolveStripeFee(
     );
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * The card Stripe kept, for a deposit that was confirmed with
+ * `setup_future_usage`.
+ *
+ * Read off the intent when the caller already has it expanded, and fetched
+ * otherwise — the id cannot come from metadata, because at the moment the
+ * intent was created the shopper had not typed a card yet.
+ *
+ * Best-effort by design: this runs inside the webhook that turns a captured
+ * payment into an order, and an order that exists without its saved card is a
+ * balance the shopper pays by hand. An order that never got built because
+ * Stripe was briefly unreachable is a payment with nothing to show for it.
+ */
+async function resolveSavedCard(
+  settings: SettingsDocument,
+  source: StripeOrderSource,
+): Promise<{ paymentMethodId?: string; customerId?: string }> {
+  const idOf = (value: unknown) =>
+    typeof value === "string"
+      ? value
+      : (value as { id?: string } | null | undefined)?.id;
+
+  // Both halves come off the same intent, because they are only useful as a
+  // pair: Stripe charges a saved card off-session only when the Customer it
+  // was saved against is named alongside it. A guest's Customer was minted for
+  // their cart and is recorded nowhere else, so this read is the one chance to
+  // keep it.
+  const held = source.intent;
+  if (held?.payment_method) {
+    return {
+      paymentMethodId: idOf(held.payment_method),
+      customerId: idOf(held.customer),
+    };
+  }
+  if (!source.paymentIntentId) return {};
+  try {
+    const credentials = resolveStripeCredentials(settings.payment?.stripe);
+    if (!isStripeSecretKeyConfigured(credentials.secretKey)) return {};
+    const intent = await getStripeForSecretKey(
+      credentials.secretKey,
+    ).paymentIntents.retrieve(source.paymentIntentId);
+    return {
+      paymentMethodId: idOf(intent.payment_method),
+      customerId: idOf(intent.customer),
+    };
+  } catch (err) {
+    console.error("Failed to read the card saved on a pre-order deposit:", err);
+    return {};
   }
 }
 
@@ -286,6 +495,8 @@ type StripeOrderSource =
       metadata: Record<string, string | undefined>;
       /** Stripe's receipt email, falling back to the metadata's customerEmail. */
       guestEmail?: string;
+      /** The intent itself, read for its fee when it was retrieved expanded. */
+      intent?: Stripe.PaymentIntent;
     }
   | {
       kind: "checkout_session";
@@ -294,11 +505,18 @@ type StripeOrderSource =
       paymentIntentId: string;
       metadata: Record<string, string | undefined>;
       guestEmail?: string;
+      /** The session's intent, when it was retrieved expanded. */
+      intent?: Stripe.PaymentIntent;
     };
 
 type StripeOrderCreation =
   | { created: true; order: PendingOrderDocument }
-  | { created: false; orderId?: string; orderNumber?: string };
+  | {
+      created: false;
+      orderId?: string;
+      orderNumber?: string;
+      rejected?: StripePaymentRejection;
+    };
 
 function stripeSourceLabel(source: StripeOrderSource) {
   return source.kind === "payment_intent" ? "payment intent" : "checkout session";
@@ -339,6 +557,7 @@ async function createStripeOrderFromCart(
     couponType,
     couponValue,
     couponId,
+    preorderMandate,
   } = metadata;
   const pickupFulfillment = parsePickupFulfillmentMetadata(
     metadata.pickupFulfillment,
@@ -384,12 +603,40 @@ async function createStripeOrderFromCart(
     .lean();
 
   if (!cart || !cart.items || cart.items.length === 0) {
-    console.error("Cart not found or empty:", cartId);
-    return { created: false };
+    // An empty cart is usually a race the call beside this one already won:
+    // the webhook and /verify for one intent run together, and the winner
+    // clears the cart only AFTER creating its order. So the order is looked
+    // for again first, and only a payment with no order at all goes back.
+    const raced = await Order.findOne(stripeSourceKey(source)).lean();
+    if (raced) {
+      return {
+        created: false,
+        orderId: String(raced._id),
+        orderNumber: raced.orderNumber,
+      };
+    }
+    // Otherwise the money has nothing to become: a second intent confirmed
+    // for a cart the first already turned into an order, or a guest cart that
+    // expired before the payment landed. Returning quietly left it captured,
+    // and the webhook marked the event done, so nothing ever retried.
+    const rejected = await rejectTamperedStripePayment({
+      paymentIntentId: source.paymentIntentId,
+      cartId,
+      settings,
+      why: cart
+        ? "its cart had already been emptied, so there was nothing to build an order from"
+        : "its cart no longer exists, so there was nothing to build an order from",
+    });
+    return { created: false, rejected };
   }
 
   const items = cart.items as StripeOrderCartItem[];
   const paymentIntentId = source.paymentIntentId;
+  const outstandingOf = preorderOutstandingByLine(
+    items,
+    metadata,
+    settings.general?.defaultCurrency || "USD",
+  );
 
   // A previously tamper-rejected (and refunded) intent must never fulfil an
   // order, even if the cart has since been edited back to the quoted sum.
@@ -402,32 +649,43 @@ async function createStripeOrderFromCart(
       "Refusing to fulfil previously rejected Stripe intent:",
       paymentIntentId,
     );
-    await rejectTamperedStripePayment({
+    const rejected = await rejectTamperedStripePayment({
       paymentIntentId,
       cartId: String(cart._id),
       settings,
     });
-    return { created: false };
+    return { created: false, rejected };
   }
 
-  if (!stripeCartMatchesQuote(items, subtotal)) {
-    await rejectTamperedStripePayment({
+  if (
+    !stripeCartMatchesQuote(items, subtotal) ||
+    !stripeCartMatchesFingerprint(items, metadata.cartFingerprint) ||
+    (source.kind === "payment_intent" &&
+      !stripeChargeMatchesOrder({
+        amountReceived: source.intent?.amount_received,
+        chargedCurrency: source.intent?.currency,
+        total: parseFloat(total || "0"),
+        outstanding: preorderOutstandingOf(items, outstandingOf),
+        currency: settings.general?.defaultCurrency || "USD",
+      }))
+  ) {
+    const rejected = await rejectTamperedStripePayment({
       paymentIntentId,
       cartId: String(cart._id),
       settings,
     });
-    return { created: false };
+    return { created: false, rejected };
   }
   if (
     pickupFulfillment &&
     !pickupSnapshotMatchesCurrentCart(pickupFulfillment, items)
   ) {
-    await rejectTamperedStripePayment({
+    const rejected = await rejectTamperedStripePayment({
       paymentIntentId,
       cartId: String(cart._id),
       settings,
     });
-    return { created: false };
+    return { created: false, rejected };
   }
 
   const orderNumber = await getNextOnlineOrderNumber(settings.orders?.prefix);
@@ -462,7 +720,7 @@ async function createStripeOrderFromCart(
         : undefined,
     getPreorderPaymentMode: (item) => item.preorderPaymentMode,
     getPreorderDepositAmount: (item) => item.preorderDepositAmount,
-    getPreorderOutstandingAmount: (item) => item.preorderOutstandingAmount,
+    getPreorderOutstandingAmount: (item) => outstandingOf(item),
     getPreorderSupplierEta: (item) => item.preorderSupplierEta,
     getPreorderBatchName: (item) => item.preorderBatchName,
     getCustoms: (item) => buildOrderItemCustomsSnapshot({
@@ -475,9 +733,13 @@ async function createStripeOrderFromCart(
     }),
     fallbackCommissionPercent:
       settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
+    couponDiscountByVendor: parseCouponVendorShares(metadata.couponVendorShares),
+    // This order is only ever written once Stripe has taken the money, and it
+    // is written `processing` — its consignments have to say the same, or the
+    // first vendor to touch theirs re-derives the paid order back to `pending`.
     status: items.some((item) => item.purchaseType === PURCHASE_TYPE.PREORDER)
       ? ORDER_STATUS.PREORDERED
-      : ORDER_STATUS.PENDING,
+      : ORDER_STATUS.PROCESSING,
   });
 
   // Apply shipping captured at PaymentIntent/Checkout creation so the
@@ -488,12 +750,16 @@ async function createStripeOrderFromCart(
     subOrders as Array<{
       vendorId: { toString: () => string };
       shippingCost?: number;
+      shippingDiscount?: number;
       shippingMethod?: unknown;
     }>,
     {
       vendorShippingCosts: parsedShipping.vendorShippingCosts,
       orderShippingCost: parseFloat(shipping || "0"),
       orderShippingMethod: parsedShipping.shippingMethod,
+      shippingDiscountByVendor: parseCouponVendorShares(
+        metadata.couponShippingShares,
+      ),
     },
   );
   if (pickupFulfillment) {
@@ -505,7 +771,13 @@ async function createStripeOrderFromCart(
     };
     if (!pickupSubOrder) {
       console.error(`Pickup vendor is missing from Stripe ${label} order`);
-      return { created: false };
+      const rejected = await rejectTamperedStripePayment({
+        paymentIntentId,
+        cartId: String(cart._id),
+        settings,
+        why: "the pickup seller is no longer in the cart",
+      });
+      return { created: false, rejected };
     }
     pickupSubOrder.fulfillment = pickupFulfillment;
   }
@@ -530,10 +802,15 @@ async function createStripeOrderFromCart(
     (sum, item) => sum + Number(item.preorderDepositAmount || 0),
     0,
   );
-  const preorderOutstandingAmount = preorderItems.reduce(
-    (sum, item) => sum + Number(item.preorderOutstandingAmount || 0),
-    0,
-  );
+  const preorderOutstandingAmount = preorderOutstandingOf(items, outstandingOf);
+
+  // Only looked up where a card was actually asked to be kept: an ordinary
+  // sale, and a pre-order paid in full, never pay for the round trip.
+  const savedCard =
+    preorderOutstandingAmount > 0 && preorderMandate
+      ? await resolveSavedCard(settings, source)
+      : {};
+  const savedPaymentMethodId = savedCard.paymentMethodId;
 
   try {
     const order = (await Order.create({
@@ -552,6 +829,7 @@ async function createStripeOrderFromCart(
         sku: item.productId.sku || "",
         quantity: item.quantity,
         price: item.price,
+        quoteId: item.quoteId,
         cost: resolveOrderItemCost({
           product: item.productId,
           variantId: item.variantId,
@@ -566,7 +844,7 @@ async function createStripeOrderFromCart(
             : undefined,
         preorderPaymentMode: item.preorderPaymentMode,
         preorderDepositAmount: item.preorderDepositAmount,
-        preorderOutstandingAmount: item.preorderOutstandingAmount,
+        preorderOutstandingAmount: outstandingOf(item),
         preorderSupplierEta: item.preorderSupplierEta,
         preorderBatchName: item.preorderBatchName,
         customs: buildOrderItemCustomsSnapshot({
@@ -589,12 +867,15 @@ async function createStripeOrderFromCart(
         preorderOutstandingAmount > 0
           ? PAYMENT_STATUS.PARTIALLY_PAID
           : PAYMENT_STATUS.PAID,
+      // Written once Stripe has the money, so the order's own creation is the
+      // moment it arrived.
+      paidAt: new Date(),
       ...(source.kind === "checkout_session"
         ? { stripeSessionId: source.sessionId }
         : {}),
       stripePaymentIntentId: paymentIntentId,
       paymentId: paymentIntentId,
-      ...gatewayFeeUpdate(await resolveStripeFee(settings, paymentIntentId)),
+      ...gatewayFeeUpdate(await resolveStripeFee(settings, source)),
       // "0" fallbacks: a missing metadata key would yield NaN, fail Order
       // validation, and put the webhook into a 500 retry loop.
       subtotal: parseFloat(subtotal || "0"),
@@ -610,6 +891,11 @@ async function createStripeOrderFromCart(
               type: couponType || undefined,
               value: couponValue ? Number(couponValue) : undefined,
               couponId: couponId || undefined,
+              // Who pays for the goods discount, as checkout resolved it. An
+              // intent from before this was carried reads as the old rule:
+              // the sellers whose items it discounted.
+              fundedBy:
+                metadata.couponFundedBy === "platform" ? "platform" : "vendor",
               usageIncremented: false,
             }
           : undefined,
@@ -619,10 +905,36 @@ async function createStripeOrderFromCart(
       preorderStatus: hasPreorder ? PREORDER_ITEM_STATUS.RESERVED : undefined,
       preorderReleaseDate,
       preorderAcknowledgedAt: hasPreorder ? new Date() : undefined,
+      // The card-on-file agreement, carried on the intent's metadata because
+      // that is the only thing that crosses from the checkout the shopper saw
+      // to the webhook that builds their order. Stamped only where there is a
+      // balance to authorise — a pre-order paid in full carries neither.
+      ...(preorderOutstandingAmount > 0 && preorderMandate
+        ? {
+            preorderMandateAcceptedAt: new Date(),
+            preorderMandateText: preorderMandate,
+            ...(savedPaymentMethodId
+              ? {
+                  preorderSavedPaymentMethodId: savedPaymentMethodId,
+                  ...(savedCard.customerId
+                    ? { stripeCustomerId: savedCard.customerId }
+                    : {}),
+                }
+              : {}),
+          }
+        : {}),
       preorderPaymentMode,
       preorderDepositAmount,
       preorderOutstandingAmount,
       status: hasPreorder ? ORDER_STATUS.PREORDERED : ORDER_STATUS.PROCESSING,
+      // Stashed on the cart when the payment was quoted (the intent and
+      // online-checkout routes); already validated against the checkout
+      // settings there.
+      customerNote: cart.checkoutDetails?.customerNote || undefined,
+      contactPhone: cart.checkoutDetails?.contactPhone || undefined,
+      checkoutFields: cart.checkoutDetails?.checkoutFields?.length
+        ? cart.checkoutDetails.checkoutFields
+        : undefined,
     })) as PendingOrderDocument;
     return { created: true, order };
   } catch (err: unknown) {
@@ -722,6 +1034,7 @@ export async function finalizeStripePaymentIntentOrder(
       paymentIntentId: paymentIntent.id,
       metadata,
       guestEmail: email,
+      intent: paymentIntent,
     },
     settings,
   );
@@ -760,6 +1073,10 @@ export async function finalizeStripeCheckoutSessionOrder(
       kind: "checkout_session",
       sessionId: session.id,
       paymentIntentId,
+      intent:
+        typeof session.payment_intent === "object"
+          ? (session.payment_intent ?? undefined)
+          : undefined,
       metadata,
       // Same guest rule as the payment-intent path: userId doubling as the
       // cart id means no User backs the order, so keep the guest's email.

@@ -35,6 +35,7 @@ const REQUIRED_OBJECT_SECTIONS = [
   "appearance",
   "payment",
   "email",
+  "sms",
   "orders",
   "shipping",
   "seo",
@@ -45,6 +46,7 @@ const REQUIRED_OBJECT_SECTIONS = [
   "pos",
   "multiVendorMode",
   "vendorConfig",
+  "preorder",
   "notifications",
   "storage",
   "aiSalesAgent",
@@ -123,11 +125,13 @@ export function useAdminSettings(initialData?: unknown) {
   const [isLoading, setIsLoading] = useState(!seededSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isTestingSms, setIsTestingSms] = useState(false);
   const [isTestingPayment, setIsTestingPayment] = useState(false);
   const [isTestingOAuth, setIsTestingOAuth] = useState(false);
   const [isRegisteringPesapalIpn, setIsRegisteringPesapalIpn] = useState(false);
   const [isCarrierBusy, setIsCarrierBusy] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [testSmsTo, setTestSmsTo] = useState("");
   const [dirtySectionHints, setDirtySectionHints] = useState<Set<string>>(
     () => new Set(),
   );
@@ -483,6 +487,44 @@ export function useAdminSettings(initialData?: unknown) {
     }
   };
 
+  /**
+   * Send one real text through the saved Twilio settings. Gated on a saved
+   * section like the carrier and OAuth checks: the credentials never come back
+   * to the browser, so an unsaved edit would be tested against the old ones.
+   */
+  const testSms = async () => {
+    if (isDemoMode) {
+      notifyDemoMode();
+      return;
+    }
+    if (dirtySections.has("sms")) {
+      toast.error(
+        tSafe(
+          "admin.settings.toasts.saveSmsFirst",
+          "Save the SMS settings before sending a test message",
+        ),
+      );
+      return;
+    }
+    try {
+      setIsTestingSms(true);
+      const result = await apiClient.request<unknown>(
+        "POST",
+        "/api/admin/settings/test-sms",
+        { to: testSmsTo },
+      );
+      toast.success(result.message || "Test SMS sent");
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to send test SMS",
+      );
+    } finally {
+      setIsTestingSms(false);
+    }
+  };
+
   const testPaymentConnection = async (
     provider:
       | "stripe"
@@ -706,11 +748,14 @@ export function useAdminSettings(initialData?: unknown) {
     isLoading,
     isSaving,
     isTestingEmail,
+    isTestingSms,
     isTestingPayment,
     isTestingOAuth,
     isRegisteringPesapalIpn,
     testEmail,
     setTestEmail,
+    testSmsTo,
+    setTestSmsTo,
     dirtySections,
     markSectionDirty,
     updateNestedField,
@@ -718,6 +763,7 @@ export function useAdminSettings(initialData?: unknown) {
     saveSection,
     saveSections,
     testSmtp,
+    testSms,
     testPaymentConnection,
     testOAuthConnection,
     registerPesapalIpn,

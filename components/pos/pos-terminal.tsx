@@ -31,7 +31,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, truncateByWords } from "@/lib/utils";
 import { AppImage } from "@/components/ui/app-image";
 import { POSProductGridSkeleton } from "@/components/pos/pos-skeleton";
+import { POSCategoryStrip } from "@/components/pos/pos-category-strip";
 import { toast } from "@/components/ui/toast-notification";
+import { roundMoney } from "@/lib/intl/money";
 import { configurePOSSounds, playPOSSound } from "@/lib/pos/pos-sounds";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCurrency } from "@/providers/currency-provider";
@@ -269,16 +271,22 @@ export function POSTerminal({
     0,
   );
   const discountedSubtotal = Math.max(0, subtotal - lineDiscountTotal);
-  const tax = discountedSubtotal * settings.taxRate;
   const discountAmount = React.useMemo(() => {
     if (!discount) return 0;
     const value = Math.max(0, discount.value);
-    if (discount.type === "percent") {
-      return (discountedSubtotal * Math.min(value, 100)) / 100;
-    }
-    return Math.min(value, discountedSubtotal);
+    const amount =
+      discount.type === "percent"
+        ? (discountedSubtotal * Math.min(value, 100)) / 100
+        : value;
+    return Math.min(roundMoney(amount), discountedSubtotal);
   }, [discount, discountedSubtotal]);
-  const total = Math.max(0, discountedSubtotal - discountAmount + tax);
+  // Taxed after every discount and rounded, exactly as the server prices the
+  // sale (`calculatePOSOrderTotals`) — a till showing one total and charging
+  // another hands out the wrong change.
+  const taxable = Math.max(0, roundMoney(discountedSubtotal - discountAmount));
+  const tax = roundMoney(taxable * settings.taxRate);
+  const total = Math.max(0, roundMoney(taxable + tax));
+  const canApplyDiscounts = settings.canApplyDiscounts !== false;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // ============================================
@@ -464,9 +472,28 @@ export function POSTerminal({
     [setCart],
   );
 
-  const openLineDiscountDialog = React.useCallback((itemId: string) => {
-    setLineDiscountItemId(itemId);
+  const refuseDiscount = React.useCallback(() => {
+    toast.error("Only a seat that manages the POS can give a discount");
   }, []);
+
+  const openLineDiscountDialog = React.useCallback(
+    (itemId: string) => {
+      if (!canApplyDiscounts) {
+        refuseDiscount();
+        return;
+      }
+      setLineDiscountItemId(itemId);
+    },
+    [canApplyDiscounts, refuseDiscount],
+  );
+
+  const openOrderDiscountDialog = React.useCallback(() => {
+    if (!canApplyDiscounts) {
+      refuseDiscount();
+      return;
+    }
+    setShowDiscountDialog(true);
+  }, [canApplyDiscounts, refuseDiscount]);
 
   const openLineNoteDialog = React.useCallback((itemId: string) => {
     setLineNoteItemId(itemId);
@@ -1531,7 +1558,7 @@ export function POSTerminal({
       } else if (e.key === "F3") {
         e.preventDefault();
         if (cart.length > 0) {
-          setShowDiscountDialog(true);
+          openOrderDiscountDialog();
         }
       } else if (e.key === "F4") {
         e.preventDefault();
@@ -1564,6 +1591,7 @@ export function POSTerminal({
     cart.length,
     heldOrders.length,
     isProcessing,
+    openOrderDiscountDialog,
     saleBlockedReason,
     selectedProduct,
     showCustomerDialog,
@@ -1978,7 +2006,7 @@ export function POSTerminal({
           open={showDiscountDialog}
           onOpenChange={setShowDiscountDialog}
           subtotal={discountedSubtotal}
-          tax={tax}
+          taxRate={settings.taxRate}
           taxIncluded={false}
           current={discount}
           onApply={setDiscount}
@@ -2114,41 +2142,11 @@ export function POSTerminal({
         >
           {/* Category Tabs */}
           {categories.length > 0 && (
-            <div className="shrink-0 bg-card">
-              <ScrollArea className="w-full">
-                <div className="flex gap-1 px-3 pb-2.5 pt-2.5 sm:px-5 sm:pb-3 sm:pt-4">
-                  <button
-                    onClick={() => setSelectedCategory("")}
-                    className={cn(
-                      "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                      selectedCategory === ""
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
-                    )}
-                  >
-                    {t("pos.allProducts")}
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat._id}
-                      onClick={() =>
-                        setSelectedCategory(
-                          selectedCategory === cat._id ? "" : cat._id,
-                        )
-                      }
-                      className={cn(
-                        "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                        selectedCategory === cat._id
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
-                      )}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
+            <POSCategoryStrip
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
           )}
 
           {/* Product Grid */}
@@ -2675,7 +2673,7 @@ export function POSTerminal({
               >
                 <button
                   type="button"
-                  onClick={() => setShowDiscountDialog(true)}
+                  onClick={openOrderDiscountDialog}
                   className={cn(
                     "inline-flex items-center gap-1.5 text-sm font-medium transition-colors",
                     discount
@@ -2772,7 +2770,7 @@ export function POSTerminal({
               <button
                 type="button"
                 disabled={cart.length === 0}
-                onClick={() => setShowDiscountDialog(true)}
+                onClick={openOrderDiscountDialog}
                 className={cn(
                   "group relative flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-card text-sm font-medium transition-all",
                   cart.length > 0

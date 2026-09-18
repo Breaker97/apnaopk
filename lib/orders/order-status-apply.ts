@@ -138,6 +138,39 @@ export function deriveOrderStatusFromSubOrders(
   return (least as OrderStatusValue) ?? null;
 }
 
+/**
+ * The order status a consignment change should leave behind, or null to keep
+ * the current one.
+ *
+ * The derivation above, with one refusal: it never walks a live order
+ * BACKWARDS. A paid order is written `processing` at capture, and every order
+ * captured before its consignments were moved along with it still carries
+ * `pending` ones — so a vendor adding nothing but a tracking number re-derived
+ * the order back to `pending`, where the shopper could cancel it outright,
+ * sibling vendor's parcel included. Consignments only ever move forward, so a
+ * lower answer than the order already holds is the stale record talking, not
+ * news. Cancellation is not a rank and always goes through.
+ */
+export function rollUpOrderStatus(
+  currentStatus: string | null | undefined,
+  subOrders: Array<{ status?: string }> | undefined | null,
+): OrderStatusValue | null {
+  const derived = deriveOrderStatusFromSubOrders(subOrders);
+  if (!derived || derived === currentStatus) return null;
+  if (derived !== ORDER_STATUS.CANCELLED) {
+    const currentRank = ORDER_STATUS_RANK[String(currentStatus || "")];
+    const derivedRank = ORDER_STATUS_RANK[derived];
+    if (
+      currentRank !== undefined &&
+      derivedRank !== undefined &&
+      derivedRank < currentRank
+    ) {
+      return null;
+    }
+  }
+  return derived;
+}
+
 /** True when a `$set` document addresses sub-orders positionally. */
 export function usesSubOrderArrayFilter(
   updates: Record<string, unknown>,

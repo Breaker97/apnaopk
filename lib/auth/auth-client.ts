@@ -6,8 +6,29 @@ import { twoFactorClient } from "better-auth/client/plugins";
  * Client-side authentication utilities for React components
  */
 
+/**
+ * Where the browser sends auth calls: the origin that served the page.
+ *
+ * `NEXT_PUBLIC_APP_URL` is inlined at BUILD time, so a bundle built with
+ * `http://localhost:3000` sends every sign-in and session call there no
+ * matter which host the page was opened from. On a phone or a second
+ * computer "localhost" is that device, so the request never reaches the
+ * server and the console fills with connection refused. Reading the live
+ * origin instead means one build serves localhost, a LAN address, a
+ * tunnel and a staging domain alike.
+ *
+ * The env value is still the answer during server rendering, where there
+ * is no window; it also stays the source of truth for OAuth redirect URIs
+ * (see `resolveAuthBaseUrl`), which must be stable and registered with the
+ * provider.
+ */
+function clientBaseUrl(): string {
+  if (typeof window !== "undefined") return window.location.origin;
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
+
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  baseURL: clientBaseUrl(),
   plugins: [twoFactorClient()],
 });
 

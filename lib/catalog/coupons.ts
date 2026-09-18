@@ -2,19 +2,19 @@ import { Types } from "mongoose";
 import { Coupon, Order, Product } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
 import { CouponStatus, CouponType } from "@/models/coupon.model";
-import { PAYMENT_STATUS } from "@/config/app.config";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import {
   isFreeShippingCouponType,
 } from "@/lib/catalog/discounts";
 import { roundMoney } from "@/lib/intl/money";
 
-// Order payment statuses that represent an actual coupon use. Pending and
-// cancelled orders should not block a customer from retrying.
-const COUPON_CONSUMING_PAYMENT_STATUSES = [
-  PAYMENT_STATUS.PAID,
-  PAYMENT_STATUS.PARTIALLY_PAID,
-  PAYMENT_STATUS.PARTIALLY_REFUNDED,
-];
+/**
+ * How long a checkout that has not been paid yet keeps its use of a limited
+ * coupon. Long enough for a gateway redirect, a 3-D Secure challenge or a
+ * mobile-money prompt; short enough that an abandoned checkout — which nothing
+ * cancels — hands the use back on its own.
+ */
+export const COUPON_HOLD_WINDOW_MS = 30 * 60 * 1000;
 
 interface CouponCartItem {
   productId: string;
@@ -33,14 +33,52 @@ interface ValidatedCouponResult {
   discountTarget: "subtotal" | "shipping";
   maxDiscount?: number;
   description?: string;
+  /**
+   * The goods discount split by the vendor whose items earned it, for a coupon
+   * limited to some of the cart — one vendor's own coupon, or a product or
+   * category list. Absent for a coupon on the whole cart, whose discount every
+   * line shares in proportion, which is what the order already assumes.
+   *
+   * Recorded because the order keeps one `discount`, and everything that
+   * divides it among vendors — the ledger, the payout, a return — divided it by
+   * each vendor's sales. Vendor A's 20-off coupon then came 10 off A and 10 off
+   * vendor B, who never offered it. See `couponDiscount` on the sub-order.
+   */
+  vendorShares?: Record<string, number>;
+  /**
+   * A free-shipping coupon's discount split by the vendor whose delivery it
+   * paid for. One seller's own free-shipping coupon used to wipe out every
+   * seller's delivery charge on a split order — the coupon was priced off the
+   * whole order's shipping, and the loss was then spread over everyone who
+   * carried a parcel. See `shippingDiscount` on the sub-order.
+   */
+  shippingShares?: Record<string, number>;
+  /** The seller whose delivery a seller's own free-shipping coupon pays for. */
+  shippingVendorId?: string;
+  /**
+   * Who pays for the discount — the store, or the sellers whose items it
+   * discounts — for delivery as much as for goods. A vendor's own coupon is
+   * always theirs; a store coupon says which (absent: the store). See
+   * `fundedBy` on the Coupon model.
+   */
+  fundedBy: "platform" | "vendor";
 }
 
 type ValidateCouponParams = {
   code: string;
   subtotal: number;
   shippingCost?: number;
+  /**
+   * What each vendor's delivery costs, when the cart was rated per vendor.
+   * Without it a coupon scoped to one seller cannot tell their delivery from
+   * anyone else's, and falls back to the whole order's shipping.
+   */
+  shippingByVendor?: Record<string, number>;
   cartItems: CouponCartItem[];
+  /** The shopper's account — for a guest, the account their email belongs to. */
   userId?: string;
+  /** The email the order is placed under, so a guest has a limit too. */
+  email?: string;
 };
 
 function normalizeObjectId(value?: string) {
@@ -150,14 +188,25 @@ export async function validateAndCalculateCoupon(
     });
   }
 
-  if (coupon.perUserLimit && params.userId) {
-    // Only count orders that actually consumed the coupon — pending or
-    // cancelled orders must not lock the customer out from retrying.
+  const guestEmail = params.email?.trim().toLowerCase();
+  const shopper = [
+    ...(params.userId ? [{ customerId: params.userId }] : []),
+    ...(guestEmail ? [{ guestEmail }] : []),
+  ];
+  if (coupon.perUserLimit && shopper.length > 0) {
+    // Orders that took a use of the coupon and still stand. A use is taken
+    // when the order commits — at creation for cash on delivery and pay-later,
+    // at capture for a gateway — so an unpaid gateway attempt never locks the
+    // shopper out of retrying. Counting only PAID orders let a COD shopper,
+    // whose order stays pending until the courier collects, use a
+    // once-per-customer coupon on every order; and a guest, with no account
+    // id, was never counted at all.
     const userUsageCount = await Order.countDocuments({
-      customerId: params.userId,
+      $or: shopper,
       "coupon.code": coupon.code,
       "coupon.usageIncremented": true,
-      paymentStatus: { $in: COUPON_CONSUMING_PAYMENT_STATUSES },
+      status: { $ne: ORDER_STATUS.CANCELLED },
+      paymentStatus: { $ne: PAYMENT_STATUS.REFUNDED },
     });
     if (userUsageCount >= coupon.perUserLimit) {
       throw new ValidationError({
@@ -175,6 +224,8 @@ export async function validateAndCalculateCoupon(
   const cartItems = await enrichMissingProductRefs(params.cartItems);
 
   let applicableAmount = params.subtotal;
+  // What each vendor's eligible lines are worth, filled only for a scoped coupon.
+  const applicableByVendor = new Map<string, number>();
   const couponVendorId = normalizeObjectId(
     String((coupon as { vendorId?: unknown }).vendorId || ""),
   );
@@ -211,7 +262,13 @@ export async function validateAndCalculateCoupon(
         return sum;
       }
 
-      return sum + item.price * item.quantity;
+      const lineAmount = item.price * item.quantity;
+      const vendorKey = itemVendorId || "";
+      applicableByVendor.set(
+        vendorKey,
+        (applicableByVendor.get(vendorKey) || 0) + lineAmount,
+      );
+      return sum + lineAmount;
     }, 0);
   }
 
@@ -227,12 +284,35 @@ export async function validateAndCalculateCoupon(
     : "subtotal";
 
   let discount = 0;
+  // Which consignments' delivery this coupon actually pays for.
+  let shippingShares: Record<string, number> | undefined;
   if (couponType === CouponType.FREE_SHIPPING) {
     const shippingCost = Math.max(0, Number(params.shippingCost ?? 0));
     if (shippingCost <= 0) {
       throw new ValidationError("Shipping is already free for this order");
     }
-    discount = shippingCost;
+    const byVendor = params.shippingByVendor;
+    if (couponVendorId && byVendor) {
+      // A seller's own coupon covers their own delivery and no one else's.
+      const own = Math.max(0, Number(byVendor[couponVendorId] || 0));
+      if (own <= 0) {
+        throw new ValidationError(
+          "This coupon covers this seller's delivery, and there is none to discount",
+        );
+      }
+      discount = Math.min(own, shippingCost);
+      shippingShares = { [couponVendorId]: discount };
+    } else {
+      discount = shippingCost;
+      if (byVendor) {
+        shippingShares = Object.fromEntries(
+          Object.entries(byVendor).map(([vendorId, cost]) => [
+            vendorId,
+            Math.max(0, Number(cost) || 0),
+          ]),
+        );
+      }
+    }
   } else if (couponType === CouponType.PERCENTAGE) {
     discount = (applicableAmount * coupon.value) / 100;
   } else {
@@ -246,12 +326,30 @@ export async function validateAndCalculateCoupon(
     discount = applicableAmount;
   }
 
+  const roundedDiscount = roundMoney(discount);
   return {
     couponId: String(coupon._id),
     code: coupon.code,
     type: couponType,
     value: coupon.value,
-    discount: roundMoney(discount),
+    discount: roundedDiscount,
+    fundedBy: resolveCouponFundedBy(coupon),
+    // Rescaled if a cap brought the discount below what the delivery cost, so
+    // the parts always add back up to what comes off the order.
+    ...(shippingShares
+      ? { shippingShares: splitCouponDiscount(roundedDiscount, shippingShares) }
+      : {}),
+    ...(couponType === CouponType.FREE_SHIPPING && couponVendorId
+      ? { shippingVendorId: couponVendorId }
+      : {}),
+    ...(discountTarget === "subtotal" && applicableByVendor.size > 0
+      ? {
+          vendorShares: splitCouponDiscount(
+            roundedDiscount,
+            Object.fromEntries(applicableByVendor),
+          ),
+        }
+      : {}),
     discountTarget,
     maxDiscount:
       typeof coupon.maxDiscount === "number" ? coupon.maxDiscount : undefined,
@@ -260,30 +358,143 @@ export async function validateAndCalculateCoupon(
 }
 
 /**
- * Atomically increment the coupon's usedCount, refusing the update if doing
- * so would exceed `usageLimit`. Returns true if the increment succeeded.
- *
- * The conditional update closes the race where two concurrent checkouts both
- * pass `validateAndCalculateCoupon` and then both call increment. With this
- * helper the second one will return false and the caller can decide how to
- * handle it (typically: log and proceed, since the order has already been
- * accepted by the gateway).
+ * Who pays for a coupon's goods discount. A vendor's own coupon is always the
+ * vendor's; a store coupon is the store's unless it says the sellers pay.
  */
-async function incrementCouponUsage(couponId?: string): Promise<boolean> {
+export function resolveCouponFundedBy(coupon: {
+  vendorId?: unknown;
+  fundedBy?: string | null;
+}): "platform" | "vendor" {
+  if (coupon.vendorId) return "vendor";
+  return coupon.fundedBy === "vendor" ? "vendor" : "platform";
+}
+
+/** The one hold a shopper keeps on a coupon, whichever checkout they retry. */
+export function couponHoldKey(customerId: string): string {
+  return `c_${String(customerId).replace(/[^A-Za-z0-9_-]/g, "_")}`;
+}
+
+/**
+ * Whether the coupon has a use to spare once `holdKey`'s own hold is set
+ * aside: its limit, less what has been used, less every OTHER checkout's live
+ * hold. A coupon with no limit always has room.
+ */
+function couponHasRoom(holdKey: string | undefined, now: Date) {
+  const otherLiveHolds = {
+    $size: {
+      $filter: {
+        input: { $objectToArray: { $ifNull: ["$holds", { $literal: {} }] } },
+        as: "hold",
+        cond: {
+          $and: [
+            { $gt: ["$$hold.v", now] },
+            ...(holdKey ? [{ $ne: ["$$hold.k", holdKey] }] : []),
+          ],
+        },
+      },
+    },
+  };
+  return {
+    $or: [
+      { $not: [{ $gt: [{ $ifNull: ["$usageLimit", 0] }, 0] }] },
+      {
+        $lt: [
+          { $add: [{ $ifNull: ["$usedCount", 0] }, otherLiveHolds] },
+          "$usageLimit",
+        ],
+      },
+    ],
+  };
+}
+
+/** Drop holds whose checkout has had its window. Best-effort housekeeping. */
+async function pruneExpiredCouponHolds(couponId: string, now: Date) {
+  const expired = {
+    $filter: {
+      input: { $objectToArray: { $ifNull: ["$holds", { $literal: {} }] } },
+      as: "hold",
+      cond: { $lte: ["$$hold.v", now] },
+    },
+  };
+  await Coupon.updateOne(
+    { _id: couponId, $expr: { $gt: [{ $size: expired }, 0] } },
+    [
+      {
+        $set: {
+          holds: {
+            $arrayToObject: {
+              $filter: {
+                input: { $objectToArray: "$holds" },
+                as: "hold",
+                cond: { $gt: ["$$hold.v", now] },
+              },
+            },
+          },
+        },
+      },
+    ],
+    // Housekeeping, not an edit anyone made to the coupon.
+    { updatePipeline: true, timestamps: false },
+  ).catch((err) => console.error("Failed to prune expired coupon holds:", err));
+}
+
+/**
+ * Keep one use of a limited coupon for a checkout that is about to take
+ * payment, or refuse the coupon when every use is spent or held.
+ *
+ * A use used to be counted only once the payment landed, so every shopper who
+ * reached checkout while one use was left got the discount — the count was
+ * refused afterwards and the order kept its discount anyway. The hold is keyed
+ * by shopper, so a retry refreshes it rather than taking a second, and it
+ * lapses by itself when the checkout is abandoned.
+ */
+export async function holdCouponUse(params: {
+  couponId: string;
+  holdKey: string;
+}): Promise<void> {
+  const { couponId, holdKey } = params;
+  const now = new Date();
+  if (Types.ObjectId.isValid(couponId)) {
+    const held = await Coupon.findOneAndUpdate(
+      { _id: couponId, usageLimit: { $gt: 0 }, $expr: couponHasRoom(holdKey, now) },
+      { $set: { [`holds.${holdKey}`]: new Date(now.getTime() + COUPON_HOLD_WINDOW_MS) } },
+      { projection: { _id: 1 }, timestamps: false },
+    ).lean();
+    if (held) {
+      await pruneExpiredCouponHolds(couponId, now);
+      return;
+    }
+    // Refused — or a coupon with no limit, which needs no hold at all.
+    const unlimited = await Coupon.exists({
+      _id: couponId,
+      $or: [{ usageLimit: null }, { usageLimit: { $lte: 0 } }],
+    });
+    if (unlimited) return;
+  }
+  throw new ValidationError({
+    code: ["This coupon has reached its usage limit"],
+  });
+}
+
+/**
+ * Count one use of the coupon, turning `holdKey`'s hold into the use. Refused
+ * when the coupon has no use to spare beyond other checkouts' holds — which a
+ * live hold of this checkout's own guarantees it has. Returns true if counted.
+ */
+async function consumeCouponUse(
+  couponId: string | undefined,
+  holdKey?: string,
+): Promise<boolean> {
   if (!couponId || !Types.ObjectId.isValid(couponId)) return false;
 
   const result = await Coupon.findOneAndUpdate(
+    { _id: couponId, $expr: couponHasRoom(holdKey, new Date()) },
     {
-      _id: couponId,
-      $or: [
-        { usageLimit: null },
-        { usageLimit: { $exists: false } },
-        { $expr: { $lt: ["$usedCount", "$usageLimit"] } },
-      ],
+      $inc: { usedCount: 1 },
+      ...(holdKey ? { $unset: { [`holds.${holdKey}`]: "" } } : {}),
     },
-    { $inc: { usedCount: 1 } },
-    { new: true },
-  );
+    { projection: { _id: 1 } },
+  ).lean();
 
   if (!result) {
     console.warn(
@@ -295,11 +506,29 @@ async function incrementCouponUsage(couponId?: string): Promise<boolean> {
 }
 
 /**
- * Decrement a coupon's usedCount when a previously-counted order is cancelled
- * or fully refunded. Floors at 0 to avoid going negative if state is ever
- * inconsistent.
+ * Take a use of the coupon for an order that commits before any payment —
+ * cash on delivery, a pay-later pre-order — or refuse the coupon. Taken before
+ * the order exists, so a coupon with no use left is refused instead of the
+ * order being placed with its discount and the use going uncounted. Give it
+ * back with `releaseCouponUse` if the order then fails to be created.
  */
-async function decrementCouponUsage(couponId?: string) {
+export async function takeCouponUse(params: {
+  couponId: string;
+  holdKey: string;
+}): Promise<void> {
+  if (!(await consumeCouponUse(params.couponId, params.holdKey))) {
+    throw new ValidationError({
+      code: ["This coupon has reached its usage limit"],
+    });
+  }
+}
+
+/**
+ * Decrement a coupon's usedCount when a previously-counted order is cancelled
+ * or fully refunded, or when an order a use was taken for was never created.
+ * Floors at 0 to avoid going negative if state is ever inconsistent.
+ */
+export async function releaseCouponUse(couponId?: string) {
   if (!couponId || !Types.ObjectId.isValid(couponId)) return;
   await Coupon.findOneAndUpdate(
     { _id: couponId, usedCount: { $gt: 0 } },
@@ -326,12 +555,15 @@ export async function applyCouponUsageForOrder(orderId: string) {
       "coupon.usageIncremented": { $ne: true },
     },
     { $set: { "coupon.usageIncremented": true } },
-    { new: false },
+    { returnDocument: "before" },
   );
 
   if (!claimed || !claimed.coupon?.couponId) return false;
 
-  const ok = await incrementCouponUsage(String(claimed.coupon.couponId));
+  const ok = await consumeCouponUse(
+    String(claimed.coupon.couponId),
+    claimed.customerId ? couponHoldKey(String(claimed.customerId)) : undefined,
+  );
   if (!ok) {
     // Atomic increment refused (limit reached). Roll back the flag so a
     // future retry won't think it's done — admins can reconcile manually.
@@ -353,9 +585,40 @@ export async function reverseCouponUsageForOrder(orderId: string) {
   const claimed = await Order.findOneAndUpdate(
     { _id: orderId, "coupon.usageIncremented": true },
     { $set: { "coupon.usageIncremented": false } },
-    { new: false },
+    { returnDocument: "before" },
   );
 
   if (!claimed || !claimed.coupon?.couponId) return;
-  await decrementCouponUsage(String(claimed.coupon.couponId));
+  await releaseCouponUse(String(claimed.coupon.couponId));
+}
+
+/**
+ * Split a coupon's goods discount across vendors in proportion to `weights`,
+ * to the cent, so the shares add back up exactly to `discount`. The cent left
+ * by rounding goes to the vendor with the most at stake.
+ *
+ * Also how a share recorded against one discount is rescaled when checkout
+ * caps the discount lower (a cart worth less than the coupon).
+ */
+export function splitCouponDiscount(
+  discount: number,
+  weights: Record<string, number>,
+): Record<string, number> {
+  const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
+  const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  if (!(discount > 0) || totalWeight <= 0) return {};
+
+  const shares: Record<string, number> = {};
+  let assigned = 0;
+  for (const [vendorId, weight] of entries) {
+    const share = Math.floor(((discount * weight) / totalWeight) * 100) / 100;
+    shares[vendorId] = share;
+    assigned += share;
+  }
+  const remainder = roundMoney(discount - assigned);
+  if (remainder !== 0) {
+    const [largest] = [...entries].sort((a, b) => b[1] - a[1])[0];
+    shares[largest] = roundMoney(shares[largest] + remainder);
+  }
+  return shares;
 }

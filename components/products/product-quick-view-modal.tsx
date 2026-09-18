@@ -808,6 +808,16 @@ export function ProductQuickViewModal({
               <div className="grid grid-cols-2 gap-2 rounded-md bg-white/70 p-2">
                 <span>Due today {formatPrice(preorderTerms.dueNow)}</span>
                 <span>Later {formatPrice(preorderTerms.dueLater)}</span>
+                {/* "Due today" covers the item alone — checkout still charges
+                    shipping and tax. See the note in product-details. */}
+                {preorderTerms.dueLater > 0 ? (
+                  <span className="col-span-2 opacity-80">
+                    {tf(
+                      "product.preorderShippingAtCheckout",
+                      "Shipping and tax are charged at checkout.",
+                    )}
+                  </span>
+                ) : null}
               </div>
             </div>
           )}
@@ -825,7 +835,8 @@ export function ProductQuickViewModal({
             {quoteOnly ? (
               <button
                 onClick={openQuoteOnProductPage}
-                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-foreground px-2 text-xs font-semibold text-background transition-all hover:bg-foreground/90"
+                data-slot="button"
+                className="flex h-9 flex-1 items-center justify-center gap-1.5 bg-foreground px-2 text-xs font-semibold text-background transition-all hover:bg-foreground/90"
               >
                 {quoteButtonText}
               </button>
@@ -834,8 +845,9 @@ export function ProductQuickViewModal({
             <button
               onClick={handleAddToCart}
               disabled={isUnavailable || isAddingToCart}
+              data-slot="button"
               className={cn(
-                "flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-all",
+                "flex h-9 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-all",
                 isUnavailable
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-foreground text-background hover:bg-foreground/90"
@@ -855,8 +867,9 @@ export function ProductQuickViewModal({
             <button
               onClick={handleBuyNow}
               disabled={isUnavailable || isBuyingNow}
+              data-slot="button"
               className={cn(
-                "flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-all",
+                "flex h-9 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-all",
                 isUnavailable
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -1036,7 +1049,8 @@ export function ProductQuickViewModal({
               {quoteOnly ? (
                 <button
                   onClick={openQuoteOnProductPage}
-                  className="flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-foreground px-3 text-[11px] font-medium text-background transition-all hover:bg-foreground/90 sm:h-11 sm:gap-2 sm:px-6 sm:text-sm"
+                  data-slot="button"
+                  className="flex h-8 w-full items-center justify-center gap-1.5 bg-foreground px-3 text-[11px] font-medium text-background transition-all hover:bg-foreground/90 sm:h-11 sm:gap-2 sm:px-6 sm:text-sm"
                 >
                   {quoteButtonText}
                 </button>
@@ -1045,7 +1059,7 @@ export function ProductQuickViewModal({
               {/* First Row: Quantity + Add to Cart */}
               <div className="flex items-center gap-2 sm:gap-3">
                 {/* Quantity Selector */}
-                <div className="flex items-center border rounded-lg overflow-hidden bg-background">
+                <div className="flex items-center border rounded-button overflow-hidden bg-background">
                   <NumberInput
                     value={quantity}
                     min={1}
@@ -1083,8 +1097,9 @@ export function ProductQuickViewModal({
                 <button
                   onClick={handleAddToCart}
                   disabled={isUnavailable || isAddingToCart}
+                  data-slot="button"
                   className={cn(
-                    "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
+                    "flex h-8 flex-1 items-center justify-center gap-1.5 px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
                     isUnavailable
                       ? "bg-muted text-muted-foreground cursor-not-allowed"
                       : "bg-foreground text-background hover:bg-foreground/90"
@@ -1107,8 +1122,9 @@ export function ProductQuickViewModal({
               <button
                 onClick={handleBuyNow}
                 disabled={isUnavailable || isBuyingNow}
+                data-slot="button"
                 className={cn(
-                  "flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
+                  "flex h-8 w-full items-center justify-center gap-1.5 px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
                   isUnavailable
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -1148,6 +1164,14 @@ export function ProductQuickViewModal({
                     <div className="grid grid-cols-2 gap-2 rounded-md bg-white/70 p-2">
                       <span>Due today {formatPrice(preorderTerms.dueNow)}</span>
                       <span>Later {formatPrice(preorderTerms.dueLater)}</span>
+                      {preorderTerms.dueLater > 0 ? (
+                        <span className="col-span-2 opacity-80">
+                          {tf(
+                            "product.preorderShippingAtCheckout",
+                            "Shipping and tax are charged at checkout.",
+                          )}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 )}

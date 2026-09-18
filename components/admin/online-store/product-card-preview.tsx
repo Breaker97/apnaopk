@@ -2,6 +2,7 @@
 
 import { MapPin, Star } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
+import { CardBrandLogo } from "@/components/products/card-brand-logo";
 import { cn } from "@/lib/utils";
 import {
   cardButtonCss,
@@ -27,7 +28,8 @@ import {
  */
 
 const MOCK = {
-  brand: "Acme",
+  brand: "Prada",
+  seller: "Acme",
   name: "Aurora Runner 2 Limited Edition",
   category: "Sneakers",
   price: "$999.00",
@@ -50,6 +52,7 @@ const ACTION_LABELS = {
 
 export function ProductCardPreview({
   config,
+  brand = null,
   outOfStock = true,
   hasOptions = false,
   actionLabels = ACTION_LABELS,
@@ -57,6 +60,11 @@ export function ProductCardPreview({
   className,
 }: {
   config: ProductCardConfig;
+  /**
+   * One of the store's own brands, when one has a logo: the Brand element
+   * then previews a real logo at the real size limit rather than a stand-in.
+   */
+  brand?: { name: string; logo: string } | null;
   /** The mock is out of stock so the Stock element has something to show. */
   outOfStock?: boolean;
   /**
@@ -159,13 +167,64 @@ export function ProductCardPreview({
         );
 
       case "brand":
+        if (style.brandDisplay !== "logo") {
+          return (
+            <p
+              key={key}
+              className="truncate px-0.5 text-xs font-semibold text-foreground"
+              style={cardTypographyCss(typography.brand)}
+            >
+              {brand?.name ?? MOCK.brand}
+            </p>
+          );
+        }
+        // The store's own logo through the storefront's own component, so
+        // the preview stops growing exactly where the card does.
+        if (brand?.logo) {
+          return (
+            <CardBrandLogo
+              key={key}
+              src={brand.logo}
+              name={brand.name}
+              height={style.brandLogoHeight}
+            />
+          );
+        }
+        // No brand logo uploaded yet: a wordmark drawn as a scalable image of
+        // a typical logo's proportions, bound by the same height and width
+        // rules — a text stand-in grew without limit where a logo cannot.
+        return (
+          <span key={key} className="block px-0.5" style={{ height: style.brandLogoHeight }}>
+            <svg
+              viewBox="0 0 120 20"
+              role="img"
+              aria-label={MOCK.brand}
+              className="h-full w-auto max-w-full text-foreground"
+            >
+              <text
+                x="0"
+                y="17"
+                fontSize="21"
+                fontFamily="Georgia, 'Times New Roman', serif"
+                fontWeight="700"
+                textLength="120"
+                lengthAdjust="spacingAndGlyphs"
+                fill="currentColor"
+              >
+                {MOCK.brand.toUpperCase()}
+              </text>
+            </svg>
+          </span>
+        );
+
+      case "seller":
         return (
           <p
             key={key}
             className="truncate px-0.5 text-xs font-semibold text-foreground"
-            style={cardTypographyCss(typography.brand)}
+            style={cardTypographyCss(typography.seller)}
           >
-            {MOCK.brand}
+            {MOCK.seller}
           </p>
         );
 

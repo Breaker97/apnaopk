@@ -21,6 +21,7 @@ import {
   Bookmark,
   CheckCircle2,
   ChevronDown,
+  Copy,
   Eye,
   EyeOff,
   ExternalLink,
@@ -49,6 +50,7 @@ import type { PageSwitcher } from "@/lib/storefront/pages/page-switcher";
 import type {
   BlockInstance,
   SectionCatalogEntry,
+  Field,
   SectionInstance,
 } from "@/lib/storefront/sections/types";
 import {
@@ -65,7 +67,15 @@ import {
 } from "@/components/store/section-preview-bridge";
 import { BlockEditor } from "./block-editor";
 import { SectionPreviewFrame } from "./section-preview-frame";
-import { EditorGroup, FieldRenderer, humanize } from "./field-renderer";
+import { EditorShell } from "./editor-shell";
+import { UnitField } from "@/components/admin/unit-field";
+import {
+  EditorGroup,
+  FieldRenderer,
+  humanize,
+  isCompactField,
+  isFieldShown,
+} from "./field-renderer";
 import {
   buildInstanceFromCatalog,
   cloneSectionInstance,
@@ -281,6 +291,100 @@ export function StorePageBuilder({
   };
 
   /**
+   * The generated inspector, in the slider editor's shape: the preview with
+   * the short controls — numbers, switches, dropdowns, swatches — in a
+   * property panel beside it, then the wide ones — copy, pickers, images —
+   * under it at full width, then the blocks. A section with no preview
+   * (a spacer, a chrome group) keeps one column.
+   *
+   * The design (variant) picker is hidden for now — stored variants still
+   * render and still gate which fields appear; only the switcher UI is
+   * gone. Fields the chosen design ignores are hidden, not disabled — a
+   * control that changes nothing reads as broken. Their stored values stay.
+   */
+  const genericEditor = (section: SectionInstance, entry: SectionCatalogEntry) => {
+    const fields = fieldsForVariant(
+      entry.fields.filter((field) => field.key !== VARIANT_FIELD_KEY),
+      activeVariantKey(entry, section.settings),
+    );
+    const preview = sectionPreview(section);
+    const compact = preview ? fields.filter((field) => isCompactField(field)) : [];
+    // Only what shows: a product picker that waits on "Hand-picked" is not
+    // a reason to draw an empty Content heading under the preview.
+    const wide = (preview ? fields.filter((field) => !isCompactField(field)) : fields).filter(
+      (field) => isFieldShown(field, section.settings),
+    );
+    const renderFields = (list: Field[], layout: "grid" | "panel") => (
+      <FieldRenderer
+        fields={list}
+        layout={layout}
+        settings={section.settings}
+        onChange={(key, value) => updateSectionSetting(section.id, key, value)}
+        languages={languages}
+        defaultLanguage={defaultLanguage}
+        imageContext={{
+          locale,
+          sectionType: section.type,
+          sectionId: section.id,
+        }}
+      />
+    );
+    const settingsTitle = tSafe("admin.storeBuilder.sectionEditor.settings", "Settings");
+    return (
+      <EditorShell
+        preview={preview}
+        panel={compact.length > 0 ? renderFields(compact, "panel") : null}
+      >
+        {wide.length > 0 ? (
+          // A product or category picker draws its own titled header, so
+          // alone under the preview it needs no heading over it — the panel
+          // already has a Content group, and a second one read as a repeat.
+          compact.length > 0 &&
+          wide.every((field) => field.type === "productList" || field.type === "categoryList") ? (
+            renderFields(wide, "grid")
+          ) : (
+            <EditorGroup
+              title={
+                compact.length > 0
+                  ? tSafe("admin.storeBuilder.sectionEditor.content", "Content")
+                  : settingsTitle
+              }
+            >
+              {renderFields(wide, "grid")}
+            </EditorGroup>
+          )
+        ) : null}
+        {entry.blocks.length > 0 ? (
+          <EditorGroup
+            title={tSafe(
+              `admin.storeBuilder.blockGroups.${entry.blocks[0].type}`,
+              `${humanize(entry.blocks[0].type)}s`,
+            )}
+            count={(section.blocks ?? []).length}
+            hint={tSafe(
+              "admin.storeBuilder.sectionEditor.blocksHint",
+              "Drag to reorder. Open a row to edit it.",
+            )}
+          >
+            <BlockEditor
+              entry={entry}
+              variant={activeVariantKey(entry, section.settings)}
+              sectionId={section.id}
+              blocks={section.blocks ?? []}
+              onChange={(updater) =>
+                updateSectionBlocks(section.id, updater)
+              }
+              languages={languages}
+              defaultLanguage={defaultLanguage}
+              locale={locale}
+            />
+          </EditorGroup>
+        ) : null}
+      </EditorShell>
+    );
+  };
+
+  /**
    * The same frame, narrowed to ONE block of a section — what a block list
    * shows beside each row so a merchant sees that row alone.
    */
@@ -334,6 +438,39 @@ export function StorePageBuilder({
       return next;
     });
     setExpandedId(instance.id);
+  };
+
+  /**
+   * A copy of the section directly under it, opened: a copy is made to be
+   * tweaked into the next section, so it lands beside its original the way
+   * the slider's Duplicate slide does. It is cloned from CURRENT state inside
+   * the updater, never from the row's render copy; only its id is minted
+   * up front, so the row can be opened and brought into view.
+   */
+  const duplicateSection = (id: string) => {
+    if (isPageFull) return;
+    const copyId = crypto.randomUUID();
+    setSections((current) => {
+      const index = current.findIndex((section) => section.id === id);
+      if (index < 0 || current.length >= MAX_SECTIONS_PER_PAGE) return current;
+      return [
+        ...current.slice(0, index + 1),
+        cloneSectionInstance(current[index], copyId),
+        ...current.slice(index + 1),
+      ];
+    });
+    setExpandedId(copyId);
+    // The row exists once React commits the insert. Duplicating from a long
+    // open editor leaves the page scrolled somewhere in the middle of the
+    // copy's identical editor, which looks as if nothing happened — so show
+    // the copy whole when it fits, and its top when it does not.
+    requestAnimationFrame(() => {
+      const row = document.getElementById(`section-row-${copyId}`);
+      row?.scrollIntoView({
+        behavior: "smooth",
+        block: row.offsetHeight > window.innerHeight ? "start" : "nearest",
+      });
+    });
   };
 
   const updateSection = (id: string, patch: Partial<SectionInstance>) => {
@@ -604,11 +741,42 @@ export function StorePageBuilder({
                   entry={entry}
                   expanded={expandedId === section.id}
                   tSafe={tSafe}
+                  // A spacer is one number; it lives in the row, and the
+                  // row never opens.
+                  inline={
+                    entry?.type === "gap" ? (
+                      <UnitField
+                        ariaLabel={tSafe("admin.storeBuilder.fields.height", "Height")}
+                        value={
+                          typeof section.settings.height === "number"
+                            ? section.settings.height
+                            : 48
+                        }
+                        unit="px"
+                        min={4}
+                        max={400}
+                        step={4}
+                        onChange={(height) =>
+                          updateSectionSetting(section.id, "height", height)
+                        }
+                        className="w-28"
+                      />
+                    ) : null
+                  }
                   onToggleExpanded={() =>
                     selectSection(
                       expandedId === section.id ? null : section.id,
                     )
                   }
+                  // A single-use type (the paid rail) holds one instance per
+                  // page — the write gate refuses a second — and a locked
+                  // core's copy could never be deleted again.
+                  onDuplicate={
+                    entry && !entry.singleton && !entry.locked
+                      ? () => duplicateSection(section.id)
+                      : undefined
+                  }
+                  duplicateDisabled={isPageFull}
                   onSaveToLibrary={() => setSaveToLibrary(section)}
                   onToggleVisible={() =>
                     updateSection(section.id, { visible: !section.visible })
@@ -722,9 +890,8 @@ export function StorePageBuilder({
                     /* Layout tiles, then copy and paint, then the deals —
                        a picker that offers only products on sale, capped
                        at the layout's slot count. */
-                    <div className="space-y-5">
-                      {sectionPreview(section)}
-                      <CountdownOfferEditor
+                    <CountdownOfferEditor
+                        preview={sectionPreview(section)}
                         entry={entry}
                         variant={activeVariantKey(entry, section.settings)}
                         settings={section.settings}
@@ -736,7 +903,6 @@ export function StorePageBuilder({
                         locale={locale}
                         sectionId={section.id}
                       />
-                    </div>
                   ) : entry?.type === "promotion-banner" ? (
                     /* The full slider editor, inline — the banner's slides
                        live in THIS section's settings, not the global
@@ -777,74 +943,7 @@ export function StorePageBuilder({
                       locale={locale}
                     />
                   ) : entry ? (
-                    <div className="space-y-5">
-                      {sectionPreview(section)}
-                      {/* The design (variant) picker is hidden for now —
-                          stored variants still render and still gate which
-                          fields appear below; only the switcher UI is gone. */}
-                      {/* Fields the chosen design ignores are hidden, not
-                          disabled — a control that changes nothing reads as
-                          broken. Their stored values stay put. */}
-                      {fieldsForVariant(
-                        entry.fields.filter(
-                          (field) => field.key !== VARIANT_FIELD_KEY,
-                        ),
-                        activeVariantKey(entry, section.settings),
-                      ).length > 0 ? (
-                        <EditorGroup
-                          title={tSafe(
-                            "admin.storeBuilder.sectionEditor.settings",
-                            "Settings",
-                          )}
-                        >
-                          <FieldRenderer
-                            fields={fieldsForVariant(
-                              entry.fields.filter(
-                                (field) => field.key !== VARIANT_FIELD_KEY,
-                              ),
-                              activeVariantKey(entry, section.settings),
-                            )}
-                            settings={section.settings}
-                            onChange={(key, value) =>
-                              updateSectionSetting(section.id, key, value)
-                            }
-                            languages={languages}
-                            defaultLanguage={defaultLanguage}
-                            imageContext={{
-                              locale,
-                              sectionType: section.type,
-                              sectionId: section.id,
-                            }}
-                          />
-                        </EditorGroup>
-                      ) : null}
-                      {entry.blocks.length > 0 ? (
-                        <EditorGroup
-                          title={tSafe(
-                            `admin.storeBuilder.blockGroups.${entry.blocks[0].type}`,
-                            `${humanize(entry.blocks[0].type)}s`,
-                          )}
-                          count={(section.blocks ?? []).length}
-                          hint={tSafe(
-                            "admin.storeBuilder.sectionEditor.blocksHint",
-                            "Drag to reorder. Open a row to edit it.",
-                          )}
-                        >
-                          <BlockEditor
-                            entry={entry}
-                            variant={activeVariantKey(entry, section.settings)}
-                            sectionId={section.id}
-                            blocks={section.blocks ?? []}
-                            onChange={(updater) =>
-                              updateSectionBlocks(section.id, updater)
-                            }
-                            languages={languages}
-                            defaultLanguage={defaultLanguage}
-                            locale={locale}
-                          />
-                        </EditorGroup>
-                      ) : null}
-                    </div>
+                    genericEditor(section, entry)
                   ) : null}
                 </SortableSectionRow>
                   {/* Insert point between two sections — invisible until the
@@ -1121,7 +1220,10 @@ function SortableSectionRow({
   onToggleExpanded,
   onToggleVisible,
   onRemove,
+  onDuplicate,
+  duplicateDisabled,
   onSaveToLibrary,
+  inline,
   children,
 }: {
   section: SectionInstance;
@@ -1131,9 +1233,20 @@ function SortableSectionRow({
   onToggleExpanded: () => void;
   onToggleVisible: () => void;
   onRemove: () => void;
+  /** Absent when this section cannot have a second instance on the page. */
+  onDuplicate?: () => void;
+  /** The page is at its section cap. */
+  duplicateDisabled?: boolean;
   onSaveToLibrary: () => void;
+  /**
+   * The section's whole editor, in the row: a control given here sits
+   * beside the name and the row does not open — a spacer's one number
+   * needs no page of its own.
+   */
+  inline?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const opens = Boolean(entry) && !inline;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: section.id });
 
@@ -1156,7 +1269,9 @@ function SortableSectionRow({
       id={`section-row-${section.id}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "gap-0 rounded-md p-0",
+        // Scrolled-to rows stop below the pinned dashboard header and page
+        // bar instead of under them.
+        "scroll-mt-[calc(var(--dashboard-header-height,4rem)+var(--builder-bar-h,0px)+0.75rem)] gap-0 rounded-md p-0",
         isDragging && "z-10 shadow-lg",
         !section.visible && "opacity-60",
       )}
@@ -1167,9 +1282,10 @@ function SortableSectionRow({
           fold or delete it without scrolling back up. */}
       <div
         className={cn(
-          "flex items-center gap-1.5 px-4 py-3.5",
+          "flex items-center gap-1.5 px-4",
+          inline ? "py-2" : "py-3.5",
           expanded &&
-            entry &&
+            opens &&
             "sticky top-[calc(var(--dashboard-header-height,4rem)+var(--builder-bar-h,0px))] z-20 rounded-t-md border-b border-border bg-card",
         )}
       >
@@ -1187,7 +1303,7 @@ function SortableSectionRow({
           type="button"
           onClick={onToggleExpanded}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
-          disabled={!entry}
+          disabled={!opens}
         >
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">
@@ -1197,7 +1313,7 @@ function SortableSectionRow({
               {description}
             </span>
           </span>
-          {entry ? (
+          {opens ? (
             <ChevronDown
               className={cn(
                 "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
@@ -1206,6 +1322,8 @@ function SortableSectionRow({
             />
           ) : null}
         </button>
+
+        {inline ? <div className="mr-2 shrink-0">{inline}</div> : null}
 
         {entry?.locked ? (
           <Badge variant="outline" className="hidden rounded-md sm:inline-flex">
@@ -1217,6 +1335,20 @@ function SortableSectionRow({
           </Badge>
         ) : null}
 
+        {onDuplicate ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={onDuplicate}
+            disabled={duplicateDisabled}
+            aria-label={tSafe("admin.storeBuilder.duplicateSection", "Duplicate section")}
+            title={tSafe("admin.storeBuilder.duplicateSection", "Duplicate section")}
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+        ) : null}
         {/* Core sections stay: no library copies, no visibility toggle, no
             delete — the write gate refuses all three server-side anyway. */}
         {!entry?.locked ? (
@@ -1261,7 +1393,7 @@ function SortableSectionRow({
         ) : null}
       </div>
 
-      {expanded && entry ? (
+      {expanded && opens ? (
         <div className="p-4">{children}</div>
       ) : null}
     </Card>

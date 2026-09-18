@@ -25,6 +25,34 @@ const { Schema, models, model } = mongoose;
  * anyone empty a shelf with a contact form.
  */
 
+/**
+ * The price the merchant answered a quote with.
+ *
+ * Priced for a QUANTITY, not per unit in the abstract: a quote is normally a
+ * volume price, so the offer is only usable for exactly `quantity` units.
+ * Letting the shopper take fewer at the same unit price would hand them the
+ * bulk rate for a single piece.
+ *
+ * Nothing here records "live", "expired" or "used" — see
+ * lib/quotes/quote-offer.ts, which derives all of that from `expiresAt`,
+ * `withdrawnAt` and the quote's `orderId`.
+ */
+export interface IQuoteOffer {
+  /** Price of one unit, in the store currency. */
+  unitPrice: number;
+  /** The exact quantity this price is good for. */
+  quantity: number;
+  /** Shown to the shopper with the price — terms, lead time, what is included. */
+  note?: string;
+  /** After this moment the offer stops resolving. Optional: no date, no expiry. */
+  expiresAt?: Date;
+  offeredAt: Date;
+  /** The admin or staff member who sent it. */
+  offeredBy?: mongoose.Types.ObjectId;
+  /** Set when the merchant pulled the offer back; clears on the next one. */
+  withdrawnAt?: Date;
+}
+
 export interface IQuoteRequest {
   _id: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
@@ -51,9 +79,37 @@ export interface IQuoteRequest {
   status: QuoteRequestStatus;
   /** Internal note the merchant writes on the row; never shown to the shopper. */
   adminNote?: string;
+  /** The price the merchant sent back, when they have sent one. */
+  offer?: IQuoteOffer;
+  /**
+   * Every earlier offer, oldest first — a quote is a negotiation, and the
+   * merchant needs to see what they already put on the table before they
+   * re-price. Capped at the last 10 so a long haggle cannot grow the document
+   * without bound.
+   */
+  offerHistory?: IQuoteOffer[];
+  /**
+   * The order the offer was spent on. Its presence is what makes an offer
+   * single-use, and the order's own status is what can hand it back: a
+   * cancelled order releases the offer without anything having to sweep it.
+   */
+  orderId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const QuoteOfferSchema = new Schema<IQuoteOffer>(
+  {
+    unitPrice: { type: Number, required: true, min: 0 },
+    quantity: { type: Number, required: true, min: 1 },
+    note: { type: String, trim: true, maxlength: 2000 },
+    expiresAt: { type: Date },
+    offeredAt: { type: Date, required: true, default: Date.now },
+    offeredBy: { type: Schema.Types.ObjectId, ref: "User" },
+    withdrawnAt: { type: Date },
+  },
+  { _id: false },
+);
 
 const QuoteRequestSchema = new Schema<IQuoteRequest>(
   {
@@ -89,6 +145,9 @@ const QuoteRequestSchema = new Schema<IQuoteRequest>(
       index: true,
     },
     adminNote: { type: String, trim: true, maxlength: 2000 },
+    offer: { type: QuoteOfferSchema },
+    offerHistory: { type: [QuoteOfferSchema], default: undefined },
+    orderId: { type: Schema.Types.ObjectId, ref: "Order" },
   },
   { timestamps: true },
 );
@@ -99,6 +158,12 @@ const QuoteRequestSchema = new Schema<IQuoteRequest>(
 QuoteRequestSchema.index({ status: 1, createdAt: -1 });
 // A vendor only ever sees their own requests, newest first.
 QuoteRequestSchema.index({ vendorId: 1, createdAt: -1 });
+// The shopper's own list at /account/quotes, and the lookup that decides
+// whether they have a live price for the product they are looking at.
+QuoteRequestSchema.index({ userId: 1, createdAt: -1 });
+// Claiming a signed-out request once its sender logs in with the same address
+// (lib/customers/customer.ts, claimGuestCustomerData).
+QuoteRequestSchema.index({ email: 1, userId: 1 });
 
 export const QuoteRequest =
   models.QuoteRequest ||

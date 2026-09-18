@@ -1,7 +1,9 @@
 import { Types } from "mongoose";
-import { Order, PaymentTransaction } from "@/models";
+import { CommissionInvoice, Order, PaymentTransaction, Payout } from "@/models";
 import { isPlatformCollectedCod } from "@/lib/payments/cod-collection";
+import { vendorEarnsShipping } from "@/lib/shipping/shipping-revenue";
 import {
+  isPlatformSettled,
   platformCollectedCodMatch,
   platformSettledOrderFilter,
   selfCollectedOrderFilter,
@@ -10,8 +12,13 @@ import {
 import {
   SETTLED_ORDER_PAYMENT_STATUSES,
   SETTLED_SUB_ORDER_PAYMENT_MATCH,
+  uncollectedPreorderBalanceMatch,
 } from "@/lib/orders/order-payment-status";
 import { roundMoney } from "@/lib/intl/money";
+import {
+  resolveReturnPolicy,
+  type ReturnPolicySettingsLike,
+} from "@/lib/returns/return-policy";
 
 /**
  * The arithmetic behind vendor payouts, in one place.
@@ -39,16 +46,21 @@ import { roundMoney } from "@/lib/intl/money";
 /** The order fields `payableRatioFor` and the currency grouping read. */
 export const PAYABLE_ORDER_PROJECTION =
   // `paymentMethod` is read only by the cash-on-delivery shipping rule, which
-  // cannot tell a COD order from a card one without it.
-  "total subtotal discount coupon currency paymentMethod items.lineDiscount subOrders";
+  // cannot tell a COD order from a card one without it. `channel` and
+  // `stripePaymentIntentId` complete the custody question the delivery charge
+  // asks: a vendor is paid their delivery out of money the store is holding.
+  "total subtotal discount coupon currency paymentMethod channel stripePaymentIntentId items.lineDiscount subOrders";
 
-interface PayableOrderLike {
+export interface PayableOrderLike {
   total?: number;
   subtotal?: number;
   discount?: number;
-  coupon?: { type?: string } | null;
+  coupon?: { type?: string; fundedBy?: string | null } | null;
   /** Read only by the cash-on-delivery shipping rule. */
   paymentMethod?: string | null;
+  /** With `paymentMethod`, whether the store holds this sale's money. */
+  channel?: string | null;
+  stripePaymentIntentId?: string | null;
   /**
    * The currency the sale was in. Absent on orders written before the snapshot
    * existed, which are treated as the store's own — the same assumption the
@@ -58,12 +70,16 @@ interface PayableOrderLike {
   items?: Array<{ lineDiscount?: { amount?: number } | null }> | null;
 }
 
-interface PayableSubOrderLike {
+export interface PayableSubOrderLike {
   vendorId?: unknown;
   subtotal?: number;
+  /** This consignment's slice of a scoped coupon — see `payableRatioFor`. */
+  couponDiscount?: number | null;
   commission?: number;
   vendorEarnings?: number;
   shippingCost?: number;
+  /** What a free-shipping coupon took off this parcel — see `shippingDiscountFor`. */
+  shippingDiscount?: number | null;
   status?: string;
   payoutStatus?: string;
   payoutId?: unknown;
@@ -72,9 +88,64 @@ interface PayableSubOrderLike {
   payoutDate?: Date | null;
   /** When this consignment's commission invoice was paid. */
   commissionSettledAt?: Date | null;
+  /** When that invoice fixed its amount — see `fetchVendorCommissionCredit`. */
+  commissionClaimedAt?: Date | null;
   /** Who took the cash at the door — see lib/cod-collection.ts. */
   codCollectedBy?: string | null;
   fulfillment?: { method?: string } | null;
+  /** When the consignment reached the shopper — the payout hold counts from it. */
+  deliveredAt?: Date | string | null;
+  /** Who earns the delivery charge — see lib/shipping/shipping-revenue.ts. */
+  shippingRevenueTo?: string | null;
+  platformLabelAt?: Date | string | null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The latest delivery a payout may pay for: delivered at least one return
+ * window ago.
+ *
+ * A payout used to take a sale the moment it was delivered. The shopper then
+ * has the store's whole return window to send it back, and a refund after the
+ * payout can only be recovered from that vendor's NEXT payout — which a vendor
+ * who stops selling never has. So the payout waits out the window the store
+ * already promises its shoppers, and only then pays.
+ */
+export function payoutHoldCutoff(
+  settings: ReturnPolicySettingsLike | null | undefined,
+  now: Date = new Date(),
+): Date {
+  const { windowDays } = resolveReturnPolicy(settings);
+  return new Date(now.getTime() - windowDays * DAY_MS);
+}
+
+/**
+ * Whether a delivered consignment has waited out the hold. One delivered
+ * before the timestamp existed carries none, and is payable as it always was.
+ */
+export function isPastPayoutHold(
+  sub: Pick<PayableSubOrderLike, "deliveredAt">,
+  cutoff: Date,
+): boolean {
+  if (!sub.deliveredAt) return true;
+  const delivered = new Date(sub.deliveredAt).getTime();
+  return !Number.isFinite(delivered) || delivered <= cutoff.getTime();
+}
+
+/** Mongo mirror of {@link isPastPayoutHold}, for a consignment `$elemMatch`. */
+export function pastPayoutHoldMatch(cutoff: Date): Record<string, unknown> {
+  return {
+    $and: [
+      {
+        $or: [
+          { deliveredAt: { $lte: cutoff } },
+          { deliveredAt: { $exists: false } },
+          { deliveredAt: null },
+        ],
+      },
+    ],
+  };
 }
 
 /**
@@ -93,6 +164,11 @@ interface PayableSubOrderLike {
 export function buildPayableOrderFilter(
   vendorId: Types.ObjectId | string,
   range?: { periodStart?: Date; periodEnd?: Date },
+  /**
+   * Only consignments delivered before this — `payoutHoldCutoff`. Omitted by a
+   * caller that wants held sales too, to show them apart.
+   */
+  deliveredBefore?: Date,
 ): Record<string, unknown> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
   // THIS consignment's money, not the order's. The order-level payment arm
@@ -104,11 +180,21 @@ export function buildPayableOrderFilter(
     status: "delivered",
     paymentStatus: SETTLED_SUB_ORDER_PAYMENT_MATCH,
     payoutStatus: { $nin: ["scheduled", "paid"] },
+    ...(deliveredBefore ? pastPayoutHoldMatch(deliveredBefore) : {}),
   };
 
   const filter: Record<string, unknown> = {
-    status: "delivered",
+    // The CONSIGNMENT has to be delivered, not the whole order. Asking the
+    // order meant a seller who delivered in January waited for a sibling
+    // seller who had not shipped yet — and for ever, if that sibling never
+    // did. An order called off entirely is out, whatever its parcels read.
+    status: { $ne: "cancelled" },
     paymentStatus: { $in: SETTLED_ORDER_PAYMENT_STATUSES },
+    // Nor while a pre-order's balance is still to come. `partially_paid` is
+    // admitted above for the split cash order, and a deposit pre-order sits in
+    // the same state: without this a 200 deposit paid out 900 of earnings on a
+    // 1,000 sale whose other 800 never arrived.
+    $nor: [uncollectedPreorderBalanceMatch()],
     // Two ways the platform can be holding this money, and they ask the
     // question at different levels — which is why this is an `$or` of whole
     // shapes rather than a custody arm spread alongside one `$elemMatch`.
@@ -176,8 +262,11 @@ export function buildCommissionOwedOrderFilter(
   };
 
   const filter: Record<string, unknown> = {
-    status: "delivered",
+    // The same order-level conditions as the payable filter, so the two stay
+    // exact complements — see there.
+    status: { $ne: "cancelled" },
     paymentStatus: { $in: SETTLED_ORDER_PAYMENT_STATUSES },
+    $nor: [uncollectedPreorderBalanceMatch()],
     // The mirror image of the payable filter, arm for arm.
     $or: [
       {
@@ -228,20 +317,31 @@ function isVendorCollectedCod(
 }
 
 /**
- * This consignment's slice of a free-shipping coupon.
+ * What a free-shipping coupon took off THIS consignment's delivery.
  *
- * The coupon discounts DELIVERY and nothing else, so it is apportioned by what
- * each consignment's delivery was rated at — the same split `decomposeOrder`
- * uses. Any other coupon reduced the goods, which the payable ratio already
- * accounts for.
+ * The consignment's own recorded slice when the order recorded one — a
+ * seller's own free-shipping coupon pays for their parcel and nobody else's.
+ * An order from before the split was recorded apportions it by what each
+ * parcel was rated at, which is how it was discounted, and is what those
+ * orders were paid out on.
+ *
+ * A coupon the STORE funded takes nothing off the seller: they earn the
+ * delivery the parcel was rated at and the store bears the promotion, exactly
+ * as it does for a discount on goods (see `storeFundedShippingShares`).
  */
 function shippingDiscountFor(
   order: PayableOrderLike,
   ratedForThisSub: number,
   ratedForOrder: number,
+  sub?: Pick<PayableSubOrderLike, "shippingDiscount">,
 ): number {
   if (order.coupon?.type !== "free_shipping") return 0;
-  if (ratedForOrder <= 0 || ratedForThisSub <= 0) return 0;
+  if (order.coupon?.fundedBy === "platform") return 0;
+  if (ratedForThisSub <= 0) return 0;
+  if (typeof sub?.shippingDiscount === "number") {
+    return Math.min(ratedForThisSub, Math.max(0, Number(sub.shippingDiscount)));
+  }
+  if (ratedForOrder <= 0) return 0;
   const discount = Math.min(
     ratedForOrder,
     Math.max(0, Number(order.discount || 0)),
@@ -530,12 +630,58 @@ export async function fetchRefundTotalsByOrder(
 export function payableRatioFor(
   order: PayableOrderLike,
   totalRefunded: number,
+  /**
+   * The consignment being paid. When it recorded its own slice of a scoped
+   * coupon, that slice is its discount — the order-wide ratio charged one
+   * vendor's coupon to every vendor by sales. Omitted, or on an order that
+   * recorded no split, the order-wide ratio stands.
+   */
+  sub?: Pick<PayableSubOrderLike, "subtotal" | "couponDiscount">,
 ): number {
   const orderTotal = Number(order.total || 0);
   const refundRatio =
     orderTotal > 0
       ? Math.min(1, Math.max(0, totalRefunded / orderTotal))
       : 0;
+
+  // A discount the store paid for leaves the vendor's sale whole: they are
+  // paid, and charged commission, on the full price.
+  const discountRatio = isStoreFundedCoupon(order)
+    ? 0
+    : couponDiscountRatioFor(order, sub);
+
+  return (1 - refundRatio) * (1 - discountRatio);
+}
+
+/**
+ * Whether the store, rather than the sellers, paid for this order's goods
+ * discount — frozen onto the order at checkout. A free-shipping coupon is not
+ * a goods discount, and an order from before the choice existed was paid for
+ * by its sellers.
+ */
+export function isStoreFundedCoupon(order: PayableOrderLike): boolean {
+  return (
+    order.coupon?.fundedBy === "platform" &&
+    order.coupon?.type !== "free_shipping"
+  );
+}
+
+/**
+ * The fraction of a consignment's goods an order's discount took off.
+ *
+ * The consignment's own recorded slice when the coupon recorded one; the
+ * order-wide ratio otherwise.
+ */
+function couponDiscountRatioFor(
+  order: PayableOrderLike,
+  sub?: Pick<PayableSubOrderLike, "subtotal" | "couponDiscount">,
+): number {
+  if (sub && typeof sub.couponDiscount === "number") {
+    const subtotal = Number(sub.subtotal || 0);
+    return subtotal > 0
+      ? Math.min(1, Math.max(0, sub.couponDiscount / subtotal))
+      : 0;
+  }
 
   const orderSubtotal = Number(order.subtotal || 0);
   const orderDiscount = Number(order.discount || 0);
@@ -547,12 +693,15 @@ export function payableRatioFor(
   const orderLevelDiscount = isFreeShippingCoupon
     ? 0
     : Math.max(0, orderDiscount - lineDiscountTotal);
-  const discountRatio =
-    orderSubtotal > 0
-      ? Math.min(1, Math.max(0, orderLevelDiscount / orderSubtotal))
-      : 0;
-
-  return (1 - refundRatio) * (1 - discountRatio);
+  // Measured against the goods AFTER line discounts, the same basis the
+  // sub-order subtotals the ratio is applied to are stored on. A POS sale
+  // stores its subtotal before line discounts, so dividing by it shrank the
+  // order discount's share: 100 of goods, 50 off the lines and 10 off the sale
+  // paid the vendor on 45 when 40 came in.
+  const discountBase = Math.max(0, orderSubtotal - lineDiscountTotal);
+  return discountBase > 0
+    ? Math.min(1, Math.max(0, orderLevelDiscount / discountBase))
+    : 0;
 }
 
 /**
@@ -578,8 +727,21 @@ export function payableRatioFor(
  * Never negative. The mirror case is not the mirror answer: less settled than
  * expected means sales are still waiting to be claimed by the next payout or
  * the next invoice, not that anybody owes anything.
+ *
+ * CUMULATIVE, and that is the half callers must not forget. The figure is every
+ * late refund there has ever been on a settled sale, so a correction the next
+ * payout or invoice already made is still inside it. Read raw, the same refund
+ * was clawed back from every payout after it and credited on every invoice
+ * after it, forever. Callers subtract what earlier settlements already applied
+ * — see {@link sumOverpaymentRecovered} and {@link sumCommissionCreditApplied}.
+ *
+ * Returned as a reading rather than a number, so `asOf` can ask what the same
+ * question would have answered at an earlier moment: only the settlements that
+ * had happened by then, and only the refunds that had been issued. That is how
+ * an invoice raised before its credit was recorded can still be told what it
+ * took.
  */
-async function settlementDrift(params: {
+async function loadSettlementDrift(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
   /** Orders carrying a settled consignment for this vendor. */
@@ -590,7 +752,7 @@ async function settlementDrift(params: {
   settledAt: (sub: PayableSubOrderLike) => Date | null | undefined;
   /** Which figure the settlement moved. */
   read: (totals: VendorPayableTotals) => number;
-}): Promise<number> {
+}): Promise<(asOf?: Date) => number> {
   const vendorObjectId = new Types.ObjectId(String(params.vendorId));
   const currency = params.currency.toUpperCase();
 
@@ -602,7 +764,7 @@ async function settlementDrift(params: {
     .lean<
       Array<PayableOrderLike & { _id: unknown; subOrders?: PayableSubOrderLike[] | null }>
     >();
-  if (settled.length === 0) return 0;
+  if (settled.length === 0) return () => 0;
 
   const settledAtByOrderId = new Map<string, Date>();
   for (const order of settled) {
@@ -616,54 +778,182 @@ async function settlementDrift(params: {
       .find(Boolean);
     if (when) settledAtByOrderId.set(String(order._id), new Date(when));
   }
-  if (settledAtByOrderId.size === 0) return 0;
+  if (settledAtByOrderId.size === 0) return () => 0;
 
   const rows = await loadRefundRows([...settledAtByOrderId.keys()]);
-  // A refund issued BEFORE the settlement was already deducted from it, so
-  // counting that one again would reclaim money nobody was ever given.
-  const isLate = (row: RefundRow) => {
-    const when = settledAtByOrderId.get(row.orderId);
-    return Boolean(when && row.createdAt > when);
-  };
 
-  const lateOrderIds = new Set(rows.filter(isLate).map((row) => row.orderId));
-  if (lateOrderIds.size === 0) return 0;
+  return (asOf) => {
+    // A settlement that had not happened yet had nothing to drift from, and a
+    // refund not yet issued cannot have made anything wrong.
+    const settledBy = (orderId: string) => {
+      const when = settledAtByOrderId.get(orderId);
+      return when && (!asOf || when <= asOf) ? when : null;
+    };
+    const known = asOf ? rows.filter((row) => row.createdAt <= asOf) : rows;
 
-  const relevant = rows.filter((row) => lateOrderIds.has(row.orderId));
-  const affected = settled.filter((order) =>
-    lateOrderIds.has(String(order._id)),
-  );
-  const valueIn = (refunds: ReadonlyMap<string, OrderRefundBreakdown>) =>
-    params.read(
-      payableInCurrency(
-        sumVendorPayable(
-          affected,
-          vendorObjectId,
-          refunds,
-          params.isSettled,
+    // A refund issued BEFORE the settlement was already deducted from it, so
+    // counting that one again would reclaim money nobody was ever given.
+    const isLate = (row: RefundRow) => {
+      const when = settledBy(row.orderId);
+      return Boolean(when && row.createdAt > when);
+    };
+
+    const lateOrderIds = new Set(known.filter(isLate).map((row) => row.orderId));
+    if (lateOrderIds.size === 0) return 0;
+
+    const relevant = known.filter((row) => lateOrderIds.has(row.orderId));
+    const affected = settled.filter((order) =>
+      lateOrderIds.has(String(order._id)),
+    );
+    const valueIn = (refunds: ReadonlyMap<string, OrderRefundBreakdown>) =>
+      params.read(
+        payableInCurrency(
+          sumVendorPayable(
+            affected,
+            vendorObjectId,
+            refunds,
+            params.isSettled,
+            currency,
+          ),
           currency,
         ),
-        currency,
-      ),
-    );
+      );
 
-  // The same arithmetic run twice over the same sales — once as the settlement
-  // saw them, once as they stand — so the difference cannot be anything but
-  // the refunds that arrived too late to be counted. Two summaries of one set
-  // of rows rather than one summary minus another: a breakdown carries
-  // per-vendor maps, and subtracting those would be inventing arithmetic
-  // nobody checked.
-  return overpaidToVendor(
-    valueIn(summarizeRefundRows(relevant, (row) => !isLate(row))),
-    valueIn(summarizeRefundRows(relevant)),
+    // The same arithmetic run twice over the same sales — once as the
+    // settlement saw them, once as they stand — so the difference cannot be
+    // anything but the refunds that arrived too late to be counted. Two
+    // summaries of one set of rows rather than one summary minus another: a
+    // breakdown carries per-vendor maps, and subtracting those would be
+    // inventing arithmetic nobody checked.
+    return overpaidToVendor(
+      valueIn(summarizeRefundRows(relevant, (row) => !isLate(row))),
+      valueIn(summarizeRefundRows(relevant)),
+    );
+  };
+}
+
+/**
+ * Overpayment earlier payouts already took back, in one currency.
+ *
+ * A cancelled or failed payout is left out: its money never left, so neither
+ * did the recovery riding on it, and the overpayment is still outstanding.
+ *
+ * Payouts written before `overpaymentRecovered` existed carry the recovery only
+ * inside `adjustments`, which is `reserveReleased − reserveHeld − recovered`.
+ * Every term but the recovery is on record, so it is worked back out rather
+ * than read as zero. Zero would have the first payout after this shipped claw
+ * back, one more time, everything those payouts already took.
+ */
+async function sumOverpaymentRecovered(
+  vendorId: Types.ObjectId | string,
+  currency: string,
+): Promise<number> {
+  const vendorObjectId = new Types.ObjectId(String(vendorId));
+  const payouts = await Payout.find({
+    vendorId: vendorObjectId,
+    currency: currency.toUpperCase(),
+    status: { $nin: ["cancelled", "failed"] },
+  })
+    .select("overpaymentRecovered adjustments preorderReserveHeld")
+    .lean<
+      Array<{
+        _id: unknown;
+        overpaymentRecovered?: number | null;
+        adjustments?: number | null;
+        preorderReserveHeld?: number | null;
+      }>
+    >();
+
+  const legacy = payouts.filter(
+    (row) => typeof row.overpaymentRecovered !== "number",
+  );
+  const releasedInto = new Map<string, number>();
+  if (legacy.length > 0) {
+    // Scoped to the vendor, whose index narrows it: a payout only ever
+    // releases its own vendor's reserves.
+    const released = await Payout.find({
+      vendorId: vendorObjectId,
+      preorderReserveReleasedInPayoutId: { $in: legacy.map((row) => row._id) },
+    })
+      .select("preorderReserveHeld preorderReserveReleasedInPayoutId")
+      .lean<
+        Array<{
+          preorderReserveHeld?: number | null;
+          preorderReserveReleasedInPayoutId?: unknown;
+        }>
+      >();
+    for (const row of released) {
+      const key = String(row.preorderReserveReleasedInPayoutId);
+      releasedInto.set(
+        key,
+        (releasedInto.get(key) || 0) + Number(row.preorderReserveHeld || 0),
+      );
+    }
+  }
+
+  return roundMoney(
+    payouts.reduce((sum, row) => {
+      if (typeof row.overpaymentRecovered === "number") {
+        return sum + Math.max(0, row.overpaymentRecovered);
+      }
+      const recovery =
+        Number(row.adjustments || 0) +
+        Number(row.preorderReserveHeld || 0) -
+        (releasedInto.get(String(row._id)) || 0);
+      return sum + Math.max(0, roundMoney(-recovery));
+    }, 0),
   );
 }
 
+/**
+ * Commission credit earlier invoices already applied, in one currency.
+ *
+ * Open invoices count as well as paid ones: an open invoice's amount already
+ * has the credit taken off, so a second invoice raised beside it would take it
+ * off again. A cancelled invoice — withdrawn, or its payment reversed — hands
+ * its credit back along with its sales.
+ *
+ * Invoices written before `creditApplied` existed never recorded it. They took
+ * everything outstanding at the moment they were raised, because nothing was
+ * subtracting earlier credits yet, and an invoice only exists at all when the
+ * bill was larger than that credit — so what they took is the drift as of
+ * their own `createdAt`, which `driftAsOf` can still answer.
+ */
+async function sumCommissionCreditApplied(
+  vendorId: Types.ObjectId | string,
+  currency: string,
+  driftAsOf: (asOf?: Date) => number,
+): Promise<number> {
+  const invoices = await CommissionInvoice.find({
+    vendorId: new Types.ObjectId(String(vendorId)),
+    currency: currency.toUpperCase(),
+    status: { $in: ["open", "paid"] },
+  })
+    .select("creditApplied createdAt")
+    .lean<Array<{ creditApplied?: number | null; createdAt?: Date | null }>>();
+
+  return roundMoney(
+    invoices.reduce((sum, invoice) => {
+      if (typeof invoice.creditApplied === "number") {
+        return sum + Math.max(0, invoice.creditApplied);
+      }
+      return invoice.createdAt
+        ? sum + driftAsOf(new Date(invoice.createdAt))
+        : sum;
+    }, 0),
+  );
+}
+
+/**
+ * Overpayment still waiting to be recovered from this vendor, in one currency:
+ * every late refund on a sale they were paid for, less what earlier payouts
+ * already took back.
+ */
 export async function fetchVendorOverpayment(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
 }): Promise<number> {
-  return settlementDrift({
+  const driftAsOf = await loadSettlementDrift({
     ...params,
     orderFilter: buildSettledOrderFilter(params.vendorId),
     isSettled: isSettledSubOrder,
@@ -675,6 +965,14 @@ export async function fetchVendorOverpayment(params: {
     settledAt: (sub) => sub.payoutClaimedAt ?? sub.payoutDate,
     read: (totals) => totals.netAmount,
   });
+  const drift = driftAsOf();
+  if (drift <= 0) return 0;
+
+  const recovered = await sumOverpaymentRecovered(
+    params.vendorId,
+    params.currency,
+  );
+  return Math.max(0, roundMoney(drift - recovered));
 }
 
 /**
@@ -690,25 +988,48 @@ export async function fetchVendorOverpayment(params: {
  * Netted against what the vendor owes rather than paid out on its own. A credit
  * that has to be sent as money needs a payment rail and a decision; one that
  * reduces the next invoice needs neither, and it is what a vendor would expect
- * to see.
+ * to see. What earlier invoices already took off is subtracted, so the credit
+ * reduces one bill rather than every bill that follows.
  */
 export async function fetchVendorCommissionCredit(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
 }): Promise<number> {
-  return settlementDrift({
+  const driftAsOf = await loadSettlementDrift({
     ...params,
     orderFilter: buildCommissionSettledOrderFilter(params.vendorId),
     isSettled: isCommissionSettledSubOrder,
-    settledAt: (sub) => sub.commissionSettledAt,
+    // The moment the invoice fixed its amount, not the moment it was paid —
+    // the rule payouts already follow with `payoutClaimedAt`. A refund between
+    // the two was on neither the bill nor the credit, so the vendor paid
+    // commission on a sale that came back. Consignments invoiced before the
+    // stamp existed fall back to the payment.
+    settledAt: (sub) => sub.commissionClaimedAt ?? sub.commissionSettledAt,
     read: (totals) => totals.commissionAmount,
   });
+  const drift = driftAsOf();
+  if (drift <= 0) return 0;
+
+  const applied = await sumCommissionCreditApplied(
+    params.vendorId,
+    params.currency,
+    driftAsOf,
+  );
+  return Math.max(0, roundMoney(drift - applied));
 }
 
-interface VendorPayableTotals {
+export interface VendorPayableTotals {
   currency: string;
   grossSales: number;
   commissionAmount: number;
+  /** Delivery charges the vendor earned, already inside `netAmount`. */
+  shippingAmount: number;
+  /**
+   * What the store owes the vendor for its own promotions on sales the vendor
+   * collected the money for. Kept apart from `commissionAmount`, which it is
+   * netted against by the caller that bills commission.
+   */
+  promotionCredit: number;
   netAmount: number;
   /** Ids of the orders that contributed at least one payable sub-order. */
   orderIds: string[];
@@ -720,6 +1041,8 @@ function emptyPayableTotals(currency: string): VendorPayableTotals {
     currency: currency.toUpperCase(),
     grossSales: 0,
     commissionAmount: 0,
+    shippingAmount: 0,
+    promotionCredit: 0,
     netAmount: 0,
     orderIds: [],
   };
@@ -733,6 +1056,48 @@ export function payableInCurrency(
   const wanted = currency.toUpperCase();
   return (
     totals.find((row) => row.currency === wanted) ?? emptyPayableTotals(wanted)
+  );
+}
+
+/**
+ * What `vendorId`'s consignment on each order is worth, keyed by order id —
+ * the payout arithmetic applied one order at a time.
+ *
+ * A sub-order's stored `vendorEarnings` is undiscounted and pre-refund, so a
+ * list row or a dashboard card printing it promised a couponed or refunded
+ * order more than any payout would pay. The list and the dashboard read this;
+ * the order page calls `sumVendorPayable` itself because it also needs the
+ * figure with delivery billed back, over the same refunds.
+ *
+ * Orders must carry `PAYABLE_ORDER_PROJECTION`'s fields. Line discounts are
+ * read from `items[].lineDiscount`; an order with no `discount` never needs them.
+ */
+export async function fetchVendorOrderSettlements(
+  orders: ReadonlyArray<
+    PayableOrderLike & {
+      _id?: unknown;
+      subOrders?: PayableSubOrderLike[] | null;
+    }
+  >,
+  vendorId: Types.ObjectId | string,
+): Promise<Map<string, VendorPayableTotals>> {
+  const refunds = await fetchRefundTotalsByOrder(
+    orders.map((order) => String(order._id)),
+  );
+  return new Map(
+    orders.map((order) => {
+      // One order is one currency, and `sumVendorPayable` buckets an order with
+      // no snapshot under the same fallback it is read back with — so the
+      // fallback's value cannot change the figure.
+      const currency = String(order.currency || "USD").trim().toUpperCase();
+      return [
+        String(order._id),
+        payableInCurrency(
+          sumVendorPayable([order], vendorId, refunds, () => true, currency),
+          currency,
+        ),
+      ];
+    }),
   );
 }
 
@@ -780,9 +1145,6 @@ export function sumVendorPayable<
   for (const order of orders) {
     const orderId = String(order._id);
     const refunds = refundByOrderId.get(orderId) ?? emptyRefundBreakdown();
-    // Only the refunds that recorded nothing are prorated. The rest come off
-    // the consignment they actually name, below.
-    const payableRatio = payableRatioFor(order, refunds.unallocated);
     // Every consignment's rated delivery, so a free-shipping coupon can be
     // apportioned across them the way `decomposeOrder` apportions it.
     const ratedShipping = (order.subOrders || []).reduce(
@@ -796,6 +1158,11 @@ export function sumVendorPayable<
 
     for (const sub of order.subOrders || []) {
       if (String(sub.vendorId) !== vendorKey || !isPayable(sub)) continue;
+
+      // Only the refunds that recorded nothing are prorated. The rest come off
+      // the consignment they actually name, below. Per consignment, so a coupon
+      // that recorded whose it was comes off that vendor alone.
+      const payableRatio = payableRatioFor(order, refunds.unallocated, sub);
 
       if (!byCurrency.has(currency)) {
         byCurrency.set(currency, emptyPayableTotals(currency));
@@ -814,6 +1181,18 @@ export function sumVendorPayable<
         0,
         refunds.merchandiseByVendor.get(vendorKey) || 0,
       );
+      // A discount the store paid for comes back with the goods, in
+      // proportion: the goods went back at the price the vendor sold them for,
+      // not the price the shopper paid. `refundPostings` takes back the same.
+      const fundedShare = isStoreFundedCoupon(order)
+        ? subtotal * couponDiscountRatioFor(order, sub)
+        : 0;
+      const shopperPaidGoods = subtotal - fundedShare;
+      const promotionBack =
+        fundedShare > 0 && shopperPaidGoods > 0
+          ? roundMoney((merchandiseBack * fundedShare) / shopperPaidGoods)
+          : 0;
+      const soldForBack = roundMoney(merchandiseBack + promotionBack);
       // The same split the sale posted and the ledger reverses
       // (`refundPostings`), so the three cannot drift apart — including the
       // slice the platform held back as a refund administration fee, which is
@@ -821,23 +1200,71 @@ export function sumVendorPayable<
       const commissionRatio = subtotal > 0 ? commission / subtotal : 0;
       const retained = Math.min(
         Math.max(0, refunds.commissionRetainedByVendor.get(vendorKey) || 0),
-        merchandiseBack * commissionRatio,
+        soldForBack * commissionRatio,
       );
       const commissionBack = roundMoney(
-        merchandiseBack * commissionRatio - retained,
+        soldForBack * commissionRatio - retained,
       );
       // The fee stays with the platform, so the vendor's side absorbs it.
-      const earningsBack = roundMoney(merchandiseBack - commissionBack);
+      const earningsBack = roundMoney(soldForBack - commissionBack);
 
-      // Delivery the vendor physically took at the door, which the platform
-      // charged for and has never billed back. `sub.shippingCost` is what the
-      // consignment was RATED at, while a free-shipping coupon means the
-      // shopper handed over less — so the coupon comes off before it is
-      // billed, and anything already refunded to the shopper comes off after.
+      // Where the vendor collected the shopper's money themselves, they hold
+      // the discounted price of goods they are owed the full price for. The
+      // store's side of its own promotion is owed to them, and comes off the
+      // commission they owe — see `commissionOwedForVendor`.
+      //
+      // A store-funded free-shipping coupon works the same way on the delivery
+      // they took at the door: they handed over the parcel for less than it
+      // was rated at because the STORE was running the offer.
+      const fundedShippingShare =
+        order.coupon?.type === "free_shipping" &&
+        order.coupon?.fundedBy === "platform" &&
+        vendorEarnsShipping(sub)
+          ? Math.min(
+              Math.max(0, Number(sub.shippingCost || 0)),
+              typeof sub.shippingDiscount === "number"
+                ? Math.max(0, Number(sub.shippingDiscount))
+                : ratedShipping > 0
+                  ? (Math.min(
+                      ratedShipping,
+                      Math.max(0, Number(order.discount || 0)),
+                    ) *
+                      Math.max(0, Number(sub.shippingCost || 0))) /
+                    ratedShipping
+                  : 0,
+            )
+          : 0;
+      const promotionCredit =
+        !isPlatformSettled(order, sub) && fundedShare + fundedShippingShare > 0
+          ? roundMoney(
+              fundedShare * payableRatio -
+                promotionBack +
+                fundedShippingShare * payableRatio,
+            )
+          : 0;
+
+      // Delivery the store paid to make on a parcel the vendor took the cash
+      // for. `sub.shippingCost` is what the consignment was RATED at, while a
+      // free-shipping coupon means the shopper handed over less — so the
+      // coupon comes off before it is billed, and anything already refunded to
+      // the shopper comes off after.
+      //
+      // Two ways a consignment qualifies, and both are recorded rather than
+      // guessed: the store's own label carried it (`platformLabelAt`, which
+      // also posts the claim — see `moveShippingToStoreForLabel`), or the
+      // order predates delivery charges following whoever delivers, where the
+      // store set the price and the vendor merely collected it.
       let shippingOwed = 0;
-      if (options.billVendorCodShipping && isVendorCollectedCod(order, sub)) {
+      if (
+        options.billVendorCodShipping &&
+        (!sub.shippingRevenueTo || sub.platformLabelAt) &&
+        isVendorCollectedCod(order, sub)
+      ) {
         const rated = Math.max(0, Number(sub.shippingCost || 0));
-        const charged = Math.max(0, rated - shippingDiscountFor(order, rated, ratedShipping));
+        const charged = Math.max(
+          0,
+          rated - shippingDiscountFor(order, rated, ratedShipping, sub),
+        );
         const shippingBack = Math.max(
           0,
           refunds.shippingByVendor.get(vendorKey) || 0,
@@ -848,6 +1275,28 @@ export function sumVendorPayable<
         );
       }
 
+      // The delivery charge, where the vendor earned it and the store is
+      // holding the money: paid out with their goods. What the shopper was
+      // charged, after a free-shipping coupon, less whatever of it went back —
+      // the refunds that named it, and the unnamed ones' share of it.
+      let shippingEarned = 0;
+      if (vendorEarnsShipping(sub) && isPlatformSettled(order, sub)) {
+        const rated = Math.max(0, Number(sub.shippingCost || 0));
+        const charged = Math.max(
+          0,
+          rated - shippingDiscountFor(order, rated, ratedShipping, sub),
+        );
+        const orderTotal = Number(order.total || 0);
+        const unallocatedRatio =
+          orderTotal > 0
+            ? Math.min(1, Math.max(0, refunds.unallocated / orderTotal))
+            : 0;
+        shippingEarned = roundMoney(
+          charged * (1 - unallocatedRatio) -
+            Math.max(0, refunds.shippingByVendor.get(vendorKey) || 0),
+        );
+      }
+
       // Accumulated RAW, negatives included, and floored once per bucket at
       // the end. A consignment can legitimately come out negative — a refund
       // administration fee makes the vendor's side absorb slightly more than
@@ -855,10 +1304,13 @@ export function sumVendorPayable<
       // the platform showing a vendor as owed money it had already recovered
       // in the ledger. Netting within the vendor's own balance is what keeps
       // the two engines saying the same thing.
-      totals.grossSales += roundMoney(subtotal * payableRatio - merchandiseBack);
+      totals.grossSales += roundMoney(subtotal * payableRatio - soldForBack);
+      totals.promotionCredit += promotionCredit;
       totals.commissionAmount +=
         roundMoney(commission * payableRatio - commissionBack) + shippingOwed;
-      totals.netAmount += roundMoney(earnings * payableRatio - earningsBack);
+      totals.netAmount +=
+        roundMoney(earnings * payableRatio - earningsBack) + shippingEarned;
+      totals.shippingAmount += shippingEarned;
       contributed = true;
     }
 
@@ -874,6 +1326,8 @@ export function sumVendorPayable<
       ...totals,
       grossSales: Math.max(0, roundMoney(totals.grossSales)),
       commissionAmount: Math.max(0, roundMoney(totals.commissionAmount)),
+      shippingAmount: Math.max(0, roundMoney(totals.shippingAmount)),
+      promotionCredit: Math.max(0, roundMoney(totals.promotionCredit)),
       netAmount: Math.max(0, roundMoney(totals.netAmount)),
     }))
     .sort((a, b) => b.netAmount - a.netAmount);

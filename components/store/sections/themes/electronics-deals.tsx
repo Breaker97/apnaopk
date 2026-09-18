@@ -10,6 +10,7 @@ import {
   type SlideBackground,
 } from "@/lib/sliders/types";
 import type { DealLayout } from "@/lib/storefront/sections/deal-layouts";
+import { BackgroundVideo } from "@/components/store/background-video";
 import { CountdownTimer } from "@/components/store/sections/countdown-timer";
 import { ElectronicsDealsProducts } from "@/components/store/sections/themes/electronics-deals-products";
 import {
@@ -65,6 +66,11 @@ export async function ElectronicsDeals({
   showSavings,
   showStock,
   minHeight,
+  cardGap = 16,
+  panelRadius = "16px",
+  cardRadius = "12px",
+  imageFit = "contain",
+  imagePadding = -1,
   emptyState = null,
   expiredState = null,
 }: {
@@ -85,6 +91,14 @@ export async function ElectronicsDeals({
   showStock: boolean;
   /** Desktop floor in px; the panel grows past it to fit its content. */
   minHeight: number;
+  /** px between the deal cards on desktop; phones take a little less. */
+  cardGap?: number;
+  /** CSS lengths — a px value, or the theme's card radius. */
+  panelRadius?: string;
+  cardRadius?: string;
+  /** The cards' pictures: fill the frame, or fit inside it with `imagePadding` (-1 = the card's own). */
+  imageFit?: "contain" | "cover";
+  imagePadding?: number;
   /** Labelled outline for the admin preview; null on the live storefront. */
   emptyState?: React.ReactNode;
   expiredState?: React.ReactNode;
@@ -132,8 +146,12 @@ export async function ElectronicsDeals({
           // empty screen. Slack goes to the product plane, which stretches
           // its cards into it — a taller panel means bigger cards, not a
           // wider margin.
-          className="relative flex flex-col overflow-hidden rounded-2xl px-4 pb-5 pt-7 sm:px-5 lg:px-6 lg:pt-10 lg:[min-height:var(--deal-min-h)]"
+          className="relative flex flex-col overflow-hidden rounded-[var(--deal-panel-radius)] px-4 pb-5 pt-7 sm:px-5 lg:px-6 lg:pt-10 lg:[min-height:var(--deal-min-h)]"
           style={{
+            ["--deal-panel-radius" as string]: panelRadius,
+            ["--deal-card-radius" as string]: cardRadius,
+            ["--deal-gap" as string]: `${cardGap}px`,
+            ["--deal-gap-m" as string]: `${Math.round(cardGap * 0.75)}px`,
             ...(painted
               ? backgroundCss(background)
               : { backgroundImage: DESIGN_FIELD }),
@@ -144,8 +162,9 @@ export async function ElectronicsDeals({
             ["--deal-min-h" as string]: `${minHeight}px`,
           }}
         >
-          {/* Copy over a photo needs a scrim; a colour or gradient the
+          {/* Copy over artwork needs a scrim; a colour or gradient the
               merchant chose is shown as picked. */}
+          <BackgroundVideo background={background} />
           {background.type === "image" && background.image ? (
             <div className="absolute inset-0 bg-black/55" aria-hidden />
           ) : null}
@@ -228,6 +247,8 @@ export async function ElectronicsDeals({
                 locale={locale}
                 layout={layout}
                 showStock={showStock}
+                imageFit={imageFit}
+                imagePadding={imagePadding}
               />
             </div>
           ) : null}

@@ -62,6 +62,23 @@ export const DEFAULT_REFUND_ADMIN_FEE_CAP = 0;
 export const DEFAULT_BILL_VENDOR_COD_SHIPPING = false;
 
 /**
+ * How long after delivery a return may still be asked for.
+ *
+ * This was `RETURN_WINDOW_DAYS = 30` in lib/returns/return-plan.ts — the one
+ * return rule nobody had ever chosen, sitting next to five that a merchant
+ * could. A store selling perishables and a store selling furniture were given
+ * the same month, and the product page printed it as a promise.
+ *
+ * 30 stays the fallback for the reason every default here is what it is: a
+ * store that never opens the settings screen must keep the window it has
+ * always had, including for the orders already placed under it.
+ */
+export const DEFAULT_RETURN_WINDOW_DAYS = 30;
+/** A window shorter than a day cannot be met; a year is already generous. */
+export const MIN_RETURN_WINDOW_DAYS = 1;
+export const MAX_RETURN_WINDOW_DAYS = 365;
+
+/**
  * The reasons that put the return on the merchant rather than the shopper.
  *
  * Drawn from `RETURN_REASONS` in lib/returns.ts. A shopper who ordered the
@@ -81,6 +98,8 @@ export const MERCHANT_FAULT_RETURN_REASONS = [
 ] as const;
 
 export interface ReturnPolicy {
+  /** Days after delivery within which a return may still be requested. */
+  windowDays: number;
   shippingRefund: ReturnShippingRefundMode;
   /** Percent of the returned goods the merchant keeps. 0–100. */
   restockingFeePercent: number;
@@ -98,10 +117,15 @@ export interface ReturnPolicy {
    * Whether a vendor who collected cash on delivery owes the platform the
    * delivery charge along with the commission.
    *
-   * Off by default because it depends on who actually arranged the carrier,
-   * which Storify does not record. On a store where the platform sets the
-   * shipping price and the vendor merely collects it, this is money the
-   * platform is currently never billing for. See finding F5 in the audit.
+   * It applies to a parcel the STORE paid to deliver while the vendor took the
+   * shopper's money at the door: either its label was bought on the store's
+   * carrier account (`platformLabelAt`, which raises the claim in the ledger
+   * as the label is bought) or the order predates delivery charges following
+   * whoever delivers, where the store set the price and the vendor merely
+   * collected it.
+   *
+   * Off by default: a store that arranges the carrier as a service to its
+   * sellers charges them nothing for it.
    */
   billVendorCodShipping: boolean;
 }
@@ -110,6 +134,7 @@ export interface ReturnPolicy {
 export interface ReturnPolicySettingsLike {
   orders?: {
     returns?: {
+      windowDays?: number | null;
       shippingRefund?: string | null;
       restockingFeePercent?: number | null;
       returnShippingFee?: number | null;
@@ -141,6 +166,16 @@ export function resolveReturnPolicy(
   const mode = String(raw?.shippingRefund || "").trim();
 
   return {
+    // Whole days: the window is compared against elapsed days and printed on
+    // the product page, and "return within 30.5 days" is neither.
+    windowDays: Math.round(
+      clamp(
+        raw?.windowDays,
+        MIN_RETURN_WINDOW_DAYS,
+        MAX_RETURN_WINDOW_DAYS,
+        DEFAULT_RETURN_WINDOW_DAYS,
+      ),
+    ),
     shippingRefund: (RETURN_SHIPPING_REFUND_MODES as readonly string[]).includes(
       mode,
     )

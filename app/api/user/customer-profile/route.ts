@@ -1,9 +1,11 @@
 import { connectDB } from "@/lib/db";
-import { CustomerProfile } from "@/models";
+import { CustomerProfile, getSettingsLean } from "@/models";
 import { ensureCustomerProfile } from "@/lib/customers/customer";
 import { successResponse } from "@/lib/api/response";
 import { UpdateCustomerProfileSchema } from "@/lib/validations";
 import { withApi } from "@/lib/api/handler";
+import { normalizeNotificationSettings } from "@/lib/notifications/notification-settings";
+import { isSmsDeliveryConfigured } from "@/lib/sms/sms";
 
 /**
  * GET /api/user/customer-profile
@@ -12,9 +14,23 @@ import { withApi } from "@/lib/api/handler";
 export const GET = withApi(
   { auth: "user" },
   async ({ session }) => {
-    const profile = await ensureCustomerProfile(session.user.id);
+    const [profile, settings] = await Promise.all([
+      ensureCustomerProfile(session.user.id),
+      getSettingsLean(),
+    ]);
+    const customerChannels = normalizeNotificationSettings(
+      settings.notifications,
+    ).customer;
 
-    return successResponse({ profile });
+    return successResponse({
+      profile,
+      // Whether the store texts customers at all. The Preferences page only
+      // offers the SMS switch then — a switch for texts nobody sends would be
+      // the kind of setting that saves and does nothing.
+      smsUpdatesAvailable:
+        isSmsDeliveryConfigured(settings) &&
+        (customerChannels.orderUpdates.sms || customerChannels.returnUpdates.sms),
+    });
   },
 );
 
@@ -58,6 +74,10 @@ export const PUT = withApi(
         ...existing?.emailNotifications,
         ...parsed.emailNotifications,
       };
+    }
+    if (parsed.smsNotifications?.orderUpdates !== undefined) {
+      updateFields["smsNotifications.orderUpdates"] =
+        parsed.smsNotifications.orderUpdates;
     }
 
     if (Object.keys(updateFields).length === 0) {

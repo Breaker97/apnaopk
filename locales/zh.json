@@ -39,6 +39,7 @@
     "yes": "是",
     "no": "否",
     "close": "关闭",
+    "scrollToTop": "返回顶部",
     "back": "返回",
     "next": "下一步",
     "previous": "上一步",
@@ -122,7 +123,8 @@
     "decreaseQuantity": "减少数量",
     "increaseQuantity": "增加数量",
     "name": "姓名",
-    "email": "电子邮箱"
+    "email": "电子邮箱",
+    "showingResultsFor": "显示 <q>{query}</q> 的搜索结果"
   },
   "wishlist": {
     "title": "我的心愿单",
@@ -306,7 +308,8 @@
         "bestRating": "评分最高",
         "newest": "最新",
         "priceLowHigh": "价格从低到高",
-        "priceHighLow": "价格从高到低"
+        "priceHighLow": "价格从高到低",
+        "bestMatch": "最佳匹配"
       }
     }
   },
@@ -470,6 +473,57 @@
     "quoteMessageOptional": "留言（选填）",
     "quoteMessagePlaceholder": "数量、交货日期、规格…"
   },
+  "reviews": {
+    "basedOn": "基于 {count} 条评价",
+    "writeReview": "写评价",
+    "writeReviewCta": "写评价！",
+    "noReviews": "暂无评价",
+    "beFirst": "成为第一个评价此商品的人",
+    "verified": "已验证购买",
+    "rating": "评分",
+    "all": "全部",
+    "highlyRecommended": "强烈推荐",
+    "postedBy": "{name} 发布于 {time}",
+    "postedTime": "发布于 {time}",
+    "brandResponse": "品牌回复",
+    "showingRange": "显示第 {from} - {to} 条，共 {total} 条评价",
+    "anonymous": "匿名",
+    "checkingEligibility": "正在检查您符合条件的订单...",
+    "comment": "您的评价 *",
+    "commentPlaceholder": "分享您使用此商品的体验",
+    "commentTooShort": "评论至少需要 10 个字符",
+    "dropzoneHint": "支持单张不超过 10MB 的图片。",
+    "dropzonePrimary": "将文件拖放到此处，或点击浏览",
+    "eligibleOrderRequired": "只有当此商品在您的某个订单中送达后，您才能评价。",
+    "imageTooLarge": "每张图片必须小于 10MB",
+    "imageUploadFailed": "图片上传失败",
+    "invalidImage": "只允许上传图片文件",
+    "loginToReview": "请登录后再为此商品撰写评价。",
+    "maxImages": "最多可上传 4 张图片",
+    "noReviewsForRating": "该评分下暂无评价",
+    "oldest": "最早",
+    "photos": "图片",
+    "selectRating": "请选择评分",
+    "submit": "提交评价",
+    "submitFailed": "评价提交失败",
+    "submitted": "评价提交成功！",
+    "title": "标题",
+    "titlePlaceholder": "用一句话概括您的评价",
+    "writeReviewHint": "您的邮箱地址不会被公开。必填项已用星号（*）标出。",
+    "yourRating": "您的评分",
+    "pendingTitle": "为您购买的商品评分",
+    "pendingDescription": "您的订单已送达。告诉其他买家您的使用感受吧。",
+    "deliveredOn": "{date} 已送达",
+    "rateStar": "评 {count} 分（满分 5 分）",
+    "showMore": "再显示 {count} 个",
+    "showFewer": "收起",
+    "fromOrder": "订单 #{orderNumber}",
+    "orderPromptTitle": "您对这次订单满意吗？",
+    "orderPromptOne": "为 {name} 写一条简短的评价吧，这能帮助其他买家。",
+    "orderPromptMany": "此订单中有 {count} 件商品等待您的评价。",
+    "youRated": "您的评分",
+    "alreadyReviewed": "您已评价过此商品。感谢您分享使用体验！"
+  },
   "cart": {
     "yourCart": "你的购物车",
     "shoppingCart": "购物车",
@@ -570,10 +624,11 @@
       "iotecPhoneHint": "请输入要扣款的 MTN 或 Airtel 号码。该手机会收到确认付款的提示。",
       "mtnMomoDetail": "使用 MTN Mobile Money 付款。您的手机将收到请求，请用 MoMo PIN 批准。",
       "mtnMomoPhoneLabel": "移动钱包号码",
-      "mtnMomoPhonePlaceholder": "例如 0772 123 456",
+      "mtnMomoPhonePlaceholder": "例如 {example}",
       "mtnMomoPhoneHint": "输入要扣款的 MTN 号码。该手机将收到批准付款的请求。"
     },
-    "switchToPickup": "改为到店自提"
+    "switchToPickup": "改为到店自提",
+    "enterAddressForShipping": "输入收货地址以查看可用的配送方式。"
   },
   "orders": {
     "myOrders": "我的订单",
@@ -624,7 +679,8 @@
       "partially_paid": "部分付款",
       "refunded": "已退款",
       "partially_refunded": "部分退款"
-    }
+    },
+    "importDuties": "进口关税"
   },
   "vendor": {
     "vendorDashboard": "商家后台",
@@ -661,10 +717,11 @@
     "commission": "已支付佣金",
     "activeProducts": "活跃商品",
     "netEarnings": "净收益",
-    "pending": "待处理",
+    "awaitingPayment": "{amount} 待付款",
     "recentOrders": "最近订单",
     "topProducts": "热销商品",
     "totalOrders": "总订单",
+    "openOrdersCount": "{count} 个进行中",
     "totalProducts": "商品总数",
     "totalRevenue": "总收入",
     "pendingOrders": "Pending Orders",
@@ -817,6 +874,7 @@
       "partially_refunded": "部分退款"
     },
     "fulfillmentStatus": {
+      "preordered": "预售",
       "pending": "未履行",
       "processing": "处理中",
       "shipped": "运输中",
@@ -1122,6 +1180,7 @@
       "subtotal": "小计",
       "shipping": "运费",
       "tax": "税费",
+      "importDuties": "进口关税",
       "discount": "折扣",
       "totalLabel": "总计",
       "timeline": "时间线",
@@ -1241,7 +1300,7 @@
       "dateRange": "7月25日 - 8月25日",
       "addActivity": "添加活动",
       "sales": "销售",
-      "ordersDescription": "按项目拆分订单总量，并提供详细洞察。",
+      "ordersDescription": "所选期间的合计，按销售渠道拆分。",
       "showHighlights": "查看全部亮点",
       "showSalesData": "查看全部销售数据",
       "viewAllOrders": "查看所有订单",
@@ -1334,7 +1393,9 @@
       "expenses": "支出",
       "receivables": "应收款",
       "financeReports": "报表",
-      "quotes": "报价"
+      "quotes": "报价",
+      "traffic": "流量",
+      "searchInsights": "搜索洞察"
     },
     "users": "用户",
     "usersDesc": "管理用户与角色",
@@ -2786,6 +2847,11 @@
           "name": "Fashion",
           "description": "为高端时尚、美妆和生活方式品牌打造的编辑风视觉风格。",
           "styleNote": "聚焦以图片为先的商品陈列与精致系列叙事。"
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "杂志风服饰陈列：通栏广告大片、造型图卡与季节精选。",
+          "styleNote": "专为服装、鞋履与配饰打造——图片为主角，界面退居幕后。"
         }
       },
       "activate": "使用此主题"
@@ -3223,7 +3289,6 @@
         "live": "已上线",
         "unsaved": "有未保存的更改"
       },
-      "subtitle": "结账保留其久经验证的流程——在这里完成品牌化。步骤不可重新排序，因此付款永远不会出错。",
       "themeLink": "主题设置",
       "title": "结账",
       "toast": {
@@ -3255,7 +3320,21 @@
       },
       "brand": {
         "description": "管理页脚的 Logo、简介、宽度和配色。",
-        "title": "品牌与布局"
+        "title": "品牌与布局",
+        "logoSourceLabel": "页脚 Logo 来源",
+        "storeLogo": "店铺 Logo（推荐）",
+        "storeLogoDescription": "使用品牌形象中的 Logo，并像页眉一样在浅色和深色模式间切换。",
+        "customLogo": "页脚专用 Logo",
+        "customLogoDescription": "仅为页脚上传不同的 Logo 图片。",
+        "synced": "与品牌形象同步",
+        "editBranding": "在品牌形象中编辑",
+        "lightLogo": "浅色模式 Logo",
+        "darkLogo": "深色模式 Logo",
+        "logoNotSet": "未上传",
+        "customLogoHint": "这些 Logo 仅用于页脚。未设置深色模式 Logo 时，页脚 Logo 会在两种模式下显示；两者都未设置时，将使用店铺 Logo。",
+        "matchHeaderSize": "与页眉 Logo 大小相同",
+        "matchHeaderSizeHint": "跟随页眉：大屏幕上宽 {desktop}px，手机上宽 {mobile}px。",
+        "logoThemeAuto": "自动（匹配页脚背景）"
       },
       "colors": {
         "dark": "深色模式配色",
@@ -3290,6 +3369,9 @@
         "email": "邮箱",
         "footerBackgroundColor": "页脚背景色",
         "footerLogo": "页脚 Logo",
+        "footerDarkLogo": "页脚 Logo（深色模式）",
+        "logoWidth": "Logo 宽度",
+        "logoTheme": "显示的 Logo",
         "footerTextColor": "页脚文字颜色",
         "fullWidthFooter": "全宽页脚",
         "imageAlt": "图片替代文本",
@@ -3747,6 +3829,7 @@
       "publishPageTitle": "发布此页面？",
       "publishTitle": "发布首页？",
       "published": "首页已发布",
+      "duplicateSection": "复制版块",
       "removeSection": "移除版块",
       "requiredSection": "必需",
       "restore": "恢复",
@@ -4414,6 +4497,7 @@
     },
     "chatWithVendor": "与卖家聊天",
     "chatWithStore": "与商店聊天",
+    "chatWithSeller": "与卖家聊天",
     "startConversation": "发起对话",
     "startDescription": "欢迎咨询库存、配送、规格或任何其他问题。",
     "writeMessage": "输入消息…",
@@ -4733,7 +4817,6 @@
       "canceled": "付款已取消，请重试。",
       "failed": "无法发起付款",
       "loadFailed": "无法加载推广位阶梯",
-      "verifyFailed": "付款无法验证",
       "pollTimeout": "我们尚未确认付款。确认后将自动生效。",
       "stepSlot": "位置与日期",
       "pickSlot": "选择位置和日期",
@@ -4846,7 +4929,6 @@
     "adminPassword": "密码",
     "adminTitle": "创建管理员账户",
     "appUrl": "应用网址",
-    "appUrlHint": "请在 .env 中将 NEXT_PUBLIC_APP_URL 设为您店铺的网址",
     "blockedHint": "请先解决以上问题再重新检查——问题解决前无法继续安装。",
     "retry": "重新检查",
     "authSecret": "认证密钥",
@@ -4885,7 +4967,7 @@
       "secretAccessKey": "Secret Access Key",
       "publicUrl": "公开访问地址"
     },
-    "nodeTooOld": "需要 Node.js 22 或更高版本",
+    "nodeTooOld": "需要 Node.js 22.12 或更高版本",
     "storeName": "店铺名称",
     "storeTitle": "店铺基本信息",
     "subtitle": "几步之后即可开卖",

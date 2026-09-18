@@ -34,27 +34,16 @@ import {
   type StoreSocialLinks,
 } from "@/components/store/store-contact-rows";
 import { sanitizeHtml } from "@/lib/sanitize";
-import type {
-  AboutPageData,
-  AboutStep,
+import {
+  fillContentPlaceholders,
+  type AboutPageData,
+  type AboutStep,
+  type ContentPlaceholders,
 } from "@/lib/site-config/content-pages-config";
 import type { ResolvedAboutStat } from "@/lib/storefront/about-stats";
 import { cn } from "@/lib/utils";
 
 /** Placeholders the admin copy may carry; filled once, here, before render. */
-interface AboutPlaceholders {
-  storeName: string;
-  returnWindow: string;
-}
-
-export function fillAboutPlaceholders(
-  value: string,
-  vars: AboutPlaceholders,
-): string {
-  return value
-    .replace(/\{storeName\}/g, vars.storeName)
-    .replace(/\{returnWindow\}/g, vars.returnWindow);
-}
 
 interface AboutContactData {
   address: string;
@@ -68,7 +57,7 @@ interface AboutContactData {
 interface AboutPageViewProps {
   locale: string;
   page: AboutPageData;
-  placeholders: AboutPlaceholders;
+  placeholders: ContentPlaceholders;
   isMultiVendorEnabled: boolean;
   stats: ResolvedAboutStat[];
   /** e.g. "September 2026" — the month the counts were rendered. */
@@ -112,7 +101,7 @@ export function AboutPageView({
   contact,
   contactCtaLabel,
 }: AboutPageViewProps) {
-  const fill = (value: string) => fillAboutPlaceholders(value, placeholders);
+  const fill = (value: string) => fillContentPlaceholders(value, placeholders);
 
   const showStats = page.showStats && stats.length >= 2;
   const heroStats = page.showStats ? stats.slice(0, 3) : [];

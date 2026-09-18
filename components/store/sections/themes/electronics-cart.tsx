@@ -138,7 +138,8 @@ export function ElectronicsCart() {
     taxNotApplicableLabel,
     calculateTaxLabel,
     setEstimatedShipping,
-    estimatedDeliveryDays,
+    unitCount,
+    deliveryEstimateText,
     setEstimatedDeliveryDays,
     summaryShippingCost,
     cartViewSignature,
@@ -190,30 +191,6 @@ export function ElectronicsCart() {
     ? t("cart.productColumn")
     : "Product";
   const orLabel = t.has("common.or") ? t("common.or") : "or";
-  // Units, not lines — the header's cart badge counts units, and two numbers
-  // that both claim to be "how much is in my cart" must agree.
-  const unitCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
-  // The delivery strip promises dates, so it needs two consents: the
-  // merchant's (`showEstimatedDelivery`) and a real quote carrying a window
-  // (`estimatedDeliveryDays`, set by the estimator). No quote, no strip —
-  // never a guess dressed up as a promise.
-  let deliveryStripText = "";
-  if (orderConfig.showEstimatedDelivery && estimatedDeliveryDays) {
-    const dateFormat = new Intl.DateTimeFormat(locale || undefined, {
-      month: "short",
-      day: "numeric",
-    });
-    const from = new Date();
-    from.setDate(from.getDate() + estimatedDeliveryDays.min);
-    const to = new Date();
-    to.setDate(to.getDate() + estimatedDeliveryDays.max);
-    const dateRange = `${dateFormat.format(from)} – ${dateFormat.format(to)}`;
-    deliveryStripText = t.has("cart.deliveryEstimate")
-      ? t("cart.deliveryEstimate", { dateRange })
-      : `Delivered by ${dateRange} via Standard Shipping`;
-  }
-
   /**
    * One cart line — the desktop columns and the phone card are the same
    * article rearranged by breakpoint, so the list renders once whether it
@@ -550,14 +527,14 @@ export function ElectronicsCart() {
             </span>
           </div>
 
-          {deliveryStripText ? (
+          {deliveryEstimateText ? (
             <div className="mt-4 flex items-start gap-3 rounded-[10px] bg-primary/[0.07] p-3">
               <Truck
                 className="mt-0.5 h-[18px] w-[18px] shrink-0 text-primary"
                 aria-hidden
               />
               <p className="text-[12.5px] leading-5 text-muted-foreground">
-                {deliveryStripText}
+                {deliveryEstimateText}
               </p>
             </div>
           ) : null}

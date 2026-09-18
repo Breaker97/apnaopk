@@ -126,6 +126,9 @@ async function getClosedThrough(): Promise<Date | null> {
  * accounting answer: the correction appears in the open period, and the closed
  * one still reads as it did.
  */
+/** The longest note a ledger entry stores — the model's own limit. */
+const NOTE_MAX_LENGTH = 500;
+
 export function applyPeriodClose(
   posting: LedgerPosting,
   closedThrough: Date | null,
@@ -133,12 +136,22 @@ export function applyPeriodClose(
   if (!closedThrough || posting.date > closedThrough) return posting;
   const shifted = new Date(closedThrough.getTime() + 1000);
   const original = posting.date.toISOString().slice(0, 10);
+  const suffix = `Dated ${original}, posted after the period close`;
+  // An entry's note holds at most NOTE_MAX_LENGTH characters. A long note with
+  // the suffix appended failed validation, and the entry — a hand-entered
+  // adjustment, typically — was silently not written at all. The caller's own
+  // words are shortened instead; the date they belong to is the part that
+  // must survive.
+  const room = NOTE_MAX_LENGTH - suffix.length - 3;
+  const kept = posting.note
+    ? posting.note.length > room
+      ? `${posting.note.slice(0, Math.max(0, room - 1)).trimEnd()}…`
+      : posting.note
+    : null;
   return {
     ...posting,
     date: shifted,
-    note: posting.note
-      ? `${posting.note} · Dated ${original}, posted after the period close`
-      : `Dated ${original}, posted after the period close`,
+    note: kept ? `${kept} · ${suffix}` : suffix,
   };
 }
 

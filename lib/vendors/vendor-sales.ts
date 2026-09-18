@@ -8,10 +8,12 @@ import { getSettings } from "@/models/settings.model";
  *
  * `Vendor.totalSales` is a dead column — nothing in the order flow ever
  * writes it — so every admin surface that shows a sales figure must derive
- * it from `subOrders`. The definition here matches the vendor's own
- * analytics dashboard (`/api/vendor/analytics`): sum of `subOrders.subtotal`
- * across non-cancelled orders, so the admin and the vendor see the same
- * number.
+ * it from `subOrders`. The definition is the one the vendor's own dashboard
+ * charts as sales (`lib/vendors/vendor-order-metrics.ts`): the sum of
+ * `subOrders.subtotal` over every live consignment — neither the order nor the
+ * vendor's own consignment cancelled — paid or not. The vendor's "Total
+ * Revenue" card is the collected part of that figure, and the dashboard shows
+ * what is still unpaid next to it.
  *
  * Sales are grouped by the currency each order froze at checkout
  * (`Order.currency`). Adding a UGX subtotal to a USD one produces a number
@@ -32,8 +34,10 @@ import { getSettings } from "@/models/settings.model";
  *
  * All four come out of the same `$group`, so the header KPI and the Payouts
  * tab's lifetime strip cannot drift apart: "Total sales" is `grossSales` here.
- * `shipping` is what buyers paid this vendor's shipments — the platform keeps
- * it, since `vendorEarnings` is `subtotal - commission` with no shipping in it.
+ * `shipping` is what buyers paid for this vendor's shipments that the platform
+ * KEEPS — its courier delivered them, or a label on its own account did. A
+ * parcel the vendor delivered earns the vendor its delivery charge and is left
+ * out (see lib/shipping/shipping-revenue.ts).
  */
 interface VendorCurrencyTotals {
   grossSales: number;
@@ -112,14 +116,24 @@ export async function getVendorSalesBreakdowns(
         _id: 0,
         currency: 1,
         "subOrders.vendorId": 1,
+        "subOrders.status": 1,
         "subOrders.subtotal": 1,
         "subOrders.commission": 1,
         "subOrders.vendorEarnings": 1,
         "subOrders.shippingCost": 1,
+        "subOrders.shippingRevenueTo": 1,
+        "subOrders.platformLabelAt": 1,
       },
     },
     { $unwind: "$subOrders" },
-    { $match: { "subOrders.vendorId": { $in: ids } } },
+    {
+      $match: {
+        "subOrders.vendorId": { $in: ids },
+        // A vendor can cancel their own consignment while the order lives on
+        // for the other vendors on it; that consignment sold nothing.
+        "subOrders.status": { $ne: ORDER_STATUS.CANCELLED },
+      },
+    },
     {
       $group: {
         _id: {
@@ -131,7 +145,21 @@ export async function getVendorSalesBreakdowns(
         vendorEarnings: {
           $sum: { $ifNull: ["$subOrders.vendorEarnings", 0] },
         },
-        shipping: { $sum: { $ifNull: ["$subOrders.shippingCost", 0] } },
+        // Only what the store keeps — the mirror of `vendorEarnsShipping`.
+        shipping: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$subOrders.shippingRevenueTo", "vendor"] },
+                  { $eq: [{ $ifNull: ["$subOrders.platformLabelAt", null] }, null] },
+                ],
+              },
+              0,
+              { $ifNull: ["$subOrders.shippingCost", 0] },
+            ],
+          },
+        },
       },
     },
   ]);

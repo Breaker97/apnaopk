@@ -3,6 +3,9 @@ import { Order } from "@/models";
 import { connectDB } from "@/lib/db";
 import { listResult, type ListResult } from "@/lib/api/list-query";
 import { subOrderPaymentStatusFilter } from "@/lib/orders/order-payment-status";
+import { toVendorOrderView } from "@/lib/vendors/vendor-order-view";
+import { fetchVendorOrderSettlements } from "@/lib/vendors/vendor-earnings";
+import { PAYMENT_STATUS } from "@/config/app.config";
 
 /**
  * Vendor order list query.
@@ -19,12 +22,19 @@ import { subOrderPaymentStatusFilter } from "@/lib/orders/order-payment-status";
 
 type ViewType = "all" | "unfulfilled" | "unpaid" | "open" | "archived";
 
+/**
+ * The consignment statuses behind the "Open" tab. Exported so the counters
+ * above the list (`lib/vendors/vendor-order-metrics.ts`) count exactly the rows
+ * the tab shows.
+ */
+export const VENDOR_OPEN_ORDER_STATUSES = ["pending", "processing", "shipped"];
+
 function getStatusesForView(view: ViewType): string[] | null {
   switch (view) {
     case "unfulfilled":
       return ["pending", "processing"];
     case "open":
-      return ["pending", "processing", "shipped"];
+      return VENDOR_OPEN_ORDER_STATUSES;
     case "archived":
       return ["delivered", "cancelled"];
     default:
@@ -92,9 +102,19 @@ export async function fetchVendorOrderList(
         ? ["pending", "partially_paid"]
         : null;
 
-  if (paymentStatuses) {
+  // A refund is recorded only on the order, so those two are matched there —
+  // and kept out of every other bucket, which is how the row's badge reads
+  // them (`resolveVendorPaymentDisplayStatus`).
+  const refundStatuses: string[] = [
+    PAYMENT_STATUS.REFUNDED,
+    PAYMENT_STATUS.PARTIALLY_REFUNDED,
+  ];
+  if (paymentStatuses?.every((value) => refundStatuses.includes(value))) {
+    andConditions.push({ paymentStatus: { $in: paymentStatuses } });
+  } else if (paymentStatuses) {
     andConditions.push(
       subOrderPaymentStatusFilter(vendorSubOrderMatch, paymentStatuses),
+      { paymentStatus: { $nin: refundStatuses } },
     );
   }
 
@@ -132,12 +152,37 @@ export async function fetchVendorOrderList(
     Order.countDocuments(query),
   ]);
 
+  // The payout arithmetic reads line discounts off `items`, which the row
+  // query leaves out. Only a discounted order needs them, so only those are
+  // fetched — the line discounts alone.
+  const discountedIds = orders
+    .filter((order) => Number(order.discount) > 0)
+    .map((order) => order._id);
+  const lineDiscounts = discountedIds.length
+    ? await Order.find({ _id: { $in: discountedIds } })
+        .select("items.lineDiscount")
+        .lean()
+    : [];
+  const itemsByOrderId = new Map(
+    lineDiscounts.map((order) => [String(order._id), order.items]),
+  );
+  const settlements = await fetchVendorOrderSettlements(
+    orders.map((order) => ({
+      ...order,
+      items: itemsByOrderId.get(String(order._id)) ?? [],
+    })),
+    vendorId,
+  );
+
   const vendorOrders = orders.map((order) => ({
-    ...order,
-    subOrders: order.subOrders.filter(
-      (sub: { vendorId?: { toString: () => string } }) =>
-        sub.vendorId?.toString() === String(vendorId),
-    ),
+    // An allow-list narrowed to this vendor's consignment, with this vendor's
+    // own payment state — the one the filter above matches. Spreading the row
+    // shipped the other sellers' consignments, the store's gateway references
+    // and the shopper's billing details to every vendor on the order.
+    ...toVendorOrderView(order, vendorId),
+    // What a payout would pay for this consignment, after the order's
+    // coupon and any refund — not the sub-order's stored face value.
+    netSales: settlements.get(String(order._id))?.netAmount ?? 0,
   }));
 
   return listResult(vendorOrders as unknown[], page, limit, total);

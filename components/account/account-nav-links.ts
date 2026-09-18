@@ -1,5 +1,6 @@
 import {
   Bell,
+  FileText,
   Heart,
   LayoutDashboard,
   MapPin,
@@ -53,6 +54,12 @@ export const dashboardLinks: AccountNavLink[] = [
     labelFallback: "Inbox",
     href: "/account/inbox",
     icon: MessageSquare,
+  },
+  {
+    labelKey: "account.quotes",
+    labelFallback: "Quotes",
+    href: "/account/quotes",
+    icon: FileText,
   },
   {
     labelKey: "account.wishlist",

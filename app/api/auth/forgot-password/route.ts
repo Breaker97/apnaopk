@@ -3,7 +3,7 @@ import { connectDB, mongoose } from "@/lib/db";
 import { PasswordReset } from "@/models";
 import { getSettingsLean } from "@/models/settings.model";
 import { checkRateLimit, rateLimitPresets } from "@/lib/rate-limit";
-import { sendEmail } from "@/lib/email/email";
+import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { z } from "zod";
 import {
   DEFAULT_PRIMARY_COLOR,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Check if SMTP is enabled (new structure)
     const settings = await getSettingsLean();
-    if (!settings.email?.enabled) {
+    if (!isEmailDeliveryConfigured(settings)) {
       console.error("Email is not enabled. Cannot send password reset email.");
       return NextResponse.json({
         success: true,

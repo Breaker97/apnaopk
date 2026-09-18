@@ -16,6 +16,10 @@ import {
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import type { TransferStatusCounters } from "@/lib/inventory/transfer-list";
+import {
+  transferPaths,
+  type TransferArea,
+} from "@/components/admin/transfers/transfer-paths";
 
 interface TransferRow {
   _id: string;
@@ -25,6 +29,8 @@ interface TransferRow {
   toLocationName: string;
   itemCount: number;
   totalLines: number;
+  receivedUnits: number;
+  rejectedUnits: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +47,9 @@ interface TransfersListProps {
   };
   /** Per-status totals rendered in the tab labels. */
   counters: TransferStatusCounters;
+  /** Locations the list can be narrowed to (either end of a transfer). */
+  locationOptions: Array<{ id: string; name: string }>;
+  area?: TransferArea;
 }
 
 export function TransfersList({
@@ -48,14 +57,18 @@ export function TransfersList({
   data,
   pagination,
   counters,
+  locationOptions,
+  area = "admin",
 }: TransfersListProps) {
   const t = useTranslations();
   const router = useRouter();
+  const paths = transferPaths(area, locale);
 
   const list = useListNavigation<TransferRow>({
     items: data,
     pagination,
     defaultPageSize: 20,
+    filterIds: ["location"],
   });
 
   // The status dropdown filter mirrors the active tab.
@@ -92,7 +105,7 @@ export function TransfersList({
         addAction: {
           id: "create-transfer",
           label: t("admin.transfers.list.createTransfer"),
-          href: `/${locale}/admin/transfers/new`,
+          href: `${paths.page}/new`,
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
@@ -117,7 +130,7 @@ export function TransfersList({
           ],
         },
       }),
-    [exportTransfers, locale, t],
+    [exportTransfers, paths.page, t],
   );
 
   const tabs = useMemo<DataTableTab[]>(
@@ -165,8 +178,20 @@ export function TransfersList({
           { label: t("admin.transfers.status.cancelled"), value: "cancelled" },
         ],
       },
+      {
+        id: "location",
+        label: t("admin.transfers.list.locationFilter"),
+        type: "select",
+        options: [
+          { label: t("admin.transfers.tabs.all"), value: "all" },
+          ...locationOptions.map((location) => ({
+            label: location.name,
+            value: location.id,
+          })),
+        ],
+      },
     ],
-    [t],
+    [locationOptions, t],
   );
 
   const columns = useMemo<DataTableColumn<TransferRow>[]>(
@@ -176,8 +201,8 @@ export function TransfersList({
         header: t("admin.transfers.list.columns.transfer"),
         cell: (row) => (
           <Link
-            href={`/${locale}/admin/transfers/${row._id}`}
-            className="font-medium text-primary hover:underline"
+            href={`${paths.page}/${row._id}`}
+            className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
           >
             {row.transferNumber}
           </Link>
@@ -200,12 +225,23 @@ export function TransfersList({
         id: "items",
         header: t("admin.transfers.list.columns.items"),
         cell: (row) => (
-          <TextCell
-            value={t("admin.transfers.list.itemsSummary", {
-              units: row.itemCount,
-              lines: row.totalLines,
-            })}
-          />
+          <div className="min-w-0">
+            <TextCell
+              value={t("admin.transfers.list.itemsSummary", {
+                units: row.itemCount,
+                lines: row.totalLines,
+              })}
+            />
+            {row.status === "in_transit" &&
+            row.receivedUnits + row.rejectedUnits > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t("admin.transfers.list.receiptProgress", {
+                  done: row.receivedUnits + row.rejectedUnits,
+                  units: row.itemCount,
+                })}
+              </p>
+            ) : null}
+          </div>
         ),
         className: "w-[220px]",
       },
@@ -222,7 +258,7 @@ export function TransfersList({
         className: "w-[220px]",
       },
     ],
-    [locale, t],
+    [paths.page, t],
   );
 
   return (
@@ -242,10 +278,13 @@ export function TransfersList({
       searchValue={list.search}
       onSearchChange={list.handleSearchChange}
       filters={filters}
-      filterValues={{ statusFilter: list.activeTab }}
+      filterValues={{
+        statusFilter: list.activeTab,
+        location: list.filters.location ?? "all",
+      }}
       onFilterChange={(filterId, value) => {
-        if (filterId !== "statusFilter") return;
-        handleStatusChange(value);
+        if (filterId === "statusFilter") handleStatusChange(value);
+        else if (filterId === "location") list.handleFilterChange(filterId, value);
       }}
       toolbarActions={tableHeader.toolbarActions}
       toolbarLayout={tableHeader.toolbarLayout}
@@ -260,9 +299,11 @@ export function TransfersList({
       pagination={list.pagination}
       onPageChange={list.handlePageChange}
       onPageSizeChange={list.handlePageSizeChange}
-      onRowClick={(row) => router.push(`/${locale}/admin/transfers/${row._id}`)}
+      onRowClick={(row) => router.push(`${paths.page}/${row._id}`)}
       emptyMessage={t("admin.transfers.list.empty")}
       emptyIcon={<ArrowRightLeft className="h-8 w-8" />}
+      // Orders' text size: 12px header and body.
+      className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
     />
   );
 }

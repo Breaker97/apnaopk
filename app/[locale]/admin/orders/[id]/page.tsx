@@ -5,6 +5,7 @@ import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
 import { getOrderDetails, getOrderReturnRequests } from "@/lib/orders/order-details";
 import { OrderItems } from "@/components/admin/order-details/order-items";
+import { OrderConsignments } from "@/components/admin/order-details/order-consignments";
 import { OrderHeader } from "@/components/admin/order-details/order-header";
 import { OrderCustomer } from "@/components/admin/order-details/order-customer";
 import { OrderTimeline } from "@/components/admin/order-details/order-timeline";
@@ -96,6 +97,12 @@ export default async function OrderDetailsPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <OrderItems order={order} />
+          {/* Split orders only: each seller's part, and cancelling one of them. */}
+          <OrderConsignments
+            order={order}
+            canCancel={canCancelOrder && isFullAdmin}
+            canOverride={isFullAdmin}
+          />
           {/* Hidden for orders that never move: a digital-only order has
               nothing to put in a box, and a pickup order is collected. */}
           <OrderShipmentsCard

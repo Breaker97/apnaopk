@@ -76,6 +76,7 @@ function BrandingForm({
   const primaryColor = appearance?.primaryColor ?? "";
   const secondaryColor = appearance?.secondaryColor ?? "";
   const accentColor = appearance?.accentColor ?? "";
+  const skeletonColor = appearance?.skeletonColor ?? "";
   const customPresets = appearance?.customPresets ?? [];
 
   const applyColors = (primary: string, secondary: string, accent: string) => {
@@ -166,12 +167,27 @@ function BrandingForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {tSafe(
-          "admin.branding.globalHint",
-          "Your brand is global — it survives switching themes and is used by the storefront, the dashboard, checkout and emails.",
-        )}
-      </p>
+      <div className="sticky top-[var(--dashboard-header-height,4rem)] z-10 -mx-1 flex flex-wrap items-start justify-between gap-3 bg-background px-1 py-2">
+        <p className="min-w-0 max-w-3xl text-sm text-muted-foreground">
+          {tSafe(
+            "admin.branding.globalHint",
+            "Your brand is global — it survives switching themes and is used by the storefront, the dashboard, checkout and emails.",
+          )}
+        </p>
+        <Button
+          type="button"
+          onClick={() => void save(settings)}
+          disabled={!isDirty || isSaving}
+          className="shrink-0 gap-1.5"
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {tSafe("admin.branding.save", "Save branding")}
+        </Button>
+      </div>
 
       <Card className="border-border/70">
         <CardHeader>
@@ -230,6 +246,33 @@ function BrandingForm({
               onChange={handleColorChange("appearance.accentColor")}
               onCommit={handleColorCommit("appearance.accentColor")}
             />
+            {/* Loading placeholders. Their own colour, so they no longer
+                borrow the accent's tint. */}
+            <div className="space-y-1.5">
+              <ColorField
+                id="brandSkeletonColor"
+                label={tSafe("admin.settings.appearance.skeletonColor", "Skeleton color")}
+                value={skeletonColor}
+                onChange={handleColorChange("appearance.skeletonColor")}
+                onCommit={handleColorCommit("appearance.skeletonColor")}
+              />
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="h-2.5 w-24 animate-pulse rounded-full"
+                  style={{
+                    backgroundColor:
+                      normalizeColorToHex(skeletonColor) ?? "rgb(0 0 0 / 0.06)",
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {tSafe(
+                    "admin.settings.appearance.skeletonColorHint",
+                    "Loading placeholders. Empty keeps a neutral grey.",
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
 
           <ColorSystemPreview
@@ -320,19 +363,6 @@ function BrandingForm({
         </CardContent>
       </Card>
 
-      <Button
-        type="button"
-        onClick={() => void save(settings)}
-        disabled={!isDirty || isSaving}
-        className="gap-1.5"
-      >
-        {isSaving ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Save className="h-4 w-4" />
-        )}
-        {tSafe("admin.branding.save", "Save branding")}
-      </Button>
     </div>
   );
 }

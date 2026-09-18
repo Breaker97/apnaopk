@@ -39,6 +39,16 @@ interface ICommissionInvoice extends mongoose.Document {
   /** Frozen at issue: the orders whose sub-orders this invoice claimed. */
   orderIds: mongoose.Types.ObjectId[];
   amount: number;
+  /**
+   * Credit from commission already paid on sales refunded afterwards, taken
+   * off this invoice's `amount`.
+   *
+   * Recorded so the next invoice does not take the same credit off again.
+   * Absent on invoices raised before it existed; what those took is worked back
+   * out — see `sumCommissionCreditApplied` in lib/vendors/vendor-earnings.ts.
+   */
+  creditApplied?: number;
+  storeOwes?: number;
   currency: string;
   status: CommissionInvoiceStatus;
   /**
@@ -50,6 +60,7 @@ interface ICommissionInvoice extends mongoose.Document {
    * for. Same guard `markPlatformPaymentReversed` applies to boosts.
    */
   paymentId: mongoose.Types.ObjectId | null;
+  payoutId?: mongoose.Types.ObjectId | null;
   paidAt: Date | null;
   /** Admin who raised it. */
   createdBy: string;
@@ -71,6 +82,12 @@ const CommissionInvoiceSchema = new Schema<ICommissionInvoice>(
       default: [],
     },
     amount: { type: Number, required: true, min: 0 },
+    // No default: an absent value marks an invoice raised before it existed.
+    creditApplied: { type: Number, min: 0 },
+    // What the store owed the vendor on balance for these sales — its own
+    // promotions outweighing the commission. Only a payout carries such a bill,
+    // and pays it; nothing is ever collected on it.
+    storeOwes: { type: Number, min: 0 },
     currency: { type: String, required: true, uppercase: true, trim: true },
     status: {
       type: String,
@@ -84,6 +101,11 @@ const CommissionInvoiceSchema = new Schema<ICommissionInvoice>(
       default: null,
     },
     paidAt: { type: Date, default: null },
+    // Set when this bill is being deducted from a payout rather than paid by
+    // the vendor. Such an invoice is not the vendor's to pay or an admin's to
+    // collect: the payout settles it when it is paid, and gives its sales back
+    // if it is cancelled or fails.
+    payoutId: { type: Schema.Types.ObjectId, ref: "Payout", default: null },
     createdBy: { type: String, required: true },
     note: { type: String, trim: true, maxlength: 500, default: null },
   },

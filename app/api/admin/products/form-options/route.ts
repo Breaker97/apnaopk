@@ -4,7 +4,9 @@ import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { isAdmin } from "@/lib/access/rbac";
+import { getSettings } from "@/models/settings.model";
 import { buildProductFormOptions } from "@/lib/products/form-options";
+import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { resolveLocationScope } from "@/lib/inventory/inventory-location-scope";
 
 /**
@@ -35,6 +37,9 @@ export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
     await buildProductFormOptions({
       includeInactiveCategories: isAdmin(session.user),
       scope: await resolveLocationScope(session.user, "read"),
+      deferredBalanceSupported: storeCanCollectDeferredBalance(
+        (await getSettings()).payment,
+      ),
     }),
   );
 });

@@ -29,6 +29,7 @@ const ACCOUNT_SECTIONS: Record<string, AccountCrumb[]> = {
   // `account.inbox` is a namespace object: t.has() reports true for it but t()
   // throws INSUFFICIENT_PATH, so the title key is addressed directly.
   "/account/inbox": [{ key: "account.inbox.title", fallback: "Inbox" }],
+  "/account/quotes": [{ key: "account.quotes", fallback: "Quotes" }],
   "/account/wishlist": [{ key: "account.wishlist" }],
   "/account/profile": [{ key: "account.profile" }],
   "/account/preferences": [{ key: "customerProfile.preferences" }],

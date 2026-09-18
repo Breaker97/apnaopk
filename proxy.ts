@@ -30,6 +30,7 @@ const API_BYPASS_PREFIXES = [
   "/api/payments/webhook",
   "/api/payments/paypal/capture",
   "/api/payments/verify",
+  "/api/payments/razorpay/callback",
   "/api/payments/razorpay/verify",
   "/api/payments/razorpay/webhook",
   "/api/payments/paystack/verify",

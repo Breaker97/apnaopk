@@ -282,7 +282,7 @@ export const POST = withApi(
     const armed = await BoostCampaign.findOneAndUpdate(
       { _id: campaign._id, status: BOOST_CAMPAIGN_STATUS.PENDING_PAYMENT },
       { $set: terms },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!armed) {
       await releaseReservationIfUnpaid(

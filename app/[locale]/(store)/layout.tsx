@@ -3,6 +3,11 @@ import Script from "next/script";
 import { CartProvider } from "@/hooks/use-cart";
 import { QuickViewProvider } from "@/components/products/quick-view-context";
 import { ProductCardConfigProvider } from "@/components/products/product-card-config-context";
+import { getCardBrandDirectory } from "@/lib/brands/card-brand-directory";
+import {
+  cardGridGapVars,
+  productCardElementOn,
+} from "@/lib/products/product-card-config";
 import { StoreChromeHeight } from "@/components/store/store-chrome-height";
 import { type Locale } from "@/config/i18n.config";
 import { setRequestLocale } from "next-intl/server";
@@ -12,12 +17,14 @@ import { StoreSections } from "@/components/store/store-sections";
 import { TemplateDemoPill } from "@/components/store/template-demo-pill";
 import { THEME_MANIFESTS } from "@/lib/storefront/themes/registry";
 import { getDemoTemplateUrls } from "@/lib/storefront/demo-links";
+import { themePreviewSrc } from "@/lib/storefront/themes/preview";
 import { AISalesAgentWidget } from "@/components/ai-sales-agent/ai-sales-agent-widget";
 import { StorefrontAnalytics } from "@/components/analytics/storefront-analytics";
 import { StorefrontRefresh } from "@/components/store/storefront-refresh";
 import { StoreThemeBodySync } from "@/components/store/store-theme-body-sync";
 import { ThemePreviewBridge } from "@/components/store/theme-preview-bridge";
 import { ScrollResetOnNavigate } from "@/components/store/scroll-reset-on-navigate";
+import { ScrollToTop } from "@/components/store/scroll-to-top";
 import {
   JsonLd,
   generateOrganizationJsonLd,
@@ -80,6 +87,12 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
   // compileTheme, which the editor's live preview runs too.
   const themeSurface = compileTheme(theme.tokens, brand.colors);
 
+  // The card's Brand element resolves brand ids through this directory; a
+  // card that shows no Brand element costs no brand read at all.
+  const cardBrands = productCardElementOn(productCardConfig.groups, "brand")
+    ? await getCardBrandDirectory()
+    : {};
+
   const groupCtx: SectionRenderContext = {
     locale: locale as Locale,
     defaultLanguage,
@@ -104,7 +117,10 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
             id: manifest.id,
             name: manifest.name,
             description: manifest.description,
-            preview: manifest.preview?.card,
+            // Versioned, like every other gallery: the capture is replaced in
+            // place when a template is re-shot, and a bare path kept serving
+            // the old one out of the image cache.
+            preview: themePreviewSrc(manifest, "card"),
             url: demoUrls[manifest.id],
           }));
         })()
@@ -159,7 +175,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
       <ScrollResetOnNavigate />
       {/* Every storefront card renders the ONE configurator card; a theme
           seeds its own template into the config on activation. */}
-      <ProductCardConfigProvider config={productCardConfig}>
+      <ProductCardConfigProvider config={productCardConfig} brands={cardBrands}>
       <CartProvider>
       {/* One quick-view modal for the whole storefront; cards without a
           surface-level handler fall back to it. Inside CartProvider — the
@@ -198,12 +214,27 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
           className="store-surface min-h-screen flex flex-col bg-background"
           data-store-theme={theme.id}
           {...themeSurface.attributes}
-          style={themeSurface.vars as React.CSSProperties}
+          style={
+            {
+              ...themeSurface.vars,
+              // Product card → Grid spacing; empty unless customized.
+              ...cardGridGapVars(productCardConfig.style),
+            } as React.CSSProperties
+          }
         >
           {/* data-store-chrome lets the group draft preview hide the live
               chrome piece it is previewing a replacement for. Both wrappers
               are display:contents — a real box here would bound the sticky
               header bar to its own height and it would never stick. */}
+          {/* The merchant's own sheet for this theme, after every token
+              rule so it wins. Neutralized on write (normalizeCustomCss), so
+              it is printed as-is: a CSS sheet must not be HTML-escaped. */}
+          {theme.customCss ? (
+            <style
+              data-store-custom-css=""
+              dangerouslySetInnerHTML={{ __html: theme.customCss }}
+            />
+          ) : null}
           <div data-store-chrome="header" className="contents">
             <StoreSections
               sections={headerGroup.sections}
@@ -236,6 +267,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
               className="h-[calc(3.75rem+env(safe-area-inset-bottom))] xl:hidden"
             />
             <CompareBar locale={locale as Locale} />
+            <ScrollToTop />
             <AISalesAgentWidget locale={locale as Locale} />
             <StoreBottomNav
               locale={locale as Locale}

@@ -69,7 +69,7 @@ export const PUT = withApi<RouteParams>(
     const coupon = await Coupon.findByIdAndUpdate(
       id,
       { $set: mutableBody },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
 
     if (!coupon) {

@@ -3,6 +3,7 @@ import { Order } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import {
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "@/lib/api/errors";
@@ -23,18 +24,44 @@ import {
   getOrderStatusActionByTarget,
   getOrderStatusTimestampUpdates,
 } from "@/lib/orders/order-status-workflow";
-import { deriveOrderStatusFromSubOrders } from "@/lib/orders/order-status-apply";
+import { rollUpOrderStatus } from "@/lib/orders/order-status-apply";
+import {
+  getFulfillmentPaymentBlock,
+  isFulfillmentTransition,
+} from "@/lib/orders/fulfillment-payment-gate";
+import { toVendorOrderView } from "@/lib/vendors/vendor-order-view";
 import {
   deriveOrderPaymentStatus,
   resolveSubOrderPaymentStatus,
+  resolveVendorPaymentDisplayStatus,
 } from "@/lib/orders/order-payment-status";
 import { isPlatformSettled } from "@/lib/payments/payment-custody";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
+import { refundOrderCancellation } from "@/lib/orders/preorder-cancel-refund";
 import { notifyOrderStatus } from "@/lib/notifications/notifications";
 import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
 import { withApi } from "@/lib/api/handler";
 import { afterResponse } from "@/lib/after-response";
 import { queueAutoShipForOrder } from "@/lib/shipping/carriers/shipment-worker";
+import { consignmentCharge } from "@/lib/finance/postings";
+import {
+  fetchRefundTotalsByOrder,
+  payableInCurrency,
+  sumVendorPayable,
+} from "@/lib/vendors/vendor-earnings";
+import { resolveReturnPolicy } from "@/lib/returns/return-policy";
+import type { IOrder } from "@/types";
+
+/** Commission billed on a sale, less the store's own promotion on it. */
+function billedAfterPromotions(totals: {
+  commissionAmount: number;
+  promotionCredit: number;
+}): number {
+  return Math.max(
+    0,
+    Math.round((totals.commissionAmount - totals.promotionCredit) * 100) / 100,
+  );
+}
 
 const VendorUpdateOrderSchema = UpdateOrderStatusSchema.partial()
   .extend({
@@ -87,23 +114,72 @@ export const GET = withApi<{ id: string }>(
       _id: id,
       "subOrders.vendorId": vendor._id,
     })
-      .populate("customerId", "name email phone")
-      .lean();
+      .populate("customerId", "name email")
+      .lean<IOrder & { customerId?: { name?: string; email?: string } }>();
+    const subOrder = order?.subOrders.find(
+      (sub) => String(sub.vendorId) === String(vendor._id),
+    );
 
-    if (!order) {
+    if (!order || !subOrder) {
       return notFoundResponse("Order");
     }
 
-    // Filter to only vendor's sub-order
-    const vendorOrder = {
-      ...order,
-      subOrders: order.subOrders.filter(
-        (sub: { vendorId?: { toString: () => string } }) =>
-          sub.vendorId?.toString() === vendor._id.toString(),
-      ),
-    };
+    const currency = String(
+      order.currency || settings.general?.defaultCurrency || "USD",
+    ).toUpperCase();
+    const refunds = await fetchRefundTotalsByOrder([order._id]);
+    // The payout arithmetic, not the sub-order's face values: those are
+    // undiscounted and pre-refund, so a couponed or refunded order showed the
+    // vendor earnings no payout would ever pay.
+    const settle = (billVendorCodShipping: boolean) =>
+      payableInCurrency(
+        sumVendorPayable([order], vendor._id, refunds, () => true, currency, {
+          billVendorCodShipping,
+        }),
+        currency,
+      );
+    const earnings = settle(false);
+    const vendorCollects = !isPlatformSettled(order, subOrder);
 
-    return successResponse(vendorOrder);
+    // An allow-list, not the order. Spreading the document shipped every
+    // vendor's lines on a split order — unit cost included — and the store's
+    // payment references to whichever vendor opened it.
+    return successResponse({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      paymentMethod: order.paymentMethod,
+      // This vendor's own payment state. The order-level one read "Partially
+      // paid" to a vendor whose share had already arrived.
+      paymentStatus: resolveVendorPaymentDisplayStatus(order, subOrder),
+      shippingAddress: order.shippingAddress,
+      customerId: order.customerId,
+      // What the shopper wrote at checkout is often for whoever packs the
+      // parcel ("leave with the guard", a gift message).
+      customerNote: order.customerNote,
+      checkoutFields: order.checkoutFields,
+      subOrders: [subOrder],
+      finance: {
+        currency,
+        // What the shopper is charged for THIS consignment — the figure a
+        // courier collects at the door, and the one the ledger books as cash.
+        charge: consignmentCharge({ ...order, currency }, subOrder._id),
+        grossSales: earnings.grossSales,
+        commission: earnings.commissionAmount,
+        earnings: earnings.netAmount,
+        vendorCollects,
+        // What the store bills a vendor who keeps the cash: the commission,
+        // plus the delivery they took at the door when the store bills it back.
+        billedToVendor: vendorCollects
+          ? billedAfterPromotions(
+              settle(resolveReturnPolicy(settings).billVendorCodShipping),
+            )
+          : 0,
+        // The store's own promotion on this sale, owed to a vendor who
+        // collected the discounted price — already netted off the bill above.
+        storePromotion: vendorCollects ? earnings.promotionCredit : 0,
+      },
+    });
   },
 );
 
@@ -225,6 +301,8 @@ export const PUT = withApi<{ id: string }>(
       }
       order.subOrders[subOrderIndex].paymentStatus = PAYMENT_STATUS.PAID;
       order.subOrders[subOrderIndex].paidAt = new Date();
+      // The first money on the order, if this is it.
+      if (!order.paidAt) order.paidAt = order.subOrders[subOrderIndex].paidAt;
       order.subOrders[subOrderIndex].paymentCollectedBy = session.user.id;
       order.paymentStatus = deriveOrderPaymentStatus(order);
     }
@@ -236,6 +314,16 @@ export const PUT = withApi<{ id: string }>(
         throw new ValidationError(
           `Cannot transition sub-order from "${currentSubStatus}" to "${status}"`
         );
+      }
+
+      // Goods do not move towards a shopper whose payment never arrived — see
+      // the gate for what counts. Cancelling is never gated.
+      if (isFulfillmentTransition(status)) {
+        const blocked = getFulfillmentPaymentBlock(
+          order,
+          order.subOrders[subOrderIndex],
+        );
+        if (blocked) throw new ValidationError(blocked);
       }
 
       order.subOrders[subOrderIndex].status = status;
@@ -271,39 +359,12 @@ export const PUT = withApi<{ id: string }>(
       order.carrier = carrier;
     }
 
-    if (status) {
-      // Restore inventory for vendor's items when sub-order is cancelled.
-      // The helper claims the restore atomically, so a sub-order that was
-      // never reserved (abandoned pending order) is a no-op; one that has
-      // already been restored cannot be restored a second time.
-      if (status === "cancelled" && currentSubStatus !== "cancelled") {
-        await restoreSubOrderInventory({
-          orderId: String(order._id),
-          vendorId: String(vendor._id),
-        }).catch((err) =>
-          console.error(
-            "Failed to restore inventory on vendor sub-order cancel:",
-            err,
-          ),
-        );
-        await releaseSubOrderPreorders({
-          orderId: String(order._id),
-          vendorId: String(vendor._id),
-        }).catch((err) =>
-          console.error(
-            "Failed to release preorder quota on vendor sub-order cancel:",
-            err,
-          ),
-        );
-      }
-    }
-
     // The order is a wrapper around consignments, so its status is derived
     // from theirs rather than guessed at here — see
     // `deriveOrderStatusFromSubOrders` for why "least advanced live one" is
-    // the honest summary.
-    const derivedStatus = deriveOrderStatusFromSubOrders(order.subOrders);
-    if (derivedStatus && derivedStatus !== order.status) {
+    // the honest summary. Never backwards, though: see `rollUpOrderStatus`.
+    const derivedStatus = rollUpOrderStatus(order.status, order.subOrders);
+    if (derivedStatus) {
       // The order's own timestamps go with it. Nothing else on this path writes
       // them — the model has no status hook — so an order derived to `shipped`
       // or `delivered` by a vendor kept an empty `shippedAt`/`deliveredAt`: the
@@ -316,7 +377,70 @@ export const PUT = withApi<{ id: string }>(
     const previousOverallStatus = (before as { status?: string })?.status;
     const previousPaymentStatus = (before as { paymentStatus?: string })
       ?.paymentStatus;
-    await order.save();
+
+    // Written only over the order exactly as it was read. The transition, the
+    // roll-up and everything after the save were decided against that copy,
+    // and a plain save wrote over whatever had happened since: a consignment
+    // the shopper had just been refunded for came back as "shipped" from a
+    // vendor's open tab, and two sellers cancelling at once each saw the other
+    // still live, leaving an order with nothing left in it reading
+    // "processing". Any status on the order that moved in between makes this
+    // save match nothing, and the vendor is asked to look again.
+    const readStatuses: Record<string, unknown> = { status: previousOverallStatus };
+    (
+      ((before as { subOrders?: Array<{ status?: string }> }).subOrders || [])
+    ).forEach((sub, index) => {
+      readStatuses[`subOrders.${index}.status`] = sub.status;
+    });
+    (order as unknown as { $where?: Record<string, unknown> }).$where =
+      readStatuses;
+    try {
+      await order.save();
+    } catch (err) {
+      if ((err as { name?: string })?.name === "DocumentNotFoundError") {
+        throw new ConflictError(
+          "This order changed while you were updating it. Refresh the page and try again.",
+        );
+      }
+      throw err;
+    }
+
+    // Restore inventory for vendor's items when sub-order is cancelled — only
+    // once the cancellation is saved, so a save that lost the race above hands
+    // nothing back. The helper claims the restore atomically, so a sub-order
+    // that was never reserved (abandoned pending order) is a no-op; one that
+    // has already been restored cannot be restored a second time.
+    if (status === "cancelled" && currentSubStatus !== "cancelled") {
+      await restoreSubOrderInventory({
+        orderId: String(order._id),
+        vendorId: String(vendor._id),
+      }).catch((err) =>
+        console.error(
+          "Failed to restore inventory on vendor sub-order cancel:",
+          err,
+        ),
+      );
+      await releaseSubOrderPreorders({
+        orderId: String(order._id),
+        vendorId: String(vendor._id),
+      }).catch((err) =>
+        console.error(
+          "Failed to release preorder quota on vendor sub-order cancel:",
+          err,
+        ),
+      );
+      // A label bought for goods that are now staying put was paid for the
+      // moment it was bought. Only one never handed to the carrier is voided.
+      const { voidLabelsForCancellation } = await import(
+        "@/lib/shipping/cancel-labels"
+      );
+      await voidLabelsForCancellation({
+        orderId: order._id,
+        subOrderId: order.subOrders[subOrderIndex]._id,
+      }).catch((err) =>
+        console.error("Failed to void labels on vendor sub-order cancel:", err),
+      );
+    }
 
     // A vendor marking a cash order collected is the moment that money became
     // real, and it is the ONLY moment for a COD or pickup sale — no gateway
@@ -397,13 +521,17 @@ export const PUT = withApi<{ id: string }>(
       );
     }
 
-    if (status && order.customerId) {
-      await notifyOrderStatus(
-        String(order.customerId),
-        order.orderNumber,
-        status,
-        String(order._id),
-      ).catch((err) =>
+    // The shopper is told about the ORDER, and only when the order itself
+    // moved. A seller cancelling their own consignment of a split order used
+    // to send "your order has been cancelled" — by email and SMS — while the
+    // other sellers' items were still on their way; a seller shipping their
+    // part said the whole order had shipped. The rolled-up status is the only
+    // one the message is true about. The admin consignment path does the same.
+    if (status && String(order.status) !== String(previousOverallStatus || "")) {
+      await notifyOrderStatus({
+        orderId: String(order._id),
+        status: String(order.status),
+      }).catch((err) =>
         console.error("Failed to create vendor order status notification:", err),
       );
     }
@@ -466,6 +594,30 @@ export const PUT = withApi<{ id: string }>(
       order.toObject() as unknown as Record<string, unknown>,
     );
 
-    return successResponse(order);
+    // A vendor calling off a consignment the shopper already paid for sends
+    // that consignment's share back — the pre-order screen did, and this one
+    // restocked the goods and kept the money. Only this consignment's share
+    // unless the cancellation took the whole order with it. Reported, never
+    // thrown: the cancellation has been saved and stands either way.
+    const refund =
+      status === "cancelled" && currentSubStatus !== "cancelled"
+        ? await refundOrderCancellation({
+            orderId: String(order._id),
+            cancelledSubOrderIds: [order.subOrders[subOrderIndex]._id],
+            reason: vendor.storeName
+              ? `${vendor.storeName} cancelled their items`
+              : "Consignment cancelled by the seller",
+            actor: session.user.email || session.user.id,
+            createdBy: session.user.id,
+            auditContext,
+          }).catch((err: unknown) => {
+            console.error("Failed to refund vendor-cancelled consignment:", err);
+            return { refunded: false, reason: "The refund could not be issued" };
+          })
+        : undefined;
+
+    // This vendor's view of the order, never the document — see the helper.
+    const view = toVendorOrderView(order, vendor._id);
+    return successResponse(refund ? { ...view, refund } : view);
   },
 );

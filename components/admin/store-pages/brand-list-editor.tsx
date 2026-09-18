@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/ui/native-select";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
+import { EditorShell, PanelGroup, PanelRow } from "./editor-shell";
 import {
   BrandListView,
   type BrandListAppearance,
@@ -188,33 +189,8 @@ export function BrandListEditor({
 
   return (
     <div className="space-y-5">
-      {variants.length > 1 ? (
-        <div className="space-y-1.5">
-          <p className="text-sm font-semibold">
-            {tSafe("admin.storeBuilder.brandEditor.template", "Template")}
-          </p>
-          <NativeSelect
-            aria-label={tSafe(
-              "admin.storeBuilder.brandEditor.template",
-              "Template",
-            )}
-            value={activeVariant}
-            onChange={(event) =>
-              onSettingChange(VARIANT_FIELD_KEY, event.target.value)
-            }
-          >
-            {variants.map((variant) => (
-              <option key={variant.key} value={variant.key}>
-                {tSafe(
-                  `admin.storeBuilder.sections.${entry.type}.variants.${variant.key}`,
-                  variant.name,
-                )}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-      ) : null}
-
+      <EditorShell
+        preview={
       <div className="space-y-1.5">
         <p className="text-sm font-semibold">
           {tSafe("admin.storeBuilder.brandEditor.preview", "Preview")}
@@ -247,26 +223,50 @@ export function BrandListEditor({
         )}
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-sm font-semibold">
-          {tSafe("admin.storeBuilder.brandEditor.width", "Width")}
-        </p>
-        <NativeSelect
-          aria-label={tSafe("admin.storeBuilder.brandEditor.width", "Width")}
-          value={width}
-          onChange={(event) => onSettingChange("width", event.target.value)}
-        >
-          {BRAND_LIST_WIDTHS.map((key) => (
-            <option key={key} value={key}>
-              {tSafe(
-                `admin.storeBuilder.sliderBlock.widths.${key}`,
-                WIDTH_FALLBACKS[key],
-              )}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
-
+        }
+        panel={
+          <>
+          <PanelGroup title={tSafe("admin.storeBuilder.panelGroups.layout", "Layout")}>
+            {variants.length > 1 ? (
+              <PanelRow label={tSafe("admin.storeBuilder.brandEditor.template", "Template")}>
+                <NativeSelect
+                  aria-label={tSafe("admin.storeBuilder.brandEditor.template", "Template")}
+                  value={activeVariant}
+                  onChange={(event) => onSettingChange(VARIANT_FIELD_KEY, event.target.value)}
+                  className="h-8 w-40 text-xs"
+                >
+                  {variants.map((variant) => (
+                    <option key={variant.key} value={variant.key}>
+                      {tSafe(
+                        `admin.storeBuilder.sections.${entry.type}.variants.${variant.key}`,
+                        variant.name,
+                      )}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </PanelRow>
+            ) : null}
+            <PanelRow label={tSafe("admin.storeBuilder.brandEditor.width", "Width")}>
+              <NativeSelect
+                aria-label={tSafe("admin.storeBuilder.brandEditor.width", "Width")}
+                value={width}
+                onChange={(event) => onSettingChange("width", event.target.value)}
+                className="h-8 w-40 text-xs"
+              >
+                {BRAND_LIST_WIDTHS.map((key) => (
+                  <option key={key} value={key}>
+                    {tSafe(
+                      `admin.storeBuilder.sliderBlock.widths.${key}`,
+                      WIDTH_FALLBACKS[key],
+                    )}
+                  </option>
+                ))}
+              </NativeSelect>
+            </PanelRow>
+          </PanelGroup>
+          </>
+        }
+      >
       <div className="space-y-3">
         <p className="text-sm font-semibold">
           {tSafe("admin.storeBuilder.brandEditor.brandList", "Brand List")}
@@ -317,6 +317,8 @@ export function BrandListEditor({
           <Plus className="h-4 w-4" />
         </Button>
       </div>
+
+      </EditorShell>
 
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="max-h-[70vh] overflow-y-auto sm:max-w-md">

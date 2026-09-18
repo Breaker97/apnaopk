@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   ArrowLeft,
   CheckCheck,
@@ -11,7 +10,6 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Mail,
-  Package,
   Paperclip,
   Phone,
 } from "lucide-react";
@@ -29,6 +27,7 @@ import {
   formatFileSize,
   getInitials,
 } from "./shared";
+import { ProductContextCard } from "./product-context-card";
 
 type DetailsView = "details" | "media";
 type MediaTab = "media" | "files" | "links";
@@ -318,37 +317,11 @@ export function ConversationDetails({
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {labels.product}
           </p>
-          <Link
-            href={`/${locale}/products/${conversation.productContext.slug}`}
-            className="flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-muted/60"
-          >
-            <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">
-              {conversation.productContext.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={conversation.productContext.image}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              ) : (
-                <Package className="size-4 text-muted-foreground" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-medium">
-                {conversation.productContext.name}
-              </span>
-              {conversation.productContext.variantName ? (
-                <span className="block truncate text-[11px] text-muted-foreground">
-                  {conversation.productContext.variantName}
-                </span>
-              ) : (
-                <span className="block text-[11px] text-primary">
-                  {labels.viewProduct}
-                </span>
-              )}
-            </span>
-          </Link>
+          <ProductContextCard
+            locale={locale}
+            product={conversation.productContext}
+            viewProductLabel={labels.viewProduct}
+          />
         </div>
       ) : null}
 

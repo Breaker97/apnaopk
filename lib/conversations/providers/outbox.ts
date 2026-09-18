@@ -51,7 +51,7 @@ export async function queueExternalMessage(params: {
         nextAttemptAt: new Date(),
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 }
 
@@ -77,7 +77,7 @@ async function claimOutboxItem(messageId?: Types.ObjectId) {
       },
       $inc: { attempts: 1 },
     },
-    { new: true, sort: { nextAttemptAt: 1, _id: 1 } },
+    { returnDocument: "after", sort: { nextAttemptAt: 1, _id: 1 } },
   );
 }
 

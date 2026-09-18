@@ -21,9 +21,14 @@ import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import {
+  getDefaultFooterSettings,
   resolveFooterContactDetails,
+  resolveFooterLogoUrl,
+  resolveFooterLogoWidths,
   type FooterSettings,
 } from "@/lib/site-config/footer-config";
+import type { LogoWidths } from "@/lib/site-config/header-config";
+import { cn } from "@/lib/utils";
 
 interface FooterColumn {
   title: string;
@@ -34,6 +39,8 @@ interface StoreFooterProps {
   locale: Locale;
   columns?: FooterColumn[];
   footerSettings?: FooterSettings;
+  /** headerLogoWidths() of the header this footer sits under. */
+  headerLogoWidths: LogoWidths;
 }
 
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -47,7 +54,12 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function StoreFooter({ locale, columns, footerSettings }: StoreFooterProps) {
+export function StoreFooter({
+  locale,
+  columns,
+  footerSettings,
+  headerLogoWidths,
+}: StoreFooterProps) {
   const t = useTranslations();
   const {
     storeName,
@@ -69,16 +81,26 @@ export function StoreFooter({ locale, columns, footerSettings }: StoreFooterProp
     typeof storeDescription === "string" && storeDescription.trim()
       ? storeDescription
       : appConfig.description;
-  const footerLogoUrl = footerSettings?.brand.logoUrl?.trim() || "";
-  const footerLogoAlt = footerSettings?.brand.logoAlt?.trim() || "";
-  const footerDescription = footerSettings?.brand.description?.trim() || "";
-  const currentLogoUrl = footerLogoUrl
-    ? footerLogoUrl
-    : isDark && typeof darkModeLogoUrl === "string" && darkModeLogoUrl.trim()
-      ? darkModeLogoUrl
-      : typeof logoUrl === "string" && logoUrl.trim()
-        ? logoUrl
-        : "";
+  const footerBrand = footerSettings?.brand ?? getDefaultFooterSettings().brand;
+  const footerLogoAlt = footerBrand.logoAlt.trim();
+  const footerDescription = footerBrand.description.trim();
+  const activeColors = isDark
+    ? footerSettings?.colors.dark
+    : footerSettings?.colors.light;
+  // ONE rule for the artwork and ONE for the size, shared with the admin's
+  // footer preview — see resolveFooterLogoUrl / resolveFooterLogoWidths.
+  const currentLogoUrl = resolveFooterLogoUrl({
+    brand: footerBrand,
+    storeLogoUrl: typeof logoUrl === "string" ? logoUrl : "",
+    storeDarkLogoUrl:
+      typeof darkModeLogoUrl === "string" ? darkModeLogoUrl : "",
+    isDark,
+    backgroundColor: activeColors?.backgroundColor ?? "",
+  });
+  const logoWidths = resolveFooterLogoWidths(
+    footerBrand.logoSize,
+    headerLogoWidths,
+  );
   const resolvedFooterDescription = footerDescription || resolvedDescription;
   const resolvedContact = footerSettings
     ? resolveFooterContactDetails(footerSettings.contact, {
@@ -91,9 +113,6 @@ export function StoreFooter({ locale, columns, footerSettings }: StoreFooterProp
         email: storeEmail?.trim() || "",
         address: storeAddress?.trim() || "",
       };
-  const activeColors = isDark
-    ? footerSettings?.colors.dark
-    : footerSettings?.colors.light;
   const footerStyle = activeColors
     ? ({
         "--footer-bg": activeColors.backgroundColor,
@@ -248,13 +267,33 @@ export function StoreFooter({ locale, columns, footerSettings }: StoreFooterProp
             {showLogo ? (
               <Link href={`/${locale}`} className="mb-4 flex items-center gap-2">
                 {currentLogoUrl ? (
-                  <span className="relative block h-8 w-32 overflow-hidden">
+                  // Sized by WIDTH, as the header sizes its logo. Matching
+                  // the header copies its two recipes exactly: the compact
+                  // bar's 32px-tall box below `lg`, the brand item's
+                  // width-only box from `lg` up.
+                  <span
+                    className={cn(
+                      "relative block max-w-full",
+                      logoWidths.matchesHeader
+                        ? "h-8 w-(--footer-logo-width) lg:h-auto lg:w-(--footer-logo-width-lg)"
+                        : "w-(--footer-logo-width)",
+                    )}
+                    style={
+                      {
+                        "--footer-logo-width": `${logoWidths.mobile}px`,
+                        "--footer-logo-width-lg": `${logoWidths.desktop}px`,
+                      } as CSSProperties
+                    }
+                  >
                     <AppImage
                       src={currentLogoUrl}
                       alt={footerLogoAlt || resolvedStoreName}
-                      className="h-8 w-full object-contain object-left"
-                      width={144}
-                      height={32}
+                      className={cn(
+                        "w-full object-contain object-left",
+                        logoWidths.matchesHeader ? "h-8 lg:h-auto" : "h-auto",
+                      )}
+                      width={Math.round(logoWidths.desktop)}
+                      height={Math.round(logoWidths.desktop / 4)}
                     />
                   </span>
                 ) : (

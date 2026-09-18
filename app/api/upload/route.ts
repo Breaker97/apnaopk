@@ -51,6 +51,13 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Support both 'file' (single) and 'files' (batch) field names
+    // The logo exception, asked for by the uploader and granted only to a
+    // caller who already manages store media — raw SVG can carry script and
+    // is served from the store's own media host.
+    const keepVector =
+      formData.get("keepVector") === "1" &&
+      (await canManageStoreMedia(session.user));
+
     const files = formData.getAll("files") as File[];
     const singleFile = formData.get("file") as File | null;
 
@@ -84,6 +91,7 @@ export async function POST(request: NextRequest) {
             storage,
             uploadedBy: session.user.id,
             ownerScope,
+            keepVector,
           }),
         );
       } catch (error) {

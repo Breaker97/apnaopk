@@ -1,5 +1,6 @@
-import { Transfer } from "@/models";
+import { InventoryLocation, Transfer } from "@/models";
 import { connectDB } from "@/lib/db";
+import { transferVisibilityFilter } from "@/lib/inventory/transfers";
 import {
   countForQuery,
   listResult,
@@ -22,6 +23,9 @@ interface TransferListRow {
   toLocationName?: string;
   itemCount: number;
   totalLines: number;
+  /** Units accepted and rejected so far — how far a receipt has got. */
+  receivedUnits: number;
+  rejectedUnits: number;
   updatedAt?: Date | string;
   createdAt?: Date | string;
 }
@@ -49,18 +53,40 @@ const SORT_FIELDS = new Set([
 
 export const TRANSFERS_DEFAULT_PAGE_SIZE = 20;
 
-function itemQuantity(items: unknown): number {
+function sumField(
+  items: unknown,
+  field: "quantity" | "receivedQuantity" | "rejectedQuantity",
+): number {
   return Array.isArray(items)
     ? items.reduce(
-        (sum: number, item: { quantity?: number }) =>
-          sum + (Number(item.quantity) || 0),
+        (sum: number, item: Record<string, unknown>) =>
+          sum + (Number(item[field]) || 0),
         0,
       )
     : 0;
 }
 
+/**
+ * The locations the list can be filtered by: every location for an admin, and
+ * otherwise only the ones the caller holds.
+ */
+export async function fetchTransferLocationOptions(
+  allowedLocationIds: ReadonlySet<string> | null,
+): Promise<Array<{ id: string; name: string }>> {
+  await connectDB();
+  const rows = await InventoryLocation.find(
+    allowedLocationIds === null ? {} : { _id: { $in: [...allowedLocationIds] } },
+  )
+    .select("name")
+    .sort({ name: 1 })
+    .lean<Array<{ _id: unknown; name?: string }>>();
+  return rows.map((row) => ({ id: String(row._id), name: row.name || "" }));
+}
+
 export async function fetchTransferList(
   searchParams: URLSearchParams,
+  /** From `resolveTransferLocationAccess`; `null` lists every transfer. */
+  allowedLocationIds: ReadonlySet<string> | null,
 ): Promise<TransferListResult> {
   await connectDB();
 
@@ -74,21 +100,35 @@ export async function fetchTransferList(
   );
   const status = (searchParams.get("status") || "all").trim();
   const search = (searchParams.get("search") || "").trim();
+  const locationId = (searchParams.get("location") || "").trim();
   const sortBy = (searchParams.get("sortBy") || "").trim();
   const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
-  const query: Record<string, unknown> = {};
-  if (status !== "all") query.status = status;
+  // Only transfers touching a location the caller holds — the tab counters
+  // below start from this too, or they would count other stores' transfers.
+  const scopeQuery = transferVisibilityFilter(allowedLocationIds);
+  const baseQuery: Record<string, unknown>[] = [scopeQuery];
+  if (locationId && locationId !== "all") {
+    baseQuery.push({
+      $or: [{ fromLocationId: locationId }, { toLocationId: locationId }],
+    });
+  }
 
   if (search) {
     const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    query.$or = [
-      { transferNumber: { $regex: escaped, $options: "i" } },
-      { fromLocationName: { $regex: escaped, $options: "i" } },
-      { toLocationName: { $regex: escaped, $options: "i" } },
-      { reference: { $regex: escaped, $options: "i" } },
-    ];
+    baseQuery.push({
+      $or: [
+        { transferNumber: { $regex: escaped, $options: "i" } },
+        { fromLocationName: { $regex: escaped, $options: "i" } },
+        { toLocationName: { $regex: escaped, $options: "i" } },
+        { reference: { $regex: escaped, $options: "i" } },
+      ],
+    });
   }
+
+  const unfiltered: Record<string, unknown> = { $and: baseQuery };
+  const query: Record<string, unknown> =
+    status !== "all" ? { $and: [...baseQuery, { status }] } : unfiltered;
 
   // `createdAt` already orders rows unambiguously; the others tie constantly,
   // so they get it appended or a row could straddle two pages.
@@ -106,7 +146,7 @@ export async function fetchTransferList(
     Transfer.aggregate([
       // The tab counters ignore the status filter (they populate the tabs
       // themselves) but must respect an active search.
-      { $match: search ? query : {} },
+      { $match: unfiltered },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]),
   ]);
@@ -125,7 +165,9 @@ export async function fetchTransferList(
     status: record.status,
     fromLocationName: record.fromLocationName,
     toLocationName: record.toLocationName,
-    itemCount: itemQuantity(record.items),
+    itemCount: sumField(record.items, "quantity"),
+    receivedUnits: sumField(record.items, "receivedQuantity"),
+    rejectedUnits: sumField(record.items, "rejectedQuantity"),
     totalLines: Array.isArray(record.items) ? record.items.length : 0,
     updatedAt: record.updatedAt,
     createdAt: record.createdAt,
@@ -134,7 +176,11 @@ export async function fetchTransferList(
   return {
     ...listResult(items, page, limit, total),
     counters: {
-      all: total,
+      // Every status, not `total` — that one is narrowed to the active tab.
+      all: Object.values(totalsByStatus).reduce(
+        (sum: number, count) => sum + Number(count || 0),
+        0,
+      ),
       draft: totalsByStatus.draft || 0,
       ready_to_ship: totalsByStatus.ready_to_ship || 0,
       in_transit: totalsByStatus.in_transit || 0,

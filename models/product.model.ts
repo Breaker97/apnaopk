@@ -10,9 +10,15 @@ import type {
   ProductAttribute,
   ProductMedia,
   ProductOption,
+  ProductSearchIndex,
   ProductVariant,
 } from "@/types";
 import { normalizeProductShippingData } from "@/lib/catalog/product-shipping";
+import {
+  PRODUCT_SEARCH_SOURCE_SELECT,
+  buildProductSearchIndex,
+  type ProductSearchSource,
+} from "@/lib/products/search";
 
 const { Schema, models, model } = mongoose;
 
@@ -50,6 +56,9 @@ const ProductMediaSchema = new Schema<ProductMedia>(
     width: { type: Number },
     height: { type: Number },
     thumbnailUrl: { type: String },
+    // How the image sits in the product page's frames; "auto" follows the
+    // page's own Image fit setting.
+    fit: { type: String, enum: ["auto", "contain", "cover"], default: "auto" },
     // external_video only (Shopify's ExternalVideo): parsed once on save so
     // the storefront builds iframe URLs from a known-safe template instead of
     // re-parsing arbitrary stored URLs.
@@ -157,6 +166,20 @@ const VariantOptionValueSchema = new Schema(
     colorCode: { type: String, trim: true },
   },
   { _id: false }
+);
+
+/**
+ * The derived search block — see lib/products/search.ts. Written by the
+ * validate hook and by `syncProductAggregates`, never by a form.
+ */
+const ProductSearchIndexSchema = new Schema<ProductSearchIndex>(
+  {
+    v: { type: Number, required: true },
+    name: { type: String, default: "" },
+    terms: { type: [String], default: [] },
+    text: { type: String, default: "" },
+  },
+  { _id: false },
 );
 
 const ProductVariantSchema = new Schema<ProductVariant>({
@@ -497,6 +520,7 @@ const ProductSchema = new Schema<IProduct>(
       default: 0,
       min: 0,
     },
+    search: { type: ProductSearchIndexSchema, default: undefined },
   },
   {
     timestamps: true,
@@ -578,12 +602,11 @@ ProductSchema.index({ barcodeNormalized: 1 });
 ProductSchema.index({ skuNormalized: 1 });
 ProductSchema.index({ "variants.barcodeNormalized": 1 });
 ProductSchema.index({ "variants.skuNormalized": 1 });
-ProductSchema.index({
-  name: "text",
-  title: "text",
-  description: "text",
-  tags: "text",
-});
+// The storefront search: every query word is an anchored prefix regex over
+// this array, which a multikey index answers with a range scan. The former
+// text index (name/title/description/tags) is dropped by
+// `db:migrate product-search`; Mongoose never drops an index on its own.
+ProductSchema.index({ "search.terms": 1 });
 
 // Virtual for vendor
 ProductSchema.virtual("vendor", {
@@ -928,6 +951,10 @@ ProductSchema.pre("validate", function () {
       `Duplicate barcode value: ${duplicateBarcodes.join(", ")}`,
     );
   }
+
+  // Last, once the names, SKUs and variant codes above are final: the search
+  // block indexes exactly what this save is about to persist.
+  doc.search = buildProductSearchIndex(doc as unknown as ProductSearchSource);
 });
 
 export const Product =
@@ -1102,7 +1129,7 @@ export function buildProductAggregateUpdate(doc: ProductAggregateSource): {
 export async function syncProductAggregates(productId: string): Promise<void> {
   const doc = await Product.findById(productId)
     .select(
-      "variants price comparePrice locationInventory shipping.isPhysicalProduct inventory",
+      `price comparePrice locationInventory shipping.isPhysicalProduct inventory ${PRODUCT_SEARCH_SOURCE_SELECT}`,
     )
     .lean();
   if (!doc) return;
@@ -1110,6 +1137,10 @@ export async function syncProductAggregates(productId: string): Promise<void> {
   const { set, unset } = buildProductAggregateUpdate(
     doc as unknown as ProductAggregateSource,
   );
+  // The search block is derived from the same document, so it is refreshed
+  // in the same write — a renamed product must be findable under its new
+  // name the moment the save returns.
+  set.search = buildProductSearchIndex(doc as unknown as ProductSearchSource);
 
   const update: Record<string, unknown> = {};
   if (Object.keys(set).length > 0) update.$set = set;

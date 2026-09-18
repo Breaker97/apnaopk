@@ -73,7 +73,7 @@ export const PUT = withApi<{ id: string }>(
     const menu = await Menu.findOneAndUpdate(
       lookup,
       { $set: data },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
     if (!menu) throw new NotFoundError("Menu");
     revalidateMenuContent();

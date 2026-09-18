@@ -525,6 +525,7 @@ export function VendorRegistrationForm({
     }
     setIsSubmitting(true);
     try {
+      const str = (k: string) => String(data[k] ?? "");
       const payload = buildApplicationPayload(data);
 
       const res = await fetch("/api/vendor/apply", {

@@ -38,6 +38,61 @@ import {
  * and the light theme renders exactly what the studio drew.
  */
 
+/**
+ * The layout tree with every stored INK cleared, so the whole bar reads in
+ * whatever colour it is floating on.
+ *
+ * The overlap turns the header into one surface — the merchant's hero — and
+ * an item that named its own colour in the studio (drawn over white there)
+ * would keep it and stay dark on a dark photograph, which is exactly the
+ * split the logo already avoids through `rowTone`. Clearing the ink lets
+ * each item inherit the bar's, so the logo, the glyphs and the labels all
+ * invert together.
+ *
+ * Backgrounds are deliberately LEFT ALONE: an item that paints its own chip
+ * — a white search capsule, a solid call to action — is still a surface of
+ * its own on a hero, and `surfaceInkCss` goes on deriving readable ink from
+ * that paint. Only the free-floating ink has nothing to read against.
+ *
+ * Pure, and applied at render time only: the stored layout is untouched.
+ */
+export function clearHeaderLayoutInk(layout: HeaderLayout): HeaderLayout {
+  return {
+    ...layout,
+    rows: layout.rows.map((row) => ({
+      ...row,
+      // The row's own ink goes too: the storefront already stands its paint
+      // down while floating, so an ink it painted has nothing left under it.
+      foreground: inheritFill(),
+      columns: row.columns.map((column) => ({
+        ...column,
+        items: column.items.map(clearItemInk),
+      })),
+    })),
+  };
+}
+
+/**
+ * One item's ink. The fields are read structurally rather than per item
+ * type: every item that carries a colour names it `foreground`, and every
+ * item that carries type names it `textStyle.fill`, so a new item type
+ * inherits this behaviour instead of being forgotten here.
+ */
+function clearItemInk(item: HeaderLayoutItem): HeaderLayoutItem {
+  const source = item as HeaderLayoutItem & {
+    foreground?: HeaderFill;
+    textStyle?: HeaderTextStyle;
+  };
+  if (!source.foreground && !source.textStyle) return item;
+  return {
+    ...source,
+    ...(source.foreground ? { foreground: inheritFill() } : {}),
+    ...(source.textStyle
+      ? { textStyle: { ...source.textStyle, fill: inheritFill() } }
+      : {}),
+  } as HeaderLayoutItem;
+}
+
 /** The merchant's dark scheme — `HeaderSettings["colors"]["dark"]`. */
 export interface HeaderSchemeColors {
   backgroundColor: string;

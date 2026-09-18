@@ -100,7 +100,7 @@ export const PUT = withApi<{ id: string }>(
     const user = await User.findByIdAndUpdate(
       id,
       { $set: allowedUpdates },
-      { new: true }
+      { returnDocument: "after" }
     ).select("-password");
 
     if (!user) {

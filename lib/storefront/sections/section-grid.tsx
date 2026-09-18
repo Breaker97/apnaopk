@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { AppImage } from "@/components/ui/app-image";
 import { SavedSliderLazy as SavedSlider } from "@/components/store/saved-slider-lazy";
@@ -46,8 +47,33 @@ interface SectionGridProps {
   heightClass?: string;
   /** Corner treatment, which the section's width setting decides. */
   roundedClass?: string;
+  /**
+   * Spacing as the section set it: px between cells (phones take a little
+   * less) and the cells' corners as a CSS length. Either replaces the
+   * shipped class above; unset keeps it.
+   */
+  gap?: number;
+  radius?: string;
   className?: string;
 }
+
+/**
+ * The gap and corners as custom properties: static classes read them, with
+ * the shipped values as fallbacks, so the markup never depends on the
+ * viewport.
+ */
+function spacingVars(gap?: number, radius?: string): CSSProperties | undefined {
+  if (gap === undefined && radius === undefined) return undefined;
+  const vars: Record<string, string> = {};
+  if (gap !== undefined) {
+    vars["--hs-gap"] = `${gap}px`;
+    vars["--hs-gap-m"] = `${Math.round(gap * 0.85)}px`;
+  }
+  if (radius !== undefined) vars["--hs-radius"] = radius;
+  return vars as CSSProperties;
+}
+
+const GRID_GAP_CLASS = "gap-[var(--hs-gap-m,0.75rem)] lg:gap-[var(--hs-gap,0.875rem)]";
 
 /** Resolve every bound slider, and every product across them, in one pass.
  * Exported for the collection rows, whose feature slot is a slider cell. */
@@ -107,14 +133,17 @@ export async function SectionGrid({
   locale,
   heightClass,
   roundedClass = "rounded-xl",
+  gap,
+  radius,
   className,
 }: SectionGridProps) {
   const { sliders, products } = await resolveCellData(cells);
+  const corners = radius === undefined ? roundedClass : "rounded-[var(--hs-radius)]";
 
   // The cell's SHAPE is the grid's business, not the frame's: `.hs-grid`
   // states a ratio per slot per breakpoint (globals.css), so one wide cell
   // and the squares beside it can differ on a phone.
-  const cellFrame = cn("relative overflow-hidden", roundedClass);
+  const cellFrame = cn("relative overflow-hidden", corners);
 
   const cellNode = (area: string, index: number) => {
     const cell = cells[index];
@@ -169,9 +198,11 @@ export async function SectionGrid({
       return (
         <div key={area} data-hs-area={area} className={cellFrame}>
           <SavedSlider
-            slides={buildRenderSlides(slider.slides, products)}
-            className={cn("h-full w-full aspect-auto", roundedClass)}
+            slides={buildRenderSlides(slider.slides, products, { locale })}
+            className={cn("h-full w-full aspect-auto", corners)}
             transition={slider.transition}
+            controls={slider.controls}
+            handle={slider.handle}
             autoplayDelayMs={slider.autoplaySeconds * 1000}
           />
         </div>
@@ -196,11 +227,13 @@ export async function SectionGrid({
       ) : null}
       <div
         className={cn(
-          "hs-grid gap-3 lg:gap-3.5",
+          "hs-grid",
+          GRID_GAP_CLASS,
           `hs-grid--${grid.key}`,
           heightClass,
           className,
         )}
+        style={spacingVars(gap, radius)}
       >
         {grid.category ? (
           <div data-hs-area={grid.category.area} className="hidden lg:block">
@@ -218,11 +251,16 @@ export function SectionGridSkeleton({
   grid,
   heightClass,
   roundedClass = "rounded-xl",
+  gap,
+  radius,
 }: {
   grid: SliderGrid;
   heightClass?: string;
   roundedClass?: string;
+  gap?: number;
+  radius?: string;
 }) {
+  const corners = radius === undefined ? roundedClass : "rounded-[var(--hs-radius)]";
   return (
     <>
       {grid.category ? (
@@ -230,25 +268,26 @@ export function SectionGridSkeleton({
           {[0, 1, 2, 3].map((index) => (
             <div
               key={index}
-              className="h-10 w-28 shrink-0 animate-pulse rounded-full bg-accent"
+              className="h-10 w-28 shrink-0 animate-pulse rounded-full bg-skeleton"
             />
           ))}
         </div>
       ) : null}
       <div
-        className={cn("hs-grid gap-3 lg:gap-3.5", `hs-grid--${grid.key}`, heightClass)}
+        className={cn("hs-grid", GRID_GAP_CLASS, `hs-grid--${grid.key}`, heightClass)}
+        style={spacingVars(gap, radius)}
       >
         {grid.category ? (
           <div
             data-hs-area={grid.category.area}
-            className={cn("hidden animate-pulse bg-accent lg:block", roundedClass)}
+            className={cn("hidden animate-pulse bg-skeleton lg:block", corners)}
           />
         ) : null}
         {grid.slots.map((area) => (
           <div
             key={area}
             data-hs-area={area}
-            className={cn("animate-pulse bg-accent", roundedClass)}
+            className={cn("animate-pulse bg-skeleton", corners)}
           />
         ))}
       </div>

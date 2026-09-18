@@ -17,8 +17,24 @@ export type UploadedImage = {
 };
 
 export async function uploadImageFile(file: File): Promise<UploadedImage> {
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Please choose an image file");
+  return uploadMediaAsset(file, "image");
+}
+
+/**
+ * The same upload, for a surface that takes a video as well — a background
+ * that plays. The endpoint already stores video (mp4, webm, ogg and mov are
+ * in its allowlist); this only widens what the client will hand it.
+ */
+export async function uploadMediaAsset(
+  file: File,
+  kind: "image" | "video",
+): Promise<UploadedImage> {
+  if (!file.type.startsWith(`${kind}/`)) {
+    throw new Error(
+      kind === "video"
+        ? "Please choose a video file"
+        : "Please choose an image file",
+    );
   }
   const formData = new FormData();
   formData.append("files", file);

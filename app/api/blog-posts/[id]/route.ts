@@ -80,7 +80,7 @@ export const PUT = withApi<{ id: string }>(
     }
 
     const post = await BlogPost.findByIdAndUpdate(id, updates, {
-      new: true,
+      returnDocument: "after",
     }).lean();
     if (!post) throw new NotFoundError("Post");
     revalidateBlogContent({ slugs: [before.slug, post.slug] });

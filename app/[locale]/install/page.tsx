@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, setRequestLocale } from "next-intl/server";
 import { InstallWizard } from "@/components/install/install-wizard";
 import { isInstalled } from "@/lib/install/status";
+import { isoCurrencyOptions } from "@/lib/intl/iso-currencies";
 import { themePreviewSrc } from "@/lib/storefront/themes/preview";
 import { THEME_MANIFESTS } from "@/lib/storefront/themes/registry";
 
@@ -35,18 +37,26 @@ export default async function InstallPage({ params }: PageProps) {
   // none of them can do anything without the database either.
   if (await isInstalled().catch(() => false)) notFound();
 
+  // The locale layout's provider carries the storefront subset, which drops
+  // `admin.*` — but the wizard renders admin components (the Storage tab's
+  // provider picker). A one-visit page, so it gets the whole bundle.
+  const messages = await getMessages();
+
   return (
-    <InstallWizard
-      locale={locale}
-      templates={THEME_MANIFESTS.filter(
-        (manifest) => manifest.status === "stable",
-      ).map((manifest) => ({
-        id: manifest.id,
-        name: manifest.name,
-        description: manifest.description,
-        accent: manifest.accent,
-        preview: themePreviewSrc(manifest, "card"),
-      }))}
-    />
+    <NextIntlClientProvider messages={messages}>
+      <InstallWizard
+        locale={locale}
+        currencies={isoCurrencyOptions(locale)}
+        templates={THEME_MANIFESTS.filter(
+          (manifest) => manifest.status === "stable",
+        ).map((manifest) => ({
+          id: manifest.id,
+          name: manifest.name,
+          description: manifest.description,
+          accent: manifest.accent,
+          preview: themePreviewSrc(manifest, "card"),
+        }))}
+      />
+    </NextIntlClientProvider>
   );
 }

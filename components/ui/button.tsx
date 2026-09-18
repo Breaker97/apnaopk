@@ -48,13 +48,16 @@ function Button({
   }) {
   const Comp = asChild ? Slot : "button"
 
+  // data-slot goes after the spread: an asChild parent (PopoverTrigger,
+  // SheetClose…) passes its own data-slot down through Slot, and the store
+  // theme finds buttons by this one.
   return (
     <Comp
-      data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
+      data-slot="button"
     />
   )
 }

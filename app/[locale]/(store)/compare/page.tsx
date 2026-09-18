@@ -13,6 +13,7 @@ import {
   type CompareProduct,
 } from "@/lib/products/compare";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
+import { themeUsesTwoToneHeadings } from "@/lib/storefront/themes/registry";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -106,7 +107,7 @@ export default async function ComparePage({ params, searchParams }: PageProps) {
   // The slugs that actually resolved, so every remove link rebuilds a URL
   // that stays truthful.
   const liveSelection = products.map((product) => product.slug);
-  const isElectronics = settings.theme.id === "electronics";
+  const twoToneHeading = themeUsesTwoToneHeadings(settings.theme.id);
 
   return (
     <div className="container mx-auto px-4 py-8 lg:py-12">
@@ -122,7 +123,7 @@ export default async function ComparePage({ params, searchParams }: PageProps) {
         jsonLd={false}
       />
 
-      {isElectronics ? (
+      {twoToneHeading ? (
         <ElectronicsSectionHeading
           as="h1"
           emphasis="first"

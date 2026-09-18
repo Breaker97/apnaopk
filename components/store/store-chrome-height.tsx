@@ -36,7 +36,13 @@ export function StoreChromeHeight() {
 
     const publish = () => {
       const height = boxes.reduce(
-        (sum, box) => sum + box.getBoundingClientRect().height,
+        // A bar set to overlap the hero is pulled out of the flow, so it
+        // costs the page no height — counting it would leave a full-height
+        // hero short by exactly the header.
+        (sum, box) =>
+          box.hasAttribute("data-header-overlap")
+            ? sum
+            : sum + box.getBoundingClientRect().height,
         0,
       );
       surface.style.setProperty("--store-chrome-h", `${Math.round(height)}px`);

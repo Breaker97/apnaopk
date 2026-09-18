@@ -91,7 +91,7 @@ export const PUT = withApi<RouteParams>(
       const restored = await Brand.findByIdAndUpdate(
         id,
         { $set: { deletedAt: null } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!restored) return notFoundResponse("Brand");
       return successResponse(restored);
@@ -134,7 +134,7 @@ export const PUT = withApi<RouteParams>(
     const brand = await Brand.findByIdAndUpdate(
       id,
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
 
     if (!brand) {
@@ -184,7 +184,7 @@ export const DELETE = withApi<RouteParams>(
     const brand = await Brand.findByIdAndUpdate(
       id,
       { $set: { deletedAt: new Date(), isActive: false } },
-      { new: true },
+      { returnDocument: "after" },
     );
 
     if (!brand) {

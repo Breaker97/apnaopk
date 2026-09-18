@@ -13,10 +13,24 @@ import { splitAvailabilityFirstPage } from "@/lib/products/availability-page";
 import { productCardReplacer, PRODUCT_CARD_SELECT } from "@/lib/products/storefront-product-cards";
 import { sanitizeDigitalAssetsForStorefront } from "@/lib/products/digital-assets";
 import {
-  buildProductSearchQuery,
-  isTextSearchQuery,
+  buildLegacyProductSearchFilter,
+  buildProductSearchFilter,
+  buildProductSearchScoreExpr,
+  canonicalizeProductSearch,
+  matchSearchEntities,
+  parseProductSearch,
+  type ParsedProductSearch,
 } from "@/lib/products/search";
-import { getStorefrontSearchMode } from "@/lib/products/search-mode";
+import { getProductSearchEntityIndex } from "@/lib/products/search-entities";
+import {
+  correctProductSearch,
+  type SearchCorrection,
+} from "@/lib/products/search-typo";
+import { getSearchVocabulary } from "@/lib/products/search-vocabulary";
+import {
+  getProductSearchCoverage,
+  scheduleProductSearchIndexHeal,
+} from "@/lib/products/search-index";
 import { findNearbyVendors } from "@/lib/locations/nearby-vendors";
 import {
   collectableAtBranchesQuery,
@@ -124,6 +138,12 @@ type StorefrontProductsResult<T = unknown> = {
     hasNext: boolean;
     hasPrev: boolean;
   };
+  /**
+   * Set when a misspelt search was answered with corrected words: the
+   * shopper typed `from` and is looking at results for `to`. Absent when the
+   * search matched as typed.
+   */
+  searchCorrection?: { from: string; to: string };
 };
 
 /** @public — reached by tests through a dynamic import, which knip cannot follow. */
@@ -134,6 +154,7 @@ type NormalizedStorefrontProductsQuery = {
   limit: number;
   vendor?: string;
   tag?: string;
+  /** Canonical form (`canonicalizeProductSearch`), so it doubles as the cache key. */
   search?: string;
   minPrice?: string;
   maxPrice?: string;
@@ -151,8 +172,6 @@ type NormalizedStorefrontProductsQuery = {
   inStock?: boolean;
   outOfStock?: boolean;
   cardFieldsOnly: boolean;
-  /** Set by the text-index fallback only; never part of a caller's query. */
-  forceRegexSearch?: boolean;
   /**
    * Rounded onto a shared ~1 km grid. This object *is* the cache key, so a raw
    * GPS coordinate here would mint a fresh cache entry per shopper and defeat
@@ -328,7 +347,7 @@ function normalizeQuery(
     limit,
     vendor: normalizeOptionalString(query.vendor),
     tag: normalizeOptionalString(query.tag),
-    search: normalizeOptionalString(query.search),
+    search: canonicalizeProductSearch(query.search) || undefined,
     minPrice: normalizeOptionalString(query.minPrice),
     maxPrice: normalizeOptionalString(query.maxPrice),
     // Storefront is ACTIVE-only. Never trust a client-supplied status: allowing
@@ -336,12 +355,7 @@ function normalizeQuery(
     status: PRODUCT_STATUS.ACTIVE,
     featured: normalizeBoolean(query.featured) || undefined,
     preorder: normalizeBoolean(query.preorder) || undefined,
-    sortBy:
-      normalizeDistanceSortForLocation(
-        normalizeOptionalString(query.sortBy),
-        query.lat,
-        query.lng,
-      ) || "createdAt",
+    sortBy: normalizeSort(query),
     sortOrder: normalizeOptionalString(query.sortOrder),
     categoryValues: normalizeValues(query.category),
     collectionValues: normalizeValues(query.collection),
@@ -358,6 +372,22 @@ function normalizeQuery(
     pickupNearby: normalizePickupFacet(query.pickupNearby),
     ...normalizeLocation(query),
   };
+}
+
+/**
+ * The order a query asked for, or the default when it asked for none.
+ *
+ * The default depends on the query: a search is ordered by how well each
+ * product matches ("relevance"), anything else newest first. A distance sort
+ * with no location to measure from falls to that default too, rather than to
+ * a fixed "newest" that would throw a search's ranking away.
+ */
+function normalizeSort(query: StorefrontProductsQuery): string {
+  const requested = normalizeOptionalString(query.sortBy);
+  const located = normalizeDistanceSortForLocation(requested, query.lat, query.lng);
+  const usable = requested === "distance" && located !== "distance" ? undefined : located;
+  if (usable) return usable;
+  return canonicalizeProductSearch(query.search) ? "relevance" : "createdAt";
 }
 
 /**
@@ -386,11 +416,97 @@ function normalizeLocation(query: StorefrontProductsQuery) {
   };
 }
 
-/** MongoDB's answer to `$text` on a collection with no text index (code 27). */
-function isMissingTextIndexError(error: unknown): boolean {
-  const code = (error as { code?: unknown } | null)?.code;
-  const message = String((error as { message?: unknown } | null)?.message || "");
-  return code === 27 || /text index required/i.test(message);
+/** Once every five minutes per process, not on every uncached search. */
+const SEARCH_INDEX_WARNING_INTERVAL_MS = 5 * 60_000;
+let searchIndexWarnedAt = 0;
+
+/** Relevance ranking's tiebreakers: the "popular" order. */
+const RELEVANCE_TIEBREAK_SORT: Record<string, 1 | -1> = {
+  reviewCount: -1,
+  rating: -1,
+  createdAt: -1,
+};
+
+type ResolvedProductSearch = {
+  /** Appended to the query's `$and`. */
+  clauses: Record<string, unknown>[];
+  /** The relevance expression, or null when there is no index to rank by. */
+  score: Record<string, unknown> | null;
+  /** Present when the answer is for corrected words. */
+  correction?: SearchCorrection;
+};
+
+/**
+ * Matches no document, and costs nothing: an empty `$in` on `_id` gives the
+ * planner empty index bounds, so the page query and its count return at
+ * once. Used when the search stages have already proved there is nothing to
+ * find, so the grid query does not scan the catalogue a second time to learn
+ * the same thing.
+ */
+const MATCHES_NOTHING: Record<string, unknown> = { _id: { $in: [] } };
+
+/**
+ * The filter for a search, decided against the catalogue it will run on.
+ *
+ * Every decision is measured against the base visibility filter, not the
+ * shopper's other facets, so paging and filtering never flip it. In order,
+ * the first stage that finds anything answers:
+ *
+ * 1. **Precise.** Every group prefix-matches an indexed term, or names a
+ *    category or brand.
+ * 2. **Descriptions.** The same words anywhere in a product's text. Before
+ *    any correction on purpose: a word the catalogue really contains, if
+ *    only in a description, is never "corrected" into a different one.
+ * 3. **Corrected.** The words that match nothing in the catalogue are
+ *    swapped for their nearest real words ("ipone" → "iphone"), and stages 1
+ *    and 2 run again. The caller is told, so the page can say what it is
+ *    showing.
+ *
+ * A store whose index was never built (the migration was skipped) gets the
+ * unindexed substring search over the primary fields, with a log line saying
+ * so, rather than an empty grid.
+ */
+async function resolveProductSearch(
+  parsed: ParsedProductSearch,
+  baseFilter: Record<string, unknown>,
+): Promise<ResolvedProductSearch> {
+  const coverage = await getProductSearchCoverage();
+  if (coverage.total > 0 && coverage.indexed === 0) {
+    const now = Date.now();
+    if (now - searchIndexWarnedAt > SEARCH_INDEX_WARNING_INTERVAL_MS) {
+      searchIndexWarnedAt = now;
+      console.error(
+        "[product-search] No product carries a search index yet; answering with the unindexed substring search. Run `pnpm db:migrate product-search`.",
+      );
+    }
+    return { clauses: buildLegacyProductSearchFilter(parsed), score: null };
+  }
+
+  const entityIndex = await getProductSearchEntityIndex();
+  const matches = (clauses: Record<string, unknown>[]) =>
+    Product.exists({ ...baseFilter, $and: clauses });
+
+  const entities = matchSearchEntities(parsed, entityIndex);
+  const score = buildProductSearchScoreExpr(parsed, entities);
+  const precise = buildProductSearchFilter(parsed, entities, "terms");
+  if (await matches(precise)) return { clauses: precise, score };
+
+  const text = buildProductSearchFilter(parsed, entities, "text");
+  if (await matches(text)) return { clauses: text, score };
+
+  const corrected = correctProductSearch(parsed, await getSearchVocabulary());
+  if (corrected) {
+    const fixedEntities = matchSearchEntities(corrected.parsed, entityIndex);
+    const fixedScore = buildProductSearchScoreExpr(corrected.parsed, fixedEntities);
+    for (const stage of ["terms", "text"] as const) {
+      const clauses = buildProductSearchFilter(corrected.parsed, fixedEntities, stage);
+      if (await matches(clauses)) {
+        return { clauses, score: fixedScore, correction: corrected.correction };
+      }
+    }
+  }
+
+  return { clauses: [MATCHES_NOTHING], score: null };
 }
 
 /** Sorts a shopper chose on purpose; anything else is the grid's default order. */
@@ -429,6 +545,9 @@ function buildSort(
   } else if (query.sortBy === "createdAt") {
     sort.createdAt = query.sortOrder === "asc" ? 1 : -1;
   } else {
+    // "relevance" lands here too: its real order is the match score the
+    // search adds, and this is what orders a relevance request that carries
+    // no search (a hand-edited URL) — the same newest-first default.
     sort.createdAt = -1;
   }
 
@@ -564,9 +683,10 @@ const getStorefrontProductsCached = unstable_cache(
 
     const skip = (query.page - 1) * query.limit;
     const sort = buildSort(query);
+    const visibility = await getStorefrontProductConstraint();
     const mongoQuery: Record<string, unknown> = {
       status: query.status,
-      ...(await getStorefrontProductConstraint()),
+      ...visibility,
     };
 
     if (query.categoryValues.length > 0) {
@@ -752,34 +872,30 @@ const getStorefrontProductsCached = unstable_cache(
       mongoQuery.tags = query.tag;
     }
 
-    const searchQuery = query.search
-      ? buildProductSearchQuery(
-          query.search,
-          query.forceRegexSearch ? "regex" : await getStorefrontSearchMode(),
-        )
-      : null;
-    const textSearch = isTextSearchQuery(searchQuery);
-    if (searchQuery) {
-      // `$text` is only legal at the top level of a query, so the text-mode
-      // clause is merged in rather than pushed into `$and` like the rest.
-      if (textSearch) mongoQuery.$text = searchQuery.$text;
-      const searchClauses = textSearch
-        ? ((searchQuery.$and as Record<string, unknown>[]) || [])
-        : [searchQuery];
-      const combined = [
+    // Search. Null for input that is nothing but separators, which leaves the
+    // grid unfiltered rather than empty.
+    const parsedSearch = query.search ? parseProductSearch(query.search) : null;
+    let relevanceScore: Record<string, unknown> | null = null;
+    let searchCorrection: StorefrontProductsResult["searchCorrection"];
+    if (parsedSearch) {
+      const resolved = await resolveProductSearch(parsedSearch, {
+        status: query.status,
+        ...visibility,
+      });
+      mongoQuery.$and = [
         ...((mongoQuery.$and as Record<string, unknown>[]) || []),
-        ...searchClauses,
+        ...resolved.clauses,
       ];
-      if (combined.length > 0) mongoQuery.$and = combined;
-    }
-    // A text search ranks by relevance unless the shopper picked an order:
-    // "createdAt" with no direction is the grid's default, not a choice.
-    const defaultSort = query.sortBy === "createdAt" && !query.sortOrder;
-    if (textSearch && defaultSort) {
-      const secondary = { ...sort };
-      for (const key of Object.keys(sort)) delete sort[key];
-      sort.score = { $meta: "textScore" } as unknown as 1;
-      Object.assign(sort, secondary);
+      // Ranked by match quality only under the "relevance" order — a search's
+      // default. A shopper who picks "Newest" or a price order gets exactly
+      // that, over the same matching products.
+      if (query.sortBy === "relevance") relevanceScore = resolved.score;
+      if (resolved.correction) {
+        searchCorrection = {
+          from: resolved.correction.from,
+          to: resolved.correction.to,
+        };
+      }
     }
 
     if (query.minPrice || query.maxPrice) {
@@ -938,12 +1054,9 @@ const getStorefrontProductsCached = unstable_cache(
         // wasteful here.)
         productsQuery.select(PRODUCT_CARD_SELECT);
       } else {
-        productsQuery.populate("brand", "name slug logo");
-      }
-
-      if (textSearch && "score" in sort) {
-        // The relevance score only exists in the projection when asked for.
-        productsQuery.select({ score: { $meta: "textScore" } });
+        // The derived search block is an implementation detail — not part of
+        // the public API's product shape, and a few KB per document.
+        productsQuery.select("-search").populate("brand", "name slug logo");
       }
 
       return productsQuery;
@@ -966,7 +1079,10 @@ const getStorefrontProductsCached = unstable_cache(
     // gives every product the same rank — the aggregation would then do a
     // blocking in-memory sort to reproduce exactly what the indexed `find()`
     // below returns for free.
-    if (nearbyVendorOrder?.length && sortByDistance) {
+    // A ranked search takes the same road: its score only exists inside an
+    // aggregation, and paging has to happen after the sort that uses it.
+    const rankByDistance = Boolean(nearbyVendorOrder?.length && sortByDistance);
+    if (rankByDistance || relevanceScore) {
       const [products, total] = await Promise.all([
         Product.aggregate([
           { $match: mongoQuery },
@@ -980,45 +1096,55 @@ const getStorefrontProductsCached = unstable_cache(
               ...(sortOutOfStockLast
                 ? { __unavailable: { $cond: [AVAILABLE_STOCK_EXPR, 0, 1] } }
                 : {}),
-              __vendorRank: {
-                $let: {
-                  vars: {
-                    rank: {
-                      $indexOfArray: [
-                        nearbyVendorOrder.map(
-                          (id) => new mongoose.Types.ObjectId(id),
-                        ),
-                        "$vendorId",
-                      ],
+              ...(rankByDistance
+                ? {
+                    __vendorRank: {
+                      $let: {
+                        vars: {
+                          rank: {
+                            $indexOfArray: [
+                              (nearbyVendorOrder as string[]).map(
+                                (id) => new mongoose.Types.ObjectId(id),
+                              ),
+                              "$vendorId",
+                            ],
+                          },
+                        },
+                        // `$indexOfArray` answers -1 for a vendor that is not
+                        // in the nearby list, and -1 sorts ahead of 0 — which
+                        // would put every distant store at the TOP of a
+                        // nearest-first grid. Unreachable while the location
+                        // narrowed the query (every vendor was in the list by
+                        // construction); reachable the moment location became
+                        // a lens, which is what this guards.
+                        in: {
+                          $cond: [
+                            { $eq: ["$$rank", -1] },
+                            Number.MAX_SAFE_INTEGER,
+                            "$$rank",
+                          ],
+                        },
+                      },
                     },
-                  },
-                  // `$indexOfArray` answers -1 for a vendor that is not in the
-                  // nearby list, and -1 sorts ahead of 0 — which would put
-                  // every distant store at the TOP of a nearest-first grid.
-                  // Unreachable while the location narrowed the query (every
-                  // vendor was in the list by construction); reachable the
-                  // moment location became a lens, which is what this guards.
-                  in: {
-                    $cond: [
-                      { $eq: ["$$rank", -1] },
-                      Number.MAX_SAFE_INTEGER,
-                      "$$rank",
-                    ],
-                  },
-                },
-              },
+                  }
+                : {}),
+              ...(relevanceScore ? { __score: relevanceScore } : {}),
             },
           },
-          // Availability outranks distance deliberately: "out of stock last"
-          // means last, and a sold-out product two streets away is still one a
-          // shopper cannot buy. Ties within one vendor fall back to the
-          // secondary sort so a store's own products keep a stable, meaningful
-          // order.
+          // Availability outranks distance and relevance deliberately: "out of
+          // stock last" means last, and a sold-out product two streets away —
+          // or the best match for the words typed — is still one a shopper
+          // cannot buy. Ties fall back to the secondary sort so a store's own
+          // products keep a stable, meaningful order; for a ranked search that
+          // is the "popular" order, the most useful tiebreak between products
+          // that match equally well.
           {
             $sort: {
               ...(sortOutOfStockLast ? { __unavailable: 1 as const } : {}),
-              __vendorRank: 1,
-              ...sort,
+              ...(rankByDistance ? { __vendorRank: 1 as const } : {}),
+              ...(relevanceScore
+                ? { __score: -1 as const, ...RELEVANCE_TIEBREAK_SORT }
+                : sort),
             },
           },
           { $skip: skip },
@@ -1031,7 +1157,14 @@ const getStorefrontProductsCached = unstable_cache(
           // The inclusion form drops both markers on its own.
           query.cardFieldsOnly
             ? { $project: PRODUCT_CARD_PROJECTION }
-            : { $project: { __vendorRank: 0, __unavailable: 0 } },
+            : {
+                $project: {
+                  __vendorRank: 0,
+                  __unavailable: 0,
+                  __score: 0,
+                  search: 0,
+                },
+              },
         ])
           // `__vendorRank` is computed, so this sort cannot use an index and
           // runs in memory. That was survivable while location narrowed the
@@ -1075,6 +1208,7 @@ const getStorefrontProductsCached = unstable_cache(
             hasNext: query.page < totalPages,
             hasPrev: query.page > 1,
           },
+          ...(searchCorrection ? { searchCorrection } : {}),
         },
         vendorDistances,
         collectNearbyVendors,
@@ -1135,23 +1269,7 @@ const getStorefrontProductsCached = unstable_cache(
             Product.countDocuments(mongoQuery),
           ])) as [Record<string, unknown>[], number]);
 
-    const [products, total] = await fetchPage().catch(async (error: unknown) => {
-      // A store switched to text search on a database whose Product text index
-      // was never built (MONGODB_AUTO_INDEX=false without db:migrate). Answer
-      // the shopper with the substring search rather than an empty grid, and
-      // say why in the log so the index gets created.
-      if (!textSearch || !isMissingTextIndexError(error)) throw error;
-      console.error(
-        "Product text index missing; falling back to substring search. Run the index migration or enable MONGODB_AUTO_INDEX.",
-      );
-      return getStorefrontProductsCached({ ...query, forceRegexSearch: true }).then(
-        (fallback) =>
-          [fallback.data, fallback.pagination.total] as [
-            Record<string, unknown>[],
-            number,
-          ],
-      );
-    });
+    const [products, total] = await fetchPage();
 
     const totalPages = Math.ceil(total / query.limit);
 
@@ -1170,6 +1288,7 @@ const getStorefrontProductsCached = unstable_cache(
           hasNext: query.page < totalPages,
           hasPrev: query.page > 1,
         },
+        ...(searchCorrection ? { searchCorrection } : {}),
       },
       vendorDistances,
       collectNearbyVendors,
@@ -1195,7 +1314,34 @@ const getStorefrontProductsCached = unstable_cache(
 export function getStorefrontProducts<T = unknown>(
   query: StorefrontProductsQuery = {},
 ) {
+  const normalized = normalizeQuery(query);
+  // Off the request path and outside the cache: a search on a partly indexed
+  // catalogue queues a bounded batch of indexing rather than missing products
+  // until someone runs the migration.
+  if (normalized.search) scheduleProductSearchIndexHeal();
   return getStorefrontProductsCached(
-    normalizeQuery(query),
+    normalized,
   ) as Promise<StorefrontProductsResult<T>>;
+}
+
+/**
+ * Whether the pre-order shelf has anything on it — some product a shopper
+ * can reserve right now. The header drops its Pre-order link while this is
+ * false, since the link would only lead to an empty page.
+ *
+ * Asks the same cached query /pre-order lists from, one card deep. A failed
+ * read answers true: hiding the link over a database hiccup would take a live
+ * shelf out of the nav.
+ */
+export async function hasOpenPreorders(): Promise<boolean> {
+  try {
+    const result = await getStorefrontProducts({
+      preorder: true,
+      limit: 1,
+      cardFieldsOnly: true,
+    });
+    return result.pagination.total > 0;
+  } catch {
+    return true;
+  }
 }

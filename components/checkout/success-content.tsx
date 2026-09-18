@@ -19,6 +19,7 @@ import { toast } from "@/components/ui/toast-notification";
 import { OrderDownloads } from "@/components/account/order-downloads";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/providers/currency-provider";
 import { readGuestCheckoutEmail } from "@/lib/checkout/checkout-guest-contact";
 import {
   analyticsPayloadFromOrder,
@@ -26,6 +27,7 @@ import {
   readCheckoutAnalyticsSnapshot,
   trackPurchase,
 } from "@/lib/analytics/events";
+import { RAZORPAY_RETURN_PARAM } from "@/lib/payments/razorpay-callback";
 import type { IOrder } from "@/types";
 
 const PAYMENT_VERIFY_ATTEMPTS = 10;
@@ -58,14 +60,36 @@ type PaymentVerificationState =
   | "verifying"
   | "confirmed"
   | "pending"
-  | "failed";
+  | "failed"
+  // The card was charged, the order was written, and then it was cancelled
+  // and refunded — the goods sold out while the card was confirming.
+  | "cancelled"
+  // The card was charged but no order could be built from the cart, so the
+  // payment was sent back.
+  | "returned";
 
 type PaymentVerificationData = {
   status?: string;
   orderCreated?: boolean;
   orderId?: string;
   orderNumber?: string;
+  /** See `CardPaymentOutcome` in lib/payments/card-payment-outcome.ts. */
+  outcome?: "order_placed" | "order_cancelled" | "payment_returned";
+  soldOut?: boolean;
+  refunded?: boolean;
+  refundedAmount?: number;
 };
+
+type PaymentRefundDetails = {
+  soldOut: boolean;
+  refunded: boolean;
+  refundedAmount: number;
+};
+
+// Razorpay's callback marks a payment that did not go through with a reason
+// token only; its wording never travels in the URL, so it is said here.
+const RAZORPAY_FAILED_MESSAGE =
+  "Razorpay could not complete this payment. Please try again or choose another payment method.";
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -109,8 +133,9 @@ export function CheckoutSuccessContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = params.locale as string;
-  const { clearCart } = useCart();
+  const { refreshCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { formatPrice } = useCurrency();
 
   const sessionId = searchParams.get("session_id");
   const orderNumber = searchParams.get("order");
@@ -130,6 +155,10 @@ export function CheckoutSuccessContent() {
   const iotecExternalId = searchParams.get("iotec_external_id");
   const orangeMoneyOrderId = searchParams.get("orange_money_order_id");
   const mtnMomoReferenceId = searchParams.get("mtn_momo_reference_id");
+  const razorpayOrderId = searchParams.get(RAZORPAY_RETURN_PARAM.orderId);
+  const razorpayPaymentId = searchParams.get(RAZORPAY_RETURN_PARAM.paymentId);
+  const razorpaySignature = searchParams.get(RAZORPAY_RETURN_PARAM.signature);
+  const razorpayFailed = searchParams.has(RAZORPAY_RETURN_PARAM.error);
   const needsPaymentVerification =
     !!sessionId ||
     !!paypalOrderId ||
@@ -140,20 +169,35 @@ export function CheckoutSuccessContent() {
     !!iotecTransactionId ||
     !!iotecExternalId ||
     !!orangeMoneyOrderId ||
-    !!mtnMomoReferenceId;
+    !!mtnMomoReferenceId ||
+    !!razorpayPaymentId;
 
   const [verificationState, setVerificationState] =
     useState<PaymentVerificationState>(
-      needsPaymentVerification ? "verifying" : "confirmed",
+      razorpayFailed
+        ? "failed"
+        : needsPaymentVerification
+          ? "verifying"
+          : "confirmed",
     );
   const [verificationMessage, setVerificationMessage] = useState<string | null>(
-    null,
+    razorpayFailed ? RAZORPAY_FAILED_MESSAGE : null,
   );
   const [verifiedOrder, setVerifiedOrder] = useState<string | null>(
     orderNumber,
   );
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [refundDetails, setRefundDetails] =
+    useState<PaymentRefundDetails | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Settling an order empties the shopper's cart on the server, so the copy
+  // held in the browser only needs re-reading, in the background: the
+  // confirmation never waits on it. A re-read rather than a delete, so
+  // revisiting this page from history leaves a newer cart alone.
+  useEffect(() => {
+    if (verificationState === "confirmed") void refreshCart(true);
+  }, [verificationState, refreshCart]);
 
   useEffect(() => {
     if (verificationState !== "confirmed") return;
@@ -235,13 +279,41 @@ export function CheckoutSuccessContent() {
             ? isFailedPaymentIntentStatus(status)
             : isFailedCheckoutSessionStatus(status);
 
+          // Where the money went decides the page, before whether an order
+          // exists: a sold-out order exists too, cancelled and refunded, and
+          // thanking the shopper for it told them goods were coming.
+          if (details.outcome === "payment_returned") {
+            if (!cancelled) {
+              setRefundDetails({
+                soldOut: false,
+                refunded: Boolean(details.refunded),
+                refundedAmount: Number(details.refundedAmount || 0),
+              });
+              setVerificationMessage(null);
+              setVerificationState("returned");
+            }
+            return;
+          }
+
           if (details.orderCreated && details.orderNumber) {
             setVerifiedOrder(details.orderNumber);
             if (details.orderId) setOrderId(details.orderId);
-            await clearCart();
             if (!cancelled) {
+              const isCancelled = details.outcome === "order_cancelled";
+              const refundedAmount = Number(details.refundedAmount || 0);
+              setRefundDetails(
+                isCancelled || refundedAmount > 0
+                  ? {
+                      soldOut: Boolean(details.soldOut),
+                      refunded: isCancelled
+                        ? Boolean(details.refunded)
+                        : true,
+                      refundedAmount,
+                    }
+                  : null,
+              );
               setVerificationMessage(null);
-              setVerificationState("confirmed");
+              setVerificationState(isCancelled ? "cancelled" : "confirmed");
             }
             return;
           }
@@ -284,7 +356,7 @@ export function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, paymentIntentId, clearCart]);
+  }, [sessionId, paymentIntentId]);
 
   useEffect(() => {
     async function capturePayPal() {
@@ -302,7 +374,6 @@ export function CheckoutSuccessContent() {
           if (data.data.orderId) {
             setOrderId(data.data.orderId);
           }
-          await clearCart();
           setVerificationMessage(null);
           setVerificationState("confirmed");
           return;
@@ -321,7 +392,82 @@ export function CheckoutSuccessContent() {
     }
 
     capturePayPal();
-  }, [paypalOrderId, clearCart]);
+  }, [paypalOrderId]);
+
+  useEffect(() => {
+    async function verifyRazorpay() {
+      if (!razorpayPaymentId) return;
+
+      try {
+        for (let attempt = 0; attempt < PAYMENT_VERIFY_ATTEMPTS; attempt++) {
+          if (cancelled) return;
+
+          const res = await fetch("/api/payments/razorpay/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: razorpayOrderId,
+              razorpay_payment_id: razorpayPaymentId,
+              razorpay_signature: razorpaySignature,
+            }),
+          });
+          const data = await res.json().catch(() => null);
+          if (res.ok && data?.success && data.data?.orderNumber) {
+            if (cancelled) return;
+            setVerifiedOrder(data.data.orderNumber);
+            if (data.data.orderId) setOrderId(data.data.orderId);
+            setVerificationMessage(null);
+            setVerificationState("confirmed");
+            return;
+          }
+
+          // The verify route allows a handful of calls per quarter hour, so a
+          // shopper reloading this page can be throttled well after the order
+          // was settled. Neither that nor an outage says the payment failed,
+          // and the webhook settles it regardless: report it as pending.
+          const transient = isTransientVerifyStatus(res.status);
+          if (
+            transient &&
+            res.status !== 429 &&
+            attempt < PAYMENT_VERIFY_ATTEMPTS - 1
+          ) {
+            await wait(PAYMENT_VERIFY_DELAY_MS);
+            continue;
+          }
+          if (transient) {
+            if (!cancelled) {
+              setVerificationMessage(
+                "We could not confirm your Razorpay payment yet. Refresh this page in a moment or check My Orders.",
+              );
+              setVerificationState("pending");
+            }
+            return;
+          }
+
+          throw new Error(
+            data?.message || data?.error || "Razorpay payment verification failed",
+          );
+        }
+      } catch (error) {
+        console.error("Failed to verify Razorpay payment:", error);
+        if (!cancelled) {
+          setVerificationMessage(
+            error instanceof Error
+              ? error.message
+              : "Razorpay payment verification failed",
+          );
+          setVerificationState("failed");
+        }
+      }
+    }
+
+    let cancelled = false;
+    verifyRazorpay();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [razorpayOrderId, razorpayPaymentId, razorpaySignature]);
 
   useEffect(() => {
     async function verifyPaystack() {
@@ -339,7 +485,6 @@ export function CheckoutSuccessContent() {
           if (data.data.orderId) {
             setOrderId(data.data.orderId);
           }
-          await clearCart();
           setVerificationMessage(null);
           setVerificationState("confirmed");
           return;
@@ -360,7 +505,7 @@ export function CheckoutSuccessContent() {
     }
 
     verifyPaystack();
-  }, [paystackReference, clearCart]);
+  }, [paystackReference]);
 
   useEffect(() => {
     async function verifyPesapal() {
@@ -404,7 +549,6 @@ export function CheckoutSuccessContent() {
           if (status === "completed" && data.data?.orderNumber) {
             setVerifiedOrder(data.data.orderNumber);
             if (data.data.orderId) setOrderId(data.data.orderId);
-            await clearCart();
             if (!cancelled) {
               setVerificationMessage(null);
               setVerificationState("confirmed");
@@ -447,7 +591,7 @@ export function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [pesapalOrderTrackingId, pesapalMerchantReference, clearCart]);
+  }, [pesapalOrderTrackingId, pesapalMerchantReference]);
 
   useEffect(() => {
     async function verifyIotec() {
@@ -491,7 +635,6 @@ export function CheckoutSuccessContent() {
           if (status === "completed" && data.data?.orderNumber) {
             setVerifiedOrder(data.data.orderNumber);
             if (data.data.orderId) setOrderId(data.data.orderId);
-            await clearCart();
             if (!cancelled) {
               setVerificationMessage(null);
               setVerificationState("confirmed");
@@ -534,7 +677,7 @@ export function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [iotecTransactionId, iotecExternalId, clearCart]);
+  }, [iotecTransactionId, iotecExternalId]);
 
   useEffect(() => {
     async function verifyOrangeMoney() {
@@ -579,7 +722,6 @@ export function CheckoutSuccessContent() {
           if (status === "completed" && data.data?.orderNumber) {
             setVerifiedOrder(data.data.orderNumber);
             if (data.data.orderId) setOrderId(data.data.orderId);
-            await clearCart();
             if (!cancelled) {
               setVerificationMessage(null);
               setVerificationState("confirmed");
@@ -622,7 +764,7 @@ export function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [orangeMoneyOrderId, clearCart]);
+  }, [orangeMoneyOrderId]);
 
   useEffect(() => {
     async function verifyMtnMomo() {
@@ -663,7 +805,6 @@ export function CheckoutSuccessContent() {
           if (status === "completed" && data.data?.orderNumber) {
             setVerifiedOrder(data.data.orderNumber);
             if (data.data.orderId) setOrderId(data.data.orderId);
-            await clearCart();
             if (!cancelled) {
               setVerificationMessage(null);
               setVerificationState("confirmed");
@@ -712,7 +853,7 @@ export function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [mtnMomoReferenceId, clearCart]);
+  }, [mtnMomoReferenceId]);
 
   const handleDownloadInvoice = async () => {
     const invoiceId = orderId || verifiedOrder;
@@ -843,6 +984,68 @@ export function CheckoutSuccessContent() {
     );
   }
 
+  if (verificationState === "cancelled" || verificationState === "returned") {
+    const isReturned = verificationState === "returned";
+    const refunded = Boolean(refundDetails?.refunded);
+    const refundedAmount = refundDetails?.refundedAmount ?? 0;
+    const title = isReturned
+      ? t("checkout.paymentReturnedTitle")
+      : refundDetails?.soldOut
+        ? t("checkout.orderSoldOutTitle")
+        : t("checkout.orderCancelledTitle");
+    const description = isReturned
+      ? refunded
+        ? t("checkout.paymentReturnedRefunded")
+        : t("checkout.paymentReturnedRefundPending")
+      : refunded && refundedAmount > 0
+        ? t("checkout.orderCancelledRefunded", {
+            amount: formatPrice(refundedAmount),
+          })
+        : t("checkout.orderCancelledRefundPending");
+
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <Card className="max-w-lg mx-auto text-center">
+          <CardContent className="pt-8 pb-8">
+            <CircleAlert className="h-16 w-16 mx-auto text-amber-500 mb-4" />
+            <h1 className="text-xl font-bold mb-2">{title}</h1>
+            <p className="text-muted-foreground mb-6">{description}</p>
+
+            {!isReturned && verifiedOrder && (
+              <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <Package className="h-4 w-4" />
+                  <span>
+                    {t("checkout.orderNumber")}
+                    : <strong>{verifiedOrder}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild>
+                <Link href={`/${locale}/products`}>
+                  {t("cart.continueShopping")}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                {isReturned ? (
+                  <Link href={`/${locale}/cart`}>{t("cart.viewCart")}</Link>
+                ) : (
+                  <Link href={`/${locale}/account/orders`}>
+                    {t("orders.viewOrders")}
+                  </Link>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-16">
       <Card className="max-w-lg mx-auto text-center">
@@ -857,6 +1060,14 @@ export function CheckoutSuccessContent() {
           <p className="text-muted-foreground mb-6">
             {t("checkout.orderSuccessDescription")}
           </p>
+
+          {refundDetails && refundDetails.refundedAmount > 0 && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              {t("checkout.itemsDroppedRefunded", {
+                amount: formatPrice(refundDetails.refundedAmount),
+              })}
+            </div>
+          )}
 
           {verifiedOrder && (
             <div className="bg-muted/50 rounded-lg p-4 mb-6">

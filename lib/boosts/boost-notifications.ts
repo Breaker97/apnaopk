@@ -13,7 +13,7 @@ import { NotificationType } from "@/models/notification.model";
 import { getSettings } from "@/models/settings.model";
 import { createNotification } from "@/lib/notifications/notifications";
 import { buildEmailShell } from "@/lib/email/vendor-emails";
-import { sendEmail, isEmailConfigured } from "@/lib/email/email";
+import { sendEmail, isEmailDeliveryConfigured } from "@/lib/email/email";
 
 export type BoostNotificationEvent =
   | "activated"
@@ -129,7 +129,7 @@ export async function sendBoostNotification(
     });
 
     const settings = await getSettings();
-    if (!isEmailConfigured()) return;
+    if (!isEmailDeliveryConfigured(settings)) return;
     const [vendor] = await Promise.all([
       Vendor.findById(campaign.vendorId)
         .select("userId storeName")

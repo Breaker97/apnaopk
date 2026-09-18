@@ -124,6 +124,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
   const [isWriteReviewOpen, setIsWriteReviewOpen] = useState(false);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [eligibleOrderId, setEligibleOrderId] = useState<string | null>(null);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [reviewEligibilityError, setReviewEligibilityError] = useState<
     string | null
   >(null);
@@ -191,37 +192,44 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
   };
   const allLabel = tf("reviews.all", "All");
 
-  const resolveEligibleOrderId = useCallback(async (): Promise<
-    string | null
-  > => {
+  const resolveEligibility = useCallback(async (): Promise<{
+    eligibleOrderId: string | null;
+    alreadyReviewed: boolean;
+  }> => {
     // Targeted server lookup over ALL of the user's orders (not just the
     // first 100), matching the same rule the review-create endpoint enforces.
     const res = await fetch(
       `/api/orders/review-eligibility?productId=${encodeURIComponent(productId)}`,
     );
     const data = await res.json();
-    return data?.success ? (data.data?.eligibleOrderId ?? null) : null;
+    return {
+      eligibleOrderId: data?.success ? (data.data?.eligibleOrderId ?? null) : null,
+      alreadyReviewed: data?.success === true && data.data?.alreadyReviewed === true,
+    };
   }, [productId]);
 
   const openWriteReview = async () => {
     setIsWriteReviewOpen(true);
     setReviewEligibilityError(null);
     setEligibleOrderId(null);
+    setAlreadyReviewed(false);
 
     if (!isAuthenticated) return;
 
     setIsCheckingEligibility(true);
     try {
-      const orderId = await resolveEligibleOrderId();
-      if (!orderId) {
+      const eligibility = await resolveEligibility();
+      if (eligibility.eligibleOrderId) {
+        setEligibleOrderId(eligibility.eligibleOrderId);
+      } else if (eligibility.alreadyReviewed) {
+        setAlreadyReviewed(true);
+      } else {
         setReviewEligibilityError(
           tf(
             "reviews.eligibleOrderRequired",
             "You can review this product only after it is delivered in one of your orders.",
           ),
         );
-      } else {
-        setEligibleOrderId(orderId);
       }
     } catch {
       setReviewEligibilityError(
@@ -295,7 +303,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex w-full items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 font-medium text-foreground md:w-auto md:min-w-20"
+                  className="inline-flex w-full items-center justify-between gap-2 rounded-input border border-border px-3 py-1.5 font-medium text-foreground md:w-auto md:min-w-20"
                 >
                   <span className="truncate">
                     {selectedRating === null ? allLabel : `${selectedRating} ★`}
@@ -327,7 +335,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex w-full items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 font-medium text-foreground md:w-auto md:min-w-28"
+                  className="inline-flex w-full items-center justify-between gap-2 rounded-input border border-border px-3 py-1.5 font-medium text-foreground md:w-auto md:min-w-28"
                 >
                   <span className="truncate">{sortLabels[sortBy]}</span>
                   <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -386,6 +394,13 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
               {tf(
                 "reviews.checkingEligibility",
                 "Checking your eligible orders...",
+              )}
+            </div>
+          ) : alreadyReviewed ? (
+            <div className="rounded-xl border border-border/70 p-4 text-sm text-muted-foreground">
+              {tf(
+                "reviews.alreadyReviewed",
+                "You have already reviewed this product. Thank you for sharing your experience!",
               )}
             </div>
           ) : reviewEligibilityError ? (

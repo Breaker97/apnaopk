@@ -47,6 +47,8 @@ export const LEDGER_SOURCE_KIND = {
   SHIPMENT: "shipment",
   EXPENSE: "expense",
   ADJUSTMENT: "adjustment",
+  /** Units written off when a stock transfer was received short or damaged. */
+  TRANSFER: "transfer",
 } as const;
 
 export type LedgerSourceKind =

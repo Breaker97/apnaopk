@@ -208,6 +208,11 @@ export function auditOrderCancelled(
     from: string;
     by: "admin" | "customer" | "system";
     reason?: string;
+    /**
+     * Whose consignment, when only one seller's part was called off. "Order
+     * cancelled" said something false about everything still shipping.
+     */
+    consignmentOf?: string;
   },
 ) {
   const by =
@@ -216,6 +221,9 @@ export function auditOrderCancelled(
       : details.by === "customer"
         ? "by the customer"
         : "by staff";
+  const what = details.consignmentOf
+    ? `${details.consignmentOf}'s consignment cancelled`
+    : "Order cancelled";
 
   return audit(context, {
     action: "STATUS_CHANGE",
@@ -225,11 +233,39 @@ export function auditOrderCancelled(
       before: { status: details.from },
       after: { status: "cancelled" },
       fields: ["status"],
-      summary: `Order cancelled ${by}${
-        details.reason ? ` — ${details.reason}` : ""
-      }`,
+      summary: `${what} ${by}${details.reason ? ` — ${details.reason}` : ""}`,
     },
-    metadata: { cancelledBy: details.by, reason: details.reason },
+    metadata: {
+      cancelledBy: details.by,
+      reason: details.reason,
+      ...(details.consignmentOf ? { consignmentOf: details.consignmentOf } : {}),
+    },
+  });
+}
+
+/**
+ * Some of an order's consignments called off while the rest goes ahead — a
+ * seller's goods selling out between checkout and capture. Its own sentence,
+ * because "Order cancelled" would say something false about everything that is
+ * still shipping.
+ */
+export function auditConsignmentsCancelled(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: { count: number; reason: string },
+) {
+  const what =
+    details.count === 1
+      ? "One seller's items were"
+      : `${details.count} sellers' items were`;
+  return audit(context, {
+    action: "STATUS_CHANGE",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      summary: `${what} cancelled automatically — ${details.reason}. The rest of the order goes ahead.`,
+    },
+    metadata: { cancelledBy: "system", reason: details.reason, consignments: details.count },
   });
 }
 
@@ -244,19 +280,29 @@ export function auditOrderRefunded(
     gatewayCalled?: boolean;
     returnNumber?: string;
     full?: boolean;
+    /**
+     * Set when the money was a chargeback — the shopper's bank took it — so
+     * the timeline does not describe it as a refund the store chose to send.
+     */
+    chargeback?: { gatewayLabel: string; disputeId?: string };
   },
 ) {
+  const amount = money(details.amount, details.currency);
+  const summary = details.chargeback
+    ? `Chargeback of ${amount} ${
+        details.gatewayCalled === false
+          ? `recorded by hand (${details.chargeback.gatewayLabel})`
+          : `taken back through ${details.chargeback.gatewayLabel}`
+      }${details.chargeback.disputeId ? ` for dispute ${details.chargeback.disputeId}` : ""}`
+    : `${details.full ? "Full refund" : "Partial refund"} of ${amount} issued${
+        details.returnNumber ? ` for return ${details.returnNumber}` : ""
+      }${details.gatewayCalled === false ? " (recorded manually)" : ""}`;
   return audit(context, {
     action: "REFUND",
     resource: "order",
     ...ref(order),
     changes: {
-      summary: `${details.full ? "Full refund" : "Partial refund"} of ${money(
-        details.amount,
-        details.currency,
-      )} issued${details.returnNumber ? ` for return ${details.returnNumber}` : ""}${
-        details.gatewayCalled === false ? " (recorded manually)" : ""
-      }${details.reason ? ` — ${details.reason}` : ""}`,
+      summary: `${summary}${details.reason ? ` — ${details.reason}` : ""}`,
     },
     metadata: {
       amount: details.amount,
@@ -264,6 +310,63 @@ export function auditOrderRefunded(
       reason: details.reason,
       gatewayCalled: details.gatewayCalled,
       returnNumber: details.returnNumber,
+      ...(details.chargeback
+        ? {
+            chargeback: true,
+            gateway: details.chargeback.gatewayLabel,
+            disputeId: details.chargeback.disputeId,
+          }
+        : {}),
+    },
+  });
+}
+
+/** A chargeback the store won: the gateway gave the money back. */
+export function auditOrderChargebackReturned(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: { amount: number; currency?: string; gatewayLabel: string; disputeId: string },
+) {
+  return audit(context, {
+    action: "PAYMENT",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      summary: `Chargeback won — ${details.gatewayLabel} gave back ${money(
+        details.amount,
+        details.currency,
+      )} on dispute ${details.disputeId}`,
+    },
+    metadata: {
+      amount: details.amount,
+      currency: details.currency,
+      gateway: details.gatewayLabel,
+      disputeId: details.disputeId,
+      chargeback: true,
+    },
+  });
+}
+
+/** A chargeback put on the sellers it belongs to, instead of shared by all. */
+export function auditOrderChargebackAttributed(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: { amount: number; currency?: string; sellers: string[]; actor: string },
+) {
+  return audit(context, {
+    action: "PAYMENT",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      summary: `Chargeback of ${money(details.amount, details.currency)} put on ${details.sellers.join(
+        ", ",
+      )} by ${details.actor}`,
+    },
+    metadata: {
+      amount: details.amount,
+      currency: details.currency,
+      sellers: details.sellers,
+      chargeback: true,
     },
   });
 }
@@ -322,5 +425,43 @@ export function auditOrderReturn(
       }`,
     },
     metadata: { returnNumber: details.returnNumber, status: details.to },
+  });
+}
+
+/**
+ * A pre-order's delivery address changed before it shipped.
+ *
+ * Worth a timeline row of its own because it is the one edit a shopper can make
+ * that decides where goods physically go — and the one a leaked link could be
+ * used to make. The summary names both addresses so support can see at a glance
+ * what moved, without opening the stored before/after.
+ */
+export function auditOrderAddressChanged(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: {
+    before: Record<string, unknown>;
+    after: Record<string, unknown>;
+    by: "customer" | "link";
+  },
+) {
+  const line = (address: Record<string, unknown>) =>
+    [address.street, address.city, address.postalCode]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(", ");
+  return audit(context, {
+    action: "UPDATE",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      before: { shippingAddress: details.before },
+      after: { shippingAddress: details.after },
+      fields: ["shippingAddress"],
+      summary: `Delivery address changed ${
+        details.by === "link" ? "from the pre-order link" : "by the customer"
+      }: ${line(details.before)} → ${line(details.after)}`,
+    },
+    metadata: { changedBy: details.by },
   });
 }

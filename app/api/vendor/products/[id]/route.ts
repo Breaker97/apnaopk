@@ -3,17 +3,26 @@ import { Product } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import {
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "@/lib/api/errors";
 import { USER_ROLES } from "@/config/app.config";
 import { getSettings } from "@/models/settings.model";
+import { assertProductPreorderAllowed } from "@/lib/orders/preorder-gating";
+import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
+import {
+  applyStockBaseline,
+  ProductUpdateWithBaselineSchema,
+} from "@/lib/products/stock-baseline";
 import { isValidObjectId, validatePartialBody } from "@/lib/api/validate";
-import { UpdateProductSchema } from "@/lib/validations";
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
 import { syncProductCollections, removeProductFromAllCollections, updateAllCollectionProductCounts } from "@/lib/catalog/collections";
-import { syncProductCategory } from "@/lib/catalog/categories";
+import {
+  assertCategoryAcceptsProducts,
+  syncProductCategory,
+} from "@/lib/catalog/categories";
 import { syncProductAggregates } from "@/models/product.model";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { assertVendorPermission } from "@/lib/access/rbac";
@@ -38,6 +47,8 @@ import {
   buildBarcodeValidationPayload,
 } from "@/lib/products/barcode-validation";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
+import { notifyPreorderWaitlistsForProduct } from "@/lib/orders/preorder-waitlist";
+import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
 import {
   releaseProductBarcodeRegistry,
@@ -155,7 +166,10 @@ export const PUT = withApi<{ id: string }>(
     const { id } = params;
     if (!isValidObjectId(id)) return notFoundResponse("Product");
 
-    const body = await validatePartialBody(request, UpdateProductSchema);
+    const { stockBaseline, ...body } = await validatePartialBody(
+      request,
+      ProductUpdateWithBaselineSchema,
+    );
 
     delete (body as Record<string, unknown>).featured;
 
@@ -166,7 +180,7 @@ export const PUT = withApi<{ id: string }>(
     );
 
     const existing = await Product.findOne({ _id: id, vendorId: vendor._id })
-      .select("slug collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets")
+      .select("slug price preorder collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets")
       .lean();
     if (!existing) {
       return notFoundResponse("Product");
@@ -232,6 +246,26 @@ export const PUT = withApi<{ id: string }>(
       else updateSet.preorder = cleaned;
     }
 
+    // Only what this request is actually changing is judged. An untouched
+    // pre-order on a product being renamed is left alone: a tightened limit
+    // must not turn every unrelated edit into a rejection.
+    assertProductPreorderAllowed({
+      product: {
+        price:
+          (updateSet.price as number | undefined) ??
+          (existing as { price?: number }).price,
+        preorder: updateSet.preorder as never,
+        variants: updateSet.variants as never,
+      },
+      stored: existing as unknown as {
+        preorder?: never;
+        variants?: never;
+      },
+      policy: settings.preorder,
+      vendor,
+      storeCanCollectBalance: storeCanCollectDeferredBalance(settings.payment),
+    });
+
     const hasVariantPayload =
       Array.isArray(updateSet.variants) && updateSet.variants.length > 0;
     const hasBarcodePayload = Object.prototype.hasOwnProperty.call(
@@ -274,6 +308,15 @@ export const PUT = withApi<{ id: string }>(
         categoryValue.trim() === "[object Object]"
       ) {
         throw new ValidationError("Invalid category value");
+      }
+
+      // Only a MOVE has to satisfy the leaf rule: a product already filed on a
+      // category that has since grown children stays editable.
+      if (
+        typeof updateSet.category === "string" &&
+        updateSet.category !== oldCategoryId
+      ) {
+        await assertCategoryAcceptsProducts(updateSet.category);
       }
     }
 
@@ -329,18 +372,45 @@ export const PUT = withApi<{ id: string }>(
     let product;
     try {
       await reserveProductBarcodeRegistry(id, nextBarcodePayload);
-      product = await Product.findOneAndUpdate(
-        { _id: id, vendorId: vendor._id },
-        {
-          $set: updateSet,
-          ...(Object.keys(clearedFields).length > 0
-            ? { $unset: clearedFields }
-            : {}),
-        },
-        { new: true, runValidators: true }
-      )
-        .populate("category", "name slug")
-        .lean();
+      // The stock this form loaded is merged with stock that moved while it
+      // was open, and the write is pinned to the copy merged against: a sale
+      // or transfer landing in between makes it miss and merge again.
+      const productFilter = { _id: id, vendorId: vendor._id };
+      const submittedStock = {
+        stock: updateSet.stock as number | undefined,
+        locationInventory: updateSet.locationInventory as
+          | Array<{ locationId: string; quantity: number }>
+          | undefined,
+        variants: updateSet.variants as
+          | Array<{ _id?: unknown; name?: string; stock?: number; locationInventory?: Array<{ locationId: string; quantity: number }> }>
+          | undefined,
+      };
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const pin = await applyStockBaseline({
+          filter: productFilter,
+          updateSet,
+          submitted: submittedStock,
+          baseline: stockBaseline,
+        });
+        product = await Product.findOneAndUpdate(
+          { ...productFilter, ...(pin ? { updatedAt: pin.updatedAt } : {}) },
+          {
+            $set: updateSet,
+            ...(Object.keys(clearedFields).length > 0
+              ? { $unset: clearedFields }
+              : {}),
+          },
+          { returnDocument: "after", runValidators: true }
+        )
+          .populate("category", "name slug")
+          .lean();
+        if (product || !pin) break;
+        if (attempt === 2) {
+          throw new ConflictError(
+            "Stock on this product is changing right now. Save again in a moment.",
+          );
+        }
+      }
     } catch (error) {
       await syncProductBarcodeRegistry(
         id,
@@ -415,6 +485,11 @@ export const PUT = withApi<{ id: string }>(
     revalidateProductContent({
       slugs: [existing.slug, product.slug],
     });
+
+    // A raised pre-order limit frees places without any reservation being
+    // released, so nothing else would tell the shoppers waiting for them.
+    // After the response and best-effort: the daily sweep catches a miss.
+    afterResponse(() => notifyPreorderWaitlistsForProduct(String(id)));
 
     return successResponse({
       ...(product as unknown as Record<string, unknown>),

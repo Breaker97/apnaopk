@@ -60,7 +60,10 @@ export interface CarrierShipmentRequest {
   parcels: CarrierParcel[];
   /** Populated only for a cross-border shipment. */
   customsItems?: CarrierCustomsItem[];
-  /** Amount to collect on delivery; absent for a prepaid order. */
+  /**
+   * Amount to collect on delivery — the consignment's whole charge: goods after
+   * discounts, delivery, tax and duty. Absent for a prepaid order.
+   */
   cod?: { amount: number; currency: string };
   /** Order value, needed by providers that price against declared value. */
   declaredValue?: { amount: number; currency: string };
@@ -107,6 +110,18 @@ export interface CarrierLabel {
   serviceName?: string;
   amount?: number;
   currency?: string;
+  /**
+   * The rate this label was actually bought against, when it is not the quote
+   * the purchase was called with.
+   *
+   * Only a resumed purchase sets these. A label checkpointed on one attempt can
+   * be read back by a later one that arrived with a re-quoted, different rate —
+   * and recording that quote's service and price against the older label would
+   * put the wrong courier on the order and the wrong cost on the books.
+   */
+  rateId?: string;
+  serviceToken?: string;
+  estimatedDays?: number;
   /** Provider state carried forward so a retry can resume mid-sequence. */
   resume?: CarrierResumeState;
 }
@@ -255,9 +270,24 @@ export interface CarrierAdapter {
     },
   ): Promise<CarrierTracking>;
 
+  /**
+   * `refunded` decides whether the label's cost comes back off the books, so it
+   * must mean "the account was not, or will not stay, charged" — not merely
+   * "the carrier accepted the cancellation".
+   */
   voidLabel(
     ctx: CarrierContext,
-    params: { transactionId?: string; awb?: string; orderId?: string },
+    params: {
+      transactionId?: string;
+      awb?: string;
+      orderId?: string;
+      /**
+       * The courier already holds the parcel. A cancellation then becomes a
+       * return rather than an unused label, and the freight is not given back
+       * by a carrier that bills on dispatch.
+       */
+      pickedUp?: boolean;
+    },
   ): Promise<{ refunded: boolean; state: string }>;
 
   validateAddress?(

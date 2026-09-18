@@ -6,6 +6,7 @@ import { compileTheme } from "@/lib/storefront/themes/compile";
 import { resolveActiveTheme } from "@/lib/storefront/themes/registry";
 import { ProductCardBuilder } from "@/components/admin/online-store/product-card-builder";
 import { getSettings } from "@/models/settings.model";
+import { getCardBrandDirectory } from "@/lib/brands/card-brand-directory";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -31,7 +32,13 @@ export default async function OnlineStoreProductCardPage({ params }: PageProps) 
 
   await requireAdminPageAccess(locale);
 
-  const settings = await getSettings();
+  const [settings, brands] = await Promise.all([
+    getSettings(),
+    getCardBrandDirectory(),
+  ]);
+  // Any brand with a logo lets the preview show a real one at its real size.
+  const sampleBrand =
+    Object.values(brands).find((brand) => brand.logo) ?? null;
   const theme = resolveActiveTheme(settings.onlineStore);
   const surface = compileTheme(theme.tokens, resolveBrand(settings).colors);
   const switcher = await buildPageSwitcher(
@@ -45,6 +52,9 @@ export default async function OnlineStoreProductCardPage({ params }: PageProps) 
       locale={locale}
       switcher={switcher}
       storeSurface={{ vars: surface.vars, attributes: surface.attributes }}
+      sampleBrand={
+        sampleBrand ? { name: sampleBrand.name, logo: sampleBrand.logo } : null
+      }
     />
   );
 }

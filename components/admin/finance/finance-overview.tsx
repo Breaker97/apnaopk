@@ -40,6 +40,8 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.PROCESSING_FEES]: "Payment fees",
   [LEDGER_ACCOUNT.SHIPPING_COST]: "Shipping labels",
   [LEDGER_ACCOUNT.COST_OF_GOODS]: "Cost of goods",
+  [LEDGER_ACCOUNT.PROMOTIONS]: "Store-funded discounts",
+  [LEDGER_ACCOUNT.CHARGEBACK_LOSSES]: "Chargeback losses",
   [LEDGER_ACCOUNT.OPERATING_EXPENSE]: "Operating expenses",
 };
 

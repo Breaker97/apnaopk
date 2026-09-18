@@ -4,6 +4,7 @@ import type { ISettings } from "@/models/settings.model";
 import { AbandonedCheckout, Cart } from "@/models";
 import { sendEmail } from "@/lib/email/email";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
+import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
 
 type CheckoutCartDocument = {
   _id: unknown;
@@ -51,6 +52,12 @@ type CheckoutCartDocument = {
 };
 
 interface CheckoutSnapshotInput {
+  /**
+   * The checkout settings' `abandonedCheckouts.enabled`. Off keeps the cart's
+   * own contact snapshot (payment events and recovery still read it) but
+   * writes nothing to the abandoned-checkouts list.
+   */
+  trackAbandoned?: boolean;
   origin?: string;
   locale?: string;
   email?: string;
@@ -126,7 +133,7 @@ export function getCheckoutSubtotal(cart: { items?: Array<{ price?: number; quan
   );
 }
 
-export function ensureCheckoutToken(
+function ensureCheckoutToken(
   cart: CheckoutCartDocument,
   params: { origin?: string; locale?: string } = {},
 ) {
@@ -207,7 +214,9 @@ export async function updateCheckoutSnapshot(
   }
 
   await cart.save();
-  await upsertAbandonedCheckoutSnapshot(cart);
+  if (input.trackAbandoned !== false) {
+    await upsertAbandonedCheckoutSnapshot(cart);
+  }
   return cart;
 }
 
@@ -282,7 +291,7 @@ export async function upsertAbandonedCheckoutSnapshot(
       },
       $setOnInsert: { createdAt: new Date() },
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
 }
 
@@ -365,4 +374,141 @@ export async function sendAbandonedCheckoutRecoveryEmail(params: {
   await cart.save();
 
   return sent;
+}
+
+/**
+ * Mark checkouts nobody has touched for `minutes` as abandoned and list them.
+ *
+ * Only checkouts that left a way to reach the shopper qualify — an anonymous
+ * cart has nobody to recover it from. Shared by the admin "detect" action and
+ * the recovery sweep.
+ */
+export async function markAbandonedCheckouts(params: {
+  minutes: number;
+  origin?: string;
+  locale?: string;
+  limit?: number;
+  now?: Date;
+}) {
+  const now = params.now ?? new Date();
+  const threshold = new Date(now.getTime() - params.minutes * 60 * 1000);
+
+  const candidates = await Cart.find({
+    status: "active",
+    checkoutStartedAt: { $lte: threshold },
+    lastActionAt: { $lte: threshold },
+    "items.0": { $exists: true },
+    $or: [
+      { email: { $exists: true, $ne: "" } },
+      { phone: { $exists: true, $ne: "" } },
+    ],
+  }).limit(params.limit ?? 250);
+
+  for (const cart of candidates) {
+    ensureCheckoutToken(cart, {
+      origin: params.origin,
+      locale: params.locale || cart.customerLocale || "en",
+    });
+    cart.status = "abandoned";
+    cart.recoveryStatus = cart.recoveryStatus || "not_recovered";
+    cart.recoveryEmailStatus = cart.recoveryEmailStatus || "not_sent";
+    cart.abandonedAt = cart.abandonedAt || now;
+    cart.subtotalPrice = cart.subtotalPrice ?? getCheckoutSubtotal(cart);
+    cart.totalPrice = cart.totalPrice ?? cart.subtotalPrice;
+    await cart.save();
+    await upsertAbandonedCheckoutSnapshot(cart, {
+      abandonedAt: cart.abandonedAt,
+      status: "open",
+    });
+  }
+
+  return candidates.length;
+}
+
+/** Idle minutes before a started checkout counts as abandoned. */
+const ABANDON_AFTER_MINUTES = 10;
+/** A checkout older than this is not mailed, e.g. when the setting is first switched on. */
+const RECOVERY_EMAIL_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * The scheduled pass behind the checkout settings' abandoned-checkout
+ * switches: detect, then — when automatic recovery is on — send each
+ * abandoned checkout its one recovery email once it has sat idle for the
+ * configured delay.
+ *
+ * At most once per checkout: the cart is claimed (`recoveryEmailClaimedAt`)
+ * before the send, so overlapping runs cannot both mail it, and a run that
+ * dies mid-send leaves it unsent rather than retried into a second email.
+ */
+export async function sweepAbandonedCheckouts(params: {
+  settings: ISettings;
+  now?: Date;
+  limit?: number;
+}) {
+  const now = params.now ?? new Date();
+  const config = normalizeCheckoutSettings(
+    params.settings.checkout,
+  ).abandonedCheckouts;
+  if (!config.enabled) {
+    return { enabled: false, detected: 0, emailed: 0, failed: 0 };
+  }
+
+  const detected = await markAbandonedCheckouts({
+    minutes: ABANDON_AFTER_MINUTES,
+    now,
+  });
+
+  let emailed = 0;
+  let failed = 0;
+  if (config.autoRecoveryEmail) {
+    const idleSince = new Date(now.getTime() - config.delayMinutes * 60 * 1000);
+    const due = await Cart.find({
+      status: "abandoned",
+      recoveryStatus: { $ne: "recovered" },
+      recoveryEmailStatus: "not_sent",
+      recoveryEmailClaimedAt: { $exists: false },
+      email: { $exists: true, $ne: "" },
+      "items.0": { $exists: true },
+      lastActionAt: {
+        $lte: idleSince,
+        $gte: new Date(now.getTime() - RECOVERY_EMAIL_MAX_AGE_MS),
+      },
+      ...(config.marketingConsentOnly ? { buyerAcceptsMarketing: true } : {}),
+    })
+      .select("_id")
+      .limit(params.limit ?? 100)
+      .lean();
+
+    for (const { _id } of due) {
+      const claim = await Cart.updateOne(
+        {
+          _id,
+          recoveryEmailStatus: "not_sent",
+          recoveryEmailClaimedAt: { $exists: false },
+        },
+        { $set: { recoveryEmailClaimedAt: now } },
+      );
+      if (claim.modifiedCount !== 1) continue;
+
+      const cart = await Cart.findById(_id);
+      if (!cart) continue;
+      try {
+        const sent = await sendAbandonedCheckoutRecoveryEmail({
+          cart,
+          settings: params.settings,
+        });
+        if (sent) emailed += 1;
+        else failed += 1;
+        await upsertAbandonedCheckoutSnapshot(cart, {
+          abandonedAt: cart.abandonedAt,
+          status: "open",
+        });
+      } catch (error) {
+        failed += 1;
+        console.error("Failed to send abandoned checkout recovery email:", error);
+      }
+    }
+  }
+
+  return { enabled: true, detected, emailed, failed };
 }

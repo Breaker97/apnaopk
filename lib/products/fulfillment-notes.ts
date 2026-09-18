@@ -62,12 +62,15 @@ export function deliveryWindowFromShipping(params: {
  */
 export function returnsNoteFromPolicy(params: {
   requiresShipping: boolean;
-  windowDays: number;
-  policy: { restockingFeePercent: number; returnShippingFee: number };
+  policy: {
+    windowDays: number;
+    restockingFeePercent: number;
+    returnShippingFee: number;
+  };
   policyPage: boolean;
 }): ProductReturnsNote | null {
   if (!params.requiresShipping) return null;
-  const windowDays = Number(params.windowDays);
+  const windowDays = Number(params.policy.windowDays);
   if (!Number.isFinite(windowDays) || windowDays <= 0) return null;
   return {
     windowDays,

@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState, type ComponentType } from "react";
+import {
+  useMemo,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+} from "react";
 import { useTranslations } from "next-intl";
 import { Check, Link2, Mail, Share2 } from "lucide-react";
 import {
@@ -63,6 +68,15 @@ interface ProductShareButtonsProps {
    * title row above).
    */
   variant?: "circle" | "tile";
+  /**
+   * Networks this surface offers. A page can only switch one OFF — the
+   * store's share settings still decide what exists at all.
+   */
+  networks?: Partial<
+    Record<"facebook" | "twitter" | "whatsapp" | "email" | "copyLink", boolean>
+  >;
+  /** Inline style on every tile — size, corners, surface, glyph colour. */
+  tileStyle?: CSSProperties;
   className?: string;
 }
 
@@ -78,8 +92,13 @@ export function ProductShareButtons({
   compactLabel,
   ghost = false,
   variant = "circle",
+  networks: allowedNetworks,
+  tileStyle,
   className,
 }: ProductShareButtonsProps) {
+  const allowed = (key: string) =>
+    (allowedNetworks as Record<string, boolean | undefined> | undefined)?.[key] !==
+    false;
   const t = useTranslations();
   const { shareSettings: appShareSettings } = useAppSettings();
   const shareSettings = useMemo(
@@ -168,9 +187,9 @@ export function ProductShareButtons({
         brandClass: "hover:border-[#0A66C2] hover:text-[#0A66C2]",
       },
     ];
-    return items.filter((item) => item.enabled);
+    return items.filter((item) => item.enabled && allowed(item.key));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shareSettings, encodedUrl, encodedText, encodedImage]);
+  }, [shareSettings, encodedUrl, encodedText, encodedImage, allowedNetworks]);
 
   const customLinks = useMemo(
     () =>
@@ -194,8 +213,8 @@ export function ProductShareButtons({
     [shareSettings.custom, pageUrl, productName, image],
   );
 
-  const showCopy = shareSettings.copyLink;
-  const showEmail = shareSettings.email;
+  const showCopy = shareSettings.copyLink && allowed("copyLink");
+  const showEmail = shareSettings.email && allowed("email");
 
   const hasAnything =
     showCopy ||
@@ -257,6 +276,7 @@ export function ProductShareButtons({
           label={network.label}
           icon={network.icon}
           base={shapeClass}
+          style={tileStyle}
           className={network.brandClass}
         />
       ))}
@@ -269,6 +289,7 @@ export function ProductShareButtons({
           icon={Share2}
           iconUrl={link.iconUrl}
           base={shapeClass}
+          style={tileStyle}
           getHref={() =>
             buildCustomShareUrl(link.urlTemplate, {
               url: getSharePageUrl(),
@@ -287,6 +308,7 @@ export function ProductShareButtons({
           icon={Mail}
           external={false}
           base={shapeClass}
+          style={tileStyle}
           className="hover:border-foreground hover:text-foreground"
         />
       ) : null}
@@ -301,6 +323,7 @@ export function ProductShareButtons({
           icon={copied ? Check : Link2}
           onClick={handleCopy}
           base={shapeClass}
+          style={tileStyle}
           className={cn(
             "hover:border-foreground hover:text-foreground",
             copied && "border-green-500 text-green-600",
@@ -347,9 +370,10 @@ function ShareButton(props: {
   onClick: () => void;
   /** Shape override (the tile flavor); defaults to the classic circle. */
   base?: string;
+  style?: CSSProperties;
   className?: string;
 }) {
-  const { label, icon: Icon, onClick, base, className } = props;
+  const { label, icon: Icon, onClick, base, style, className } = props;
   return (
     <button
       type="button"
@@ -357,6 +381,7 @@ function ShareButton(props: {
       aria-label={label}
       title={label}
       className={cn(base ?? buttonClass, className)}
+      style={style}
     >
       <Icon className="h-4 w-4" />
     </button>
@@ -373,6 +398,7 @@ function ShareLink(props: {
   external?: boolean;
   /** Shape override (the tile flavor); defaults to the classic circle. */
   base?: string;
+  style?: CSSProperties;
   className?: string;
 }) {
   const {
@@ -383,6 +409,7 @@ function ShareLink(props: {
     getHref,
     external = true,
     base,
+    style,
     className,
   } = props;
   return (
@@ -391,6 +418,7 @@ function ShareLink(props: {
       aria-label={label}
       title={label}
       className={cn(base ?? buttonClass, className)}
+      style={style}
       onClick={(event) => {
         if (!external || !getHref) return;
         const nextHref = getHref();

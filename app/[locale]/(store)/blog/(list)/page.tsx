@@ -28,8 +28,8 @@ interface PageProps {
 
 function chipClass(isActive: boolean) {
   return isActive
-    ? "inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-foreground bg-foreground px-4 text-xs font-medium text-background md:h-7 md:min-w-20 md:px-5"
-    : "inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-border bg-background px-4 text-xs font-medium text-foreground/80 transition-colors hover:border-foreground/30 hover:text-foreground md:h-7 md:min-w-20 md:px-5";
+    ? "inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-button border border-foreground bg-foreground px-4 text-xs font-medium text-background md:h-7 md:min-w-20 md:px-5"
+    : "inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-button border border-border bg-background px-4 text-xs font-medium text-foreground/80 transition-colors hover:border-foreground/30 hover:text-foreground md:h-7 md:min-w-20 md:px-5";
 }
 
 function toBlogArticleCard(post: BlogListItem): BlogArticleCardData {
@@ -241,7 +241,8 @@ function ReadMoreLink({ href }: { href: string }) {
   return (
     <Link
       href={href}
-      className="group inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-foreground/80 bg-background px-4 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary md:h-10 md:px-6 md:text-sm"
+      data-slot="button"
+      className="group inline-flex h-9 shrink-0 items-center gap-2 border border-foreground/80 bg-background px-4 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary md:h-10 md:px-6 md:text-sm"
     >
       Read More
       <MoveRight

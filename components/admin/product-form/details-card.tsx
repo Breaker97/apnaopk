@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   useFieldArray,
   useWatch,
@@ -27,19 +27,80 @@ import {
 } from "@/components/ui/tabs";
 import { RichTextEditor } from "@/components/ui/rich-text-editor-lazy";
 import type { ProductFormData } from "@/components/admin/product-form/schema";
+import { apiClient } from "@/lib/api/client";
+import {
+  remainingAttributeSuggestions,
+  valuesForAttribute,
+  type AttributeSuggestion,
+} from "@/lib/products/attribute-suggestions";
 import {
   generateSearchHandle,
   sanitizeSearchHandle,
 } from "@/components/admin/search-engine-listing-preview";
 
+/**
+ * One request per endpoint for the life of the page: the tab is opened and
+ * closed while a product is edited, and the catalogue's labels do not change
+ * underneath it.
+ */
+const suggestionRequests = new Map<string, Promise<AttributeSuggestion[]>>();
+
+function loadAttributeSuggestions(endpoint: string): Promise<AttributeSuggestion[]> {
+  const cached = suggestionRequests.get(endpoint);
+  if (cached) return cached;
+  const request = apiClient
+    .get<{ suggestions?: AttributeSuggestion[] }>(endpoint)
+    .then((payload) =>
+      Array.isArray(payload?.suggestions) ? payload.suggestions : [],
+    )
+    .catch(() => {
+      // A failure only costs the suggestions; let the next open try again.
+      suggestionRequests.delete(endpoint);
+      return [] as AttributeSuggestion[];
+    });
+  suggestionRequests.set(endpoint, request);
+  return request;
+}
+
 interface DetailsCardProps {
   form: UseFormReturn<ProductFormData>;
+  /**
+   * Where the specification autocomplete reads labels already in use — the
+   * whole catalogue for staff, the vendor's own products for a vendor.
+   */
+  attributeSuggestionsEndpoint?: string;
   summaryAiAction?: ReactNode;
   descriptionAiAction?: ReactNode;
 }
 
+/**
+ * Loads the specification suggestions the first time the Specifications tab
+ * is shown. Rendered inside the tab, which mounts only while it is open, so
+ * a product edited without touching its specifications never asks.
+ */
+function SpecificationSuggestionsLoader({
+  endpoint,
+  onLoad,
+}: {
+  endpoint?: string;
+  onLoad: (suggestions: AttributeSuggestion[]) => void;
+}) {
+  useEffect(() => {
+    if (!endpoint) return;
+    let cancelled = false;
+    void loadAttributeSuggestions(endpoint).then((suggestions) => {
+      if (!cancelled) onLoad(suggestions);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [endpoint, onLoad]);
+  return null;
+}
+
 export function DetailsCard({
   form,
+  attributeSuggestionsEndpoint,
   summaryAiAction,
   descriptionAiAction,
 }: DetailsCardProps) {
@@ -54,6 +115,15 @@ export function DetailsCard({
   const previousGeneratedHandleRef = useRef<string | null>(
     watchedHandle.trim() ? null : generateSearchHandle(watchedTitle),
   );
+  const [attributeSuggestions, setAttributeSuggestions] = useState<
+    AttributeSuggestion[]
+  >([]);
+  const watchedAttributes = useWatch({
+    control: form.control,
+    name: "attributes",
+  });
+  const specLabelListId = `${useId()}-spec-labels`;
+  const specValueListId = `${useId()}-spec-values`;
   const {
     fields: attributeFields,
     append: appendAttribute,
@@ -227,6 +297,20 @@ export function DetailsCard({
           </TabsContent>
 
           <TabsContent value="specifications" className="mt-4">
+            <SpecificationSuggestionsLoader
+              endpoint={attributeSuggestionsEndpoint}
+              onLoad={setAttributeSuggestions}
+            />
+            {/* The label list: every label the catalogue uses that this
+                product does not already have. */}
+            <datalist id={specLabelListId}>
+              {remainingAttributeSuggestions(
+                attributeSuggestions,
+                (watchedAttributes ?? []).map((row) => row?.name ?? ""),
+              ).map((entry) => (
+                <option key={entry.name} value={entry.name} />
+              ))}
+            </datalist>
             <div className="space-y-3">
               <div className="flex items-baseline justify-between">
                 <FormLabel className="text-base">
@@ -261,6 +345,11 @@ export function DetailsCard({
                                 placeholder={t(
                                   "admin.productForm.placeholders.specLabel",
                                 )}
+                                // Browser autocomplete would mix in whatever
+                                // was typed on other sites; the list is the
+                                // catalogue's own labels.
+                                list={specLabelListId}
+                                autoComplete="off"
                                 {...field}
                               />
                             </FormControl>
@@ -278,9 +367,21 @@ export function DetailsCard({
                                 placeholder={t(
                                   "admin.productForm.placeholders.specValue",
                                 )}
+                                // The values products already use for THIS
+                                // row's label — "130 mAh" once "Battery" is set.
+                                list={`${specValueListId}-${index}`}
+                                autoComplete="off"
                                 {...field}
                               />
                             </FormControl>
+                            <datalist id={`${specValueListId}-${index}`}>
+                              {valuesForAttribute(
+                                attributeSuggestions,
+                                watchedAttributes?.[index]?.name ?? "",
+                              ).map((value) => (
+                                <option key={value} value={value} />
+                              ))}
+                            </datalist>
                             <FormMessage />
                           </FormItem>
                         )}

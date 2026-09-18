@@ -1,0 +1,1695 @@
+{
+  "general": {
+    "countryAvailability": {
+      "mode": "all",
+      "countryCodes": []
+    },
+    "storeName": "Storify",
+    "storeEmail": "store@example.com",
+    "defaultLanguage": "en",
+    "defaultCurrency": "USD",
+    "supportedLanguages": [
+      "en"
+    ],
+    "supportedCurrencies": [
+      "USD",
+      "EUR",
+      "GBP",
+      "BDT",
+      "INR",
+      "UGX"
+    ],
+    "timezone": "UTC",
+    "appIconUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789566198771-iswjk3/favicon.webp",
+    "darkModeLogoUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789282968475-qhz2gf/logo_light.svg",
+    "faviconUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789566192008-z11jnu/favicon.webp",
+    "logoUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789282968322-qnsk8e/logo_dark.webp"
+  },
+  "appearance": {
+    "customPresets": [],
+    "primaryColor": "#262626",
+    "secondaryColor": "#7a7a7a",
+    "accentColor": "#a8714d",
+    "theme": "light",
+    "contrast": false,
+    "rtl": false,
+    "collapsedSidebar": false,
+    "navLayout": "mini",
+    "navColor": "integrate",
+    "presetColor": "default",
+    "skeletonColor": ""
+  },
+  "orders": {
+    "commission": {
+      "vendorRate": 10,
+      "minWithdrawalAmount": 50
+    },
+    "returns": {
+      "windowDays": 30,
+      "shippingRefund": "merchant_fault",
+      "restockingFeePercent": 0,
+      "returnShippingFee": 0,
+      "refundAdminFeePercent": 0,
+      "refundAdminFeeCap": 0,
+      "billVendorCodShipping": false
+    },
+    "prefix": "ORD",
+    "taxRate": 0,
+    "freeShippingThreshold": 0,
+    "defaultShippingCost": 5
+  },
+  "shipping": {
+    "delivery": {
+      "processingDaysMin": 0,
+      "processingDaysMax": 0,
+      "showEstimatedDelivery": true
+    },
+    "zones": [],
+    "fallbackRate": {
+      "enabled": false,
+      "name": "Standard",
+      "price": 0
+    },
+    "customs": {
+      "enabled": false,
+      "dutyMode": "DDU"
+    },
+    "vendorShipping": {
+      "enabled": false
+    },
+    "carriers": {
+      "enabled": false,
+      "labelStorage": "carrier_url",
+      "shippo": {
+        "enabled": false,
+        "mode": "test",
+        "labelFileType": "PDF_4x6",
+        "serviceTokenAllowList": [],
+        "testToken": ""
+      },
+      "shiprocket": {
+        "enabled": false,
+        "courierIdAllowList": []
+      }
+    },
+    "packages": [
+      {
+        "id": "default",
+        "name": "Default box",
+        "length": 30,
+        "width": 20,
+        "height": 15,
+        "dimensionUnit": "cm",
+        "emptyWeight": 0,
+        "weightUnit": "kg",
+        "isDefault": true,
+        "active": true
+      }
+    ],
+    "automation": {
+      "enabled": false,
+      "includeCod": false,
+      "rateChoice": "cheapest",
+      "buyLabel": true,
+      "markOrderShipped": true,
+      "restrictToCountries": []
+    },
+    "courierTrackingLinks": [],
+    "enabled": false,
+    "weightUnit": "kg",
+    "codCollectedBy": "vendor"
+  },
+  "social": {
+    "share": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    }
+  },
+  "maintenance": {
+    "enabled": false,
+    "title": "Storify is temporarily offline",
+    "message": "We're making a few improvements behind the scenes. Thanks for your patience.",
+    "countdownEnabled": false,
+    "allowedIPs": []
+  },
+  "pos": {
+    "customize": {
+      "printedReceiptsEnabled": false,
+      "soundEnabled": true,
+      "soundVolume": 50,
+      "soundAddToCart": true,
+      "soundOrderComplete": true,
+      "soundPayment": true,
+      "soundError": true
+    },
+    "checkout": {
+      "paymentMethods": [
+        "cash",
+        "card",
+        "manual",
+        "bank"
+      ],
+      "offlinePaymentsEnabled": false
+    },
+    "orders": {
+      "orderNumberPrefix": "POS"
+    },
+    "enabled": true,
+    "allowAdminSales": true,
+    "allowVendorSales": true,
+    "allowSellerSales": true,
+    "language": "en"
+  },
+  "multiVendorMode": {
+    "enabled": true,
+    "canManageProducts": true,
+    "canViewOrders": true,
+    "canManageOrders": true,
+    "canManageStoreSettings": true,
+    "canViewAnalytics": true,
+    "canManageDiscounts": true,
+    "canManagePayouts": true,
+    "canAccessPOS": true
+  },
+  "aiSalesAgent": {
+    "widget": {
+      "position": "bottom-right",
+      "primaryColor": "#7c3aed",
+      "accentColor": "#a855f7",
+      "footerText": "Powered by AI",
+      "headerTitle": "",
+      "width": 400,
+      "height": 680,
+      "showFooterText": true
+    },
+    "capabilities": {
+      "productQA": true,
+      "recommendations": true,
+      "cartActions": true,
+      "checkoutHandoff": true,
+      "orderStatus": true
+    },
+    "faq": [],
+    "enabled": false,
+    "model": "gpt-5-mini",
+    "temperature": 0.3,
+    "reasoningEffort": "minimal",
+    "maxRecommendations": 4,
+    "agentName": "Sales AI",
+    "greeting": "Hi! I can help you find products, compare options, add items to your cart, and check order status.",
+    "tone": "friendly",
+    "instructions": "",
+    "escalationMessage": "I can connect you with the store team for anything that needs a human review.",
+    "monthlyTokenBudget": 0
+  },
+  "aiAuthoring": {
+    "surfaces": {
+      "products": true,
+      "categories": true,
+      "collections": true,
+      "brands": true,
+      "blogPosts": true,
+      "contentPages": true,
+      "reviews": true,
+      "heroBanner": true
+    },
+    "imageDefaults": {
+      "size": "auto",
+      "quality": "high"
+    },
+    "brandVoice": {
+      "tone": "",
+      "instructions": "",
+      "imageStyle": ""
+    },
+    "brandKit": {
+      "primaryColor": "",
+      "secondaryColor": "",
+      "logoUrl": ""
+    },
+    "access": {
+      "staffEnabled": true,
+      "vendorsEnabled": true
+    },
+    "limits": {
+      "textPerUserPerDay": 0,
+      "imagePerUserPerDay": 0
+    },
+    "enabled": false,
+    "textModel": "",
+    "imageModel": ""
+  },
+  "homePage": {
+    "sectionOrder": [
+      "hero",
+      "featuredCategories",
+      "newArrivals",
+      "promotionsOffers",
+      "featuredProducts",
+      "sponsoredProducts",
+      "topVendors",
+      "becomeVendor",
+      "topArticles",
+      "fromInstagram"
+    ],
+    "sections": {
+      "hero": {
+        "visible": true,
+        "slides": [
+          {
+            "imageSrc": "",
+            "alt": "",
+            "href": ""
+          }
+        ]
+      },
+      "featuredCategories": {
+        "visible": true,
+        "title": "Featured Categories",
+        "source": "featured",
+        "limit": 8,
+        "categoryIds": []
+      },
+      "newArrivals": {
+        "visible": true,
+        "title": "Products on Sale",
+        "subtitle": "",
+        "source": "discounted",
+        "limit": 8,
+        "desktopColumns": 4,
+        "productIds": []
+      },
+      "promotionsOffers": {
+        "visible": true,
+        "cards": [
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          },
+          {
+            "imageSrc": "",
+            "href": "/products"
+          }
+        ]
+      },
+      "topVendors": {
+        "visible": true,
+        "title": "Top Vendors",
+        "limit": 8
+      },
+      "featuredProducts": {
+        "visible": true,
+        "title": "",
+        "source": "all",
+        "limit": 8,
+        "productIds": []
+      },
+      "sponsoredProducts": {
+        "visible": true,
+        "limit": 8
+      },
+      "topArticles": {
+        "visible": true,
+        "title": "Top Articles",
+        "limit": 9,
+        "desktopColumns": 4
+      },
+      "becomeVendor": {
+        "visible": true,
+        "imageSrc": "",
+        "title": "Start Selling With Us Today",
+        "subtitle": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
+        "buttonLabel": "Become a Vendor",
+        "buttonHref": "/become-vendor"
+      },
+      "fromInstagram": {
+        "visible": true,
+        "title": "From Instagram",
+        "items": [
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          },
+          {
+            "imageSrc": "",
+            "href": ""
+          }
+        ]
+      }
+    }
+  },
+  "contentPages": {
+    "terms": {
+      "title": "Terms of Service",
+      "content": "<h2>Terms of Service</h2><p>Add your store's terms of service here.</p>",
+      "visible": true
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "content": "<h2>Privacy Policy</h2><p>Add your privacy policy details here.</p>",
+      "visible": true
+    },
+    "returns": {
+      "title": "Return and Refund Policy",
+      "eyebrow": "Returns and refunds",
+      "description": "We want every {storeName} order to feel clear after checkout. This page explains when items can be returned, how refund reviews work, and what happens after an approved return reaches us.",
+      "primaryActionLabel": "View my orders",
+      "secondaryActionLabel": "Track an order",
+      "returnWindowLabel": "Return window",
+      "returnWindowValue": "30 days from delivery",
+      "summaryItems": [
+        {
+          "id": "summary-eligible",
+          "text": "Eligible delivered items can be returned after review."
+        },
+        {
+          "id": "summary-refunds",
+          "text": "Refunds are issued after approval and inspection."
+        },
+        {
+          "id": "summary-exclusions",
+          "text": "Final sale, digital, and unsafe-to-resell items may be excluded."
+        }
+      ],
+      "howItWorksTitle": "How a return works",
+      "howItWorksDescription": "Returns and refunds are separate steps. A return request handles eligibility, shipment, and inspection. A refund sends or records the money after the return is approved.",
+      "steps": [
+        {
+          "id": "step-open-order",
+          "title": "Open your order",
+          "description": "Go to your account order history or track your order using the order number and checkout contact details."
+        },
+        {
+          "id": "step-choose-items",
+          "title": "Choose eligible items",
+          "description": "Select the item quantity you want to return and share the reason, notes, and photos when needed."
+        },
+        {
+          "id": "step-review",
+          "title": "Wait for review",
+          "description": "Our team, and the vendor when applicable, reviews the request against the return window and item condition."
+        },
+        {
+          "id": "step-send-back",
+          "title": "Send the item back",
+          "description": "After approval, follow the return instructions. Keep your carrier receipt until the return is closed."
+        },
+        {
+          "id": "step-inspection",
+          "title": "Inspection and refund",
+          "description": "Once received and inspected, eligible refunds are issued to the original payment method or recorded manually."
+        }
+      ],
+      "eligibleTitle": "Eligible returns",
+      "eligibleItems": [
+        {
+          "id": "eligible-delivered",
+          "text": "Delivered physical products requested within 30 days of delivery."
+        },
+        {
+          "id": "eligible-condition",
+          "text": "Items in unused, clean, and resaleable condition unless they arrived damaged or defective."
+        },
+        {
+          "id": "eligible-packaging",
+          "text": "Items with original packaging, tags, accessories, and included documents."
+        },
+        {
+          "id": "eligible-partial",
+          "text": "Partial quantities from an order, as long as they have not already been returned or refunded."
+        }
+      ],
+      "excludedTitle": "Items that may not qualify",
+      "excludedItems": [
+        {
+          "id": "excluded-digital",
+          "text": "Digital goods, services, downloadable products, and gift cards."
+        },
+        {
+          "id": "excluded-final-sale",
+          "text": "Final sale, clearance, customized, or personalized products."
+        },
+        {
+          "id": "excluded-sensitive",
+          "text": "Perishable, hygiene-sensitive, intimate, or opened sealed goods when not defective."
+        },
+        {
+          "id": "excluded-damaged",
+          "text": "Items damaged by misuse, missing parts, or returned outside the approved window."
+        }
+      ],
+      "refundRulesTitle": "Refund rules",
+      "refundRulesDescription": "Refunds are capped at the remaining refundable order balance. Shipping, taxes, discounts, and fees may be adjusted based on the approved items and the condition received.",
+      "refundRules": [
+        {
+          "id": "refund-original-method",
+          "title": "Original payment method",
+          "description": "Card, PayPal, Razorpay, and Paystack refunds are sent back through the original payment provider when possible."
+        },
+        {
+          "id": "refund-partial",
+          "title": "Partial refunds",
+          "description": "If only part of an order is returned, the refund may include the item amount, eligible tax, and selected fees."
+        },
+        {
+          "id": "refund-manual",
+          "title": "Manual refunds",
+          "description": "COD, cash, POS, and manual payments may be handled outside the payment gateway and recorded by the store team."
+        },
+        {
+          "id": "refund-inventory",
+          "title": "Inventory review",
+          "description": "Refunds and inventory are separate decisions. Items are restocked only after inspection confirms they can be resold."
+        }
+      ],
+      "statusesTitle": "Return request statuses",
+      "statusesDescription": "These are the typical states you may see as the return moves from request review to refund completion.",
+      "statuses": [
+        {
+          "id": "status-requested",
+          "label": "Requested",
+          "description": "Your return request has been submitted for review."
+        },
+        {
+          "id": "status-approved",
+          "label": "Approved",
+          "description": "The return is accepted and return instructions are provided."
+        },
+        {
+          "id": "status-in-transit",
+          "label": "In transit",
+          "description": "The returned item is on its way back to the store or vendor."
+        },
+        {
+          "id": "status-received",
+          "label": "Received",
+          "description": "The returned item has arrived and is waiting for inspection."
+        },
+        {
+          "id": "status-refund-pending",
+          "label": "Refund pending",
+          "description": "The approved refund is being prepared or sent to the payment provider."
+        },
+        {
+          "id": "status-refunded",
+          "label": "Refunded",
+          "description": "The refund has been issued or manually recorded."
+        }
+      ],
+      "beforeReturnTitle": "Before sending anything back",
+      "beforeReturnDescription": "Please wait for approval and return instructions. Items sent back without approval can take longer to identify and may not qualify for refund processing.",
+      "helpTitle": "Need help?",
+      "ctaTitle": "Ready to review an order?",
+      "ctaDescription": "Start from your order history if you have an account. If you checked out without signing in, use the tracking page with your order number and checkout email or phone.",
+      "ctaPrimaryLabel": "My orders",
+      "ctaSecondaryLabel": "Track order",
+      "visible": true
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "content": "<h2>Cookie Policy</h2><p>Describe the cookies your site uses and why.</p>",
+      "visible": true
+    },
+    "accessibility": {
+      "title": "Accessibility",
+      "content": "<h2>Accessibility</h2><p>Share your accessibility standards and support contact details.</p>",
+      "visible": true
+    },
+    "contact": {
+      "title": "Contact Us",
+      "description": "Have a question about an order, product, vendor, or account? Our team is ready to help you find the right answer.",
+      "heroImageUrl": "/contact-hero-storify.png",
+      "getInTouchTitle": "Get in Touch",
+      "getInTouchDescription": "Reach us through the details below, or send a message and we will get back to you as soon as possible.",
+      "formTitle": "Send us a message",
+      "formDescription": "Share the details and our support team will route your message to the right person.",
+      "headOfficeTitle": "Head Office",
+      "emailTitle": "Email Us",
+      "phoneTitle": "Call Us",
+      "hoursTitle": "Support Hours",
+      "supportHours": "Sunday to Thursday, 9:00 AM - 6:00 PM",
+      "showMap": true,
+      "mapTitle": "Visit Our Store",
+      "mapDescription": "Use the map below to find our office location and plan your visit.",
+      "mapProvider": "google",
+      "mapAddress": "",
+      "mapLatitude": "",
+      "mapLongitude": "",
+      "mapZoom": 14,
+      "mapHeight": 440,
+      "mapEmbedUrl": "",
+      "mapButtonLabel": "Open in Google Maps",
+      "showSocialLinks": true,
+      "visible": true
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Find quick answers to common questions about shopping, shipping, and returns.",
+      "visible": true,
+      "items": [
+        {
+          "id": "faq-shipping",
+          "question": "How long does shipping take?",
+          "answer": "Standard shipping usually takes 3-7 business days depending on your location."
+        },
+        {
+          "id": "faq-returns",
+          "question": "What is your return policy?",
+          "answer": "You can return eligible items within 30 days of delivery. Items must be unused and in original packaging."
+        },
+        {
+          "id": "faq-tracking",
+          "question": "How can I track my order?",
+          "answer": "Once your order ships, you will receive a tracking link by email and in your account order history."
+        }
+      ]
+    },
+    "about": {
+      "title": "About Us",
+      "eyebrow": "About {storeName}",
+      "headline": "Independent sellers. One checkout you can trust.",
+      "description": "Verified independent sellers list their own products and ship to you directly. {storeName} handles payment, tracking and returns, so ordering from a two-person workshop is as safe as ordering from a warehouse.",
+      "heroImageUrl": "",
+      "primaryCtaLabel": "Start shopping",
+      "secondaryCtaLabel": "Sell on {storeName}",
+      "showStats": true,
+      "stats": [
+        {
+          "key": "sellers",
+          "enabled": true,
+          "label": "Active sellers",
+          "manualValue": ""
+        },
+        {
+          "key": "products",
+          "enabled": true,
+          "label": "Products listed",
+          "manualValue": ""
+        },
+        {
+          "key": "orders",
+          "enabled": true,
+          "label": "Orders delivered",
+          "manualValue": ""
+        },
+        {
+          "key": "customers",
+          "enabled": false,
+          "label": "Happy customers",
+          "manualValue": ""
+        },
+        {
+          "key": "founded",
+          "enabled": false,
+          "label": "Trading since",
+          "manualValue": ""
+        }
+      ],
+      "statsFootnote": "Counted from live catalogue and order data.",
+      "howItWorksTitle": "How {storeName} works",
+      "howItWorksDescription": "Two sides of one marketplace.",
+      "shopperStepsTitle": "For shoppers",
+      "shopperSteps": [
+        {
+          "id": "shopper-browse",
+          "title": "Browse everything at once",
+          "description": "Search across every seller, or shop one store's own page."
+        },
+        {
+          "id": "shopper-checkout",
+          "title": "One cart, one checkout",
+          "description": "Pay once, even when the order comes from three different sellers."
+        },
+        {
+          "id": "shopper-track",
+          "title": "Track it to your door",
+          "description": "Follow each parcel from the seller's shelf to your address."
+        }
+      ],
+      "showSellerSteps": true,
+      "sellerStepsTitle": "For sellers",
+      "sellerSteps": [
+        {
+          "id": "seller-apply",
+          "title": "Apply",
+          "description": "Tell us about your business. Most applications are answered in two working days."
+        },
+        {
+          "id": "seller-verified",
+          "title": "Get verified",
+          "description": "Approved sellers get a store page, a dashboard and their own shipping rates."
+        },
+        {
+          "id": "seller-paid",
+          "title": "Sell and get paid",
+          "description": "Payouts on a regular schedule, with every fee itemised."
+        }
+      ],
+      "sellerCtaLabel": "Become a vendor",
+      "protectionItems": [
+        {
+          "id": "protection-payment",
+          "title": "Secure payment",
+          "text": "Handled by our payment partners. Card details never touch our servers."
+        },
+        {
+          "id": "protection-returns",
+          "title": "Easy returns",
+          "text": "Start a return from your order page within {returnWindow}."
+        },
+        {
+          "id": "protection-verified",
+          "title": "Verified sellers",
+          "text": "Business details are checked before the first listing goes live."
+        }
+      ],
+      "valuesTitle": "What we stand for",
+      "missionStatement": "{storeName} exists so a one-person workshop can sell on the same terms as a warehouse.",
+      "values": [
+        {
+          "id": "value-verified",
+          "icon": "shield",
+          "title": "Verified sellers",
+          "text": "Checked before the first listing."
+        },
+        {
+          "id": "value-fees",
+          "icon": "wallet",
+          "title": "Fair, published fees",
+          "text": "One commission rate. No surprise deductions."
+        },
+        {
+          "id": "value-local",
+          "icon": "truck",
+          "title": "Local first",
+          "text": "Sellers near you ship faster and cost less to reach."
+        },
+        {
+          "id": "value-returns",
+          "icon": "returns",
+          "title": "Easy returns",
+          "text": "Time to change your mind on most items."
+        }
+      ],
+      "storyTitle": "How {storeName} started",
+      "storyBody": "<p>{storeName} started with a simple observation: good products were sitting in small workshops with no way to reach anyone beyond their own street.</p><p>So we built the thing those sellers actually needed: a shared storefront where each of them keeps their own name, their own prices and their own customers, while the hard parts of selling online are handled once, for everyone.</p><p>Every seller on {storeName} runs their own shop. We keep the lights on.</p>",
+      "milestonesTitle": "Milestones",
+      "milestones": [],
+      "showTeam": false,
+      "teamTitle": "The team",
+      "teamDescription": "A small team. These are the people you are most likely to hear from.",
+      "members": [],
+      "showTestimonials": true,
+      "testimonialsTitle": "What shoppers say",
+      "testimonialsDescription": "Pulled automatically from approved reviews rated four stars or higher.",
+      "testimonialsMinRating": 4,
+      "showContact": true,
+      "contactTitle": "Where to find us",
+      "contactDescription": "",
+      "ctaTitle": "Ready when you are",
+      "ctaDescription": "Browse the catalogue, or open a store of your own on {storeName}.",
+      "ctaPrimaryLabel": "Start shopping",
+      "ctaSecondaryLabel": "Sell on {storeName}",
+      "metaTitle": "",
+      "metaDescription": "",
+      "visible": true
+    },
+    "customPages": []
+  },
+  "header": {
+    "builder": {
+      "rows": [
+        {
+          "id": "sB1LGyUlp1J-utduTlWHt",
+          "columnCount": 3,
+          "align": {
+            "horizontal": "start",
+            "vertical": "center"
+          },
+          "background": {
+            "type": "solid",
+            "color": "#f1f1f100",
+            "gradient": {
+              "type": "linear",
+              "angle": 0,
+              "stops": [
+                {
+                  "color": "#00000000",
+                  "at": 0
+                },
+                {
+                  "color": "#00000042",
+                  "at": 100
+                }
+              ]
+            }
+          },
+          "foreground": {
+            "type": "solid"
+          },
+          "height": 70,
+          "gap": 24,
+          "borderBottom": 0,
+          "borderColor": "#e5e7eb",
+          "blur": 0,
+          "hideOnScroll": false,
+          "returnOn": "auto",
+          "columns": [
+            {
+              "id": "xcOzyQf5V9GFk1Xx5116p",
+              "width": 1,
+              "height": 0,
+              "justify": "start",
+              "align": {
+                "horizontal": "start",
+                "vertical": "center"
+              },
+              "gap": 16,
+              "items": [
+                {
+                  "id": "crogNUFCq2JXFSiEczizk",
+                  "type": "menuButton",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "size": 22,
+                  "roundness": 6,
+                  "background": {
+                    "type": "solid"
+                  },
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showLabel": true,
+                  "label": "Menu",
+                  "drawer": true,
+                  "drawerMenu": "main-mega-menu",
+                  "drawerSecondaryMenu": "main-header",
+                  "drawerSide": "left"
+                },
+                {
+                  "id": "XK0CsLpvz63ufm4UytNx0",
+                  "type": "searchIcon",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "style": "plain",
+                  "size": 20,
+                  "roundness": 999,
+                  "background": {
+                    "type": "solid"
+                  },
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showLabel": true,
+                  "label": "Search",
+                  "drawer": true,
+                  "fieldLine": true,
+                  "trending": [],
+                  "drawerCollections": [],
+                  "drawerFieldStyle": "outline",
+                  "drawerFieldRadius": 999,
+                  "width": 110,
+                  "pillRoundness": 14,
+                  "pillBackground": {
+                    "type": "solid",
+                    "color": "#ffffff"
+                  },
+                  "border": "#c8c8c8",
+                  "borderThickness": 1
+                }
+              ]
+            },
+            {
+              "id": "F7Sy1u8G7lzMFAblGcqmu",
+              "width": 1,
+              "height": 0,
+              "justify": "center",
+              "align": {
+                "horizontal": "start",
+                "vertical": "center"
+              },
+              "gap": 16,
+              "items": [
+                {
+                  "id": "PvxPPzEcSJcASGGJ90Tsm",
+                  "type": "brand",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "size": 102,
+                  "scrollSize": 0,
+                  "theme": "auto"
+                }
+              ]
+            },
+            {
+              "id": "id_y3o0Ou5dEUb6ITNlWh",
+              "width": 1,
+              "height": 0,
+              "justify": "end",
+              "align": {
+                "horizontal": "start",
+                "vertical": "center"
+              },
+              "gap": 28,
+              "items": [
+                {
+                  "id": "gfk4hGZ4Z8nktP3vhg0a3",
+                  "type": "icons",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "keys": [
+                    "wishlist"
+                  ],
+                  "size": 20,
+                  "gap": 16,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showIcons": true,
+                  "showLabels": false
+                },
+                {
+                  "id": "PxuFtqUfYbqE-WBpU4-0z",
+                  "type": "user",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "size": 25,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showLabel": true,
+                  "greeting": "Welcome",
+                  "label": "Login / Register"
+                },
+                {
+                  "id": "9a-7ej4MavCO_-6LgRqyu",
+                  "type": "icons",
+                  "padding": {
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0,
+                    "left": 0
+                  },
+                  "keys": [
+                    "cart"
+                  ],
+                  "size": 22,
+                  "gap": 16,
+                  "foreground": {
+                    "type": "solid"
+                  },
+                  "showIcons": true,
+                  "showLabels": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "layout": {
+      "sticky": true,
+      "fullWidth": false,
+      "variant": "classic",
+      "color": "light",
+      "overlapHome": true,
+      "overlapTone": "dark",
+      "overlapScrim": 40,
+      "shadow": {
+        "enabled": false,
+        "y": 2,
+        "blur": 10,
+        "opacity": 6
+      }
+    },
+    "brand": {
+      "logoUrl": "",
+      "darkLogoUrl": "",
+      "logoAlt": "",
+      "desktopLogoWidth": 144,
+      "mobileLogoWidth": 112,
+      "colorModeLogo": "dark",
+      "transparentModeLogo": "auto"
+    },
+    "colors": {
+      "light": {
+        "backgroundColor": "#ffffff",
+        "textColor": "#111827",
+        "searchBackgroundColor": "#ffffff",
+        "searchTextColor": "#111827"
+      },
+      "dark": {
+        "backgroundColor": "#050505",
+        "textColor": "#ffffff",
+        "searchBackgroundColor": "#111111",
+        "searchTextColor": "#ffffff"
+      }
+    },
+    "search": {
+      "enabled": true,
+      "showAiButton": true,
+      "showCategoryDropdown": false,
+      "placeholder": "Search products...",
+      "desktopWidth": 640,
+      "height": 40,
+      "borderRadius": 999,
+      "borderColor": "#dddddd"
+    },
+    "market": {
+      "showLanguageSelector": true,
+      "showCurrencySelector": true,
+      "defaultLanguage": "en",
+      "defaultCurrency": "USD"
+    },
+    "mobile": {
+      "showSearch": true,
+      "showAccountSummary": true,
+      "showCategoryShortcuts": true,
+      "showCollections": true,
+      "showMarketSelectors": true,
+      "showThemeSelector": true
+    },
+    "widgets": {
+      "showThemeToggle": true,
+      "showAccountMenu": true,
+      "showWishlist": true,
+      "showCart": true,
+      "showLocationPicker": false,
+      "showContact": false,
+      "showCompare": false,
+      "showLabels": false,
+      "gap": 24
+    },
+    "categoryMenu": {
+      "enabled": true,
+      "position": "left",
+      "showMegaMenu": true,
+      "showQuickLinks": true,
+      "label": "All Categories",
+      "quickLimit": 3,
+      "mobileLimit": 8,
+      "showPromoCard": false,
+      "promoTitle": "",
+      "promoSubtitle": "",
+      "promoImageSrc": "",
+      "promoHref": "",
+      "trigger": {
+        "style": "filled",
+        "borderRadius": 10,
+        "borderWidth": 0,
+        "width": 232,
+        "height": 42,
+        "showIcon": true,
+        "icon": "menu",
+        "showChevron": true,
+        "openOn": "hover",
+        "openOnHome": false,
+        "useCustomColors": false,
+        "colors": {
+          "light": {
+            "backgroundColor": "#4f46e5",
+            "textColor": "#ffffff",
+            "borderColor": "#4f46e5"
+          },
+          "dark": {
+            "backgroundColor": "#6366f1",
+            "textColor": "#ffffff",
+            "borderColor": "#6366f1"
+          }
+        }
+      }
+    },
+    "collectionsMenu": {
+      "enabled": true,
+      "position": "left",
+      "label": "Collections",
+      "limit": 12
+    },
+    "utilityMenu": {
+      "enabled": true,
+      "placement": "menu"
+    },
+    "pagesMenu": {
+      "enabled": true,
+      "appPagePaths": [
+        "/blog",
+        "/track-order"
+      ],
+      "pageKeys": [],
+      "customPageIds": [],
+      "order": [
+        "app:/blog",
+        "app:/track-order"
+      ],
+      "positions": {
+        "app:/blog": "right",
+        "app:/track-order": "right"
+      }
+    }
+  },
+  "footer": {
+    "layout": {
+      "fullWidth": false
+    },
+    "brand": {
+      "logoSource": "store",
+      "logoUrl": "",
+      "darkLogoUrl": "",
+      "logoSize": 0,
+      "logoTheme": "auto",
+      "logoAlt": "",
+      "description": ""
+    },
+    "colors": {
+      "light": {
+        "backgroundColor": "#f8fafc",
+        "textColor": "#111827",
+        "mutedTextColor": "#6b7280",
+        "borderColor": "#e5e7eb",
+        "accentColor": "#2065D1"
+      },
+      "dark": {
+        "backgroundColor": "#050505",
+        "textColor": "#ffffff",
+        "mutedTextColor": "#d1d5db",
+        "borderColor": "#27272a",
+        "accentColor": "#60a5fa"
+      }
+    },
+    "widgets": {
+      "showLogo": true,
+      "showDescription": true,
+      "showContact": true,
+      "showSocialLinks": true,
+      "showLinkColumns": true,
+      "showCopyright": true,
+      "showPaymentMethods": true
+    },
+    "contact": {
+      "source": "store",
+      "title": "Contact",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "showPhone": true,
+      "showEmail": true,
+      "showAddress": true
+    },
+    "social": {
+      "title": "Follow us",
+      "links": {
+        "facebookUrl": "",
+        "twitterUrl": "",
+        "instagramUrl": "",
+        "youtubeUrl": "",
+        "linkedinUrl": "",
+        "tiktokUrl": ""
+      }
+    },
+    "linkColumns": [
+      {
+        "id": "products",
+        "title": "Products",
+        "links": [
+          {
+            "label": "Products",
+            "href": "/products",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Categories",
+            "href": "/categories",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Brands",
+            "href": "/brands",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Collections",
+            "href": "/collections",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Vendors",
+            "href": "/vendors",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "New Arrivals",
+            "href": "/products",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "help",
+        "title": "Help",
+        "links": [
+          {
+            "label": "Track Order",
+            "href": "/track-order",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "FAQ",
+            "href": "/faq",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Returns",
+            "href": "/returns",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Contact",
+            "href": "/contact",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "title": "Company",
+        "links": [
+          {
+            "label": "About Us",
+            "href": "/about",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Blog",
+            "href": "/blog",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Careers",
+            "href": "/careers",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Become a Vendor",
+            "href": "/become-vendor",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      },
+      {
+        "id": "legal",
+        "title": "Legal",
+        "links": [
+          {
+            "label": "Terms of Service",
+            "href": "/terms",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "/privacy",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Cookie Policy",
+            "href": "/cookies",
+            "target": "_self",
+            "visible": true
+          },
+          {
+            "label": "Accessibility",
+            "href": "/accessibility",
+            "target": "_self",
+            "visible": true
+          }
+        ]
+      }
+    ],
+    "copyright": {
+      "text": "All rights reserved.",
+      "showYear": true,
+      "showStoreName": true
+    },
+    "paymentMethods": {
+      "enabled": true,
+      "imageUrl": "",
+      "imageAlt": "Payment methods"
+    }
+  },
+  "vendorConfig": {
+    "paymentMethods": {
+      "stripe": true,
+      "paypal": true,
+      "razorpay": true,
+      "paystack": true,
+      "pesapal": true,
+      "iotec": true,
+      "orange_money": true,
+      "mtn_momo": true
+    },
+    "plansEnabled": false,
+    "allowRegistration": true,
+    "autoApprove": false,
+    "freeTrialDays": 0,
+    "requirePlanSelection": false,
+    "requiredDocuments": []
+  },
+  "boosting": {
+    "paymentMethods": {
+      "stripe": true,
+      "paypal": true,
+      "razorpay": true,
+      "paystack": true,
+      "pesapal": true,
+      "iotec": true,
+      "orange_money": true,
+      "mtn_momo": true
+    },
+    "placements": {
+      "home": true,
+      "listing": true,
+      "productPage": true
+    },
+    "enabled": false,
+    "listingSlots": 2,
+    "productPageSlots": 8,
+    "hideOutOfStock": true,
+    "holdMinutes": 45,
+    "bookingHorizonDays": 60,
+    "maxBookingDays": 60
+  },
+  "onlineStore": {
+    "activeTheme": "women-fashion",
+    "themeSettings": {
+      "women-fashion": {
+        "colors": {
+          "light": {
+            "background": "",
+            "surface": "",
+            "surfaceAlt": "",
+            "text": "",
+            "textMuted": "",
+            "border": "",
+            "primary": "",
+            "onPrimary": "",
+            "secondary": "",
+            "onSecondary": "",
+            "accent": "",
+            "sale": "",
+            "rating": "",
+            "link": ""
+          },
+          "dark": {
+            "background": "",
+            "surface": "",
+            "surfaceAlt": "",
+            "text": "",
+            "textMuted": "",
+            "border": "",
+            "primary": "",
+            "onPrimary": "",
+            "secondary": "",
+            "onSecondary": "",
+            "accent": "",
+            "sale": "",
+            "rating": "",
+            "link": ""
+          },
+          "darkMode": "auto"
+        },
+        "type": {
+          "headingFont": "manrope",
+          "bodyFont": "plus-jakarta-sans",
+          "headingWeight": "800",
+          "headingTracking": -0.03,
+          "headingTransform": "none",
+          "buttonFont": "body",
+          "buttonWeight": "500",
+          "buttonTransform": "uppercase",
+          "buttonTracking": 0.1
+        },
+        "layout": {
+          "pageWidth": "1440",
+          "pagePadding": 16,
+          "sliderWidth": "full",
+          "sliderHeight": "threeQuarters"
+        },
+        "shape": {
+          "cardRadius": 0,
+          "buttonRadius": 0,
+          "inputRadius": "",
+          "badgeRadius": 0,
+          "cardBorder": 0,
+          "inputBorder": 1,
+          "cardShadow": "none",
+          "overlayShadow": "soft"
+        },
+        "buttons": {
+          "height": 44,
+          "hover": "darken"
+        }
+      }
+    }
+  },
+  "checkout": {
+    "layout": {
+      "chrome": "store"
+    },
+    "trust": {
+      "message": "",
+      "showSecureBadge": true,
+      "supportText": ""
+    },
+    "policyLinks": [
+      {
+        "label": "Refund policy",
+        "href": "/returns",
+        "visible": true
+      },
+      {
+        "label": "Privacy policy",
+        "href": "/privacy",
+        "visible": true
+      },
+      {
+        "label": "Terms of service",
+        "href": "/terms",
+        "visible": true
+      }
+    ]
+  },
+  "catalog": {
+    "outOfStockDisplay": "last"
+  },
+  "productCard": {
+    "version": 2,
+    "template": "minimal",
+    "groups": [
+      {
+        "id": "g1",
+        "items": [
+          {
+            "key": "preview",
+            "on": true
+          },
+          {
+            "key": "swatch",
+            "on": false
+          }
+        ]
+      },
+      {
+        "id": "g2",
+        "items": [
+          {
+            "key": "brand",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g3",
+        "items": [
+          {
+            "key": "name",
+            "on": true
+          },
+          {
+            "key": "category",
+            "on": false
+          },
+          {
+            "key": "price",
+            "on": true
+          },
+          {
+            "key": "delivery",
+            "on": false
+          }
+        ]
+      },
+      {
+        "id": "g4",
+        "items": [
+          {
+            "key": "rating",
+            "on": false
+          }
+        ]
+      },
+      {
+        "id": "g5",
+        "items": [
+          {
+            "key": "stock",
+            "on": true
+          }
+        ]
+      },
+      {
+        "id": "g6",
+        "items": [
+          {
+            "key": "cart",
+            "on": true
+          }
+        ]
+      }
+    ],
+    "visibility": {
+      "cartButtonAlways": false,
+      "discountChip": false,
+      "discountChipOnImage": false,
+      "itemSold": true,
+      "ratingCount": true,
+      "ratingMinimized": false,
+      "variantCount": true
+    },
+    "action": {
+      "cart": "add-to-cart",
+      "label": ""
+    },
+    "style": {
+      "cardRadius": 0,
+      "cardPadding": 0,
+      "cardBackground": "",
+      "cardBorder": "",
+      "cardBorderWidth": 0,
+      "cardShadow": 0,
+      "previewBackground": "",
+      "previewRadius": 0,
+      "previewAspect": "portrait",
+      "previewHeight": 0,
+      "previewFit": "cover",
+      "previewPadding": 0,
+      "previewHover": "second-image",
+      "groupGap": 12,
+      "itemGap": 1,
+      "gridGapCustom": true,
+      "gridColumnGap": 5,
+      "gridRowGap": 44,
+      "typography": {
+        "price": {
+          "weight": "500",
+          "style": "",
+          "size": 0,
+          "color": ""
+        }
+      },
+      "pricePill": false,
+      "discountChipBackground": "",
+      "discountChipColor": "",
+      "cartVariant": "solid",
+      "cartBackground": "",
+      "cartBorder": "",
+      "cartBorderWidth": 0,
+      "cartRadius": 0,
+      "ratingColor": "",
+      "brandDisplay": "logo",
+      "brandLogoHeight": 12,
+      "stockBackground": "#fff5f5",
+      "stockBorder": "",
+      "stockBorderWidth": 0,
+      "stockRadius": 0
+    }
+  },
+  "notifications": {
+    "admin": {
+      "newOrders": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "newCustomers": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "newVendors": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      },
+      "returns": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      },
+      "payments": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "preorderAccessRequests": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      }
+    },
+    "staff": {
+      "newOrders": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "newCustomers": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "returns": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "payments": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      },
+      "lowStock": {
+        "inApp": true,
+        "email": false,
+        "browserPush": true,
+        "sms": false
+      }
+    },
+    "vendor": {
+      "applicationStatus": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      },
+      "newOrders": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      },
+      "returns": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      },
+      "preorderAccess": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      }
+    },
+    "customer": {
+      "orderUpdates": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      },
+      "returnUpdates": {
+        "inApp": true,
+        "email": true,
+        "browserPush": true,
+        "sms": false
+      }
+    }
+  }
+}

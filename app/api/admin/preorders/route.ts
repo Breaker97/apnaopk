@@ -20,7 +20,15 @@ import {
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
 import { restoreOrderInventory } from "@/lib/orders/order-inventory";
 import { notifyPreorderCustomerUpdate } from "@/lib/notifications/notifications";
-import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
+import {
+  getPreorderBalanceDue,
+  getPreorderCollectedAmount,
+} from "@/lib/orders/order-payment-status";
+import { refundCancelledPreorder } from "@/lib/orders/preorder-cancel-refund";
+import { canIssueRefunds } from "@/lib/access/rbac";
+import { createAuditContext } from "@/lib/audit";
+import { queueAutoShipForOrder } from "@/lib/shipping/carriers/shipment-worker";
+import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
 import {
   fetchPreorderExportRows,
@@ -176,7 +184,16 @@ export const POST = withApi(
       buildStaffOrderScopeFilter(access.staffScope),
     );
     const orders = await Order.find(scopeQuery)
-      .select("_id preorderOutstandingAmount")
+      // `getPreorderBalanceDue` and `getPreorderCollectedAmount` both read the
+      // payment state, not just the figure. Projecting only the outstanding
+      // amount left them defaulting to "pending, nothing paid", which sent an
+      // order whose balance was already settled back round to payment_due.
+      // `customerId`, `orderNumber`, `guestEmail` and the release date are
+      // the notifier's own arguments — left out of the projection, every
+      // bulk action mailed "#undefined" to nobody in particular.
+      .select(
+        "_id total status paymentStatus paymentMethod preorderOutstandingAmount preorderBalancePaidAt customerId orderNumber guestEmail preorderReleaseDate preorderBalanceRequestedAt subOrders.status subOrders.items.preorderOutstandingAmount",
+      )
       .lean();
     const matchedIds = orders.map((order) => order._id);
     if (matchedIds.length === 0) {
@@ -228,14 +245,18 @@ export const POST = withApi(
               statusChangedBy: session.user.id,
               processingAt: new Date(),
               "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.READY,
-              "subOrders.$[].status": ORDER_STATUS.PROCESSING,
-              "subOrders.$[].items.$[subItem].preorderStatus":
+              // Only the consignments still waiting on the pre-order — see
+              // the single-order route for what a blanket `subOrders.$[]`
+              // write did to a sibling that had already shipped.
+              "subOrders.$[preorderSub].status": ORDER_STATUS.PROCESSING,
+              "subOrders.$[preorderSub].items.$[subItem].preorderStatus":
                 PREORDER_ITEM_STATUS.READY,
             },
           },
           {
             arrayFilters: [
               { "item.purchaseType": PURCHASE_TYPE.PREORDER },
+              { "preorderSub.status": ORDER_STATUS.PREORDERED },
               { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
             ],
           },
@@ -254,17 +275,45 @@ export const POST = withApi(
               preorderStatus: PREORDER_ITEM_STATUS.PAYMENT_DUE,
               statusChangedBy: session.user.id,
               "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.PAYMENT_DUE,
-              "subOrders.$[].status": ORDER_STATUS.PREORDERED,
-              "subOrders.$[].items.$[subItem].preorderStatus":
+              // As above: a shipped or cancelled sibling consignment is not
+              // part of this transition.
+              "subOrders.$[preorderSub].status": ORDER_STATUS.PREORDERED,
+              "subOrders.$[preorderSub].items.$[subItem].preorderStatus":
                 PREORDER_ITEM_STATUS.PAYMENT_DUE,
             },
           },
           {
             arrayFilters: [
               { "item.purchaseType": PURCHASE_TYPE.PREORDER },
+              { "preorderSub.status": ORDER_STATUS.PREORDERED },
               { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
             ],
           },
+        );
+
+        // The expiry clock starts when the money is actually asked for, not
+        // when the goods were promised — a batch that lands after its release
+        // date would otherwise be past its grace period the moment the
+        // request went out. Conditional so a repeat bulk action neither moves
+        // a deadline nor re-sends reminders; see the order model.
+        await Order.updateMany(
+          {
+            _id: { $in: paymentDueIds },
+            preorderBalanceRequestedAt: { $exists: false },
+          },
+          {
+            $set: { preorderBalanceRequestedAt: new Date() },
+            $unset: { preorderBalanceRemindersSent: "" },
+          },
+        );
+      }
+
+      // Released for fulfilment — see the single-order route. Queued one order
+      // at a time and after the response, so a hundred-row bulk action does
+      // not hold the admin's request open while it talks to a carrier.
+      for (const readyOrderId of transitionableReadyIds) {
+        afterResponse(() =>
+          queueAutoShipForOrder(String(readyOrderId), session.user.id),
         );
       }
 
@@ -286,6 +335,13 @@ export const POST = withApi(
               {
                 releaseDate: order.preorderReleaseDate,
                 outstandingAmount: getPreorderBalanceDue(order),
+                // Freshly stamped just above for an order being asked for the
+                // first time, so the deadline the shopper is given is the one
+                // the expiry job will actually count from.
+                balanceRequestedAt:
+                  order.preorderBalanceRequestedAt || new Date(),
+                // A guest order's `customerId` is its cart — see the notifier.
+                guestEmail: order.guestEmail,
               },
             ),
           ),
@@ -307,7 +363,9 @@ export const POST = withApi(
           ? body.reason.trim().slice(0, 500)
           : undefined;
       await Order.updateMany(
-        { _id: { $in: matchedIds } },
+        // Not over a cancellation that landed after the read — see the
+        // single-order route.
+        { _id: { $in: matchedIds }, status: { $ne: ORDER_STATUS.CANCELLED } },
         {
           $set: {
             preorderStatus: PREORDER_ITEM_STATUS.DELAYED,
@@ -322,6 +380,9 @@ export const POST = withApi(
             "subOrders.$[].items.$[subItem].preorderStatus":
               PREORDER_ITEM_STATUS.DELAYED,
           },
+          // A new date is a new promise: the reminders sent against the old one
+          // must not silence the new ones. See the single-order route.
+          $unset: { preorderBalanceRemindersSent: "" },
         },
         {
           arrayFilters: [
@@ -341,6 +402,7 @@ export const POST = withApi(
               releaseDate,
               previousReleaseDate: order.preorderReleaseDate,
               reason,
+              guestEmail: order.guestEmail,
             },
           ),
         ),
@@ -349,6 +411,18 @@ export const POST = withApi(
     }
 
     if (body.action === "cancel") {
+      // Cancelling now refunds, so this is a money action as well as a status
+      // one. Staff who may cancel but may not refund cannot be allowed through
+      // — and cancelling while skipping the refund would be worse.
+      if (
+        !canIssueRefunds(session.user) &&
+        orders.some((order) => getPreorderCollectedAmount(order) > 0)
+      ) {
+        throw new AuthorizationError(
+          "Only an admin can cancel a pre-order that has been paid, because the money has to be refunded",
+        );
+      }
+
       await Order.updateMany(
         { _id: { $in: matchedIds } },
         {
@@ -370,6 +444,13 @@ export const POST = withApi(
           ],
         },
       );
+      const auditContext = createAuditContext(request, session);
+      const refunds: Array<{
+        orderId: string;
+        refunded: boolean;
+        reason?: string;
+        byHand?: boolean;
+      }> = [];
       await Promise.allSettled(
         orders.map(async (order) => {
           // Orders already marked ready consumed physical stock — restore it
@@ -382,16 +463,52 @@ export const POST = withApi(
           );
           await releaseOrderPreorders(String(order._id));
           await reverseCouponUsageForOrder(String(order._id));
+
+          // Cancel means refund. Never thrown: one order's gateway refusing
+          // must not abandon the rest of the batch, and the cancellation
+          // stands either way — so the outcome is reported back instead.
+          const refund = await refundCancelledPreorder({
+            orderId: String(order._id),
+            reason: body.reason?.trim() || "Pre-order cancelled",
+            actor: session.user.email || session.user.id,
+            createdBy: session.user.id,
+            auditContext,
+          }).catch((err: unknown) => {
+            console.error("Failed to refund cancelled pre-order:", err);
+            return { refunded: false, reason: "The refund could not be issued" };
+          });
+          refunds.push({
+            orderId: String(order._id),
+            refunded: refund.refunded,
+            reason: refund.reason,
+            byHand:
+              refund.refunded &&
+              "gatewayCalled" in refund &&
+              refund.gatewayCalled === false,
+          });
+
           await notifyPreorderCustomerUpdate(
             String(order.customerId),
             order.orderNumber,
             "cancelled",
             String(order._id),
-            { releaseDate: order.preorderReleaseDate },
+            {
+              releaseDate: order.preorderReleaseDate,
+              guestEmail: order.guestEmail,
+            },
           );
         }),
       );
-      return successResponse({ matched: matchedIds.length, modified: matchedIds.length });
+      return successResponse({
+        matched: matchedIds.length,
+        modified: matchedIds.length,
+        refunded: refunds.filter((r) => r.refunded).length,
+        // Only the ones an admin still has to deal with; an empty list means
+        // every cancelled order's money is on its way back.
+        // A refund no gateway carried is recorded but not yet sent, so it
+        // needs a person as much as one that failed.
+        refundsNeedingAttention: refunds.filter((r) => !r.refunded || r.byHand),
+      });
     }
 
     throw new ValidationError("Unsupported preorder action");

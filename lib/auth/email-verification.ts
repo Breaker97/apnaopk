@@ -3,21 +3,13 @@ import { NotificationType } from "@/models/notification.model";
 import { sendEmail } from "@/lib/email/email";
 import { connectDB } from "@/lib/db";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
+import { escapeHtml } from "@/lib/email/escape-html";
 
 type VerificationUser = {
   id: string;
   email: string;
   name: string;
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 export async function sendAccountVerificationEmail(params: {
   user: VerificationUser;
@@ -67,7 +59,7 @@ export async function sendAccountVerificationEmail(params: {
       },
       $setOnInsert: { userId: params.user.id, type: NotificationType.SYSTEM },
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
 
   if (!sent) {
@@ -102,6 +94,6 @@ export async function markAccountEmailVerified(user: VerificationUser) {
       },
       $setOnInsert: { userId: user.id, type: NotificationType.SYSTEM },
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
 }

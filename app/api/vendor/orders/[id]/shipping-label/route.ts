@@ -7,6 +7,7 @@ import { hasVendorPermission, isAdmin } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { generateShippingLabelPdf } from "@/lib/shipping/shipping-label-pdf";
+import { labelCashOnDelivery } from "@/lib/shipping/carriers/build-request";
 import type { IOrder } from "@/types";
 
 export const GET = withApi<{ id: string }>(
@@ -62,6 +63,7 @@ export const GET = withApi<{ id: string }>(
       items: items.map((item) => ({ name: item.name, sku: item.sku, quantity: item.quantity })),
       parcel: shipment.parcel,
       internalLabel: shipment.label.source === "internal",
+      cashOnDelivery: await labelCashOnDelivery(order, subOrder),
     });
     return new Response(new Uint8Array(pdf), {
       headers: {

@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { GatewayApiError } from "@/lib/payments/gateway-api-error";
+import type { RazorpayDisputeLike } from "@/lib/orders/dispute-readings";
 
 const RAZORPAY_API_BASE = "https://api.razorpay.com/v1";
 
@@ -31,7 +33,7 @@ const THREE_DECIMAL_CURRENCIES = new Set([
   "TND",
 ]);
 
-interface RazorpayCredentials {
+export interface RazorpayCredentials {
   keyId: string;
   keySecret: string;
 }
@@ -201,7 +203,7 @@ export async function fetchRazorpayPayment(params: {
   return (await res.json()) as RazorpayPayment;
 }
 
-export async function captureRazorpayPayment(params: {
+async function captureRazorpayPayment(params: {
   creds: RazorpayCredentials;
   paymentId: string;
   amount: number;
@@ -228,6 +230,47 @@ export async function captureRazorpayPayment(params: {
   }
 
   return (await res.json()) as RazorpayPayment;
+}
+
+/**
+ * Captures a payment Razorpay has only authorized, and returns the payment as
+ * it stands afterwards; any other payment comes back untouched.
+ *
+ * An account on automatic capture captures by itself, often before the payer is
+ * back, and a capture that loses that race is refused as "already captured".
+ * The payment is read again before that refusal counts, so the race never fails
+ * a payment that went through.
+ *
+ * `amount` is in major units, in `currency`.
+ */
+export async function captureAuthorizedRazorpayPayment(params: {
+  creds: RazorpayCredentials;
+  payment: RazorpayPayment;
+  amount: number;
+  currency: string;
+}): Promise<RazorpayPayment> {
+  const { creds, payment } = params;
+  if (payment.status !== "authorized" || payment.captured === true) {
+    return payment;
+  }
+
+  try {
+    return await captureRazorpayPayment({
+      creds,
+      paymentId: payment.id,
+      amount: params.amount,
+      currency: params.currency,
+    });
+  } catch (error) {
+    const current = await fetchRazorpayPayment({
+      creds,
+      paymentId: payment.id,
+    });
+    if (current.status === "captured" || current.captured === true) {
+      return current;
+    }
+    throw error;
+  }
 }
 
 export async function refundRazorpayPayment(params: {
@@ -273,6 +316,59 @@ export async function refundRazorpayPayment(params: {
     amount: number;
     payment_id: string;
   };
+}
+
+/** A dispute, as Razorpay's API returns it. */
+export type RazorpayDispute = RazorpayDisputeLike & { id: string };
+
+/**
+ * Disputes raised on the account, newest first, one page at a time.
+ *
+ * `from` and `to` bound when a dispute was CREATED, in unix seconds — and a
+ * dispute decided today can be months old, so a caller looking for decisions
+ * has to look back that far. Razorpay offers the Disputes API in India,
+ * Malaysia, Singapore and the US; an account elsewhere is refused.
+ */
+export async function listRazorpayDisputes(params: {
+  creds: RazorpayCredentials;
+  from?: number;
+  to?: number;
+  count?: number;
+  skip?: number;
+}): Promise<RazorpayDispute[]> {
+  const query = new URLSearchParams({
+    count: String(Math.min(100, Math.max(1, params.count ?? 100))),
+    skip: String(Math.max(0, params.skip ?? 0)),
+  });
+  if (params.from) query.set("from", String(Math.floor(params.from)));
+  if (params.to) query.set("to", String(Math.floor(params.to)));
+
+  const res = await fetch(`${RAZORPAY_API_BASE}/disputes?${query.toString()}`, {
+    method: "GET",
+    headers: { Authorization: getAuthHeader(params.creds) },
+  });
+  if (!res.ok) {
+    const message = await readRazorpayErrorMessage(res);
+    throw new GatewayApiError(`Razorpay list disputes failed: ${message}`, res.status);
+  }
+  const json = (await res.json()) as { items?: RazorpayDispute[] };
+  return Array.isArray(json.items) ? json.items : [];
+}
+
+/** One dispute as it stands now — a webhook's copy may be older than the decision. */
+export async function fetchRazorpayDispute(params: {
+  creds: RazorpayCredentials;
+  disputeId: string;
+}): Promise<RazorpayDispute> {
+  const res = await fetch(
+    `${RAZORPAY_API_BASE}/disputes/${encodeURIComponent(params.disputeId)}`,
+    { method: "GET", headers: { Authorization: getAuthHeader(params.creds) } },
+  );
+  if (!res.ok) {
+    const message = await readRazorpayErrorMessage(res);
+    throw new GatewayApiError(`Razorpay fetch dispute failed: ${message}`, res.status);
+  }
+  return (await res.json()) as RazorpayDispute;
 }
 
 export async function testRazorpayCredentials(creds: RazorpayCredentials) {

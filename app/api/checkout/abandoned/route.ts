@@ -12,6 +12,8 @@ import type { Address } from "@/types";
 import { withApi } from "@/lib/api/handler";
 import { z } from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
+import { getSettingsLean } from "@/models/settings.model";
+import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
 
 type TrackCheckoutBody = {
   locale?: string;
@@ -73,6 +75,13 @@ export const PATCH = withApi(
     }
 
     await connectDB();
+
+    // Switched off in the checkout settings: nothing is recorded. The storefront
+    // stops calling once it has the setting; this covers an open tab.
+    const settings = await getSettingsLean();
+    if (!normalizeCheckoutSettings(settings.checkout).abandonedCheckouts.enabled) {
+      return successResponse({ tracked: false });
+    }
 
     const cartQuery = session?.user?.id
       ? { userId: session.user.id }

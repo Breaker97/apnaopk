@@ -43,6 +43,7 @@ import {
 import {
   clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
+  CARD_BROWSER_GRID_GAP,
 } from "./product-grid-columns";
 import { NumberInput } from "@/components/ui/number-input";
 
@@ -325,7 +326,7 @@ export function HomeProductsSectionClient({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-xs font-semibold text-foreground"
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-button border border-border bg-background px-3.5 text-xs font-semibold text-foreground"
                 >
                   <span className="max-w-36 truncate">{activeTab}</span>
                   <ChevronDown
@@ -382,7 +383,7 @@ export function HomeProductsSectionClient({
               type="button"
               variant="outline"
               onClick={() => setIsFilterSheetOpen(true)}
-              className="h-8 shrink-0 rounded-full border-border bg-background px-3.5 text-xs font-semibold text-foreground"
+              className="h-8 shrink-0 border-border bg-background px-3.5 text-xs font-semibold text-foreground"
             >
               <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
               {filterLabel}
@@ -403,7 +404,7 @@ export function HomeProductsSectionClient({
                   type="button"
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "shrink-0 rounded-full px-5 py-2 text-sm font-semibold transition",
+                    "shrink-0 rounded-button px-5 py-2 text-sm font-semibold transition",
                     isActive
                       ? "bg-foreground text-background"
                       : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -418,7 +419,7 @@ export function HomeProductsSectionClient({
           <Button
             type="button"
             onClick={() => setIsFilterOpen((prev) => !prev)}
-            className="hidden h-9 rounded-full bg-foreground px-4 text-xs font-semibold text-background hover:bg-foreground/90 sm:inline-flex sm:h-10 sm:px-5 sm:text-sm"
+            className="hidden h-9 bg-foreground px-4 text-xs font-semibold text-background hover:bg-foreground/90 sm:inline-flex sm:h-10 sm:px-5 sm:text-sm"
           >
             <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
             {filterLabel}
@@ -440,7 +441,7 @@ export function HomeProductsSectionClient({
                     <button
                       type="button"
                       className={cn(
-                        "relative inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium",
+                        "relative inline-flex h-10 items-center gap-2 rounded-button border px-4 text-sm font-medium",
                         selectedCategories.length > 0
                           ? "border-foreground text-foreground"
                           : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -489,7 +490,7 @@ export function HomeProductsSectionClient({
                     <button
                       type="button"
                       className={cn(
-                        "relative inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium",
+                        "relative inline-flex h-10 items-center gap-2 rounded-button border px-4 text-sm font-medium",
                         selectedColors.length > 0
                           ? "border-foreground text-foreground"
                           : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -538,7 +539,7 @@ export function HomeProductsSectionClient({
                     <button
                       type="button"
                       className={cn(
-                        "relative inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium",
+                        "relative inline-flex h-10 items-center gap-2 rounded-button border px-4 text-sm font-medium",
                         selectedSizes.length > 0
                           ? "border-foreground text-foreground"
                           : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -587,7 +588,7 @@ export function HomeProductsSectionClient({
                     <button
                       type="button"
                       className={cn(
-                        "relative inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium",
+                        "relative inline-flex h-10 items-center gap-2 rounded-button border px-4 text-sm font-medium",
                         hasPriceFilter
                           ? "border-foreground text-foreground"
                           : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -670,7 +671,7 @@ export function HomeProductsSectionClient({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      className="inline-flex h-10 items-center gap-2 rounded-button border border-border px-4 text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
                       {currentSortLabel}
@@ -835,7 +836,7 @@ export function HomeProductsSectionClient({
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 flex-1 rounded-full"
+                className="h-11 flex-1"
                 onClick={clearAllFilters}
                 disabled={!hasAnyFilterApplied}
               >
@@ -843,7 +844,7 @@ export function HomeProductsSectionClient({
               </Button>
               <Button
                 type="button"
-                className="h-11 flex-1 rounded-full"
+                className="h-11 flex-1"
                 onClick={() => setIsFilterSheetOpen(false)}
               >
                 {`Show ${filteredProducts.length}`}
@@ -854,7 +855,8 @@ export function HomeProductsSectionClient({
 
         <div
           className={cn(
-            "mt-5 grid grid-cols-2 gap-x-3 gap-y-7 sm:mt-8 sm:gap-x-5 sm:gap-y-11 md:mt-8 md:grid-cols-3 md:gap-y-11",
+            "mt-5 grid grid-cols-2 sm:mt-8 md:mt-8 md:grid-cols-3",
+            CARD_BROWSER_GRID_GAP,
             PRODUCT_GRID_DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}
         >

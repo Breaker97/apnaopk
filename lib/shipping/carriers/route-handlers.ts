@@ -2,10 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 import { NextRequest } from "next/server";
+import { Vendor } from "@/models";
 import { Shipment } from "@/models/shipment.model";
-import { getSettings } from "@/models/settings.model";
+import { getSettings, type ISettings } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";
-import { ValidationError } from "@/lib/api/errors";
+import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { validateBody } from "@/lib/api/validate";
 import { createAuditContext } from "@/lib/audit";
 import { auditOrderShipment } from "@/lib/orders/audit-order";
@@ -19,14 +20,17 @@ import {
   PARCEL_WEIGHT_UNITS,
 } from "@/lib/shipping/carrier-config";
 import { CarrierError } from "./errors";
+import { labelCashOnDelivery } from "./build-request";
 import {
   purchaseShipmentLabel,
   rateShopSubOrder,
   refreshShipmentTracking,
   voidShipmentLabel,
 } from "./fulfillment";
+import { enabledCarrierProviders } from "./credentials";
+import { physicalLineFlags } from "./physical-lines";
 import { loadOwnedShipment, type ShipmentScope } from "./order-scope";
-import type { Address } from "@/types";
+import type { Address, IVendor } from "@/types";
 
 /**
  * The carrier fulfillment endpoints, written once.
@@ -65,6 +69,12 @@ export type ScopeResolver = (params: {
   subOrderId?: string;
   /** Read-only actions need a lighter permission than mutating ones. */
   intent: "read" | "write";
+  /**
+   * False where the action does not need a consignment named up front — every
+   * handler but rate shopping, since a shipment carries its own sub-order id
+   * and a listing covers the whole order.
+   */
+  requireSubOrder?: boolean;
 }) => Promise<ShipmentScope>;
 
 /**
@@ -96,12 +106,13 @@ export function createRateShopHandler(resolveScope: ScopeResolver) {
       orderId: params.id,
       subOrderId: body.subOrderId,
       intent: "write",
+      requireSubOrder: true,
     });
 
     try {
       const result = await rateShopSubOrder({
         order: scope.order,
-        subOrder: scope.subOrder,
+        subOrder: scope.subOrder!,
         actorId: session.user.id,
         customerEmail: scope.customerEmail,
         provider: body.provider,
@@ -140,6 +151,7 @@ export function createPurchaseHandler(resolveScope: ScopeResolver) {
       session,
       orderId: params.id,
       intent: "write",
+      requireSubOrder: false,
     });
     const existing = await loadOwnedShipment({
       shipmentId: params.shipmentId,
@@ -153,6 +165,10 @@ export function createPurchaseHandler(resolveScope: ScopeResolver) {
       scope.order.subOrders?.find(
         (entry) => String(entry._id) === String(existing.subOrderId),
       ) || scope.subOrder;
+    // A carrier shipment always names its consignment, so failing here means
+    // the sub-order was removed from under it — not something to buy a label
+    // against.
+    if (!subOrder) throw new NotFoundError("Sub-order");
 
     try {
       const { shipment, alreadyOwned } = await purchaseShipmentLabel({
@@ -224,6 +240,7 @@ export function createVoidHandler(resolveScope: ScopeResolver) {
       session,
       orderId: params.id,
       intent: "write",
+      requireSubOrder: false,
     });
     await loadOwnedShipment({
       shipmentId: params.shipmentId,
@@ -267,6 +284,7 @@ export function createRefreshTrackingHandler(resolveScope: ScopeResolver) {
       // the parcel's status and event log. Viewing an order must not be enough
       // to burn someone else's rate limit.
       intent: "write",
+      requireSubOrder: false,
     });
     await loadOwnedShipment({
       shipmentId: params.shipmentId,
@@ -308,6 +326,7 @@ export function createLabelHandler(resolveScope: ScopeResolver) {
       session,
       orderId: params.id,
       intent: "read",
+      requireSubOrder: false,
     });
     const shipment = await loadOwnedShipment({
       shipmentId: params.shipmentId,
@@ -350,6 +369,12 @@ export function createLabelHandler(resolveScope: ScopeResolver) {
       })),
       parcel: shipment.parcel,
       internalLabel: shipment.label.source === "internal",
+      cashOnDelivery: await labelCashOnDelivery(
+        scope.order,
+        (scope.order.subOrders || []).find(
+          (entry) => String(entry._id) === String(shipment.subOrderId),
+        ) ?? scope.subOrder,
+      ),
     });
 
     return new Response(new Uint8Array(pdf), {
@@ -391,6 +416,7 @@ export function createListHandler(resolveScope: ScopeResolver) {
       session,
       orderId: params.id,
       intent: "read",
+      requireSubOrder: false,
     });
 
     const shipments = await Shipment.find({
@@ -401,14 +427,101 @@ export function createListHandler(resolveScope: ScopeResolver) {
       .lean();
 
     const settings = await getSettings();
+    // Which of this order's consignments the caller may hand to a courier, what
+    // to call them, and whether any carrier account could take one. Resolved
+    // here rather than guessed at by the panel: only the server knows the
+    // seller names, whether a consignment has anything to put in a box, and
+    // which vendors ship on carrier accounts of their own.
+    const dispatch = await dispatchOptions(scope, settings);
     return successResponse({
       shipments,
+      consignments: dispatch.consignments,
       carriersEnabled: Boolean(settings.shipping?.carriers?.enabled),
+      carriersConnected: dispatch.carriersConnected,
       packages: settings.shipping?.packages || [],
       storeCurrency: settings.general?.defaultCurrency,
       // A hand-entered parcel has no carrier-supplied tracking page, so the
       // panel resolves one the same way the customer's screens do.
       courierTrackingLinks: settings.shipping?.courierTrackingLinks || [],
     });
+  };
+}
+
+/**
+ * What the Shipments panel needs to decide whether to offer a courier at all.
+ *
+ * A vendor sees only its own consignment, so the list is one entry long and the
+ * panel keeps behaving as it always has. An admin on a split order sees every
+ * one — without this the panel had no way to name a sub-order, and rate
+ * shopping refused the whole order because it could not tell which parcel was
+ * meant.
+ *
+ * `shippable` is decided here, beside the same rule `assertShippable` enforces,
+ * so a digital-only or collected-in-store consignment is never offered a
+ * courier in the first place.
+ */
+async function dispatchOptions(
+  scope: ShipmentScope,
+  settings: ISettings,
+): Promise<{
+  consignments: Array<{ id: string; label: string; shippable: boolean }>;
+  carriersConnected: boolean;
+}> {
+  const subOrders = (scope.order.subOrders || []).filter(
+    (entry) =>
+      entry._id &&
+      (!scope.vendorId || String(entry.vendorId) === scope.vendorId),
+  );
+
+  // Every vendor whose parcel is in scope, because a vendor shipping on its own
+  // account may be the only holder of usable credentials — reading the
+  // platform's alone would hide the button from precisely the store that had
+  // done the work to make its lane shippable.
+  const vendorIds = [
+    ...new Set(
+      subOrders.map((entry) => String(entry.vendorId || "")).filter(Boolean),
+    ),
+  ];
+  const vendors = vendorIds.length
+    ? await Vendor.find({ _id: { $in: vendorIds } })
+        .select("storeName shipping.carriers")
+        .lean<Array<Pick<IVendor, "shipping"> & { _id: unknown; storeName?: string }>>()
+    : [];
+  const byId = new Map(vendors.map((vendor) => [String(vendor._id), vendor]));
+
+  const connected = await Promise.all([
+    enabledCarrierProviders(settings),
+    ...vendors.map((vendor) => enabledCarrierProviders(settings, vendor)),
+  ]);
+
+  // One product lookup for every consignment's lines, then split back apart.
+  const lines = subOrders.flatMap((entry) => entry.items || []);
+  const flags =
+    scope.order.digitalOnly === true
+      ? lines.map(() => false)
+      : await physicalLineFlags(lines);
+  let offset = 0;
+  const hasPhysical = subOrders.map((entry) => {
+    const count = (entry.items || []).length;
+    const any = flags.slice(offset, offset + count).some(Boolean);
+    offset += count;
+    return any;
+  });
+
+  return {
+    consignments: subOrders.map((entry, index) => ({
+      id: String(entry._id),
+      // A store name only helps where there is a choice to make; a single
+      // consignment is never ambiguous.
+      label:
+        (subOrders.length > 1 &&
+          byId.get(String(entry.vendorId))?.storeName) ||
+        `Consignment ${index + 1}`,
+      shippable:
+        entry.status !== "cancelled" &&
+        entry.fulfillment?.method !== "pickup" &&
+        hasPhysical[index]!,
+    })),
+    carriersConnected: connected.some((providers) => providers.length > 0),
   };
 }

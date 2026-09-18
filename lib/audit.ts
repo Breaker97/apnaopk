@@ -230,7 +230,11 @@ export async function audit(
       resource,
       resourceId,
       resourceName,
-      userId: userId || undefined,
+      // Only a real user's id: `createSystemAuditContext` names its actor
+      // "system", which the ObjectId field refused — and a refused write is
+      // swallowed below, so every entry made by a cron, a webhook or the
+      // carrier cascade silently never reached the timeline.
+      userId: userId && /^[0-9a-f]{24}$/i.test(String(userId)) ? userId : undefined,
       userEmail,
       userRole,
       changes: sanitizedChanges,

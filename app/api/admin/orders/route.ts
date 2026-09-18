@@ -41,8 +41,8 @@ import {
   type InventoryAdjustmentLine,
 } from "@/lib/inventory/inventory";
 import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
+import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
@@ -299,14 +299,20 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
-    revalidateProductContent({
-      slugs: resolvedLines
-        .map((line) => (line.product as { slug?: string } | null)?.slug)
-        .filter(
-          (slug): slug is string =>
-            typeof slug === "string" && slug.length > 0,
-        ),
-    });
+
+    // Paid when it is made: the store already has the money. Each consignment
+    // says so too, the way marking an order paid afterwards stamps them —
+    // otherwise the order read paid while every sub-order still read unpaid.
+    const paidAt =
+      body.paymentStatus === PAYMENT_STATUS.PAID ? new Date() : undefined;
+    const subOrdersToSave = paidAt
+      ? subOrders.map((sub) => ({
+          ...sub,
+          paymentStatus: PAYMENT_STATUS.PAID,
+          paidAt,
+          paymentCollectedBy: session.user.id,
+        }))
+      : subOrders;
 
     let order;
     try {
@@ -330,11 +336,12 @@ export async function POST(request: NextRequest) {
           quantity: item.quantity,
           image: item.image,
         })),
-        subOrders,
+        subOrders: subOrdersToSave,
         shippingAddress: body.shippingAddress,
         billingAddress: body.billingAddress || body.shippingAddress,
         paymentMethod: body.paymentMethod,
         paymentStatus: body.paymentStatus,
+        ...(paidAt ? { paidAt } : {}),
         subtotal,
         shippingCost,
         tax,
@@ -355,6 +362,43 @@ export async function POST(request: NextRequest) {
     await markOrderInventoryReserved(String(order._id)).catch((err) =>
       console.error("Failed to mark inventory reserved on admin order:", err),
     );
+
+    // The money arrived with the order, so it is recorded with it: the charge
+    // row, and through it the ledger's sale. An order made here as paid wrote
+    // neither — the transactions screen never listed the payment, and the sale
+    // reached the books only if the daily ledger pass happened to catch it
+    // within its few days, never after.
+    if (paidAt) {
+      await ensureChargeTransaction({
+        _id: String(order._id),
+        orderNumber: order.orderNumber,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        subtotal: order.subtotal,
+        shippingCost: order.shippingCost,
+        tax: order.tax,
+        discount: order.discount,
+        total: order.total,
+        currency: order.currency,
+        channel: order.channel || "online",
+        createdAt: order.createdAt,
+      }).catch((err) =>
+        console.error("Failed to record the payment on an admin-created order:", err),
+      );
+
+      // And the shopper's side of a paid order: the points it earns and the
+      // spend on their profile. Every other way an order becomes paid does
+      // this; an order an admin made as paid earned nothing and left the
+      // customer's totals behind until something else refreshed them.
+      const { awardOrderLoyaltyPoints, refreshCustomerStatsForOrder } =
+        await import("@/lib/customers/customer");
+      await awardOrderLoyaltyPoints(String(order._id)).catch((err) =>
+        console.error("Failed to award loyalty points on an admin-created order:", err),
+      );
+      refreshCustomerStatsForOrder(order).catch((err) =>
+        console.error("Failed to refresh customer stats on an admin-created order:", err),
+      );
+    }
 
     await notifyOrderCreatedParticipants(order).catch((err) =>
       console.error("Failed to create admin order notifications:", err),

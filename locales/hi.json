@@ -39,6 +39,7 @@
     "yes": "हाँ",
     "no": "नहीं",
     "close": "बंद करें",
+    "scrollToTop": "ऊपर जाएँ",
     "back": "वापस",
     "next": "अगला",
     "previous": "पिछला",
@@ -122,7 +123,8 @@
     "decreaseQuantity": "मात्रा घटाएँ",
     "increaseQuantity": "मात्रा बढ़ाएँ",
     "name": "नाम",
-    "email": "ईमेल"
+    "email": "ईमेल",
+    "showingResultsFor": "<q>{query}</q> के परिणाम दिखाए जा रहे हैं"
   },
   "wishlist": {
     "title": "मेरी इच्छा सूची",
@@ -306,7 +308,8 @@
         "bestRating": "सबसे अच्छी रेटिंग",
         "newest": "नवीनतम",
         "priceLowHigh": "कीमत कम से ज़्यादा",
-        "priceHighLow": "कीमत ज़्यादा से कम"
+        "priceHighLow": "कीमत ज़्यादा से कम",
+        "bestMatch": "सबसे प्रासंगिक"
       }
     }
   },
@@ -470,6 +473,57 @@
     "quoteMessageOptional": "संदेश (वैकल्पिक)",
     "quoteMessagePlaceholder": "मात्रा, डिलीवरी की तारीख, विनिर्देश…"
   },
+  "reviews": {
+    "basedOn": "{count} समीक्षाओं के आधार पर",
+    "writeReview": "समीक्षा लिखें",
+    "writeReviewCta": "समीक्षा लिखें!",
+    "noReviews": "अभी तक कोई समीक्षा नहीं",
+    "beFirst": "इस उत्पाद की समीक्षा करने वाले पहले व्यक्ति बनें",
+    "verified": "सत्यापित खरीद",
+    "rating": "रेटिंग",
+    "all": "सभी",
+    "highlyRecommended": "अत्यधिक अनुशंसित",
+    "postedBy": "{name} द्वारा {time} पोस्ट किया गया",
+    "postedTime": "{time} पोस्ट किया गया",
+    "brandResponse": "ब्रांड का जवाब",
+    "showingRange": "{total} में से {from} - {to} समीक्षाएँ दिखाई जा रही हैं",
+    "anonymous": "गुमनाम",
+    "checkingEligibility": "आपके योग्य ऑर्डर जाँचे जा रहे हैं...",
+    "comment": "आपकी समीक्षा *",
+    "commentPlaceholder": "इस उत्पाद के साथ अपना अनुभव साझा करें",
+    "commentTooShort": "टिप्पणी कम से कम 10 अक्षरों की होनी चाहिए",
+    "dropzoneHint": "हर छवि अधिकतम 10MB तक हो सकती है।",
+    "dropzonePrimary": "फ़ाइलें यहाँ खींचकर छोड़ें, या ब्राउज़ करने के लिए क्लिक करें",
+    "eligibleOrderRequired": "आप इस उत्पाद की समीक्षा तभी कर सकते हैं जब यह आपके किसी ऑर्डर में डिलीवर हो जाए।",
+    "imageTooLarge": "हर छवि 10MB से कम होनी चाहिए",
+    "imageUploadFailed": "छवि अपलोड विफल रहा",
+    "invalidImage": "केवल छवि फ़ाइलों की अनुमति है",
+    "loginToReview": "इस उत्पाद की समीक्षा लिखने के लिए कृपया साइन इन करें।",
+    "maxImages": "आप अधिकतम 4 छवियाँ अपलोड कर सकते हैं",
+    "noReviewsForRating": "इस रेटिंग के लिए अभी तक कोई समीक्षा नहीं",
+    "oldest": "सबसे पुरानी",
+    "photos": "छवियाँ",
+    "selectRating": "कृपया रेटिंग चुनें",
+    "submit": "समीक्षा सबमिट करें",
+    "submitFailed": "समीक्षा सबमिट नहीं हो सकी",
+    "submitted": "समीक्षा सफलतापूर्वक सबमिट हो गई!",
+    "title": "शीर्षक",
+    "titlePlaceholder": "अपनी समीक्षा का सारांश लिखें",
+    "writeReviewHint": "आपका ईमेल पता प्रकाशित नहीं किया जाएगा। आवश्यक फ़ील्ड तारांकन (*) से चिह्नित हैं।",
+    "yourRating": "आपकी रेटिंग",
+    "pendingTitle": "अपनी खरीदारी को रेट करें",
+    "pendingDescription": "आपके ऑर्डर पहुँच गए हैं। दूसरे खरीदारों को बताएँ कि आपको कैसा लगा।",
+    "deliveredOn": "{date} को डिलीवर हुआ",
+    "rateStar": "5 में से {count} रेटिंग दें",
+    "showMore": "{count} और दिखाएँ",
+    "showFewer": "कम दिखाएँ",
+    "fromOrder": "ऑर्डर #{orderNumber}",
+    "orderPromptTitle": "आपका ऑर्डर कैसा रहा?",
+    "orderPromptOne": "{name} की एक छोटी समीक्षा लिखें — इससे दूसरे खरीदारों को मदद मिलती है।",
+    "orderPromptMany": "इस ऑर्डर के {count} आइटम आपकी समीक्षा का इंतज़ार कर रहे हैं।",
+    "youRated": "आपने रेटिंग दी",
+    "alreadyReviewed": "आप इस उत्पाद की समीक्षा पहले ही कर चुके हैं। अपना अनुभव साझा करने के लिए धन्यवाद!"
+  },
   "cart": {
     "yourCart": "आपका कार्ट",
     "shoppingCart": "शॉपिंग कार्ट",
@@ -570,10 +624,11 @@
       "iotecPhoneHint": "जिस MTN या Airtel नंबर से भुगतान करना है वह दर्ज करें। उसी फ़ोन पर भुगतान स्वीकृत करने का संकेत आएगा।",
       "mtnMomoDetail": "MTN Mobile Money से भुगतान करें। आपके फ़ोन पर एक अनुरोध आएगा जिसे MoMo PIN से स्वीकृत करें।",
       "mtnMomoPhoneLabel": "मोबाइल मनी नंबर",
-      "mtnMomoPhonePlaceholder": "जैसे 0772 123 456",
+      "mtnMomoPhonePlaceholder": "जैसे {example}",
       "mtnMomoPhoneHint": "जिस MTN नंबर से भुगतान लेना है वह दर्ज करें। उसी फ़ोन पर स्वीकृति का अनुरोध जाएगा।"
     },
-    "switchToPickup": "लोकल पिकअप चुनें"
+    "switchToPickup": "लोकल पिकअप चुनें",
+    "enterAddressForShipping": "उपलब्ध शिपिंग तरीके देखने के लिए अपना शिपिंग पता दर्ज करें।"
   },
   "orders": {
     "myOrders": "मेरे ऑर्डर",
@@ -624,7 +679,8 @@
       "partially_paid": "आंशिक भुगतान",
       "refunded": "वापस किया गया",
       "partially_refunded": "आंशिक रूप से वापस"
-    }
+    },
+    "importDuties": "आयात शुल्क"
   },
   "vendor": {
     "vendorDashboard": "विक्रेता डैशबोर्ड",
@@ -661,10 +717,11 @@
     "commission": "भुगतान किया गया कमीशन",
     "activeProducts": "सक्रिय उत्पाद",
     "netEarnings": "शुद्ध कमाई",
-    "pending": "लंबित",
+    "awaitingPayment": "{amount} भुगतान की प्रतीक्षा में",
     "recentOrders": "हाल के ऑर्डर",
     "topProducts": "सबसे अधिक बिकने वाले उत्पाद",
     "totalOrders": "कुल ऑर्डर",
+    "openOrdersCount": "{count} खुले",
     "totalProducts": "कुल उत्पाद",
     "totalRevenue": "कुल राजस्व",
     "pendingOrders": "Pending Orders",
@@ -817,6 +874,7 @@
       "partially_refunded": "आंशिक रिफंड"
     },
     "fulfillmentStatus": {
+      "preordered": "प्री-ऑर्डर",
       "pending": "अपूर्ण",
       "processing": "प्रसंस्करण में",
       "shipped": "रास्ते में",
@@ -1122,6 +1180,7 @@
       "subtotal": "उप-योग",
       "shipping": "शिपिंग",
       "tax": "कर",
+      "importDuties": "आयात शुल्क",
       "discount": "छूट",
       "totalLabel": "कुल",
       "timeline": "समयरेखा",
@@ -1241,7 +1300,7 @@
       "dateRange": "25 जुलाई - 25 अगस्त",
       "addActivity": "गतिविधि जोड़ें",
       "sales": "बिक्री",
-      "ordersDescription": "कुल ऑर्डर का प्रोजेक्ट-वाइज ब्रेकडाउन और विस्तृत जानकारी।",
+      "ordersDescription": "चुनी गई अवधि का कुल, बिक्री चैनल के अनुसार बँटा हुआ।",
       "showHighlights": "सभी हाइलाइट देखें",
       "showSalesData": "सभी बिक्री डेटा देखें",
       "viewAllOrders": "सभी ऑर्डर देखें",
@@ -1334,7 +1393,9 @@
       "expenses": "व्यय",
       "receivables": "प्राप्य राशि",
       "financeReports": "रिपोर्ट",
-      "quotes": "कोटेशन"
+      "quotes": "कोटेशन",
+      "traffic": "ट्रैफ़िक",
+      "searchInsights": "सर्च इनसाइट्स"
     },
     "users": "उपयोगकर्ता",
     "usersDesc": "उपयोगकर्ताओं और भूमिकाओं का प्रबंधन करें",
@@ -2785,6 +2846,11 @@
           "name": "फ़ैशन",
           "description": "प्रीमियम फैशन, ब्यूटी और लाइफस्टाइल ब्रांड्स के लिए एडिटोरियल-स्टाइल विज़ुअल ट्रीटमेंट।",
           "styleNote": "इमेज-फर्स्ट मर्चेंडाइजिंग और परिष्कृत कलेक्शन नैरेटिव पर फोकस।"
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "एडिटोरियल फ़ैशन मर्चेंडाइज़िंग: पूरी चौड़ाई वाली कैंपेन तस्वीरें, लुकबुक टाइलें और सीज़नल कलेक्शन।",
+          "styleNote": "कपड़ों, जूतों और एक्सेसरीज़ के लिए बना — तस्वीरें आगे, बाकी सब पीछे।"
         }
       },
       "activate": "यह थीम इस्तेमाल करें"
@@ -3222,7 +3288,6 @@
         "live": "लाइव",
         "unsaved": "बिना सहेजे बदलाव"
       },
-      "subtitle": "चेकआउट अपने आज़माए हुए चरण रखता है — यहाँ सिर्फ़ ब्रांडिंग करें। चरणों का क्रम बदला नहीं जा सकता, इसलिए भुगतान कभी नहीं टूटता।",
       "themeLink": "थीम सेटिंग्स",
       "title": "चेकआउट",
       "toast": {
@@ -3254,7 +3319,21 @@
       },
       "brand": {
         "description": "फुटर का लोगो, परिचय, चौड़ाई और रंग नियंत्रित करें।",
-        "title": "ब्रांड और लेआउट"
+        "title": "ब्रांड और लेआउट",
+        "logoSourceLabel": "फुटर लोगो का स्रोत",
+        "storeLogo": "स्टोर लोगो (अनुशंसित)",
+        "storeLogoDescription": "आपके ब्रांडिंग लोगो इस्तेमाल करता है और हेडर की तरह लाइट और डार्क मोड के साथ बदलता है।",
+        "customLogo": "फुटर का अपना लोगो",
+        "customLogoDescription": "सिर्फ़ फुटर के लिए अलग लोगो अपलोड करें।",
+        "synced": "ब्रांडिंग के साथ सिंक",
+        "editBranding": "ब्रांडिंग में संपादित करें",
+        "lightLogo": "लाइट मोड लोगो",
+        "darkLogo": "डार्क मोड लोगो",
+        "logoNotSet": "अपलोड नहीं किया गया",
+        "customLogoHint": "ये लोगो सिर्फ़ फुटर पर लागू होते हैं। डार्क मोड लोगो न होने पर फुटर लोगो दोनों मोड में दिखता है; दोनों न होने पर आपके स्टोर लोगो इस्तेमाल होते हैं।",
+        "matchHeaderSize": "हेडर लोगो जितना ही आकार",
+        "matchHeaderSizeHint": "हेडर का अनुसरण करता है: बड़ी स्क्रीन पर {desktop}px और फ़ोन पर {mobile}px चौड़ा।",
+        "logoThemeAuto": "ऑटो (फुटर के बैकग्राउंड के अनुसार)"
       },
       "colors": {
         "dark": "डार्क मोड के रंग",
@@ -3289,6 +3368,9 @@
         "email": "ईमेल",
         "footerBackgroundColor": "फुटर की पृष्ठभूमि का रंग",
         "footerLogo": "फुटर लोगो",
+        "footerDarkLogo": "फुटर लोगो (डार्क मोड)",
+        "logoWidth": "लोगो की चौड़ाई",
+        "logoTheme": "दिखाया जाने वाला लोगो",
         "footerTextColor": "फुटर टेक्स्ट का रंग",
         "fullWidthFooter": "पूरी चौड़ाई का फुटर",
         "imageAlt": "छवि का वैकल्पिक टेक्स्ट",
@@ -3746,6 +3828,7 @@
       "publishPageTitle": "यह पेज प्रकाशित करें?",
       "publishTitle": "होम पेज प्रकाशित करें?",
       "published": "होम पेज प्रकाशित हुआ",
+      "duplicateSection": "सेक्शन डुप्लिकेट करें",
       "removeSection": "सेक्शन हटाएँ",
       "requiredSection": "आवश्यक",
       "restore": "पुनर्स्थापित करें",
@@ -4753,6 +4836,7 @@
     },
     "chatWithVendor": "विक्रेता से चैट करें",
     "chatWithStore": "स्टोर से चैट करें",
+    "chatWithSeller": "विक्रेता से चैट करें",
     "startConversation": "बातचीत शुरू करें",
     "startDescription": "उपलब्धता, डिलीवरी, वेरिएंट या किसी भी अन्य बात के बारे में पूछें।",
     "writeMessage": "संदेश लिखें…",
@@ -5072,7 +5156,6 @@
       "canceled": "भुगतान रद्द कर दिया गया। कृपया पुनः प्रयास करें।",
       "failed": "भुगतान शुरू नहीं हो सका",
       "loadFailed": "बूस्ट लैडर लोड नहीं हो सका",
-      "verifyFailed": "भुगतान सत्यापित नहीं हो सका",
       "pollTimeout": "हम अभी तक भुगतान की पुष्टि नहीं कर सके। पुष्टि होते ही यह अपने आप सक्रिय हो जाएगा।",
       "stepSlot": "स्लॉट और तारीखें",
       "pickSlot": "एक पोज़िशन और तारीखें चुनें",
@@ -5185,7 +5268,6 @@
     "adminPassword": "पासवर्ड",
     "adminTitle": "अपना एडमिन खाता बनाएँ",
     "appUrl": "एप्लिकेशन URL",
-    "appUrlHint": ".env में NEXT_PUBLIC_APP_URL को अपने स्टोर के URL पर सेट करें",
     "blockedHint": "ऊपर दी गई समस्याएँ ठीक करें और फिर से जाँचें — इनके ठीक हुए बिना इंस्टॉलेशन आगे नहीं बढ़ सकता।",
     "retry": "फिर से जाँचें",
     "authSecret": "प्रमाणीकरण सीक्रेट",
@@ -5224,7 +5306,7 @@
       "secretAccessKey": "सीक्रेट एक्सेस की",
       "publicUrl": "पब्लिक URL"
     },
-    "nodeTooOld": "Node.js 22 या नया संस्करण आवश्यक है",
+    "nodeTooOld": "Node.js 22.12 या नया संस्करण आवश्यक है",
     "storeName": "स्टोर का नाम",
     "storeTitle": "स्टोर की मूल बातें",
     "subtitle": "कुछ ही चरण और बिक्री शुरू",

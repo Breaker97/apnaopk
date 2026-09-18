@@ -32,6 +32,7 @@
     "yes": "Ja",
     "no": "Nee",
     "close": "Sluit",
+    "scrollToTop": "Rol na bo",
     "back": "Terug",
     "goBack": "Gaan Terug",
     "backToHome": "Terug Tuis",
@@ -137,7 +138,8 @@
     "decreaseQuantity": "Verminder hoeveelheid",
     "increaseQuantity": "Verhoog hoeveelheid",
     "name": "Naam",
-    "email": "E-pos"
+    "email": "E-pos",
+    "showingResultsFor": "Resultate vir <q>{query}</q>"
   },
   "ui": {
     "dataTable": {
@@ -353,7 +355,8 @@
         "bestRating": "Beste Gradering",
         "newest": "Nuutste",
         "priceLowHigh": "Prys Laag - Hoog",
-        "priceHighLow": "Prys Hoog - Laag"
+        "priceHighLow": "Prys Hoog - Laag",
+        "bestMatch": "Beste passing"
       }
     }
   },
@@ -592,7 +595,51 @@
     "writeReview": "Skryf 'n Resensie",
     "noReviews": "Nog geen resensies nie",
     "beFirst": "Wees die eerste om hierdie produk te resenseer",
-    "verified": "Verifieerde Aankoop"
+    "verified": "Verifieerde Aankoop",
+    "writeReviewCta": "Skryf 'n resensie!",
+    "rating": "Gradering",
+    "all": "Alles",
+    "highlyRecommended": "Sterk aanbeveel",
+    "postedBy": "Geplaas {time} deur {name}",
+    "postedTime": "Geplaas {time}",
+    "brandResponse": "Handelsmerk se antwoord",
+    "showingRange": "Wys {from} - {to} van {total} resensies",
+    "anonymous": "Anoniem",
+    "checkingEligibility": "Jou geskikte bestellings word nagegaan...",
+    "comment": "Jou resensie *",
+    "commentPlaceholder": "Deel jou ervaring met hierdie produk",
+    "commentTooShort": "Kommentaar moet minstens 10 karakters wees",
+    "dropzoneHint": "Ondersteun beelde van tot 10 MB elk.",
+    "dropzonePrimary": "Sleep en los lêers hier, of klik om te blaai",
+    "eligibleOrderRequired": "Jy kan hierdie produk eers resenseer nadat dit in een van jou bestellings afgelewer is.",
+    "imageTooLarge": "Elke beeld moet kleiner as 10 MB wees",
+    "imageUploadFailed": "Beeldoplaai het misluk",
+    "invalidImage": "Slegs beeldlêers word toegelaat",
+    "loginToReview": "Meld asseblief aan om 'n resensie vir hierdie produk te skryf.",
+    "maxImages": "Jy kan tot 4 beelde oplaai",
+    "noReviewsForRating": "Nog geen resensies vir hierdie gradering nie",
+    "oldest": "Oudste",
+    "photos": "Beelde",
+    "selectRating": "Kies asseblief 'n gradering",
+    "submit": "Dien resensie in",
+    "submitFailed": "Kon nie resensie indien nie",
+    "submitted": "Resensie suksesvol ingedien!",
+    "title": "Titel",
+    "titlePlaceholder": "Som jou resensie op",
+    "writeReviewHint": "Jou e-posadres sal nie gepubliseer word nie. Verpligte velde is met 'n sterretjie (*) gemerk.",
+    "yourRating": "Jou gradering",
+    "pendingTitle": "Gradeer jou aankope",
+    "pendingDescription": "Jou bestellings het aangekom. Vertel ander kopers wat jy dink.",
+    "deliveredOn": "Afgelewer {date}",
+    "rateStar": "Gee {count} uit 5",
+    "showMore": "Wys nog {count}",
+    "showFewer": "Wys minder",
+    "fromOrder": "Bestelling #{orderNumber}",
+    "orderPromptTitle": "Hoe was jou bestelling?",
+    "orderPromptOne": "Skryf 'n vinnige resensie oor {name} — dit help ander kopers.",
+    "orderPromptMany": "{count} items uit hierdie bestelling wag vir jou resensie.",
+    "youRated": "Jy het dit gegradeer",
+    "alreadyReviewed": "Jy het hierdie produk reeds geresenseer. Dankie dat jy jou ervaring gedeel het!"
   },
   "cart": {
     "title": "Inkopiemandjie",
@@ -714,12 +761,13 @@
       "payOnDeliveryDescription": "Jy sal betaal wanneer jy jou bestelling ontvang",
       "mtnMomoDetail": "Betaal met MTN Mobile Money. Jy ontvang 'n versoek op jou foon wat jy met jou MoMo-PIN goedkeur.",
       "mtnMomoPhoneLabel": "Mobiele-geld-nommer",
-      "mtnMomoPhonePlaceholder": "bv. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "bv. {example}",
       "mtnMomoPhoneHint": "Voer die MTN-nommer in wat gehef word. 'n Goedkeuringsversoek sal na daardie foon gestuur word."
     },
     "billingSame": "Dieselfde as afleweringsadres",
     "billingDifferent": "Gebruik 'n ander faktuuradres",
-    "switchToPickup": "Skakel oor na afhaal"
+    "switchToPickup": "Skakel oor na afhaal",
+    "enterAddressForShipping": "Voer jou afleweringsadres in om die beskikbare afleweringsmetodes te sien."
   },
   "orders": {
     "title": "My Bestellings",
@@ -770,7 +818,8 @@
       "partially_paid": "Gedeeltelik betaal",
       "refunded": "Terugbetaal",
       "partially_refunded": "Gedeeltelik terugbetaal"
-    }
+    },
+    "importDuties": "Invoerregte"
   },
   "adminProfile": {
     "title": "Profiel",
@@ -882,7 +931,7 @@
       "dateRange": "25 Jul - 25 Aug",
       "addActivity": "Voeg aktiwiteit by",
       "sales": " Verkope",
-      "ordersDescription": "'n Projekwyse uitsplitsing van totale bestellings aangevul met gedetailleerde insigte.",
+      "ordersDescription": "Totale vir die gekose tydperk, verdeel volgens verkoopkanaal.",
       "showHighlights": "Wys alle hoogtepunte",
       "showSalesData": "Wys alle verkoopsdata",
       "viewAllOrders": "Sien alle bestellings",
@@ -977,7 +1026,9 @@
       "expenses": "Uitgawes",
       "receivables": "Uitstaande bedrae",
       "financeReports": "Verslae",
-      "quotes": "Kwotasies"
+      "quotes": "Kwotasies",
+      "traffic": "Verkeer",
+      "searchInsights": "Soekinsigte"
     },
     "pos": "Punt van Verkoop",
     "posLocations": "POS Ligginge",
@@ -1782,7 +1833,6 @@
         "live": "Lewendig",
         "unsaved": "Ongestoorde veranderinge"
       },
-      "subtitle": "Die betaalblad behou sy beproefde vloei — gee dit hier jou handelsmerk. Stappe kan nie herrangskik word nie, so betalings breek nooit.",
       "themeLink": "Temainstellings",
       "title": "Betaalblad",
       "toast": {
@@ -1814,7 +1864,21 @@
       },
       "brand": {
         "description": "Beheer die voetstuk se logo, beskrywing, breedte en kleure.",
-        "title": "Handelsmerk en uitleg"
+        "title": "Handelsmerk en uitleg",
+        "logoSourceLabel": "Bron van voetstuklogo",
+        "storeLogo": "Winkellogo (aanbeveel)",
+        "storeLogoDescription": "Gebruik jou Handelsmerk-logo's en wissel tussen lig- en donkermodus, soos die kopstuk.",
+        "customLogo": "Pasgemaakte voetstuklogo",
+        "customLogoDescription": "Laai ander kunswerk net vir die voetstuk op.",
+        "synced": "Gesinchroniseer met Handelsmerk",
+        "editBranding": "Wysig in Handelsmerk",
+        "lightLogo": "Ligmodus-logo",
+        "darkLogo": "Donkermodus-logo",
+        "logoNotSet": "Nie opgelaai nie",
+        "customLogoHint": "Hierdie logo's geld net vir die voetstuk. Sonder 'n donkermodus-logo word die voetstuklogo in albei modusse gewys; sonder enige word jou winkellogo's gebruik.",
+        "matchHeaderSize": "Dieselfde grootte as die kopstuklogo",
+        "matchHeaderSizeHint": "Volg die kopstuk: {desktop}px breed op groot skerms, {mobile}px op fone.",
+        "logoThemeAuto": "Outomaties (pas by die voetstuk se agtergrond)"
       },
       "colors": {
         "dark": "Donkermodus-kleure",
@@ -1849,6 +1913,9 @@
         "email": "E-pos",
         "footerBackgroundColor": "Voetstuk-agtergrondkleur",
         "footerLogo": "Voetstuklogo",
+        "footerDarkLogo": "Voetstuklogo (donkermodus)",
+        "logoWidth": "Logobreedte",
+        "logoTheme": "Logo om te wys",
         "footerTextColor": "Voetstuk-tekskleur",
         "fullWidthFooter": "Volwydte-voetstuk",
         "imageAlt": "Beeld-alt-teks",
@@ -2160,6 +2227,11 @@
           "description": "Redaksionele visuele styl vir premium mode-, skoonheids- en leefstylhandelsmerke.",
           "name": "Fashion",
           "styleNote": "Gefokus op visuele uitstalling en verfynde versamelingsverhale."
+        },
+        "women-fashion": {
+          "description": "Redaksionele klere-uitstalling: kampanjebeelde oor die volle breedte, voorkomsteëls en seisoenskeuses.",
+          "name": "Women Fashion",
+          "styleNote": "Gebou vir klere, skoene en bykomstighede — die beelde lei, die raamwerk tree terug."
         }
       },
       "title": "Temas"
@@ -2332,6 +2404,7 @@
       "publishPageTitle": "Publiseer hierdie blad?",
       "publishTitle": "Publiseer tuisblad?",
       "published": "Tuisblad gepubliseer",
+      "duplicateSection": "Dupliseer afdeling",
       "removeSection": "Verwyder afdeling",
       "requiredSection": "Vereis",
       "restore": "Herstel",
@@ -2642,7 +2715,9 @@
     "earnings": "Imali Engenisayo",
     "totalRevenue": "Inani Liphelele Lemali",
     "netEarnings": "Imali Engenisayo Ngemali",
+    "awaitingPayment": "{amount} wag op betaling",
     "totalOrders": "Wonke I-oderi",
+    "openOrdersCount": "{count} oop",
     "activeProducts": "Iimveliso Ezisebenzayo",
     "totalProducts": "Wonke Iimveliso",
     "commission": "Ikhomishini Ebekiweyo",
@@ -2723,7 +2798,6 @@
     "active": "Isebenzayo",
     "byStatus": "Ngokwesimo",
     "unableToLoadData": "Ayikwazi ukulayisha idatha. Qinisekisa ukuthi uyombuki ofakazelayo.",
-    "pending": "ilindelayo",
     "productsPage": {
       "subtitle": "Lawula iimveliso zakho",
       "description": "Bona futhi ulawule iimveliso yestore yakho"
@@ -2822,6 +2896,7 @@
       "partially_refunded": "Okwebiyalo ngokwebi"
     },
     "fulfillmentStatus": {
+      "preordered": "Voorbestel",
       "pending": "Okungagcwaliswanga",
       "processing": "Iprocessayo",
       "shipped": "Ithunyelwe",
@@ -3371,6 +3446,7 @@
     },
     "chatWithVendor": "Klets met verskaffer",
     "chatWithStore": "Klets met winkel",
+    "chatWithSeller": "Klets met verkoper",
     "startConversation": "Begin ’n gesprek",
     "startDescription": "Vra oor beskikbaarheid, aflewering, variante of enigiets anders.",
     "writeMessage": "Skryf ’n boodskap…",
@@ -3690,7 +3766,6 @@
       "canceled": "Die betaling is gekanselleer. Probeer asseblief weer.",
       "failed": "Kon nie die betaling begin nie",
       "loadFailed": "Kon nie die posisieleer laai nie",
-      "verifyFailed": "Betaling kon nie geverifieer word nie",
       "pollTimeout": "Ons kon die betaling nog nie bevestig nie. Dit sal outomaties aktiveer sodra dit bevestig is.",
       "stepSlot": "Gleuf & datums",
       "pickSlot": "Kies 'n posisie en datums",
@@ -3803,7 +3878,6 @@
     "adminPassword": "Wagwoord",
     "adminTitle": "Skep jou administrateurrekening",
     "appUrl": "App-URL",
-    "appUrlHint": "Stel NEXT_PUBLIC_APP_URL in .env na jou winkel se URL",
     "blockedHint": "Los die items hierbo op en kontroleer weer — die installasie kan nie voortgaan voordat hulle slaag nie.",
     "retry": "Kontroleer weer",
     "authSecret": "Verifikasiegeheim",
@@ -3842,7 +3916,7 @@
       "secretAccessKey": "Geheime toegangsleutel",
       "publicUrl": "Publieke URL"
     },
-    "nodeTooOld": "Node.js 22 of nuwer word vereis",
+    "nodeTooOld": "Node.js 22.12 of nuwer word vereis",
     "storeName": "Winkelnaam",
     "storeTitle": "Winkelbasiese inligting",
     "subtitle": "'n Paar stappe en jy verkoop",

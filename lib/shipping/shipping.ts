@@ -1,3 +1,5 @@
+import { areCountryValuesEquivalent } from "@/lib/intl/country-availability";
+
 type ShippingRateType =
   | "flat"
   | "free_over"
@@ -198,7 +200,9 @@ function zoneSpecificity(
 ): number | null {
   const countries = Array.isArray(zone.countries) ? zone.countries : [];
   if (!destinationCountry || countries.length === 0) return null;
-  if (!countries.some((c) => normalizeToken(c) === destinationCountry)) {
+  // By country, not by spelling: a zone saved as "USA" or "US" has to claim
+  // the "United States" the checkout picker sends, or that zone ships nowhere.
+  if (!countries.some((c) => areCountryValuesEquivalent(c, destinationCountry))) {
     return null;
   }
 
@@ -484,6 +488,17 @@ type MultiVendorShippingResult = {
   available: boolean;
 };
 
+function plainShippingSettings(
+  shipping: ShippingSettings | undefined,
+): ShippingSettings | undefined {
+  const hydrated = shipping as
+    | (ShippingSettings & { toObject?: () => ShippingSettings })
+    | undefined;
+  return typeof hydrated?.toObject === "function"
+    ? hydrated.toObject()
+    : shipping;
+}
+
 /**
  * The profile a vendor's items are actually rated against.
  *
@@ -504,7 +519,13 @@ export function resolveVendorShippingProfile(params: {
   platformShipping?: ShippingSettings;
   vendorShipping?: ShippingSettings;
 }): ShippingSettings | undefined {
-  const { platformShipping, vendorShipping } = params;
+  // The card and online-checkout routes read settings through `getSettings()`,
+  // whose `shipping` is a hydrated subdocument: spreading one copies Mongoose's
+  // internals, not its fields. The profile built below then had no `enabled`
+  // and no zones, so every vendor with its own rates was charged the store's
+  // flat legacy fee instead of the rate the checkout page had quoted.
+  const platformShipping = plainShippingSettings(params.platformShipping);
+  const vendorShipping = plainShippingSettings(params.vendorShipping);
   if (!vendorShipping?.enabled) return platformShipping;
 
   const ownZoneRates = Array.isArray(vendorShipping.zoneRates)
@@ -624,8 +645,12 @@ export function estimateCustomsDuty(params: {
 
   const destCountry = normalizeToken(params.destination?.country);
   const originCountry = normalizeToken(params.originCountry);
+  // Same country, however it is spelled — an origin of "USA" must not make
+  // every "United States" order a cross-border one that owes duty.
   const international = Boolean(
-    destCountry && originCountry && destCountry !== originCountry,
+    destCountry &&
+      originCountry &&
+      !areCountryValuesEquivalent(destCountry, originCountry),
   );
 
   const collectedAtCheckout = enabled && international && dutyMode === "DDP";

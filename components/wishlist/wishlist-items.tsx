@@ -14,6 +14,9 @@ import {
 } from "@/components/products/modern-product-card";
 import { ProductQuickViewModal } from "@/components/products/product-quick-view-modal";
 import { type Locale } from "@/config/i18n.config";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 export function WishlistItems() {
   const t = useTranslations();
@@ -40,7 +43,7 @@ export function WishlistItems() {
   // empty state: before mount every consumer reads an empty wishlist.
   if (!hydrated || isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
         {[1, 2, 3, 4].map((i) => (
           <ModernProductCardSkeleton key={i} />
         ))}
@@ -106,7 +109,7 @@ export function WishlistItems() {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
         {products.map((product) => (
           <ModernProductCard
             key={product._id}

@@ -6,6 +6,7 @@ import {
 } from "@/lib/site-config/home-page-config";
 import { lt } from "../localized";
 import type { LocalizedText, SectionDefinition } from "../types";
+import { themeUsesTwoToneHeadings } from "@/lib/storefront/themes/registry";
 
 export const blogPosts: SectionDefinition = {
   type: "blog-posts",
@@ -29,9 +30,9 @@ export const blogPosts: SectionDefinition = {
         title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
         limit={settings.limit as number}
         desktopColumns={settings.desktopColumns as number}
-        // The active theme decides the heading treatment (the compare-page
-        // precedent) — Electronics' two-tone, plain elsewhere.
-        themedHeading={ctx.themeId === "electronics"}
+        // The template's data decides the heading treatment (`headingStyle`),
+        // the same one the compare and all-categories pages wear.
+        themedHeading={themeUsesTwoToneHeadings(ctx.themeId)}
       />
     );
   },

@@ -17,6 +17,9 @@ import { PreordersTableSection } from "@/components/admin/preorders-table-sectio
 import { AdminListSkeleton } from "@/components/admin/admin-list-skeleton";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
+import { getSettings } from "@/models/settings.model";
+import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
+import { PreorderBalancePolicyNotice } from "@/components/admin/preorder-balance-policy-notice";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -91,9 +94,18 @@ export default async function AdminPreordersPage({
     },
   ];
 
+  const preorderPolicy = resolvePreorderPolicy(
+    (await getSettings()).preorder,
+  );
+
   return (
     <div className="space-y-4">
       <AdminStatsStrip items={statItems} />
+      <PreorderBalancePolicyNotice
+        autoRelease={preorderPolicy.autoRelease}
+        autoReleaseDelayDays={preorderPolicy.autoReleaseDelayDays}
+        settingsHref={`/${locale}/admin/settings/marketplace`}
+      />
       <Suspense
         fallback={
           <AdminListSkeleton

@@ -15,6 +15,28 @@ import type { CarrierParcel } from "@/lib/shipping/carriers/types";
  * which box will be used before anything is sent to a carrier.
  */
 
+/**
+ * Whether any line carries a customs snapshot — proof it is physical.
+ *
+ * Only proof one way. Checkout writes a snapshot for every line that requires
+ * shipping, but a bank transfer, a manual payment, a till sale and every order
+ * older than the snapshot carry none on their physical lines either. A caller
+ * that has to refuse a courier must not read a missing snapshot as "digital":
+ * `lib/shipping/carriers/physical-lines.ts` asks the product instead.
+ */
+export function hasShippableItems(
+  items: Array<{ customs?: { weight?: number } }> | undefined | null,
+): boolean {
+  return (items || []).some(isShippableLine);
+}
+
+/** One line of the same question: does its snapshot prove it goes in a box? */
+export function isShippableLine(
+  item: { customs?: { weight?: number } } | undefined | null,
+): boolean {
+  return item?.customs?.weight !== undefined;
+}
+
 export interface PackableItem {
   quantity: number;
   unitWeight: number;

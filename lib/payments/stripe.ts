@@ -33,36 +33,53 @@ export function isStripeSecretKeyConfigured(secretKey?: string): boolean {
   return Boolean(secretKey || stripeSecretKey);
 }
 
+type StripePaymentFee = { amount: number; currency: string; rate?: number };
+
 /**
- * What Stripe kept on a payment intent, or undefined if it cannot be read.
+ * The `expand` path that brings Stripe's fee along with a payment intent.
  *
  * Two hops, because Stripe does not put the fee on the intent: the intent names
  * a charge, and the charge names a balance transaction, which is where `fee`
- * lives. `expand` fetches both in one round trip.
- *
- * **Never throws.** This runs inside the webhook that creates the order, and an
- * order must not fail to exist because a reporting figure could not be read —
- * a missing fee is recoverable from the dashboard, a missing order is not.
+ * lives. Expanding both fetches them in the same round trip as the intent.
+ */
+export const STRIPE_FEE_EXPAND = "latest_charge.balance_transaction";
+
+/**
+ * The fee on an intent retrieved with STRIPE_FEE_EXPAND; undefined when the
+ * charge or its balance transaction is absent or was not expanded.
  *
  * The fee is denominated in the account's BALANCE currency, which is why the
  * currency travels with the amount rather than being assumed from the charge.
  */
+export async function stripeFeeFromIntent(
+  intent: Stripe.PaymentIntent,
+): Promise<StripePaymentFee | undefined> {
+  const charge = intent.latest_charge;
+  if (!charge || typeof charge === "string") return undefined;
+  const balanceTransaction = charge.balance_transaction;
+  if (!balanceTransaction || typeof balanceTransaction === "string") {
+    return undefined;
+  }
+  const { stripeFee } = await import("@/lib/payments/gateway-fee");
+  return stripeFee(balanceTransaction);
+}
+
+/**
+ * What Stripe kept on a payment intent, or undefined if it cannot be read.
+ *
+ * **Never throws.** This runs inside the webhook that creates the order, and an
+ * order must not fail to exist because a reporting figure could not be read —
+ * a missing fee is recoverable from the dashboard, a missing order is not.
+ */
 export async function fetchStripePaymentFee(
   stripeClient: Stripe,
   paymentIntentId: string,
-): Promise<{ amount: number; currency: string; rate?: number } | undefined> {
+): Promise<StripePaymentFee | undefined> {
   try {
     const intent = await stripeClient.paymentIntents.retrieve(paymentIntentId, {
-      expand: ["latest_charge.balance_transaction"],
+      expand: [STRIPE_FEE_EXPAND],
     });
-    const charge = intent.latest_charge;
-    if (!charge || typeof charge === "string") return undefined;
-    const balanceTransaction = charge.balance_transaction;
-    if (!balanceTransaction || typeof balanceTransaction === "string") {
-      return undefined;
-    }
-    const { stripeFee } = await import("@/lib/payments/gateway-fee");
-    return stripeFee(balanceTransaction);
+    return await stripeFeeFromIntent(intent);
   } catch (error) {
     console.error(
       `Could not read the Stripe fee for payment intent ${paymentIntentId}:`,

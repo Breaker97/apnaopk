@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { createRequestAbort } from "@/lib/request-abort";
 import { WhatsAppTemplateComposer } from "@/components/chat/whatsapp-template-composer";
 import type {
+  ConversationDraftPreview,
   ConversationDTO,
   ConversationMessageDTO,
 } from "@/lib/conversations/types";
@@ -20,10 +21,12 @@ import {
   supportsTemplates,
 } from "@/lib/conversations/channels";
 import { useLiveResource } from "@/hooks/use-live-resource";
+import { INBOX_UNREAD_CHANGED_EVENT } from "@/hooks/use-inbox-unread-count";
 import { ConversationDetails } from "./conversation-details";
 import { ConversationList } from "./conversation-list";
 import { MessageComposer } from "./message-composer";
 import { MessageThread } from "./message-thread";
+import { ProductContextCard } from "./product-context-card";
 import {
   conversationCursor,
   conversationStatusStyle,
@@ -64,6 +67,8 @@ interface ConversationInboxProps {
     vendorId?: string;
     variantId?: string;
     variantName?: string;
+    /** Absent when the context no longer resolves; sending then says why. */
+    preview?: ConversationDraftPreview;
   };
 }
 
@@ -239,7 +244,10 @@ export function ConversationInbox({
         const conversation = payload?.data?.conversation as
           | ConversationDTO
           | undefined;
-        if (response.ok && conversation) replaceConversation(conversation);
+        if (response.ok && conversation) {
+          replaceConversation(conversation);
+          window.dispatchEvent(new Event(INBOX_UNREAD_CHANGED_EVENT));
+        }
       } catch {
         // The next snapshot retries the read-state synchronization.
       }
@@ -686,6 +694,9 @@ export function ConversationInbox({
   const headerStatus = selectedConversation
     ? conversationStatusStyle(selectedConversation.status)
     : undefined;
+  const draftPreview = draftContext?.preview;
+  const draftOwnerName =
+    draftPreview?.ownerName || tr("storeSupport", "Store support");
 
   return (
     <div className="flex h-[calc(100dvh-var(--dashboard-header-height,4rem)-var(--inbox-offset,7.5rem))] min-h-[32rem] overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -758,22 +769,42 @@ export function ConversationInbox({
               >
                 <ArrowLeft />
               </Button>
-              <div className="min-w-0">
-                <p className="truncate font-semibold">
-                  {tr("newConversation", "New conversation")}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {draftContext?.productId
-                    ? tr(
-                        "draftProductContext",
-                        "The product you were viewing is attached to this message.",
-                      )
-                    : tr(
-                        "draftStoreContext",
-                        "Your message goes straight to the store you were viewing.",
-                      )}
-                </p>
-              </div>
+              {draftPreview ? (
+                // Laid out like the thread header that replaces it once the
+                // first message is sent, so the pane does not jump.
+                <>
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                      {getInitials(draftOwnerName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold leading-tight">
+                      {draftOwnerName}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {tr("newConversation", "New conversation")}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">
+                    {tr("newConversation", "New conversation")}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {draftContext?.productId
+                      ? tr(
+                          "draftProductContext",
+                          "The product you were viewing is attached to this message.",
+                        )
+                      : tr(
+                          "draftStoreContext",
+                          "Your message goes straight to the store you were viewing.",
+                        )}
+                  </p>
+                </div>
+              )}
             </header>
 
             <div className="grid min-h-0 flex-1 place-items-center bg-muted/20 px-6 text-center">
@@ -801,6 +832,25 @@ export function ConversationInbox({
               sending={sending}
               placeholder={tr("writeMessage", "Write a message…")}
               sendLabel={tr("sendMessage", "Send message")}
+              notice={
+                draftPreview?.productContext ? (
+                  <div className="mb-3">
+                    <p className="mb-1.5 text-[11px] text-muted-foreground">
+                      {tr(
+                        "draftProductContext",
+                        "The product you were viewing is attached to this message.",
+                      )}
+                    </p>
+                    <div className="rounded-lg border bg-muted/20">
+                      <ProductContextCard
+                        locale={locale}
+                        product={draftPreview.productContext}
+                        viewProductLabel={tr("viewProduct", "View product")}
+                      />
+                    </div>
+                  </div>
+                ) : null
+              }
             />
           </>
         ) : selectedConversation ? (

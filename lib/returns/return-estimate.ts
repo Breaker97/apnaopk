@@ -39,6 +39,13 @@ interface ReturnRefundEstimateInput {
    * discounts delivery, and the caller nets it off `chargedShipping` instead.
    */
   goodsDiscount: number;
+  /**
+   * The returning seller's own slice of a coupon limited to part of the cart,
+   * with the goods it was taken off. Given, it replaces the order-wide share:
+   * a 20-off coupon on seller A's items used to take 10 off a return of
+   * seller B's goods, which were never discounted.
+   */
+  ownGoodsDiscount?: { amount: number; subtotal: number } | null;
   /** What the shopper actually paid for delivery, after any shipping coupon. */
   chargedShipping: number;
   /** Whether the policy hands delivery back for this return's reason. */
@@ -67,9 +74,15 @@ export function buildReturnRefundEstimate(
   const ratio =
     orderSubtotal > 0 ? Math.min(1, itemsSubtotal / orderSubtotal) : 0;
 
-  const discountAdjustment = roundMoney(
-    Math.max(0, num(input.goodsDiscount)) * ratio,
-  );
+  const own = input.ownGoodsDiscount;
+  const discountAdjustment = own
+    ? roundMoney(
+        Math.max(0, num(own.amount)) *
+          (num(own.subtotal) > 0
+            ? Math.min(1, itemsSubtotal / num(own.subtotal))
+            : 0),
+      )
+    : roundMoney(Math.max(0, num(input.goodsDiscount)) * ratio);
   const tax = roundMoney(Math.max(0, num(input.orderTax)) * ratio);
   const shipping = input.refundsShipping
     ? roundMoney(Math.max(0, num(input.chargedShipping)) * ratio)

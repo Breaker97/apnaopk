@@ -17,7 +17,9 @@ import {
   clearShipmentTrackingFromOrder,
 } from "@/lib/shipping/tracking-cascade";
 import type { IOrder, IVendor, SubOrder } from "@/types";
+import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 import { buildCarrierShipmentRequest } from "./build-request";
+import { consignmentHasPhysicalItems } from "./physical-lines";
 import { resolveCarrierContext, enabledCarrierProviders } from "./credentials";
 import { CARRIER_ERROR_CODES, CarrierError } from "./errors";
 import { carrierAdapter } from "./registry";
@@ -46,8 +48,26 @@ type OrderForShipment = Pick<
   | "paymentMethod"
   | "paymentStatus"
   | "total"
+  | "tax"
+  | "shippingCost"
+  | "discount"
+  | "coupon"
+  | "customs"
+  | "subOrders"
   | "status"
->;
+> &
+  // Read by the payment gate. Optional so a caller holding a narrower
+  // projection still type-checks; every real caller passes the whole order.
+  Partial<
+    Pick<
+      IOrder,
+      | "channel"
+      | "hasPreorder"
+      | "preorderOutstandingAmount"
+      | "preorderBalancePaidAt"
+      | "digitalOnly"
+    >
+  >;
 
 type SubOrderForShipment = Pick<
   SubOrder,
@@ -88,6 +108,82 @@ async function loadCarrierVendor(
     .lean<Pick<IVendor, "shipping"> | null>();
 }
 
+type BookingRow = Pick<
+  IShipment,
+  | "_id"
+  | "provider"
+  | "carrier"
+  | "trackingNumber"
+  | "providerTransactionId"
+  | "providerOrderId"
+  | "purchase"
+  | "bookingSequence"
+>;
+
+const BOOKING_ROW_FIELDS =
+  "provider carrier trackingNumber providerTransactionId providerOrderId purchase bookingSequence";
+
+/**
+ * A purchase that did not finish but left something real at the carrier.
+ *
+ * A checkpointed Shippo transaction is a paid label; a Shiprocket order handle
+ * is a live consignment in the merchant's panel. Either way the purchase state
+ * says `failed` (or an abandoned `purchasing`), which reads as "nothing here"
+ * to every check that only looks for `purchased`.
+ */
+function holdsUnfinishedBooking(shipment: BookingRow): boolean {
+  const state = shipment.purchase?.state;
+  if (state !== "failed" && state !== "purchasing") return false;
+  return Boolean(
+    shipment.providerTransactionId ||
+      shipment.trackingNumber ||
+      shipment.providerOrderId,
+  );
+}
+
+/**
+ * A booking of this parcel on a carrier OTHER than `provider`, if there is one.
+ *
+ * Retrying on the same carrier is how an unfinished booking gets finished — the
+ * resume state lives on that very shipment — so it must stay open. Switching
+ * carriers is not a retry: the first carrier's label or consignment stays live
+ * and a second one is bought beside it, two charges for one box. The upsert
+ * keys on provider, so nothing else notices that the parcel now has two.
+ *
+ * Exported for tests; this is a decision that spends money and fails silently.
+ */
+export function otherProviderBooking(
+  shipments: BookingRow[],
+  provider: CarrierProvider,
+): BookingRow | undefined {
+  return shipments.find(
+    (shipment) =>
+      Boolean(shipment.provider) &&
+      shipment.provider !== provider &&
+      (shipment.purchase?.state === "purchased" ||
+        (shipment.purchase?.state === "purchasing" &&
+          !isPurchaseClaimStale(shipment.purchase)) ||
+        holdsUnfinishedBooking(shipment)),
+  );
+}
+
+function otherProviderBookingError(
+  existing: BookingRow,
+  provider: CarrierProvider,
+): CarrierError {
+  const on = existing.provider
+    ? CARRIER_PROVIDER_LABELS[existing.provider]
+    : existing.carrier;
+  return new CarrierError({
+    provider,
+    code: CARRIER_ERROR_CODES.ALREADY_PURCHASED,
+    message: `This parcel already has an unfinished ${on} booking${
+      existing.trackingNumber ? ` (${existing.trackingNumber})` : ""
+    }. Retry it on ${on}, or void it before shipping with ${CARRIER_PROVIDER_LABELS[provider]}.`,
+    permanent: true,
+  });
+}
+
 /**
  * Refuse to re-quote a parcel that already has, or is buying, a label — and
  * report which booking of it the next one would be.
@@ -107,7 +203,7 @@ async function loadCarrierVendor(
 async function inspectExistingShipments(params: {
   orderId: OrderForShipment["_id"];
   subOrderId: SubOrderForShipment["_id"];
-}): Promise<{ bookingSequence: number }> {
+}): Promise<{ bookingSequence: number; shipments: BookingRow[] }> {
   // Both providers' shipments for this parcel, which is at most a handful: the
   // guard has to see a purchase on *any* account, while the booking sequence is
   // the high-water mark across all of them.
@@ -115,15 +211,8 @@ async function inspectExistingShipments(params: {
     orderId: params.orderId,
     subOrderId: params.subOrderId,
   })
-    .select("carrier trackingNumber purchase bookingSequence")
-    .lean<
-      Array<
-        Pick<
-          IShipment,
-          "carrier" | "trackingNumber" | "purchase" | "bookingSequence"
-        >
-      >
-    >();
+    .select(BOOKING_ROW_FIELDS)
+    .lean<BookingRow[]>();
 
   const bought = shipments.find(
     (shipment) =>
@@ -143,6 +232,7 @@ async function inspectExistingShipments(params: {
   }
 
   return {
+    shipments,
     bookingSequence: shipments.reduce(
       (highest, shipment) =>
         Math.max(highest, Number(shipment.bookingSequence) || 0),
@@ -245,19 +335,54 @@ async function upsertShipmentDraft(
   try {
     return await Shipment.findOneAndUpdate(filter, update, {
       upsert: true,
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).lean<IShipment | null>();
   } catch (error) {
     if (!isDuplicateKeyError(error)) throw error;
     return Shipment.findOneAndUpdate(filter, update, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).lean<IShipment | null>();
   }
 }
 
-function assertShippable(subOrder: SubOrderForShipment) {
+/**
+ * Refuse a consignment with nothing for a courier to carry.
+ *
+ * The manual path never asked this, and the packer does not fail on an empty
+ * consignment — it falls back to the default box at the minimum billable
+ * weight — so a digital-only consignment could be handed to a courier: a real
+ * label, really paid for, for a parcel that does not exist.
+ *
+ * Asked of the products, not only of the customs snapshot on each line; see
+ * `physical-lines.ts` for why a missing snapshot proves nothing.
+ */
+async function assertSomethingToShip(
+  order: OrderForShipment,
+  subOrder: SubOrderForShipment,
+) {
+  if (!(await consignmentHasPhysicalItems(order, subOrder.items))) {
+    throw new CarrierError({
+      code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
+      message:
+        "Nothing in this consignment is shipped in a box — there is nothing for a courier to carry.",
+      permanent: true,
+    });
+  }
+}
+
+/**
+ * Whether this consignment may be handed to a courier at all.
+ *
+ * Exported for tests: every refusal here is one the merchant meets *instead of*
+ * spending money. Whether there is anything to ship is asked separately, by
+ * `assertSomethingToShip`, because answering it needs the products.
+ */
+export function assertShippable(
+  order: OrderForShipment,
+  subOrder: SubOrderForShipment,
+) {
   if (subOrder.fulfillment?.method === "pickup") {
     throw new CarrierError({
       code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
@@ -269,6 +394,17 @@ function assertShippable(subOrder: SubOrderForShipment) {
     throw new CarrierError({
       code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
       message: "This sub-order is cancelled",
+      permanent: true,
+    });
+  }
+  // A label is money spent on sending the goods, and the courier takes them
+  // away the moment it exists — so it is refused for a consignment the
+  // shopper has not paid for, exactly as the status change is.
+  const paymentBlock = getFulfillmentPaymentBlock(order, subOrder);
+  if (paymentBlock) {
+    throw new CarrierError({
+      code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
+      message: paymentBlock,
       permanent: true,
     });
   }
@@ -369,11 +505,13 @@ export async function rateShopSubOrder(params: {
   parcelOverride?: CarrierParcel;
   settings?: ISettings;
 }): Promise<RateShopResult> {
-  assertShippable(params.subOrder);
-  const { bookingSequence } = await inspectExistingShipments({
-    orderId: params.order._id,
-    subOrderId: params.subOrder._id,
-  });
+  assertShippable(params.order, params.subOrder);
+  await assertSomethingToShip(params.order, params.subOrder);
+  const { bookingSequence, shipments: existing } =
+    await inspectExistingShipments({
+      orderId: params.order._id,
+      subOrderId: params.subOrder._id,
+    });
   const settings = params.settings ?? (await getSettings());
 
   const built = await buildCarrierShipmentRequest({
@@ -391,12 +529,19 @@ export async function rateShopSubOrder(params: {
   // available at all.
   const vendor = await loadCarrierVendor(params.subOrder.vendorId);
   const provider = await pickProvider({
-    requested: params.provider,
+    // An unfinished booking is resumed on the carrier that holds it. Left to
+    // the default choice, a store with both carriers could quote on the other
+    // one and be refused below for a parcel it only meant to retry.
+    requested:
+      params.provider ?? existing.find(holdsUnfinishedBooking)?.provider,
     settings,
     vendor,
     originCountry: built.request.shipFrom.country,
     destinationCountry: built.request.shipTo.country,
   });
+
+  const conflict = otherProviderBooking(existing, provider);
+  if (conflict) throw otherProviderBookingError(conflict, provider);
 
   const context = await resolveCarrierContext({ provider, settings, vendor });
   // Sorted here rather than in each adapter, so the order the merchant sees,
@@ -612,7 +757,28 @@ export async function purchaseShipmentLabel(params: {
    */
   maxAmount?: number;
 }): Promise<{ shipment: IShipment; alreadyOwned?: boolean }> {
+  // Re-asked at purchase, not only at the quote: the consignment can be
+  // cancelled, or its payment refunded, while the quotes sit on the draft.
+  assertShippable(params.order, params.subOrder);
+  await assertSomethingToShip(params.order, params.subOrder);
   const settings = params.settings ?? (await getSettings());
+
+  // Asked again here, not only when quoting: a draft quoted on one carrier can
+  // be bought after another carrier has booked the same parcel — the purchase
+  // route and a queued job both redeem a stored draft without re-quoting.
+  const siblings = await Shipment.find({
+    orderId: params.order._id,
+    subOrderId: params.subOrder._id,
+  })
+    .select(BOOKING_ROW_FIELDS)
+    .lean<BookingRow[]>();
+  const own = siblings.find(
+    (shipment) => String(shipment._id) === String(params.shipmentId),
+  );
+  if (own?.provider) {
+    const conflict = otherProviderBooking(siblings, own.provider);
+    if (conflict) throw otherProviderBookingError(conflict, own.provider);
+  }
 
   const staleClaimBefore = new Date(Date.now() - CARRIER_PURCHASE_CLAIM_TTL_MS);
   const claimed = await Shipment.findOneAndUpdate(
@@ -641,7 +807,7 @@ export async function purchaseShipmentLabel(params: {
       },
       $inc: { "purchase.attempts": 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   ).lean<IShipment>();
 
   if (!claimed) {
@@ -713,7 +879,14 @@ export async function purchaseShipmentLabel(params: {
       settings,
     });
 
+    // A booking an earlier attempt already paid for is past the point a cap can
+    // prevent anything. Refusing it here only strands a label that exists — the
+    // retry is there to record it, not to decide whether to buy it.
+    const alreadySpent = Boolean(
+      claimed.providerTransactionId || claimed.trackingNumber,
+    );
     if (
+      !alreadySpent &&
       typeof params.maxAmount === "number" &&
       params.maxAmount > 0 &&
       quote.amount > params.maxAmount
@@ -752,13 +925,15 @@ export async function purchaseShipmentLabel(params: {
           trackingUrl: label.trackingUrl,
           labelUrl: label.labelUrl,
           labelFileType: label.labelFormat,
-          providerRateId: quote.rateId,
+          // The label's own rate wins: a resumed purchase can read back a label
+          // bought against a different quote than the one this call carries.
+          providerRateId: label.rateId ?? quote.rateId,
           providerTransactionId: label.transactionId,
           providerShipmentId:
             label.resume?.providerShipmentId ?? claimed.providerShipmentId,
           providerOrderId:
             label.resume?.providerOrderId ?? claimed.providerOrderId,
-          serviceToken: quote.serviceToken,
+          serviceToken: label.rateId ? label.serviceToken : quote.serviceToken,
           rate: {
             amount: label.amount ?? quote.amount,
             // Stored verbatim in the carrier account's currency — never
@@ -767,7 +942,9 @@ export async function purchaseShipmentLabel(params: {
             // What the books were kept in on the day. Settings only ever hold
             // the CURRENT currency, so this is unrecoverable once it changes.
             baseCurrency: settings.general?.defaultCurrency,
-            estimatedDays: quote.estimatedDays,
+            estimatedDays: label.rateId
+              ? label.estimatedDays
+              : quote.estimatedDays,
             carrierName: label.carrierName,
           },
           status: "label_ready",
@@ -782,7 +959,7 @@ export async function purchaseShipmentLabel(params: {
           "purchase.lastErrorCode": null,
         },
       },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean<IShipment>();
 
     // The first real cost of sale the product records. Posted in the carrier's
@@ -803,6 +980,19 @@ export async function purchaseShipmentLabel(params: {
         bookingSequence: updated.bookingSequence,
         billedTo: updated.purchase?.billedTo,
       });
+    }
+
+    // Bought on the store's account for a parcel the vendor would have earned
+    // delivery on: the store is paying to deliver it, so the delivery charge
+    // becomes the store's. Never fails the purchase — the label exists either
+    // way, and a charge left with the vendor is a reconcilable gap.
+    if (updated) {
+      const { moveShippingToStoreForLabel } = await import(
+        "@/lib/shipping/store-label-shipping"
+      );
+      await moveShippingToStoreForLabel(updated).catch((err) =>
+        console.error("Failed to move a delivery charge to the store:", err),
+      );
     }
 
     return { shipment: updated! };
@@ -1026,6 +1216,9 @@ export async function voidShipmentLabel(params: {
     transactionId: shipment.providerTransactionId,
     awb: shipment.trackingNumber,
     orderId: shipment.providerOrderId,
+    // Movement comes only from the carrier's own scans, so this is the
+    // courier's word that it holds the parcel — not a merchant's guess.
+    pickedUp: shipment.status === "shipped" || shipment.status === "in_transit",
   });
 
   const updated = await Shipment.findByIdAndUpdate(
@@ -1041,7 +1234,7 @@ export async function voidShipmentLabel(params: {
       // otherwise resume the consignment this call just cancelled.
       $inc: { bookingSequence: 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   ).lean<IShipment>();
 
   // The cost comes back off the books only if the money does. A carrier that
@@ -1063,6 +1256,16 @@ export async function voidShipmentLabel(params: {
       billedTo: shipment.purchase?.billedTo,
       voidedAt: updated?.purchase?.voidedAt ?? new Date(),
     });
+
+    // The store stopped paying for this delivery, so the vendor earns its
+    // charge again. Only on a refunded void, for the same reason as the cost:
+    // a label the carrier kept the money for is still the store's delivery.
+    const { returnShippingForVoidedLabel } = await import(
+      "@/lib/shipping/store-label-shipping"
+    );
+    await returnShippingForVoidedLabel(shipment).catch((err) =>
+      console.error("Failed to hand a delivery charge back to the vendor:", err),
+    );
   }
 
   // The AWB just voided is on the sub-order and, on a single-vendor order, on
@@ -1147,7 +1350,7 @@ export async function refreshShipmentTracking(params: {
           : {}),
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   ).lean<IShipment>();
 
   const statusChanged =

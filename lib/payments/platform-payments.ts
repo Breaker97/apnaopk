@@ -58,12 +58,13 @@ import {
 import { capturePayPalOrder, createPayPalOrder } from "@/lib/payments/paypal";
 import {
   createRazorpayOrder,
-  captureRazorpayPayment,
+  captureAuthorizedRazorpayPayment,
   fetchRazorpayPayment,
   getRazorpayCredentials,
   getRazorpayCurrencyExponent,
   verifyRazorpayPaymentSignature,
 } from "@/lib/payments/razorpay";
+import { buildRazorpayCallbackUrl } from "@/lib/payments/razorpay-callback";
 import {
   getPaystackCredentials,
   getPaystackCurrencyExponent,
@@ -310,6 +311,12 @@ type PlatformPaymentInitiation =
       name: string;
       description: string;
       prefill: { email?: string; name?: string; contact?: string };
+      /**
+       * Checkout's `callback_url`. Razorpay returns the payer there with a
+       * full-page POST, and the callback forwards them to `successUrl` (with
+       * the signed payment) or `cancelUrl`.
+       */
+      callbackUrl: string;
     }
   | { type: "polling" };
 
@@ -470,6 +477,10 @@ export async function initiatePlatformPayment(
         name: storeName,
         description: input.description,
         prefill: { email: payer.email, name: payer.name },
+        callbackUrl: buildRazorpayCallbackUrl({
+          successUrl: input.successUrl,
+          failureUrl: input.cancelUrl,
+        }),
       };
     }
 
@@ -854,7 +865,7 @@ export async function finalizePlatformPayment(
         ...(verified.patch || {}),
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!paid) {
     // Not eligible for the flip. Either we lost the race to a concurrent
@@ -929,28 +940,57 @@ async function grantPlatformBenefit(paid: IPlatformPayment): Promise<void> {
     const { settleCommissionInvoice } = await import(
       "@/lib/finance/commission-invoices"
     );
-    const settled = paid.commissionInvoiceId
+    const outcome = paid.commissionInvoiceId
       ? await settleCommissionInvoice({
           invoiceId: String(paid.commissionInvoiceId),
           paymentId: String(paid._id),
         })
-      : 0;
-    if (settled === 0) {
-      // Paid, but nothing carried this invoice's claim. Either the claim was
-      // released while the vendor was at the gateway, or it never landed. The
-      // money is real, so say so loudly rather than stamping this complete —
-      // benefitGrantedAt is what both repair paths key off.
+      : ({ settled: false, reason: "not_open" } as const);
+    if (!outcome.settled || outcome.sales === 0) {
+      const why = !outcome.settled
+        ? outcome.reason === "paid_by_another_payment"
+          ? "the invoice had already been paid by another payment"
+          : "the invoice was no longer open (cancelled while the vendor was paying)"
+        : "no sub-orders carried this invoice's claim";
+
+      // An admin recording a collection the invoice already has took nothing:
+      // no money moved, so the attempt is not left reading as a payment.
+      if (
+        !outcome.settled &&
+        outcome.reason === "paid_by_another_payment" &&
+        paid.provider === PLATFORM_PAYMENT_PROVIDER.MANUAL
+      ) {
+        await PlatformPayment.updateOne(
+          { _id: paid._id, benefitGrantedAt: null },
+          {
+            $set: {
+              status: PLATFORM_PAYMENT_STATUS.FAILED,
+              failedAt: new Date(),
+              failureReason: `Not recorded — ${why}`,
+            },
+          },
+        );
+        return;
+      }
+
+      // The money is real, so it is said loudly rather than stamped complete —
+      // benefitGrantedAt is what both repair paths key off, and no income is
+      // posted for a payment nothing was settled by.
       console.error(
-        `Commission payment ${paid._id} is paid but claimed no sub-orders — refund or re-invoice out-of-band`,
+        `Commission payment ${paid._id} is paid but settled nothing: ${why} — refund it`,
       );
       await PlatformPayment.updateOne(
         { _id: paid._id, benefitGrantedAt: null },
-        {
-          $set: {
-            failureReason:
-              "Paid, but no sub-orders carried this invoice's claim — settle out-of-band",
-          },
-        },
+        { $set: { failureReason: `Paid, but ${why} — refund this payment` } },
+      );
+      const { notifyAdminsPaymentAnomaly } = await import(
+        "@/lib/notifications/notifications"
+      );
+      await notifyAdminsPaymentAnomaly({
+        title: "Commission payment settled nothing",
+        message: `Commission payment ${paid.reference || paid._id} for ${paid.amount} ${paid.currency} was received, but ${why}. Refund it to the vendor.`,
+      }).catch((err) =>
+        console.error("Failed to send payment anomaly alert:", err),
       );
       return;
     }
@@ -985,7 +1025,7 @@ export async function markPlatformPaymentReversed(payment: IPlatformPayment) {
   const updated = await PlatformPayment.findOneAndUpdate(
     { _id: payment._id, status: PLATFORM_PAYMENT_STATUS.PAID },
     { $set: { status: PLATFORM_PAYMENT_STATUS.REFUNDED } },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) return null;
   if (updated.kind === PLATFORM_PAYMENT_KIND.BOOST && updated.campaignId) {
@@ -1198,7 +1238,7 @@ interface VerifyPlatformPaymentPayload {
 /**
  * Re-check the gateway's authoritative status for a pending attempt and
  * finalize when paid. Used by the client-facing verify routes (redirect
- * returns, ioTec polling, Razorpay modal success) — webhooks/IPNs are the
+ * returns, Razorpay's included, and ioTec polling) — webhooks/IPNs are the
  * async belt, this is the braces.
  */
 export async function verifyPlatformPayment(
@@ -1304,8 +1344,9 @@ export async function verifyPlatformPayment(
         keyId: settings.payment?.razorpay?.keyId,
         keySecret: settings.payment?.razorpay?.keySecret,
       });
-      // The modal handler supplies a signature; only the webhook path — which
-      // verified its own body signature before calling in — may omit it.
+      // The return page forwards the signature Razorpay posted to the
+      // callback; only the webhook path — which verified its own body
+      // signature before calling in — may omit it.
       // Without this, any authenticated vendor could feed arbitrary payment
       // ids into their own attempt's verify.
       if (payload.razorpaySignature) {
@@ -1330,14 +1371,12 @@ export async function verifyPlatformPayment(
       if (rzpPayment.order_id && rzpPayment.order_id !== payment.razorpayOrderId) {
         throw new ValidationError("Razorpay payment belongs to a different order");
       }
-      if (rzpPayment.status === "authorized" && !rzpPayment.captured) {
-        rzpPayment = await captureRazorpayPayment({
-          creds,
-          paymentId: rzpPayment.id,
-          amount: payment.amount,
-          currency: payment.currency,
-        });
-      }
+      rzpPayment = await captureAuthorizedRazorpayPayment({
+        creds,
+        payment: rzpPayment,
+        amount: payment.amount,
+        currency: payment.currency,
+      });
       if (rzpPayment.status !== "captured") return { paid: false };
       const result = await finalizePlatformPayment(payment, {
         amount:

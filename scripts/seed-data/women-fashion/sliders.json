@@ -1,0 +1,3979 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa6ff02d2a9868b86ffda39"
+    },
+    "name": "New Slider",
+    "handle": "new-slider",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu08dnin",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "Shop Now",
+          "cta2": ""
+        },
+        "ctaVariant": "light",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 25,
+              "paddingX": 52,
+              "paddingY": 24,
+              "fill": "#7cb3ff",
+              "color": "#393939"
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 18
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 32
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 0,
+            "stops": [
+              {
+                "color": "#ef4444",
+                "at": 0
+              },
+              {
+                "color": "#ec4899",
+                "at": 100
+              }
+            ]
+          },
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789477055206-sj90vw/fa3e95245929607.69b88b63f3bf6.webp",
+          "hover": "zoom",
+          "imageWidth": 1920,
+          "motion": "kenburns"
+        },
+        "layout": {
+          "landscape": {
+            "h": "right",
+            "v": "bottom",
+            "gap": 14,
+            "scale": 95,
+            "padding": 24
+          },
+          "square": {
+            "gap": 10
+          },
+          "portrait": {
+            "gap": 18
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-13T19:52:34.460Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T13:00:46.576Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08dnin",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "light",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 25,
+                  "paddingX": 52,
+                  "paddingY": 24,
+                  "fill": "#7cb3ff",
+                  "color": "#393939"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 32
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789477055206-sj90vw/fa3e95245929607.69b88b63f3bf6.webp",
+              "hover": "zoom",
+              "imageWidth": 1920,
+              "motion": "pan"
+            },
+            "layout": {
+              "landscape": {
+                "h": "right",
+                "v": "bottom",
+                "gap": 14,
+                "scale": 95,
+                "padding": 24
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 18
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T13:00:20.301Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08dnin",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "light",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 25,
+                  "paddingX": 52,
+                  "paddingY": 24,
+                  "fill": "#7cb3ff",
+                  "color": "#393939"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 32
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789477055206-sj90vw/fa3e95245929607.69b88b63f3bf6.webp",
+              "hover": "brighten",
+              "imageWidth": 1920,
+              "motion": "pan"
+            },
+            "layout": {
+              "landscape": {
+                "h": "right",
+                "v": "bottom",
+                "gap": 14,
+                "scale": 95,
+                "padding": 24
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 18
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:59:04.076Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08dnin",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "light",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 25,
+                  "paddingX": 52,
+                  "paddingY": 24,
+                  "fill": "#7cb3ff",
+                  "color": "#393939"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 32
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789477055206-sj90vw/fa3e95245929607.69b88b63f3bf6.webp",
+              "hover": "brighten",
+              "imageWidth": 1920,
+              "motion": "kenburns"
+            },
+            "layout": {
+              "landscape": {
+                "h": "right",
+                "v": "bottom",
+                "gap": 14,
+                "scale": 95,
+                "padding": 24
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 18
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:58:23.454Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08dnin",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "light",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 25,
+                  "paddingX": 52,
+                  "paddingY": 24,
+                  "fill": "#7cb3ff",
+                  "color": "#393939"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 32
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789477055206-sj90vw/fa3e95245929607.69b88b63f3bf6.webp",
+              "hover": "brighten",
+              "imageWidth": 1920,
+              "motion": "kenburns"
+            },
+            "layout": {
+              "landscape": {
+                "h": "right",
+                "v": "bottom",
+                "gap": 14,
+                "scale": 95
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 18
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:57:47.549Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08dnin",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "light",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 25,
+                  "paddingX": 52,
+                  "paddingY": 24,
+                  "fill": "#7cb3ff",
+                  "color": "#393939"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 32
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329160897-3w0fom/Rectangle_492.webp"
+            },
+            "layout": {
+              "landscape": {
+                "h": "right",
+                "v": "bottom",
+                "gap": 14,
+                "scale": 95
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 18
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T09:51:26.626Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08dnin",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "outline",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 25,
+                  "paddingX": 65,
+                  "paddingY": 46,
+                  "color": "#ffffff"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 32
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329160897-3w0fom/Rectangle_492.webp"
+            },
+            "layout": {
+              "landscape": {
+                "h": "right",
+                "v": "bottom",
+                "gap": 14,
+                "scale": 95
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 18
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T09:51:26.091Z"
+      }
+    ],
+    "publishedAt": "2026-09-15T13:00:46.576Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa7020ad2a9868b86ffda45"
+    },
+    "name": "New Slider",
+    "handle": "new-slider-1789329930693",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu08uage",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "Shop Now",
+          "cta2": ""
+        },
+        "ctaVariant": "outline",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 32,
+              "color": "#ffffff"
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 23
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 40
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329965253-ns61mn/awd.webp",
+          "hover": "zoom"
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "gap": 11
+          },
+          "portrait": {
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-13T20:05:30.694Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T09:48:53.664Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08uage",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "outline",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 32,
+                  "color": "#ffffff"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 23
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 40
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329965253-ns61mn/awd.webp"
+            },
+            "layout": {
+              "landscape": {
+                "h": "center",
+                "v": "bottom",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T09:48:53.126Z"
+      }
+    ],
+    "publishedAt": "2026-09-15T09:48:53.664Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa70259d2a9868b86ffda46"
+    },
+    "name": "New Slider",
+    "handle": "new-slider-1789330009241",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu08vz2d",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "Shop Now",
+          "cta2": ""
+        },
+        "ctaVariant": "outline",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 32,
+              "color": "#fefefe"
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 23
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 40
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789451891847-s5h4of/Rectangle_232.png",
+          "hover": "zoom"
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "gap": 11
+          },
+          "portrait": {
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-13T20:06:49.242Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T09:48:47.534Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu08vz2d",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "Shop Now",
+              "cta2": ""
+            },
+            "ctaVariant": "outline",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 32,
+                  "color": "#fefefe"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 23
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 40
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789451891847-s5h4of/Rectangle_232.png"
+            },
+            "layout": {
+              "landscape": {
+                "h": "center",
+                "v": "bottom",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T09:48:46.991Z"
+      }
+    ],
+    "publishedAt": "2026-09-15T09:48:47.533Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa93c8114e6a3473c5cf2a3"
+    },
+    "name": "Prada",
+    "handle": "new-slider-1789475969581",
+    "isActive": true,
+    "transition": "fade",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu2nserr",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": false,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "",
+          "cta2": ""
+        },
+        "ctaVariant": "dark",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 18
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476035254-glt8f9/664167e692af75d360fbfff81b2a4e9e.jpg",
+          "hover": "zoom",
+          "focal": {
+            "x": 0,
+            "y": 47.1
+          },
+          "imageWidth": 1200
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "gap": 11
+          },
+          "portrait": {
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "history": [
+      {
+        "transition": "fade",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2nserr",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": false,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476035254-glt8f9/664167e692af75d360fbfff81b2a4e9e.jpg",
+              "hover": "zoom",
+              "focal": {
+                "x": 0,
+                "y": 47.1
+              },
+              "imageWidth": 1200
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:44:27.742Z"
+      },
+      {
+        "transition": "fade",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2nserr",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": false,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476035254-glt8f9/664167e692af75d360fbfff81b2a4e9e.jpg",
+              "hover": "zoom",
+              "focal": {
+                "x": 0,
+                "y": 100
+              },
+              "imageWidth": 1200,
+              "motion": "zoom-out"
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:43:06.534Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2nserr",
+            "visible": true,
+            "elements": {
+              "heading": true,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "solid",
+              "color": "#f1f1f1"
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:43:05.989Z"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-15T12:39:29.586Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T12:52:03.217Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "publishedAt": "2026-09-15T12:52:03.217Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa93df414e6a3473c5cf2a6"
+    },
+    "name": "Dior",
+    "handle": "new-slider-1789476340834",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu2o0d8f",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": false,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "",
+          "cta2": ""
+        },
+        "ctaVariant": "dark",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 18
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476352595-ep0v9u/53409e0114840afb50372072674912fb.jpg",
+          "hover": "zoom",
+          "imageWidth": 1200
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "gap": 11
+          },
+          "portrait": {
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2o0d8f",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": false,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476352595-ep0v9u/53409e0114840afb50372072674912fb.jpg",
+              "hover": "zoom",
+              "imageWidth": 1200
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:46:00.056Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2o0d8f",
+            "visible": true,
+            "elements": {
+              "heading": true,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "solid",
+              "color": "#f1f1f1"
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:45:59.509Z"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-15T12:45:40.836Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T12:51:50.352Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "publishedAt": "2026-09-15T12:51:50.352Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa93e9814e6a3473c5cf2a8"
+    },
+    "name": "Louis Vuitton",
+    "handle": "new-slider-1789476504075",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu2o3v72",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": false,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "",
+          "cta2": ""
+        },
+        "ctaVariant": "dark",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 18
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476513743-5nnpio/ab0c1dda05973c57480852177f2a7b5d.jpg",
+          "hover": "zoom",
+          "imageWidth": 736
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "gap": 11
+          },
+          "portrait": {
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2o3v72",
+            "visible": true,
+            "elements": {
+              "heading": false,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": false,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476513743-5nnpio/ab0c1dda05973c57480852177f2a7b5d.jpg",
+              "hover": "zoom",
+              "imageWidth": 736
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:48:44.905Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2o3v72",
+            "visible": true,
+            "elements": {
+              "heading": true,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "solid",
+              "color": "#f1f1f1"
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:48:44.376Z"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-15T12:48:24.075Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T12:51:44.118Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "publishedAt": "2026-09-15T12:51:44.118Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa93f4b14e6a3473c5cf2aa"
+    },
+    "name": "Gucci",
+    "handle": "new-slider-1789476683406",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu2o7pjq",
+        "visible": true,
+        "elements": {
+          "heading": false,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": false,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "",
+          "cta2": ""
+        },
+        "ctaVariant": "dark",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 18
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 64
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789476739759-agglna/2cfcb9c5e6622f649b8c462114017a2e.jpg",
+          "hover": "zoom",
+          "focal": {
+            "x": 51,
+            "y": 57.2
+          },
+          "imageWidth": 736
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "gap": 11
+          },
+          "portrait": {
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 5,
+        "controls": {
+          "arrows": "none",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "end",
+          "pause": true
+        },
+        "slides": [
+          {
+            "id": "slide-mu2o7pjq",
+            "visible": true,
+            "elements": {
+              "heading": true,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "",
+              "heading": "",
+              "description": "",
+              "cta": "",
+              "cta2": ""
+            },
+            "ctaVariant": "dark",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 18
+                },
+                "heading": {
+                  "size": 51
+                },
+                "description": {
+                  "size": 20
+                },
+                "cta": {
+                  "size": 18
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 13
+                },
+                "heading": {
+                  "size": 36
+                },
+                "description": {
+                  "size": 15
+                },
+                "cta": {
+                  "size": 13
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 23
+                },
+                "heading": {
+                  "size": 64
+                },
+                "description": {
+                  "size": 26
+                },
+                "cta": {
+                  "size": 23
+                }
+              }
+            },
+            "link": "",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "solid",
+              "color": "#f1f1f1"
+            },
+            "layout": {
+              "landscape": {
+                "h": "left",
+                "v": "middle",
+                "gap": 15,
+                "scale": 100
+              },
+              "square": {
+                "gap": 11
+              },
+              "portrait": {
+                "gap": 19
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-15T12:52:38.712Z"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-15T12:51:23.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T12:52:39.247Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "publishedAt": "2026-09-15T12:52:39.247Z"
+  },
+  {
+    "_id": {
+      "$oid": "6aa9475014e6a3473c5cf2b0"
+    },
+    "name": "Prada Summer Collection copy",
+    "handle": "prada-summer-collection-copy",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu2ond45",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "Summer Collection",
+          "description": "",
+          "cta": "Shop Now",
+          "cta2": ""
+        },
+        "ctaVariant": "light",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "weight": "500",
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 22,
+              "paddingX": 90,
+              "paddingY": 18
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36,
+              "width": 100
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 31,
+              "width": 100
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "video",
+          "color": "#f1f1f1",
+          "video": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789477467811-lzd24j/Days_of_Summer.mp4",
+          "videoSize": 1448273
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 11
+          },
+          "portrait": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [],
+    "createdAt": {
+      "$date": "2026-09-15T13:25:36.597Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T13:25:36.597Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa9480b14e6a3473c5cf2b3"
+    },
+    "name": "Handbag Collection copy",
+    "handle": "handbag-collection-copy",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mu2ond45",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "Handbag Collection",
+          "description": "",
+          "cta": "Shop Now",
+          "cta2": ""
+        },
+        "ctaVariant": "light",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 18
+            },
+            "heading": {
+              "weight": "500",
+              "size": 51
+            },
+            "description": {
+              "size": 20
+            },
+            "cta": {
+              "size": 22,
+              "paddingX": 90,
+              "paddingY": 18
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 36,
+              "width": 100
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 31,
+              "width": 100
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "video",
+          "color": "#f1f1f1",
+          "video": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789478744974-mmze8g/Craftsmanship_at_Radley.mp4",
+          "videoSize": 675694
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 15,
+            "scale": 100
+          },
+          "square": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 11
+          },
+          "portrait": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 19
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [],
+    "createdAt": {
+      "$date": "2026-09-15T13:28:43.173Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T13:28:43.173Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaae1bc2f46abe23f278e40"
+    },
+    "name": "Heo static",
+    "handle": "new-slider-copy-1789583804058",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 3,
+    "slides": [
+      {
+        "id": "slide-mu289qaa-copy",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "Dresses",
+          "heading": "Early Access: Flight Mode",
+          "description": "",
+          "cta": "Order The Collection",
+          "cta2": ""
+        },
+        "ctaVariant": "outline",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 19,
+              "letterSpacing": 19,
+              "lineHeight": 80
+            },
+            "heading": {
+              "weight": "500",
+              "size": 53,
+              "width": 100,
+              "lineHeight": 130
+            },
+            "description": {
+              "size": 25
+            },
+            "cta": {
+              "size": 15,
+              "paddingX": 20,
+              "paddingY": 15,
+              "color": "#ffffff"
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 10
+            },
+            "heading": {
+              "size": 31
+            },
+            "description": {
+              "size": 14
+            },
+            "cta": {
+              "size": 14
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 31
+            },
+            "heading": {
+              "size": 97
+            },
+            "description": {
+              "size": 42
+            },
+            "cta": {
+              "size": 42
+            }
+          }
+        },
+        "link": "/products",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 0,
+            "stops": [
+              {
+                "color": "#ef4444",
+                "at": 0
+              },
+              {
+                "color": "#ec4899",
+                "at": 100
+              }
+            ]
+          },
+          "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789469091341-nxr3vn/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+          "hover": "brighten",
+          "focal": {
+            "x": 49.3,
+            "y": 0
+          },
+          "imageWidth": 1440,
+          "videoSize": 3745578,
+          "overlayKind": "gradient",
+          "overlayFrom": "top"
+        },
+        "layout": {
+          "landscape": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 37,
+            "scale": 100
+          },
+          "square": {
+            "gap": 10
+          },
+          "portrait": {
+            "gap": 31
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "controls": {
+      "arrows": "minimal",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "center",
+      "pause": false
+    },
+    "history": [
+      {
+        "transition": "slide",
+        "autoplaySeconds": 3,
+        "controls": {
+          "arrows": "minimal",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "center",
+          "pause": false
+        },
+        "slides": [
+          {
+            "id": "slide-mu289qaa-copy",
+            "visible": true,
+            "elements": {
+              "heading": true,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "Dresses",
+              "heading": "Early Access: Flight Mode",
+              "description": "",
+              "cta": "Order The Collection",
+              "cta2": ""
+            },
+            "ctaVariant": "outline",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 19,
+                  "letterSpacing": 19,
+                  "lineHeight": 80
+                },
+                "heading": {
+                  "weight": "500",
+                  "size": 53,
+                  "width": 100,
+                  "lineHeight": 130
+                },
+                "description": {
+                  "size": 25
+                },
+                "cta": {
+                  "size": 15,
+                  "paddingX": 20,
+                  "paddingY": 15,
+                  "color": "#ffffff"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 10
+                },
+                "heading": {
+                  "size": 31
+                },
+                "description": {
+                  "size": 14
+                },
+                "cta": {
+                  "size": 14
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 31
+                },
+                "heading": {
+                  "size": 97
+                },
+                "description": {
+                  "size": 42
+                },
+                "cta": {
+                  "size": 42
+                }
+              }
+            },
+            "link": "/products",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "image",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789469091341-nxr3vn/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+              "overlay": 40,
+              "hover": "brighten",
+              "focal": {
+                "x": 49.3,
+                "y": 0
+              },
+              "imageWidth": 1440,
+              "videoSize": 3745578,
+              "overlayKind": "gradient",
+              "overlayFrom": "top"
+            },
+            "layout": {
+              "landscape": {
+                "h": "center",
+                "v": "bottom",
+                "gap": 37,
+                "scale": 100
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 31
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-16T18:37:03.802Z"
+      },
+      {
+        "transition": "slide",
+        "autoplaySeconds": 3,
+        "controls": {
+          "arrows": "minimal",
+          "arrowsPosition": "sides",
+          "dots": "dots",
+          "dotsPosition": "center",
+          "pause": false
+        },
+        "slides": [
+          {
+            "id": "slide-mu289qaa-copy",
+            "visible": true,
+            "elements": {
+              "heading": true,
+              "description": false,
+              "tagline": false,
+              "price": false,
+              "cta": true,
+              "cta2": false,
+              "countdown": false
+            },
+            "order": [
+              "tagline",
+              "heading",
+              "description",
+              "price",
+              "countdown",
+              "cta",
+              "cta2"
+            ],
+            "texts": {
+              "tagline": "Dresses",
+              "heading": "Early Access: Flight Mode",
+              "description": "",
+              "cta": "Order The Collection",
+              "cta2": ""
+            },
+            "ctaVariant": "outline",
+            "cta2Variant": "outline",
+            "styles": {
+              "landscape": {
+                "tagline": {
+                  "size": 19,
+                  "letterSpacing": 19,
+                  "lineHeight": 80
+                },
+                "heading": {
+                  "weight": "500",
+                  "size": 53,
+                  "width": 100,
+                  "lineHeight": 130
+                },
+                "description": {
+                  "size": 25
+                },
+                "cta": {
+                  "size": 15,
+                  "paddingX": 20,
+                  "paddingY": 15,
+                  "color": "#ffffff"
+                }
+              },
+              "square": {
+                "tagline": {
+                  "size": 10
+                },
+                "heading": {
+                  "size": 31
+                },
+                "description": {
+                  "size": 14
+                },
+                "cta": {
+                  "size": 14
+                }
+              },
+              "portrait": {
+                "tagline": {
+                  "size": 31
+                },
+                "heading": {
+                  "size": 97
+                },
+                "description": {
+                  "size": 42
+                },
+                "cta": {
+                  "size": 42
+                }
+              }
+            },
+            "link": "/products",
+            "link2": "",
+            "productId": "",
+            "productImage": "",
+            "artInFront": false,
+            "countdownEndsAt": "",
+            "reveal": "fade",
+            "background": {
+              "type": "video",
+              "color": "#f1f1f1",
+              "gradient": {
+                "type": "linear",
+                "angle": 0,
+                "stops": [
+                  {
+                    "color": "#ef4444",
+                    "at": 0
+                  },
+                  {
+                    "color": "#ec4899",
+                    "at": 100
+                  }
+                ]
+              },
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789469091341-nxr3vn/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+              "video": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789469150978-ql8yfj/LOUIS_VUITTON_-_Official_International_Website.mp4",
+              "overlay": 40,
+              "hover": "brighten",
+              "focal": {
+                "x": 49.3,
+                "y": 0
+              },
+              "imageWidth": 1440,
+              "videoSize": 3745578,
+              "overlayKind": "gradient",
+              "overlayFrom": "top"
+            },
+            "layout": {
+              "landscape": {
+                "h": "center",
+                "v": "bottom",
+                "gap": 37,
+                "scale": 100
+              },
+              "square": {
+                "gap": 10
+              },
+              "portrait": {
+                "gap": 31
+              }
+            },
+            "image": {
+              "landscape": {
+                "h": "right",
+                "v": "middle",
+                "scale": 40,
+                "rotation": 0,
+                "x": 0,
+                "y": 0
+              }
+            },
+            "alt": ""
+          }
+        ],
+        "publishedAt": "2026-09-16T18:37:03.597Z"
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-16T18:36:44.060Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T18:37:38.076Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "publishedAt": "2026-09-16T18:37:38.075Z"
+  }
+]

@@ -24,13 +24,20 @@ import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { SliderPreview } from "@/components/admin/sliders/slider-card";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
-import { normalizeSlides, type SliderDocument } from "@/lib/sliders/types";
+import { normalizeSliderDocument, type SliderDocument } from "@/lib/sliders/types";
 import type {
   BlockInstance,
   SectionCatalogEntry,
 } from "@/lib/storefront/sections/types";
 import { BlockEditor } from "./block-editor";
+import {
+  COLLECTION_ROW_CORNERS,
+  COLLECTION_ROW_GAP_MODES,
+  COLLECTION_ROW_LIMITS,
+} from "@/lib/storefront/sections/collection-rows-spacing";
 import { EditorGroup, FieldLabel } from "./field-renderer";
+import { PanelGroup } from "./editor-shell";
+import { SliderRow } from "./product-main-editor";
 import { SectionImageField } from "./section-image-field";
 
 interface CollectionOption {
@@ -113,12 +120,7 @@ export function FeaturedCollectionEditor({
       .get<SliderDocument[]>("/api/admin/sliders")
       .then((list) => {
         if (!Array.isArray(list)) return setSliders([]);
-        setSliders(
-          list.map((entry) => ({
-            ...entry,
-            slides: normalizeSlides(entry.slides),
-          })),
-        );
+        setSliders(list.map(normalizeSliderDocument));
       })
       .catch(() => setSliders((current) => current ?? []));
   };
@@ -210,6 +212,64 @@ export function FeaturedCollectionEditor({
             onChange={(event) => onSettingChange("title", event.target.value)}
           />
         </div>
+
+        {/* The rows' geometry: the space between the panel and the shelf
+            of cards (the cards keep the product card's grid spacing), the
+            panel's size, its corners. */}
+        <PanelGroup title={tSafe("admin.storeBuilder.panelGroups.layout", "Layout")}>
+        <div className="grid gap-x-8 gap-y-2.5 md:grid-cols-2">
+          <SelectRow
+            label={tSafe("admin.storeBuilder.fields.gapMode", "Spacing")}
+            value={settings.gapMode === "custom" ? "custom" : "followCards"}
+            options={COLLECTION_ROW_GAP_MODES.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.options.${key}`, key),
+            }))}
+            onChange={(gapMode) => onSettingChange("gapMode", gapMode)}
+          />
+          {settings.gapMode === "custom" ? (
+            <SliderRow
+              label={tSafe("admin.storeBuilder.fields.panelGap", "Gap after the feature image")}
+              value={num(settings.gap, COLLECTION_ROW_LIMITS.gap.default)}
+              max={COLLECTION_ROW_LIMITS.gap.max}
+              onChange={(gap) => onSettingChange("gap", gap)}
+            />
+          ) : null}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.fields.panelWidth", "Feature image width")}
+            value={num(settings.panelWidth, COLLECTION_ROW_LIMITS.panelWidth.default)}
+            max={COLLECTION_ROW_LIMITS.panelWidth.max}
+            unit="%"
+            zeroLabel={tSafe("admin.storeBuilder.options.auto", "Auto")}
+            onChange={(panelWidth) => onSettingChange("panelWidth", panelWidth)}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.fields.panelHeight", "Feature image height")}
+            value={num(settings.panelHeight, COLLECTION_ROW_LIMITS.panelHeight.default)}
+            max={COLLECTION_ROW_LIMITS.panelHeight.max}
+            step={10}
+            zeroLabel={tSafe("admin.storeBuilder.options.matchCards", "Match cards")}
+            onChange={(panelHeight) => onSettingChange("panelHeight", panelHeight)}
+          />
+          <SelectRow
+            label={tSafe("admin.storeBuilder.fields.corners", "Corners")}
+            value={settings.corners === "theme" ? "theme" : "custom"}
+            options={COLLECTION_ROW_CORNERS.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.options.${key}`, key),
+            }))}
+            onChange={(corners) => onSettingChange("corners", corners)}
+          />
+          {settings.corners !== "theme" ? (
+            <SliderRow
+              label={tSafe("admin.storeBuilder.fields.panelRadius", "Corner radius")}
+              value={num(settings.panelRadius, COLLECTION_ROW_LIMITS.panelRadius.default)}
+              max={COLLECTION_ROW_LIMITS.panelRadius.max}
+              onChange={(panelRadius) => onSettingChange("panelRadius", panelRadius)}
+            />
+          ) : null}
+        </div>
+        </PanelGroup>
       </EditorGroup>
 
       <EditorGroup
@@ -286,7 +346,7 @@ export function FeaturedCollectionEditor({
                   </FieldLabel>
                   <NumberInput
                     inputMode="numeric"
-                    min={4}
+                    min={3}
                     max={6}
                     step={1}
                     aria-label={tSafe(
@@ -673,5 +733,39 @@ function FeatureContentDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function num(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function SelectRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { key: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
+      <NativeSelect
+        value={value}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value as T)}
+        className="h-9 w-44 shrink-0"
+      >
+        {options.map((option) => (
+          <option key={option.key} value={option.key}>
+            {option.label}
+          </option>
+        ))}
+      </NativeSelect>
+    </div>
   );
 }

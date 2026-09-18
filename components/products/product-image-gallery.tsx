@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
   type UIEvent,
@@ -66,7 +67,53 @@ type GalleryMedia = {
   /** external_video only. */
   provider?: "youtube" | "vimeo";
   embedId?: string;
+  /** Images: "auto" follows the page's fit; the product editor sets it per image. */
+  fit?: "auto" | "contain" | "cover";
+  /** Intrinsic pixel size, recorded at upload — gives a frame its proportions. */
+  width?: number;
+  height?: number;
 };
+
+/**
+ * The horizontal carousel's track height when the page sets none: tall enough
+ * to read as the product's photography, short enough on a phone that the
+ * price is still in reach below it.
+ */
+const CAROUSEL_TRACK_HEIGHT_CLASS =
+  "h-[52vh] max-h-[440px] sm:h-[56vh] sm:max-h-[520px] lg:h-[min(640px,calc(100svh-var(--storefront-header-height,7rem)-10rem))] lg:max-h-none";
+
+/**
+ * A media item's own proportions (width ÷ height), or null when nothing says.
+ * Images and videos carry them from upload; an embedded video is 16:9 by
+ * construction. A 3D model has none — its frame falls back to 4:3.
+ */
+function mediaRatio(item: GalleryMedia, kind: MediaKind): number | null {
+  if (kind === "external_video") return 16 / 9;
+  if ((kind === "image" || kind === "video") && item.width && item.height) {
+    return item.width / item.height;
+  }
+  return null;
+}
+
+/**
+ * The product page's gallery settings (product-detail-style.ts). Absent — the
+ * classic and electronics buy boxes, the quick view — every frame keeps the
+ * design as shipped.
+ */
+export interface ProductGalleryAppearance {
+  radius: number;
+  gap: number;
+  fit: "contain" | "cover";
+  /** Air around a contained image, px; -1 = the responsive default. */
+  padding: number;
+  /** Thumbnail width, px; 0 = the layout's own. */
+  thumbSize: number;
+  thumbRadius: number;
+  /** Outline on the selected thumbnail; "" = the tile's surface step. */
+  thumbActiveBorder: string;
+  zoom: boolean;
+  thumbnails: boolean;
+}
 
 interface ProductImageGalleryProps {
   media: GalleryMedia[];
@@ -86,8 +133,13 @@ interface ProductImageGalleryProps {
   layout?: "bottom" | "left" | "grid" | "carousel" | "vertical";
   /** Overrides the main stage's neutral backdrop (Minimal's Preview style). */
   stageBackground?: string;
-  /** Fixed main-stage height in px; absent keeps the responsive default. */
+  /**
+   * Fixed frame height in px; absent keeps the responsive default. Every
+   * layout honours it: the main image, each carousel slide, each image in the
+   * vertical stack, each grid tile.
+   */
   stageHeight?: number;
+  appearance?: ProductGalleryAppearance;
 }
 
 export function ProductImageGallery({
@@ -99,13 +151,33 @@ export function ProductImageGallery({
   layout = "bottom",
   stageBackground,
   stageHeight,
+  appearance,
 }: ProductImageGalleryProps) {
   const stageFrameStyle = stageHeight ? { height: stageHeight } : undefined;
+  const look = appearance;
+  // Radius rides inline: a frame's rounded-lg is the shipped default only.
+  const frameRadius = look ? { borderRadius: look.radius } : undefined;
+  const frameSurface = {
+    ...frameRadius,
+    ...(stageBackground ? { backgroundColor: stageBackground } : {}),
+  };
+  const zoomAllowed = look?.zoom ?? true;
+  const showThumbnails = look?.thumbnails ?? true;
+  const customThumbWidth = Boolean(look && look.thumbSize > 0);
+  /** An image's own fit wins; "auto" (or none) follows the page's. */
+  const fitFor = (item: GalleryMedia): "contain" | "cover" =>
+    item.fit === "contain" || item.fit === "cover"
+      ? item.fit
+      : (look?.fit ?? "contain");
+  const imagePadding = look?.padding ?? -1;
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isZoomEnabled, setIsZoomEnabled] = useState(false);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [transformOrigin, setTransformOrigin] = useState("50% 50%");
   const carouselRef = useRef<HTMLDivElement | null>(null);
+  // Each slide is as wide as its image, so a slide's position is read from
+  // the slide itself rather than worked out as index × strip width.
+  const slideRefs = useRef<(HTMLElement | null)[]>([]);
   const carouselScrollFrame = useRef<number | null>(null);
   // Set while an arrow/thumb drives the strip, so the scroll listener does
   // not fight the smooth scroll by re-selecting every intermediate slide.
@@ -176,8 +248,15 @@ export function ProductImageGallery({
   useEffect(() => {
     if (layout !== "carousel") return;
     const strip = carouselRef.current;
-    if (!strip) return;
-    const target = strip.clientWidth * selectedIndex;
+    const slide = slideRefs.current[selectedIndex];
+    if (!strip || !slide) return;
+    // The strip is the slides' offset parent, so offsetLeft is measured in
+    // the strip's own scroll coordinates. Clamped: the last slides may not
+    // be able to reach the start edge.
+    const target = Math.min(
+      strip.scrollWidth - strip.clientWidth,
+      slide.offsetLeft,
+    );
     if (Math.abs(strip.scrollLeft - target) < 2) return;
     carouselProgrammatic.current = true;
     strip.scrollTo({ left: target, behavior: "smooth" });
@@ -196,10 +275,22 @@ export function ProductImageGallery({
     carouselScrollFrame.current = requestAnimationFrame(() => {
       carouselScrollFrame.current = null;
       if (!strip.clientWidth) return;
-      const index = Math.min(
-        media.length - 1,
-        Math.max(0, Math.round(strip.scrollLeft / strip.clientWidth)),
-      );
+      // The selected slide is the one whose start sits nearest the strip's
+      // left edge. Positions are clamped to the furthest the strip can
+      // scroll, so at the end the first slide that has fully arrived wins.
+      const max = strip.scrollWidth - strip.clientWidth;
+      let index = 0;
+      let best = Number.POSITIVE_INFINITY;
+      slideRefs.current.slice(0, media.length).forEach((slide, position) => {
+        if (!slide) return;
+        const distance = Math.abs(
+          Math.min(max, slide.offsetLeft) - strip.scrollLeft,
+        );
+        if (distance < best - 1) {
+          best = distance;
+          index = position;
+        }
+      });
       if (index !== selectedIndex) onSelect(index);
     });
   };
@@ -234,17 +325,34 @@ export function ProductImageGallery({
   return (
     <div
       className={cn(
-        GALLERY_STACK_CLASS,
+        // A configured gap needs a flex stack: space-y cannot take an inline
+        // value. The shipped stack stays exactly as it was.
+        look ? "mx-auto flex w-full max-w-xl flex-col lg:max-w-none" : GALLERY_STACK_CLASS,
         // Left rail: same stacked layout until lg — where the buy box moves
         // beside the gallery — then thumbs become a vertical column beside
         // the main frame.
         layout === "left" &&
-          "lg:flex lg:items-start lg:gap-4 lg:space-y-0",
+          (look
+            ? "lg:flex-row lg:items-start"
+            : "lg:flex lg:items-start lg:gap-4 lg:space-y-0"),
       )}
+      style={
+        look
+          ? ({
+              gap: look.gap,
+              ...(customThumbWidth
+                ? { "--gallery-thumb-w": `${look.thumbSize}px` }
+                : {}),
+            } as CSSProperties)
+          : undefined
+      }
     >
       {layout === "grid" ? (
         /* Grid: every media item tiled; any tile opens the fullscreen viewer. */
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div
+          className={cn("grid grid-cols-2", !look && "gap-3 sm:gap-4")}
+          style={look ? { gap: look.gap } : undefined}
+        >
           {media.map((item, index) => {
             const kind = getMediaKind(item);
             return (
@@ -259,16 +367,23 @@ export function ProductImageGallery({
                   setIsFullscreenOpen(true);
                 }}
                 className={cn(
-                  "group relative aspect-square overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
+                  "group relative overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
                   MEDIA_SURFACE_CLASS,
-                  index === 0 && media.length > 1 && "col-span-2 aspect-4/3",
+                  // A fixed height replaces the tiles' proportions.
+                  !stageHeight && "aspect-square",
+                  index === 0 && media.length > 1 && "col-span-2",
+                  index === 0 && media.length > 1 && !stageHeight && "aspect-4/3",
                 )}
+                style={{ ...frameSurface, ...stageFrameStyle }}
               >
                 <GalleryMediaFrame
                   item={item}
                   kind={kind}
                   productName={productName}
                   priority={index === 0}
+                  fit={fitFor(item)}
+                  padding={imagePadding}
+                  hoverZoom={zoomAllowed}
                 />
                 {index === 0 && discountPercentage > 0 && (
                   <Badge className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
@@ -280,24 +395,38 @@ export function ProductImageGallery({
           })}
         </div>
       ) : layout === "carousel" ? (
-        /* Horizontal carousel: a scroll-snap strip of full-width frames with
-           arrows and dots — no thumbnail row. */
+        /* Horizontal carousel: one fixed height, and every slide as wide as
+           its own image at that height — a portrait shot is a narrow slide, a
+           landscape one a wide slide, none of them cropped or letterboxed to
+           a shared shape. Arrows and dots, no thumbnail row. */
         <div className="space-y-3">
-          <div
-            className={cn("relative overflow-hidden rounded-lg", MEDIA_SURFACE_CLASS)}
-            style={stageBackground ? { backgroundColor: stageBackground } : undefined}
-          >
+          <div className="relative">
             <div
               ref={carouselRef}
               onScroll={handleCarouselScroll}
               onKeyDown={handleKeyNavigation}
-              className="flex snap-x snap-mandatory overflow-x-auto scrollbar-none"
+              className={cn(
+                // relative: the slides' offset parent, for the scroll sync.
+                "relative flex snap-x snap-mandatory overflow-x-auto scrollbar-none",
+                !stageHeight && CAROUSEL_TRACK_HEIGHT_CLASS,
+              )}
+              style={{
+                ...stageFrameStyle,
+                gap: look ? look.gap : 12,
+              }}
             >
               {media.map((item, index) => {
                 const kind = getMediaKind(item);
+                const ratio = mediaRatio(item, kind);
+                // An image whose size was never recorded takes its width from
+                // the picture itself once it loads.
+                const intrinsic = !ratio && kind === "image";
                 return (
                   <button
                     key={item.id}
+                    ref={(node) => {
+                      slideRefs.current[index] = node;
+                    }}
                     type="button"
                     aria-label={thumbnailLabel(tf, kind, index)}
                     onClick={() => {
@@ -306,16 +435,30 @@ export function ProductImageGallery({
                       onSelect(index);
                       setIsFullscreenOpen(true);
                     }}
-                    className="relative w-full shrink-0 snap-center focus-visible:outline-none"
+                    className={cn(
+                      "group relative h-full max-w-full shrink-0 snap-start overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70",
+                      MEDIA_SURFACE_CLASS,
+                    )}
+                    style={{
+                      ...frameSurface,
+                      // The width follows from the height and the ratio.
+                      ...(ratio
+                        ? { aspectRatio: String(ratio) }
+                        : intrinsic
+                          ? {}
+                          : { aspectRatio: "4 / 3" }),
+                    }}
                   >
-                    <div className={MEDIA_FRAME_CLASS} style={stageFrameStyle}>
-                      <GalleryMediaFrame
-                        item={item}
-                        kind={kind}
-                        productName={productName}
-                        priority={index === 0}
-                      />
-                    </div>
+                    <GalleryMediaFrame
+                      item={item}
+                      kind={kind}
+                      productName={productName}
+                      priority={index === 0}
+                      fit={fitFor(item)}
+                      padding={imagePadding}
+                      hoverZoom={zoomAllowed}
+                      intrinsic={intrinsic ? "height" : undefined}
+                    />
                   </button>
                 );
               })}
@@ -372,9 +515,13 @@ export function ProductImageGallery({
       ) : layout === "vertical" ? (
         /* Vertical carousel: every media item stacked full-width; the buy box
            column stays sticky beside the scroll (ProductDetails arranges it). */
-        <div className="space-y-3 sm:space-y-4">
+        <div
+          className={look ? "flex flex-col" : "space-y-3 sm:space-y-4"}
+          style={look ? { gap: look.gap } : undefined}
+        >
           {media.map((item, index) => {
             const kind = getMediaKind(item);
+            const ratio = mediaRatio(item, kind);
             return (
               <button
                 key={item.id}
@@ -387,15 +534,29 @@ export function ProductImageGallery({
                   setIsFullscreenOpen(true);
                 }}
                 className={cn(
-                  "group relative block aspect-4/3 w-full overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
+                  "group relative block w-full overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
                   MEDIA_SURFACE_CLASS,
                 )}
+                style={{
+                  ...frameSurface,
+                  // No fixed height: full width, and the height the image's
+                  // own proportions give it.
+                  ...(ratio
+                    ? { aspectRatio: String(ratio) }
+                    : kind === "image"
+                      ? {}
+                      : { aspectRatio: "4 / 3" }),
+                }}
               >
                 <GalleryMediaFrame
                   item={item}
                   kind={kind}
                   productName={productName}
                   priority={index === 0}
+                  fit={fitFor(item)}
+                  padding={imagePadding}
+                  hoverZoom={zoomAllowed}
+                  intrinsic={!ratio && kind === "image" ? "width" : undefined}
                 />
                 {index === 0 && discountPercentage > 0 && (
                   <Badge className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
@@ -415,7 +576,7 @@ export function ProductImageGallery({
           MEDIA_SURFACE_CLASS,
           layout === "left" && "lg:min-w-0 lg:flex-1",
         )}
-        style={stageBackground ? { backgroundColor: stageBackground } : undefined}
+        style={frameSurface}
       >
         {selectedIsImage ? (
           <button
@@ -427,14 +588,21 @@ export function ProductImageGallery({
             onClick={() => setIsFullscreenOpen(true)}
             onMouseMove={handlePointerMove}
             onKeyDown={handleKeyNavigation}
-            className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2"
+            className={cn(
+              "group relative block w-full overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
+              zoomAllowed ? "cursor-zoom-in" : "cursor-pointer",
+            )}
+            style={frameRadius}
           >
             <div className={MEDIA_FRAME_CLASS} style={stageFrameStyle}>
               <GalleryMediaFrame
                 item={selectedMedia}
                 kind={selectedKind}
                 productName={productName}
-                isZoomEnabled={isZoomEnabled}
+                fit={fitFor(selectedMedia)}
+                padding={imagePadding}
+                hoverZoom={zoomAllowed}
+                isZoomEnabled={zoomAllowed && isZoomEnabled}
                 isCoarsePointer={isCoarsePointer}
                 transformOrigin={transformOrigin}
                 priority
@@ -464,7 +632,7 @@ export function ProductImageGallery({
           )}
 
           <div className="pointer-events-auto flex items-center gap-2">
-            {selectedIsImage && (
+            {selectedIsImage && zoomAllowed && (
               <button
                 type="button"
                 aria-label={
@@ -528,7 +696,7 @@ export function ProductImageGallery({
       </div>
 
       {/* Thumbnail row - centered 4-up strip, last tile counts the remaining media */}
-      {canNavigate && (
+      {canNavigate && showThumbnails && (
         // Capped below lg: in the stacked layout the gallery spans the full page
         // width, and uncapped quarter-width tiles would dwarf the main image.
         <div
@@ -537,7 +705,10 @@ export function ProductImageGallery({
             // Left rail at lg: DOM order stays main-then-thumbs (mobile is
             // unchanged); order-first moves the rail before the frame.
             layout === "left" &&
-              "lg:order-first lg:mx-0 lg:w-24 lg:shrink-0 lg:flex-col lg:justify-start",
+              cn(
+                "lg:order-first lg:mx-0 lg:shrink-0 lg:flex-col lg:justify-start",
+                customThumbWidth ? "lg:w-[var(--gallery-thumb-w)]" : "lg:w-24",
+              ),
           )}
         >
           {visibleThumbIndexes.map((index, slot) => {
@@ -572,13 +743,26 @@ export function ProductImageGallery({
                   // contrast (see the inner layer). Every tile keeps an identical
                   // surface so the row stays a calm, even strip.
                   "group relative aspect-4/3 overflow-hidden rounded-md ring-offset-background transition-colors duration-200",
-                  THUMBNAIL_TILE_WIDTH_CLASS,
+                  customThumbWidth
+                    ? "w-[var(--gallery-thumb-w)] shrink-0"
+                    : THUMBNAIL_TILE_WIDTH_CLASS,
                   layout === "left" && "lg:w-full",
                   isSelected
                     ? THUMB_SURFACE_ACTIVE_CLASS
                     : THUMB_SURFACE_IDLE_CLASS,
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 )}
+                style={
+                  look
+                    ? {
+                        borderRadius: look.thumbRadius,
+                        // An inset outline, so selection never shifts the row.
+                        ...(isSelected && look.thumbActiveBorder
+                          ? { boxShadow: `inset 0 0 0 2px ${look.thumbActiveBorder}` }
+                          : {}),
+                      }
+                    : undefined
+                }
               >
                 <div
                   className={cn(
@@ -638,7 +822,13 @@ export function ProductImageGallery({
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="relative flex h-full flex-col">
+          {/* min-w-0: DialogContent is a grid, and a grid item will not shrink
+              below its content's min-content width — here, the thumbnail
+              row laid end to end. Without it a long gallery widens the column
+              past the dialog, which clips the right of the viewer: the image
+              sits off-centre, the next arrow is cut away, and the thumbnail
+              row stops scrolling because it is never narrower than itself. */}
+          <div className="relative flex h-full min-w-0 flex-col">
             <div
               className={cn(
                 "relative flex flex-1 items-center justify-center overflow-hidden",
@@ -790,6 +980,10 @@ function GalleryMediaFrame({
   fullscreen = false,
   cameraControls = false,
   priority = false,
+  fit = "contain",
+  padding = -1,
+  hoverZoom = true,
+  intrinsic,
 }: {
   item: GalleryMedia;
   kind: MediaKind;
@@ -800,6 +994,19 @@ function GalleryMediaFrame({
   fullscreen?: boolean;
   cameraControls?: boolean;
   priority?: boolean;
+  /** How the image sits in its frame; the fullscreen viewer always contains. */
+  fit?: "contain" | "cover";
+  /** Air around a contained image, px; -1 = the responsive default. */
+  padding?: number;
+  /** The slight magnify on hover. */
+  hoverZoom?: boolean;
+  /**
+   * Size an image by its own proportions instead of filling a fixed frame:
+   * "width" spans the frame's width at its natural height (the vertical
+   * carousel), "height" spans the track's height at its natural width (the
+   * horizontal one). Used only when the upload recorded no dimensions.
+   */
+  intrinsic?: "width" | "height";
 }) {
   const alt = item.alt || productName;
 
@@ -841,24 +1048,61 @@ function GalleryMediaFrame({
     );
   }
 
+  if (intrinsic && !fullscreen) {
+    return (
+      <AppImage
+        src={item.url}
+        alt={alt}
+        // 0 × 0 plus CSS: next/image's pattern for an image whose size is
+        // only known once it loads.
+        width={0}
+        height={0}
+        sizes={
+          intrinsic === "width"
+            ? "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 700px"
+            : "(max-width: 768px) 80vw, 600px"
+        }
+        className={cn(
+          "block transition-transform duration-500 ease-out motion-reduce:transition-none",
+          intrinsic === "width" ? "h-auto w-full" : "h-full w-auto max-w-none",
+          fit === "contain" && padding < 0 && "p-4 sm:p-8",
+          hoverZoom ? "scale-100 group-hover:scale-[1.025]" : "scale-100",
+        )}
+        style={
+          fit === "contain" && padding >= 0 ? { padding } : undefined
+        }
+        priority={priority}
+      />
+    );
+  }
+
   return (
     <AppImage
       src={item.url}
       alt={alt}
       fill
       className={cn(
+        "transition-transform duration-500 ease-out motion-reduce:transition-none",
         fullscreen
-          ? "object-contain p-6 transition-transform duration-500 ease-out motion-reduce:transition-none sm:p-10"
-          : "object-contain p-4 transition-transform duration-500 ease-out motion-reduce:transition-none sm:p-8",
+          ? "object-contain p-6 sm:p-10"
+          : fit === "cover"
+            ? // Edge to edge: no air, the photograph IS the frame.
+              "object-cover"
+            : padding >= 0
+              ? "object-contain"
+              : "object-contain p-4 sm:p-8",
         isZoomEnabled
           ? fullscreen
             ? "scale-[2.2]"
             : "scale-[1.9]"
-          : fullscreen
+          : fullscreen || !hoverZoom
             ? "scale-100"
             : "scale-100 group-hover:scale-[1.025]",
       )}
-      style={{ transformOrigin: isCoarsePointer ? "50% 50%" : transformOrigin }}
+      style={{
+        transformOrigin: isCoarsePointer ? "50% 50%" : transformOrigin,
+        ...(!fullscreen && fit === "contain" && padding >= 0 ? { padding } : {}),
+      }}
       priority={priority}
       loading={fullscreen ? "eager" : undefined}
       sizes={

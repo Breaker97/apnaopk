@@ -2,6 +2,7 @@ import "server-only";
 
 import sharp from "sharp";
 import { WEBP_CONTENT_TYPE, webpFileName } from "./webp-name";
+import { WEBP_CONVERSION_ENABLED } from "./webp-policy";
 
 // Re-exported so existing server-side importers keep their import path.
 export { webpFileName };
@@ -16,19 +17,40 @@ interface ConvertedWebp {
 }
 
 /**
- * Image types stored exactly as uploaded rather than re-encoded.
+ * Vector image types — the ones a WebP re-encode would destroy rather than
+ * compress, since sharp can only rasterize them to a fixed size.
  *
- * SVG is vector. sharp happily rasterizes it to a fixed-size WebP, which
- * silently turned every uploaded logo into a bitmap that blurs when scaled —
- * and dropped the thing that made an SVG worth uploading. The browser
- * pipeline already refuses to touch SVG (client-webp.ts); this keeps the
- * server path from disagreeing with it.
+ * Keeping the vector is NOT the default. An SVG is a document that can carry
+ * script, and stored raw it is served from the store's own media host, so
+ * the general upload path rasterizes it like any other image. Only a caller
+ * that has asked for it — the brand logo, which has to stay sharp at every
+ * size and is uploaded by someone who already manages store media — gets the
+ * original bytes (see `keepVector`).
  */
-const NEVER_CONVERT = new Set<string>(["image/svg+xml"]);
+const VECTOR_TYPES = new Set<string>(["image/svg+xml"]);
 
-/** Whether an image of this type should be re-encoded to WebP. */
-export function shouldConvertToWebp(contentType: string): boolean {
-  return !NEVER_CONVERT.has(contentType.trim().toLowerCase());
+export function isVectorImageType(contentType: string): boolean {
+  return VECTOR_TYPES.has(contentType.trim().toLowerCase());
+}
+
+/**
+ * Whether an image of this type should be re-encoded to WebP.
+ *
+ * `keepVector` is the logo exception and nothing else: it spares a vector
+ * source and has no effect on any raster format.
+ *
+ * With WEBP_CONVERSION_ENABLED off, raster images are stored exactly as
+ * uploaded — but a vector is still rasterized. That step is there to stop a
+ * script-bearing SVG being served from the store's own media host, so it is
+ * not the compression switch's to turn off.
+ */
+export function shouldConvertToWebp(
+  contentType: string,
+  options: { keepVector?: boolean } = {},
+): boolean {
+  const vector = isVectorImageType(contentType);
+  if (options.keepVector && vector) return false;
+  return WEBP_CONVERSION_ENABLED || vector;
 }
 
 /**
@@ -113,5 +135,34 @@ export async function convertImageToWebp(
     };
   } catch {
     throw new Error("Unable to convert image to WebP");
+  }
+}
+
+/**
+ * Pixel dimensions of an image that is being stored without re-encoding.
+ *
+ * convertImageToWebp reports width/height as a by-product of the encode, so a
+ * stored original has to be probed for them — otherwise a media record simply
+ * loses the dimensions the conversion used to supply.
+ *
+ * Returns null for anything libvips cannot read, which the caller has to
+ * interpret: storeAsUploaded only probes formats sharp is known to handle, so
+ * a null there means the bytes are not a real image and the upload is refused.
+ */
+export async function imageDimensions(
+  buffer: Buffer,
+): Promise<{ width: number; height: number } | null> {
+  try {
+    const { width, height, orientation } = await sharp(buffer).metadata();
+    if (!width || !height) return null;
+    // EXIF orientations 5-8 rotate by a quarter turn, and the browser applies
+    // that when it renders the stored original — so the box the image occupies
+    // is the transpose of the stored one. convertImageToWebp never had to
+    // account for this: `.rotate()` bakes the rotation into the pixels it writes.
+    const quarterTurned =
+      typeof orientation === "number" && orientation >= 5 && orientation <= 8;
+    return quarterTurned ? { width: height, height: width } : { width, height };
+  } catch {
+    return null;
   }
 }

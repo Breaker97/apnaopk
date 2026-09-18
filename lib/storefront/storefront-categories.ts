@@ -277,3 +277,34 @@ export const getStorefrontCategoryBySlug = unstable_cache(
     tags: [CACHE_TAGS.categories, CACHE_TAGS.products],
   },
 );
+
+/** One step of a category's trail: enough to name it and link to it. */
+export type StorefrontCategoryCrumb = { _id: string; name: string; slug: string };
+
+/**
+ * A category's ancestors, root first — what a breadcrumb needs above the
+ * category itself. Walks `parentId` up, bounded so a cycle in tampered data
+ * ends rather than spins. Empty for a top-level category or an unknown slug.
+ */
+export const getStorefrontCategoryAncestors = unstable_cache(
+  async (slug: string): Promise<StorefrontCategoryCrumb[]> => {
+    await connectDB();
+    const category = await Category.findOne({ slug, isActive: true })
+      .select("_id parentId")
+      .lean();
+    if (!category) return [];
+    const trail: StorefrontCategoryCrumb[] = [];
+    let parentId = category.parentId ?? null;
+    for (let depth = 0; parentId && depth < 8; depth += 1) {
+      const parent = await Category.findOne({ _id: parentId, isActive: true })
+        .select("_id name slug parentId")
+        .lean();
+      if (!parent) break;
+      trail.unshift({ _id: String(parent._id), name: parent.name, slug: parent.slug });
+      parentId = parent.parentId ?? null;
+    }
+    return trail;
+  },
+  ["storefront-category-ancestors"],
+  { revalidate: 60, tags: [CACHE_TAGS.categories] },
+);

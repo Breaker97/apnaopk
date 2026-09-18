@@ -65,6 +65,8 @@ interface AdminCoupon {
   startDate: string;
   endDate: string;
   status: CouponStatus;
+  /** Store coupons only: who pays for the goods discount. Absent means the store. */
+  fundedBy?: "platform" | "vendor";
 }
 
 interface DiscountsContentProps {
@@ -93,6 +95,7 @@ type CouponFormState = {
   startDate: string;
   endDate: string;
   status: CouponStatus;
+  fundedBy: "platform" | "vendor";
 };
 
 const DEFAULT_FORM: CouponFormState = {
@@ -108,6 +111,7 @@ const DEFAULT_FORM: CouponFormState = {
   startDate: new Date().toISOString().slice(0, 10),
   endDate: "",
   status: "active",
+  fundedBy: "platform",
 };
 
 function getThrowableMessage(error: unknown, fallback: string) {
@@ -145,6 +149,7 @@ function toFormState(coupon?: AdminCoupon | null): CouponFormState {
     startDate: coupon.startDate.slice(0, 10),
     endDate: coupon.endDate.slice(0, 10),
     status: coupon.status,
+    fundedBy: coupon.fundedBy === "vendor" ? "vendor" : "platform",
   };
 }
 
@@ -159,6 +164,8 @@ export function DiscountsContent({
   const { currency, formatPrice } = useCurrency();
   const currencySymbol = currency?.symbol || currency?.code || "";
 
+  // The store's coupon screen, as opposed to a vendor managing their own.
+  const isStoreCoupon = apiBasePath === "/api/admin/coupons";
   const [selectedCoupons, setSelectedCoupons] = useState<AdminCoupon[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<AdminCoupon | null>(null);
@@ -215,6 +222,8 @@ export function DiscountsContent({
     if (formState.maxDiscount) payload.maxDiscount = Number(formState.maxDiscount);
     if (formState.usageLimit) payload.usageLimit = Number(formState.usageLimit);
     if (formState.perUserLimit) payload.perUserLimit = Number(formState.perUserLimit);
+    // Only the store's own coupons choose; a vendor's coupon is always theirs.
+    if (isStoreCoupon) payload.fundedBy = formState.fundedBy;
 
     return payload;
   };
@@ -676,6 +685,46 @@ export function DiscountsContent({
                     disabled={formState.type === "free_shipping"}
                   />
                 </div>
+
+                {isStoreCoupon ? (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="discount-funded-by">
+                      {tr("Who pays for this discount", "এই ডিসকাউন্টের খরচ কে দেবে")}
+                    </Label>
+                    <NativeSelect
+                      id="discount-funded-by"
+                      value={formState.fundedBy}
+                      onChange={(e) =>
+                        setField("fundedBy", e.target.value as CouponFormState["fundedBy"])
+                      }
+                      className="w-full"
+                    >
+                      <option value="platform">{tr("The store", "স্টোর")}</option>
+                      <option value="vendor">
+                        {formState.type === "free_shipping"
+                          ? tr(
+                              "The sellers who deliver the parcels",
+                              "যে বিক্রেতারা পণ্য পৌঁছে দেবেন",
+                            )
+                          : tr(
+                              "The sellers whose items it discounts",
+                              "যে বিক্রেতাদের পণ্যে ছাড় পড়বে",
+                            )}
+                      </option>
+                    </NativeSelect>
+                    <p className="text-xs text-muted-foreground">
+                      {formState.type === "free_shipping"
+                        ? tr(
+                            "When the store pays, sellers still earn the delivery charge their parcel was rated at. Applies to orders placed from now on.",
+                            "স্টোর দিলে বিক্রেতারা নিজের পার্সেলের পুরো ডেলিভারি চার্জই পাবেন। এখন থেকে দেওয়া অর্ডারে প্রযোজ্য।",
+                          )
+                        : tr(
+                            "When the store pays, sellers are paid as if their items sold at full price. Applies to orders placed from now on.",
+                            "স্টোর দিলে বিক্রেতারা পুরো দামে বিক্রির মতোই টাকা পাবেন। এখন থেকে দেওয়া অর্ডারে প্রযোজ্য।",
+                          )}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label htmlFor="discount-min-order">{tr("Minimum order amount", "ন্যূনতম অর্ডার পরিমাণ")}</Label>

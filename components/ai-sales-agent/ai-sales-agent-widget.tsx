@@ -13,6 +13,7 @@ import { trackAddToCart } from "@/lib/analytics/events";
 import type {
   AISalesChatAction,
   AISalesChatMessage,
+  AISalesStreamEvent,
   PublicAISalesAgentConfig,
 } from "@/lib/ai-sales-agent/types";
 import type { Locale } from "@/config/i18n.config";
@@ -21,6 +22,45 @@ import {
   AISalesHeaderIcon,
   AISalesMessageBubble,
 } from "./ai-sales-message";
+
+/** A message as the widget holds it: the reply in flight is marked so its bubble shows a caret. */
+type WidgetMessage = AISalesChatMessage & { streaming?: boolean };
+
+/**
+ * The chat route answers with newline-delimited JSON, one `AISalesStreamEvent`
+ * per line, so the cards can render the moment the tools finish and the text
+ * can grow as the model writes it. A line may arrive split across chunks.
+ */
+async function* readStreamEvents(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<AISalesStreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const parse = (line: string): AISalesStreamEvent | null => {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    try {
+      return JSON.parse(trimmed) as AISalesStreamEvent;
+    } catch {
+      return null;
+    }
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let newline = buffer.indexOf("\n");
+    while (newline >= 0) {
+      const event = parse(buffer.slice(0, newline));
+      buffer = buffer.slice(newline + 1);
+      if (event) yield event;
+      newline = buffer.indexOf("\n");
+    }
+  }
+  const last = parse(buffer);
+  if (last) yield last;
+}
 
 export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   const pathname = usePathname();
@@ -38,9 +78,12 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   );
   const [open, setOpen] = React.useState(false);
   const [conversationId, setConversationId] = React.useState<string>();
-  const [messages, setMessages] = React.useState<AISalesChatMessage[]>([]);
+  const [messages, setMessages] = React.useState<WidgetMessage[]>([]);
   const [input, setInput] = React.useState("");
+  /** A request is in flight: the composer is locked. */
   const [loading, setLoading] = React.useState(false);
+  /** Nothing of the reply has arrived yet: the typing dots show. */
+  const [awaitingReply, setAwaitingReply] = React.useState(false);
   const [addedActions, setAddedActions] = React.useState<Set<string>>(new Set());
   const [pendingActions, setPendingActions] = React.useState<Set<string>>(
     new Set(),
@@ -90,7 +133,7 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   const sendMessage = async (override?: string) => {
     const text = (override || input).trim();
     if (!text || loading) return;
-    const userMessage: AISalesChatMessage = {
+    const userMessage: WidgetMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: text,
@@ -98,21 +141,85 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
+    setAwaitingReply(true);
+
+    // The reply is one bubble that fills in: the first event creates it and
+    // every later one patches it in place, so nothing flickers or reorders.
+    const replyId = crypto.randomUUID();
+    const patchReply = (patch: (message: WidgetMessage) => WidgetMessage) => {
+      setMessages((prev) => {
+        const index = prev.findIndex((message) => message.id === replyId);
+        if (index === -1) {
+          return [
+            ...prev,
+            patch({ id: replyId, role: "assistant", content: "", streaming: true }),
+          ];
+        }
+        const next = [...prev];
+        next[index] = patch(next[index]!);
+        return next;
+      });
+    };
+
     try {
       const res = await fetch("/api/ai-sales-agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId, message: text, locale }),
       });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || "Chat failed");
-      setConversationId(json.data.conversationId);
-      setMessages((prev) => [...prev, json.data.message]);
-      if (json.data.cartUpdated) await refreshCart();
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok || !res.body || !contentType.includes("application/x-ndjson")) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.message || "Chat failed");
+      }
+
+      let cartUpdated = false;
+      for await (const event of readStreamEvents(res.body)) {
+        switch (event.type) {
+          case "meta":
+            setConversationId(event.conversationId);
+            break;
+          case "tools":
+            // Cards land before the sentence about them; the dots stay until
+            // the text starts, below the cards.
+            patchReply((message) => ({
+              ...message,
+              productCards: event.productCards,
+              orderCards: event.orderCards,
+              actions: event.actions,
+            }));
+            break;
+          case "delta":
+            setAwaitingReply(false);
+            patchReply((message) => ({
+              ...message,
+              content: message.content + event.text,
+            }));
+            break;
+          case "done":
+            setConversationId(event.conversationId);
+            patchReply(() => ({ ...event.message, id: replyId }));
+            cartUpdated = Boolean(event.cartUpdated);
+            break;
+          case "error":
+            throw new Error(event.message);
+        }
+      }
+      if (cartUpdated) await refreshCart();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("chatFailed"));
       setMessages((prev) => [
-        ...prev,
+        // Whatever did arrive stays; an empty in-flight bubble does not.
+        ...prev
+          .filter(
+            (message) =>
+              message.id !== replyId ||
+              message.content ||
+              (message.productCards && message.productCards.length > 0),
+          )
+          .map((message) =>
+            message.id === replyId ? { ...message, streaming: false } : message,
+          ),
         {
           id: crypto.randomUUID(),
           role: "assistant",
@@ -121,6 +228,7 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
       ]);
     } finally {
       setLoading(false);
+      setAwaitingReply(false);
     }
   };
 
@@ -183,6 +291,11 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
 
   return (
     <div
+      // The scroll-to-top button shares this corner. `data-fab-side` is the
+      // PHYSICAL side the merchant pinned the widget to, which is what the
+      // stacking rule in globals.css keys on.
+      data-store-fab="assistant"
+      data-fab-side={right ? "right" : "left"}
       className={cn(
         // Cleared above the mobile bottom nav (its bar plus the safe-area inset),
         // which only exists below `xl`.
@@ -248,10 +361,11 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
                 addedActions={addedActions}
                 pendingActions={pendingActions}
                 labels={labels}
+                streaming={message.streaming}
               />
             ))}
 
-            {loading && (
+            {awaitingReply && (
               <div className="flex items-center gap-2">
                 <AISalesAssistantAvatar primaryColor={config.widget.primaryColor} />
                 <div className="flex items-center gap-1 rounded-3xl bg-muted px-4 py-3">

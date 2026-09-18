@@ -1,21 +1,9 @@
 import { unstable_cache } from "next/cache";
 import { Category } from "@/models";
 import { connectDB } from "@/lib/db";
-import { type Locale } from "@/config/i18n.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { type FeaturedCategoriesSource } from "@/lib/site-config/home-page-config";
-import {
-  HomeFeaturedCategoriesClient,
-  type FeaturedCategory,
-} from "./home-featured-categories-client";
-
-interface HomeFeaturedCategoriesProps {
-  locale: Locale;
-  title: string;
-  source: FeaturedCategoriesSource;
-  limit: number;
-  categoryIds: string[];
-}
+import type { CategoryTile as FeaturedCategory } from "@/lib/storefront/sections/category-list-style";
 
 const CATEGORY_SELECT = "_id name slug image order featured";
 
@@ -114,25 +102,3 @@ export const fetchFeaturedCategories = unstable_cache(
     tags: [CACHE_TAGS.categories],
   },
 );
-
-export async function HomeFeaturedCategories({
-  locale,
-  title,
-  source,
-  limit,
-  categoryIds,
-  emptyState = null,
-}: HomeFeaturedCategoriesProps & { emptyState?: React.ReactNode }) {
-  const categories = await fetchFeaturedCategories(source, limit, categoryIds);
-
-  // Live storefronts stay silent; the admin preview names what is missing.
-  if (categories.length === 0) return emptyState;
-
-  return (
-    <HomeFeaturedCategoriesClient
-      locale={locale}
-      title={title}
-      categories={categories}
-    />
-  );
-}

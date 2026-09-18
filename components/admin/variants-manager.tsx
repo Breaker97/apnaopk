@@ -58,6 +58,7 @@ export function VariantsManager({
   onRequestAiImage,
   defaultRequiresShipping = true,
   defaultWeightUnit = "kg",
+  preorderLockedReason = null,
 }: VariantsManagerProps) {
   const { variants: globalVariants } = useGlobalVariants();
   const isMultiLocation = locations.length > 1;
@@ -504,6 +505,7 @@ export function VariantsManager({
             onRemove={handleRemoveVariant}
             defaultRequiresShipping={defaultRequiresShipping}
             defaultWeightUnit={defaultWeightUnit}
+            preorderLockedReason={preorderLockedReason}
           />
         </>
       )}

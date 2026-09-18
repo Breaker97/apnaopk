@@ -33,8 +33,15 @@ export const BACK_OFFICE_NAMESPACES = [
 export const STOREFRONT_BACK_OFFICE_PATHS: Readonly<
   Record<string, readonly string[]>
 > = {
-  // Account menu / header link label; the card studio's element labels.
-  admin: ["settings.title", "productCardStudio"],
+  // Account menu / header link label; the card studio's element labels; the
+  // payment method names the account order page shares with the dashboards
+  // (components/common/payment-method-meta.ts).
+  admin: [
+    "settings.title",
+    "productCardStudio",
+    "dashboardPage.payment",
+    "paymentTransactionsPage.providers",
+  ],
   // Become-a-vendor wizard, vendor directory, vendor storefront chrome, and
   // the password rules the account page shares with the vendor settings form.
   vendor: [

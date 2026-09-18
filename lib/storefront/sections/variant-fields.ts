@@ -2,18 +2,22 @@ import type { Field, SectionCatalogEntry } from "./types";
 import { VARIANT_FIELD_KEY } from "./types";
 
 /**
- * Which design a stored instance is showing — the same fallback the renderer
- * uses (unknown or unset resolves to the first variant), so the editor never
- * scopes fields against a design the storefront is not rendering.
+ * Which design a stored instance is showing — the same resolution the
+ * renderer uses (a stored design wins; "theme", unset or unknown follow the
+ * active template when the section does, else the first design), so the
+ * editor never scopes fields against a design the storefront is not
+ * rendering.
  */
 export function activeVariantKey(
-  entry: Pick<SectionCatalogEntry, "variants">,
+  entry: Pick<SectionCatalogEntry, "variants" | "designFollowsTheme" | "themeVariant">,
   settings: Record<string, unknown>,
 ): string | undefined {
   if (!entry.variants?.length) return undefined;
   const stored = settings[VARIANT_FIELD_KEY];
-  return entry.variants.find((variant) => variant.key === stored)?.key
-    ?? entry.variants[0]?.key;
+  const pinned = entry.variants.find((variant) => variant.key === stored)?.key;
+  if (pinned) return pinned;
+  if (entry.designFollowsTheme && entry.themeVariant) return entry.themeVariant;
+  return entry.variants[0]?.key;
 }
 
 /**

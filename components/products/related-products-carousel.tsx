@@ -150,7 +150,7 @@ export function RelatedProductsCarousel({
           horizontal scroller without an extra wrapper around each card. */}
       <div
         ref={scrollerRef}
-        className="grid max-w-full auto-cols-[64%] grid-flow-col gap-4 overflow-x-auto overflow-y-hidden pb-2 scroll-smooth snap-x snap-mandatory sm:auto-cols-[calc((100%_-_1.25rem)_/_2)] sm:gap-5 md:auto-cols-[calc((100%_-_2.5rem)_/_3)] lg:auto-cols-[calc((100%_-_3.75rem)_/_4)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="grid max-w-full auto-cols-[64%] grid-flow-col gap-x-[var(--card-grid-gap-x,1rem)] overflow-x-auto overflow-y-hidden pb-2 scroll-smooth snap-x snap-mandatory sm:auto-cols-[calc((100%_-_var(--card-grid-gap-x,1.25rem))_/_2)] sm:gap-x-[var(--card-grid-gap-x,1.25rem)] md:auto-cols-[calc((100%_-_var(--card-grid-gap-x,1.25rem)_*_2)_/_3)] lg:auto-cols-[calc((100%_-_var(--card-grid-gap-x,1.25rem)_*_3)_/_4)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {products.map((product) => (
           <ModernProductCard

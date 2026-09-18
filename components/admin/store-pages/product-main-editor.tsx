@@ -43,15 +43,27 @@ import {
   parseProductDetailGroups,
   type ProductDetailRow,
   type ProductDetailRowGroup,
+  PRODUCT_DETAIL_ROW_SETTINGS,
+  REPEATABLE_PRODUCT_DETAIL_ROWS,
+  withProductDetailRowSettings,
+  type ProductDetailRowItem,
 } from "@/lib/storefront/sections/product-detail-rows";
 import {
   EMPTY_TYPOGRAPHY,
+  PRODUCT_DETAIL_ACCORDION_ICONS,
+  PRODUCT_DETAIL_ACTIONS,
+  PRODUCT_DETAIL_BUTTON_CASES,
+  PRODUCT_DETAIL_BUTTON_LAYOUTS,
+  PRODUCT_DETAIL_IMAGE_FITS,
+  PRODUCT_DETAIL_SHARE_NETWORKS,
   parseProductDetailConfig,
   type ProductDetailConfig,
+  type ProductDetailShareNetwork,
   type ProductDetailTypography,
   type ProductDetailTypographyKey,
   type ProductDetailVisibility,
 } from "@/lib/storefront/sections/product-detail-style";
+import { Input } from "@/components/ui/input";
 
 type TSafe = ReturnType<typeof createTSafe>;
 
@@ -73,6 +85,10 @@ const VISIBILITY_ROWS: { key: keyof ProductDetailVisibility; label: string }[] =
     { key: "discountChipOnImage", label: "Discount chip on preview image" },
     { key: "ratingCount", label: "Rating count" },
     { key: "ratingMinimized", label: "Rating minimized" },
+    { key: "quantity", label: "Quantity stepper" },
+    { key: "zoom", label: "Image zoom" },
+    { key: "thumbnails", label: "Thumbnails" },
+    { key: "accordionOpenFirst", label: "Open the first accordion" },
   ];
 
 const TYPOGRAPHY_ROWS: { key: ProductDetailTypographyKey; label: string }[] = [
@@ -81,8 +97,24 @@ const TYPOGRAPHY_ROWS: { key: ProductDetailTypographyKey; label: string }[] = [
   { key: "category", label: "Category Text" },
   { key: "price", label: "Price Text" },
   { key: "discounted", label: "Discounted Price Text" },
-  { key: "cart", label: "Cart Text" },
+  { key: "cart", label: "Add to Cart Text" },
+  { key: "buy", label: "Buy Now Text" },
+  { key: "accordion", label: "Accordion Title" },
 ];
+
+/** English fallbacks for the choice rows; the editor overlays i18n. */
+const ACTION_LABELS = { both: "Both buttons", cart: "Add to cart only", buy: "Buy now only" } as const;
+const BUTTON_LAYOUT_LABELS = { inline: "Side by side", stacked: "Stacked" } as const;
+const BUTTON_CASE_LABELS = { theme: "Theme default", none: "As typed", uppercase: "UPPERCASE" } as const;
+const IMAGE_FIT_LABELS = { contain: "Fit inside (padding)", cover: "Fill the frame" } as const;
+const ACCORDION_ICON_LABELS = { plus: "Plus", chevron: "Chevron" } as const;
+const SHARE_NETWORK_LABELS: Record<ProductDetailShareNetwork, string> = {
+  facebook: "Facebook",
+  twitter: "X (Twitter)",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  copyLink: "Copy link",
+};
 
 /**
  * The product template core's inspector (Figma 774:4992): the "Product
@@ -140,7 +172,10 @@ export function ProductMainEditor({
   const usedKeys = new Set(
     groups.flatMap((group) => group.items.map((item) => item.key)),
   );
-  const availableRows = PRODUCT_DETAIL_ROWS.filter((key) => !usedKeys.has(key));
+  // Once-only rows leave the list when placed; a gap or a line never does.
+  const availableRows = PRODUCT_DETAIL_ROWS.filter(
+    (key) => REPEATABLE_PRODUCT_DETAIL_ROWS.has(key) || !usedKeys.has(key),
+  );
 
   const rowLabel = (key: ProductDetailRow) =>
     tSafe(
@@ -155,7 +190,7 @@ export function ProductMainEditor({
 
   const findGroupIndex = (id: string) =>
     groups.findIndex(
-      (group) => group.id === id || group.items.some((item) => item.key === id),
+      (group) => group.id === id || group.items.some((item) => item.id === id),
     );
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -167,10 +202,10 @@ export function ProductMainEditor({
 
     const next = groups.map((group) => ({ ...group, items: [...group.items] }));
     const fromItems = next[from].items;
-    const itemIndex = fromItems.findIndex((item) => item.key === active.id);
+    const itemIndex = fromItems.findIndex((item) => item.id === active.id);
     if (itemIndex < 0) return;
     const [moved] = fromItems.splice(itemIndex, 1);
-    const overIndex = next[to].items.findIndex((item) => item.key === over.id);
+    const overIndex = next[to].items.findIndex((item) => item.id === over.id);
     next[to].items.splice(
       overIndex < 0 ? next[to].items.length : overIndex,
       0,
@@ -186,8 +221,8 @@ export function ProductMainEditor({
     const to = findGroupIndex(String(over.id));
     if (from < 0 || from !== to) return; // cross-group moves happen in onDragOver
     const items = groups[from].items;
-    const oldIndex = items.findIndex((item) => item.key === active.id);
-    const newIndex = items.findIndex((item) => item.key === over.id);
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     const next = groups.map((group, index) =>
       index === from
@@ -197,13 +232,22 @@ export function ProductMainEditor({
     commitGroups(next);
   };
 
-  const patchItem = (key: ProductDetailRow, on: boolean) => {
+  const patchItem = (id: string, patch: Partial<ProductDetailRowItem>) => {
     commitGroups(
       groups.map((group) => ({
         ...group,
         items: group.items.map((item) =>
-          item.key === key ? { ...item, on } : item,
+          item.id === id ? withProductDetailRowSettings({ ...item, ...patch }) : item,
         ),
+      })),
+    );
+  };
+
+  const removeItem = (id: string) => {
+    commitGroups(
+      groups.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.id !== id),
       })),
     );
   };
@@ -211,7 +255,15 @@ export function ProductMainEditor({
   const addItem = (key: ProductDetailRow) => {
     const next = groups.map((group) => ({ ...group, items: [...group.items] }));
     if (next.length === 0) next.push({ id: crypto.randomUUID(), items: [] });
-    next[next.length - 1].items.push({ key, on: true });
+    next[next.length - 1].items.push(
+      withProductDetailRowSettings({
+        // A once-only row is identified by its key; a repeatable one by an
+        // id of its own, so two gaps can be dragged and set independently.
+        id: REPEATABLE_PRODUCT_DETAIL_ROWS.has(key) ? crypto.randomUUID() : key,
+        key,
+        on: true,
+      }),
+    );
     commitGroups(next);
     setAddItemOpen(false);
   };
@@ -319,7 +371,8 @@ export function ProductMainEditor({
                   index={index}
                   tSafe={tSafe}
                   rowLabel={rowLabel}
-                  onToggle={patchItem}
+                  onPatch={patchItem}
+                  onRemove={removeItem}
                   onRemoveGroup={() =>
                     commitGroups(groups.filter((g) => g.id !== group.id))
                   }
@@ -437,66 +490,305 @@ export function ProductMainEditor({
         </div>
 
         <div className="space-y-2.5">
-          {subheading(tSafe("admin.storeBuilder.detailStyle.cart", "Cart"))}
-          <ColorRow
-            label={tSafe(
-              "admin.storeBuilder.detailStyle.cartBackground",
-              "Cart Button background",
-            )}
-            value={config.style.cartBackground}
-            onChange={(cartBackground) => patchStyle({ cartBackground })}
-          />
-          <ColorRow
-            label={tSafe(
-              "admin.storeBuilder.detailStyle.cartBorder",
-              "Cart Button border",
-            )}
-            value={config.style.cartBorder}
-            onChange={(cartBorder) => patchStyle({ cartBorder })}
+          {subheading(tSafe("admin.storeBuilder.detailStyle.layout", "Page layout"))}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.galleryWidth", "Gallery width")}
+            value={config.style.galleryWidth}
+            min={30}
+            max={70}
+            unit="%"
+            onChange={(galleryWidth) => patchStyle({ galleryWidth })}
           />
           <SliderRow
-            label={tSafe(
-              "admin.storeBuilder.detailStyle.cartBorderWidth",
-              "Cart border thickness",
-            )}
-            value={config.style.cartBorderWidth}
-            max={4}
-            step={0.5}
-            onChange={(cartBorderWidth) => patchStyle({ cartBorderWidth })}
+            label={tSafe("admin.storeBuilder.detailStyle.contentMaxWidth", "Max content width")}
+            value={config.style.contentMaxWidth}
+            max={2400}
+            zeroLabel={tSafe("admin.storeBuilder.detailStyle.auto", "Auto")}
+            onChange={(contentMaxWidth) => patchStyle({ contentMaxWidth })}
+          />
+          <ToggleRow
+            label={tSafe("admin.storeBuilder.detailStyle.stickyColumn", "Pin the shorter column")}
+            checked={config.style.stickyColumn}
+            onChange={(stickyColumn) => patchStyle({ stickyColumn })}
+          />
+          <ToggleRow
+            label={tSafe("admin.storeBuilder.detailStyle.galleryBleedLeft", "Images to the left edge")}
+            checked={config.style.galleryBleedLeft}
+            onChange={(galleryBleedLeft) => patchStyle({ galleryBleedLeft })}
+          />
+          <ToggleRow
+            label={tSafe("admin.storeBuilder.detailStyle.galleryBleedTop", "Images up to the header")}
+            checked={config.style.galleryBleedTop}
+            onChange={(galleryBleedTop) => patchStyle({ galleryBleedTop })}
+          />
+          {config.style.galleryBleedLeft && config.style.contentMaxWidth > 0 ? (
+            <p className="text-[11px] leading-snug text-amber-700 dark:text-amber-300">
+              {tSafe(
+                "admin.storeBuilder.detailStyle.galleryBleedMaxWidth",
+                "The left edge needs Max content width set to Auto — a narrower page has no edge for the images to reach.",
+              )}
+            </p>
+          ) : config.style.galleryBleedLeft || config.style.galleryBleedTop ? (
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {tSafe(
+                "admin.storeBuilder.detailStyle.galleryBleedHint",
+                "On phones and in the Full Width layout the images run edge to edge. An Image radius of 0 keeps the edge clean.",
+              )}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2.5">
+          {subheading(tSafe("admin.storeBuilder.detailStyle.brand", "Brand"))}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.brandLogoHeight", "Logo height")}
+            value={config.style.brandLogoHeight}
+            min={12}
+            max={160}
+            onChange={(brandLogoHeight) => patchStyle({ brandLogoHeight })}
           />
           <SliderRow
-            label={tSafe(
-              "admin.storeBuilder.detailStyle.cartRadius",
-              "Cart button radius",
-            )}
-            value={config.style.cartRadius}
-            max={30}
-            onChange={(cartRadius) => patchStyle({ cartRadius })}
+            label={tSafe("admin.storeBuilder.detailStyle.brandLogoMaxWidth", "Logo max width")}
+            value={config.style.brandLogoMaxWidth}
+            min={40}
+            max={600}
+            onChange={(brandLogoMaxWidth) => patchStyle({ brandLogoMaxWidth })}
           />
         </div>
 
         <div className="space-y-2.5">
-          {subheading(
-            tSafe(
-              "admin.storeBuilder.detailStyle.miscellaneous",
-              "Miscellaneous",
-            ),
-          )}
-          <ColorRow
-            label={tSafe(
-              "admin.storeBuilder.detailStyle.ratingColor",
-              "Rating Color",
-            )}
-            value={config.style.ratingColor}
-            onChange={(ratingColor) => patchStyle({ ratingColor })}
+          {subheading(tSafe("admin.storeBuilder.detailStyle.gallery", "Gallery"))}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.previewHeight", "Image height")}
+            value={config.style.previewHeight}
+            max={1600}
+            zeroLabel={tSafe("admin.storeBuilder.detailStyle.auto", "Auto")}
+            onChange={(previewHeight) => patchStyle({ previewHeight })}
+          />
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {tSafe("admin.storeBuilder.detailStyle.previewHeightHint", "The main image, the horizontal carousel's height (each slide as wide as its image), and grid tiles. The vertical carousel always shows each image full width at its own proportions.")}
+          </p>
+          <ChoiceRow
+            label={tSafe("admin.storeBuilder.detailStyle.imageFit", "Image fit")}
+            value={config.style.imageFit}
+            options={PRODUCT_DETAIL_IMAGE_FITS.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.imageFits.${key}`, IMAGE_FIT_LABELS[key]),
+            }))}
+            onChange={(imageFit) => patchStyle({ imageFit })}
+          />
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {tSafe("admin.storeBuilder.detailStyle.imageFitHint", "The default for every image. A single image can override it in the product editor: open it in Media and choose Fit or Fill.")}
+          </p>
+          <ToggleRow
+            label={tSafe("admin.storeBuilder.detailStyle.customPadding", "Custom image padding")}
+            checked={config.style.imagePadding >= 0}
+            onChange={(on) => patchStyle({ imagePadding: on ? 24 : -1 })}
+          />
+          {config.style.imagePadding >= 0 ? (
+            <SliderRow
+              label={tSafe("admin.storeBuilder.detailStyle.imagePadding", "Image padding")}
+              value={config.style.imagePadding}
+              max={120}
+              onChange={(imagePadding) => patchStyle({ imagePadding })}
+            />
+          ) : null}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.imageRadius", "Image radius")}
+            value={config.style.imageRadius}
+            max={48}
+            onChange={(imageRadius) => patchStyle({ imageRadius })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.imageGap", "Image gap")}
+            value={config.style.imageGap}
+            max={64}
+            onChange={(imageGap) => patchStyle({ imageGap })}
           />
           <ColorRow
-            label={tSafe(
-              "admin.storeBuilder.detailStyle.stockBackground",
-              "Stock background",
-            )}
-            value={config.style.stockBackground}
-            onChange={(stockBackground) => patchStyle({ stockBackground })}
+            label={tSafe("admin.storeBuilder.detailStyle.previewBackground", "Image background")}
+            value={config.style.previewBackground}
+            fallback="#f0f0f0"
+            onChange={(previewBackground) => patchStyle({ previewBackground })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.thumbSize", "Thumbnail width")}
+            value={config.style.thumbSize}
+            max={200}
+            zeroLabel={tSafe("admin.storeBuilder.detailStyle.auto", "Auto")}
+            onChange={(thumbSize) => patchStyle({ thumbSize })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.thumbRadius", "Thumbnail radius")}
+            value={config.style.thumbRadius}
+            max={48}
+            onChange={(thumbRadius) => patchStyle({ thumbRadius })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.thumbActiveBorder", "Selected thumbnail outline")}
+            value={config.style.thumbActiveBorder}
+            onChange={(thumbActiveBorder) => patchStyle({ thumbActiveBorder })}
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          {subheading(tSafe("admin.storeBuilder.detailStyle.buttons", "Buttons"))}
+          <ChoiceRow
+            label={tSafe("admin.storeBuilder.detailStyle.actions", "Show")}
+            value={config.style.actions}
+            options={PRODUCT_DETAIL_ACTIONS.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.detailActions.${key}`, ACTION_LABELS[key]),
+            }))}
+            onChange={(actions) => patchStyle({ actions })}
+          />
+          <ChoiceRow
+            label={tSafe("admin.storeBuilder.detailStyle.buttonLayout", "Layout")}
+            value={config.style.buttonLayout}
+            options={PRODUCT_DETAIL_BUTTON_LAYOUTS.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.buttonLayouts.${key}`, BUTTON_LAYOUT_LABELS[key]),
+            }))}
+            onChange={(buttonLayout) => patchStyle({ buttonLayout })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.buttonHeight", "Height")}
+            value={config.style.buttonHeight}
+            min={32}
+            max={72}
+            onChange={(buttonHeight) => patchStyle({ buttonHeight })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.cartRadius", "Radius")}
+            value={config.style.cartRadius}
+            max={40}
+            onChange={(cartRadius) => patchStyle({ cartRadius })}
+          />
+          <ChoiceRow
+            label={tSafe("admin.storeBuilder.detailStyle.buttonCase", "Text case")}
+            value={config.style.buttonCase}
+            options={PRODUCT_DETAIL_BUTTON_CASES.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.buttonCases.${key}`, BUTTON_CASE_LABELS[key]),
+            }))}
+            onChange={(buttonCase) => patchStyle({ buttonCase })}
+          />
+          {config.style.actions !== "buy" ? (
+            <>
+              <TextRow
+                label={tSafe("admin.storeBuilder.detailStyle.cartLabel", "Add to cart text")}
+                value={config.style.cartLabel}
+                placeholder="Add to Cart"
+                onChange={(cartLabel) => patchStyle({ cartLabel })}
+              />
+              <ColorRow
+                label={tSafe("admin.storeBuilder.detailStyle.cartBackground", "Add to cart background")}
+                value={config.style.cartBackground}
+                fallback="#18181b"
+                onChange={(cartBackground) => patchStyle({ cartBackground })}
+              />
+              <ColorRow
+                label={tSafe("admin.storeBuilder.detailStyle.cartBorder", "Add to cart border")}
+                value={config.style.cartBorder}
+                onChange={(cartBorder) => patchStyle({ cartBorder })}
+              />
+              <SliderRow
+                label={tSafe("admin.storeBuilder.detailStyle.cartBorderWidth", "Add to cart border thickness")}
+                value={config.style.cartBorderWidth}
+                max={4}
+                step={0.5}
+                onChange={(cartBorderWidth) => patchStyle({ cartBorderWidth })}
+              />
+            </>
+          ) : null}
+          {config.style.actions !== "cart" ? (
+            <>
+              <TextRow
+                label={tSafe("admin.storeBuilder.detailStyle.buyLabel", "Buy now text")}
+                value={config.style.buyLabel}
+                placeholder="Buy Now"
+                onChange={(buyLabel) => patchStyle({ buyLabel })}
+              />
+              <ColorRow
+                label={tSafe("admin.storeBuilder.detailStyle.buyBackground", "Buy now background")}
+                value={config.style.buyBackground}
+                onChange={(buyBackground) => patchStyle({ buyBackground })}
+              />
+              <ColorRow
+                label={tSafe("admin.storeBuilder.detailStyle.buyBorder", "Buy now border")}
+                value={config.style.buyBorder}
+                onChange={(buyBorder) => patchStyle({ buyBorder })}
+              />
+              <SliderRow
+                label={tSafe("admin.storeBuilder.detailStyle.buyBorderWidth", "Buy now border thickness")}
+                value={config.style.buyBorderWidth}
+                max={4}
+                step={0.5}
+                onChange={(buyBorderWidth) => patchStyle({ buyBorderWidth })}
+              />
+            </>
+          ) : null}
+          {config.visibility.quantity ? (
+            <ColorRow
+              label={tSafe("admin.storeBuilder.detailStyle.quantityBorder", "Quantity stepper border")}
+              value={config.style.quantityBorder}
+              onChange={(quantityBorder) => patchStyle({ quantityBorder })}
+            />
+          ) : null}
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {tSafe("admin.storeBuilder.detailStyle.buttonTextHint", "Leave the text empty to use the store's translated wording. A pre-order always says Pre-order.")}
+          </p>
+        </div>
+
+        <div className="space-y-2.5">
+          {subheading(tSafe("admin.storeBuilder.detailStyle.stock", "Stock & badges"))}
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.inStockBackground", "In stock background")}
+            value={config.style.inStockBackground}
+            fallback="#d1fae5"
+            onChange={(inStockBackground) => patchStyle({ inStockBackground })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.inStockColor", "In stock text")}
+            value={config.style.inStockColor}
+            fallback="#047857"
+            onChange={(inStockColor) => patchStyle({ inStockColor })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.outOfStockBackground", "Out of stock background")}
+            value={config.style.outOfStockBackground}
+            fallback="#fee2e2"
+            onChange={(outOfStockBackground) => patchStyle({ outOfStockBackground })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.outOfStockColor", "Out of stock text")}
+            value={config.style.outOfStockColor}
+            fallback="#b91c1c"
+            onChange={(outOfStockColor) => patchStyle({ outOfStockColor })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.preorderBackground", "Pre-order background")}
+            value={config.style.preorderBackground}
+            fallback="#dbeafe"
+            onChange={(preorderBackground) => patchStyle({ preorderBackground })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.preorderColor", "Pre-order text")}
+            value={config.style.preorderColor}
+            fallback="#1d4ed8"
+            onChange={(preorderColor) => patchStyle({ preorderColor })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.lowStockColor", "Low stock text")}
+            value={config.style.lowStockColor}
+            fallback="#ea580c"
+            onChange={(lowStockColor) => patchStyle({ lowStockColor })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.stockRadius", "Stock badge radius")}
+            value={config.style.stockRadius}
+            max={999}
+            onChange={(stockRadius) => patchStyle({ stockRadius })}
           />
           <TypographyRow
             label={tSafe(
@@ -507,6 +799,96 @@ export function ProductMainEditor({
             onChange={(patch) => patchTypography("stock", patch)}
             tSafe={tSafe}
           />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.discountBackground", "Discount chip background")}
+            value={config.style.discountBackground}
+            fallback="#ffe4e6"
+            onChange={(discountBackground) => patchStyle({ discountBackground })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.discountColor", "Discount chip text")}
+            value={config.style.discountColor}
+            fallback="#e11d48"
+            onChange={(discountColor) => patchStyle({ discountColor })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.discountRadius", "Discount chip radius")}
+            value={config.style.discountRadius}
+            max={999}
+            onChange={(discountRadius) => patchStyle({ discountRadius })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.ratingColor", "Rating Color")}
+            value={config.style.ratingColor}
+            fallback="#f59e0b"
+            onChange={(ratingColor) => patchStyle({ ratingColor })}
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          {subheading(tSafe("admin.storeBuilder.detailStyle.accordions", "Accordions"))}
+          <ChoiceRow
+            label={tSafe("admin.storeBuilder.detailStyle.accordionIcon", "Icon")}
+            value={config.style.accordionIcon}
+            options={PRODUCT_DETAIL_ACCORDION_ICONS.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.accordionIcons.${key}`, ACCORDION_ICON_LABELS[key]),
+            }))}
+            onChange={(accordionIcon) => patchStyle({ accordionIcon })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.accordionDivider", "Divider colour")}
+            value={config.style.accordionDivider}
+            fallback="#e4e4e7"
+            onChange={(accordionDivider) => patchStyle({ accordionDivider })}
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          {subheading(tSafe("admin.storeBuilder.detailStyle.share", "Share"))}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.shareSize", "Button size")}
+            value={config.style.shareSize}
+            min={24}
+            max={72}
+            onChange={(shareSize) => patchStyle({ shareSize })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.shareRadius", "Button radius")}
+            value={config.style.shareRadius}
+            max={999}
+            onChange={(shareRadius) => patchStyle({ shareRadius })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.shareBackground", "Button background")}
+            value={config.style.shareBackground}
+            fallback="#f4f4f5"
+            onChange={(shareBackground) => patchStyle({ shareBackground })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.shareIconColor", "Icon colour")}
+            value={config.style.shareIconColor}
+            fallback="#09090b"
+            onChange={(shareIconColor) => patchStyle({ shareIconColor })}
+          />
+          {PRODUCT_DETAIL_SHARE_NETWORKS.map((network) => (
+            <ToggleRow
+              key={network}
+              label={tSafe(
+                `admin.storeBuilder.shareNetworks.${network}`,
+                SHARE_NETWORK_LABELS[network],
+              )}
+              checked={config.style.shareNetworks[network]}
+              onChange={(on) =>
+                patchStyle({
+                  shareNetworks: { ...config.style.shareNetworks, [network]: on },
+                })
+              }
+            />
+          ))}
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {tSafe("admin.storeBuilder.detailStyle.shareHint", "These can only hide a network. Which networks exist at all is set in the store's share settings.")}
+          </p>
         </div>
       </div>
     </div>
@@ -520,14 +902,16 @@ function OrderGroup({
   index,
   tSafe,
   rowLabel,
-  onToggle,
+  onPatch,
+  onRemove,
   onRemoveGroup,
 }: {
   group: ProductDetailRowGroup;
   index: number;
   tSafe: TSafe;
   rowLabel: (key: ProductDetailRow) => string;
-  onToggle: (key: ProductDetailRow, on: boolean) => void;
+  onPatch: (id: string, patch: Partial<ProductDetailRowItem>) => void;
+  onRemove: (id: string) => void;
   onRemoveGroup: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: group.id });
@@ -552,7 +936,7 @@ function OrderGroup({
         </Button>
       </div>
       <SortableContext
-        items={group.items.map((item) => item.key)}
+        items={group.items.map((item) => item.id)}
         strategy={verticalListSortingStrategy}
       >
         <div
@@ -571,10 +955,12 @@ function OrderGroup({
               )
             : group.items.map((item) => (
                 <OrderRow
-                  key={item.key}
+                  key={item.id}
                   item={item}
                   label={rowLabel(item.key)}
-                  onToggle={(on) => onToggle(item.key, on)}
+                  tSafe={tSafe}
+                  onPatch={(patch) => onPatch(item.id, patch)}
+                  onRemove={() => onRemove(item.id)}
                 />
               ))}
         </div>
@@ -586,12 +972,17 @@ function OrderGroup({
 function OrderRow({
   item,
   label,
-  onToggle,
+  tSafe,
+  onPatch,
+  onRemove,
 }: {
-  item: { key: ProductDetailRow; on: boolean };
+  item: ProductDetailRowItem;
   label: string;
-  onToggle: (on: boolean) => void;
+  tSafe: TSafe;
+  onPatch: (patch: Partial<ProductDetailRowItem>) => void;
+  onRemove: () => void;
 }) {
+  const repeatable = REPEATABLE_PRODUCT_DETAIL_ROWS.has(item.key);
   const {
     attributes,
     listeners,
@@ -599,7 +990,7 @@ function OrderRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.key });
+  } = useSortable({ id: item.id });
 
   return (
     <div
@@ -619,16 +1010,101 @@ function OrderRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <div className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-full border border-border bg-card px-4 py-2">
-        <span
-          className={cn(
-            "truncate text-sm font-medium",
-            !item.on && "text-muted-foreground",
-          )}
-        >
-          {label}
-        </span>
-        <Switch checked={item.on} onCheckedChange={onToggle} />
+      <div className="min-w-0 flex-1 space-y-2 rounded-[20px] border border-border bg-card px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+          <span
+            className={cn(
+              "truncate text-sm font-medium",
+              !item.on && "text-muted-foreground",
+            )}
+          >
+            {label}
+          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {repeatable ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                onClick={onRemove}
+                aria-label={tSafe("admin.storeBuilder.removeRow", "Remove row")}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
+            <Switch
+              checked={item.on}
+              onCheckedChange={(on) => onPatch({ on })}
+            />
+          </div>
+        </div>
+
+        {/* A layout row's own settings, inline: a gap is only its height,
+            a line its thickness, spacing and colour. */}
+        {item.key === "gap" ? (
+          <label className="flex items-center justify-between gap-3 pb-1 text-xs text-muted-foreground">
+            {tSafe("admin.storeBuilder.rowSettings.height", "Height")}
+            <UnitField
+              value={item.size ?? PRODUCT_DETAIL_ROW_SETTINGS.gap.size.default}
+              unit="px"
+              min={PRODUCT_DETAIL_ROW_SETTINGS.gap.size.min}
+              max={PRODUCT_DETAIL_ROW_SETTINGS.gap.size.max}
+              onChange={(size) => onPatch({ size })}
+              ariaLabel={tSafe("admin.storeBuilder.rowSettings.height", "Height")}
+              className="w-24"
+            />
+          </label>
+        ) : null}
+        {item.key === "divider" ? (
+          <div className="grid gap-2 pb-1 sm:grid-cols-3">
+            <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {tSafe("admin.storeBuilder.rowSettings.thickness", "Thickness")}
+              <UnitField
+                value={item.size ?? PRODUCT_DETAIL_ROW_SETTINGS.divider.size.default}
+                unit="px"
+                min={PRODUCT_DETAIL_ROW_SETTINGS.divider.size.min}
+                max={PRODUCT_DETAIL_ROW_SETTINGS.divider.size.max}
+                onChange={(size) => onPatch({ size })}
+                ariaLabel={tSafe("admin.storeBuilder.rowSettings.thickness", "Thickness")}
+                className="w-20"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {tSafe("admin.storeBuilder.rowSettings.spacing", "Spacing")}
+              <UnitField
+                value={item.spacing ?? PRODUCT_DETAIL_ROW_SETTINGS.divider.spacing.default}
+                unit="px"
+                min={PRODUCT_DETAIL_ROW_SETTINGS.divider.spacing.min}
+                max={PRODUCT_DETAIL_ROW_SETTINGS.divider.spacing.max}
+                onChange={(spacing) => onPatch({ spacing })}
+                ariaLabel={tSafe("admin.storeBuilder.rowSettings.spacing", "Spacing")}
+                className="w-20"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {tSafe("admin.storeBuilder.rowSettings.color", "Colour")}
+              <span className="flex items-center gap-1">
+                <input
+                  type="color"
+                  value={item.color || "#e4e4e7"}
+                  onChange={(event) => onPatch({ color: event.target.value })}
+                  aria-label={tSafe("admin.storeBuilder.rowSettings.color", "Colour")}
+                  className="h-7 w-9 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                />
+                {item.color ? (
+                  <button
+                    type="button"
+                    onClick={() => onPatch({ color: "" })}
+                    className="text-[11px] underline underline-offset-2"
+                  >
+                    {tSafe("admin.storeBuilder.rowSettings.reset", "Theme")}
+                  </button>
+                ) : null}
+              </span>
+            </label>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -637,6 +1113,81 @@ function OrderRow({
 // ---- Style controls -------------------------------------------------------
 // Exported: the product CARD configurator (product-card-builder.tsx) renders
 // the same Figma control rows and reuses these instead of redrawing them.
+
+/** A labelled choice from a short fixed list. */
+function ChoiceRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { key: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
+      <NativeSelect
+        value={value}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value as T)}
+        className="w-44 shrink-0 rounded-lg"
+      >
+        {options.map((option) => (
+          <option key={option.key} value={option.key}>
+            {option.label}
+          </option>
+        ))}
+      </NativeSelect>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+    </div>
+  );
+}
+
+/** Short text; "" means "the storefront's own wording". */
+function TextRow({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
+      <Input
+        value={value}
+        maxLength={40}
+        placeholder={placeholder}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-9 w-44 shrink-0"
+      />
+    </div>
+  );
+}
 
 export function SliderRow({
   label,
@@ -661,8 +1212,8 @@ export function SliderRow({
   // A typed number with a draggable unit, not a rail: the exact pixel is
   // the point of these rows and a slider could never land on it.
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 truncate text-sm text-foreground">{label}</span>
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
       <UnitField
         ariaLabel={label}
         value={value}
@@ -717,8 +1268,8 @@ export function ColorRow({
       : "#ffffff";
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 truncate text-sm text-foreground">{label}</span>
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
       <span className="flex shrink-0 items-center gap-1.5">
         {value ? (
           <button
@@ -833,8 +1384,8 @@ export function TypographyRow({
   const shownSize = current.size > 0 ? current.size : (defaults?.size ?? 0);
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 truncate text-sm text-foreground">{label}</span>
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+      <span className="text-sm text-foreground">{label}</span>
       <span className="flex shrink-0 items-center gap-2">
         {/* The value in effect at a glance: weight · size · style. */}
         {defaults ? (
@@ -884,7 +1435,7 @@ export function TypographyRow({
             align="end"
             className="w-96 space-y-4 rounded-2xl p-5 shadow-lg"
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
               <span className="text-sm text-foreground">
                 {tSafe("admin.storeBuilder.detailTypography.weight", "Weight")}
               </span>
@@ -902,7 +1453,7 @@ export function TypographyRow({
                 )}
               </NativeSelect>
             </div>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
               <span className="text-sm text-foreground">
                 {tSafe("admin.storeBuilder.detailTypography.style", "Style")}
               </span>

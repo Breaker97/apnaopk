@@ -185,7 +185,7 @@ async function applyInboundEdit(
     (await ConversationMessage.findOneAndUpdate(
       { _id: message._id },
       { $set: { body, attachments: event.attachments } },
-      { new: true },
+      { returnDocument: "after" },
     )) || message;
   await Conversation.updateOne(
     { _id: message.conversationId, lastMessageId: message._id },
@@ -348,7 +348,7 @@ export async function ingestInboundMessage(
           ],
         },
       ],
-      { new: true },
+      { returnDocument: "after" },
     )) || conversation;
   afterResponse(() => notifyStoreAboutInbound(updatedConversation, event.body));
   return message;

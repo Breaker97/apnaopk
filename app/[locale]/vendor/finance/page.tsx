@@ -15,8 +15,10 @@ import {
 } from "@/components/admin/dashboard-stat-card";
 import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
 import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
+import { VendorBalanceCard } from "@/components/vendor/finance/vendor-balance-card";
 import { formatCurrency } from "@/lib/intl/money";
 import { loadVendorFinance } from "@/lib/finance/vendor-page-data";
+import { loadVendorBalance } from "@/lib/vendors/vendor-balance";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -45,14 +47,24 @@ export default async function VendorFinancePage({
   // Shared with the other three finance screens, so the multi-vendor gate
   // cannot drift between them — this page carried its own copy of it, which is
   // the one thing the shared loader exists to prevent.
-  const { period, statements } = await loadVendorFinance({
+  const { period, statements, vendor, storeCurrency } = await loadVendorFinance({
     locale,
     searchParams: search,
+  });
+  // What the one "held for you" figure is actually made of, read from the
+  // functions payout creation uses.
+  const balance = await loadVendorBalance({
+    vendorId: String(vendor._id),
+    currency: storeCurrency,
   });
 
   const t = await getTranslations({ locale });
   const label = (key: string, fallback: string) =>
     t.has(key) ? t(key) : fallback;
+  // The balance card fills its own placeholders — `{count}`, `{days}` — so the
+  // message is wanted unformatted; `t(key)` would refuse it for missing values.
+  const rawLabel = (key: string, fallback: string) =>
+    t.has(key) ? (t.raw(key) as string) : fallback;
 
   return (
     <div className="space-y-6">
@@ -76,6 +88,42 @@ export default async function VendorFinancePage({
           showBookFilter={false}
         />
       </div>
+
+      <VendorBalanceCard
+        balance={balance}
+        locale={locale}
+        labels={{
+          title: rawLabel("finance.balance.title", "What you are owed"),
+          ready: rawLabel("finance.balance.ready", "Ready for the next payout"),
+          readyHint: rawLabel(
+            "finance.balance.readyHint",
+            "From {count} delivered orders, past the return window",
+          ),
+          belowMinimum: rawLabel(
+            "finance.balance.belowMinimum",
+            "A payout is made once this reaches {amount}",
+          ),
+          held: rawLabel("finance.balance.held", "Waiting out the return window"),
+          heldHint: rawLabel(
+            "finance.balance.heldHint",
+            "Delivered, and payable {days} days after delivery",
+          ),
+          reserve: rawLabel("finance.balance.reserve", "Held against pre-orders"),
+          reserveHint: rawLabel(
+            "finance.balance.reserveHint",
+            "Released from {date}",
+          ),
+          reserveUndated: label(
+            "finance.balance.reserveUndated",
+            "Released with a later payout",
+          ),
+          owedBack: rawLabel("finance.balance.owedBack", "Owed back to the store"),
+          owedBackHint: label(
+            "finance.balance.owedBackHint",
+            "Paid to you on orders refunded since; it comes off your next payout",
+          ),
+        }}
+      />
 
       {statements.length === 0 ? (
         <Card>

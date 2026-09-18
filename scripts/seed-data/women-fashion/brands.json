@@ -1,0 +1,158 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa685729e1a8ac7a89ff106"
+    },
+    "name": "Prada",
+    "slug": "prada",
+    "description": "",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789395337867-5fsjm8/prada.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-13T11:13:54.949Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-14T14:15:41.319Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Brand"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "name": "Louis Vuitton",
+    "slug": "louis-vuitton",
+    "description": "",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789372823603-6g0s07/wtrerte.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-14T07:54:49.176Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-14T08:00:31.044Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Louis Vuitton"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa7c42e197ff91b01f86367"
+    },
+    "name": "Nike",
+    "slug": "nike",
+    "description": "",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789382201056-s9duen/8c12c1d0-0f53-44f5-926f-a95367c02b93.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-14T09:53:50.589Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-14T10:36:44.475Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Nike"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa7cf50197ff91b01f8636d"
+    },
+    "name": "Adidas",
+    "slug": "adidas",
+    "description": "",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789382549761-3lub5a/e2f7b296-efd2-4a7b-89f9-f51dc0205fa4.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-14T10:41:20.070Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-14T10:42:32.945Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Adidas"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa7e927197ff91b01f8637b"
+    },
+    "name": "Puma",
+    "slug": "puma",
+    "description": "",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789389034918-rfxjwi/871a7d55-8b22-4511-95ba-bed6b1d6fda5.webp",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-14T12:31:35.986Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-14T12:31:35.986Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aab7c3790a6dfba31d47732"
+    },
+    "name": "Gucci",
+    "slug": "gucci",
+    "description": "",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789623348444-idnl9n/08ccd3a5-f6bb-4c69-be92-94e3de56001d.png",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": null,
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-17T05:35:51.315Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-17T05:35:51.315Z"
+    },
+    "__v": 0
+  }
+]

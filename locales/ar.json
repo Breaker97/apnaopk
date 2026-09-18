@@ -31,6 +31,7 @@
     "yes": "نعم",
     "no": "لا",
     "close": "إغلاق",
+    "scrollToTop": "العودة إلى الأعلى",
     "back": "رجوع",
     "backToHome": "الرجوع للرئيسية",
     "next": "التالي",
@@ -122,7 +123,6 @@
     "goBack": "عُد",
     "backToDashboard": "العودة إلى لوحة القيادة",
     "searchForProducts": "البحث عن المنتجات",
-    "attention": "انتباه",
     "quickLinks": "روابط سريعة",
     "trySearching": "حاول البحث",
     "popularPages": "الصفحات الشعبية",
@@ -140,7 +140,8 @@
     "decreaseQuantity": "إنقاص الكمية",
     "increaseQuantity": "زيادة الكمية",
     "name": "الاسم",
-    "email": "البريد الإلكتروني"
+    "email": "البريد الإلكتروني",
+    "showingResultsFor": "عرض النتائج لـ <q>{query}</q>"
   },
   "wishlist": {
     "title": "قائمة الرغبات",
@@ -342,7 +343,8 @@
         "bestRating": "الأعلى تقييمًا",
         "newest": "الأحدث",
         "priceLowHigh": "السعر من الأقل إلى الأعلى",
-        "priceHighLow": "السعر من الأعلى إلى الأقل"
+        "priceHighLow": "السعر من الأعلى إلى الأقل",
+        "bestMatch": "الأكثر صلة"
       },
       "showResults": "عرض النتائج"
     }
@@ -683,7 +685,7 @@
       "iotecPhoneHint": "أدخل رقم MTN أو Airtel المراد الخصم منه. ستصلك رسالة على ذلك الهاتف للموافقة على الدفع.",
       "mtnMomoDetail": "ادفع عبر MTN Mobile Money. ستصلك مطالبة على هاتفك لتأكيد الدفع برمز MoMo السري.",
       "mtnMomoPhoneLabel": "رقم المحفظة الجوالة",
-      "mtnMomoPhonePlaceholder": "مثال: 0772 123 456",
+      "mtnMomoPhonePlaceholder": "مثال: {example}",
       "mtnMomoPhoneHint": "أدخل رقم MTN المراد الخصم منه. ستصل مطالبة إلى ذلك الهاتف لتأكيد الدفع."
     },
     "cod": "سمك القد",
@@ -713,6 +715,7 @@
     "estimatedDuties": "الواجبات المقدرة",
     "shippingUnavailable": "الشحن غير متوفر لهذا العنوان.",
     "switchToPickup": "التبديل إلى الاستلام من المتجر",
+    "enterAddressForShipping": "أدخل عنوان الشحن لعرض طرق الشحن المتاحة.",
     "billingSame": "نفس عنوان الشحن",
     "noShippingRates": "لا توجد أسعار الشحن المتاحة لهذا العنوان",
     "makeDefaultAddress": "اجعل هذا عنواني الافتراضي",
@@ -809,7 +812,8 @@
       "partially_paid": "مدفوع جزئيًا",
       "refunded": "مسترد",
       "partially_refunded": "مسترد جزئيًا"
-    }
+    },
+    "importDuties": "رسوم الاستيراد"
   },
   "vendor": {
     "vendorDashboard": "لوحة تحكم البائع",
@@ -846,10 +850,11 @@
     "commission": "العمولة المدفوعة",
     "activeProducts": "المنتجات النشطة",
     "netEarnings": "صافي الأرباح",
-    "pending": "قيد الانتظار",
+    "awaitingPayment": "{amount} بانتظار الدفع",
     "recentOrders": "الطلبات الأخيرة",
     "topProducts": "المنتجات الأكثر مبيعًا",
     "totalOrders": "إجمالي الطلبات",
+    "openOrdersCount": "{count} مفتوحة",
     "totalProducts": "إجمالي المنتجات",
     "totalRevenue": "إجمالي الإيرادات",
     "pendingOrders": "Pending Orders",
@@ -1005,6 +1010,7 @@
       "partially_refunded": "استرداد جزئي"
     },
     "fulfillmentStatus": {
+      "preordered": "طلب مسبق",
       "pending": "غير مُنجز",
       "processing": "قيد المعالجة",
       "shipped": "قيد الشحن",
@@ -1343,6 +1349,7 @@
       "subtotal": "المجموع الفرعي",
       "shipping": "الشحن",
       "tax": "الضريبة",
+      "importDuties": "رسوم الاستيراد",
       "discount": "الخصم",
       "totalLabel": "المجموع",
       "timeline": "الجدول الزمني",
@@ -1500,7 +1507,7 @@
       "dateRange": "25 يوليو - 25 أغسطس",
       "addActivity": "إضافة نشاط",
       "sales": "المبيعات",
-      "ordersDescription": "تفصيل لإجمالي الطلبات مع رؤى تحليلية مفصلة.",
+      "ordersDescription": "إجماليات الفترة المحددة، مقسّمة حسب قناة البيع.",
       "showHighlights": "عرض كل النقاط المهمة",
       "showSalesData": "عرض كل بيانات المبيعات",
       "viewAllOrders": "عرض كل الطلبات",
@@ -1618,7 +1625,9 @@
       "expenses": "المصروفات",
       "receivables": "الذمم المدينة",
       "financeReports": "التقارير",
-      "quotes": "عروض الأسعار"
+      "quotes": "عروض الأسعار",
+      "traffic": "حركة الزيارات",
+      "searchInsights": "رؤى البحث"
     },
     "users": "المستخدمون",
     "usersDesc": "إدارة المستخدمين والأدوار",
@@ -3307,6 +3316,11 @@
           "name": "أزياء",
           "description": "معالجة بصرية بأسلوب تحريري لعلامات الأزياء والجمال ونمط الحياة الفاخر.",
           "styleNote": "يركز على عرض المنتجات المعتمد على الصور وسرد المجموعات الأنيق."
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "عرض تحريري للأزياء: صور حملات بعرض كامل، ومربعات إطلالات، وتشكيلات موسمية.",
+          "styleNote": "مصمم للملابس والأحذية والإكسسوارات — الصور في الواجهة والإطار في الخلفية."
         }
       },
       "activate": "استخدام هذا القالب"
@@ -4360,7 +4374,21 @@
       },
       "brand": {
         "title": "العلامة التجارية والتخطيط",
-        "description": "التحكم في شعار التذييل، من حيث الوصف والعرض والألوان."
+        "description": "التحكم في شعار التذييل، من حيث الوصف والعرض والألوان.",
+        "logoSourceLabel": "مصدر شعار التذييل",
+        "storeLogo": "شعار المتجر (موصى به)",
+        "storeLogoDescription": "يستخدم شعارات الهوية البصرية ويتبدّل بين الوضع الفاتح والداكن، مثل الرأس.",
+        "customLogo": "شعار مخصص للتذييل",
+        "customLogoDescription": "ارفع تصميمًا مختلفًا للتذييل فقط.",
+        "synced": "متزامن مع الهوية البصرية",
+        "editBranding": "تعديل في الهوية البصرية",
+        "lightLogo": "شعار الوضع الفاتح",
+        "darkLogo": "شعار الوضع الداكن",
+        "logoNotSet": "لم يتم الرفع",
+        "customLogoHint": "تُطبَّق هذه الشعارات على التذييل فقط. بدون شعار للوضع الداكن يظهر شعار التذييل في الوضعين؛ وبدون أي منهما تُستخدم شعارات متجرك.",
+        "matchHeaderSize": "بنفس حجم شعار الرأس",
+        "matchHeaderSizeHint": "يتبع الرأس: بعرض {desktop}px على الشاشات الكبيرة و{mobile}px على الهواتف.",
+        "logoThemeAuto": "تلقائي (يطابق خلفية التذييل)"
       },
       "quickLinks": {
         "description": "إدارة أعمدة التذييل للمنتجات والمساعدة والشركة والصفحات القانونية.",
@@ -4405,6 +4433,9 @@
         "fullWidthFooter": "تذييل كامل العرض",
         "aboutDescription": "حول الوصف",
         "footerLogo": "شعار التذييل",
+        "footerDarkLogo": "شعار التذييل (الوضع الداكن)",
+        "logoWidth": "عرض الشعار",
+        "logoTheme": "الشعار المعروض",
         "email": "بريد إلكتروني",
         "address": "عنوان",
         "phone": "هاتف",
@@ -4991,7 +5022,6 @@
         "live": "مباشر",
         "unsaved": "تغييرات غير محفوظة"
       },
-      "subtitle": "تحافظ صفحة الدفع على خطواتها المجرّبة — أضف هويتك هنا فقط. لا يمكن إعادة ترتيب الخطوات، فلا تتعطل المدفوعات أبدًا.",
       "themeLink": "إعدادات القالب",
       "title": "الدفع",
       "toast": {
@@ -5178,6 +5208,7 @@
       "publishPageTitle": "نشر هذه الصفحة؟",
       "publishTitle": "نشر الصفحة الرئيسية؟",
       "published": "نُشرت الصفحة الرئيسية",
+      "duplicateSection": "تكرار القسم",
       "removeSection": "إزالة القسم",
       "requiredSection": "إلزامي",
       "restore": "استعادة",
@@ -6185,7 +6216,51 @@
     "writeReview": "اكتب مراجعة",
     "beFirst": "كن أول من يراجع هذا المنتج",
     "basedOn": "بناءً على تقييمات {count}",
-    "verified": "التحقق من الشراء"
+    "verified": "التحقق من الشراء",
+    "writeReviewCta": "اكتب مراجعة!",
+    "rating": "التقييم",
+    "all": "الكل",
+    "highlyRecommended": "موصى به بشدة",
+    "postedBy": "نشرها {name} {time}",
+    "postedTime": "نُشرت {time}",
+    "brandResponse": "رد العلامة التجارية",
+    "showingRange": "عرض {from} - {to} من {total} مراجعة",
+    "anonymous": "مجهول",
+    "checkingEligibility": "جارٍ التحقق من طلباتك المؤهلة...",
+    "comment": "مراجعتك *",
+    "commentPlaceholder": "شارك تجربتك مع هذا المنتج",
+    "commentTooShort": "يجب ألا يقل التعليق عن 10 أحرف",
+    "dropzoneHint": "يدعم صورًا حتى 10 ميغابايت لكل منها.",
+    "dropzonePrimary": "اسحب الملفات وأفلتها هنا، أو انقر للاستعراض",
+    "eligibleOrderRequired": "يمكنك مراجعة هذا المنتج فقط بعد توصيله في أحد طلباتك.",
+    "imageTooLarge": "يجب أن يكون حجم كل صورة أقل من 10 ميغابايت",
+    "imageUploadFailed": "فشل رفع الصورة",
+    "invalidImage": "يُسمح بملفات الصور فقط",
+    "loginToReview": "يرجى تسجيل الدخول لكتابة مراجعة لهذا المنتج.",
+    "maxImages": "يمكنك رفع 4 صور كحد أقصى",
+    "noReviewsForRating": "لا توجد مراجعات لهذا التقييم بعد",
+    "oldest": "الأقدم",
+    "photos": "الصور",
+    "selectRating": "يرجى اختيار تقييم",
+    "submit": "إرسال المراجعة",
+    "submitFailed": "تعذر إرسال المراجعة",
+    "submitted": "تم إرسال المراجعة بنجاح!",
+    "title": "العنوان",
+    "titlePlaceholder": "لخّص مراجعتك",
+    "writeReviewHint": "لن يتم نشر عنوان بريدك الإلكتروني. الحقول المطلوبة مميزة بعلامة النجمة (*).",
+    "yourRating": "تقييمك",
+    "pendingTitle": "قيّم مشترياتك",
+    "pendingDescription": "وصلت طلباتك. أخبر المتسوقين الآخرين برأيك.",
+    "deliveredOn": "تم التوصيل في {date}",
+    "rateStar": "التقييم بـ {count} من 5",
+    "showMore": "عرض {count} أخرى",
+    "showFewer": "عرض أقل",
+    "fromOrder": "الطلب #{orderNumber}",
+    "orderPromptTitle": "كيف كان طلبك؟",
+    "orderPromptOne": "اكتب مراجعة سريعة لـ {name}، فهي تساعد المتسوقين الآخرين.",
+    "orderPromptMany": "{count} من منتجات هذا الطلب بانتظار مراجعتك.",
+    "youRated": "قيّمته",
+    "alreadyReviewed": "لقد قمت بمراجعة هذا المنتج بالفعل. شكرًا لمشاركة تجربتك!"
   },
   "coupon": {
     "removed": "تمت إزالة القسيمة",
@@ -6321,6 +6396,7 @@
     },
     "chatWithVendor": "الدردشة مع البائع",
     "chatWithStore": "الدردشة مع المتجر",
+    "chatWithSeller": "الدردشة مع البائع",
     "startConversation": "بدء محادثة",
     "startDescription": "اسأل عن التوفر أو التوصيل أو الخيارات أو أي شيء آخر.",
     "writeMessage": "اكتب رسالة…",
@@ -6640,7 +6716,6 @@
       "canceled": "أُلغيت عملية الدفع. يرجى المحاولة مرة أخرى.",
       "failed": "تعذّر بدء عملية الدفع",
       "loadFailed": "تعذّر تحميل سلّم المواضع",
-      "verifyFailed": "تعذّر التحقق من عملية الدفع",
       "pollTimeout": "لم نتمكن من تأكيد الدفع بعد. ستُفعَّل الحملة تلقائيًا بمجرد تأكيده.",
       "stepSlot": "الموضع والتواريخ",
       "pickSlot": "اختر موضعًا وتواريخ",
@@ -6753,7 +6828,6 @@
     "adminPassword": "كلمة المرور",
     "adminTitle": "أنشئ حساب المدير",
     "appUrl": "عنوان التطبيق",
-    "appUrlHint": "اضبط NEXT_PUBLIC_APP_URL في ملف .env على عنوان متجرك",
     "blockedHint": "أصلح العناصر أعلاه ثم أعد الفحص — لا يمكن متابعة التثبيت قبل نجاحها.",
     "retry": "إعادة الفحص",
     "authSecret": "سر المصادقة",
@@ -6792,7 +6866,7 @@
       "secretAccessKey": "المفتاح السري",
       "publicUrl": "العنوان العام"
     },
-    "nodeTooOld": "مطلوب Node.js إصدار 22 أو أحدث",
+    "nodeTooOld": "مطلوب Node.js إصدار 22.12 أو أحدث",
     "storeName": "اسم المتجر",
     "storeTitle": "أساسيات المتجر",
     "subtitle": "خطوات قليلة وتبدأ البيع",
@@ -6910,6 +6984,7 @@
       "processing_fees": "رسوم الدفع",
       "shipping_cost": "بطاقات الشحن",
       "cost_of_goods": "تكلفة البضاعة المباعة",
+      "promotions": "خصومات يتحملها المتجر",
       "operating_expense": "المصروفات التشغيلية"
     },
     "overview": {

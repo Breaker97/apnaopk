@@ -47,14 +47,34 @@ export interface ThemeManifest {
    */
   tokens?: ThemeTokenOverrides;
   /**
-   * The design each section type should wear under this theme, applied when
-   * the admin INSERTS one from the picker — so a new block arrives in the
-   * template's look instead of the first (legacy) variant. Starter presets
-   * name their variants explicitly; this covers what gets added afterwards.
-   * Keys are section types, values variant keys; the catalog ignores
-   * entries it cannot resolve. Stored documents are never rewritten by it.
+   * The design each section type wears under this theme. Keys are section
+   * types, values variant keys; entries that resolve to no design are
+   * ignored. Two readers:
+   *
+   * - Sections that follow the template (`designFollowsTheme`) render this
+   *   design live whenever their stored value is "theme" — the listing,
+   *   category and cart pages restyle on a template switch through this map
+   *   and nothing else.
+   * - Every other section is only affected when the admin INSERTS one from
+   *   the picker, so a new block arrives in the template's look instead of
+   *   the first (legacy) variant. Starter presets name their variants
+   *   explicitly; this covers what gets added afterwards, and stored
+   *   documents are never rewritten by it.
    */
   preferredVariants?: Record<string, string>;
+  /**
+   * How titles are drawn on the store pages no section owns — the compare
+   * and all-categories pages — and on the shelves that take the template's
+   * treatment rather than a setting of their own (blog posts, sponsored).
+   * "two-tone" is the gradient heading; absent means plain.
+   */
+  headingStyle?: "two-tone" | "plain";
+  /**
+   * The all-categories page's tiles: bordered cards with the category's
+   * description (absent), or square picture tiles. Both pages search and
+   * paginate the same way — only the tiles differ.
+   */
+  categoriesPage?: "cards" | "tiles";
   /**
    * The product card template this theme's listings are designed around,
    * seeded into `settings.productCard` on activation (see

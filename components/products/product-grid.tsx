@@ -32,6 +32,9 @@ import {
   getStorefrontBoostingSettings,
   resolveLadderAt,
 } from "@/lib/boosts/sponsored-products";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 interface ProductGridProps {
   locale: Locale;
@@ -79,6 +82,13 @@ interface ProductGridProps {
    * a round trip and a scroll position every time.
    */
   infinite?: boolean;
+  /**
+   * The builder's framed render: one short page and no pager. A preview
+   * frame cannot be navigated — pointer input is off and there is no page
+   * under it — so links to pages 2 and 3 would only promise what the frame
+   * will not do.
+   */
+  preview?: boolean;
 }
 
 async function fetchProducts(props: ProductGridProps) {
@@ -199,6 +209,10 @@ export async function ProductGrid(props: ProductGridProps) {
     ? buildProductApiQuery(gridQuery, pagination.limit)
     : "";
 
+  // A pager belongs under a grid a shopper can page through. An infinite grid
+  // has none by definition, and a preview frame is not navigable.
+  const paged = !props.infinite && !props.preview && pagination.totalPages > 1;
+
   if (products.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -247,6 +261,7 @@ export async function ProductGrid(props: ProductGridProps) {
           total={pagination.total}
           query={apiQuery}
           nextHref={pageHref(pagination.page + 1)}
+          className={props.gridClassName}
         />
       ) : (
         <ProductGridClient
@@ -260,9 +275,7 @@ export async function ProductGrid(props: ProductGridProps) {
           drops the location, category, price and sort the shopper chose, so
           page 2 of a filtered grid silently became page 2 of the whole
           catalogue. */}
-      {!props.infinite &&
-        pagination.totalPages > 1 &&
-        props.appearance === "electronics" && (
+      {paged && props.appearance === "electronics" && (
           <div className="mt-10 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               {t("productsPage.showingCount", {
@@ -284,9 +297,7 @@ export async function ProductGrid(props: ProductGridProps) {
             />
           </div>
         )}
-      {!props.infinite &&
-        pagination.totalPages > 1 &&
-        props.appearance !== "electronics" && (
+      {paged && props.appearance !== "electronics" && (
         <Pagination className="mt-8">
           <PaginationContent>
             {pagination.page > 1 && (
@@ -394,7 +405,7 @@ async function applySponsoredPositions(
 
 export function ProductSkeleton({ count = 12 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
       {Array.from({ length: count }).map((_, i) => (
         <ModernProductCardSkeleton key={i} />
       ))}

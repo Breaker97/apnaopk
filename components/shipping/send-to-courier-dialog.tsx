@@ -44,6 +44,12 @@ import { useApplyOnChange } from "@/hooks/use-apply-on-change";
  * money-spending flow would be the one that drifts.
  */
 
+/** A consignment the caller may hand to a courier. */
+export interface CourierConsignment {
+  id: string;
+  label: string;
+}
+
 export interface CourierPackagePreset {
   id: string;
   name: string;
@@ -86,6 +92,15 @@ interface RatesResponse {
 
 type Step = "package" | "quotes" | "done";
 
+/**
+ * The "let the packer choose" option. A Select item cannot carry an empty
+ * value, and without an item of its own the placeholder was a state a merchant
+ * could leave but never return to.
+ */
+const AUTO_PACKAGE = "__auto__";
+
+const PARCEL_FIELDS = ["length", "width", "height", "weight"] as const;
+
 const WARNING_COPY: Record<string, string> = {
   MISSING_WEIGHT:
     "Some items have no weight — a minimum weight was used, so the quote may be low.",
@@ -104,6 +119,15 @@ export function SendToCourierDialog(props: {
   orderId: string;
   orderNumber: string;
   subOrderId?: string;
+  /**
+   * The consignments still waiting for a courier.
+   *
+   * A split order has several, and the rate route cannot guess which parcel is
+   * meant — it refused the whole order rather than pick one, which is what took
+   * the Shipments panel away from every split order. A vendor sees exactly one,
+   * so nothing is asked of them.
+   */
+  consignments?: CourierConsignment[];
   packages: CourierPackagePreset[];
   storeCurrency?: string;
   /** Refresh the order + shipments list once a label exists. */
@@ -114,6 +138,7 @@ export function SendToCourierDialog(props: {
 
   const [step, setStep] = useState<Step>("package");
   const [isBusy, setIsBusy] = useState(false);
+  const [consignmentId, setConsignmentId] = useState<string>("");
   const [packageId, setPackageId] = useState<string>("");
   const [parcel, setParcel] = useState<Parcel | null>(null);
   const [rates, setRates] = useState<RatesResponse | null>(null);
@@ -136,6 +161,16 @@ export function SendToCourierDialog(props: {
   } | null>(null);
 
   const activePackages = props.packages.filter((preset) => preset.active !== false);
+  // Every carrier refuses a zero dimension or weight, and so does the rate
+  // route. Caught here it is named beside the field; left to the server it came
+  // back as one generic validation error for the whole form.
+  const invalidParcelFields = parcel
+    ? PARCEL_FIELDS.filter((field) => !(Number(parcel[field]) > 0))
+    : [];
+  const choices = props.consignments || [];
+  // The vendor route pins the consignment server-side, so its prop wins. A
+  // single choice needs no asking; the first one is simply it.
+  const subOrderId = props.subOrderId ?? (consignmentId || choices[0]?.id);
 
   // Reopening must not show the previous order's quotes.
   useApplyOnChange([props.open], () => {
@@ -145,6 +180,7 @@ export function SendToCourierDialog(props: {
     setSelectedRateId("");
     setPurchased(null);
     setParcel(null);
+    setConsignmentId("");
     setError(null);
   });
 
@@ -155,7 +191,7 @@ export function SendToCourierDialog(props: {
       const result = await apiClient.post<RatesResponse>(
         `${props.apiBase}/orders/${props.orderId}/shipments/rates`,
         {
-          subOrderId: props.subOrderId,
+          subOrderId: subOrderId || undefined,
           packageId: packageId || undefined,
           parcel: parcel ?? undefined,
         },
@@ -177,7 +213,7 @@ export function SendToCourierDialog(props: {
     } finally {
       setIsBusy(false);
     }
-  }, [packageId, parcel, props.apiBase, props.orderId, props.subOrderId, tSafe]);
+  }, [packageId, parcel, props.apiBase, props.orderId, subOrderId, tSafe]);
 
   const buyLabel = useCallback(async () => {
     if (!rates || !selectedRateId) return;
@@ -271,6 +307,41 @@ export function SendToCourierDialog(props: {
 
         {step === "package" ? (
           <div className="space-y-4">
+            {/* Only when there is genuinely a choice. One consignment is not a
+                decision, and asking for it would put a form in front of every
+                single-seller order. */}
+            {!props.subOrderId && choices.length > 1 ? (
+              <div className="space-y-2">
+                <Label htmlFor="courier-consignment">
+                  {tSafe(
+                    "admin.orderDetails.courier.selectConsignment",
+                    "Consignment",
+                  )}
+                </Label>
+                <Select
+                  value={subOrderId || ""}
+                  onValueChange={(value) => {
+                    setConsignmentId(value);
+                    // Another seller's parcel holds other goods, so neither the
+                    // worked-out box nor the last refusal describes it.
+                    setParcel(null);
+                    setError(null);
+                  }}
+                >
+                  <SelectTrigger id="courier-consignment">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {choices.map((consignment) => (
+                      <SelectItem key={consignment.id} value={consignment.id}>
+                        {consignment.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
             {activePackages.length > 0 ? (
               <div className="space-y-2">
                 <Label htmlFor="courier-package">
@@ -280,9 +351,9 @@ export function SendToCourierDialog(props: {
                   )}
                 </Label>
                 <Select
-                  value={packageId}
+                  value={packageId || AUTO_PACKAGE}
                   onValueChange={(value) => {
-                    setPackageId(value);
+                    setPackageId(value === AUTO_PACKAGE ? "" : value);
                     // A different box means the previous parcel no longer
                     // describes what is being shipped.
                     setParcel(null);
@@ -299,6 +370,12 @@ export function SendToCourierDialog(props: {
                     />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={AUTO_PACKAGE}>
+                      {tSafe(
+                        "admin.orderDetails.courier.autoPackage",
+                        "Choose automatically",
+                      )}
+                    </SelectItem>
                     {activePackages.map((preset) => (
                       <SelectItem key={preset.id} value={preset.id}>
                         {preset.name} — {preset.length}×{preset.width}×
@@ -312,7 +389,7 @@ export function SendToCourierDialog(props: {
 
             {parcel ? (
               <div className="grid grid-cols-2 gap-3">
-                {(["length", "width", "height", "weight"] as const).map((field) => (
+                {PARCEL_FIELDS.map((field) => (
                   <div key={field} className="space-y-2">
                     <Label htmlFor={`courier-${field}`} className="capitalize">
                       {field}{" "}
@@ -330,8 +407,25 @@ export function SendToCourierDialog(props: {
                       step="0.01"
                       value={parcel[field]}
                       whenEmpty={0}
+                      aria-invalid={invalidParcelFields.includes(field)}
+                      aria-describedby={
+                        invalidParcelFields.includes(field)
+                          ? `courier-${field}-error`
+                          : undefined
+                      }
                       onValueChange={(next) => updateParcel({ [field]: next ?? 0 })}
                     />
+                    {invalidParcelFields.includes(field) ? (
+                      <p
+                        id={`courier-${field}-error`}
+                        className="text-xs text-destructive"
+                      >
+                        {tSafe(
+                          "admin.orderDetails.courier.mustBePositive",
+                          "Must be more than 0",
+                        )}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -476,7 +570,10 @@ export function SendToCourierDialog(props: {
 
         <DialogFooter>
           {step === "package" ? (
-            <Button disabled={isBusy} onClick={() => void fetchRates()}>
+            <Button
+              disabled={isBusy || invalidParcelFields.length > 0}
+              onClick={() => void fetchRates()}
+            >
               {isBusy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

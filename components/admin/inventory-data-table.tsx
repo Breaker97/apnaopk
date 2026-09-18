@@ -41,6 +41,8 @@ interface InventoryItem {
   committed: number;
   available: number;
   onHand: number;
+  /** Shipped on a transfer and not yet received. */
+  incoming?: number;
   locationInventory: Array<{
     locationId: string;
     locationName: string;
@@ -282,6 +284,21 @@ export function InventoryDataTable({
           <TextCell
             value={row.committed}
             className="text-center text-muted-foreground"
+          />
+        ),
+        className: "text-center w-[100px]",
+      },
+      {
+        id: "incoming",
+        header: t("admin.inventory.columns.incoming"),
+        cell: (row) => (
+          <TextCell
+            value={row.incoming || 0}
+            className={
+              row.incoming
+                ? "text-center font-medium text-blue-600 dark:text-blue-400"
+                : "text-center text-muted-foreground"
+            }
           />
         ),
         className: "text-center w-[100px]",

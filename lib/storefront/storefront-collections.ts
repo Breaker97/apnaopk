@@ -10,6 +10,8 @@ type StorefrontCollectionListQuery = {
   page?: number;
   limit?: number;
   channel?: "onlineStore" | "pointOfSale";
+  /** Only collections of this kind; absent lists every kind. */
+  kind?: "collection" | "look";
 };
 
 /**
@@ -45,11 +47,12 @@ export const getStorefrontCollections = unstable_cache(
       status: "active",
       [`publishing.${publishingChannel}`]: true,
     };
+    if (query.kind) mongoQuery.kind = query.kind;
     const skip = (page - 1) * limit;
 
     const [collections, total] = await Promise.all([
       Collection.find(mongoQuery)
-        .select("title slug handle description image productCount position publishing")
+        .select("title slug handle description image kind productCount position publishing")
         .sort({ position: 1, createdAt: -1 })
         .skip(skip)
         .limit(limit)

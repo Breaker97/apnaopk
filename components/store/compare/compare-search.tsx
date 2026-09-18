@@ -104,7 +104,7 @@ export function CompareSearch({
 
   return (
     <div ref={boxRef} className="relative mx-auto w-full max-w-[558px]">
-      <div className="flex items-center gap-2 rounded-full border border-border bg-background p-1.5 ps-5">
+      <div className="flex items-center gap-2 rounded-input border border-border bg-background p-1.5 ps-5">
         <input
           value={term}
           onChange={(event) => setTerm(event.target.value)}

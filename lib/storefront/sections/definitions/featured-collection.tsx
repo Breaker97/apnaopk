@@ -3,6 +3,12 @@ import {
   type CollectionRowEntry,
 } from "@/components/store/sections/collection-rows";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
+import {
+  COLLECTION_ROW_CORNERS,
+  COLLECTION_ROW_GAP_MODES,
+  COLLECTION_ROW_LIMITS,
+  readCollectionRowsSpacing,
+} from "../collection-rows-spacing";
 import type { SectionDefinition, SectionInstance } from "../types";
 
 /** A collection block's settings, read leniently into one row. */
@@ -90,7 +96,59 @@ export const featuredCollection: SectionDefinition = {
   version: 2,
   category: "products",
   suggested: true,
-  fields: [{ key: "title", type: "text", default: "Top Collections" }],
+  fields: [
+    { key: "title", type: "text", default: "Top Collections" },
+    // The rows' geometry — see collection-rows-spacing.ts. Edited by the
+    // dedicated editor; normalized and stored as plain fields.
+    {
+      key: "gapMode",
+      type: "select",
+      options: COLLECTION_ROW_GAP_MODES,
+      default: "followCards",
+      width: "third",
+    },
+    {
+      key: "gap",
+      type: "number",
+      default: COLLECTION_ROW_LIMITS.gap.default,
+      min: COLLECTION_ROW_LIMITS.gap.min,
+      max: COLLECTION_ROW_LIMITS.gap.max,
+      width: "third",
+      showWhen: { key: "gapMode", values: ["custom"] },
+    },
+    {
+      key: "panelWidth",
+      type: "number",
+      default: COLLECTION_ROW_LIMITS.panelWidth.default,
+      min: COLLECTION_ROW_LIMITS.panelWidth.min,
+      max: COLLECTION_ROW_LIMITS.panelWidth.max,
+      width: "third",
+    },
+    {
+      key: "panelHeight",
+      type: "number",
+      default: COLLECTION_ROW_LIMITS.panelHeight.default,
+      min: COLLECTION_ROW_LIMITS.panelHeight.min,
+      max: COLLECTION_ROW_LIMITS.panelHeight.max,
+      width: "third",
+    },
+    {
+      key: "corners",
+      type: "select",
+      options: COLLECTION_ROW_CORNERS,
+      default: "custom",
+      width: "third",
+    },
+    {
+      key: "panelRadius",
+      type: "number",
+      default: COLLECTION_ROW_LIMITS.panelRadius.default,
+      min: COLLECTION_ROW_LIMITS.panelRadius.min,
+      max: COLLECTION_ROW_LIMITS.panelRadius.max,
+      width: "third",
+      showWhen: { key: "corners", values: ["custom"] },
+    },
+  ],
   blocks: [
     {
       type: "collection",
@@ -98,7 +156,7 @@ export const featuredCollection: SectionDefinition = {
       fields: [
         { key: "collection", type: "collection" },
         // Cards beside the panel — the row's shelf size.
-        { key: "limit", type: "number", default: 4, min: 4, max: 6 },
+        { key: "limit", type: "number", default: 4, min: 3, max: 6 },
         // The feature slot: a static image OR a saved slider, like a hero
         // grid cell. The dedicated editor drives these three as one control.
         {
@@ -121,6 +179,7 @@ export const featuredCollection: SectionDefinition = {
       rows={blocks
         .filter((block) => block.visible)
         .map((block) => readRow(block.settings))}
+      spacing={readCollectionRowsSpacing(settings)}
       emptyState={sectionEmptyState(ctx, {
         title: "Featured Collection",
         hint: "Add a collection block and pick a collection for each row — one that is active and published to the online store.",
@@ -130,13 +189,13 @@ export const featuredCollection: SectionDefinition = {
   Skeleton: () => (
     <section className="py-6 lg:py-10" aria-hidden>
       <div className="container mx-auto space-y-10 px-4 lg:space-y-14">
-        <div className="mx-auto h-8 w-56 animate-pulse rounded-md bg-accent" />
+        <div className="mx-auto h-8 w-56 animate-pulse rounded-md bg-skeleton" />
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_repeat(4,minmax(0,2fr))]">
-          <div className="min-h-[18rem] animate-pulse rounded-2xl bg-accent lg:min-h-0 lg:h-full" />
+          <div className="min-h-[18rem] animate-pulse rounded-2xl bg-skeleton lg:min-h-0 lg:h-full" />
           {Array.from({ length: 4 }, (_, index) => (
             <div
               key={index}
-              className="hidden animate-pulse rounded-2xl bg-accent lg:block lg:aspect-[2/3]"
+              className="hidden animate-pulse rounded-2xl bg-skeleton lg:block lg:aspect-[2/3]"
             />
           ))}
         </div>

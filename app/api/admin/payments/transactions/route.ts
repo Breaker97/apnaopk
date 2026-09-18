@@ -17,6 +17,7 @@ export const GET = withApi(
     const status = (searchParams.get("status") || "all").trim().toLowerCase();
     const type = (searchParams.get("type") || "all").trim().toLowerCase();
     const provider = (searchParams.get("provider") || "all").trim().toLowerCase();
+    const settlement = (searchParams.get("settlement") || "all").trim().toLowerCase();
     const search = (searchParams.get("search") || "").trim();
     const requestedSortBy = (searchParams.get("sortBy") || "createdAt").trim();
     const sortableFields = new Set(["createdAt", "grossAmount", "netAmount"]);
@@ -31,6 +32,7 @@ export const GET = withApi(
       status,
       type,
       provider,
+      settlement,
       sortBy,
       sortOrder: searchParams.get("sortOrder") === "asc" ? "asc" : "desc",
     });

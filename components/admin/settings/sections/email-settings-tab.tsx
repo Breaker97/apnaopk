@@ -15,7 +15,7 @@ import type { Settings } from "@/components/admin/settings/types";
 import { EnvSourceHint } from "@/components/admin/settings/fields/env-source-hint";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
-import { EmailDeliveryLogs } from "../email-delivery-logs";
+import { DeliveryLogs } from "../delivery-logs";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 export function EmailSettingsTab(props: {
@@ -273,7 +273,8 @@ export function EmailSettingsTab(props: {
       </Card>
       <Card>
         <CardContent className="pt-6">
-          <EmailDeliveryLogs
+          <DeliveryLogs
+            kind="email"
             retentionDays={settings.email.logRetentionDays ?? 30}
             onRetentionDaysChange={(days) =>
               updateNestedField("email.logRetentionDays", days)

@@ -10,6 +10,7 @@ import {
   Link2,
   Lock,
   Mail,
+  MessageSquareText,
   MessagesSquare,
   Monitor,
   Package,
@@ -24,6 +25,11 @@ import {
   Wrench,
 } from "lucide-react";
 import type { CredentialMetaMap } from "@/lib/settings/credential-fields";
+import { STORAGE_CREDENTIAL_BLOCKS } from "@/lib/settings/credentials";
+import {
+  hasAnySmsNotification,
+  type NotificationSettings,
+} from "@/lib/notifications/notification-settings";
 
 export type AdminSettingsSectionId =
   | "general"
@@ -36,6 +42,7 @@ export type AdminSettingsSectionId =
   | "security"
   | "payment"
   | "email"
+  | "sms"
   | "notifications"
   | "messaging"
   | "orders"
@@ -184,6 +191,14 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
     icon: Mail,
   },
   {
+    id: "sms",
+    tab: "sms",
+    group: "communication",
+    labelKey: "admin.settings.sms.title",
+    defaultLabel: "SMS (Twilio)",
+    icon: MessageSquareText,
+  },
+  {
     id: "notifications",
     tab: "notifications",
     group: "communication",
@@ -289,6 +304,11 @@ type SettingsForStatus = {
     mtn_momo?: { enabled?: boolean };
   };
   email?: { enabled?: boolean; provider?: string; smtp?: { host?: string; user?: string } };
+  sms?: {
+    enabled?: boolean;
+    twilio?: { messagingServiceSid?: string; fromNumber?: string };
+  };
+  notifications?: NotificationSettings;
   shipping?: {
     enabled?: boolean;
     zones?: Array<{ rates?: unknown[] }>;
@@ -298,7 +318,14 @@ type SettingsForStatus = {
       shiprocket?: { enabled?: boolean; pickupLocationName?: string };
     };
   };
-  storage?: { provider?: string; bucketName?: string };
+  storage?: {
+    provider?: string;
+    bucketName?: string;
+    r2?: { bucketName?: string };
+    s3?: { bucketName?: string };
+    minio?: { bucketName?: string };
+    digitalocean?: { bucketName?: string };
+  };
   security?: {
     twoFactorEnabled?: boolean;
     googleOAuthEnabled?: boolean;
@@ -309,6 +336,12 @@ type SettingsForStatus = {
     credentials?: CredentialMetaMap;
     envSources?: {
       ai?: { apiKey?: boolean };
+      sms?: {
+        accountSid?: boolean;
+        authToken?: boolean;
+        messagingServiceSid?: boolean;
+        fromNumber?: boolean;
+      };
       payment?: {
         stripe?: { publishableKey?: boolean; secretKey?: boolean };
         paypal?: { clientId?: boolean; clientSecret?: boolean };
@@ -341,7 +374,7 @@ type SettingsForStatus = {
         facebookAppId?: boolean;
         facebookAppSecret?: boolean;
       };
-      storage?: { accessKeyId?: boolean };
+      storage?: { accessKeyId?: boolean; bucketName?: boolean };
       shipping?: {
         shippo?: {
           testToken?: boolean;
@@ -358,6 +391,27 @@ type SettingsForStatus = {
     };
   };
 };
+
+/**
+ * Whether texts can go out, from what the browser can see: switched on, both
+ * credentials stored or in `.env`, and a sender. The server's own check is
+ * `resolveTwilioConfig`; this mirrors it for the sidebar and the matrix.
+ */
+export function isSmsConfigured(settings: SettingsForStatus): boolean {
+  const sms = settings.sms;
+  if (!sms?.enabled) return false;
+  const cred = (path: string) =>
+    Boolean(settings._meta?.credentials?.[path]?.set);
+  const env = settings._meta?.envSources?.sms;
+  const hasSid = cred("sms.twilio.accountSid") || Boolean(env?.accountSid);
+  const hasToken = cred("sms.twilio.authToken") || Boolean(env?.authToken);
+  const hasSender =
+    Boolean(sms.twilio?.messagingServiceSid?.trim()) ||
+    Boolean(sms.twilio?.fromNumber?.trim()) ||
+    Boolean(env?.messagingServiceSid) ||
+    Boolean(env?.fromNumber);
+  return hasSid && hasToken && hasSender;
+}
 
 export function getSectionStatus(
   sectionId: AdminSettingsSectionId,
@@ -451,12 +505,44 @@ export function getSectionStatus(
     return !host || !user ? "warning" : "ok";
   }
 
+  if (sectionId === "sms") {
+    if (!settings.sms?.enabled) return "disabled";
+    return isSmsConfigured(settings) ? "ok" : "warning";
+  }
+
+  if (sectionId === "notifications") {
+    // An event set to text while texts cannot go out sends nothing, silently.
+    return settings.notifications &&
+      hasAnySmsNotification(settings.notifications) &&
+      !isSmsConfigured(settings)
+      ? "warning"
+      : "ok";
+  }
+
   if (sectionId === "storage") {
-    if (!settings.storage) return "ok";
-    const bucketName = settings.storage.bucketName;
+    const storage = settings.storage;
+    if (!storage) return "ok";
+    // Same precedence as resolveStorageCredentials: the active provider's
+    // block → the deprecated flat fields (pre-v1.5 documents) → .env. Reading
+    // only the flat fields flagged every store configured through the v1.5+
+    // form, which saves into the per-provider block.
+    const provider = (
+      storage.provider && storage.provider in STORAGE_CREDENTIAL_BLOCKS
+        ? storage.provider
+        : "cloudflare_r2"
+    ) as keyof typeof STORAGE_CREDENTIAL_BLOCKS;
+    const block = STORAGE_CREDENTIAL_BLOCKS[provider];
+    const cred = (path: string) =>
+      Boolean(settings._meta?.credentials?.[path]?.set);
+    const env = settings._meta?.envSources?.storage;
+    const bucketName =
+      Boolean(storage[block]?.bucketName?.trim()) ||
+      Boolean(storage.bucketName?.trim()) ||
+      Boolean(env?.bucketName);
     const accessKeyId =
-      settings._meta?.credentials?.["storage.accessKeyId"]?.set ||
-      settings._meta?.envSources?.storage?.accessKeyId;
+      cred(`storage.${block}.accessKeyId`) ||
+      cred("storage.accessKeyId") ||
+      Boolean(env?.accessKeyId);
     return !bucketName || !accessKeyId ? "warning" : "ok";
   }
 

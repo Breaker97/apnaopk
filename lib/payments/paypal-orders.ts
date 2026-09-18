@@ -1,7 +1,10 @@
 import { Order } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
 import type { AuditContext } from "@/lib/audit";
-import { capturePayPalOrder, type PayPalCredentials } from "@/lib/payments/paypal";
+import {
+  captureOrReadPayPalOrder,
+  type PayPalCredentials,
+} from "@/lib/payments/paypal";
 import { gatewayFeeUpdate, paypalFee } from "@/lib/payments/gateway-fee";
 import {
   amountDueNow,
@@ -18,7 +21,12 @@ type FinalizePayPalOrderParams = {
   cartSessionId?: string;
   customerEmail?: string;
   actor?: AuditContext;
-  schedule?: (task: () => Promise<void>) => void;
+  /**
+   * Set by the webhook, which only calls once PayPal reports the capture
+   * complete. The money is already taken then, so a cancelled order may be
+   * verified — and refunded — instead of left holding it.
+   */
+  alreadyCaptured?: boolean;
 };
 
 /**
@@ -33,12 +41,16 @@ export function finalizePayPalOrder(params: FinalizePayPalOrderParams) {
       paymentMethod: "paypal",
       label: "PayPal",
       recoveryGateway: "paypal",
+      // The capture runs inside `verify`, so a cancelled order is never
+      // captured at all rather than captured and refunded — unless PayPal has
+      // already said it was.
+      capturesOnVerify: !params.alreadyCaptured,
     },
     findOrder: (scope) =>
       Order.findOne({ ...scope, paypalOrderId: params.paypalOrderId }),
     notFoundMessage: "Order not found for PayPal capture",
     verify: async (order) => {
-      const capture = await capturePayPalOrder({
+      const capture = await captureOrReadPayPalOrder({
         creds: params.creds,
         orderId: params.paypalOrderId,
       });
@@ -47,12 +59,17 @@ export function finalizePayPalOrder(params: FinalizePayPalOrderParams) {
         throw new ValidationError("PayPal capture failed: missing capture id");
       }
 
+      // The CAPTURE's status, never the order's. PayPal marks the order
+      // COMPLETED while holding the capture PENDING — a payment review, an
+      // eCheck, a receiving preference — and a pending capture can still be
+      // denied. Reading the order's status first shipped goods on money that
+      // never arrived. A pending capture stays unrecorded until the webhook
+      // reports it complete.
       const captureStatus =
-        capture.raw?.status ||
         capture.raw?.purchase_units?.[0]?.payments?.captures?.[0]?.status;
-      if (typeof captureStatus === "string" && captureStatus !== "COMPLETED") {
+      if (captureStatus !== "COMPLETED") {
         throw new ValidationError(
-          `PayPal capture not completed: ${captureStatus}`,
+          `PayPal payment not completed yet: ${captureStatus || "unknown"}`,
         );
       }
 
@@ -107,6 +124,5 @@ export function finalizePayPalOrder(params: FinalizePayPalOrderParams) {
     cartSessionId: params.cartSessionId,
     customerEmail: params.customerEmail,
     actor: params.actor,
-    schedule: params.schedule,
   });
 }

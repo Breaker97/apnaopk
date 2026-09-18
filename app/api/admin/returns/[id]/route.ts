@@ -16,6 +16,11 @@ import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
 import { getSettings } from "@/models/settings.model";
 import { refundOrderPayment } from "@/lib/orders/order-refund";
+import {
+  logRefundInFlightReleaseError,
+  releaseRefundInFlightWrite,
+} from "@/lib/orders/refund-in-flight";
+import { refundReconciledByWebhook } from "@/lib/orders/order-refund-sync";
 import { checkManualSettlement } from "@/lib/returns/refund-settlement";
 import { recomputeReturnEstimate } from "@/lib/returns/return-plan";
 import {
@@ -219,10 +224,39 @@ export const PUT = withApi<{ id: string }>(
       // refunds of the same return (actualRefund.amount holds the running
       // total) — checking only the current call would let several
       // individually-valid partials together exceed the estimate.
+      //
+      // No estimate is no ceiling, so there is nothing to refund against here:
+      // the cap used to be skipped outright, and such a return could be
+      // refunded up to the whole order.
       const estimatedTotal = Number(effectiveEstimate?.total || 0);
-      const previouslyRefunded = Number(before.actualRefund?.amount || 0);
-      const cumulativeRefunded = previouslyRefunded + refundAmount;
-      if (estimatedTotal > 0 && cumulativeRefunded > estimatedTotal + 0.01) {
+      if (!(estimatedTotal > 0)) {
+        throw new ValidationError(
+          "This return has no estimated value to refund against. Use the order refund flow instead.",
+        );
+      }
+      // Claimed on the return before any money moves. The cap was read off
+      // `before` and the running total only incremented at the very end, so two
+      // refunds sent together both passed on the same read and the return was
+      // refunded up to twice its value. Handed back on every failure below
+      // until the gateway has actually sent the money.
+      const returnClaim = await ReturnRequest.findOneAndUpdate(
+        {
+          _id: before._id,
+          status: { $nin: [RETURN_STATUS.REJECTED, RETURN_STATUS.CANCELLED] },
+          $expr: {
+            $lte: [
+              { $add: [{ $ifNull: ["$actualRefund.amount", 0] }, refundAmount] },
+              estimatedTotal + 0.01,
+            ],
+          },
+        },
+        { $inc: { "actualRefund.amount": refundAmount } },
+        { returnDocument: "after" },
+      )
+        .select("actualRefund.amount")
+        .lean<{ actualRefund?: { amount?: number } } | null>();
+      if (!returnClaim) {
+        const previouslyRefunded = Number(before.actualRefund?.amount || 0);
         throw new ValidationError(
           `Refund exceeds this return's estimated value (${estimatedTotal.toFixed(2)}${
             previouslyRefunded > 0
@@ -231,9 +265,22 @@ export const PUT = withApi<{ id: string }>(
           }). Use the order refund flow for larger refunds.`,
         );
       }
+      const cumulativeRefunded = Number(
+        returnClaim.actualRefund?.amount ?? refundAmount,
+      );
+      const releaseReturnClaim = () =>
+        ReturnRequest.updateOne(
+          { _id: before._id },
+          { $inc: { "actualRefund.amount": -refundAmount } },
+        ).catch((rollbackErr) =>
+          console.error("Failed to hand back a return refund claim:", rollbackErr),
+        );
 
       const order = await Order.findById(before.orderId).lean();
-      if (!order) throw new ValidationError("Order not found for this return");
+      if (!order) {
+        await releaseReturnClaim();
+        throw new ValidationError("Order not found for this return");
+      }
       // Deliberately still the ORDER-level state, not the consignment's. The
       // refund cap below is `order.total` against order-level refund rows, and
       // tax and discount are not apportioned per consignment — so a
@@ -245,6 +292,7 @@ export const PUT = withApi<{ id: string }>(
         order.paymentStatus !== PAYMENT_STATUS.PAID &&
         order.paymentStatus !== PAYMENT_STATUS.PARTIALLY_REFUNDED
       ) {
+        await releaseReturnClaim();
         throw new ValidationError(
           order.paymentStatus === PAYMENT_STATUS.PARTIALLY_PAID
             ? "This order is only partly collected. Refunds can be issued once every vendor's payment is recorded."
@@ -267,7 +315,9 @@ export const PUT = withApi<{ id: string }>(
 
       // Atomically reserve this refund against the order's running refund total
       // so a return refund and an order refund (or two return refunds) cannot
-      // both pass the cap concurrently. Mirrors the order refund endpoint.
+      // both pass the cap concurrently. Mirrors the order refund endpoint —
+      // stamp included, so the gateway's refund webhook waits for this row.
+      const refundStamp = new Date();
       const refundClaim = await Order.findOneAndUpdate(
         {
           _id: order._id,
@@ -292,12 +342,14 @@ export const PUT = withApi<{ id: string }>(
                   refundAmount,
                 ],
               },
+              refundInFlightAt: refundStamp,
             },
           },
         ],
-        { new: true },
+        { returnDocument: "after" },
       ).lean();
       if (!refundClaim) {
+        await releaseReturnClaim();
         throw new ValidationError("Refund amount exceeds order total");
       }
       const nextRefunded = Number(
@@ -313,7 +365,9 @@ export const PUT = withApi<{ id: string }>(
             paymentId: order.paymentId,
             stripePaymentIntentId: order.stripePaymentIntentId,
             preorderBalancePaymentIntentId: order.preorderBalancePaymentIntentId,
+            preorderBalancePaypalOrderId: order.preorderBalancePaypalOrderId,
             paypalCaptureId: order.paypalCaptureId,
+            paypalOrderId: order.paypalOrderId,
             razorpayPaymentId: order.razorpayPaymentId,
             paystackTransactionId: order.paystackTransactionId,
             pesapalConfirmationCode: order.pesapalConfirmationCode,
@@ -334,6 +388,10 @@ export const PUT = withApi<{ id: string }>(
         ).catch((rollbackErr) =>
           console.error("Failed to roll back refund reservation:", rollbackErr),
         );
+        await releaseReturnClaim();
+        await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
+        logRefundInFlightReleaseError,
+      );
         throw gatewayError;
       }
 
@@ -344,7 +402,7 @@ export const PUT = withApi<{ id: string }>(
       const orderAfterRefund = await Order.findByIdAndUpdate(
         order._id,
         { $set: { paymentStatus } },
-        { new: true },
+        { returnDocument: "after" },
       ).lean();
       if (!orderAfterRefund) throw new ValidationError("Order refund update failed");
 
@@ -437,7 +495,18 @@ export const PUT = withApi<{ id: string }>(
         externalRefundIds: gatewayResult.externalRefundIds,
         gatewayCalled: gatewayResult.gatewayCalled,
         allocation,
+        // Recorded by hand for money sent from the gateway's dashboard: its
+        // report is matched to this row rather than becoming a second one.
+        awaitingGatewayRefund:
+          Boolean(body.manualRefund) &&
+          refundReconciledByWebhook(orderAfterRefund.paymentMethod),
+        // A hand refund on a return is tracked on the return itself, which
+        // has its own `manual_required` state and settlement record.
+        settlement: "not_required",
       });
+      await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
+        logRefundInFlightReleaseError,
+      );
       refundTxnId = txn ? String(txn._id) : undefined;
 
       const { reverseOrderLoyaltyPoints } = await import("@/lib/customers/customer");
@@ -482,10 +551,9 @@ export const PUT = withApi<{ id: string }>(
           : RETURN_REFUND_STATUS.SUCCEEDED;
       updates.refundedAt = new Date();
       updates.closedAt = updates.status === RETURN_STATUS.REFUNDED ? new Date() : undefined;
-      // actualRefund.amount holds the RUNNING total for this return (the
-      // cumulative-cap check reads it); per-refund amounts live in the
-      // PaymentTransaction rows. $inc (not $set of a precomputed sum) so a
-      // concurrent refund of the same return can't lose an increment.
+      // actualRefund.amount holds the RUNNING total for this return; it was
+      // incremented by the claim above, before the money moved. Per-refund
+      // amounts live in the PaymentTransaction rows.
       updates["actualRefund.paymentTransactionId"] = refundTxnId;
       updates["actualRefund.provider"] = gatewayResult.provider;
       updates["actualRefund.externalRefundId"] = gatewayResult.externalRefundId;
@@ -520,10 +588,8 @@ export const PUT = withApi<{ id: string }>(
 
     const returnRequest = await ReturnRequest.findByIdAndUpdate(
       id,
-      refundAmount > 0
-        ? { $set: updates, $inc: { "actualRefund.amount": refundAmount } }
-        : { $set: updates },
-      { new: true, runValidators: true },
+      { $set: updates },
+      { returnDocument: "after", runValidators: true },
     )
       .populate("customerId", "name email phone")
       .lean();

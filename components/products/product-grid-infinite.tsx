@@ -12,6 +12,9 @@ import {
   ModernProductCardSkeleton,
   type ModernProduct,
 } from "./modern-product-card";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 /** Cards on the first grid row are above the fold and eager-load their shot. */
 const FIRST_ROW_CARDS = 4;
@@ -77,6 +80,8 @@ interface ProductGridInfiniteProps {
    * this page can actually append.
    */
   nextHref: string;
+  /** Extra grid classes — a listing's column count, say. */
+  className?: string;
 }
 
 /**
@@ -96,6 +101,7 @@ export function ProductGridInfinite({
   total,
   query,
   nextHref,
+  className,
 }: ProductGridInfiniteProps) {
   const t = useTranslations();
 
@@ -227,7 +233,13 @@ export function ProductGridInfinite({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+      <div
+        className={cn(
+          "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+          CARD_GRID_GAP,
+          className,
+        )}
+      >
         {products.map((product, index) => (
           <ModernProductCard
             key={product._id}

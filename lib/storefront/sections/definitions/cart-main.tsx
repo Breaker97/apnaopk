@@ -1,4 +1,5 @@
 import { CartPageContentLazy as CartPageContent } from "@/components/cart/cart-page-content-lazy";
+import { ElectronicsCartLazy } from "@/components/store/sections/themes/electronics-cart-lazy";
 import type { SectionDefinition } from "../types";
 
 /**
@@ -16,6 +17,23 @@ export const cartMain: SectionDefinition = {
   locked: true,
   maxPerPage: 1,
   resourceType: "cart",
+  // Two drawings of one bag: both read the same `useCartPageState`, so every
+  // line, total and estimate exists in both — only the layout differs.
+  designFollowsTheme: true,
+  variants: [
+    {
+      key: "classic",
+      name: "Classic",
+      Render: ({ ctx }) =>
+        ctx.resource?.type === "cart" ? <CartPageContent /> : null,
+    },
+    {
+      key: "electronics",
+      name: "Table",
+      Render: ({ ctx }) =>
+        ctx.resource?.type === "cart" ? <ElectronicsCartLazy /> : null,
+    },
+  ],
   fields: [],
   Render({ ctx }) {
     if (ctx.resource?.type !== "cart") return null;

@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { Order } from "@/models";
+import { ORDER_STATUS } from "@/config/app.config";
 import {
   decrementInventory,
   restoreInventory,
@@ -137,9 +138,14 @@ function sharedFulfillmentSubOrder(
  */
 export async function markOrderInventoryReserved(orderId: string) {
   if (!Types.ObjectId.isValid(orderId)) return;
+  // Never a consignment that was called off before the stock was taken. Its
+  // goods were left on the shelf, and flagging it reserved anyway meant the
+  // next cancel or refund "restored" units that had never left — stock
+  // invented out of nothing.
   await Order.updateOne(
     { _id: orderId },
-    { $set: { "subOrders.$[].inventoryReserved": true } },
+    { $set: { "subOrders.$[live].inventoryReserved": true } },
+    { arrayFilters: [{ "live.status": { $ne: ORDER_STATUS.CANCELLED } }] },
   );
 
   await stampFulfillmentLocations(orderId).catch((err) =>
@@ -254,7 +260,7 @@ async function claimSubOrderRestore(params: {
     },
     { $set: { "subOrders.$[so].inventoryReserved": false } },
     {
-      new: false,
+      returnDocument: "before",
       arrayFilters: [
         {
           "so.vendorId": new Types.ObjectId(params.vendorId),
@@ -295,6 +301,13 @@ interface RestoreClaimOptions {
    * is a return in all but name — may say otherwise.
    */
   includeDispatched?: boolean;
+  /**
+   * Consignments that must not be restocked whatever they read now — the ones
+   * that had already shipped or been delivered before an override cancelled
+   * them. The claim runs after that write, when they read `cancelled`, so the
+   * dispatched rule above can no longer see them.
+   */
+  excludeSubOrderIds?: ReadonlyArray<unknown>;
 }
 
 /**
@@ -311,6 +324,11 @@ function isClaimableSubOrder(
   options?: RestoreClaimOptions,
 ): boolean {
   if (!sub.inventoryReserved) return false;
+  if (
+    options?.excludeSubOrderIds?.some((id) => String(id) === String(sub._id))
+  ) {
+    return false;
+  }
   if (options?.includeDispatched) return true;
   return !DISPATCHED_ORDER_STATUSES.includes(String(sub.status || ""));
 }
@@ -338,6 +356,13 @@ async function claimAllRemainingRestores(
   if (!options?.includeDispatched) {
     claimFilter["so.status"] = { $nin: DISPATCHED_ORDER_STATUSES };
   }
+  const excluded = (options?.excludeSubOrderIds || [])
+    .map(String)
+    .filter((id) => Types.ObjectId.isValid(id))
+    .map((id) => new Types.ObjectId(id));
+  if (excluded.length > 0) {
+    claimFilter["so._id"] = { $nin: excluded };
+  }
 
   // Atomically flip all reserved sub-orders to false in a single update.
   const updated = await Order.findOneAndUpdate(
@@ -347,7 +372,7 @@ async function claimAllRemainingRestores(
     },
     { $set: { "subOrders.$[so].inventoryReserved": false } },
     {
-      new: false,
+      returnDocument: "before",
       arrayFilters: [claimFilter],
     },
   );
@@ -414,7 +439,7 @@ export async function reserveCancelledOrderInventory(
     { _id: orderId, "subOrders.inventoryReserved": { $ne: true } },
     { $set: { "subOrders.$[so].inventoryReserved": true } },
     {
-      new: false,
+      returnDocument: "before",
       arrayFilters: [{ "so.inventoryReserved": { $ne: true } }],
     },
   );

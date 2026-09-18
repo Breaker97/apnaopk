@@ -133,7 +133,7 @@ export default async function CustomizePage({ params, searchParams }: PageProps)
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="w-full space-y-6">
       {/* Keyed by page ref: the switcher navigates within this same route,
           and without a remount the builder's useState seeds would keep the
           previous page's sections until a hard refresh. */}

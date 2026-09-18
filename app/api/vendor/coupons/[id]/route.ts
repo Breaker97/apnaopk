@@ -89,6 +89,8 @@ export const PUT = withApi<{ id: string }>(
     delete mutableBody.createdBy;
     delete mutableBody.usedCount;
     delete mutableBody.vendorId;
+    // A vendor's coupon is always the vendor's to pay for.
+    delete mutableBody.fundedBy;
     delete mutableBody.excludedCategories;
 
     if (
@@ -107,7 +109,7 @@ export const PUT = withApi<{ id: string }>(
     const coupon = await Coupon.findOneAndUpdate(
       { _id: id, vendorId: vendor._id },
       { $set: mutableBody },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean();
 
     if (!coupon) return notFoundResponse("Coupon");

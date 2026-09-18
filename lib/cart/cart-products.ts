@@ -62,8 +62,19 @@ type CartProductFacts = {
   vendorName?: string;
 };
 
+/**
+ * `quotedLineKeys` names the lines a live quote offer covers, by
+ * `cartLineKey`. They are the only reason a "price on request" product may
+ * stay in a cart, so the caller resolves them (it has the shopper's session;
+ * this module does not) and hands them in — see lib/quotes/quote-offer.ts.
+ */
+type ResolveCartProductsOptions = {
+  quotedLineKeys?: ReadonlySet<string>;
+};
+
 export async function resolveCartProducts(
   items: CartProductLine[],
+  options: ResolveCartProductsOptions = {},
 ): Promise<Map<string, CartProductFacts>> {
   const facts = new Map<string, CartProductFacts>();
   if (!items.length) return facts;
@@ -145,7 +156,13 @@ export async function resolveCartProducts(
         // leaves the cart the same way a deactivated product's does. Without
         // this it would sit there un-removable, priced from a quote the
         // shopper never got.
-        !isQuoteOnlyProduct(product) &&
+        //
+        // Unless this shopper holds a live offer for exactly this line, which
+        // is the one way a quoted product is legitimately in a cart. The offer
+        // expiring, being withdrawn or being spent on an order takes the key
+        // away again, and the line is pruned on the next read.
+        (!isQuoteOnlyProduct(product) ||
+          (options.quotedLineKeys?.has(key) ?? false)) &&
         isStorefrontProductSourceAllowed(
           product.productSource,
           isMultiVendorEnabled,

@@ -7,14 +7,17 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Star,
+  Loader2,
   Minus,
   Plus,
   ShoppingBag,
   BookOpen,
+  ChevronDown,
   ChevronRight,
   FileDown,
   Home,
   PackageOpen,
+  RotateCcw,
   Store,
   Truck,
 } from "lucide-react";
@@ -22,6 +25,9 @@ import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCurrency } from "@/providers/currency-provider";
+import { useSession } from "@/lib/auth/auth-client";
+import { PreorderWaitlistForm } from "@/components/products/preorder-waitlist-form";
+import { useQuoteOffers } from "@/hooks/use-quote-offers";
 import { useMultiVendorMode } from "@/providers/app-settings-provider";
 import { useCart } from "@/hooks/use-cart";
 import { toast } from "@/components/ui/toast-notification";
@@ -30,6 +36,7 @@ import { ProductCollapsibleSection } from "./product-collapsible-section";
 import { ProductImageGallery } from "./product-image-gallery";
 import { OptionValueSelector } from "./option-value-selector";
 import { ProductShareButtons } from "./product-share-buttons";
+import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { StorefrontChatButton } from "@/components/chat/storefront-chat-button";
 import { VendorExternalChannels } from "@/components/chat/vendor-external-channels";
 import type { VendorMessagingSettings } from "@/lib/notifications/vendor-messaging";
@@ -46,9 +53,13 @@ import {
   DEFAULT_PRODUCT_DETAIL_GROUPS,
   visibleProductDetailGroups,
   type ProductDetailRow,
+  type ProductDetailRowItem,
 } from "@/lib/storefront/sections/product-detail-rows";
 import {
   DEFAULT_PRODUCT_DETAIL_CONFIG,
+  discountChipCss,
+  purchaseButtonCss,
+  stockChipCss,
   typographyCss,
   type ProductDetailConfig,
 } from "@/lib/storefront/sections/product-detail-style";
@@ -106,6 +117,10 @@ interface Product {
     thumbnailUrl?: string;
     provider?: "youtube" | "vimeo";
     embedId?: string;
+    fit?: "auto" | "contain" | "cover";
+    /** Recorded at upload; the carousels size each frame by them. */
+    width?: number;
+    height?: number;
   }[];
   /** Sanitized for the storefront — no storage keys, display fields only. */
   digitalAssets?: { _id: string; filename: string; size?: number }[];
@@ -312,6 +327,25 @@ function getPreorderRemaining(settings?: Product["preorder"]) {
   const limit = Number(settings?.limit || 0);
   if (!Number.isFinite(limit) || limit <= 0) return Number.POSITIVE_INFINITY;
   return Math.max(0, limit - Number(settings?.reservedQuantity || 0));
+}
+
+/**
+ * The release window alone, ignoring the quota — what `isPreorderOpen` checks
+ * before it also asks for a free spot. Separated so a FULL pre-order can be
+ * told apart from a closed one: the first can take a waiting list, the second
+ * has passed its release date and cannot.
+ */
+function isPreorderWindowOpen(settings?: Product["preorder"]) {
+  if (!settings?.enabled) return false;
+  const releaseDate = settings.releaseDate
+    ? new Date(settings.releaseDate)
+    : null;
+  return !(
+    settings.autoConvert !== false &&
+    releaseDate &&
+    !Number.isNaN(releaseDate.getTime()) &&
+    releaseDate.getTime() < Date.now()
+  );
 }
 
 function isPreorderOpen(settings?: Product["preorder"]) {
@@ -785,7 +819,7 @@ interface ProductDetailsProps {
    * hairline between groups. Resolved by the section definition from the
    * stored `rows` setting; the other appearances ignore it.
    */
-  rowGroups?: ProductDetailRow[][];
+  rowGroups?: ProductDetailRowItem[][];
   /**
    * The Minimal design's Visibility + Style knobs, resolved by the section
    * definition from the stored `detailStyle` setting. Ignored elsewhere.
@@ -847,6 +881,7 @@ export function ProductDetails({
    * to work.
    */
   const quoteOnly = isQuoteOnlyProduct(product);
+
 
   const hasSpecifications =
     Array.isArray(product.attributes) && product.attributes.length > 0;
@@ -999,6 +1034,9 @@ export function ProductDetails({
           thumbnailUrl: m.thumbnailUrl,
           provider: m.provider,
           embedId: m.embedId,
+          fit: m.fit,
+          width: m.width,
+          height: m.height,
         }));
     }
     return (product.images || []).map((url, idx) => ({
@@ -1030,6 +1068,35 @@ export function ProductDetails({
       }) || product.variants[0]
     );
   }, [product.options, product.variants, selectedOptions]);
+
+  /**
+   * The merchant may have answered this shopper's request with a price. If so
+   * this buy box stops being a lead form and becomes a normal one — for them
+   * alone, and only for the exact lot that was quoted.
+   *
+   * Fetched client-side (see useQuoteOffers): the rendered page is cached and
+   * shared, so a price resolved during render would leak to other visitors.
+   */
+  const { data: authSession } = useSession();
+  const quoteOffers = useQuoteOffers(
+    product._id,
+    quoteOnly && Boolean(authSession?.user),
+  );
+  const quoteOffer = quoteOffers.find(
+    (offer) => (offer.variantId ?? "") === (selectedVariant?._id ?? ""),
+  );
+  // Start on the quantity that can actually be bought, so the default state of
+  // the page is the buyable one rather than a price the shopper has to hunt
+  // for by nudging the stepper.
+  useApplyOnChange([quoteOffer?.quoteId, quoteOffer?.quantity], () => {
+    if (quoteOffer) setQuantity(quoteOffer.quantity);
+  });
+  /**
+   * The offer covers a quantity, not a unit, so the buy box tells the truth at
+   * every setting of the stepper: at the quoted quantity there is a price and
+   * an Add to cart; at any other, the shopper is back to asking.
+   */
+  const quotedNow = Boolean(quoteOffer && quantity === quoteOffer.quantity);
 
   useApplyOnChange([product._id, product.options, product.variants], () => {
     if (
@@ -1108,6 +1175,26 @@ export function ProductDetails({
   const preorderPurchase =
     preorderOpen && (selectedPreorder?.preorderOnly || availableStock <= 0);
   const preorderRemaining = getPreorderRemaining(selectedPreorder);
+  // Taking pre-orders, but every spot is taken and there is no stock to sell
+  // instead — the state this page used to show as a bare "Out of stock", a dead
+  // end for a product that may well open up again. It gets a waiting list.
+  const preorderFull =
+    isPreorderWindowOpen(selectedPreorder) &&
+    Number.isFinite(preorderRemaining) &&
+    preorderRemaining <= 0 &&
+    (Boolean(selectedPreorder?.preorderOnly) || availableStock <= 0);
+  const preorderWaitlistNode = preorderFull ? (
+    <PreorderWaitlistForm
+      productKey={product.slug || String(product._id)}
+      variantId={
+        selectedVariant?.preorder?.enabled && selectedVariant?._id
+          ? String(selectedVariant._id)
+          : undefined
+      }
+      locale={locale}
+      signedInEmail={authSession?.user?.email || undefined}
+    />
+  ) : null;
   const maxPurchasableQuantity = preorderPurchase
     ? Math.min(
         UNTRACKED_PURCHASE_CAP,
@@ -1167,7 +1254,10 @@ export function ProductDetails({
   }, [analyticsItem, currency.code, product.price, selectedVariant?.price]);
 
   const handleAddToCart = async () => {
-    if (quoteOnly) return;
+    // A quote-only product is buyable only at the lot this shopper was quoted;
+    // the server re-reads the offer and prices the line from it either way, so
+    // the price passed here is for the optimistic render alone.
+    if (quoteOnly && !quotedNow) return;
     setIsAddingToCart(true);
     try {
       await addItem({
@@ -1176,7 +1266,7 @@ export function ProductDetails({
         name: selectedVariant
           ? `${product.name} - ${selectedVariant.name}`
           : product.name,
-        price: selectedVariant?.price ?? product.price,
+        price: quoteOffer?.unitPrice ?? selectedVariant?.price ?? product.price,
         image:
           displayMedia[selectedImage]?.type === "image"
             ? displayMedia[selectedImage].url
@@ -1197,7 +1287,7 @@ export function ProductDetails({
   };
 
   const handleBuyNow = async () => {
-    if (quoteOnly) return;
+    if (quoteOnly && !quotedNow) return;
     setIsBuyingNow(true);
     try {
       // "Buy Now" goes straight to checkout for this single item, so clear
@@ -1217,7 +1307,7 @@ export function ProductDetails({
         name: selectedVariant
           ? `${product.name} - ${selectedVariant.name}`
           : product.name,
-        price: selectedVariant?.price ?? product.price,
+        price: quoteOffer?.unitPrice ?? selectedVariant?.price ?? product.price,
         image:
           displayMedia[selectedImage]?.type === "image"
             ? displayMedia[selectedImage].url
@@ -1340,18 +1430,53 @@ export function ProductDetails({
     style?: React.CSSProperties,
   ) => (
     <span className={className} style={style}>
-      {tf("product.priceOnRequest", "Price on request")}
+      {quoteOffer ? (
+        <>
+          {formatDisplayPrice(quoteOffer.unitPrice)}
+          {/* The offer covers one exact lot, so a shopper who has moved the
+              stepper off it is told what the price actually applies to rather
+              than left wondering why the button went back to asking. */}
+          {quotedNow ? null : (
+            <span className="ms-1 text-xs font-normal text-muted-foreground">
+              {tf("product.quotedForQuantity", "for {count}").replace(
+                "{count}",
+                String(quoteOffer.quantity),
+              )}
+            </span>
+          )}
+        </>
+      ) : (
+        tf("product.priceOnRequest", "Price on request")
+      )}
     </span>
   );
-  const renderQuoteButton = (className: string) => (
-    <Button
-      type="button"
-      className={className}
-      onClick={() => setIsQuoteOpen(true)}
-    >
-      {quoteButtonText}
-    </Button>
-  );
+  const renderQuoteButton = (
+    className: string,
+    style?: React.CSSProperties,
+  ) =>
+    quotedNow ? (
+      <Button
+        type="button"
+        className={className}
+        style={style}
+        onClick={handleAddToCart}
+        disabled={isAddingToCart}
+      >
+        {isAddingToCart ? (
+          <Loader2 className="me-2 h-4 w-4 animate-spin" />
+        ) : null}
+        {t("product.addToCart")}
+      </Button>
+    ) : (
+      <Button
+        type="button"
+        className={className}
+        style={style}
+        onClick={() => setIsQuoteOpen(true)}
+      >
+        {quoteButtonText}
+      </Button>
+    );
 
   // Fixed set of tabs: the three sections always render (each with its own
   // empty state), so the tab strip no longer changes shape per product.
@@ -1408,6 +1533,61 @@ export function ProductDetails({
     );
   };
 
+  /* Live chat plus the seller's click-to-chat channels, shared by every
+     buy-box design. Live chat follows the server's rule — on unless switched
+     off, so a seller with no saved messaging settings still gets the button —
+     while the external channels need those settings to exist. */
+  const renderChatControls = () => (
+    <div className="flex flex-wrap items-center gap-2">
+      {messaging?.liveChatEnabled !== false ? (
+        <StorefrontChatButton
+          locale={locale}
+          vendorId={directVendor?._id}
+          vendorName={
+            directVendor?.storeName ||
+            tf("chat.storeSupport", "Store support")
+          }
+          product={{
+            id: product._id,
+            name: product.name,
+            variantId: selectedVariant?._id,
+            variantName: selectedVariant?.name,
+          }}
+          label={
+            directVendor
+              ? tf("chat.chatWithSeller", "Chat with Seller")
+              : tf("chat.chatWithStore", "Chat with store")
+          }
+        />
+      ) : null}
+      {messaging ? (
+        <VendorExternalChannels
+          // raw(): the messages keep their {vendor}/{channel}/{product}
+          // placeholders for VendorExternalChannels to substitute, since
+          // only that component knows the values.
+          chatOnLabel={traw(
+            "chat.externalChannels.chatOn",
+            "Chat with {vendor} on {channel}",
+          )}
+          whatsappProductMessage={traw(
+            "chat.externalChannels.whatsappProductMessage",
+            "Hello {vendor}, I have a question about {product}.",
+          )}
+          whatsappStoreMessage={traw(
+            "chat.externalChannels.whatsappStoreMessage",
+            "Hello {vendor}, I have a question about your store.",
+          )}
+          settings={messaging}
+          vendorName={
+            directVendor?.storeName ||
+            tf("chat.storeSupport", "Store support")
+          }
+          productName={product.name}
+        />
+      ) : null}
+    </div>
+  );
+
   // ── Minimal design rows (Figma 774:4992) ────────────────────────────────
   // The SAME computed values as the other appearances — price, stock,
   // preorder, variant and cart rules all come from the shared code above —
@@ -1419,24 +1599,60 @@ export function ProductDetails({
       : visibleProductDetailGroups(DEFAULT_PRODUCT_DETAIL_GROUPS);
   const { visibility: vis, style: sty } = detail;
   const typo = sty.typography;
+  /** The accordion "Open first" applies to: the first one in page order. */
+  const minimalFirstAccordion = minimalGroups
+    .flat()
+    .find(
+      (item) =>
+        item.key === "description" || item.key === "details" || item.key === "faq",
+    )?.key;
+  /** The minimal page's own pinning switch; other designs always pin. */
+  const pinColumn = appearance !== "minimal" || sty.stickyColumn;
+  /**
+   * The gallery's bleeds, minimal design only. A max content width puts the
+   * page in a narrower box than the one the inset measures, so the left bleed
+   * stands down there rather than running to the wrong edge.
+   */
+  const bleedLeft =
+    appearance === "minimal" && sty.galleryBleedLeft && !(sty.contentMaxWidth > 0);
+  const bleedTop = appearance === "minimal" && sty.galleryBleedTop;
 
   /* Accordion rows per the Figma: hairline-separated, title with a plus on
      the end edge that turns into an X when open — no boxed chrome. Native
      <details> so open state needs no React state. */
-  const minimalAccordion = (title: string, content: React.ReactNode) => (
-    <details className="group/acc py-4 first:pt-0 last:pb-0">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-medium text-foreground [&::-webkit-details-marker]:hidden">
+  const minimalAccordion = (
+    key: ProductDetailRow,
+    title: string,
+    content: React.ReactNode,
+  ) => (
+    <details
+      className="group/acc py-4 first:pt-0 last:pb-0"
+      // Initial state only: the shopper's own toggles stay theirs.
+      open={minimalFirstAccordion === key && vis.accordionOpenFirst}
+    >
+      <summary
+        className="flex cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-medium text-foreground [&::-webkit-details-marker]:hidden"
+        style={typographyCss(typo.accordion)}
+      >
         {title}
-        <Plus
-          className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-open/acc:rotate-45"
-          aria-hidden
-        />
+        {sty.accordionIcon === "chevron" ? (
+          <ChevronDown
+            className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-open/acc:rotate-180"
+            aria-hidden
+          />
+        ) : (
+          <Plus
+            className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-open/acc:rotate-45"
+            aria-hidden
+          />
+        )}
       </summary>
       <div className="pt-3">{content}</div>
     </details>
   );
 
-  const renderMinimalRow = (row: ProductDetailRow) => {
+  const renderMinimalRow = (item: ProductDetailRowItem) => {
+    const row: ProductDetailRow = item.key;
     switch (row) {
       case "breadcrumb":
         return (
@@ -1488,10 +1704,17 @@ export function ProductDetails({
         return product.brand.logo ? (
           <Link
             href={`/${locale}/brands/${encodeURIComponent(product.brand.slug)}`}
-            className="flex h-12 w-fit items-center hover:opacity-80"
+            className="flex w-fit items-center hover:opacity-80"
+            style={{ height: sty.brandLogoHeight }}
             aria-label={product.brand.name}
           >
-            <span className="relative h-12 w-56 shrink-0">
+            <span
+              className="relative shrink-0"
+              style={{
+                height: sty.brandLogoHeight,
+                width: sty.brandLogoMaxWidth,
+              }}
+            >
               <AppImage
                 src={product.brand.logo}
                 alt={product.brand.name}
@@ -1502,7 +1725,7 @@ export function ProductDetails({
             </span>
           </Link>
         ) : (
-          <div className="h-12" aria-hidden />
+          <div style={{ height: sty.brandLogoHeight }} aria-hidden />
         );
       case "title":
         return (
@@ -1513,8 +1736,27 @@ export function ProductDetails({
             {product.name}
           </h1>
         );
-      case "vendor":
-        return renderSoldBy();
+      case "vendor": {
+        // A marketplace shopper reaches the seller from its name, so the
+        // "Sold by" row — on in every arrangement, and rendered only for a
+        // third-party seller in multi-vendor mode — carries the chat
+        // controls. A store that placed the `chat` row itself keeps them
+        // there instead of showing them twice.
+        const soldBy = renderSoldBy();
+        const chat =
+          soldBy &&
+          !minimalGroups.some((items) => items.some((item) => item.key === "chat"))
+            ? renderChatControls()
+            : null;
+        return chat ? (
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            {soldBy}
+            {chat}
+          </div>
+        ) : (
+          soldBy
+        );
+      }
       case "rating": {
         const starStyle = sty.ratingColor
           ? { color: sty.ratingColor, fill: sty.ratingColor }
@@ -1601,7 +1843,10 @@ export function ProductDetails({
                 </>
               )}
               {vis.discountChip && discountPercentage > 0 ? (
-                <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
+                <span
+                  className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600 dark:bg-rose-500/15 dark:text-rose-300"
+                  style={discountChipCss(sty)}
+                >
                   {discountPercentage}% OFF
                 </span>
               ) : null}
@@ -1614,12 +1859,10 @@ export function ProductDetails({
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
                       : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200",
                 )}
-                style={{
-                  ...(sty.stockBackground
-                    ? { backgroundColor: sty.stockBackground }
-                    : {}),
-                  ...typographyCss(typo.stock),
-                }}
+                style={stockChipCss(
+                  sty,
+                  preorderPurchase ? "preorder" : availableStock > 0 ? "in" : "out",
+                )}
               >
                 {preorderPurchase
                   ? tf("product.preorder", "Pre-order")
@@ -1628,11 +1871,15 @@ export function ProductDetails({
                     : t("product.outOfStock")}
               </span>
             </div>
+            {preorderWaitlistNode}
             {!preorderPurchase &&
             productTracksStock(product) &&
             currentStock > 0 &&
             currentStock < 10 ? (
-              <p className="text-sm text-orange-600">
+              <p
+                className="text-sm text-orange-600"
+                style={sty.lowStockColor ? { color: sty.lowStockColor } : undefined}
+              >
                 {tf("product.lowStock", "Only {count} left in stock", {
                   count: currentStock,
                 })}
@@ -1709,22 +1956,46 @@ export function ProductDetails({
           </div>
         ) : null;
       case "quantity-cart":
+        // Every control in this row shares the "Cart button radius" knob, set
+        // inline: the store theme's [data-slot="button"] radius rule
+        // (globals.css) outranks any rounded-* class on a Button.
+        //
         // Quote-only: no quantity stepper either. The number that matters is
         // the one the shopper types into the request form, and a stepper here
         // would be a second, silently ignored answer to the same question.
         if (quoteOnly) {
           return (
             <div className="space-y-3">
-              {renderQuoteButton(
-                "h-11 w-full rounded-[5px] text-sm font-bold",
-              )}
+              {renderQuoteButton("h-11 w-full text-sm font-bold", {
+                borderRadius: sty.cartRadius,
+                height: sty.buttonHeight,
+              })}
             </div>
           );
         }
         return (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex h-11 w-[100px] shrink-0 items-center justify-between rounded-md border border-foreground bg-background px-1">
+            <div
+              className={cn(
+                "flex gap-2.5",
+                // Stacked: each control on its own full-width line.
+                sty.buttonLayout === "stacked"
+                  ? "flex-col items-stretch"
+                  : "flex-wrap items-center",
+              )}
+            >
+              {vis.quantity ? (
+              <div
+                className={cn(
+                  "flex w-[100px] shrink-0 items-center justify-between border border-foreground bg-background px-1",
+                  sty.buttonLayout === "stacked" && "self-start",
+                )}
+                style={{
+                  borderRadius: sty.cartRadius,
+                  height: sty.buttonHeight,
+                  ...(sty.quantityBorder ? { borderColor: sty.quantityBorder } : {}),
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -1755,44 +2026,45 @@ export function ProductDetails({
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <Button
-                size="lg"
-                className="h-11 min-w-[120px] flex-1 rounded-[5px] bg-foreground text-sm font-bold text-background hover:bg-foreground/90"
-                style={{
-                  ...(sty.cartBackground
-                    ? { backgroundColor: sty.cartBackground }
-                    : {}),
-                  ...(sty.cartBorder && sty.cartBorderWidth > 0
-                    ? {
-                        borderColor: sty.cartBorder,
-                        borderWidth: sty.cartBorderWidth,
-                        borderStyle: "solid",
-                      }
-                    : {}),
-                  borderRadius: sty.cartRadius,
-                  ...typographyCss(typo.cart),
-                }}
-                onClick={handleAddToCart}
-                disabled={
-                  maxPurchasableQuantity <= 0 || isAddingToCart || isBuyingNow
-                }
-              >
-                {preorderPurchase
-                  ? tf("product.preorderNow", "Pre-order now")
-                  : t("common.addToCart")}
-              </Button>
-              <Button
-                size="lg"
-                className="h-11 min-w-[120px] flex-1 rounded-md text-sm font-bold"
-                onClick={handleBuyNow}
-                disabled={
-                  maxPurchasableQuantity <= 0 || isBuyingNow || isAddingToCart
-                }
-              >
-                {preorderPurchase
-                  ? tf("product.preorderCheckout", "Pre-order checkout")
-                  : buyNowLabel}
-              </Button>
+              ) : null}
+              {sty.actions !== "buy" ? (
+                <Button
+                  size="lg"
+                  className={cn(
+                    "h-11 min-w-[120px] bg-foreground text-sm font-bold text-background hover:bg-foreground/90",
+                    sty.buttonLayout === "stacked" ? "w-full" : "flex-1",
+                  )}
+                  style={purchaseButtonCss(sty, "cart")}
+                  onClick={handleAddToCart}
+                  disabled={
+                    maxPurchasableQuantity <= 0 || isAddingToCart || isBuyingNow
+                  }
+                >
+                  {/* A pre-order keeps its own wording: a custom "Add to bag"
+                      would promise stock the product does not have. */}
+                  {preorderPurchase
+                    ? tf("product.preorderNow", "Pre-order now")
+                    : sty.cartLabel || t("common.addToCart")}
+                </Button>
+              ) : null}
+              {sty.actions !== "cart" ? (
+                <Button
+                  size="lg"
+                  className={cn(
+                    "h-11 min-w-[120px] text-sm font-bold",
+                    sty.buttonLayout === "stacked" ? "w-full" : "flex-1",
+                  )}
+                  style={purchaseButtonCss(sty, "buy")}
+                  onClick={handleBuyNow}
+                  disabled={
+                    maxPurchasableQuantity <= 0 || isBuyingNow || isAddingToCart
+                  }
+                >
+                  {preorderPurchase
+                    ? tf("product.preorderCheckout", "Pre-order checkout")
+                    : sty.buyLabel || buyNowLabel}
+                </Button>
+              ) : null}
             </div>
             {preorderPurchase ? (
               <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
@@ -1834,6 +2106,21 @@ export function ProductDetails({
                       {formatPrice(preorderTerms.dueLater)}
                     </span>
                   </div>
+                  {/* "Due today" is the ITEM's share and nothing else, so
+                      a pay-later pre-order reads as costing nothing today —
+                      while checkout charges shipping and tax on the spot
+                      (`paymentDueNow = total - outstanding`, where the
+                      outstanding is only the line price). Said plainly here
+                      rather than left for the shopper to discover at the
+                      payment step. */}
+                  {preorderTerms.dueLater > 0 ? (
+                    <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
+                      {tf(
+                        "product.preorderShippingAtCheckout",
+                        "Shipping and tax are charged at checkout.",
+                      )}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -1844,6 +2131,7 @@ export function ProductDetails({
         // description keeps its own "Description" section further down, so the
         // label here has to differ or the page reads two of the same heading.
         return minimalAccordion(
+          "description",
           tf("product.overview", "Overview"),
           <p className="text-sm leading-relaxed text-muted-foreground">
             {descriptionSummary ||
@@ -1852,6 +2140,7 @@ export function ProductDetails({
         );
       case "details":
         return minimalAccordion(
+          "details",
           productInfoSectionTitle,
           <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
             {productInfoFields.map((field) => (
@@ -1878,6 +2167,7 @@ export function ProductDetails({
         );
       case "faq":
         return minimalAccordion(
+          "faq",
           tf("product.faq", "FAQ"),
           <p className="text-sm text-muted-foreground">
             {tf(
@@ -1892,26 +2182,76 @@ export function ProductDetails({
         // left out, and a card with no lines is not drawn at all.
         const delivery = fulfillment?.deliveryDays ?? null;
         const returns = fulfillment?.returns ?? null;
-        if (!delivery && !returns) return null;
+        if (!delivery && !returns && !preorderPurchase) return null;
 
-        // "within 4–7 days"; a window with one edge ("within 5 days") when
-        // the rate names a single figure or only an upper bound.
-        const deliveryText = delivery
-          ? delivery.min > 0 && delivery.min < delivery.max
+        /**
+         * "within 4–7 days"; a window with one edge ("within 5 days") when
+         * the rate names a single figure or only an upper bound.
+         *
+         * A pre-order counts the same figures from DISPATCH rather than from
+         * checkout. The carrier's window is the carrier's window — what a
+         * pre-order does not have is a parcel to start it, so printing it as
+         * "standard delivery within 4–7 days" directly under a release date
+         * two months out promised the goods before they exist. The rate is
+         * unchanged; only the day it starts counting is said out loud.
+         */
+        const deliveryRange = delivery && delivery.min > 0 && delivery.min < delivery.max;
+        const deliveryText = !delivery
+          ? null
+          : preorderPurchase
+            ? deliveryRange
+              ? tf(
+                  "product.deliveryRangeAfterDispatch",
+                  "Delivery within {min}–{max} days once it ships",
+                  { min: delivery.min, max: delivery.max },
+                )
+              : tf(
+                  "product.deliveryWithinAfterDispatch",
+                  "Delivery within {days} days once it ships",
+                  { days: delivery.max },
+                )
+            : deliveryRange
+              ? tf(
+                  "product.deliveryRange",
+                  "Standard delivery within {min}–{max} days",
+                  { min: delivery.min, max: delivery.max },
+                )
+              : tf(
+                  "product.deliveryWithin",
+                  "Standard delivery within {days} days",
+                  { days: delivery.max },
+                );
+
+        /**
+         * A pre-order is bought before it exists, so the return window has not
+         * started and printing it promises the wrong thing: nothing has been
+         * delivered to send back "in original condition". What governs the
+         * money until dispatch is the cancellation rule
+         * lib/orders/preorder-cancel-refund.ts enforces — cancel means refund,
+         * whoever cancels, with no per-campaign exception to read — so that is
+         * the policy this row states while the item is still a pre-order. The
+         * return terms come back on their own the moment it ships as stock.
+         */
+        const preorderPolicyText = !preorderPurchase
+          ? null
+          : preorderTerms.dueNow <= 0
             ? tf(
-                "product.deliveryRange",
-                "Standard delivery within {min}–{max} days",
-                { min: delivery.min, max: delivery.max },
+                "product.preorderCancelNothingPaid",
+                "Cancel before it ships and anything you have paid is refunded in full — the item itself is not charged until the balance is due",
               )
-            : tf(
-                "product.deliveryWithin",
-                "Standard delivery within {days} days",
-                { days: delivery.max },
-              )
-          : null;
+            : preorderTerms.dueLater > 0
+              ? tf(
+                  "product.preorderCancelDeposit",
+                  "Cancel before it ships and your {amount} deposit is refunded in full",
+                  { amount: formatPrice(preorderTerms.dueNow) },
+                )
+              : tf(
+                  "product.preorderCancelRefund",
+                  "Cancel before it ships for a full refund",
+                );
 
         let returnsText: string | null = null;
-        if (returns) {
+        if (returns && !preorderPurchase) {
           const values = {
             days: returns.windowDays,
             percent: returns.restockingFeePercent,
@@ -1945,6 +2285,10 @@ export function ProductDetails({
                     );
         }
 
+        // One policy line, never two: the pre-order rule while it is a
+        // pre-order, the return terms once it is ordinary stock.
+        const policyText = preorderPolicyText ?? returnsText;
+
         const lineClassName =
           "flex items-center gap-3 py-3 text-sm text-foreground";
         const lineStyle = {
@@ -1969,18 +2313,22 @@ export function ProductDetails({
                 {deliveryText}
               </div>
             ) : null}
-            {returnsText ? (
+            {policyText ? (
               <div className={lineClassName} style={lineStyle}>
-                <PackageOpen className="h-5 w-5 shrink-0" aria-hidden />
+                {preorderPolicyText ? (
+                  <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />
+                ) : (
+                  <PackageOpen className="h-5 w-5 shrink-0" aria-hidden />
+                )}
                 {returns?.policyPage ? (
                   <Link
                     href={`/${locale}/returns`}
                     className="underline-offset-4 hover:underline"
                   >
-                    {returnsText}
+                    {policyText}
                   </Link>
                 ) : (
-                  returnsText
+                  policyText
                 )}
               </div>
             ) : null}
@@ -2003,55 +2351,37 @@ export function ProductDetails({
               productName={product.name}
               image={product.images?.[0]}
               variant="tile"
+              networks={sty.shareNetworks}
+              tileStyle={{
+                width: sty.shareSize,
+                height: sty.shareSize,
+                borderRadius: sty.shareRadius,
+                ...(sty.shareBackground
+                  ? { backgroundColor: sty.shareBackground }
+                  : {}),
+                ...(sty.shareIconColor ? { color: sty.shareIconColor } : {}),
+              }}
             />
           </div>
         );
       case "chat":
-        return messaging ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {messaging?.liveChatEnabled !== false ? (
-              <StorefrontChatButton
-                locale={locale}
-                vendorId={directVendor?._id}
-                vendorName={
-                  directVendor?.storeName ||
-                  tf("chat.storeSupport", "Store support")
-                }
-                product={{
-                  id: product._id,
-                  name: product.name,
-                  variantId: selectedVariant?._id,
-                  variantName: selectedVariant?.name,
-                }}
-                label={
-                  directVendor
-                    ? tf("chat.chatWithVendor", "Chat with vendor")
-                    : tf("chat.chatWithStore", "Chat with store")
-                }
-              />
-            ) : null}
-            <VendorExternalChannels
-              chatOnLabel={traw(
-                "chat.externalChannels.chatOn",
-                "Chat with {vendor} on {channel}",
-              )}
-              whatsappProductMessage={traw(
-                "chat.externalChannels.whatsappProductMessage",
-                "Hello {vendor}, I have a question about {product}.",
-              )}
-              whatsappStoreMessage={traw(
-                "chat.externalChannels.whatsappStoreMessage",
-                "Hello {vendor}, I have a question about your store.",
-              )}
-              settings={messaging}
-              vendorName={
-                directVendor?.storeName ||
-                tf("chat.storeSupport", "Store support")
-              }
-              productName={product.name}
-            />
-          </div>
-        ) : null;
+        return renderChatControls();
+      // Layout rows: space or a rule, with the settings the Order editor set
+      // on this one instance (parseProductDetailGroups clamps them).
+      case "gap":
+        return <div aria-hidden style={{ height: item.size ?? 24 }} />;
+      case "divider":
+        return (
+          <hr
+            aria-hidden
+            className="shrink-0 border-0"
+            style={{
+              height: item.size ?? 1,
+              backgroundColor: item.color || "var(--border)",
+              marginBlock: item.spacing ?? 16,
+            }}
+          />
+        );
       default:
         return null;
     }
@@ -2067,23 +2397,48 @@ export function ProductDetails({
   const minimalRenderedGroups =
     appearance === "minimal"
       ? minimalGroups
-          .map((keys) => ({
-            keys,
-            rows: keys.map((key) => ({ key, node: renderMinimalRow(key) })),
+          .map((items) => ({
+            keys: items.map((item) => item.key),
+            // Keyed by the row's id: a gap or a line can appear more than once.
+            rows: items.map((item) => ({
+              key: item.id,
+              node: renderMinimalRow(item),
+            })),
           }))
           .filter((group) => group.rows.some((row) => row.node != null))
       : [];
 
+  const minimalLayout = appearance === "minimal";
   return (
-    <div className="space-y-14">
+    <div
+      className={cn(
+        "space-y-14",
+        minimalLayout && sty.contentMaxWidth > 0 && "mx-auto w-full",
+      )}
+      style={
+        minimalLayout && sty.contentMaxWidth > 0
+          ? { maxWidth: sty.contentMaxWidth }
+          : undefined
+      }
+    >
       <div
         className={cn(
           "grid grid-cols-1 gap-8",
           // The split used to wait for xl (1280): a 13" laptop at default
           // zoom never reached it, so 1024 rendered the phone layout — a
           // 992px-wide gallery with the price a full screen below it.
-          !isFullWidthLayout && "lg:grid-cols-2 lg:gap-10 xl:gap-12",
+          !isFullWidthLayout &&
+            (minimalLayout
+              ? // The gallery's share of the row is the merchant's; the buy
+                // box takes what is left.
+                "lg:grid-cols-[minmax(0,var(--pdp-gallery-w,50%))_minmax(0,1fr)] lg:gap-10 xl:gap-12"
+              : "lg:grid-cols-2 lg:gap-10 xl:gap-12"),
         )}
+        style={
+          minimalLayout && !isFullWidthLayout
+            ? ({ "--pdp-gallery-w": `${sty.galleryWidth}%` } as React.CSSProperties)
+            : undefined
+        }
       >
         {/* Sticky offset tracks the real header height (--storefront-header-height,
             published by store-header) instead of a hardcoded value that pushed the
@@ -2093,7 +2448,20 @@ export function ProductDetails({
           className={cn(
             !isFullWidthLayout &&
               !isVerticalLayout &&
-              "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start",
+              pinColumn &&
+              (bleedTop
+                ? // Flush under the header while it scrolls, too.
+                  "lg:sticky lg:top-[var(--storefront-header-height,4rem)] lg:self-start"
+                : "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start"),
+            // Stacked, the gallery runs edge to edge; beside the buy box it
+            // runs out to the left edge only. Negative margins on a stretched
+            // grid item widen it by exactly the inset.
+            bleedLeft &&
+              (isFullWidthLayout
+                ? "-mx-[var(--store-content-inset,1rem)]"
+                : "-mx-[var(--store-content-inset,1rem)] lg:mr-0"),
+            // Cancels the page's own top space (product-main.tsx: pt-6 lg:pt-8).
+            bleedTop && "-mt-6 lg:-mt-8",
           )}
         >
           <ProductImageGallery
@@ -2117,6 +2485,21 @@ export function ProductDetails({
                 ? sty.previewHeight
                 : undefined
             }
+            appearance={
+              appearance === "minimal"
+                ? {
+                    radius: sty.imageRadius,
+                    gap: sty.imageGap,
+                    fit: sty.imageFit,
+                    padding: sty.imagePadding,
+                    thumbSize: sty.thumbSize,
+                    thumbRadius: sty.thumbRadius,
+                    thumbActiveBorder: sty.thumbActiveBorder,
+                    zoom: vis.zoom,
+                    thumbnails: vis.thumbnails,
+                  }
+                : undefined
+            }
           />
         </div>
 
@@ -2127,6 +2510,7 @@ export function ProductDetails({
             // pinned left and its values flung 400px away at the right edge.
             !isFullWidthLayout && "mx-auto w-full max-w-xl lg:max-w-none",
             isVerticalLayout &&
+              pinColumn &&
               "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start",
           )}
         >
@@ -2170,7 +2554,15 @@ export function ProductDetails({
                     }}
                   >
                     {accordionsOnly ? (
-                      <div className="divide-y divide-border">
+                      <div
+                        className="divide-y divide-border"
+                        // The hairline colour, scoped to this list.
+                        style={
+                          sty.accordionDivider
+                            ? ({ "--border": sty.accordionDivider } as React.CSSProperties)
+                            : undefined
+                        }
+                      >
                         {rows.map(({ key, node }) => (
                           <Fragment key={key}>{node}</Fragment>
                         ))}
@@ -2291,6 +2683,8 @@ export function ProductDetails({
                         : t("product.outOfStock")}
                   </span>
                 </div>
+
+                {preorderWaitlistNode}
 
                 <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {product.shortDescription ||
@@ -2534,6 +2928,15 @@ export function ProductDetails({
                           {formatPrice(preorderTerms.dueLater)}
                         </span>
                       </div>
+                      {/* Same note as the first "Due today" block above. */}
+                      {preorderTerms.dueLater > 0 ? (
+                        <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
+                          {tf(
+                            "product.preorderShippingAtCheckout",
+                            "Shipping and tax are charged at checkout.",
+                          )}
+                        </p>
+                      ) : null}
                     </div>
                     {selectedPreorder?.batchName ? (
                       <p className="text-xs font-medium">
@@ -2596,51 +2999,7 @@ export function ProductDetails({
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  {messaging?.liveChatEnabled !== false ? (
-                    <StorefrontChatButton
-                      locale={locale}
-                      vendorId={directVendor?._id}
-                      vendorName={
-                        directVendor?.storeName ||
-                        tf("chat.storeSupport", "Store support")
-                      }
-                      product={{
-                        id: product._id,
-                        name: product.name,
-                        variantId: selectedVariant?._id,
-                        variantName: selectedVariant?.name,
-                      }}
-                      label={
-                        directVendor
-                          ? tf("chat.chatWithVendor", "Chat with vendor")
-                          : tf("chat.chatWithStore", "Chat with store")
-                      }
-                    />
-                  ) : null}
-                  {messaging ? (
-                    <VendorExternalChannels
-                      chatOnLabel={traw(
-                        "chat.externalChannels.chatOn",
-                        "Chat with {vendor} on {channel}",
-                      )}
-                      whatsappProductMessage={traw(
-                        "chat.externalChannels.whatsappProductMessage",
-                        "Hello {vendor}, I have a question about {product}.",
-                      )}
-                      whatsappStoreMessage={traw(
-                        "chat.externalChannels.whatsappStoreMessage",
-                        "Hello {vendor}, I have a question about your store.",
-                      )}
-                      settings={messaging}
-                      vendorName={
-                        directVendor?.storeName ||
-                        tf("chat.storeSupport", "Store support")
-                      }
-                      productName={product.name}
-                    />
-                  ) : null}
-                </div>
+                {renderChatControls()}
                 <ProductShareButtons
                   productName={product.name}
                   image={product.images?.[0]}
@@ -2759,6 +3118,8 @@ export function ProductDetails({
                     </div>
                   </div>
                 </div>
+
+                {preorderWaitlistNode}
 
                 {/* Collection, when the shopper has told us where they are and a
                   branch in range actually holds this. Withdrawn the moment
@@ -2952,54 +3313,7 @@ export function ProductDetails({
                 sharing pushed to the end. Demoted below the CTAs so chat never
                 competes with Add to Cart / Buy Now for the primary click. */}
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pt-8">
-                <div className="flex flex-wrap items-center gap-2">
-                  {messaging?.liveChatEnabled !== false ? (
-                    <StorefrontChatButton
-                      locale={locale}
-                      vendorId={directVendor?._id}
-                      vendorName={
-                        directVendor?.storeName ||
-                        tf("chat.storeSupport", "Store support")
-                      }
-                      product={{
-                        id: product._id,
-                        name: product.name,
-                        variantId: selectedVariant?._id,
-                        variantName: selectedVariant?.name,
-                      }}
-                      label={
-                        directVendor
-                          ? tf("chat.chatWithVendor", "Chat with vendor")
-                          : tf("chat.chatWithStore", "Chat with store")
-                      }
-                    />
-                  ) : null}
-                  {messaging ? (
-                    <VendorExternalChannels
-                      // raw(): the messages keep their {vendor}/{channel}/{product}
-                      // placeholders for VendorExternalChannels to substitute, since
-                      // only that component knows the values.
-                      chatOnLabel={traw(
-                        "chat.externalChannels.chatOn",
-                        "Chat with {vendor} on {channel}",
-                      )}
-                      whatsappProductMessage={traw(
-                        "chat.externalChannels.whatsappProductMessage",
-                        "Hello {vendor}, I have a question about {product}.",
-                      )}
-                      whatsappStoreMessage={traw(
-                        "chat.externalChannels.whatsappStoreMessage",
-                        "Hello {vendor}, I have a question about your store.",
-                      )}
-                      settings={messaging}
-                      vendorName={
-                        directVendor?.storeName ||
-                        tf("chat.storeSupport", "Store support")
-                      }
-                      productName={product.name}
-                    />
-                  ) : null}
-                </div>
+                {renderChatControls()}
 
                 <ProductShareButtons
                   productName={product.name}
@@ -3063,6 +3377,15 @@ export function ProductDetails({
                         {formatPrice(preorderTerms.dueLater)}
                       </span>
                     </div>
+                    {/* Same note as the first "Due today" block above. */}
+                    {preorderTerms.dueLater > 0 ? (
+                      <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
+                        {tf(
+                          "product.preorderShippingAtCheckout",
+                          "Shipping and tax are charged at checkout.",
+                        )}
+                      </p>
+                    ) : null}
                   </div>
 
                   {selectedPreorder?.batchName ? (
@@ -3354,13 +3677,18 @@ export function ProductDetails({
                           {formatDisplayPrice(displayedPrice)}
                         </span>
                       )}
+                    {/* Same "Cart button radius" knob as the buy box row. */}
                     {quoteOnly ? (
                       renderQuoteButton(
-                        "hidden h-9 rounded-md px-4 text-xs font-bold sm:inline-flex",
+                        "hidden h-9 px-4 text-xs font-bold sm:inline-flex",
+                        { borderRadius: sty.cartRadius },
                       )
                     ) : (
                     <>
-                    <span className="hidden h-9 items-center justify-between rounded-md border border-foreground px-1 lg:flex">
+                    <span
+                      className="hidden h-9 items-center justify-between border border-foreground px-1 lg:flex"
+                      style={{ borderRadius: sty.cartRadius }}
+                    >
                       <button
                         type="button"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -3395,7 +3723,8 @@ export function ProductDetails({
                     </span>
                     <Button
                       size="sm"
-                      className="hidden h-9 rounded-md bg-foreground px-4 text-xs font-bold text-background hover:bg-foreground/90 sm:inline-flex"
+                      className="hidden h-9 bg-foreground px-4 text-xs font-bold text-background hover:bg-foreground/90 sm:inline-flex"
+                      style={{ borderRadius: sty.cartRadius }}
                       onClick={handleAddToCart}
                       disabled={
                         maxPurchasableQuantity <= 0 ||
@@ -3447,9 +3776,12 @@ export function ProductDetails({
             data-section="description"
             className="scroll-mt-24"
           >
-            <h3 className="mb-4 text-xl font-semibold text-foreground">
-              {tf("product.description", "Description")}
-            </h3>
+            {/* Same two-tone heading as the Specifications and Reviews
+                sections below, so the page's three titles read as one set. */}
+            <ElectronicsSectionHeading
+              title={tf("product.description", "Description")}
+              className="mb-5 text-left text-xl sm:text-2xl"
+            />
             {hasDescription ? (
               <div
                 className="rich-text-content max-w-none text-muted-foreground [&_img]:h-auto [&_img]:max-h-[640px] [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:object-contain"
@@ -3471,9 +3803,10 @@ export function ProductDetails({
               data-section="specifications"
               className="scroll-mt-24"
             >
-              <h3 className="mb-4 text-xl font-semibold text-foreground">
-                {tf("product.specifications", "Specifications")}
-              </h3>
+              <ElectronicsSectionHeading
+                title={tf("product.specifications", "Specifications")}
+                className="mb-5 text-left text-xl sm:text-2xl"
+              />
               {hasSpecifications ? (
                 <div className="overflow-hidden rounded-lg border border-border">
                   <table className="w-full text-sm">

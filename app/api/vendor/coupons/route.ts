@@ -103,7 +103,9 @@ export const POST = withApi(
 
     const payload = Object.fromEntries(
       Object.entries(body as unknown as Record<string, unknown>).filter(
-        ([key]) => key !== "userLimit" && key !== "excludedCategories",
+        // A vendor's coupon is always the vendor's to pay for.
+        ([key]) =>
+          key !== "userLimit" && key !== "excludedCategories" && key !== "fundedBy",
       ),
     );
     if (payload.type === "free_shipping") {

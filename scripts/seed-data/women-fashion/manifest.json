@@ -1,0 +1,28 @@
+{
+  "template": "women-fashion",
+  "exportedAt": "2026-09-17T08:20:17.814Z",
+  "sourceDb": "storify-women-fashion",
+  "counts": {
+    "vendors.json": 1,
+    "inventory-locations.json": 0,
+    "categories.json": 7,
+    "brands.json": 6,
+    "global-variants.json": 0,
+    "products.json": 55,
+    "collections.json": 7,
+    "menus.json": 2,
+    "sliders.json": 10,
+    "store-pages.json": 5,
+    "coupons.json": 0,
+    "blog-categories.json": 0,
+    "blog-posts.json": 0,
+    "vendor-plans.json": 0,
+    "onboarding-template.json": 0,
+    "settings.json": 1
+  },
+  "repairs": [
+    "dropped slider \"New Slider\" (new-slider-1789449903797) — no exported page binds it",
+    "dropped slider \"New Slider copy\" (new-slider-copy) — no exported page binds it",
+    "dropped slider \"Shoe Collection\" (new-slider-1789477413768) — no exported page binds it"
+  ]
+}

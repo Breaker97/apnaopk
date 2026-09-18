@@ -42,9 +42,10 @@ interface InvoiceAddress {
 
 export interface InvoiceData {
   invoiceNumber: string;
-  status: "Paid" | "Pending" | "Overdue" | "Cancelled";
+  status: "Paid" | "Partially paid" | "Pending" | "Overdue" | "Cancelled";
   dateCreated: string;
-  dueDate: string;
+  /** Left off the page when there is no real date to print. */
+  dueDate?: string;
   from: InvoiceAddress;
   to: InvoiceAddress;
   items: InvoiceItem[];
@@ -53,6 +54,17 @@ export interface InvoiceData {
   discount: number;
   tax: number;
   total: number;
+  /**
+   * What has been paid and what is still owed, for an order that is not
+   * settled in one payment (a deposit pre-order). Absent, the total already
+   * says it.
+   */
+  payment?: {
+    /** Everything that arrived, before any refund. */
+    amountPaid: number;
+    amountRefunded: number;
+    balanceDue: number;
+  };
   currency: string;
   locale?: string;
   notes?: string;
@@ -271,6 +283,10 @@ const styles = StyleSheet.create({
     width: "50%",
     textAlign: "right" as const,
   },
+  balanceRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderDark,
+  },
 
   // ── Footer ──
   footer: {
@@ -368,10 +384,12 @@ function InvoiceDocument({
             <Text style={styles.metaLabel}>Date of issue</Text>
             <Text style={styles.metaValue}>{data.dateCreated}</Text>
           </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Date due</Text>
-            <Text style={styles.metaValue}>{data.dueDate}</Text>
-          </View>
+          {data.dueDate && (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Date due</Text>
+              <Text style={styles.metaValue}>{data.dueDate}</Text>
+            </View>
+          )}
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Status</Text>
             <Text style={styles.metaValue}>{data.status}</Text>
@@ -466,6 +484,30 @@ function InvoiceDocument({
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>{fmt(data.total)}</Text>
           </View>
+          {data.payment && (
+            <>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Amount paid</Text>
+                <Text style={styles.summaryValue}>
+                  {fmt(data.payment.amountPaid)}
+                </Text>
+              </View>
+              {data.payment.amountRefunded > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Refunded</Text>
+                  <Text style={styles.summaryValue}>
+                    -{fmt(data.payment.amountRefunded)}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.totalRow, styles.balanceRow]}>
+                <Text style={styles.totalLabel}>Balance due</Text>
+                <Text style={styles.totalValue}>
+                  {fmt(data.payment.balanceDue)}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* ── Footer ── */}

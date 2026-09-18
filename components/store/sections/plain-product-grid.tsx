@@ -6,6 +6,7 @@ import {
 import {
   clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
+  CARD_BROWSER_GRID_GAP,
 } from "@/components/store/product-grid-columns";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,8 @@ export function PlainProductGrid({
   const safeDesktopColumns = clampDesktopColumns(desktopColumns);
 
   return (
-    <section className="py-6 lg:py-12">
+    // No title: no top padding, so a Heading block above sits flush.
+    <section className={title ? "py-6 lg:py-12" : "pb-6 lg:pb-12"}>
       <div className="container mx-auto px-4">
         {title ? (
           <h2 className="text-[length:var(--sec-title,1.125rem)] font-bold tracking-tight sm:text-[length:var(--sec-title-lg,1.5rem)]">
@@ -48,7 +50,8 @@ export function PlainProductGrid({
           className={cn(
             // The browser layout's own grid metrics, so switching layouts
             // changes the chrome and not the cards.
-            "grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-11 md:grid-cols-3 md:gap-y-11",
+            "grid grid-cols-2 md:grid-cols-3",
+            CARD_BROWSER_GRID_GAP,
             title ? "mt-5 sm:mt-8" : "",
             PRODUCT_GRID_DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}

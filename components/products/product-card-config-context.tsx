@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import {
   DEFAULT_PRODUCT_CARD_CONFIG,
+  type CardBrand,
   type ProductCardConfig,
 } from "@/lib/products/product-card-config";
 
@@ -20,18 +21,29 @@ const ProductCardConfigContext = createContext<ProductCardConfig>(
   DEFAULT_PRODUCT_CARD_CONFIG,
 );
 
+/** The store's brands by id, for the Brand element. Empty when it is off. */
+const CardBrandDirectoryContext = createContext<Record<string, CardBrand>>({});
+
 export function ProductCardConfigProvider({
   config,
+  brands = {},
   children,
 }: {
   config: ProductCardConfig;
+  brands?: Record<string, CardBrand>;
   children: ReactNode;
 }) {
   return (
     <ProductCardConfigContext.Provider value={config}>
-      {children}
+      <CardBrandDirectoryContext.Provider value={brands}>
+        {children}
+      </CardBrandDirectoryContext.Provider>
     </ProductCardConfigContext.Provider>
   );
+}
+
+export function useCardBrandDirectory(): Record<string, CardBrand> {
+  return useContext(CardBrandDirectoryContext);
 }
 
 export function useProductCardConfig(): ProductCardConfig {

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { SecretInput } from "@/components/admin/settings/fields/secret-input";
 import { EnvSourceHint } from "@/components/admin/settings/fields/env-source-hint";
+import { WebhookUrlRow } from "@/components/admin/settings/fields/webhook-url-row";
 import { useCredentialMeta } from "@/components/admin/settings/fields/use-credential-meta";
 import {
   ModeBadge,
@@ -84,16 +85,6 @@ function AuthFailureNotice(props: {
             : ""}
         </p>
       </div>
-    </div>
-  );
-}
-
-/** Shown so an operator can copy the URL into the carrier's own dashboard. */
-function WebhookUrlRow(props: { label: string; url: string }) {
-  return (
-    <div className="space-y-2">
-      <Label>{props.label}</Label>
-      <Input readOnly value={props.url} onFocus={(e) => e.currentTarget.select()} />
     </div>
   );
 }

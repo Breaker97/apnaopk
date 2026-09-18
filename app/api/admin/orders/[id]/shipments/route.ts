@@ -101,7 +101,7 @@ export const POST = withApi<{ id: string }>(
           createdBy: session.user.id,
         },
       },
-      { upsert: true, new: true, runValidators: true },
+      { upsert: true, returnDocument: "after", runValidators: true },
     );
 
     // A tracking number typed in here is the merchant recording a real parcel

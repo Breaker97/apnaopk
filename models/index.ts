@@ -1,9 +1,9 @@
 /**
  * Models Index
  *
- * A convenience barrel, NOT a complete registry. Six models are reached only
+ * A convenience barrel, NOT a complete registry. Seven models are reached only
  * through their own module — audit-log, expense, fiscal-period, ai-usage,
- * shipment-job, rate-limit-counter — because their consumers import them
+ * shipment-job, rate-limit-counter, sms-delivery — because their consumers import them
  * directly, and exporting them here would add names nothing reads.
  *
  * So `await import("@/models")` registers most models with Mongoose, not all
@@ -28,6 +28,7 @@ export { PlatformPayment } from "./platformPayment.model";
 export { LedgerEntry } from "./ledger-entry.model";
 export { CommissionInvoice } from "./commissionInvoice.model";
 export { WebhookEvent } from "./webhookEvent.model";
+export { SliderMetricDaily } from "./sliderMetricDaily.model";
 export {
   OnboardingTemplate,
   getOnboardingTemplate,
@@ -71,6 +72,7 @@ export { Slider } from "./slider.model";
 export { StorePage } from "./store-page.model";
 export { SavedSection } from "./saved-section.model";
 export { AISalesConversation } from "./ai-sales-conversation.model";
+export { AISalesUsage } from "./ai-sales-usage.model";
 export { Conversation } from "./conversation.model";
 export { ConversationMessage } from "./conversation-message.model";
 export { ConversationContact } from "./conversation-contact.model";
@@ -81,3 +83,5 @@ export { MessageOutbox } from "./message-outbox.model";
 export { WhatsAppTemplate } from "./whatsapp-template.model";
 export { PlatformMessagingSettings } from "./platform-messaging-settings.model";
 export { CronRun } from "./cron-run.model";
+export { ZeroResultSearch } from "./zero-result-search.model";
+export { PreorderWaitlist } from "./preorder-waitlist.model";

@@ -374,10 +374,37 @@ export function useCartPageState() {
     });
   }, [cartViewSignature, currency.code, items, subtotal]);
 
+  // Units, not lines — the header's cart badge counts units, and two numbers
+  // that both claim to be "how much is in my cart" must agree.
+  const unitCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // The delivery strip promises dates, so it needs two consents: the
+  // merchant's (`showEstimatedDelivery`) and a real quote carrying a window
+  // (`estimatedDeliveryDays`, set by the estimator). No quote, no strip —
+  // never a guess dressed up as a promise. Worded here so every cart design
+  // promises exactly the same thing.
+  let deliveryEstimateText = "";
+  if (orderConfig.showEstimatedDelivery && estimatedDeliveryDays) {
+    const dateFormat = new Intl.DateTimeFormat(locale || undefined, {
+      month: "short",
+      day: "numeric",
+    });
+    const from = new Date();
+    from.setDate(from.getDate() + estimatedDeliveryDays.min);
+    const to = new Date();
+    to.setDate(to.getDate() + estimatedDeliveryDays.max);
+    const dateRange = `${dateFormat.format(from)} – ${dateFormat.format(to)}`;
+    deliveryEstimateText = t.has("cart.deliveryEstimate")
+      ? t("cart.deliveryEstimate", { dateRange })
+      : `Delivered by ${dateRange} via Standard Shipping`;
+  }
+
   return {
     t,
     locale,
     items,
+    unitCount,
+    deliveryEstimateText,
     isLoading,
     subtotal,
     hasShippableItems,
@@ -400,7 +427,6 @@ export function useCartPageState() {
     taxNotApplicableLabel,
     calculateTaxLabel,
     setEstimatedShipping,
-    estimatedDeliveryDays,
     setEstimatedDeliveryDays,
     summaryShippingCost,
     cartViewSignature,

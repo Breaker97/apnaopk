@@ -6,7 +6,11 @@ import { resolveStorageCredentials } from "@/lib/settings/credentials";
 import { connectDB } from "@/lib/db";
 import { USER_ROLES } from "@/config/app.config";
 import { Settings, User } from "@/models";
-import { INSTALL_CLAIM_LEASE_MS, isInstallLocked } from "./payload";
+import {
+  INSTALL_CLAIM_LEASE_MS,
+  isInstallLocked,
+  meetsNodeVersionFloor,
+} from "./payload";
 
 /**
  * Install state and preflight. The lock is checked SERVER-SIDE on every
@@ -99,11 +103,13 @@ interface InstallPreflight {
   databaseOk: boolean;
   /** null = healthy; otherwise a human-readable problem the buyer must fix. */
   authSecretProblem: string | null;
-  appUrlSet: boolean;
+  /**
+   * BETTER_AUTH_URL as the server sees it. The browser compares it, and its
+   * own build-time NEXT_PUBLIC_APP_URL, against the address it is open on
+   * (`findAppUrlProblem`) — only the browser knows that address for certain.
+   */
+  authUrl: string | null;
 }
-
-/** Node 22 is the deployment floor (vercel-readiness decision). */
-const NODE_MAJOR_FLOOR = 22;
 
 /** Cheapest possible proof that this app can actually READ its database. */
 async function pingDatabase(): Promise<boolean> {
@@ -118,19 +124,16 @@ async function pingDatabase(): Promise<boolean> {
 
 export async function getInstallPreflight(): Promise<InstallPreflight> {
   const nodeVersion = process.version;
-  const major = Number(nodeVersion.replace(/^v/, "").split(".")[0]);
   const problem = findAuthSecretProblem(process.env.BETTER_AUTH_SECRET);
   return {
     nodeVersion,
-    nodeOk: Number.isFinite(major) && major >= NODE_MAJOR_FLOOR,
+    nodeOk: meetsNodeVersionFloor(nodeVersion),
     // A real round trip, not a constant. Connecting is not the same as
     // being able to read: a wrong `MONGODB_DB_NAME`, a user without read
     // rights, or a cluster mid-failover all connect and then refuse, and a
     // green tick there sends the buyer hunting in the wrong place.
     databaseOk: await pingDatabase(),
     authSecretProblem: problem ? describeAuthSecretProblem(problem) : null,
-    appUrlSet: Boolean(
-      process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL,
-    ),
+    authUrl: process.env.BETTER_AUTH_URL?.trim() || null,
   };
 }

@@ -119,7 +119,7 @@ export async function acquireWebhookLease(
       },
       $inc: { attemptCount: 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   )
     .select("_id")
     .lean<{ _id: unknown } | null>();

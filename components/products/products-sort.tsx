@@ -11,10 +11,17 @@ import {
   hasLocationCoordinates,
   normalizeDistanceSortForLocation,
 } from "@/lib/locations/shopper-location";
+import { defaultListingSort } from "@/lib/products/listing-sort";
 import { cn } from "@/lib/utils";
 
 interface ProductsSortLabels {
   label: string;
+  /**
+   * "Best match". Optional, and the switch for the option: a listing that
+   * never carries a search (a category page) has no match to rank by. Even
+   * with a label the option only appears while the URL carries a search.
+   */
+  bestMatch?: string;
   mostPopular: string;
   bestRating: string;
   newest: string;
@@ -78,11 +85,18 @@ export function ProductsSort({
   currentSort = "popular",
   labels,
   triggerClassName,
+  variant = "pill",
 }: {
   currentSort?: string;
   labels: ProductsSortLabels;
   /** Themed trigger overrides — the Electronics toolbar squares the pill off. */
   triggerClassName?: string;
+  /**
+   * `pill`: one button reading "Sort by" until a choice is made.
+   * `labeled`: a "Sort by" label beside a select box that always shows the
+   * current order — the horizontal-filter toolbars' form.
+   */
+  variant?: "pill" | "labeled";
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -99,15 +113,23 @@ export function ProductsSort({
     searchParams.get("lat"),
     searchParams.get("lng"),
   );
-  const allowed: readonly string[] = canSortByDistance
-    ? [...SORT_VALUES, "distance"]
-    : SORT_VALUES;
+  // While searching, the default order is how well each product matches;
+  // "Most popular" becomes a choice like any other, so it has to be written
+  // into the URL instead of being implied by an absent `sortBy`.
+  const canSortByRelevance =
+    Boolean(labels.bestMatch) && Boolean(searchParams.get("search")?.trim());
+  const defaultSort = defaultListingSort(canSortByRelevance);
+  const allowed: readonly string[] = [
+    ...(canSortByRelevance ? ["relevance"] : []),
+    ...SORT_VALUES,
+    ...(canSortByDistance ? ["distance"] : []),
+  ];
   const value =
-    visibleSort && allowed.includes(visibleSort) ? visibleSort : "popular";
+    visibleSort && allowed.includes(visibleSort) ? visibleSort : defaultSort;
 
   const handleChange = (next: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (next === "popular") {
+    if (next === defaultSort) {
       params.delete("sortBy");
     } else {
       params.set("sortBy", next);
@@ -121,13 +143,52 @@ export function ProductsSort({
   // does. Once a shopper picks something other than the default it shows their
   // choice instead, so an active sort is never hidden behind a generic label.
   const optionLabels: Record<string, string> = {
+    popular: labels.mostPopular,
     rating: labels.bestRating,
     createdAt: labels.newest,
     "price-asc": labels.priceLowHigh,
     "price-desc": labels.priceHighLow,
+    ...(labels.bestMatch ? { relevance: labels.bestMatch } : {}),
     ...(labels.nearest ? { distance: labels.nearest } : {}),
   };
-  const triggerLabel = optionLabels[value] ?? labels.label;
+  const triggerLabel =
+    value === defaultSort ? labels.label : (optionLabels[value] ?? labels.label);
+
+  const options = (
+    <SelectContent position="popper" align="end" sideOffset={6}>
+      {canSortByRelevance ? (
+        <SelectItem value="relevance">{labels.bestMatch}</SelectItem>
+      ) : null}
+      <SelectItem value="popular">{labels.mostPopular}</SelectItem>
+      {canSortByDistance ? (
+        <SelectItem value="distance">{labels.nearest}</SelectItem>
+      ) : null}
+      <SelectItem value="rating">{labels.bestRating}</SelectItem>
+      <SelectItem value="createdAt">{labels.newest}</SelectItem>
+      <SelectItem value="price-asc">{labels.priceLowHigh}</SelectItem>
+      <SelectItem value="price-desc">{labels.priceHighLow}</SelectItem>
+    </SelectContent>
+  );
+
+  if (variant === "labeled") {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-foreground/80">{labels.label}</span>
+        <Select value={value} onValueChange={handleChange}>
+          <SelectTrigger
+            aria-label={labels.label}
+            className={cn(
+              "min-w-40 justify-between gap-3 rounded-md px-4 shadow-none data-[size=default]:h-10",
+              triggerClassName,
+            )}
+          >
+            <span className="truncate">{optionLabels[value] ?? labels.label}</span>
+          </SelectTrigger>
+          {options}
+        </Select>
+      </div>
+    );
+  }
 
   return (
     <Select value={value} onValueChange={handleChange}>
@@ -152,16 +213,7 @@ export function ProductsSort({
           the trigger it bails out and drops the menu, unpositioned, at the foot
           of the page. Dropping below the pill is also the right shape for a
           control that reads as a button. */}
-      <SelectContent position="popper" align="end" sideOffset={6}>
-        <SelectItem value="popular">{labels.mostPopular}</SelectItem>
-        {canSortByDistance ? (
-          <SelectItem value="distance">{labels.nearest}</SelectItem>
-        ) : null}
-        <SelectItem value="rating">{labels.bestRating}</SelectItem>
-        <SelectItem value="createdAt">{labels.newest}</SelectItem>
-        <SelectItem value="price-asc">{labels.priceLowHigh}</SelectItem>
-        <SelectItem value="price-desc">{labels.priceHighLow}</SelectItem>
-      </SelectContent>
+      {options}
     </Select>
   );
 }

@@ -75,6 +75,9 @@ function renderProductMain(
     );
 
     return (
+      // An inline-size container spanning the surface: the gallery's bleed
+      // (--store-content-inset in globals.css) is measured against it.
+      <div className="@container w-full">
       <div className="container mx-auto px-4 pt-6 lg:pt-8">
         <ProductDetails
           product={
@@ -91,6 +94,7 @@ function renderProductMain(
           detail={parseProductDetailConfig(settings.detailStyle)}
           standaloneSpecs={standaloneSpecs}
         />
+      </div>
       </div>
     );
   };

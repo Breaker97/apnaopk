@@ -4,7 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LayoutDashboard, LogOut, ShoppingCart, User } from "lucide-react";
+import {
+  Globe,
+  LayoutDashboard,
+  LogOut,
+  ShoppingCart,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -127,17 +133,23 @@ export function StaffHeader({ user, locale, posEnabled }: StaffHeaderProps) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl gap-2 border-primary/20 text-primary hover:bg-primary/5"
+            className="rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/5 dark:border-border dark:text-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
             asChild
           >
             <Link href={`/${locale}/staff/pos`}>
               <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {tf("admin.sidebar.pos", "POS")}
-              </span>
+              <span className="hidden sm:inline">POS</span>
             </Link>
           </Button>
         ) : null}
+        <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
+          <Link href={`/${locale}`} target="_blank" rel="noopener noreferrer">
+            <Globe className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {tf("admin.browseWebsite", "Browse Website")}
+            </span>
+          </Link>
+        </Button>
       </div>
 
       <div className="flex min-w-0 items-center justify-end gap-2">

@@ -41,6 +41,7 @@ import {
   reconcileStripeOrderRefunds,
   reverseFailedOrderRefund,
 } from "@/lib/orders/order-refund-sync";
+import { syncStripeDisputeEvent } from "@/lib/payments/gateway-disputes";
 import Stripe from "stripe";
 
 /**
@@ -229,6 +230,21 @@ export async function POST(request: NextRequest) {
         // this the books said money went back that never did.
         const refund = event.data.object as Stripe.Refund;
         await reverseFailedOrderRefund(refund);
+        break;
+      }
+
+      case "charge.dispute.created":
+      case "charge.dispute.updated":
+      case "charge.dispute.funds_withdrawn":
+      case "charge.dispute.funds_reinstated":
+      case "charge.dispute.closed": {
+        // One handler for the whole dispute: the chargeback recorded as a
+        // refund when Stripe withdraws the money, reversed if it is reinstated,
+        // its fee booked, and an admin told what changed. Read back from Stripe
+        // first — these events arrive in any order, and an older copy must not
+        // undo a newer decision. See `applyGatewayDispute`.
+        const dispute = event.data.object as Stripe.Dispute;
+        await syncStripeDisputeEvent(stripe, dispute);
         break;
       }
 

@@ -250,7 +250,7 @@ export async function fulfillBoostCampaign(
         ...(startsNow ? { activatedAt: now } : {}),
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) return null; // lost to a cancel or a concurrent grant; nothing inserted, nothing leaks
 
@@ -345,7 +345,7 @@ async function activateScheduledBoostCampaign(
     {
       $set: { status: BOOST_CAMPAIGN_STATUS.ACTIVE, activatedAt: now },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) return null;
   await notifyCampaign("activated", updated);
@@ -369,7 +369,7 @@ export async function pauseBoostCampaign(
   const updated = await BoostCampaign.findOneAndUpdate(
     { _id: campaignId, status: BOOST_CAMPAIGN_STATUS.ACTIVE },
     { $set: { status: BOOST_CAMPAIGN_STATUS.PAUSED, pausedAt: now } },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) return null;
 
@@ -452,7 +452,7 @@ export async function resumeBoostCampaign(
         pausedAt: null,
       },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) {
     // Lost the CAS — give back exactly what this call re-took.
@@ -533,7 +533,7 @@ export async function cancelBoostCampaign(
       // the inventory away without paying the vendor back for it.
       ...(willRelease > 0 ? { $inc: { releasedDays: willRelease } } : {}),
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) return null;
 
@@ -588,7 +588,7 @@ async function expireBoostCampaign(
       },
     },
     { $set: { status: BOOST_CAMPAIGN_STATUS.EXPIRED } },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!updated) return null;
 
@@ -1236,7 +1236,7 @@ export async function reconcileBoostCampaigns(
       const claimed = await BoostCampaign.findOneAndUpdate(
         { _id: row._id, expiryReminderSentAt: null },
         { $set: { expiryReminderSentAt: now } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!claimed) continue;
       await notifyCampaign("expiring_soon", claimed);
@@ -1262,7 +1262,7 @@ export async function reconcileBoostCampaigns(
       const claimed = await BoostCampaign.findOneAndUpdate(
         { _id: row._id, startReminderSentAt: null },
         { $set: { startReminderSentAt: now } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!claimed) continue;
       await notifyCampaign("starts_tomorrow", claimed);

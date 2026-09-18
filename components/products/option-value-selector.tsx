@@ -69,7 +69,7 @@ export function OptionValueSelector({
       <select
         value={selectedValue ?? ""}
         onChange={(e) => onSelect(e.target.value)}
-        className="h-11 w-full max-w-xs rounded-md border border-border bg-background px-3 text-sm text-foreground focus:border-foreground focus:outline-none"
+        className="h-11 w-full max-w-xs rounded-input border border-border bg-background px-3 text-sm text-foreground focus:border-foreground focus:outline-none"
         aria-label={option.name}
       >
         <option value="" disabled>
@@ -136,7 +136,7 @@ export function OptionValueSelector({
                 type="button"
                 onClick={() => onSelect(v.value)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition",
+                  "inline-flex items-center gap-2 rounded-button border px-3 py-1.5 text-sm font-medium transition",
                   isSelected
                     ? "border-foreground ring-1 ring-foreground"
                     : "border-border hover:border-foreground/50",
@@ -188,7 +188,9 @@ export function OptionValueSelector({
   }
 
   // ── Circle / Rectangle text buttons ───────────────────────────────
-  const rounded = visual === "circle" ? "rounded-full" : "rounded-md";
+  // "circle" is a shape the merchant picked for this option; the rectangle
+  // takes the theme's button radius like every other storefront button.
+  const rounded = visual === "circle" ? "rounded-full" : "rounded-button";
   return (
     <div className="flex flex-wrap gap-2">
       {values.map((v) => {

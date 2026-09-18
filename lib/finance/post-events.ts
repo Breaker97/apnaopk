@@ -27,23 +27,32 @@ import {
 // and `next/cache`, which a plain script (the backfill) cannot load. The
 // finance layer has no business pulling that stack in either.
 import { appConfig } from "@/config/app.config";
-import { postLedgerEntries } from "@/lib/finance/ledger";
+import { postLedgerEntries, postingKey } from "@/lib/finance/ledger";
 import {
   adjustmentPostings,
   expensePostings,
   expenseReversalPostings,
   orderPaidPostings,
   payoutPaidPostings,
+  payoutReversalPostings,
   platformPaymentPostings,
   platformPaymentReversalPostings,
   accumulateRefundBacks,
   decomposeOrder,
+  isConsignmentCollected,
   refundBacks,
+  scopedRefundBacks,
+  unreversedConsignmentTotals,
   refundPostings,
   refundReversalPostings,
   type RefundAllocationInput,
   shipmentLabelPostings,
   shipmentLabelReversalPostings,
+  shippingToStorePostings,
+  balanceWriteOffPostings,
+  chargebackLossPostings,
+  storeFundedCancellationPostings,
+  disputeFeePostings,
   subscriptionInvoicePostings,
   type OrderPostingContext,
   type PostingOrder,
@@ -60,8 +69,15 @@ const ORDER_POSTING_PROJECTION =
   // trap on the other side: absent, a free-shipping coupon reads as delivery
   // the buyer paid for and a customs bill reads as goods the vendor sold. And
   // `paymentStatus` on both levels is what tells a collected consignment from
-  // one still out for delivery. See `decomposeOrder`.
-  "orderNumber currency total tax shippingCost discount coupon.type customs.dutyAmount paidAt createdAt paymentMethod paymentStatus preorderOutstandingAmount channel stripePaymentIntentId paymentFee paymentFeeCurrency paymentFeeRate subOrders.vendorId subOrders.subtotal subOrders.commission subOrders.vendorEarnings subOrders.shippingCost subOrders.codCollectedBy subOrders.paymentStatus subOrders.fulfillment.method subOrders.items.cost subOrders.items.quantity";
+  // one still out for delivery, and `subOrders.status` tells a consignment that
+  // has been called off — whose share of a pre-order balance will never arrive
+  // however the order as a whole ends up reading. See `decomposeOrder`. The
+  // order's own `status` tells a refund whether the balance went with the order
+  // or is still owed on it — see `refundPostings`. `subOrders.couponDiscount`
+  // is whose coupon it was: without it the ledger shared a seller's own coupon
+  // across every seller while the payout and the consignment charge did not,
+  // and `subOrders._id` is how a refund names the consignment it belongs to.
+  "orderNumber currency total tax shippingCost discount coupon.type coupon.fundedBy customs.dutyAmount paidAt createdAt paymentMethod paymentStatus status preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaymentFee channel stripePaymentIntentId paymentFee paymentFeeCurrency paymentFeeRate subOrders._id subOrders.vendorId subOrders.subtotal subOrders.couponDiscount subOrders.shippingDiscount subOrders.commission subOrders.vendorEarnings subOrders.shippingCost subOrders.codCollectedBy subOrders.paymentStatus subOrders.status subOrders.fulfillment.method subOrders.items.cost subOrders.items.quantity subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.paidAt";
 
 /**
  * Which vendors are the admin-owned store.
@@ -127,10 +143,29 @@ async function storeCurrency(): Promise<string> {
 async function loadPostingOrder(
   orderId: unknown,
 ): Promise<PostingOrder | null> {
-  const order = await Order.findById(orderId)
+  const loaded = await Order.findById(orderId)
     .select(ORDER_POSTING_PROJECTION)
     .lean<PostingOrder | null>();
-  if (!order) return null;
+  if (!loaded) return null;
+
+  // When the money arrived, for an order recorded before `paidAt` was stamped:
+  // its charge row was written at that moment. Without it the sale would be
+  // dated when the order was placed, which for cash on delivery can be weeks
+  // earlier and in another month.
+  let order = loaded;
+  if (!order.paidAt && order.paymentStatus && order.paymentStatus !== "pending") {
+    const charge = await PaymentTransaction.findOne({
+      orderId: order._id,
+      type: "charge",
+      status: "succeeded",
+    })
+      .sort({ createdAt: 1 })
+      .select("createdAt")
+      .lean<{ createdAt?: Date } | null>()
+      .catch(() => null);
+    if (charge?.createdAt) order = { ...order, paidAt: charge.createdAt };
+  }
+
   if (order.currency) return order;
   return {
     ...order,
@@ -233,6 +268,12 @@ export async function resolveRefundAllocation(params: {
   amount: number;
   /** What the caller knows, when a return told it. Clamped to what is left. */
   supplied?: RefundAllocationInput[] | null;
+  /**
+   * The consignments this refund belongs to, when it is one or more of them
+   * being called off rather than money back on the order as a whole. Ignored
+   * when `supplied` says more.
+   */
+  consignmentIds?: ReadonlyArray<unknown> | null;
 }): Promise<RefundAllocationInput[] | null> {
   const amount = Number(params.amount);
   if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -251,14 +292,40 @@ export async function resolveRefundAllocation(params: {
     refunds: await loadPriorRefunds(params.orderId),
   });
 
-  const backs = refundBacks({
-    decomposition,
-    subOrders,
-    amount,
-    allocation:
-      params.supplied && params.supplied.length > 0 ? params.supplied : null,
-    alreadyReversed,
-  });
+  const supplied =
+    params.supplied && params.supplied.length > 0 ? params.supplied : null;
+
+  // Nobody itemised this refund, but that does not always mean "some of
+  // everything". A cancelled consignment's refund is that consignment's; and
+  // on a split cash order, money handed back can only be money that was
+  // handed over — never a share of a parcel still out for delivery.
+  let scoped: number[] | null = null;
+  if (!supplied) {
+    const named = params.consignmentIds?.length
+      ? new Set(params.consignmentIds.map(String))
+      : null;
+    const include = subOrders.map((sub) =>
+      named ? named.has(String(sub._id)) : isConsignmentCollected(order, sub),
+    );
+    if (include.some(Boolean) && include.some((value) => !value)) {
+      scoped = scopedRefundBacks({
+        decomposition,
+        amount,
+        include,
+        alreadyReversed,
+      });
+    }
+  }
+
+  const backs =
+    scoped ??
+    refundBacks({
+      decomposition,
+      subOrders,
+      amount,
+      allocation: supplied,
+      alreadyReversed,
+    });
 
   // Whatever the platform said it was holding back out of its commission
   // travels with the consignment it belongs to.
@@ -292,6 +359,273 @@ export async function resolveRefundAllocation(params: {
       share.duty > 0,
   );
   return meaningful.length > 0 ? meaningful : null;
+}
+
+/**
+ * How much of each named consignment no refund has handed back yet, keyed by
+ * sub-order id — read from the same decomposition and refund history the
+ * ledger posts from, so a cancellation can never give back more of a
+ * consignment than the books still hold for it.
+ *
+ * Consignments the order cannot be decomposed for are simply absent; a caller
+ * treats absence as "no ceiling known".
+ */
+export async function loadUnreversedConsignmentTotals(
+  orderId: unknown,
+): Promise<Map<string, number>> {
+  const totals = new Map<string, number>();
+  const order = await loadPostingOrder(orderId);
+  if (!order) return totals;
+  const decomposition = decomposeOrder(order);
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  if (!decomposition || subOrders.length === 0) return totals;
+
+  const alreadyReversed = accumulateRefundBacks({
+    decomposition,
+    subOrders,
+    refunds: await loadPriorRefunds(orderId),
+  });
+  const unreversed = unreversedConsignmentTotals(decomposition, alreadyReversed);
+  subOrders.forEach((sub, index) => {
+    if (sub._id) totals.set(String(sub._id), unreversed[index] ?? 0);
+  });
+  return totals;
+}
+
+/**
+ * Move a consignment's delivery charge between the vendor and the store, for a
+ * label on the store's carrier account being bought (or voided and refunded).
+ *
+ * The amount is whatever of that consignment's delivery no refund has handed
+ * back yet, from the same decomposition the sale posted — a refund of the
+ * delivery before the label already took its part out of the vendor's payable.
+ */
+export async function postShippingToStore(params: {
+  orderId: unknown;
+  subOrderId: unknown;
+  shipmentId: unknown;
+  bookingSequence?: number | null;
+  date?: Date;
+  reversal?: boolean;
+  /** Bill the vendor instead of taking it out of their payable. */
+  billToVendor?: boolean;
+}): Promise<number> {
+  const order = await loadPostingOrder(params.orderId);
+  if (!order) return 0;
+  const decomposition = decomposeOrder(order);
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  const index = subOrders.findIndex(
+    (sub) => String(sub._id) === String(params.subOrderId),
+  );
+  if (!decomposition || index < 0) return 0;
+
+  const alreadyReversed = accumulateRefundBacks({
+    decomposition,
+    subOrders,
+    refunds: await loadPriorRefunds(params.orderId),
+  });
+  const shipping = decomposition.shares[index]?.shipping ?? 0;
+  const remaining = shipping - Number(alreadyReversed[index * 4 + 1] || 0);
+
+  return postLedgerEntries(
+    shippingToStorePostings({
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      vendorId: subOrders[index]!.vendorId,
+      shipmentId: params.shipmentId,
+      bookingSequence: params.bookingSequence,
+      amount: remaining,
+      currency: decomposition.currency,
+      date: params.date || new Date(),
+      reversal: params.reversal,
+      billToVendor: params.billToVendor,
+    }),
+  );
+}
+
+/**
+ * Take a called-off pre-order's unpaid balance off the books — see
+ * `balanceWriteOffPostings`. Safe to call from every cancellation path, as
+ * often as they like: it writes each consignment's part once.
+ */
+/**
+ * A cancelled consignment that took no money — the store's own coupon had paid
+ * for all of it. See `storeFundedCancellationPostings`.
+ */
+export async function postStoreFundedCancellation(
+  orderId: unknown,
+  options?: { cancelledSubOrderIds?: ReadonlyArray<unknown> | null; date?: Date },
+): Promise<number> {
+  const order = await loadPostingOrder(orderId);
+  if (!order) return 0;
+  return postLedgerEntries(
+    storeFundedCancellationPostings({
+      order,
+      context: await orderContext(),
+      cancelledSubOrderIds: options?.cancelledSubOrderIds ?? null,
+      date: options?.date,
+    }),
+  );
+}
+
+export function postStoreFundedCancellationSafely(
+  orderId: unknown,
+  options?: { cancelledSubOrderIds?: ReadonlyArray<unknown> | null },
+): void {
+  void postStoreFundedCancellation(orderId, options).catch((error) => {
+    console.error(
+      "Ledger: failed to write off a cancelled store-funded sale",
+      orderId,
+      error,
+    );
+  });
+}
+
+export async function postBalanceWriteOff(orderId: unknown): Promise<number> {
+  const order = await loadPostingOrder(orderId);
+  if (!order) return 0;
+  const decomposition = decomposeOrder(order);
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  if (!decomposition || subOrders.length === 0) return 0;
+
+  const alreadyReversed = accumulateRefundBacks({
+    decomposition,
+    subOrders,
+    refunds: await loadPriorRefunds(orderId),
+  });
+
+  // What the books still say the shopper owes on this order, per vendor. The
+  // balance may have been collected for a consignment before it was called
+  // off, or written off by an earlier call; either way there is less, or
+  // nothing, left to take off.
+  const owed = await LedgerEntry.aggregate<{ _id: unknown; balance: number }>([
+    {
+      $match: {
+        "source.kind": "order",
+        "source.id": new Types.ObjectId(String(order._id)),
+        $or: [
+          { debit: "customer_receivable" },
+          { credit: "customer_receivable" },
+        ],
+      },
+    },
+    {
+      $group: {
+        _id: "$vendorId",
+        balance: {
+          $sum: {
+            $cond: [
+              { $eq: ["$debit", "customer_receivable"] },
+              "$amount",
+              { $multiply: ["$amount", -1] },
+            ],
+          },
+        },
+      },
+    },
+  ]);
+  const receivableByVendor = new Map(
+    owed.map((row) => [row._id ? String(row._id) : "", Number(row.balance || 0)]),
+  );
+
+  return postLedgerEntries(
+    balanceWriteOffPostings({
+      order,
+      context: await orderContext(),
+      alreadyReversed,
+      date: new Date(),
+      receivableByVendor,
+    }),
+  );
+}
+
+/**
+ * A chargeback's fee, or its return when the store won — see
+ * `disputeFeePostings`. Filed in the store's own book when the order carries
+ * the store's own goods, as the processing fee is.
+ */
+export async function postDisputeFee(params: {
+  disputeId: string;
+  orderId: unknown;
+  amount: number;
+  currency: string;
+  date?: Date;
+  returned?: boolean;
+  /** Which of several fees on one dispute — see `disputeFeePostings`. */
+  part?: string;
+  note?: string;
+}): Promise<number> {
+  const order = await loadPostingOrder(params.orderId);
+  if (!order) return 0;
+  const defaults = await getDefaultVendorIds();
+  const anyOwn = (order.subOrders || []).some((sub) =>
+    defaults.has(sub?.vendorId ? String(sub.vendorId) : ""),
+  );
+  return postLedgerEntries(
+    disputeFeePostings({
+      disputeId: params.disputeId,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      amount: params.amount,
+      currency: params.currency,
+      date: params.date || new Date(),
+      book: anyOwn ? "own" : "marketplace",
+      returned: params.returned,
+      part: params.part,
+      note: params.note,
+    }),
+  );
+}
+
+/**
+ * Bring what the books hold as a dispute's loss beyond the sale in line with
+ * `target` — what the gateway is holding for the dispute that no refund row
+ * could take. Reads the entries already posted for it and writes the
+ * difference, so reading the same dispute again writes nothing.
+ */
+export async function postChargebackLoss(params: {
+  disputeId: string;
+  orderId: unknown;
+  target: number;
+  currency: string;
+  date?: Date;
+}): Promise<number> {
+  const order = await loadPostingOrder(params.orderId);
+  if (!order) return 0;
+  const prefix = postingKey("order", order._id, "dispute", params.disputeId, "beyond-sale");
+  const existing = await LedgerEntry.find({
+    "source.kind": "order",
+    "source.id": new Types.ObjectId(String(order._id)),
+    key: { $regex: `^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:` },
+  })
+    .select("debit amount")
+    .lean<Array<{ debit?: string; amount?: number }>>();
+  const booked = existing.reduce(
+    (sum, entry) =>
+      sum + (entry.debit === "chargeback_losses" ? 1 : -1) * Number(entry.amount || 0),
+    0,
+  );
+  const target = Math.max(0, Number(params.target) || 0);
+  const change = Math.round((target - booked) * 1000) / 1000;
+  if (Math.abs(change) < 0.005) return 0;
+
+  const defaults = await getDefaultVendorIds();
+  const anyOwn = (order.subOrders || []).some((sub) =>
+    defaults.has(sub?.vendorId ? String(sub.vendorId) : ""),
+  );
+  return postLedgerEntries(
+    chargebackLossPostings({
+      disputeId: params.disputeId,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      amount: Math.abs(change),
+      currency: params.currency,
+      date: params.date || new Date(),
+      book: anyOwn ? "own" : "marketplace",
+      returned: change < 0,
+      part: existing.length + 1,
+    }),
+  );
 }
 
 export async function postRefund(params: {
@@ -387,10 +721,20 @@ export async function postPayoutPaid(payout: {
   payoutNumber?: string | null;
   vendorId?: unknown;
   netAmount?: number | null;
+  commissionOffset?: number | null;
+  commissionCredit?: number | null;
+  paidFrom?: string | null;
   currency?: string | null;
   paidAt?: Date | null;
 }): Promise<number> {
   return postLedgerEntries(payoutPaidPostings(payout));
+}
+
+/** A paid payout the bank sent back: its entries, flipped. */
+export async function postPayoutReversed(
+  payout: Parameters<typeof payoutReversalPostings>[0],
+): Promise<number> {
+  return postLedgerEntries(payoutReversalPostings(payout));
 }
 
 export async function postPlatformPayment(payment: {
@@ -572,6 +916,12 @@ export function postRefundReversalSafely(
   });
 }
 
+export function postBalanceWriteOffSafely(orderId: unknown): void {
+  void postBalanceWriteOff(orderId).catch((error) => {
+    console.error("Ledger: failed to write off a pre-order balance", orderId, error);
+  });
+}
+
 export function postPayoutPaidSafely(payout: Parameters<typeof postPayoutPaid>[0]): void {
   void postPayoutPaid(payout).catch((error) => {
     console.error("Ledger: failed to post payout", payout?._id, error);
@@ -645,5 +995,12 @@ export async function postAdjustment(
       "An adjustment needs a positive amount, a currency, and two different accounts",
     );
   }
-  return postLedgerEntries(entries);
+  // An adjustment is a new id, so nothing it writes can be a duplicate: zero
+  // rows means the entry was refused, and the admin must not be told it was
+  // posted — or have an audit record claim so.
+  const written = await postLedgerEntries(entries);
+  if (written === 0) {
+    throw new Error("The adjustment could not be written to the ledger");
+  }
+  return written;
 }

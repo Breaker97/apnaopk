@@ -37,9 +37,9 @@ export const POST = withApi(
       customerId: session.user.id,
     });
 
-    assertReturnEligible(order);
-
     const settings = await getSettings();
+    assertReturnEligible(order, settings);
+
     const plan = await planReturnRequest({
       order,
       items: body.items,

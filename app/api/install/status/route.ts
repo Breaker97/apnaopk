@@ -1,7 +1,10 @@
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { getActivePasswordPolicy } from "@/lib/auth/auth";
-import { describePasswordPolicy } from "@/lib/auth/password-policy";
+import {
+  DEFAULT_PASSWORD_POLICY,
+  describePasswordPolicy,
+} from "@/lib/auth/password-policy";
 import {
   getInstallPreflight,
   hasStorageEnvCredentials,
@@ -15,14 +18,22 @@ import {
  */
 export const GET = withApi(
   {
-    auth: "optional",
+    // No `auth`, not even optional: reading a session builds the auth
+    // instance, which refuses to build in production on a missing or weak
+    // BETTER_AUTH_SECRET — exactly what this endpoint exists to report. With
+    // it, that buyer got a 500 and the wizard blamed MongoDB instead.
     rateLimit: { action: "install:status", preset: "lenient" },
   },
   async () => {
     if (await isInstalled()) {
       return successResponse({ installed: true });
     }
-    const policy = await getActivePasswordPolicy();
+    // Same trap: the policy lives on the auth instance. A store with no
+    // admin yet runs the default rules anyway, and a weak secret blocks the
+    // wizard before any password is typed.
+    const policy = await getActivePasswordPolicy().catch(
+      () => DEFAULT_PASSWORD_POLICY,
+    );
     return successResponse({
       installed: false,
       preflight: await getInstallPreflight(),

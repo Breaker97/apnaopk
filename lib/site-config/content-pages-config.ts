@@ -14,6 +14,30 @@ export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number];
 
 export type NonFaqContentPageKey = "terms" | "privacy" | "cookies" | "accessibility";
 
+/** The values `{storeName}` and `{returnWindow}` stand for. */
+export interface ContentPlaceholders {
+  storeName: string;
+  returnWindow: string;
+}
+
+/**
+ * Fill the placeholders a merchant may leave in page copy.
+ *
+ * The default About and Returns text is written with `{storeName}` and
+ * `{returnWindow}` in it so a fresh install reads correctly under any store
+ * name, and the admin editor tells merchants they may use them. Every reader
+ * of that copy has to fill them — the page views, and the AI sales agent,
+ * which would otherwise quote "{storeName}" back at the customer.
+ */
+export function fillContentPlaceholders(
+  value: string,
+  vars: ContentPlaceholders,
+): string {
+  return value
+    .replace(/\{storeName\}/g, vars.storeName)
+    .replace(/\{returnWindow\}/g, vars.returnWindow);
+}
+
 interface ContentPageData {
   title: string;
   content: string;

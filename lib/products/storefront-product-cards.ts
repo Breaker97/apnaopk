@@ -88,6 +88,9 @@ export const PRODUCT_CARD_SELECT = [
   "createdAt",
   "vendorId",
   "category",
+  // The id only: the card resolves it through the brand directory mounted
+  // with its configuration (lib/brands/card-brand-directory.ts).
+  "brand",
 ].join(" ");
 
 function clampLimit(limit: number | undefined) {

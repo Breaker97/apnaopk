@@ -26,40 +26,30 @@ const PROVIDERS: {
   value: StorageProvider;
   labelKey: string;
   descKey: string;
-  defaultLabel: string;
-  defaultDesc: string;
   icon: typeof Cloud;
 }[] = [
   {
     value: "cloudflare_r2",
     labelKey: "admin.settings.storage.cloudflareR2",
     descKey: "admin.settings.storage.cloudflareR2Desc",
-    defaultLabel: "Cloudflare R2",
-    defaultDesc: "S3-compatible storage with no egress fees",
     icon: Cloud,
   },
   {
     value: "s3",
     labelKey: "admin.settings.storage.awsS3",
     descKey: "admin.settings.storage.awsS3Desc",
-    defaultLabel: "AWS S3",
-    defaultDesc: "Amazon S3 object storage",
     icon: Server,
   },
   {
     value: "minio",
     labelKey: "admin.settings.storage.minio",
     descKey: "admin.settings.storage.minioDesc",
-    defaultLabel: "MinIO",
-    defaultDesc: "Self-hosted S3 on your own server — no cloud account needed",
     icon: HardDrive,
   },
   {
     value: "digitalocean",
     labelKey: "admin.settings.storage.digitalocean",
     descKey: "admin.settings.storage.digitaloceanDesc",
-    defaultLabel: "DigitalOcean Spaces",
-    defaultDesc: "Spaces object storage with a built-in CDN",
     icon: Droplet,
   },
 ];
@@ -80,7 +70,7 @@ export function StorageProviderToggle({
       )}
     >
       {PROVIDERS.map(
-        ({ value: pv, labelKey, descKey, defaultLabel, defaultDesc, icon: Icon }) => {
+        ({ value: pv, labelKey, descKey, icon: Icon }) => {
           const isActive = value === pv;
           return (
             <button
@@ -120,7 +110,7 @@ export function StorageProviderToggle({
                     isActive ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
-                  {t(labelKey, { defaultMessage: defaultLabel })}
+                  {t(labelKey)}
                 </p>
                 <p
                   className={cn(
@@ -130,7 +120,7 @@ export function StorageProviderToggle({
                       : "text-muted-foreground/70",
                   )}
                 >
-                  {t(descKey, { defaultMessage: defaultDesc })}
+                  {t(descKey)}
                 </p>
               </div>
             </button>

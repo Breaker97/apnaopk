@@ -50,6 +50,25 @@ export class ApiClientError extends Error {
   }
 }
 
+/**
+ * The sentence to show a person for a failed request.
+ *
+ * A `ValidationError` keeps its explanation in the field map and puts only the
+ * field names in `message` — so toasting `message` showed a vendor
+ * "Validation failed: preorder" when the server had actually said "ask an
+ * admin to approve your account". Prefers the first field message, then the
+ * message, then the caller's fallback.
+ */
+export function describeApiError(error: unknown, fallback: string): string {
+  if (error instanceof ApiClientError && error.errors) {
+    for (const messages of Object.values(error.errors)) {
+      const first = Array.isArray(messages) ? messages[0] : undefined;
+      if (typeof first === "string" && first.trim()) return first;
+    }
+  }
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 /** Serialize params, skipping undefined/null/empty-string values. */
 function buildQueryString(params?: QueryParams): string {
   if (!params) return "";

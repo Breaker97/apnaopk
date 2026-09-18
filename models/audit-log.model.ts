@@ -58,6 +58,8 @@ export const AUDIT_RESOURCES = [
   "refund",
   "inventory",
   "location",
+  /** A stock transfer between two locations — created, shipped, received. */
+  "transfer",
   "collection",
   "review",
   "vendorPlan",

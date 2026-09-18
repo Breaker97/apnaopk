@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { rateLimitByIP, rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validateBody } from "@/lib/api/validate";
+import { setCartItemQuantity } from "@/lib/cart/cart-item-quantity";
 import { CartAddItemSchema, CartUpdateItemSchema } from "@/lib/validations";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import {
@@ -19,6 +20,11 @@ import {
 } from "@/lib/catalog/product-visibility";
 import { getPurchasableQuantity } from "@/lib/products/stock-policy";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
+import {
+  loadShopperOffers,
+  matchOffersToLines,
+  quoteOfferLineKey,
+} from "@/lib/quotes/quote-offer";
 import {
   anySellerOffersPickup,
   cartLineKey,
@@ -203,7 +209,22 @@ export async function GET(request: NextRequest) {
     }
 
     const storedItems = cart.items as StoredCartItem[];
-    const productFacts = await resolveCartProducts(storedItems);
+    // A quote-priced line is only in this cart because the shopper holds a
+    // live offer for it, so the offers are resolved before anything else:
+    // they decide both whether the line survives the visibility filter below
+    // and what it is worth right now. A signed-out shopper has none, and the
+    // lookup costs nothing.
+    const quoteOffers = matchOffersToLines(
+      storedItems,
+      await loadShopperOffers(userId, {
+        productIds: storedItems
+          .map((item) => item.productId?.toString())
+          .filter((id): id is string => Boolean(id)),
+      }),
+    );
+    const productFacts = await resolveCartProducts(storedItems, {
+      quotedLineKeys: new Set(quoteOffers.keys()),
+    });
     const visibleItems = storedItems.filter(
       (item) => productFacts.get(cartLineKey(item))?.visible,
     );
@@ -215,6 +236,17 @@ export async function GET(request: NextRequest) {
         { ...query, updatedAt: (cart as { updatedAt?: Date }).updatedAt },
         { $set: { items: visibleItems } },
       );
+    }
+
+    // The merchant can re-quote while the line sits in the cart, so what the
+    // shopper is shown comes from the offer rather than from the price stored
+    // when they accepted it. Not persisted: checkout re-reads the offer too,
+    // and a cart document is not the record of what was agreed.
+    for (const item of visibleItems) {
+      const offer = quoteOffers.get(
+        quoteOfferLineKey(item.productId, item.variantId),
+      );
+      if (offer) item.price = offer.unitPrice;
     }
 
     // Calculate totals
@@ -350,6 +382,13 @@ export async function POST(request: NextRequest) {
     // button instead of Add to cart; this catches the paths that don't go
     // through it — a tab left open from before the merchant flipped the
     // switch, a cached card, a hand-rolled POST.
+    //
+    // A shopper the merchant HAS quoted is the one exception, and it is not
+    // handled here: this endpoint is the legacy add path (the storefront adds
+    // through POST /api/cart/items, which resolves the offer and prices the
+    // line from it). Refusing outright is the safe half of the rule — it can
+    // never underprice — so this stays a plain refusal rather than a second
+    // copy of the offer logic that could drift from the real one.
     if (isQuoteOnlyProduct(product)) {
       throw new ValidationError(
         "This product is available by quote — request a price instead",
@@ -509,23 +548,16 @@ export async function PUT(request: NextRequest) {
       return notFoundResponse("Cart");
     }
 
-    // Find item
-    const itemIndex = cart.items.findIndex(
-      (item: CartItem) =>
-        item.productId.toString() === productId &&
-        (!variantId || item.variantId?.toString() === variantId)
-    );
-
-    if (itemIndex === -1) {
+    // Through the same rules as the cart line route: stock, the quoted-lot
+    // lock, and a pre-order's deposit and balance worked out again for the new
+    // quantity. This route used to write the number alone.
+    const updated = await setCartItemQuantity(cart, {
+      productId,
+      variantId,
+      quantity,
+    });
+    if (!updated) {
       return notFoundResponse("Item not found in cart");
-    }
-
-    if (quantity <= 0) {
-      // Remove item
-      cart.items.splice(itemIndex, 1);
-    } else {
-      // Update quantity
-      cart.items[itemIndex].quantity = quantity;
     }
 
     cart.lastActionAt = new Date();

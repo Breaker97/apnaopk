@@ -1,4 +1,9 @@
 import crypto from "crypto";
+import { GatewayApiError } from "@/lib/payments/gateway-api-error";
+import type {
+  PaystackDisputeLike,
+  PaystackRefundLike,
+} from "@/lib/orders/dispute-readings";
 
 const PAYSTACK_API_BASE = "https://api.paystack.co";
 
@@ -229,6 +234,120 @@ export async function refundPaystackTransaction(params: {
     amount: number;
     transaction: { id: number; reference: string };
   }>(res, "refund");
+}
+
+/** A dispute, and a refund, as Paystack's API returns them. */
+export type PaystackDispute = PaystackDisputeLike & { id: number | string };
+export type PaystackRefund = PaystackRefundLike & { id: number | string };
+
+/** A Paystack read that fails as a `GatewayApiError`, so a caller can tell an outage from a refusal. */
+async function getPaystack<T>(
+  creds: PaystackCredentials,
+  path: string,
+  action: string,
+): Promise<{ data: T; meta?: { pageCount?: number } }> {
+  const res = await fetch(`${PAYSTACK_API_BASE}${path}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${creds.secretKey}` },
+  });
+  if (!res.ok) {
+    const message = await readPaystackErrorMessage(res);
+    throw new GatewayApiError(`Paystack ${action} failed: ${message}`, res.status);
+  }
+  const json = (await res.json()) as PaystackResponse<T> & {
+    meta?: { pageCount?: number };
+  };
+  if (!json.status || json.data === undefined) {
+    throw new GatewayApiError(
+      `Paystack ${action} failed: ${json.message || "Unknown error"}`,
+      422,
+    );
+  }
+  return { data: json.data, meta: json.meta };
+}
+
+/**
+ * Disputes filed on the integration, a page at a time. `from` and `to` bound
+ * when the dispute was created.
+ */
+export async function listPaystackDisputes(params: {
+  creds: PaystackCredentials;
+  from?: Date;
+  to?: Date;
+  page?: number;
+  perPage?: number;
+}): Promise<{ disputes: PaystackDispute[]; pageCount: number }> {
+  const query = new URLSearchParams({
+    perPage: String(Math.min(100, Math.max(1, params.perPage ?? 100))),
+    page: String(Math.max(1, params.page ?? 1)),
+  });
+  if (params.from) query.set("from", params.from.toISOString());
+  if (params.to) query.set("to", params.to.toISOString());
+  const { data, meta } = await getPaystack<PaystackDispute[]>(
+    params.creds,
+    `/dispute?${query.toString()}`,
+    "list disputes",
+  );
+  return {
+    disputes: Array.isArray(data) ? data : [],
+    pageCount: Math.max(1, Number(meta?.pageCount || 1)),
+  };
+}
+
+/** One dispute as it stands now — a webhook's copy may be older than the decision. */
+export async function fetchPaystackDispute(params: {
+  creds: PaystackCredentials;
+  disputeId: string;
+}): Promise<PaystackDispute> {
+  const { data } = await getPaystack<PaystackDispute>(
+    params.creds,
+    `/dispute/${encodeURIComponent(params.disputeId)}`,
+    "fetch dispute",
+  );
+  return data;
+}
+
+/**
+ * The refunds on one transaction, as Paystack's API lists them.
+ *
+ * The API's refund names its transaction and — for a chargeback the store
+ * accepted — its dispute, neither of which the `refund.*` webhook reliably
+ * carries. Filtered here as well as asked for, because a list that ignores the
+ * filter would otherwise hand back other transactions' refunds.
+ */
+export async function listPaystackRefunds(params: {
+  creds: PaystackCredentials;
+  /** The transaction's id or reference. */
+  transaction: { id?: string; reference?: string };
+  perPage?: number;
+}): Promise<PaystackRefund[]> {
+  const id = String(params.transaction.id || "");
+  const reference = String(params.transaction.reference || "");
+  if (!id && !reference) return [];
+  const query = new URLSearchParams({
+    transaction: id || reference,
+    perPage: String(Math.min(100, Math.max(1, params.perPage ?? 100))),
+  });
+  const { data } = await getPaystack<PaystackRefund[]>(
+    params.creds,
+    `/refund?${query.toString()}`,
+    "list refunds",
+  );
+  return (Array.isArray(data) ? data : []).filter((refund) => {
+    const transaction = refund.transaction;
+    const refundTransactionId =
+      transaction && typeof transaction === "object"
+        ? String(transaction.id ?? "")
+        : String(transaction ?? "");
+    const refundReference =
+      transaction && typeof transaction === "object"
+        ? String(transaction.reference || refund.transaction_reference || "")
+        : String(refund.transaction_reference || "");
+    return (
+      (id !== "" && refundTransactionId === id) ||
+      (reference !== "" && refundReference === reference)
+    );
+  });
 }
 
 export async function testPaystackCredentials(creds: PaystackCredentials) {

@@ -86,7 +86,7 @@ export async function claimWebhookReceipt(params: {
       $unset: { lastError: "" },
       $inc: { attempts: 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!receipt) throw new Error("Unable to acquire webhook receipt");
   return { duplicate: false, receipt };

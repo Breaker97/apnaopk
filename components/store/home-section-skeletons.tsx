@@ -3,15 +3,12 @@ import { cn } from "@/lib/utils";
 import {
   clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
+  PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES,
+  CARD_BROWSER_GRID_GAP,
+  CARD_SHELF_GAP,
 } from "./product-grid-columns";
 
-const PRODUCT_DESKTOP_COLUMN_CLASSES: Record<number, string> = {
-  2: "lg:auto-cols-[calc((100%_-_1.25rem)_/_2)]",
-  3: "lg:auto-cols-[calc((100%_-_2.5rem)_/_3)]",
-  4: "lg:auto-cols-[calc((100%_-_3.75rem)_/_4)]",
-  5: "lg:auto-cols-[calc((100%_-_5rem)_/_5)]",
-  6: "lg:auto-cols-[calc((100%_-_6.25rem)_/_6)]",
-};
+const PRODUCT_DESKTOP_COLUMN_CLASSES = PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES;
 
 const ARTICLE_DESKTOP_COLUMN_CLASSES: Record<number, string> = {
   2: "lg:basis-[calc((100%_-_1.25rem)_/_2)]",
@@ -29,7 +26,7 @@ export function HeroSkeleton() {
     <section className="py-4 lg:py-6">
       <div className="container mx-auto px-4">
         {/* Matches HeroSlider's aspect ratio to avoid layout shift. */}
-        <Skeleton className="aspect-1360/314 w-full rounded-md" />
+        <Skeleton className="aspect-[1248/450] w-full rounded-md" />
       </div>
     </section>
   );
@@ -102,7 +99,8 @@ export function NewArrivalsSkeleton({
 
         <div
           className={cn(
-            "grid auto-cols-[46%] grid-flow-col gap-3 overflow-hidden sm:auto-cols-[48%] sm:gap-5 md:auto-cols-[32%]",
+            "grid auto-cols-[46%] grid-flow-col overflow-hidden sm:auto-cols-[48%] md:auto-cols-[32%]",
+            CARD_SHELF_GAP,
             PRODUCT_DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}
         >
@@ -188,7 +186,8 @@ export function FeaturedProductsSkeleton({
 
         <div
           className={cn(
-            "grid grid-cols-2 gap-5 md:grid-cols-3",
+            "grid grid-cols-2 md:grid-cols-3",
+            CARD_BROWSER_GRID_GAP,
             PRODUCT_GRID_DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}
         >

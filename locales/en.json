@@ -33,6 +33,7 @@
     "yes": "Yes",
     "no": "No",
     "close": "Close",
+    "scrollToTop": "Scroll to top",
     "back": "Back",
     "goBack": "Go Back",
     "backToHome": "Back to Home",
@@ -72,7 +73,6 @@
     "allRightsReserved": "All rights reserved",
     "dashboard": "Dashboard",
     "actions": "Actions",
-    "attention": "Attention",
     "view": "View",
     "viewDetails": "View Details",
     "item": "item",
@@ -155,7 +155,8 @@
     "saveChanges": "Save changes",
     "tags": "Tags",
     "name": "Name",
-    "email": "Email"
+    "email": "Email",
+    "showingResultsFor": "Showing results for <q>{query}</q>"
   },
   "ui": {
     "dataTable": {
@@ -236,6 +237,8 @@
     "ordersDesc": "Track and manage your orders",
     "wishlist": "Wishlist",
     "wishlistDesc": "Items you've saved for later",
+    "quotes": "Quotes",
+    "quotesDesc": "Prices you have asked for, and the ones the store has sent back.",
     "addresses": "Addresses",
     "addressesDesc": "Manage your delivery addresses",
     "paymentMethodsDesc": "Manage your payment methods",
@@ -298,6 +301,9 @@
     "priceDropsDesc": "Get notified when items in your wishlist go on sale",
     "backInStock": "Back in Stock Alerts",
     "backInStockDesc": "Get notified when out-of-stock items become available",
+    "smsNotifications": "Text Messages",
+    "smsOrderUpdates": "Order & Return Updates",
+    "smsOrderUpdatesDesc": "Get a text when your order or return status changes",
     "marketingPreferences": "Marketing Preferences",
     "marketingOptIn": "Marketing Emails",
     "marketingOptInDesc": "Receive marketing communications and special offers",
@@ -355,6 +361,7 @@
     "sports": "Sports"
   },
   "nav": {
+    "trendingSearches": "Trending searches",
     "home": "Home",
     "products": "Products",
     "categories": "Categories",
@@ -386,7 +393,8 @@
         "bestRating": "Best Rating",
         "newest": "Newest",
         "priceLowHigh": "Price Low - High",
-        "priceHighLow": "Price High - Low"
+        "priceHighLow": "Price High - Low",
+        "bestMatch": "Best match"
       },
       "activeCount": "{count, plural, one {# filter applied} other {# filters applied}}"
     },
@@ -394,7 +402,31 @@
     "loadMore": "Load more products",
     "loadingMore": "Loading more...",
     "endOfResults": "You've reached the end of the results",
-    "loadError": "Couldn't load more products."
+    "loadError": "Couldn't load more products.",
+    "listView": "List"
+  },
+  "preorderPage": {
+    "metaTitle": "Pre-order",
+    "metaDescription": "Browse products currently available to reserve before they ship.",
+    "title": "Pre-order Drops",
+    "subtitle": "Reserve upcoming products before they launch.",
+    "facts": {
+      "shipDate": "Ship date on every product",
+      "payment": "Deposit or full price, shown before you pay",
+      "tracking": "Track it from your account"
+    },
+    "trackOrders": "Track my pre-orders",
+    "sortLabel": "Sort pre-orders",
+    "sort": {
+      "release": "Ships soonest",
+      "reserved": "Most reserved",
+      "newest": "Newest drops"
+    },
+    "count": "{count, plural, one {# pre-order} other {# pre-orders}}",
+    "empty": "No products are available for pre-order right now.",
+    "emptyTitle": "No pre-orders are open right now",
+    "emptyDescription": "New drops show up here as soon as they open for reservation.",
+    "browseAll": "Browse all products"
   },
   "storeCollectionsPage": {
     "headerSubtitle": "Browse our curated collections",
@@ -415,7 +447,9 @@
     "featuredProducts": "Featured Products"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "Search categories..."
+    "searchPlaceholder": "Search categories...",
+    "subtitle": "Browse every product category in one place.",
+    "viewProducts": "View products"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# product} other {# products}}",
@@ -584,7 +618,13 @@
     "couponEnds": "Ends {date}",
     "dealsUpTo": "Up to {percent}% off",
     "dealsOnlyLeft": "Only {count} left",
-    "dealsYouSave": "You save {amount}"
+    "dealsYouSave": "You save {amount}",
+    "slideshow": "Slideshow",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "pauseSlideshow": "Pause slideshow",
+    "playSlideshow": "Play slideshow",
+    "goToSlide": "Go to slide"
   },
   "features": {
     "wideSelection": "Wide Selection",
@@ -705,6 +745,12 @@
     "outOfStock": "Out of Stock",
     "deliveryRange": "Standard delivery within {min}–{max} days",
     "deliveryWithin": "Standard delivery within {days, plural, one {# day} other {# days}}",
+    "deliveryRangeAfterDispatch": "Delivery within {min}–{max} days once it ships",
+    "deliveryWithinAfterDispatch": "Delivery within {days, plural, one {# day} other {# days}} once it ships",
+    "preorderCancelRefund": "Cancel before it ships for a full refund",
+    "preorderCancelDeposit": "Cancel before it ships and your {amount} deposit is refunded in full",
+    "preorderCancelNothingPaid": "Cancel before it ships and anything you have paid is refunded in full — the item itself is not charged until the balance is due",
+    "preorderShippingAtCheckout": "Shipping and tax are charged at checkout.",
     "returnsWindow": "Return within {days, plural, one {# day} other {# days}} in original condition for a full refund",
     "returnsWindowRestocking": "Return within {days, plural, one {# day} other {# days}} in original condition — a {percent}% restocking fee applies",
     "returnsWindowShippingFee": "Return within {days, plural, one {# day} other {# days}} in original condition — {fee} return shipping applies",
@@ -748,11 +794,13 @@
     "readSample": "Read a sample",
     "technicalDetails": "Technical Details",
     "priceOnRequest": "Price on request",
+    "quotedForQuantity": "for {count}",
     "requestQuote": "Request a quote",
     "sendQuoteRequest": "Send request",
     "quoteRequestHelp": "Tell us what you need for {product} and we'll come back to you with a price.",
     "quoteRequestSent": "Request sent",
     "quoteRequestSentHelp": "Thanks — we have your request and will get back to you with a price.",
+    "quoteTrackInAccount": "Track it in your account",
     "quotePhoneOptional": "Phone (optional)",
     "quoteCompanyOptional": "Company (optional)",
     "quoteMessageOptional": "Message (optional)",
@@ -795,7 +843,19 @@
     "title": "Title",
     "titlePlaceholder": "Sum up your review",
     "writeReviewHint": "Your email address will not be published. Required fields are marked with an asterisk (*).",
-    "yourRating": "Your Rating"
+    "yourRating": "Your Rating",
+    "pendingTitle": "Rate your purchases",
+    "pendingDescription": "Your orders have arrived. Tell other shoppers what you think.",
+    "deliveredOn": "Delivered {date}",
+    "rateStar": "Rate {count} out of 5",
+    "showMore": "Show {count} more",
+    "showFewer": "Show fewer",
+    "fromOrder": "Order #{orderNumber}",
+    "orderPromptTitle": "How was your order?",
+    "orderPromptOne": "Share a quick review of {name} — it helps other shoppers.",
+    "orderPromptMany": "{count} items from this order are waiting for your review.",
+    "youRated": "You rated this",
+    "alreadyReviewed": "You have already reviewed this product. Thank you for sharing your experience!"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -828,6 +888,8 @@
     "apply": "Apply",
     "itemRemoved": "Item removed from cart",
     "itemAdded": "Item added to cart",
+    "addedAll": "Added {count} items to your bag",
+    "addAllNeedsChoice": "{count} need a size or colour — pick them on the product page",
     "cartCleared": "Cart cleared",
     "quantity": "Quantity",
     "freeShipping": "You qualify for free shipping!",
@@ -838,7 +900,8 @@
     "reviewItemsBeforeCheckout": "Review your selected items before checkout.",
     "product": "Product",
     "deliveryEstimate": "Delivered by {dateRange} via Standard Shipping",
-    "taxNotApplicable": "Tax is not applicable"
+    "taxNotApplicable": "Tax is not applicable",
+    "shoppingBag": "Shopping bag"
   },
   "coupon": {
     "enterCode": "Please enter a coupon code",
@@ -932,11 +995,22 @@
     "free": "Free",
     "noShippingRates": "No shipping rates available for this address",
     "shippingUnavailable": "Shipping is not available for this address.",
+    "enterAddressForShipping": "Enter your shipping address to view available shipping methods.",
     "switchToPickup": "Switch to local pickup",
     "days": "days",
     "securePayment": "Your payment information is secure and encrypted",
     "orderSuccess": "Thank you for your order!",
     "orderSuccessDescription": "We've received your order and will process it shortly. You'll receive an email confirmation with your order details.",
+    "orderSoldOutTitle": "Sorry, these items sold out while you were paying",
+    "orderCancelledTitle": "This order was cancelled",
+    "orderCancelledRefunded": "We cancelled the order and refunded {amount} to your original payment method. It can take 5–10 business days to show up.",
+    "orderCancelledRefundPending": "We cancelled the order. Our team has been notified and will refund your payment.",
+    "paymentReturnedTitle": "We couldn't place your order",
+    "paymentReturnedRefunded": "Your cart changed while your payment was going through, so no order was created. We refunded your payment in full. It can take 5–10 business days to show up.",
+    "paymentReturnedRefundPending": "Your cart changed while your payment was going through, so no order was created. Our team has been notified and will refund your payment.",
+    "itemsDroppedRefunded": "Some items became unavailable while you were paying. We refunded {amount} for them, and the rest of your order is being processed.",
+    "pricesChanged": "Some prices in your cart have changed. Check the updated total, then place your order again.",
+    "pricesChangedCouponRemoved": "Some prices in your cart have changed, so your coupon was removed. Check the updated total, apply your coupon again, then place your order.",
     "downloadInvoice": "Download Invoice",
     "orderConfirmation": "A confirmation email has been sent to your email address",
     "emptyCartMessage": "Your cart is empty. Add some products before checkout.",
@@ -972,7 +1046,7 @@
       "iotecPhoneHint": "Enter the MTN or Airtel number to charge. You'll get a prompt on that phone to approve the payment.",
       "mtnMomoDetail": "Pay with MTN Mobile Money. You'll get a prompt on your phone to approve the payment with your MoMo PIN.",
       "mtnMomoPhoneLabel": "Mobile money number",
-      "mtnMomoPhonePlaceholder": "e.g. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "e.g. {example}",
       "mtnMomoPhoneHint": "Enter the MTN number to charge. You'll get a prompt on that phone to approve the payment with your MoMo PIN.",
       "payAtCounterDescription": "Pay when you collect your order."
     },
@@ -1041,11 +1115,14 @@
       "earlyHint": "The remaining balance is due before your pre-order ships. You can pay it now or once we let you know it is ready.",
       "payButton": "Pay balance",
       "payAmount": "Pay {amount}",
+      "payWithPayPal": "Pay with PayPal",
+      "paypalCancelled": "PayPal payment was cancelled. Nothing was charged.",
       "unavailable": "Online card payment is not available right now. Please contact us to settle the balance.",
       "success": "Balance paid. Thank you!",
       "processing": "Payment received. Your order will update shortly.",
       "reversed": "Your card was charged but the balance could not be applied to this order, so the payment was refunded. Please contact us.",
-      "failed": "Payment failed"
+      "failed": "Payment failed",
+      "deadline": "Pay by {date}, or we will cancel the pre-order and refund what you have paid."
     },
     "payment": {
       "pending": "Payment pending",
@@ -1053,6 +1130,13 @@
       "partially_paid": "Partly paid",
       "refunded": "Refunded",
       "partially_refunded": "Partly refunded"
+    },
+    "importDuties": "Import duties",
+    "orderCancelledRefunded": "Order cancelled. {amount} is on its way back to you.",
+    "preorderDetails": {
+      "title": "Pre-order",
+      "expected": "Expected around {date}",
+      "movedFrom": "Originally expected {date}"
     }
   },
   "adminProfile": {
@@ -1327,6 +1411,16 @@
       "enterRefundAmount": "Enter partial refund amount",
       "invalidRefundAmount": "Enter a valid refund amount",
       "refundReasonOptional": "Refund reason (optional)",
+      "refundSettleLabel": "How does the money go back?",
+      "refundSettleSend": "Refund it through the payment gateway now",
+      "refundSettleRecordToSend": "Record it — the money still has to be sent to the customer",
+      "refundSettleAlreadyAtGateway": "It was already refunded in the payment gateway's dashboard",
+      "refundSettleAlreadyReturned": "It was already returned to the customer",
+      "refundSettleAlreadyHint": "Only records the refund. Nothing is sent again.",
+      "refundSettleChargeback": "Chargeback — the customer's bank already took it back",
+      "refundSettleChargebackHint": "Recorded as a chargeback, not a refund. When the gateway reports the dispute it is matched to this, so the money is never counted twice.",
+      "refundChargebackDisputeId": "Dispute ID (optional)",
+      "refundChargebackDisputeIdPlaceholder": "From the gateway, e.g. du_… or dp_… (Stripe), disp_… (Razorpay), PP-D-… (PayPal)",
       "refundRecorded": "Refund recorded",
       "refundFailed": "Refund failed",
       "returnRequestApprovedAction": "Approve return {number}",
@@ -1358,6 +1452,21 @@
       "orderItems": "Order Items",
       "splitShipment": "Split Shipment",
       "splitShipmentDescription": "This order contains items from multiple vendors and will be delivered in separate shipments.",
+      "consignments": "Consignments",
+      "consignmentSellerFallback": "Seller {number}",
+      "consignmentSummary": "{units, plural, one {# unit} other {# units}} · {subtotal}",
+      "consignmentCancel": "Cancel consignment",
+      "consignmentCancelOverride": "Cancel with override",
+      "consignmentCancelTitle": "Cancel {seller}'s consignment",
+      "consignmentCancelDescription": "Only this seller's items come off the order. Their stock goes back, and the customer is refunded this consignment's share. The other sellers' items go ahead.",
+      "consignmentCancelDispatchedDescription": "This consignment has already shipped, so nothing is restocked. The customer is refunded this consignment's share, and the other sellers' items are not affected.",
+      "consignmentCancelReason": "Reason (shown on the order's timeline)",
+      "consignmentCancelReasonRequired": "Say why the consignment is cancelled",
+      "consignmentCancelConfirm": "Cancel consignment",
+      "consignmentCancelled": "{seller}'s consignment cancelled",
+      "consignmentCancelledRefunded": "{seller}'s consignment cancelled and {amount} refunded",
+      "consignmentCancelledNoRefund": "{seller}'s consignment cancelled. No refund was sent: {reason}",
+      "consignmentCancelFailed": "The consignment could not be cancelled",
       "item": "Item",
       "price": "Price",
       "quantity": "Quantity",
@@ -1366,6 +1475,7 @@
       "subtotal": "Subtotal",
       "shipping": "Shipping",
       "tax": "Tax",
+      "importDuties": "Import duties",
       "discount": "Discount",
       "totalLabel": "Total",
       "timeline": "Timeline",
@@ -1433,11 +1543,13 @@
       "commentEditLabel": "Edit comment",
       "courier": {
         "sendToCourier": "Send to courier",
+        "selectConsignment": "Consignment",
         "shipments": "Shipments",
         "noShipments": "No shipments yet.",
         "selectPackage": "Package",
         "autoPackage": "Choose automatically",
         "packageHint": "The parcel is worked out from the items' weight and size. Fetch rates to see it, then adjust if you know better.",
+        "mustBePositive": "Must be more than 0",
         "fetchRates": "Get rates",
         "fetchingRates": "Fetching rates…",
         "noRates": "No rates available for this address",
@@ -1467,7 +1579,18 @@
       "overrideReinstateWarning": "Reinstating a cancelled order takes its stock off the shelf again. If any item has sold out since, the override will be refused.",
       "refundCoversItem": "How many {name} does this cover? (of {quantity})",
       "refundCoversShipping": "How much delivery does this cover?",
-      "refundableLessDelivery": "Refundable: {amount} — the {delivery} delivery went to the carrier when the parcel shipped and is not refundable. Name it in the delivery field to hand it back anyway."
+      "refundableLessDelivery": "Refundable: {amount} — the {delivery} delivery went to the carrier when the parcel shipped and is not refundable. Name it in the delivery field to hand it back anyway.",
+      "chargebacks": "Chargebacks",
+      "chargebacksHint": "Shared over every seller unless you say whose goods were disputed. Moving one changes whose payout it comes out of, nothing else.",
+      "chargebackFallsOn": "Comes out of: {sellers}",
+      "chargebackFallsOnAll": "Shared over every seller",
+      "chargebackAttribute": "Put on",
+      "chargebackChooseSeller": "Choose a seller…",
+      "chargebackAttributeTitle": "Put this chargeback on {seller}?",
+      "chargebackAttributeDescription": "The {amount} chargeback comes out of {seller}'s payouts instead of being shared. The order's refunded total and the dispute stay exactly as they are.",
+      "chargebackAttributeConfirm": "Move it",
+      "chargebackAttributed": "The {amount} chargeback now comes out of {seller}'s payouts.",
+      "chargebackAttributeFailed": "The chargeback could not be moved."
     },
     "analyticsPage": {
       "subtitle": "Store performance & website traffic",
@@ -1561,7 +1684,7 @@
       "addCollection": "Add collection",
       "addCustomer": "Add customer",
       "sales": "Sales",
-      "ordersDescription": "A project-wise breakdown of total orders complemented by detailed insights.",
+      "ordersDescription": "Totals for the selected period, split by sales channel.",
       "showHighlights": "Show all highlights",
       "highlightsDescription": "Summary highlights for the selected date range.",
       "showSalesData": "Show all sales data",
@@ -1674,7 +1797,9 @@
       "financeReports": "Reports",
       "customize": "Customize",
       "sliders": "Sliders",
-      "quotes": "Quotes"
+      "quotes": "Quotes",
+      "traffic": "Traffic",
+      "searchInsights": "Search insights"
     },
     "pos": "Point of Sale",
     "posLocations": "POS Locations",
@@ -1856,7 +1981,8 @@
         "unavailable": "Unavailable",
         "committed": "Committed",
         "available": "Available",
-        "onHand": "On hand"
+        "onHand": "On hand",
+        "incoming": "Incoming"
       },
       "filters": {
         "stockLevel": "Stock Level",
@@ -2133,10 +2259,6 @@
         "timezonePlaceholder": "UTC",
         "countryRequired": "Select at least one country, or choose All countries.",
         "currencyCodeHint": "Enter a 3-letter currency code, like CHF.",
-        "productSearch": "Product search",
-        "productSearchRegex": "Match anywhere (default)",
-        "productSearchText": "Indexed words, ranked by relevance",
-        "productSearchDesc": "Match anywhere finds partial words in every product field and suits catalogs up to a few thousand products. Indexed words uses the search index — whole words only, best matches first — and stays fast on very large catalogs. SKUs and barcodes are matched by prefix in both.",
         "supportedLanguages": "Supported languages",
         "supportedLanguagesDesc": "Available languages in your storefront.",
         "supportedCurrencies": "Supported currencies",
@@ -2171,7 +2293,9 @@
         "save": "Save Changes",
         "brandingMovedTitle": "Looking for logos and brand colors?",
         "brandingMovedDescription": "Brand assets, brand colors and the default light/dark appearance now live with your storefront theme, so everything shoppers see is edited in one place.",
-        "brandingMovedLink": "Open Theme Branding"
+        "brandingMovedLink": "Open Theme Branding",
+        "skeletonColor": "Skeleton color",
+        "skeletonColorHint": "Loading placeholders. Empty keeps a neutral grey."
       },
       "payment": {
         "title": "Payment Settings",
@@ -2311,6 +2435,8 @@
         "save": "Save Order Settings",
         "returnsHeading": "Returns and refunds",
         "returnsHint": "These start at the behaviour Storify had before they were settings, so nothing changes until you change it.",
+        "returnWindowDays": "Return window (days)",
+        "returnWindowDaysHint": "How long after delivery a shopper may still ask to return an order. Shown on every product page.",
         "shippingRefund": "Refund delivery on a return",
         "shippingRefundNever": "Never — the shopper received the delivery",
         "shippingRefundMerchantFault": "Only when the return is our fault",
@@ -2325,7 +2451,7 @@
         "refundAdminFeeCap": "Fee cap per return ({currency})",
         "refundAdminFeeCapHint": "Set to 0 for no cap.",
         "billVendorCodShipping": "Bill vendors for cash-on-delivery shipping",
-        "billVendorCodShippingHint": "When a vendor collects cash at the door they hold the delivery charge too. Turn this on to add it to what they owe you."
+        "billVendorCodShippingHint": "When a vendor collects cash at the door they hold the delivery charge too. Turn this on to bill them for parcels your own courier carried, alongside the commission they owe."
       },
       "seo": {
         "title": "SEO Settings",
@@ -2826,7 +2952,13 @@
           "rateLabel": "Commission rate",
           "rateDescription": "Percentage the platform keeps on each vendor sale.",
           "minWithdrawalLabel": "Minimum withdrawal amount",
-          "minWithdrawalDescription": "Smallest balance a vendor can request as a payout."
+          "minWithdrawalDescription": "Smallest balance a vendor can request as a payout, in your store currency.",
+          "byCurrencyLabel": "Minimum in other currencies",
+          "byCurrencyDescription": "Payouts in a currency other than {currency} use their own minimum. A currency not listed here has no minimum.",
+          "byCurrencyAmount": "Minimum payout in {currency}",
+          "byCurrencyRemove": "Remove the {currency} minimum",
+          "byCurrencyCode": "Currency code",
+          "byCurrencyAdd": "Add currency"
         },
         "paymentMethods": {
           "title": "Subscription payment methods"
@@ -3243,7 +3375,83 @@
         "addProduct": "Add product",
         "export": "Export",
         "import": "Import",
-        "importExport": "Import / Export"
+        "importExport": "Import / Export",
+        "downloadSample": "Download sample file"
+      },
+      "importDialog": {
+        "title": "Import products",
+        "description": "Add new products or update existing ones in bulk from a CSV or JSON file.",
+        "sampleTitle": "Start from the sample file",
+        "sampleDescription": "It has the columns the import reads and a few example products, already filed under this store's categories. Replace the examples with your own products, keep the first row as it is, and upload the file here.",
+        "sampleCsv": "Sample CSV",
+        "sampleJson": "Sample JSON",
+        "sampleJsonHint": "Use JSON for products with options and variants, such as size and color.",
+        "sampleFailed": "The sample file could not be downloaded",
+        "dropTitle": "Choose a file or drag it here",
+        "dropHint": "CSV or JSON · up to {rows} products · {size} MB",
+        "removeFile": "Remove file",
+        "fileTooLarge": "This file is larger than {size} MB. Split it into smaller files.",
+        "wrongType": "Choose a .csv or .json file.",
+        "rulesTitle": "How rows are imported",
+        "rules": {
+          "match": "A row with the id, slug or SKU of an existing product updates that product. Every other row creates a new product.",
+          "blank": "An empty cell keeps the product's current value.",
+          "category": "Categories and brands must already exist. Write a category's name — or, when two categories share a name, its path (Women > Dresses) or its slug.",
+          "categoryAdmin": "Brands must already exist, and so must categories — except in a JSON file imported by an admin, which creates the categories it names. Write a category's name — or, when two categories share a name, its path (Women > Dresses) or its slug.",
+          "format": "Write numbers plainly (1299.99, not $1,299.99) and separate tags and image links with |."
+        },
+        "columnsTitle": "Column guide",
+        "required": "Required for new products",
+        "adminOnly": "Admin only",
+        "columns": {
+          "title": "Product name.",
+          "price": "Selling price, e.g. 24.99.",
+          "category": "An existing category: its name, slug, or path such as Women > Dresses.",
+          "sku": "Your stock code. Also finds the product to update.",
+          "slug": "The product's web address. Made from the title when empty. Also finds the product to update.",
+          "id": "Only in exported files. Finds the exact product to update.",
+          "description": "Full description. HTML is allowed.",
+          "shortDescription": "Up to 500 characters.",
+          "comparePrice": "The original price, shown crossed out.",
+          "cost": "What the item costs you. Customers never see it.",
+          "stock": "Units in stock, as a whole number.",
+          "status": "active, draft or archived. New products are draft unless the file says otherwise.",
+          "brand": "An existing brand's name.",
+          "tags": "Separated by |, e.g. summer|cotton.",
+          "images": "Public image links (https://…) separated by |. The first one is the main image. Up to 10.",
+          "onlineStore": "true or false: show the product in the online store. Default true.",
+          "pointOfSale": "true or false: sell it at the point of sale. Default false.",
+          "featured": "true or false: feature the product on the storefront.",
+          "productType": "Free text, e.g. T-Shirt.",
+          "isPhysicalProduct": "true for goods you ship, false for digital downloads. Cannot change after the product is created.",
+          "inventoryTracked": "true or false: count stock for this product. Default true.",
+          "digitalDownloadLimit": "Downloads allowed per order for a digital product. 0 means unlimited.",
+          "weight": "Shipping weight, e.g. 0.5.",
+          "weightUnit": "g, kg, lb or oz. Default kg.",
+          "countryOfOrigin": "Country name or two-letter code, e.g. BD.",
+          "hsCode": "Customs tariff code.",
+          "barcode": "EAN-13, UPC-A, GTIN-14 or Code 128. Generated when empty.",
+          "vendorId": "The vendor a product belongs to, as in a vendor's export. Default: your own store."
+        },
+        "cancel": "Cancel",
+        "submit": "Import products",
+        "importing": "Importing… large files can take a minute. Keep this window open.",
+        "requestFailed": "The file could not be imported. Try again.",
+        "resultTitle": "Import finished",
+        "resultFailedTitle": "The file could not be imported",
+        "created": "Created",
+        "updated": "Updated",
+        "failed": "Failed",
+        "warnings": "Notes",
+        "errorsTitle": "Rows that were not imported",
+        "errorsHint": "Fix these rows in your file and import it again. Rows with a slug or SKU update the products this import already created instead of adding copies.",
+        "rowLabel": "Row {row}",
+        "productLabel": "Product {row}",
+        "fileLabel": "File",
+        "moreErrors": "…and {count} more in the downloadable list.",
+        "downloadErrors": "Download error list",
+        "importAnother": "Import another file",
+        "done": "Done"
       },
       "bulkActions": {
         "setActive": "Set active",
@@ -3299,6 +3507,7 @@
         "availableIn": "Available in"
       },
       "types": {
+        "look": "Look",
         "manual": "Manual",
         "automated": "Automated"
       },
@@ -3457,7 +3666,7 @@
       },
       "list": {
         "title": "Transfers",
-        "subtitle": "Move inventory between locations with a Shopify-style transfer workflow.",
+        "subtitle": "Move inventory between locations: ship it from one, receive it at the other.",
         "createTransfer": "Create transfer",
         "searchPlaceholder": "Search by transfer number, location, or reference",
         "loading": "Loading transfers...",
@@ -3470,7 +3679,9 @@
           "items": "Items",
           "status": "Status",
           "updated": "Updated"
-        }
+        },
+        "locationFilter": "Location",
+        "receiptProgress": "{done} of {units} received"
       },
       "create": {
         "title": "Create transfer",
@@ -3484,17 +3695,32 @@
         "internalNote": "Internal note",
         "internalNotePlaceholder": "Optional notes for your team",
         "searchPlaceholder": "Search products or SKU",
+        "swapLocations": "Swap locations",
         "selectSourceToLoad": "Select a source location to load inventory",
         "loadingInventory": "Loading inventory...",
         "noVariants": "No available variants found in this location",
-        "selectionSummary": "{lines} lines selected, {units} total units.",
+        "noSelectedItems": "No items selected yet. Enter a quantity under All items.",
+        "views": {
+          "all": "All items",
+          "selected": "Selected ({count})"
+        },
+        "selectionInline": "{lines, plural, one {# item} other {# items}} · {units, plural, one {# unit} other {# units}}",
+        "noneSelected": "No items selected",
+        "clearSelection": "Clear",
+        "overStockCount": "{count} over stock",
+        "overStock": "Only {available} available",
+        "fixOverStock": "Lower the quantities that exceed available stock",
+        "max": "Max",
+        "qtyFor": "Transfer quantity for {sku}",
         "cancel": "Cancel",
         "createTransfer": "Create transfer",
         "columns": {
           "product": "Product",
-          "variant": "Variant",
           "sku": "SKU",
           "available": "Available",
+          "availableAt": "{location} available",
+          "onHand": "Destination on hand",
+          "onHandAt": "{location} on hand",
           "transferQty": "Transfer Qty"
         },
         "dialog": {
@@ -3528,24 +3754,91 @@
         "meta": {
           "created": "Created",
           "updated": "Last updated",
-          "totalUnits": "Total units"
+          "totalUnits": "Total units",
+          "shipped": "Shipped",
+          "completed": "Completed"
         },
         "columns": {
           "product": "Product",
           "variant": "Variant",
           "sku": "SKU",
-          "qty": "Qty"
+          "qty": "Qty",
+          "available": "Available at source",
+          "received": "Received",
+          "rejected": "Rejected"
         },
         "actions": {
+          "edit": "Edit",
           "markReadyToShip": "Mark ready to ship",
-          "markInTransit": "Mark in transit",
-          "markCompleted": "Mark completed",
+          "returnToDraft": "Return to draft",
+          "markInTransit": "Ship transfer",
+          "receive": "Receive items",
           "cancelTransfer": "Cancel transfer"
         },
         "toasts": {
           "loadError": "Failed to load transfer",
           "updateSuccess": "Transfer updated",
           "updateError": "Failed to update transfer"
+        },
+        "shortage": "{lines, plural, one {# line needs} other {# lines need}} more stock than {from} has right now. Shipping will be refused until it is restocked or the draft is edited.",
+        "confirm": {
+          "shipTitle": "Ship this transfer?",
+          "shipDescription": "{units} units will leave {from} now. They stop being available for sale there, and are added to {to} as they are received.",
+          "cancelTitle": "Cancel this transfer?",
+          "cancelDescription": "No stock has moved yet. A cancelled transfer cannot be reopened.",
+          "cancelInTransitDescription": "{units} units will be returned to {from}. A cancelled transfer cannot be reopened."
+        },
+        "lock": {
+          "busy": "Stock is being moved for this transfer right now. Reload in a moment.",
+          "stuck": "A stock movement on this transfer did not finish, so it is locked. Check the stock at {from} and {to} first, then release it to carry on.",
+          "release": "Release lock",
+          "confirmTitle": "Release this transfer?",
+          "confirmDescription": "Releasing moves no stock. Only do it after checking the counts at {from} and {to}, because the interrupted movement may have moved some units already.",
+          "released": "Transfer released"
+        }
+      },
+      "edit": {
+        "title": "Edit transfer",
+        "saveChanges": "Save changes",
+        "toasts": {
+          "notDraft": "Only draft transfers can be edited",
+          "saveSuccess": "Transfer updated",
+          "saveError": "Failed to update transfer"
+        }
+      },
+      "receive": {
+        "title": "Receive items",
+        "description": "Enter what arrived at {destination}. Accepted units are added to its stock. Rejected units (damaged or missing) are recorded and not added anywhere.",
+        "acceptAll": "Accept all outstanding",
+        "columns": {
+          "item": "Item",
+          "outstanding": "Outstanding",
+          "accept": "Accept",
+          "reject": "Reject"
+        },
+        "summary": "{accepted} to accept, {rejected} to reject. Anything left over stays outstanding for a later receipt.",
+        "tooMany": "A line has more units entered than are still outstanding.",
+        "note": "Note",
+        "notePlaceholder": "Optional, e.g. 2 boxes crushed in transit",
+        "cancel": "Cancel",
+        "confirm": "Confirm receipt",
+        "success": "Items received",
+        "completed": "All items received, so the transfer is completed",
+        "error": "Failed to receive items"
+      },
+      "history": {
+        "title": "History",
+        "receivedSummary": "{accepted} accepted, {rejected} rejected",
+        "events": {
+          "created": "Transfer created",
+          "updated": "Draft edited",
+          "ready_to_ship": "Marked ready to ship",
+          "returned_to_draft": "Returned to draft",
+          "shipped": "Shipped from {from}",
+          "received": "Received at {to}",
+          "completed": "Transfer completed",
+          "cancelled": "Transfer cancelled",
+          "stock_lock_released": "Stuck stock movement released"
         }
       }
     },
@@ -3869,6 +4162,12 @@
       }
     },
     "headerStudio": {
+      "menus": {
+        "pick": "Pick a menu",
+        "none": "None",
+        "inactive": "inactive",
+        "manage": "Manage menus"
+      },
       "title": "Header Studio",
       "status": {
         "draft": "Draft",
@@ -3908,7 +4207,8 @@
         "compare": "Compare",
         "contact": "Contact",
         "language": "Language",
-        "currency": "Currency"
+        "currency": "Currency",
+        "menu": "Menu"
       },
       "drawer": {
         "needsColumn": "Select a column first, or drag the item onto one.",
@@ -3972,6 +4272,46 @@
         "row": "Row",
         "column": "Column",
         "nothing": "Nothing selected",
+        "drawer": "Side drawer",
+        "drawerToggle": "Open side drawer",
+        "drawerHint": "Desktop. Phones keep the app drawer with account, currency and theme.",
+        "drawerMenu": "Main links",
+        "drawerMenuMissing": "Until a menu is picked the button keeps opening the app drawer.",
+        "drawerSecondary": "Small links",
+        "drawerSide": "Opens from",
+        "drawerSides": {
+          "left": "Left",
+          "right": "Right"
+        },
+        "searchDrawer": "Search drawer",
+        "searchDrawerToggle": "Open search drawer",
+        "searchDrawerHint": "A panel drops from the top with a wide field, trending terms and product rows.",
+        "trending": "Trending",
+        "trendingHint": "Separate with commas. Up to 8.",
+        "drawerRows": "Product rows",
+        "drawerRowPick": "Add a collection row…",
+        "drawerField": "Field",
+        "drawerFieldStyles": {
+          "outline": "Outline",
+          "underline": "Bottom line"
+        },
+        "drawerFieldRadius": "Field radius",
+        "main": "Header settings",
+        "homeGroup": "Home page",
+        "overlap": "Overlap the hero",
+        "overlapHint": "The bar floats over the home page's first section so a full-bleed hero runs behind it, then returns to its normal colours as soon as the page scrolls. Home only — other pages open on content, not artwork.",
+        "overlapTone": "Hero tone",
+        "overlapToneDark": "Dark hero — white header",
+        "overlapToneLight": "Light hero — dark header",
+        "overlapScrim": "Fade behind the bar",
+        "overlapScrimOff": "Off",
+        "shadowGroup": "Drop shadow",
+        "shadow": "Shadow under the bar",
+        "shadowOffset": "Offset",
+        "shadowBlur": "Blur",
+        "shadowStrength": "Strength",
+        "shadowHint": "Drawn under a solid bar. A glass bar, a bar whose rows paint themselves, and a bar floating over the hero cast none.",
+        "overlapScrimHint": "A soft gradient from the top edge that fades out under the floating bar, so the menu reads over a busy picture. Dark over a dark hero, light over a light one; gone as soon as the page scrolls.",
         "empty": "Select a row, a column or an item to edit its properties.",
         "columns": "Columns",
         "columnCount": {
@@ -4077,15 +4417,27 @@
         "itemRoundness": "Item roundness",
         "blur": "Background blur",
         "hideOnScroll": "Hide on scroll",
-        "hideOnScrollHint": "Tucks away as the page scrolls down. A top row returns at the top; a lower row returns as soon as the page scrolls up.",
+        "hideOnScrollHint": "Tucks away as the page scrolls down. Automatic: a top row returns at the top of the page, a lower row as soon as the page scrolls up.",
         "scrollSize": "Scroll size",
         "scrollSizeHint": "The logo animates to this width as the page scrolls down, and its row compacts with it.",
         "collectionsLimit": "Show",
         "collectionsColumns": "Columns",
         "collectionsDescription": "Show descriptions",
-        "collectionsViewAll": "View all row"
+        "collectionsViewAll": "View all row",
+        "fieldLine": "Line under the field",
+        "fieldLineHint": "Shown while the search field is open.",
+        "returnOn": "Comes back",
+        "returnOns": {
+          "auto": "Automatic",
+          "top": "At the top of the page",
+          "scrollUp": "When scrolling up"
+        }
       },
       "links": {
+        "megaMenu": "Mega menu",
+        "megaMenuNone": "None",
+        "megaMenuWins": "The mega menu is shown instead of the sub-links below. They are kept, so unlinking the menu brings them back.",
+        "megaMenuHint": "In the menu, each top-level item with children becomes a column; a top-level item with an image and no children becomes a picture.",
         "title": "Links",
         "description": "Drag to reorder. A link with sub-links opens as a dropdown on the storefront.",
         "empty": "No links yet. Add links like Phone, Camera or Shoes.",
@@ -4204,7 +4556,8 @@
         "delivery": "Delivery info",
         "rating": "Rating",
         "stock": "Out of stock",
-        "cart": "Action button"
+        "cart": "Action button",
+        "seller": "Seller"
       },
       "groupLabel": "Group {number}",
       "removeGroup": "Remove group",
@@ -4228,6 +4581,9 @@
       "styleCard": "Card",
       "stylePreview": "Preview",
       "styleGap": "Gap",
+      "styleGrid": "Grid spacing",
+      "gridGapHintOn": "Applies to every product grid and shelf, on phones too.",
+      "gridGapHintOff": "Each grid keeps its built-in spacing, tighter on phones.",
       "styleTypography": "Typography",
       "styleCart": "Action button",
       "styleStock": "Out of Stock",
@@ -4245,6 +4601,9 @@
         "previewHover": "Preview hover effect",
         "groupGap": "Group gap",
         "itemGap": "Item gap",
+        "gridGapCustom": "Custom spacing between cards",
+        "gridColumnGap": "Column gap",
+        "gridRowGap": "Row gap",
         "cartBackground": "Button background",
         "cartBorder": "Button border",
         "cartBorderWidth": "Button border thickness",
@@ -4260,7 +4619,9 @@
         "pricePill": "Accent pill on discounted price",
         "discountChipBackground": "Discount chip background",
         "discountChipColor": "Discount chip text",
-        "cartVariant": "Button style"
+        "cartVariant": "Button style",
+        "brandDisplay": "Brand shows",
+        "brandLogoHeight": "Logo height"
       },
       "hoverEffects": {
         "zoom": "Zoom in",
@@ -4327,11 +4688,21 @@
         "hide": "Hide from listings",
         "hideDescription": "Sold-out products are dropped from listings. Their product pages stay reachable by direct link, so a shopper arriving from search still lands on one.",
         "availabilityNote": "Digital products, products with \"Track quantity\" off, and products set to continue selling when out of stock are always buyable — no mode moves or hides them."
-      }
+      },
+      "styleBrand": "Brand",
+      "brandMissingSeller": "This card doesn't show the product's brand. The line under the image is the Seller — the store name — which is what the old Brand element always printed.",
+      "brandMissing": "This card doesn't show the product's brand yet, so these settings have nothing to change.",
+      "brandReplaceSeller": "Show brand instead of seller",
+      "brandAdd": "Add brand to card",
+      "brandDisplays": {
+        "logo": "Logo",
+        "name": "Name"
+      },
+      "brandLogoHint": "A logo never runs wider than the card, so a wide wordmark stops growing once it spans the card — sooner on phones, where cards are narrower."
     },
     "checkoutStudio": {
       "title": "Checkout",
-      "subtitle": "Checkout keeps its proven flow — brand it here. The steps themselves cannot be rearranged, so payments never break.",
+      "intro": "Choose what checkout asks for and how it looks. The steps keep their order, so payments never break.",
       "status": {
         "unsaved": "Unsaved changes",
         "live": "Live"
@@ -4399,7 +4770,21 @@
       },
       "brand": {
         "title": "Brand and Layout",
-        "description": "Control the footer logo, about description, width, and colors."
+        "description": "Control the footer logo, about description, width, and colors.",
+        "logoSourceLabel": "Footer logo source",
+        "storeLogo": "Store logo (Recommended)",
+        "storeLogoDescription": "Uses your Branding logos and switches between light and dark mode, like the header.",
+        "customLogo": "Custom footer logo",
+        "customLogoDescription": "Upload different artwork for the footer only.",
+        "synced": "Synced with Branding",
+        "editBranding": "Edit in Branding",
+        "lightLogo": "Light mode logo",
+        "darkLogo": "Dark mode logo",
+        "logoNotSet": "Not uploaded",
+        "customLogoHint": "These logos apply only to the footer. With no dark mode logo, the footer logo shows in both modes; with neither, your store logos are used.",
+        "matchHeaderSize": "Same size as the header logo",
+        "matchHeaderSizeHint": "Follows the header: {desktop}px wide on large screens, {mobile}px on phones.",
+        "logoThemeAuto": "Auto (matches the footer background)"
       },
       "quickLinks": {
         "title": "Quick Page Links",
@@ -4451,6 +4836,9 @@
       },
       "fields": {
         "footerLogo": "Footer logo",
+        "footerDarkLogo": "Footer logo (dark mode)",
+        "logoWidth": "Logo width",
+        "logoTheme": "Logo to show",
         "logoAlt": "Logo alt text",
         "aboutDescription": "About description",
         "fullWidthFooter": "Full width footer",
@@ -5003,6 +5391,11 @@
           "description": "High-spec product storytelling with comparison-friendly cards and performance callouts.",
           "styleNote": "Optimized for technical products, accessories, and feature-heavy PDP flows."
         },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "Editorial apparel merchandising: full-bleed campaign imagery, lookbook tiles, and seasonal edits.",
+          "styleNote": "Built for clothing, footwear and accessories — imagery leads, chrome recedes."
+        },
         "luxe": {
           "name": "Fashion",
           "description": "Editorial-style visual treatment for premium fashion, beauty, and lifestyle brands.",
@@ -5441,6 +5834,17 @@
     "paymentTransactionsPage": {
       "title": "Payment Transactions",
       "subtitle": "Review all charge, refund, and adjustment events.",
+      "settlement": {
+        "filter": "Settlement",
+        "all": "All",
+        "awaiting": "Awaiting settlement",
+        "record": "Record refund sent",
+        "method": "How it was sent",
+        "reference": "Reference",
+        "note": "Note",
+        "submit": "Record",
+        "recorded": "Refund recorded as sent"
+      },
       "filters": {
         "title": "Filters",
         "searchPlaceholder": "Search by order or external ID",
@@ -5526,6 +5930,29 @@
       "newSliderName": "New Slider",
       "untitled": "Untitled slider",
       "namePlaceholder": "Slider Name",
+      "designFor": "Design for",
+      "bandHint": "Starts from the desktop design. What you change here applies to this size only.",
+      "slidesHeading": "Slides",
+      "artPlacement": "Placement",
+      "align": "Align",
+      "stateSet": "Set",
+      "stateNone": "None",
+      "stateOn": "On",
+      "stateOff": "Off",
+      "inspector": {
+        "back": "Back",
+        "content": "Content",
+        "contentHint": "What the slide shows, and how the copy sits. Drag a chip to reorder; per size, a phone can drop a line.",
+        "imageHint": "The artwork is selected. Click the copy on the canvas to get back to the text.",
+        "media": "Background & artwork",
+        "mediaHint": "What is behind the copy, the product it sells, and a plate under the text for legibility.",
+        "look": "Look & motion",
+        "lookHint": "How the copy comes in, and ready-made looks to start from or carry to other slides.",
+        "timing": "When it shows",
+        "timingHint": "Run the slide only between dates, and point its countdown at a moment.",
+        "carousel": "Carousel",
+        "carouselHint": "For the whole slider: how slides change, how long each holds, and the arrows and dots."
+      },
       "deleteSlider": "Delete slider",
       "save": "Save",
       "saved": "Slider saved",
@@ -5540,7 +5967,7 @@
       "rotation": "Rotation",
       "layerContent": "Content",
       "layerImage": "Product image",
-      "reveal": "Content animation",
+      "reveal": "Reveal",
       "transition": "Transition",
       "delay": "Delay",
       "timer": "Timer",
@@ -5562,8 +5989,9 @@
         "description": "Description",
         "tagline": "Tagline",
         "price": "Price",
-        "cta": "CTA",
-        "countdown": "Time Counter"
+        "cta": "Button",
+        "countdown": "Time Counter",
+        "cta2": "Button 2"
       },
       "reveals": {
         "none": "No animation",
@@ -5571,30 +5999,91 @@
         "rise": "Rise",
         "slide-right": "Slide Right",
         "slide-left": "Slide Left",
-        "zoom": "Zoom"
+        "zoom": "Zoom",
+        "drop": "Drop",
+        "zoom-out": "Zoom out",
+        "blur": "Blur in",
+        "flip": "Flip",
+        "wipe": "Wipe",
+        "pop": "Pop",
+        "rotate": "Rotate"
       },
       "transitions": {
         "slide": "Slide",
         "fade": "Fade"
       },
       "shapes": {
-        "landscape": "Landscape cells",
-        "square": "Square cells",
-        "portrait": "Portrait cells"
+        "landscape": "Desktop & tablet",
+        "square": "Phone & square",
+        "portrait": "Tall"
       },
       "textStyle": {
         "weight": "Weight",
         "style": "Style",
         "size": "Size",
         "color": "Color",
-        "width": "Width"
+        "width": "Width",
+        "letterSpacing": "Letter spacing",
+        "lineHeight": "Line height",
+        "transform": "Case",
+        "transformOptions": {
+          "default": "Default",
+          "none": "None",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "highlight": "Highlight",
+        "highlightOptions": {
+          "none": "None",
+          "color": "Colour",
+          "italic": "Italic",
+          "underline": "Underline",
+          "marker": "Marker"
+        },
+        "highlightColor": "Highlight colour",
+        "highlightHint": "Wrap a word in *asterisks* to highlight it. Without a colour of its own it takes the theme's."
       },
       "bg": {
         "solid": "Solid",
         "gradient": "Gradient",
         "image": "Image",
         "upload": "Upload Image",
-        "direction": "Direction"
+        "direction": "Direction",
+        "darken": "Darken",
+        "video": "Video",
+        "uploadVideo": "Upload Video",
+        "poster": "Poster",
+        "videoHint": "Plays muted and looping. The poster shows first, and stands in where motion is reduced.",
+        "hover": "Hover",
+        "hoverOptions": {
+          "none": "None",
+          "zoom": "Zoom",
+          "darken": "Darken",
+          "brighten": "Brighten"
+        },
+        "focal": "Focal point",
+        "overlayKind": "Darkening",
+        "overlayKinds": {
+          "flat": "Whole picture",
+          "gradient": "From an edge"
+        },
+        "overlayFrom": "From",
+        "overlayEdges": {
+          "bottom": "Bottom",
+          "top": "Top",
+          "left": "Left",
+          "right": "Right"
+        },
+        "tint": "Tint",
+        "blur": "Blur",
+        "motion": "Motion",
+        "motionOptions": {
+          "none": "Still",
+          "kenburns": "Slow drift",
+          "pan": "Pan across",
+          "zoomOut": "Settle in",
+          "float": "Float"
+        }
       },
       "countdown": {
         "days": "Days",
@@ -5606,7 +6095,8 @@
         "tagline": "Tagline",
         "heading": "Your headline",
         "description": "Describe the offer…",
-        "cta": "Shop Now"
+        "cta": "Shop Now",
+        "cta2": "Learn more"
       },
       "image": "Image",
       "imageHint": "Artwork placed beside the copy. The button links wherever you set under its settings.",
@@ -5615,12 +6105,190 @@
       "ctaPaddingX": "Padding X",
       "ctaPaddingY": "Padding Y",
       "ctaHeight": "Height",
-      "ctaBoxHint": "Auto follows the label size; the link falls back to the bound product on a slider.",
+      "ctaBoxHint": "Auto follows the label; corners follow the theme until set. The link falls back to the bound product.",
       "ctaVariants": {
         "dark": "Dark",
         "light": "Light",
-        "outline": "Outline"
-      }
+        "outline": "Outline",
+        "custom": "Custom"
+      },
+      "duplicate": "Duplicate",
+      "duplicateSlider": "Duplicate slider",
+      "duplicateSlide": "Duplicate slide",
+      "removeSlide": "Remove slide",
+      "duplicated": "Slider duplicated — now editing the copy",
+      "duplicateFailed": "Could not duplicate the slider",
+      "copySuffix": "copy",
+      "slideLimit": "A slider holds at most {max} slides",
+      "matchStyles": "Match all slides",
+      "matchStylesHint": "Copies this slide's text and button styling to every other slide. Alignment stays as each slide has it.",
+      "padding": "Padding",
+      "ctaFill": "Fill",
+      "ctaRadius": "Corners",
+      "ctaBorder": "Border",
+      "saveDraft": "Save draft",
+      "publish": "Publish",
+      "publishHint": "Saves the draft and makes it live on the shop.",
+      "discard": "Discard draft",
+      "discardHint": "Drops the draft; what is live stays as it is.",
+      "draftBadge": "Draft",
+      "draftSaved": "Draft saved",
+      "published": "Slider published",
+      "publishFailed": "Could not publish the slider",
+      "draftDiscarded": "Draft discarded",
+      "discardFailed": "Could not discard the draft",
+      "restored": "Version restored to the draft",
+      "restoreFailed": "Could not restore the version",
+      "undo": "Undo",
+      "redo": "Redo",
+      "language": "Language",
+      "artBehind": "Artwork behind the copy",
+      "artInFront": "Artwork in front of the copy",
+      "cutout": "Remove background",
+      "cutoutHint": "Removes the photo's background so the product stands free. Runs on this computer; the first time downloads the model.",
+      "cutoutDone": "Background removed",
+      "cutoutFailed": "Could not remove the background",
+      "statsHint": "Views · click rate, last {days} days",
+      "history": {
+        "open": "History",
+        "title": "Published versions",
+        "description": "Restoring puts a version into the draft. Publish it when it is what you meant.",
+        "restore": "Restore",
+        "empty": "Nothing published yet.",
+        "slides": "slides"
+      },
+      "warnings": {
+        "ctaNoLink": "The button has nowhere to go: set a link or bind a product.",
+        "cta2NoLink": "The second button has no link.",
+        "imageNarrow": "The picture is narrower than a desktop hero and will look soft.",
+        "videoHeavy": "The video is over 8 MB; phones will wait for it.",
+        "noAlt": "No alt text: screen readers and search see nothing.",
+        "headingEmpty": "The heading is on but empty.",
+        "lowContrast": "The copy will be hard to read on this background — darken it or add a plate.",
+        "fix": "Fix"
+      },
+      "plate": {
+        "title": "Plate behind the copy",
+        "enabled": "Plate",
+        "color": "Color",
+        "padding": "Padding",
+        "radius": "Corners",
+        "blur": "Blur",
+        "hint": "A tinted box behind the text keeps it readable over a busy picture. It hugs the copy; the padding is per band."
+      },
+      "schedule": {
+        "title": "Schedule",
+        "start": "Show from",
+        "end": "Until",
+        "clear": "Always show",
+        "hint": "Outside its window the slide is skipped, like a hidden one. Times are your own.",
+        "state": {
+          "always": "Schedule",
+          "upcoming": "Scheduled",
+          "live": "Live now",
+          "ended": "Ended"
+        }
+      },
+      "controls": {
+        "button": "Controls",
+        "edit": "Arrows & dots",
+        "title": "Arrows, indicators, pause",
+        "arrows": "Arrows",
+        "arrowsPosition": "Arrow position",
+        "dots": "Indicators",
+        "dotsPosition": "Indicator position",
+        "pause": "Pause button",
+        "arrowStyles": {
+          "none": "None",
+          "round": "Round",
+          "square": "Square",
+          "minimal": "Minimal"
+        },
+        "arrowPositions": {
+          "sides": "Sides",
+          "bottom": "Bottom"
+        },
+        "dotStyles": {
+          "dots": "Dots",
+          "bars": "Bars",
+          "numbers": "Numbers",
+          "none": "None"
+        },
+        "dotPositions": {
+          "start": "Left",
+          "center": "Center",
+          "end": "Right"
+        },
+        "hint": "The pause button lets a reader stop the autoplay, which moving content owes them."
+      },
+      "templates": {
+        "title": "Templates",
+        "browse": "Browse",
+        "builtIn": "Starting layouts",
+        "saved": "Saved",
+        "saveAs": "Save this slide's look as a template",
+        "namePlaceholder": "Template name",
+        "save": "Save",
+        "remove": "Remove template",
+        "empty": "Nothing saved yet. Arrange a slide, name it, and save its look here.",
+        "savedToast": "Template saved",
+        "saveFailed": "Could not save the template",
+        "names": {
+          "editorial": "Editorial",
+          "centered": "Centered",
+          "split": "Product split",
+          "caption": "Bottom caption",
+          "poster": "Poster",
+          "twoButtons": "Two buttons"
+        }
+      },
+      "library": {
+        "button": "Library",
+        "title": "Media library",
+        "description": "Pick something the store already has.",
+        "search": "Search files…",
+        "empty": "Nothing here yet.",
+        "loadMore": "Load more",
+        "loadFailed": "Could not load the library"
+      },
+      "animation": {
+        "title": "Content animation",
+        "duration": "Duration",
+        "stagger": "Stagger",
+        "hint": "Elements arrive one after another when a stagger is set. Visitors who asked for less motion see none of it.",
+        "easing": "Curve",
+        "easings": {
+          "ease": "Smooth",
+          "easeOut": "Ease out",
+          "spring": "Spring",
+          "linear": "Linear"
+        }
+      },
+      "preview": {
+        "title": "On the shop",
+        "toggle": "Preview on the shop",
+        "hint": "How this slide lands in each frame on the shop, as you edit. Click a frame to design for its size.",
+        "desktop": "Desktop hero",
+        "tablet": "Tablet",
+        "phone": "Phone",
+        "tile": "Square tile"
+      },
+      "ownBackground": "Own picture for this band",
+      "ownArt": "Own artwork for this band",
+      "clipboard": {
+        "style": "This look",
+        "copy": "Copy",
+        "paste": "Paste",
+        "copyStyle": "Copy style",
+        "pasteStyle": "Paste style",
+        "copyStyleHint": "Copies this slide's look — layout, type, buttons, plate — to paste on any slide, in any slider.",
+        "copySlide": "Copy slide",
+        "pasteSlide": "Paste slide",
+        "copySlideHint": "Copies this slide to paste into any slider, on any tab."
+      },
+      "imageLink": "Image link",
+      "imageLinkCopied": "Image link copied",
+      "imageLinkHint": "A picture of the first published slide, for emails and social cards. Add ?slide=<id> for another slide."
     },
     "storeBuilder": {
       "title": "Home Page",
@@ -5649,6 +6317,7 @@
       "unpublishedNote": "You have unpublished changes. Shoppers keep seeing the last published version until you publish.",
       "singleton": "Single use",
       "toggleVisibility": "Toggle visibility",
+      "duplicateSection": "Duplicate section",
       "removeSection": "Remove section",
       "unknownSection": "This section type is not in the current catalog.",
       "linkPlaceholder": "/products or https://…",
@@ -5709,11 +6378,14 @@
           "tall": "Tall",
           "fourFifths": "4/5",
           "threeFifths": "3/5"
-        }
+        },
+        "spacing": "Spacing",
+        "spacingTitle": "Spacing and corners",
+        "spacingHint": "The edge-to-edge widths stay square and ignore the side padding."
       },
       "sections": {
         "slideshow": {
-          "name": "Hero Slider",
+          "name": "Slider",
           "description": "A grid of saved sliders, images, and your category list"
         },
         "promotion-banner": {
@@ -5770,11 +6442,20 @@
         },
         "category-list": {
           "name": "Category List",
-          "description": "Category row — image cards or circular tiles",
+          "description": "Category row — image cards, circular tiles, or labels on the image",
           "variants": {
             "cards": "Image cards",
-            "circles": "Circular strip"
+            "circles": "Circular strip",
+            "overlay": "Label on image"
           }
+        },
+        "get-the-look": {
+          "name": "Get the Look",
+          "description": "One styled Look — its image, the pieces, Add All to Cart"
+        },
+        "looks-list": {
+          "name": "Looks",
+          "description": "Scrolling row of Looks — outfits kept as collections"
         },
         "category-mosaic": {
           "name": "Category Mosaic",
@@ -5810,11 +6491,19 @@
         },
         "testimonials": {
           "name": "Testimonials",
-          "description": "Approved customer reviews"
+          "description": "Approved customer reviews",
+          "variants": {
+            "classic": "Cards",
+            "luxe": "Editorial"
+          }
         },
         "service-benefits": {
           "name": "Service Benefits",
-          "description": "Perks strip: shipping, returns, support"
+          "description": "Perks strip: shipping, returns, support",
+          "variants": {
+            "classic": "Classic",
+            "electronics": "Spec bar"
+          }
         },
         "faq": {
           "name": "FAQ",
@@ -5859,15 +6548,27 @@
         },
         "products-main": {
           "name": "Product listing",
-          "description": "Filters, sorting, and the product grid — the page core"
+          "description": "Filters, sorting, and the product grid — the page core",
+          "variants": {
+            "classic": "Classic",
+            "electronics": "Showroom"
+          }
         },
         "category-header": {
           "name": "Category header",
-          "description": "Category image, description, and product count"
+          "description": "Category name, picture, description, count, and sub-categories",
+          "variants": {
+            "classic": "Card",
+            "electronics": "Centred"
+          }
         },
         "category-main": {
           "name": "Category products",
-          "description": "The category's product grid — the page core"
+          "description": "The category's product grid — the page core",
+          "variants": {
+            "classic": "Classic",
+            "electronics": "Showroom"
+          }
         },
         "collection-header": {
           "name": "Collection header",
@@ -5879,7 +6580,11 @@
         },
         "cart-main": {
           "name": "Shopping bag",
-          "description": "Cart lines and order summary — the page core"
+          "description": "Cart lines and order summary — the page core",
+          "variants": {
+            "classic": "Classic",
+            "electronics": "Table"
+          }
         },
         "header-bar": {
           "name": "Header",
@@ -5984,9 +6689,55 @@
         "titleSize": "Title size",
         "foreground": "Text colour",
         "showStock": "Show stock left",
-        "showSavings": "Show savings badge"
+        "showSavings": "Show savings badge",
+        "titleAlign": "Title alignment",
+        "filterLayout": "Filters",
+        "categoryStyle": "Categories",
+        "categorySource": "Category source",
+        "categoryLimit": "Category limit",
+        "categoryRadius": "Card corner radius",
+        "categorySize": "Card size",
+        "categoryGap": "Card gap",
+        "cover": "Cover",
+        "coverWidth": "Cover width",
+        "coverScope": "Cover holds",
+        "coverText": "Cover text colour",
+        "coverHeight": "Cover height",
+        "coverRadius": "Cover radius",
+        "coverOverlay": "Image darkening",
+        "coverBreadcrumb": "Breadcrumb in cover",
+        "breadcrumbAlign": "Breadcrumb alignment",
+        "gap": "Gap between cells",
+        "panelGap": "Gap after the feature image",
+        "sidePadding": "Side padding",
+        "corners": "Corners",
+        "radius": "Corner radius",
+        "cardGap": "Gap between cards",
+        "panelRadius": "Corner radius",
+        "cardRadius": "Card corner radius",
+        "imageFit": "Product pictures",
+        "gapMode": "Spacing",
+        "panelWidth": "Feature image width",
+        "panelHeight": "Feature image height",
+        "imageWidth": "Image width",
+        "imageHeight": "Image height",
+        "imageRadius": "Image corner radius",
+        "cardsPerRow": "Pieces per row",
+        "columns": "Looks per row",
+        "shape": "Shape",
+        "categoryAlign": "Category alignment",
+        "coverSlider": "Cover slider",
+        "pagination": "Pagination",
+        "featuredProducts": "Featured products",
+        "showImage": "Category picture",
+        "showDescription": "Description",
+        "showProductCount": "Product count",
+        "showSubcategories": "Sub-categories",
+        "sort": "Sort menu"
       },
       "options": {
+        "looks": "All Looks",
+        "overlay": "Label on image",
         "featured": "Featured",
         "topLevel": "Top-level",
         "manual": "Hand-picked",
@@ -6036,9 +6787,34 @@
         "large": "Large",
         "browser": "Browser",
         "plain": "Grid",
-        "default": "Default"
+        "default": "Default",
+        "sidebar": "Vertical (left sidebar)",
+        "filterBar": "Horizontal – boxes",
+        "filterButton": "Filter button",
+        "hidden": "Hidden",
+        "chips": "Chips",
+        "circles": "Circles",
+        "cards": "Cards",
+        "coverTitle": "Title only",
+        "coverTitleCategories": "Title and categories",
+        "filterDropdown": "Horizontal – dropdowns",
+        "custom": "Set here",
+        "followProduct": "Follow product page",
+        "contain": "Fit inside",
+        "cover": "Fill",
+        "followCards": "Same as product grids",
+        "auto": "Auto",
+        "matchCards": "Match cards",
+        "portrait": "Portrait (4:5)",
+        "square": "Square",
+        "tall": "Tall (2:3)",
+        "landscape": "Landscape (4:3)",
+        "show": "Show",
+        "pages": "Numbered pages",
+        "infinite": "Load on scroll"
       },
       "blocks": {
+        "look": "Look",
         "slide": "Slide",
         "card": "Card",
         "image": "Image",
@@ -6060,6 +6836,13 @@
         "collection": "Add collection",
         "tag": "Add tag"
       },
+      "panelGroups": {
+        "content": "Content",
+        "layout": "Layout",
+        "style": "Style",
+        "visibility": "Show & hide",
+        "show": "Shown on the page"
+      },
       "sectionEditor": {
         "template": "Template",
         "preview": "Preview",
@@ -6067,6 +6850,7 @@
         "previewHint": "The storefront's render, with your live data. Updates after each save.",
         "previewEmpty": "Nothing to show yet — this section renders once it has content or data.",
         "settings": "Settings",
+        "content": "Content",
         "blocksHint": "Drag to reorder. Open a row to edit it.",
         "rowPreview": "Row preview",
         "previewDemoHint": "The storefront's render. Edits will not appear here: this demo store never saves."
@@ -6100,7 +6884,9 @@
         "faq": "FAQ",
         "info-card": "Delivery info",
         "share": "Share",
-        "chat": "Chat"
+        "chat": "Chat",
+        "gap": "Gap",
+        "divider": "Horizontal line"
       },
       "visibilityTitle": "Visibility",
       "styleTitle": "Style",
@@ -6111,7 +6897,11 @@
         "itemSold": "Item sold",
         "ratingCount": "Rating count",
         "ratingMinimized": "Rating minimized",
-        "variantCount": "Variant Count"
+        "variantCount": "Variant Count",
+        "quantity": "Quantity stepper",
+        "zoom": "Image zoom",
+        "thumbnails": "Thumbnails",
+        "accordionOpenFirst": "Open the first accordion"
       },
       "detailChips": {
         "cart": "Cart",
@@ -6139,7 +6929,62 @@
         "miscellaneous": "Miscellaneous",
         "ratingColor": "Rating Color",
         "stockBackground": "Stock background",
-        "auto": "Auto"
+        "auto": "Auto",
+        "layout": "Page layout",
+        "galleryWidth": "Gallery width",
+        "contentMaxWidth": "Max content width",
+        "stickyColumn": "Pin the shorter column",
+        "galleryBleedLeft": "Images to the left edge",
+        "galleryBleedTop": "Images up to the header",
+        "galleryBleedMaxWidth": "The left edge needs Max content width set to Auto — a narrower page has no edge for the images to reach.",
+        "galleryBleedHint": "On phones and in the Full Width layout the images run edge to edge. An Image radius of 0 keeps the edge clean.",
+        "brand": "Brand",
+        "brandLogoHeight": "Logo height",
+        "brandLogoMaxWidth": "Logo max width",
+        "gallery": "Gallery",
+        "previewHeightHint": "The main image, the horizontal carousel's height (each slide as wide as its image), and grid tiles. The vertical carousel always shows each image full width at its own proportions.",
+        "imageFit": "Image fit",
+        "imageFitHint": "The default for every image. A single image can override it in the product editor: open it in Media and choose Fit or Fill.",
+        "customPadding": "Custom image padding",
+        "imagePadding": "Image padding",
+        "imageRadius": "Image radius",
+        "imageGap": "Image gap",
+        "thumbSize": "Thumbnail width",
+        "thumbRadius": "Thumbnail radius",
+        "thumbActiveBorder": "Selected thumbnail outline",
+        "buttons": "Buttons",
+        "actions": "Show",
+        "buttonLayout": "Layout",
+        "buttonHeight": "Height",
+        "buttonCase": "Text case",
+        "cartLabel": "Add to cart text",
+        "buyLabel": "Buy now text",
+        "buyBackground": "Buy now background",
+        "buyBorder": "Buy now border",
+        "buyBorderWidth": "Buy now border thickness",
+        "quantityBorder": "Quantity stepper border",
+        "buttonTextHint": "Leave the text empty to use the store's translated wording. A pre-order always says Pre-order.",
+        "stock": "Stock & badges",
+        "inStockBackground": "In stock background",
+        "inStockColor": "In stock text",
+        "outOfStockBackground": "Out of stock background",
+        "outOfStockColor": "Out of stock text",
+        "preorderBackground": "Pre-order background",
+        "preorderColor": "Pre-order text",
+        "lowStockColor": "Low stock text",
+        "stockRadius": "Stock badge radius",
+        "discountBackground": "Discount chip background",
+        "discountColor": "Discount chip text",
+        "discountRadius": "Discount chip radius",
+        "accordions": "Accordions",
+        "accordionIcon": "Icon",
+        "accordionDivider": "Divider colour",
+        "share": "Share",
+        "shareSize": "Button size",
+        "shareRadius": "Button radius",
+        "shareBackground": "Button background",
+        "shareIconColor": "Icon colour",
+        "shareHint": "These can only hide a network. Which networks exist at all is set in the store's share settings."
       },
       "detailTypography": {
         "brand": "Brand Text",
@@ -6153,7 +6998,9 @@
         "style": "Style",
         "size": "Size",
         "color": "Color",
-        "reset": "Reset to theme default"
+        "reset": "Reset to theme default",
+        "buy": "Buy Now Text",
+        "accordion": "Accordion Title"
       },
       "brandEditor": {
         "template": "Template",
@@ -6252,7 +7099,9 @@
         },
         "countdown-offer": {
           "productIds": "Drag to order: the 1st pick fills the large card, 2nd–3rd the left column, 4th–5th the right. Leave empty to show whatever is on sale.",
-          "height": "Minimum height on desktop, in pixels. The panel always grows to fit its content."
+          "height": "Minimum height on desktop, in pixels. The panel always grows to fit its content.",
+          "cardGap": "Between the deal cards, in pixels. Phones use a little less.",
+          "imageFit": "Follow product page: the fit and padding the product page's gallery uses."
         },
         "product-grid": {
           "productIds": "Drag to set the shelf order."
@@ -6266,6 +7115,50 @@
         "coupon-banner": {
           "offer": "Leave empty to show what the discount is worth.",
           "condition": "Leave empty to show the discount's own minimum spend."
+        },
+        "products-main": {
+          "filterLayout": "Vertical lists filters down the left. Horizontal puts them in a row above the products, as boxes or as dropdowns; Filter button gathers them into one panel. Phones always use the filter sheet.",
+          "categoryStyle": "The same designs as the Categories section. Every one filters this page. Chips sit in a row above the products.",
+          "categorySize": "Card width in pixels; 0 fits them to the row.",
+          "categoryGap": "Between the cards, in pixels. Phones use half.",
+          "cover": "Painted behind the page title. Leave empty for no cover.",
+          "coverScope": "Chips always stay in the toolbar.",
+          "coverText": "Empty picks black or white for contrast.",
+          "coverHeight": "Minimum height in pixels; 0 fits the content.",
+          "coverOverlay": "Darkens an image cover, in percent.",
+          "coverBreadcrumb": "Moves the breadcrumb inside the cover.",
+          "breadcrumbAlign": "Follows the title unless you set it here.",
+          "featuredProducts": "A short list of featured products under the filters.",
+          "pagination": "Numbered pages, or more products as the shopper scrolls."
+        },
+        "promotion-grid": {
+          "gap": "Between the cells, in pixels. Phones use a little less.",
+          "sidePadding": "At the sides of the grid, in pixels. The edge-to-edge widths ignore it.",
+          "corners": "The edge-to-edge widths stay square."
+        },
+        "get-the-look": {
+          "imageWidth": "The picture's share of the row on desktop, in percent.",
+          "imageHeight": "The picture's minimum height on desktop, in pixels.",
+          "gap": "Between the picture and the pieces on desktop, in pixels.",
+          "cardsPerRow": "Pieces across on desktop; 0 fits them all on one row.",
+          "corners": "Theme default: the card radius from Themes → Shapes."
+        },
+        "looks-list": {
+          "columns": "Looks across on desktop; the row scrolls past them.",
+          "gap": "Between the Looks, in pixels.",
+          "corners": "Theme default: the card radius from Themes → Shapes."
+        },
+        "category-header": {
+          "showImage": "The category's picture beside its name.",
+          "showDescription": "The description written for the category.",
+          "showProductCount": "How many products the category holds.",
+          "showSubcategories": "A row of the category's sub-categories, each linking to its page."
+        },
+        "category-main": {
+          "filterLayout": "Sub-category, brand, price, availability and location filters down the left. Phones use the filter sheet.",
+          "sort": "The sort menu above the products.",
+          "featuredProducts": "A short list of the category's featured products under the filters.",
+          "pagination": "Numbered pages, or more products as the shopper scrolls."
         }
       },
       "sectionUnavailable": "Not available",
@@ -6279,6 +7172,7 @@
         "collection": "Collections",
         "image": "Images",
         "item": "Items",
+        "look": "Looks",
         "tag": "Tags"
       },
       "selectCoupon": "Select a discount…",
@@ -6301,6 +7195,134 @@
           "row-4": "Four deals",
           "row-5": "Five deals"
         }
+      },
+      "removeRow": "Remove row",
+      "rowSettings": {
+        "height": "Height",
+        "thickness": "Thickness",
+        "spacing": "Spacing",
+        "color": "Colour",
+        "reset": "Theme"
+      },
+      "imageFits": {
+        "contain": "Fit inside (padding)",
+        "cover": "Fill the frame"
+      },
+      "detailActions": {
+        "both": "Both buttons",
+        "cart": "Add to cart only",
+        "buy": "Buy now only"
+      },
+      "buttonLayouts": {
+        "inline": "Side by side",
+        "stacked": "Stacked"
+      },
+      "buttonCases": {
+        "theme": "Theme default",
+        "none": "As typed",
+        "uppercase": "UPPERCASE"
+      },
+      "accordionIcons": {
+        "plus": "Plus",
+        "chevron": "Chevron"
+      },
+      "shareNetworks": {
+        "facebook": "Facebook",
+        "twitter": "X (Twitter)",
+        "whatsapp": "WhatsApp",
+        "email": "Email",
+        "copyLink": "Copy link"
+      },
+      "categoryStyle": {
+        "title": "Style",
+        "reset": "Reset to template",
+        "layout": "Layout",
+        "rowLayout": "Row",
+        "columns": "Tiles per row",
+        "tabletColumns": "Tiles per row (tablet)",
+        "mobileLayout": "Phones",
+        "mobileColumns": "Tiles across (phone)",
+        "gap": "Gap between tiles",
+        "mobileGap": "Gap (phone)",
+        "tile": "Tile",
+        "shape": "Shape",
+        "roundness": "Corner radius",
+        "tileWidth": "Tile width",
+        "tileHeight": "Tile height",
+        "auto": "Auto",
+        "fromShape": "Shape",
+        "none": "None",
+        "tileBackground": "Background",
+        "tileBorder": "Border",
+        "tileBorderWidth": "Border thickness",
+        "tileShadow": "Shadow",
+        "image": "Image",
+        "imageFit": "Fit",
+        "imagePadding": "Padding",
+        "placeholder": "No image",
+        "hover": "Hover effect",
+        "linkTo": "Tile opens",
+        "text": "Text",
+        "showText": "Show name",
+        "textPosition": "Position",
+        "textAlign": "Align",
+        "textVertical": "Vertical position",
+        "textSize": "Size",
+        "textWeight": "Weight",
+        "textCase": "Case",
+        "textColor": "Colour",
+        "textGap": "Space from tile",
+        "textInset": "Inset",
+        "overlay": "Darken picture",
+        "heading": "Heading",
+        "titleStyle": "Style",
+        "titleAlign": "Align",
+        "arrows": "Arrows",
+        "arrowsHint": "Shown when the row scrolls.",
+        "arrowStyle": "Style",
+        "arrowPosition": "Position",
+        "arrowSize": "Size",
+        "options": {
+          "400": "Regular",
+          "500": "Medium",
+          "600": "Semibold",
+          "700": "Bold",
+          "auto": "Auto (grid, scrolls when full)",
+          "grid": "Grid",
+          "carousel": "Carousel",
+          "scroll": "Swipe row",
+          "circle": "Circle",
+          "square": "Square",
+          "portrait": "Portrait (4:5)",
+          "tall": "Tall (2:3)",
+          "landscape": "Landscape (4:3)",
+          "wide": "Wide (16:9)",
+          "cover": "Fill",
+          "contain": "Fit inside",
+          "monogram": "Initial",
+          "icon": "Icon",
+          "none": "Nothing",
+          "below": "Below the tile",
+          "above": "Above the tile",
+          "over": "Over the picture",
+          "left": "Left",
+          "center": "Centre",
+          "right": "Right",
+          "top": "Top",
+          "bottom": "Bottom",
+          "uppercase": "Uppercase",
+          "plain": "Plain",
+          "twoTone": "Two-tone",
+          "sides": "Beside the row",
+          "hidden": "Hidden",
+          "zoom": "Zoom picture",
+          "lift": "Lift",
+          "fade": "Fade",
+          "darken": "Darken",
+          "listing": "Products filtered to it",
+          "category": "Its category page"
+        },
+        "rowAlign": "Row alignment"
       }
     },
     "themeSettings": {
@@ -6323,7 +7345,15 @@
       "tabs": {
         "theme": "Select theme",
         "settings": "Theme settings",
-        "branding": "Branding"
+        "branding": "Branding",
+        "css": "Custom CSS"
+      },
+      "customCss": {
+        "title": "Custom CSS",
+        "description": "Rules added after the theme's own styles, on every storefront page. Saved per theme — switching themes switches to that theme's own sheet. Prefer Theme settings for colors, type, and shapes; use this for the details they don't reach.",
+        "hint": "Scope rules to .store-surface so they never reach the admin.",
+        "save": "Save CSS",
+        "saved": "Custom CSS saved"
       },
       "preview": {
         "desktop": "Desktop",
@@ -6434,6 +7464,31 @@
         "noto-sans-bengali": "Bengali + Latin, sans",
         "noto-serif-bengali": "Bengali + Latin, serif"
       }
+    },
+    "searchInsights": {
+      "title": "Search insights",
+      "subtitle": "Searches that found nothing. Each is something shoppers wanted and could not find: add the product, or add the words they used as a tag, and the search starts answering.",
+      "sources": {
+        "all": "All",
+        "storefront": "Store search",
+        "assistant": "AI assistant"
+      },
+      "periods": {
+        "days": "{count, plural, one {# day} other {# days}}"
+      },
+      "columns": {
+        "term": "Search term",
+        "searches": "Searches",
+        "lastSearched": "Last searched",
+        "where": "Where"
+      },
+      "tryIt": "Try it",
+      "summary": "{searches, plural, one {# search} other {# searches}} across {terms, plural, one {# term} other {# terms}} found nothing in the last {count, plural, one {day} other {# days}}.",
+      "empty": {
+        "title": "Every search found something",
+        "description": "No search came up empty in the last {count, plural, one {day} other {# days}}."
+      },
+      "footnote": "Counted from the header search, the search results page and the AI assistant. A search narrowed by a filter (price, category, stock) is not counted, since the filter rather than the catalogue explains it. Kept for {retention} days."
     }
   },
   "vendor": {
@@ -6540,7 +7595,9 @@
     "earnings": "Earnings",
     "totalRevenue": "Total Revenue",
     "netEarnings": "Net Earnings",
+    "awaitingPayment": "{amount} awaiting payment",
     "totalOrders": "Total Orders",
+    "openOrdersCount": "{count} open",
     "activeProducts": "Active Products",
     "totalProducts": "Total Products",
     "commission": "Commission Paid",
@@ -6627,7 +7684,6 @@
     "active": "Active",
     "byStatus": "By Status",
     "unableToLoadData": "Unable to load analytics data. Make sure you are a registered vendor.",
-    "pending": "pending",
     "productsPage": {
       "subtitle": "Manage your products",
       "description": "View and manage your store products"
@@ -6755,6 +7811,7 @@
       "partially_refunded": "Partially refunded"
     },
     "fulfillmentStatus": {
+      "preordered": "Pre-ordered",
       "pending": "Unfulfilled",
       "processing": "Processing",
       "shipped": "In transit",
@@ -7193,7 +8250,12 @@
     "chatFailed": "AI chat failed",
     "orderPayment": "Payment",
     "orderTotal": "Total",
-    "viewOrder": "View order"
+    "viewOrder": "View order",
+    "fallback": {
+      "found": "Here is what I found in our store for that.",
+      "notFound": "I could not find that in our store.",
+      "limited": "I'm answering from the catalogue only right now."
+    }
   },
   "aiSalesAgentAdmin": {
     "header": {
@@ -7399,7 +8461,11 @@
         "temperature": "Temperature",
         "temperatureDescription": "Lower = more focused, higher = more creative (0–1).",
         "maxRecommendations": "Max recommendations",
-        "maxRecommendationsDescription": "Maximum products surfaced in a single reply (1–8)."
+        "maxRecommendationsDescription": "Maximum products surfaced in a single reply (1–8).",
+        "monthlyTokenBudget": "Monthly token budget",
+        "monthlyTokenBudgetDescription": "Tokens the assistant may spend per calendar month across all chats. 0 = unlimited. Once the budget is reached, shoppers get catalogue answers without the model until the month turns.",
+        "monthlyTokenUsage": "Used this month ({month}): {tokens} tokens across {requests} model replies.",
+        "monthlyTokenBudgetReached": "Budget reached — shoppers are getting catalogue answers without the model until next month."
       },
       "capabilities": {
         "title": "Capabilities"
@@ -7760,6 +8826,7 @@
     },
     "chatWithVendor": "Chat with vendor",
     "chatWithStore": "Chat with store",
+    "chatWithSeller": "Chat with Seller",
     "startConversation": "Start a conversation",
     "startDescription": "Ask about availability, delivery, variants, or anything else.",
     "writeMessage": "Write a message…",
@@ -8045,7 +9112,6 @@
       "checkPhone": "Check your phone and approve the payment request.",
       "pollTimeout": "We could not confirm the payment yet. It will activate automatically once confirmed.",
       "pendingInfo": "Payment is still processing — the boost activates automatically once confirmed.",
-      "verifyFailed": "Payment could not be verified",
       "failed": "Failed to start the payment",
       "loadFailed": "Failed to load the boost ladder",
       "stepSlot": "Slot & dates",
@@ -8280,6 +9346,8 @@
       "processing_fees": "Payment fees",
       "shipping_cost": "Shipping labels",
       "cost_of_goods": "Cost of goods",
+      "promotions": "Store-funded discounts",
+      "chargeback_losses": "Chargeback losses",
       "operating_expense": "Operating expenses"
     },
     "overview": {
@@ -8433,6 +9501,19 @@
       "vendorHint": "Required: this balance is reported per vendor as well as in total, and both have to move together.",
       "currency": "Currency",
       "currencyHint": "The currency the balance was recorded in — a correction in another one opens a new balance instead of fixing this one."
+    },
+    "balance": {
+      "title": "What you are owed",
+      "ready": "Ready for the next payout",
+      "readyHint": "From {count} delivered orders, past the return window",
+      "belowMinimum": "A payout is made once this reaches {amount}",
+      "held": "Waiting out the return window",
+      "heldHint": "Delivered, and payable {days} days after delivery",
+      "reserve": "Held against pre-orders",
+      "reserveHint": "Released from {date}",
+      "reserveUndated": "Released with a later payout",
+      "owedBack": "Owed back to the store",
+      "owedBackHint": "Paid to you on orders refunded since; it comes off your next payout"
     }
   },
   "install": {
@@ -8440,13 +9521,17 @@
     "subtitle": "A few steps and you are selling",
     "checking": "Checking your environment…",
     "checkTitle": "System check",
-    "nodeTooOld": "Node.js 22 or newer is required",
+    "nodeTooOld": "Node.js 22.12 or newer is required",
     "database": "MongoDB connection",
     "databaseHint": "Check MONGODB_URI and MONGODB_DB_NAME in .env, and that the database accepts connections from this server",
     "authSecret": "Authentication secret",
     "appUrl": "Application URL",
-    "appUrlHint": "Set NEXT_PUBLIC_APP_URL in .env to your store's URL",
-    "blockedHint": "Fix the items above, then check again — installation cannot continue until they pass.",
+    "appUrlMissing": "NEXT_PUBLIC_APP_URL is not set, so signing in calls http://localhost:3000 instead of {origin}. Set it in .env, then rebuild and restart.",
+    "appUrlInvalid": "{variable} is “{value}”, which is not a full URL. Use the form https://your-store.com in .env, then rebuild and restart.",
+    "appUrlMismatch": "NEXT_PUBLIC_APP_URL is {value}, but this installer is open on {origin}, so signing in here would fail. Make them match, then rebuild and restart.",
+    "authUrlMismatch": "BETTER_AUTH_URL is {value}, but this installer is open on {origin}. Sign-in emails and social login would send people there. Make them match, then restart.",
+    "notChecked": "Not checked — the installer could not reach its database",
+    "blockedHint": "Fix the items above — restart the app after editing .env — then check again. Installation cannot continue until they pass.",
     "retry": "Check again",
     "adminTitle": "Create your admin account",
     "adminName": "Your name",
@@ -8455,7 +9540,9 @@
     "storeTitle": "Store basics",
     "storeName": "Store name",
     "language": "Default language",
-    "currency": "Currency code",
+    "searchLanguage": "Search language…",
+    "currency": "Currency",
+    "searchCurrency": "Search currency…",
     "multiVendor": "Multi-vendor marketplace",
     "multiVendorHint": "Let other sellers open stores. You can change this later in Settings.",
     "pos": "Point of sale",
@@ -8479,7 +9566,7 @@
       "publicUrl": "Public URL"
     },
     "templateTitle": "Choose your storefront template",
-    "sampleData": "Import this template's demo store",
+    "sampleData": "Import this {template} template's demo store data",
     "sampleDataHint": "Its catalog, collections and storefront, owned by your store. No demo logins or orders are created. Skip to start empty.",
     "back": "Back",
     "continue": "Continue",

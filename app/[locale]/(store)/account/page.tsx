@@ -10,6 +10,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerDashboard } from "@/components/account/customer-dashboard";
 import { ensureCustomerProfile } from "@/lib/customers/customer";
+import { listPendingReviews } from "@/lib/catalog/review-eligibility";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -73,6 +74,16 @@ async function getRecentOrders(userId: string) {
   }));
 }
 
+async function getPendingReviews(userId: string) {
+  await connectDB();
+
+  // A prompt, not the page: if it fails, the overview renders without it.
+  return listPendingReviews(userId).catch((error) => {
+    console.error("Failed to load pending reviews:", error);
+    return [];
+  });
+}
+
 export default async function AccountPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -95,9 +106,10 @@ export default async function AccountPage({ params }: PageProps) {
   }
   const user = session.user;
 
-  const [stats, recentOrders] = await Promise.all([
+  const [stats, recentOrders, pendingReviews] = await Promise.all([
     getCustomerStats(user.id),
     getRecentOrders(user.id),
+    getPendingReviews(user.id),
   ]);
 
   return (
@@ -111,6 +123,7 @@ export default async function AccountPage({ params }: PageProps) {
         }}
         stats={stats}
         recentOrders={recentOrders}
+        pendingReviews={pendingReviews}
       />
     </Suspense>
   );

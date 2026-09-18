@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   BarChart3,
+  SearchX,
   ClipboardList,
   LayoutDashboard,
   MessageSquare,
@@ -42,6 +43,8 @@ import {
 import { useAppSettings as usePublicAppSettings } from "@/providers/app-settings-provider";
 import { useAppTheme } from "@/providers/theme-provider";
 import { AppImage } from "@/components/ui/app-image";
+import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
+import { useInboxUnreadCount } from "@/hooks/use-inbox-unread-count";
 import type { Locale } from "@/config/i18n.config";
 
 interface NavItem {
@@ -139,12 +142,20 @@ function buildStaffNav(
   }
 
   if (has(STAFF_PERMISSIONS.VIEW_ANALYTICS)) {
-    mainItems.push({
-      key: "analytics",
-      href: `/${locale}/staff/analytics`,
-      label: "admin.sidebar.analytics",
-      icon: BarChart3,
-    });
+    mainItems.push(
+      {
+        key: "analytics",
+        href: `/${locale}/staff/analytics`,
+        label: "admin.sidebar.analytics",
+        icon: BarChart3,
+      },
+      {
+        key: "search-insights",
+        href: `/${locale}/staff/analytics/search`,
+        label: "admin.sidebar.searchInsights",
+        icon: SearchX,
+      },
+    );
   }
 
   if (
@@ -226,6 +237,15 @@ export function StaffSidebar({
   const navGroups = React.useMemo(
     () => buildStaffNav(locale, permissions, posEnabled),
     [locale, permissions, posEnabled],
+  );
+
+  // Polled only when Inbox is in the nav — without inbox access the endpoint
+  // answers 403 on every tick.
+  const hasInboxEntry = navGroups.some((group) =>
+    group.items.some((item) => item.key === "inbox"),
+  );
+  const inboxUnread = useInboxUnreadCount(
+    hasInboxEntry && basePath !== "/staff/pos",
   );
 
   const isRTL = locale === "ar" || rtl;
@@ -330,8 +350,21 @@ export function StaffSidebar({
       } as React.CSSProperties)
     : undefined;
 
-  const isItemActive = (href: string) =>
-    basePath === href || basePath.startsWith(`${href}/`);
+  // The longest nav href the path sits under is the one open. Plain prefix
+  // matching lit "Analytics" and "Search insights" together on the latter,
+  // whose URL nests under the former's.
+  const navHrefs = navGroups.flatMap((group) =>
+    group.items.map((item) => item.href.replace(`/${locale}`, "")),
+  );
+  const isItemActive = (href: string) => {
+    if (basePath === href) return true;
+    if (!basePath.startsWith(`${href}/`)) return false;
+    return !navHrefs.some(
+      (other) =>
+        other.length > href.length &&
+        (basePath === other || basePath.startsWith(`${other}/`)),
+    );
+  };
 
   if (basePath === "/staff/pos") {
     return null;
@@ -398,6 +431,7 @@ export function StaffSidebar({
                   const active = isItemActive(
                     item.href.replace(`/${locale}`, ""),
                   );
+                  const count = item.key === "inbox" ? inboxUnread : 0;
                   return (
                     <SidebarMenuItem
                       key={item.key}
@@ -420,10 +454,21 @@ export function StaffSidebar({
                       >
                         <Link prefetch={false} href={item.href} className="relative w-full">
                           <div className="flex w-full items-center gap-3 group-data-[collapsible=icon]:justify-center">
-                            <Icon className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-5" />
+                            <span className="relative inline-flex shrink-0">
+                              <Icon className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-5" />
+                              <SidebarCountBadge
+                                count={count}
+                                isApparent={isApparent}
+                                rail
+                              />
+                            </span>
                             <span className="group-data-[collapsible=icon]:hidden">
                               {tLabel(item.label)}
                             </span>
+                            <SidebarCountBadge
+                              count={count}
+                              isApparent={isApparent}
+                            />
                           </div>
                           <span
                             className={cn(

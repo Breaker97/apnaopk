@@ -3,7 +3,7 @@ import { User, PasswordReset } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { Types } from "mongoose";
-import { sendEmail } from "@/lib/email/email";
+import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { getSettings } from "@/models/settings.model";
 import { defaultLocale, isValidLocale } from "@/config/i18n.config";
 import {
@@ -53,7 +53,7 @@ export const POST = withApi<{ id: string }>(
 
     // Check email is configured
     const settings = await getSettings();
-    if (!settings.email?.enabled) {
+    if (!isEmailDeliveryConfigured(settings)) {
       throw new ValidationError(
         "Email is not configured. Please configure SMTP settings first.",
       );

@@ -184,6 +184,23 @@ const MTN_MOMO_CALLING_CODES: Record<string, string> = {
 };
 
 /**
+ * Example wallet number per OpCo, shown as the wallet-number placeholder at
+ * checkout and in vendor payments, in the international format every OpCo
+ * accepts. Liberia is the fallback: it is
+ * the market the storefront launched in, and an unset target environment only
+ * happens before onboarding.
+ */
+const MTN_MOMO_EXAMPLE_NUMBERS: Record<string, string> = {
+  mtnliberia: "231881234567",
+  mtnuganda: "256772123456",
+};
+
+export function mtnMomoPhoneExample(targetEnvironment?: string | null): string {
+  const normalized = String(targetEnvironment || "").trim().toLowerCase();
+  return MTN_MOMO_EXAMPLE_NUMBERS[normalized] || MTN_MOMO_EXAMPLE_NUMBERS.mtnliberia;
+}
+
+/**
  * Converts a shopper-typed number into the MSISDN MoMo expects, e.g. for
  * `mtnuganda`:
  *   "0772 123 456"  -> "256772123456"

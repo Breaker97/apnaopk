@@ -20,7 +20,7 @@ import {
 import { STAFF_USER_ROLES } from "@/lib/access/staff-role";
 import { VENDOR_OWNED_STAFF_FILTER } from "@/lib/access/staff-ownership";
 import { hasVendorPermission } from "@/lib/access/rbac";
-import { sendEmail } from "@/lib/email/email";
+import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { defaultLocale, isValidLocale } from "@/config/i18n.config";
 import {
   DEFAULT_PRIMARY_COLOR,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!user) throw new ValidationError("Staff member not found");
 
     const settings = await getSettings();
-    if (!settings.email?.enabled) {
+    if (!isEmailDeliveryConfigured(settings)) {
       throw new ValidationError(
         "Email is not configured. Please configure SMTP settings first.",
       );

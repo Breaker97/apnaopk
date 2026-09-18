@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { resolvePayPalCredentials } from "@/lib/settings/credentials";
 import { systemActor } from "@/lib/orders/audit-order";
 import { getSettings } from "@/models/settings.model";
-import { after, NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { handleApiError, ValidationError } from "@/lib/api/errors";
 import { finalizePayPalOrder } from "@/lib/payments/paypal-orders";
+import { settlePreorderBalanceFromPayPal } from "@/lib/payments/preorder-balance-paypal";
 import {
   findPlatformPaymentByPayPalOrderId,
   verifyPlatformPayment,
@@ -55,6 +56,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // A pre-order balance paid with PayPal comes back through this route too —
+    // PayPal returns every approval the same way. It is tried before checkout's
+    // finalizer, which would find no pending order for it and fail a payment
+    // the shopper has already approved. Not a balance at all → falls through.
+    const balance = await settlePreorderBalanceFromPayPal({
+      paypalOrderId: orderId,
+      settings,
+    });
+    if (balance.reason !== "not_a_balance_order") {
+      return NextResponse.json({
+        success: true,
+        data: {
+          preorderBalance: true,
+          // Paid now, or paid already — either way the shopper owes nothing.
+          settled: balance.settled || Boolean(balance.alreadySettled),
+          orderId: balance.orderId,
+          orderNumber: balance.orderNumber,
+          reason: balance.reason,
+        },
+      });
+    }
+
     // Money is taken inside the finalizer, only for an order that is still
     // pending and not cancelled; a replayed capture answers with the order
     // number and takes nothing twice.
@@ -70,9 +93,6 @@ export async function POST(request: NextRequest) {
       cartSessionId,
       customerEmail: session?.user?.email || undefined,
       actor: systemActor(request),
-      // Confirmation email (PDF invoice + SMTP) and notifications run after
-      // the response streams so the customer isn't held on the success page.
-      schedule: (task) => after(task),
     });
 
     return NextResponse.json({

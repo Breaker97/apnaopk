@@ -19,6 +19,7 @@ import { memo, useRef, useState, useCallback } from "react";
 import { useSponsoredTracking } from "@/components/store/sponsored-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppImage } from "@/components/ui/app-image";
+import { CardBrandLogo } from "@/components/products/card-brand-logo";
 import { ModelViewer } from "@/components/ui/model-viewer";
 import { useCurrency } from "@/providers/currency-provider";
 import { useCart } from "@/hooks/use-cart";
@@ -46,8 +47,12 @@ import {
   isQuoteOnlyProduct,
 } from "@/lib/products/quote-pricing";
 import { trackAddToCart } from "@/lib/analytics/events";
-import { useProductCardConfig } from "@/components/products/product-card-config-context";
+import {
+  useCardBrandDirectory,
+  useProductCardConfig,
+} from "@/components/products/product-card-config-context";
 import { useQuickViewOpener } from "@/components/products/quick-view-context";
+import { useListingView } from "@/components/products/listing-view";
 import {
   cardButtonCss,
   cardChromeCss,
@@ -56,6 +61,7 @@ import {
   cardTypographyCss,
   visibleProductCardGroups,
   productCardElementOn,
+  resolveCardBrand,
   type ProductCardElement,
 } from "@/lib/products/product-card-config";
 
@@ -427,8 +433,17 @@ export const ModernProductCard = memo(function ModernProductCard({
   const vis = cardConfig.visibility;
   const cardAction = cardConfig.action;
   const cardStyle = cardConfig.style;
+  const cardBrands = useCardBrandDirectory();
+  /**
+   * Every control ON the card wears the Action button's radius — the hover
+   * pills, the heart and compare toggles, the touch quick-add — so a merchant
+   * who squares the button off does not find round pills beside it.
+   */
+  const buttonRadius = { borderRadius: cardStyle.cartRadius };
   const typography = cardStyle.typography;
   const orderedGroups = visibleProductCardGroups(cardConfig.groups);
+  // A listing toolbar set to list view: picture beside the details, from lg.
+  const listView = useListingView() === "list";
   const cartOn =
     showAddToCart && productCardElementOn(cardConfig.groups, "cart");
   const priceOn = productCardElementOn(cardConfig.groups, "price");
@@ -438,7 +453,8 @@ export const ModernProductCard = memo(function ModernProductCard({
     product.reviewCount > 0;
   const categoryName =
     typeof product.category === "object" ? product.category?.name : undefined;
-  const brandName = product.vendorId?.storeName;
+  const sellerName = product.vendorId?.storeName;
+  const cardBrand = resolveCardBrand(product.brand, cardBrands);
   const soldCount = product.soldCount ?? 0;
   const variantTotal = product.variants?.length ?? 0;
   const variantExtra =
@@ -770,6 +786,7 @@ export const ModernProductCard = memo(function ModernProductCard({
               <button
                 onClick={handleWishlistToggle}
                 disabled={isTogglingWishlist}
+                style={buttonRadius}
                 className={cn(
                   // 28px is the drawn size on a phone; the pseudo-element
                   // takes the REACH to 44px without moving the design. From
@@ -825,6 +842,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                 )}
                 aria-pressed={inCompare}
                 aria-label={inCompare ? t("compare.remove") : t("compare.add")}
+                style={buttonRadius}
               >
                 <Scale className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
               </button>
@@ -845,6 +863,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                       ? preorderNowLabel
                       : t("common.addToCart")
                 }
+                style={buttonRadius}
                 className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-foreground text-background shadow-md transition-transform before:absolute before:-inset-2 before:content-[''] active:scale-90 [@media(hover:hover)]:hidden"
               >
                 {isAddingToCart ? (
@@ -874,6 +893,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                   <button
                     onClick={handleAddToCart}
                     disabled={isAddingToCart}
+                    style={buttonRadius}
                     className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-full bg-foreground px-2 text-[11px] font-semibold leading-none text-background shadow-lg transition-colors hover:bg-foreground/90"
                   >
                     {isAddingToCart ? (
@@ -893,6 +913,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                 {showQuickView && openQuickView && (
                   <button
                     onClick={handleQuickView}
+                    style={buttonRadius}
                     className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-full border border-border/60 bg-background/95 px-2 text-[11px] font-semibold leading-none text-foreground shadow-lg transition-colors hover:bg-background"
                   >
                     <Maximize2 className="h-3.5 w-3.5 shrink-0" />
@@ -938,14 +959,35 @@ export const ModernProductCard = memo(function ModernProductCard({
       }
 
       case "brand":
-        if (!brandName) return null;
-        return (
+        if (!cardBrand) return null;
+        // A brand without a logo prints its name in either mode, so a mixed
+        // catalogue never shows a hole where the logo would be.
+        return cardStyle.brandDisplay === "logo" && cardBrand.logo ? (
+          <CardBrandLogo
+            key={key}
+            src={cardBrand.logo}
+            name={cardBrand.name}
+            height={cardStyle.brandLogoHeight}
+          />
+        ) : (
           <p
             key={key}
             className="truncate px-0.5 text-xs font-semibold text-foreground"
             style={cardTypographyCss(typography.brand)}
           >
-            {brandName}
+            {cardBrand.name}
+          </p>
+        );
+
+      case "seller":
+        if (!sellerName) return null;
+        return (
+          <p
+            key={key}
+            className="truncate px-0.5 text-xs font-semibold text-foreground"
+            style={cardTypographyCss(typography.seller)}
+          >
+            {sellerName}
           </p>
         );
 
@@ -1213,6 +1255,41 @@ export const ModernProductCard = memo(function ModernProductCard({
     }
   };
 
+  const groupNodes = orderedGroups.flatMap((keys, index) => {
+    const children = keys
+      .map((elementKey) => renderElement(elementKey))
+      .filter(Boolean);
+    // A group whose elements all declined to render (e.g. only "stock"
+    // while in stock) must not leave an empty box adding a double gap.
+    if (children.length === 0) return [];
+    // A closing group holding only the action button pins to the bottom
+    // edge when a host stretches the card, so a shelf row's buttons
+    // line up whatever the copy above them did.
+    const pinned =
+      index === orderedGroups.length - 1 &&
+      keys.length === 1 &&
+      keys[0] === "cart";
+    return [
+      {
+        media: keys.includes("preview"),
+        node: (
+          <div
+            key={index}
+            className={cn(
+              "flex flex-col",
+              // In list view the action button sits under the details,
+              // not pinned to the foot of a stretched card.
+              pinned && !listView && "mt-auto",
+            )}
+            style={{ gap: cardStyle.itemGap }}
+          >
+            {children}
+          </div>
+        ),
+      },
+    ];
+  });
+
   return (
     <Link
       ref={cardRef}
@@ -1226,30 +1303,30 @@ export const ModernProductCard = memo(function ModernProductCard({
       )}
       style={{ gap: cardStyle.groupGap, ...cardChromeCss(cardStyle) }}
     >
-      {orderedGroups.map((keys, index) => {
-        const children = keys
-          .map((elementKey) => renderElement(elementKey))
-          .filter(Boolean);
-        // A group whose elements all declined to render (e.g. only "stock"
-        // while in stock) must not leave an empty box adding a double gap.
-        if (children.length === 0) return null;
-        // A closing group holding only the action button pins to the bottom
-        // edge when a host stretches the card, so a shelf row's buttons
-        // line up whatever the copy above them did.
-        const pinned =
-          index === orderedGroups.length - 1 &&
-          keys.length === 1 &&
-          keys[0] === "cart";
-        return (
+      {listView ? (
+        // List view: the group holding the picture becomes a fixed column
+        // and every other group stacks beside it. Below lg the two columns
+        // stack again, which is the grid card exactly.
+        <div
+          className="flex flex-col lg:flex-row lg:items-start lg:gap-8"
+          style={{ rowGap: cardStyle.groupGap }}
+        >
           <div
-            key={index}
-            className={cn("flex flex-col", pinned && "mt-auto")}
-            style={{ gap: cardStyle.itemGap }}
+            className="flex flex-col lg:w-64 lg:shrink-0"
+            style={{ gap: cardStyle.groupGap }}
           >
-            {children}
+            {groupNodes.filter((group) => group.media).map((group) => group.node)}
           </div>
-        );
-      })}
+          <div
+            className="flex min-w-0 flex-1 flex-col"
+            style={{ gap: cardStyle.groupGap }}
+          >
+            {groupNodes.filter((group) => !group.media).map((group) => group.node)}
+          </div>
+        </div>
+      ) : (
+        groupNodes.map((group) => group.node)
+      )}
     </Link>
   );
 });

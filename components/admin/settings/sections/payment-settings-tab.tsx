@@ -29,12 +29,14 @@ import {
 import { SecretInput } from "@/components/admin/settings/fields/secret-input";
 import { useCredentialMeta } from "@/components/admin/settings/fields/use-credential-meta";
 import { EnvSourceHint } from "@/components/admin/settings/fields/env-source-hint";
+import { WebhookUrlRow } from "@/components/admin/settings/fields/webhook-url-row";
 import {
   ModeBadge,
   ProviderCard,
   StatusBadge,
 } from "@/components/admin/settings/fields/provider-card";
 import type { Settings } from "@/components/admin/settings/types";
+import { useClientValue } from "@/hooks/use-client-value";
 import { StickySaveFooter } from "./sticky-save-footer";
 import { SettingsTabHeader } from "./settings-tab-header";
 
@@ -74,6 +76,9 @@ export function PaymentSettingsTab(props: {
 
   const stripe = settings.payment?.stripe;
   const razorpay = settings.payment?.razorpay;
+  // The public origin is only knowable in the browser; rendering it on the
+  // server would bake a build-time host into a URL operators copy-paste.
+  const webhookOrigin = useClientValue(() => window.location.origin, "");
   const paystack = settings.payment?.paystack;
   const pesapal = settings.payment?.pesapal;
   const iotec = settings.payment?.iotec;
@@ -160,17 +165,39 @@ export function PaymentSettingsTab(props: {
     );
   };
 
-  const enabledCount = [
-    stripe?.enabled,
-    razorpay?.enabled,
-    paystack?.enabled,
-    pesapal?.enabled,
-    iotec?.enabled,
-    orangeMoney?.enabled,
-    mtnMomo?.enabled,
-    paypal?.enabled,
-    cod?.enabled,
-  ].filter(Boolean).length;
+  // A switch alone does not put a gateway on the checkout: it also needs its
+  // keys and, for the per-country wallets, a store currency they settle. The
+  // server applies that rule for the storefront and reports it here from the
+  // saved settings, so a switched-on gateway that checkout will not offer says
+  // why instead of silently going missing.
+  const checkoutGateways = settings._meta?.checkoutGateways;
+  const checkoutNote = (provider: ProviderId, enabled: boolean | undefined) => {
+    const readiness = checkoutGateways?.[provider];
+    if (!enabled || !readiness || readiness.ready) return undefined;
+    if (readiness.missing === "currency") {
+      return `Hidden at checkout: it only takes ${readiness.currencies.join(", ")}, not the store currency. Change the currency in General Settings to offer it.`;
+    }
+    return "Hidden at checkout until its keys are saved.";
+  };
+
+  const gatewaySwitches: Record<ProviderId, boolean | undefined> = {
+    stripe: stripe?.enabled,
+    paypal: paypal?.enabled,
+    razorpay: razorpay?.enabled,
+    paystack: paystack?.enabled,
+    pesapal: pesapal?.enabled,
+    iotec: iotec?.enabled,
+    orange_money: orangeMoney?.enabled,
+    mtn_momo: mtnMomo?.enabled,
+  };
+  // Counted the way checkout counts. Every switch used to count, so a store
+  // read "8 active" while checkout offered cash on delivery alone.
+  const activeCount =
+    (Object.keys(gatewaySwitches) as ProviderId[]).filter(
+      (provider) =>
+        gatewaySwitches[provider] &&
+        (checkoutGateways?.[provider]?.ready ?? true),
+    ).length + (cod?.enabled ? 1 : 0);
 
   return (
     <div className="relative">
@@ -178,7 +205,7 @@ export function PaymentSettingsTab(props: {
         <SettingsTabHeader
           title={t("admin.settings.payment.title")}
           description={t("admin.settings.payment.description")}
-          meta={<Badge variant="secondary">{enabledCount} active</Badge>}
+          meta={<Badge variant="secondary">{activeCount} active</Badge>}
         />
 
         {/* Stripe */}
@@ -188,6 +215,7 @@ export function PaymentSettingsTab(props: {
           description="Accept credit & debit cards globally"
           enabled={stripe?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.stripe.enabled", c)}
+          note={checkoutNote("stripe", stripe?.enabled)}
           badges={
             <>
               <StatusBadge configured={stripeConfigured} />
@@ -255,6 +283,7 @@ export function PaymentSettingsTab(props: {
           description="Trusted global checkout & wallet"
           enabled={paypal?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.paypal.enabled", c)}
+          note={checkoutNote("paypal", paypal?.enabled)}
           badges={
             <>
               <StatusBadge configured={paypalConfigured} />
@@ -342,9 +371,10 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<RazorpayLogo />}
           title="Razorpay"
-          description="Popular payment gateway for India"
+          description="Payments for India, and Malaysia through Razorpay Curlec"
           enabled={razorpay?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.razorpay.enabled", c)}
+          note={checkoutNote("razorpay", razorpay?.enabled)}
           badges={
             <>
               <StatusBadge configured={razorpayConfigured} />
@@ -403,9 +433,16 @@ export function PaymentSettingsTab(props: {
             maskedHint={cred("payment.razorpay.webhookSecret").hint}
             placeholderWhenSet="Saved (leave blank to keep)"
             placeholderWhenUnset="Webhook secret"
-            helperText="Saved secrets are not shown again for security."
+            helperText="The secret you set on that webhook. Saved secrets are not shown again for security."
           />
           <EnvSourceHint show={Boolean(env?.razorpay.webhookSecret)} />
+          {webhookOrigin ? (
+            <WebhookUrlRow
+              label="Webhook URL"
+              url={`${webhookOrigin}/api/payments/razorpay/webhook`}
+              helperText="Add it in the Razorpay Dashboard → Account & Settings → Webhooks, with the events payment.captured, order.paid, refund.created, refund.processed and refund.failed. It confirms a payment even when the shopper never makes it back to your store, which is common with FPX and other bank redirects."
+            />
+          ) : null}
         </ProviderCard>
 
         {/* Paystack */}
@@ -415,6 +452,7 @@ export function PaymentSettingsTab(props: {
           description="Modern payments for Africa"
           enabled={paystack?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.paystack.enabled", c)}
+          note={checkoutNote("paystack", paystack?.enabled)}
           badges={
             <>
               <StatusBadge configured={paystackConfigured} />
@@ -474,6 +512,7 @@ export function PaymentSettingsTab(props: {
           onToggle={(checked) =>
             updateNestedField("payment.pesapal.enabled", checked)
           }
+          note={checkoutNote("pesapal", pesapal?.enabled)}
           badges={
             <>
               <StatusBadge configured={pesapalConfigured} />
@@ -594,6 +633,7 @@ export function PaymentSettingsTab(props: {
           onToggle={(checked) =>
             updateNestedField("payment.iotec.enabled", checked)
           }
+          note={checkoutNote("iotec", iotec?.enabled)}
           badges={
             <>
               <StatusBadge configured={iotecConfigured} />
@@ -695,6 +735,7 @@ export function PaymentSettingsTab(props: {
           onToggle={(checked) =>
             updateNestedField("payment.orange_money.enabled", checked)
           }
+          note={checkoutNote("orange_money", orangeMoney?.enabled)}
           badges={
             <>
               <StatusBadge configured={orangeMoneyConfigured} />
@@ -828,6 +869,7 @@ export function PaymentSettingsTab(props: {
           onToggle={(checked) =>
             updateNestedField("payment.mtn_momo.enabled", checked)
           }
+          note={checkoutNote("mtn_momo", mtnMomo?.enabled)}
           badges={
             <>
               <StatusBadge configured={mtnMomoConfigured} />

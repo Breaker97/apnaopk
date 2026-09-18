@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { mongoose } from "@/lib/db";
 import { Category, Collection, Product } from "@/models";
 import {
@@ -10,7 +9,13 @@ import {
   updateCollectionProductCount,
 } from "@/lib/catalog/collections";
 import type { CollectionCondition, CollectionSortOrder } from "@/types";
-import { escapeRegExp } from "@/lib/strings";
+import { escapeRegExp, slugify } from "@/lib/strings";
+import {
+  csvFileResponse,
+  csvLine,
+  datedCsvFilename,
+  parseCsv,
+} from "@/lib/catalog/csv";
 
 export const CATEGORY_CSV_HEADERS = [
   "id",
@@ -119,20 +124,6 @@ const COLLECTION_SORT_ORDERS = new Set<CollectionSortOrder>([
   "created-desc",
 ]);
 
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-function csvEscape(value: unknown) {
-  const text = value == null ? "" : String(value);
-  if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-  return text;
-}
-
 function objectId(value: unknown) {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -140,62 +131,6 @@ function objectId(value: unknown) {
     return String((value as { _id?: unknown })._id || "");
   }
   return String(value);
-}
-
-function parseCsv(text: string): CsvRow[] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < text.length; index++) {
-    const char = text[index];
-    const next = text[index + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        field += '"';
-        index++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-      continue;
-    }
-
-    if ((char === "\n" || char === "\r") && !inQuotes) {
-      if (char === "\r" && next === "\n") index++;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-      continue;
-    }
-
-    field += char;
-  }
-
-  row.push(field);
-  rows.push(row);
-
-  const [rawHeaders, ...bodyRows] = rows.filter((items) =>
-    items.some((item) => item.trim()),
-  );
-  if (!rawHeaders) return [];
-
-  const headers = rawHeaders.map((header) => header.trim());
-  return bodyRows.map((items) => {
-    const record: CsvRow = {};
-    headers.forEach((header, index) => {
-      record[header] = (items[index] || "").trim();
-    });
-    return record;
-  });
 }
 
 function splitList(value: string) {
@@ -217,17 +152,6 @@ function parseNumber(value: string, fallback: number) {
   if (!value.trim()) return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function csvResponse(csv: string, prefix: string) {
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${prefix}-${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv"`,
-    },
-  });
 }
 
 function importLimitResult(rowCount: number): ImportResult | null {
@@ -293,7 +217,7 @@ async function resolveParentCategoryId(
       .lean();
   }
   if (!parent) {
-    const slug = toHandle(value);
+    const slug = slugify(value);
     parent = await Category.findOne({
       $or: [
         { slug },
@@ -348,7 +272,7 @@ async function resolveProducts(row: CsvRow) {
   }
 
   for (const label of labels) {
-    const slug = toHandle(label);
+    const slug = slugify(label);
     const product = await Product.findOne({
       $or: [
         { slug },
@@ -445,10 +369,13 @@ export async function categoriesCsvResponse(
   );
   const rows = categories.map((category) => {
     const record = buildCategoryCsvRow(category, parentNames);
-    return CATEGORY_CSV_HEADERS.map((header) => csvEscape(record[header])).join(",");
+    return csvLine(CATEGORY_CSV_HEADERS.map((header) => record[header]));
   });
 
-  return csvResponse([CATEGORY_CSV_HEADERS.join(","), ...rows].join("\n"), prefix);
+  return csvFileResponse(datedCsvFilename(prefix), [
+    CATEGORY_CSV_HEADERS.join(","),
+    ...rows,
+  ]);
 }
 
 function buildCollectionCsvRow(
@@ -513,18 +440,18 @@ export async function collectionsCsvResponse(
   );
   const rows = collections.map((collection) => {
     const record = buildCollectionCsvRow(collection, productLabels);
-    return COLLECTION_CSV_HEADERS.map((header) => csvEscape(record[header])).join(",");
+    return csvLine(COLLECTION_CSV_HEADERS.map((header) => record[header]));
   });
 
-  return csvResponse(
-    [COLLECTION_CSV_HEADERS.join(","), ...rows].join("\n"),
-    prefix,
-  );
+  return csvFileResponse(datedCsvFilename(prefix), [
+    COLLECTION_CSV_HEADERS.join(","),
+    ...rows,
+  ]);
 }
 
 export async function importCategoriesCsv(csvText: string): Promise<ImportResult> {
-  const rows = parseCsv(csvText);
-  const limited = importLimitResult(rows.length);
+  const { records } = parseCsv(csvText);
+  const limited = importLimitResult(records.length);
   if (limited) return limited;
 
   const result: ImportResult = {
@@ -535,13 +462,10 @@ export async function importCategoriesCsv(csvText: string): Promise<ImportResult
   };
   const changedSlugs = new Set<string>();
 
-  for (let index = 0; index < rows.length; index++) {
-    const rowNumber = index + 2;
-    const row = rows[index];
-
+  for (const { row: rowNumber, values: row } of records) {
     try {
       const requestedId = row.id || row._id;
-      const requestedSlug = toHandle(row.slug || row.handle || "");
+      const requestedSlug = slugify(row.slug || row.handle || "");
       const existing =
         requestedId && mongoose.Types.ObjectId.isValid(requestedId)
           ? await Category.findById(requestedId).lean<CategoryForCsv | null>()
@@ -553,7 +477,7 @@ export async function importCategoriesCsv(csvText: string): Promise<ImportResult
       const name = (row.name || existing?.name || "").trim();
       if (!name) throw new Error("Name is required.");
 
-      const baseSlug = requestedSlug || toHandle(existing?.slug || name);
+      const baseSlug = requestedSlug || slugify(existing?.slug || name);
       if (!baseSlug) throw new Error("Slug could not be generated.");
 
       const slug = await uniqueCategorySlug(baseSlug, existingId);
@@ -580,7 +504,7 @@ export async function importCategoriesCsv(csvText: string): Promise<ImportResult
         const updated = await Category.findByIdAndUpdate(
           existingId,
           { $set: patch },
-          { new: true, runValidators: true },
+          { returnDocument: "after", runValidators: true },
         ).lean<CategoryForCsv | null>();
         changedSlugs.add(String(existing?.slug || ""));
         changedSlugs.add(String(updated?.slug || slug));
@@ -604,8 +528,8 @@ export async function importCategoriesCsv(csvText: string): Promise<ImportResult
 }
 
 export async function importCollectionsCsv(csvText: string): Promise<ImportResult> {
-  const rows = parseCsv(csvText);
-  const limited = importLimitResult(rows.length);
+  const { records } = parseCsv(csvText);
+  const limited = importLimitResult(records.length);
   if (limited) return limited;
 
   const result: ImportResult = {
@@ -616,13 +540,10 @@ export async function importCollectionsCsv(csvText: string): Promise<ImportResul
   };
   const changedSlugs = new Set<string>();
 
-  for (let index = 0; index < rows.length; index++) {
-    const rowNumber = index + 2;
-    const row = rows[index];
-
+  for (const { row: rowNumber, values: row } of records) {
     try {
       const requestedId = row.id || row._id;
-      const requestedSlug = toHandle(row.slug || row.handle || "");
+      const requestedSlug = slugify(row.slug || row.handle || "");
       const existing =
         requestedId && mongoose.Types.ObjectId.isValid(requestedId)
           ? await Collection.findById(requestedId).lean<CollectionForCsv | null>()
@@ -637,7 +558,7 @@ export async function importCollectionsCsv(csvText: string): Promise<ImportResul
       const title = (row.title || row.name || existing?.title || "").trim();
       if (!title) throw new Error("Title is required.");
 
-      const baseSlug = requestedSlug || toHandle(existing?.slug || title);
+      const baseSlug = requestedSlug || slugify(existing?.slug || title);
       if (!baseSlug) throw new Error("Slug could not be generated.");
 
       const collectionType =
@@ -702,7 +623,7 @@ export async function importCollectionsCsv(csvText: string): Promise<ImportResul
         const updated = await Collection.findByIdAndUpdate(
           existingId,
           { $set: patch },
-          { new: true, runValidators: true },
+          { returnDocument: "after", runValidators: true },
         ).lean<CollectionForCsv | null>();
         await syncManualCollectionProductRefs(existingId, oldProductIds, manualProductIds);
         await updateCollectionProductCount(existingId);

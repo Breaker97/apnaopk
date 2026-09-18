@@ -1,0 +1,95 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa5370a227c68b347e97b63"
+    },
+    "name": "Main Header",
+    "handle": "main-header",
+    "location": "header",
+    "description": "Primary navigation links shown in the store header.",
+    "items": [
+      {
+        "label": "Blog",
+        "url": "/blog",
+        "type": "page",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Track Order",
+        "url": "/track-order",
+        "type": "page",
+        "target": "_self",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-12T11:27:06.990Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-12T11:27:06.990Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa5370a227c68b347e97b64"
+    },
+    "name": "Mega Menu",
+    "handle": "main-mega-menu",
+    "location": "header-mega",
+    "description": "Layered storefront mega menu shown from the header category menu.",
+    "items": [
+      {
+        "label": "Bags",
+        "url": "/products?category=bags",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789370408766-wv4huh/78d7e9b2-771c-4107-a228-3bd565e703ff.webp",
+        "children": []
+      },
+      {
+        "label": "Dresses",
+        "url": "/products?category=dresses",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789327810310-j45uws/dress.webp",
+        "children": [
+          {
+            "label": "Skirts",
+            "url": "/products?category=skirts",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789377018907-bu9k35/ChatGPT_Image_Sep_14__2026__03_10_10_PM.webp",
+            "children": []
+          },
+          {
+            "label": "Tops",
+            "url": "/products?category=s",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789367641020-kzgf9r/OnPaste.20260914-123353.webp",
+            "children": []
+          }
+        ]
+      },
+      {
+        "label": "Shoes",
+        "url": "/products?category=shoes",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789371133106-8meltk/ChatGPT_Image_Sep_14__2026__01_31_53_PM.webp",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-12T11:27:06.990Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-17T07:48:22.378Z"
+    }
+  }
+]

@@ -205,7 +205,7 @@ export const PUT = withApi<{ id: string }>(
     const category = await Category.findByIdAndUpdate(
       id,
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
 
     if (!category) {

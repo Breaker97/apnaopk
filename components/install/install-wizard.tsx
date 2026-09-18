@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  CircleDashed,
   Loader2,
   RefreshCw,
   Store,
@@ -19,11 +20,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { FlagIcon } from "@/components/ui/flag-icon";
 import { StorageProviderToggle } from "@/components/admin/storage-provider-toggle";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { apiClient, ApiClientError } from "@/lib/api/client";
-import { isPreflightBlocking } from "@/lib/install/payload";
+import {
+  findAppUrlProblem,
+  isPreflightBlocking,
+  type AppUrlProblem,
+} from "@/lib/install/payload";
 import type { StorageProvider } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
@@ -44,12 +50,23 @@ interface InstallStatus {
     nodeOk: boolean;
     databaseOk: boolean;
     authSecretProblem: string | null;
-    appUrlSet: boolean;
+    authUrl: string | null;
   };
   passwordHint?: string;
   /** `.env` already carries a usable credential set — see the storage step. */
   storageFromEnv?: boolean;
 }
+
+/** Every language the app ships, by native name; the English name is searchable too. */
+const LANGUAGE_OPTIONS = locales.map((code) => {
+  const config = localeConfig[code];
+  return {
+    value: code,
+    label: config.nativeName,
+    keywords: config.name,
+    icon: <FlagIcon countryCode={config.countryCode} size={20} />,
+  };
+});
 
 type Step = "check" | "admin" | "store" | "storage" | "template" | "done";
 const STEPS: Step[] = ["check", "admin", "store", "storage", "template"];
@@ -168,9 +185,12 @@ const STORAGE_FIELDS: Record<StorageProvider, StorageField[]> = {
  */
 export function InstallWizard({
   locale,
+  currencies,
   templates,
 }: {
   locale: string;
+  /** Every currency the install API accepts, built on the server. */
+  currencies: { value: string; label: string; keywords: string }[];
   templates: TemplateOption[];
 }) {
   const t = useTranslations();
@@ -273,22 +293,11 @@ export function InstallWizard({
         // falls through to `.env` and media already works.
         if (next.storageFromEnv) setSkipStorage(true);
       })
-      .catch(() =>
-        setStatus({
-          installed: false,
-          preflight: {
-            nodeVersion: "unknown",
-            nodeOk: true,
-            // The wizard cannot reach its own API. Report it as the failure
-            // it almost always is — nothing here can be trusted, so the
-            // blocking rule stops the run rather than letting it die at the
-            // last click.
-            databaseOk: false,
-            authSecretProblem: null,
-            appUrlSet: true,
-          },
-        }),
-      );
+      // The wizard cannot reach its own API. No preflight at all: the
+      // blocking rule stops the run, the database row reports the failure it
+      // almost always is, and every other row says it went unchecked — this
+      // used to invent green ticks for checks that never ran.
+      .catch(() => setStatus({ installed: false }));
   }, []);
 
   useEffect(() => {
@@ -325,6 +334,49 @@ export function InstallWizard({
   const stepIndex = STEPS.indexOf(step);
   const preflight = status?.preflight;
   const blocked = isPreflightBlocking(preflight);
+  // Status only ever loads in the browser, so `window` is there whenever a
+  // preflight is. The public URL is read here, not from the server: it is
+  // the value inlined into this bundle, the one the sign-in form will call.
+  const appUrlProblem = preflight
+    ? findAppUrlProblem({
+        publicUrl: process.env.NEXT_PUBLIC_APP_URL,
+        authUrl: preflight.authUrl,
+        pageOrigin: window.location.origin,
+      })
+    : null;
+  const notChecked = tSafe(
+    "install.notChecked",
+    "Not checked — the installer could not reach its database",
+  );
+
+  const describeAppUrlProblem = (problem: AppUrlProblem) => {
+    switch (problem.kind) {
+      case "missing":
+        return tSafe(
+          "install.appUrlMissing",
+          "NEXT_PUBLIC_APP_URL is not set, so signing in calls http://localhost:3000 instead of {origin}. Set it in .env, then rebuild and restart.",
+          { origin: problem.pageOrigin },
+        );
+      case "invalid":
+        return tSafe(
+          "install.appUrlInvalid",
+          "{variable} is “{value}”, which is not a full URL. Use the form https://your-store.com in .env, then rebuild and restart.",
+          { variable: problem.variable, value: problem.value },
+        );
+      case "mismatch":
+        return problem.variable === "BETTER_AUTH_URL"
+          ? tSafe(
+              "install.authUrlMismatch",
+              "BETTER_AUTH_URL is {value}, but this installer is open on {origin}. Sign-in emails and social login would send people there. Make them match, then restart.",
+              { value: problem.value, origin: problem.pageOrigin },
+            )
+          : tSafe(
+              "install.appUrlMismatch",
+              "NEXT_PUBLIC_APP_URL is {value}, but this installer is open on {origin}, so signing in here would fail. Make them match, then rebuild and restart.",
+              { value: problem.value, origin: problem.pageOrigin },
+            );
+    }
+  };
 
   const canContinue =
     step === "check"
@@ -334,7 +386,7 @@ export function InstallWizard({
           /.+@.+\..+/.test(admin.email) &&
           admin.password.length >= 8
         : step === "store"
-          ? store.name.trim().length > 0 && /^[A-Za-z]{3}$/.test(store.currency)
+          ? store.name.trim().length > 0
           : step === "storage"
             ? skipStorage || storageReady
             : Boolean(template);
@@ -384,16 +436,21 @@ export function InstallWizard({
                     {tSafe("install.checkTitle", "System check")}
                   </h2>
                   <CheckRow
-                    ok={Boolean(preflight?.nodeOk)}
-                    label={`Node.js ${preflight?.nodeVersion ?? ""}`}
+                    state={checkState(preflight?.nodeOk)}
+                    label={`Node.js ${preflight?.nodeVersion ?? ""}`.trim()}
                     detail={
-                      preflight?.nodeOk
-                        ? ""
-                        : tSafe("install.nodeTooOld", "Node.js 22 or newer is required")
+                      !preflight
+                        ? notChecked
+                        : preflight.nodeOk
+                          ? ""
+                          : tSafe(
+                              "install.nodeTooOld",
+                              "Node.js 22.12 or newer is required",
+                            )
                     }
                   />
                   <CheckRow
-                    ok={Boolean(preflight?.databaseOk)}
+                    state={preflight?.databaseOk ? "ok" : "problem"}
                     label={tSafe("install.database", "MongoDB connection")}
                     detail={
                       preflight?.databaseOk
@@ -405,20 +462,21 @@ export function InstallWizard({
                     }
                   />
                   <CheckRow
-                    ok={!preflight?.authSecretProblem}
+                    state={checkState(preflight && !preflight.authSecretProblem)}
                     label={tSafe("install.authSecret", "Authentication secret")}
-                    detail={preflight?.authSecretProblem ?? ""}
+                    detail={
+                      preflight ? (preflight.authSecretProblem ?? "") : notChecked
+                    }
                   />
                   <CheckRow
-                    ok={Boolean(preflight?.appUrlSet)}
+                    state={checkState(preflight && !appUrlProblem)}
                     label={tSafe("install.appUrl", "Application URL")}
                     detail={
-                      preflight?.appUrlSet
-                        ? ""
-                        : tSafe(
-                            "install.appUrlHint",
-                            "Set NEXT_PUBLIC_APP_URL in .env to your store's URL",
-                          )
+                      !preflight
+                        ? notChecked
+                        : appUrlProblem
+                          ? describeAppUrlProblem(appUrlProblem)
+                          : ""
                     }
                   />
                   {blocked ? (
@@ -426,7 +484,7 @@ export function InstallWizard({
                       <p className="text-xs text-muted-foreground">
                         {tSafe(
                           "install.blockedHint",
-                          "Fix the items above, then check again — installation cannot continue until they pass.",
+                          "Fix the items above — restart the app after editing .env — then check again. Installation cannot continue until they pass.",
                         )}
                       </p>
                       <Button
@@ -521,38 +579,44 @@ export function InstallWizard({
                     <Label htmlFor="install-language">
                       {tSafe("install.language", "Default language")}
                     </Label>
-                    <NativeSelect
+                    <SearchableSelect
                       id="install-language"
-                      className="w-full"
                       value={store.language}
-                      onChange={(event) =>
-                        setStore((current) => ({
-                          ...current,
-                          language: event.target.value,
-                        }))
+                      onValueChange={(language) =>
+                        setStore((current) => ({ ...current, language }))
                       }
-                    >
-                      {locales.map((code) => (
-                        <option key={code} value={code}>
-                          {localeConfig[code as Locale]?.nativeName ?? code}
-                        </option>
-                      ))}
-                    </NativeSelect>
+                      options={LANGUAGE_OPTIONS}
+                      icon={
+                        <FlagIcon
+                          countryCode={
+                            localeConfig[store.language as Locale]?.countryCode ?? ""
+                          }
+                          size={20}
+                        />
+                      }
+                      searchPlaceholder={tSafe(
+                        "install.searchLanguage",
+                        "Search language…",
+                      )}
+                      emptyText={tSafe("common.noResults", "No results found")}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="install-currency">
-                      {tSafe("install.currency", "Currency code")}
+                      {tSafe("install.currency", "Currency")}
                     </Label>
-                    <Input
+                    <SearchableSelect
                       id="install-currency"
                       value={store.currency}
-                      maxLength={3}
-                      onChange={(event) =>
-                        setStore((current) => ({
-                          ...current,
-                          currency: event.target.value.toUpperCase(),
-                        }))
+                      onValueChange={(currency) =>
+                        setStore((current) => ({ ...current, currency }))
                       }
+                      options={currencies}
+                      searchPlaceholder={tSafe(
+                        "install.searchCurrency",
+                        "Search currency…",
+                      )}
+                      emptyText={tSafe("common.noResults", "No results found")}
                     />
                   </div>
                 </div>
@@ -798,7 +862,11 @@ export function InstallWizard({
                     <span className="block text-sm font-medium">
                       {tSafe(
                         "install.sampleData",
-                        "Import this template's demo store",
+                        "Import this {template} template's demo store data",
+                        {
+                          template:
+                            templates.find((option) => option.id === template)?.name ?? "",
+                        },
                       )}
                     </span>
                     <span className="block text-xs text-muted-foreground">
@@ -899,21 +967,31 @@ export function InstallWizard({
   );
 }
 
+type CheckState = "ok" | "problem" | "unchecked";
+
+/** No preflight = the check never ran, which is neither a pass nor a fail. */
+function checkState(passed: boolean | undefined): CheckState {
+  if (passed === undefined) return "unchecked";
+  return passed ? "ok" : "problem";
+}
+
 function CheckRow({
-  ok,
+  state,
   label,
   detail,
 }: {
-  ok: boolean;
+  state: CheckState;
   label: string;
   detail: string;
 }) {
   return (
     <div className="flex items-start gap-2.5 rounded-md border border-border p-3">
-      {ok ? (
+      {state === "ok" ? (
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
-      ) : (
+      ) : state === "problem" ? (
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+      ) : (
+        <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       )}
       <span className="min-w-0">
         <span className="block text-sm font-medium">{label}</span>

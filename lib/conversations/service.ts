@@ -50,6 +50,7 @@ import {
 } from "@/models/conversation-participant.model";
 import { NotificationType } from "@/models/notification.model";
 import type {
+  ConversationDraftPreview,
   ConversationDTO,
   ConversationMessageDTO,
   ConversationQuery,
@@ -199,6 +200,20 @@ export function getConversationAccessQuery(
   return { guestKeyHash: viewer.guestKeyHash };
 }
 
+function serializeProductContext(
+  context: NonNullable<ConversationTarget["productContext"]>,
+): NonNullable<ConversationDTO["productContext"]> {
+  return {
+    productId: id(context.productId),
+    vendorId: id(context.vendorId) || undefined,
+    name: context.name,
+    slug: context.slug,
+    image: context.image,
+    variantId: id(context.variantId) || undefined,
+    variantName: context.variantName,
+  };
+}
+
 export function serializeConversation(
   conversation: IConversation | Record<string, unknown>,
   viewer: ConversationViewer,
@@ -254,17 +269,7 @@ export function serializeConversation(
               : undefined,
         }
       : undefined,
-    productContext: context
-      ? {
-          productId: id(context.productId),
-          vendorId: id(context.vendorId) || undefined,
-          name: context.name,
-          slug: context.slug,
-          image: context.image,
-          variantId: id(context.variantId) || undefined,
-          variantName: context.variantName,
-        }
-      : undefined,
+    productContext: context ? serializeProductContext(context) : undefined,
     lastMessageId: id(doc.lastMessageId) || undefined,
     lastMessagePreview: doc.lastMessagePreview,
     lastMessageAt: date(doc.lastMessageAt),
@@ -450,6 +455,39 @@ async function resolveTarget(params: {
   return { ownerType: CONVERSATION_OWNER_TYPES.PLATFORM };
 }
 
+/**
+ * A storefront chat button's context as the inbox shows it before the thread
+ * exists: who the first message will reach and the product it will carry.
+ * Resolved by `resolveTarget` itself, so the preview never promises a product
+ * the send path would not store. A context that no longer resolves — product
+ * gone, a variant from another product, live chat switched off — has no
+ * preview, and sending reports why.
+ */
+export async function previewConversationTarget(params: {
+  productId?: string;
+  vendorId?: string;
+  variantId?: string;
+}): Promise<ConversationDraftPreview | undefined> {
+  try {
+    const target = await resolveTarget(params);
+    return {
+      ownerName: target.ownerName,
+      productContext: target.productContext
+        ? serializeProductContext(target.productContext)
+        : undefined,
+    };
+  } catch (error) {
+    if (
+      error instanceof NotFoundError ||
+      error instanceof ValidationError ||
+      error instanceof ConflictError
+    ) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 async function ensureContact(params: {
   viewer: Extract<ConversationViewer, { kind: "customer" | "guest" }>;
   name: string;
@@ -478,7 +516,7 @@ async function ensureContact(params: {
   try {
     return await ConversationContact.findOneAndUpdate(query, update, {
       upsert: true,
-      new: true,
+      returnDocument: "after",
       setDefaultsOnInsert: true,
     });
   } catch (error) {
@@ -581,7 +619,7 @@ async function ensureCustomerParticipant(params: {
       },
       $setOnInsert: identity,
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 }
 
@@ -611,7 +649,7 @@ async function ensureStoreParticipant(params: {
       },
       $setOnInsert: { userId },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 }
 
@@ -651,7 +689,7 @@ export async function applyConversationHeader(
   update: UpdateQuery<IConversation>,
 ) {
   return Conversation.findOneAndUpdate({ _id: conversationId }, update, {
-    new: true,
+    returnDocument: "after",
   }).populate(CONVERSATION_HEADER_POPULATE);
 }
 
@@ -824,6 +862,38 @@ export async function getConversationFeedVersion(params: {
       ? new Date(newestUpdatedMessage.updatedAt as Date).getTime() || 0
       : 0,
   };
+}
+
+/**
+ * Unread messages across every thread this viewer can open — the number on
+ * the dashboard sidebar's Inbox entry.
+ *
+ * Summed from the per-thread counters rather than counted from messages, so it
+ * is the same number the inbox list's own unread pills add up to. Status is
+ * ignored on purpose, as it is by the inbox's "Unread" filter: an unread
+ * message on a resolved thread is still one nobody has read.
+ *
+ * The polled read. For store viewers the partial `{ unreadForStore: 1 }` index
+ * holds only threads with something unread, so an admin's tally reads that
+ * handful instead of scanning every conversation on each tick; a vendor's is
+ * already narrowed by the `ownerVendorId` prefix.
+ */
+export async function countUnreadConversationMessages(params: {
+  viewer: ConversationViewer;
+}): Promise<number> {
+  const field = isStoreViewer(params.viewer)
+    ? "unreadForStore"
+    : "unreadForCustomer";
+  const [row] = await Conversation.aggregate<{ total: number }>([
+    {
+      $match: {
+        ...getConversationAccessQuery(params.viewer),
+        [field]: { $gt: 0 },
+      },
+    },
+    { $group: { _id: null, total: { $sum: `$${field}` } } },
+  ]);
+  return row?.total ?? 0;
 }
 
 export async function listConversationMessages(params: {

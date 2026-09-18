@@ -1,6 +1,7 @@
 import { Product } from "@/models";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
+import { revalidateProductStock } from "@/lib/cache-invalidation";
 import {
+  isProductAvailable,
   productAllowsOversell,
   productTracksStock,
 } from "@/lib/products/stock-policy";
@@ -628,21 +629,141 @@ export async function decrementInventory(
     throw err;
   }
 
-  // Refresh cached storefront product pages so the new stock count is
+  if (applied.length === 0) return;
+
+  // One read of where stock landed serves both follow-ups below.
+  const after = await readStockAfterMovement(applied);
+
+  // Refresh the cached storefront copies of these products so the new stock is
   // reflected immediately rather than waiting for the 60s revalidate window.
-  await invalidateProductCache(applied, lineData.slugs);
+  invalidateProductCache(applied, lineData.slugs, after, -1);
 
   // Low-stock alerts. Fired only when this decrement CROSSED the threshold
   // (previous stock above, new stock at/below) so a product sitting at low
   // stock doesn't re-notify on every subsequent sale.
-  await maybeNotifyLowStock(applied);
+  if (after) await maybeNotifyLowStock(applied, after);
 }
 
 // Matches the admin inventory screen's low-stock boundary.
 const LOW_STOCK_THRESHOLD = 10;
 
+/** A product's stock as it stands right after a movement. */
+export type StockAfterMovement = {
+  _id: unknown;
+  name?: string;
+  stock?: number;
+  vendorId?: unknown;
+  shipping?: { isPhysicalProduct?: boolean };
+  inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
+  variants?: Array<{ _id?: unknown; stock?: number }>;
+};
+
+/**
+ * Read back the moved products. `null` when the read failed or the model can't
+ * do it (unit-test mocks), which callers treat as "can't tell".
+ */
+async function readStockAfterMovement(
+  lines: InventoryAdjustmentLine[],
+): Promise<StockAfterMovement[] | null> {
+  const productIds = Array.from(
+    new Set(lines.map((line) => String(line.productId || "")).filter(Boolean)),
+  );
+  if (productIds.length === 0) return [];
+
+  const productModel = Product as unknown as {
+    find?: (q: unknown, p?: unknown) => { lean: () => Promise<unknown> };
+  };
+  if (typeof productModel.find !== "function") return null;
+
+  try {
+    const docs = await productModel
+      .find(
+        { _id: { $in: productIds } },
+        {
+          name: 1,
+          stock: 1,
+          vendorId: 1,
+          "shipping.isPhysicalProduct": 1,
+          inventory: 1,
+          "variants._id": 1,
+          "variants.stock": 1,
+        },
+      )
+      .lean();
+    return Array.isArray(docs) ? (docs as StockAfterMovement[]) : null;
+  } catch (err) {
+    console.error("Failed to read stock after inventory movement:", err);
+    return null;
+  }
+}
+
+/**
+ * Whether a movement flipped any product or variant it touched between
+ * sellable and sold out — the only stock fact a product card or a listing
+ * filter shows.
+ *
+ * `direction` is -1 for a decrement and +1 for a restore: the stock before the
+ * movement is the stock after it minus what this movement moved. A product
+ * that can't be read back counts as changed, so the answer errs towards
+ * refreshing. A concurrent movement between the write and the read can make
+ * the reconstructed "before" wrong; the listings' own 60 s window bounds that,
+ * and checkout re-checks stock live.
+ */
+export function stockMovementChangesAvailability(
+  lines: InventoryAdjustmentLine[],
+  after: StockAfterMovement[],
+  direction: 1 | -1,
+): boolean {
+  const byId = new Map(after.map((doc) => [String(doc._id), doc]));
+  const productDelta = new Map<string, number>();
+  const variantDelta = new Map<string, number>();
+
+  for (const line of lines) {
+    const productId = String(line.productId || "");
+    if (!productId || !Number.isFinite(line.quantity) || line.quantity <= 0) {
+      continue;
+    }
+    const delta = direction * line.quantity;
+    productDelta.set(productId, (productDelta.get(productId) || 0) + delta);
+    if (line.variantId) {
+      const key = `${productId}:${String(line.variantId)}`;
+      variantDelta.set(key, (variantDelta.get(key) || 0) + delta);
+    }
+  }
+
+  const flipped = (
+    doc: StockAfterMovement,
+    stockAfter: unknown,
+    delta: number,
+  ) => {
+    const now = Number(stockAfter) || 0;
+    return (
+      isProductAvailable(doc, now - delta) !== isProductAvailable(doc, now)
+    );
+  };
+
+  for (const [productId, delta] of productDelta) {
+    const doc = byId.get(productId);
+    if (!doc) return true;
+    if (flipped(doc, doc.stock, delta)) return true;
+  }
+
+  for (const [key, delta] of variantDelta) {
+    const [productId, variantId] = key.split(":");
+    const doc = byId.get(productId);
+    const variant = doc?.variants?.find(
+      (entry) => String(entry._id) === variantId,
+    );
+    if (!doc || !variant) return true;
+    if (flipped(doc, variant.stock, delta)) return true;
+  }
+
+  return false;
+}
+
 async function maybeNotifyLowStock(
   lines: InventoryAdjustmentLine[],
+  products: StockAfterMovement[],
 ): Promise<void> {
   try {
     const decrementedByProduct = new Map<string, number>();
@@ -653,17 +774,6 @@ async function maybeNotifyLowStock(
         (decrementedByProduct.get(key) || 0) + line.quantity,
       );
     }
-    const productIds = Array.from(decrementedByProduct.keys());
-    if (productIds.length === 0) return;
-
-    const products = (await Product.find({ _id: { $in: productIds } })
-      .select("name stock vendorId")
-      .lean()) as Array<{
-      _id: unknown;
-      name?: string;
-      stock?: number;
-      vendorId?: unknown;
-    }>;
 
     for (const product of products) {
       const decremented = decrementedByProduct.get(String(product._id)) || 0;
@@ -684,9 +794,14 @@ async function maybeNotifyLowStock(
       if (product.vendorId) {
         const { Vendor } = await import("@/models");
         const vendor = (await Vendor.findById(product.vendorId)
-          .select("userId")
-          .lean()) as { userId?: unknown } | null;
-        if (vendor?.userId) {
+          .select("userId notificationPreferences.lowStock")
+          .lean()) as {
+          userId?: unknown;
+          notificationPreferences?: { lowStock?: boolean };
+        } | null;
+        // The vendor's own "Low stock alerts" switch (Settings → Notifications)
+        // was saved and never read, so switching it off changed nothing.
+        if (vendor?.userId && vendor.notificationPreferences?.lowStock !== false) {
           await notifyLowStock(String(vendor.userId), name, stock).catch(
             (err) => console.error("Failed to notify vendor low stock:", err),
           );
@@ -821,7 +936,12 @@ export async function restoreInventory(
     }
   }
 
-  await invalidateProductCache(lines, lineData.slugs);
+  invalidateProductCache(
+    lines,
+    lineData.slugs,
+    await readStockAfterMovement(lines),
+    1,
+  );
 }
 
 type StockChangeRequest = {
@@ -1088,40 +1208,28 @@ export async function applyStockChangeAtomic(
 }
 
 /**
- * Look up slugs for the given inventory lines and trigger a cache
- * invalidation. Best-effort: failures are logged but never thrown, because
- * cache invalidation must not break order placement / refund flows.
+ * Expire the storefront's cached copies of the moved products — only the
+ * product pages, unless the movement flipped something between sellable and
+ * sold out (see `revalidateProductStock`). `after === null` means the stock
+ * couldn't be read back, and then everything goes, as before. Best-effort:
+ * failures are logged but never thrown, because cache invalidation must not
+ * break order placement / refund flows.
  */
-async function invalidateProductCache(
+function invalidateProductCache(
   lines: InventoryAdjustmentLine[],
-  knownSlugs?: string[],
-): Promise<void> {
-  const productIds = Array.from(
-    new Set(
-      lines
-        .map((line) => String(line.productId || "").trim())
-        .filter(Boolean),
-    ),
-  );
-  if (productIds.length === 0) return;
+  slugs: string[],
+  after: StockAfterMovement[] | null,
+  direction: 1 | -1,
+): void {
+  if (lines.length === 0) return;
 
   try {
-    // The decrement/restore paths already loaded these products (for their
-    // location inventory) and pass the slugs in, so we avoid a second
-    // `Product.find` per order. Other callers omit them and we look them up.
-    const slugs =
-      knownSlugs ??
-      (
-        await Product.find({ _id: { $in: productIds } })
-          .select("slug")
-          .lean()
-      )
-        .map((p) => p.slug)
-        .filter(
-          (slug): slug is string => typeof slug === "string" && slug.length > 0,
-        );
-
-    revalidateProductContent({ slugs });
+    revalidateProductStock({
+      slugs,
+      availabilityChanged:
+        after === null ||
+        stockMovementChangesAvailability(lines, after, direction),
+    });
   } catch (err) {
     console.error(
       "Failed to invalidate product cache after inventory change:",

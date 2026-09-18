@@ -91,6 +91,12 @@ export interface VariantsManagerProps {
   onRequestAiImage?: (target: VariantAiImageTarget) => void;
   defaultRequiresShipping?: boolean;
   defaultWeightUnit?: "g" | "kg" | "lb" | "oz";
+  /**
+   * Set when this vendor may not open a pre-order: variants cannot switch one
+   * on, and this sentence says why. A variant already on pre-order can still
+   * be switched off.
+   */
+  preorderLockedReason?: string | null;
 }
 
 export const MAX_OPTION_COUNT = 5;

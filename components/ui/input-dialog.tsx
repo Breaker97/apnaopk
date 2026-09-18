@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
 type ButtonVariant =
@@ -37,6 +38,11 @@ export interface InputDialogField {
   required?: boolean;
   multiline?: boolean;
   rows?: number;
+  /**
+   * A choice between a few options, shown as radio buttons; the field's value
+   * is the chosen option's `value`.
+   */
+  options?: Array<{ value: string; label: string; description?: string }>;
 }
 
 interface InputDialogProps {
@@ -97,8 +103,49 @@ export function InputDialog({
 
               return (
                 <div key={field.name} className="grid gap-2">
-                  <Label htmlFor={fieldId}>{field.label}</Label>
-                  {field.multiline ? (
+                  <Label id={`${fieldId}-label`} htmlFor={field.options ? undefined : fieldId}>
+                    {field.label}
+                  </Label>
+                  {field.options ? (
+                    <RadioGroup
+                      id={fieldId}
+                      aria-labelledby={`${fieldId}-label`}
+                      value={values[field.name] || ""}
+                      onValueChange={(value) => updateValue(field.name, value)}
+                      aria-invalid={Boolean(error)}
+                      disabled={loading}
+                      className="gap-2"
+                    >
+                      {field.options.map((option) => {
+                        const optionId = `${fieldId}-${option.value}`;
+                        return (
+                          <div
+                            key={option.value}
+                            className="flex items-start gap-3 rounded-md border p-3"
+                          >
+                            <RadioGroupItem
+                              id={optionId}
+                              value={option.value}
+                              className="mt-0.5"
+                            />
+                            <div className="grid gap-1">
+                              <Label
+                                htmlFor={optionId}
+                                className="font-normal leading-snug"
+                              >
+                                {option.label}
+                              </Label>
+                              {option.description ? (
+                                <p className="text-xs text-muted-foreground">
+                                  {option.description}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </RadioGroup>
+                  ) : field.multiline ? (
                     <Textarea
                       id={fieldId}
                       value={values[field.name] || ""}

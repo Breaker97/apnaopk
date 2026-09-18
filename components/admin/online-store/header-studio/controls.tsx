@@ -528,15 +528,34 @@ export function ToggleField({
   label,
   checked,
   onChange,
+  /**
+   * For a switch that is on and must stay on — the last of a pair that
+   * cannot both be off. Disabled rather than silently ignored, so the
+   * merchant can see WHY it will not move.
+   */
+  disabled = false,
+  hint,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  hint?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-xs font-medium text-foreground">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        <Switch
+          checked={checked}
+          onCheckedChange={onChange}
+          disabled={disabled}
+          aria-label={label}
+        />
+      </div>
+      {hint ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }

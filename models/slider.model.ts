@@ -38,6 +38,16 @@ const SliderSchema = new Schema<SliderDocument>(
       max: MAX_AUTOPLAY_SECONDS,
     },
     slides: { type: Schema.Types.Mixed, default: [] },
+    /** The contract the numbers were written against; see SLIDER_DOCUMENT_VERSION. */
+    version: { type: Number },
+    /** The carousel's chrome — arrows, indicators, pause. Mixed; normalized on read. */
+    controls: { type: Schema.Types.Mixed },
+    /** Unpublished work beside the live content; absent when nothing is pending. */
+    draft: { type: Schema.Types.Mixed },
+    /** The last published versions, newest first, for restoring. */
+    history: { type: Schema.Types.Mixed, default: [] },
+    /** When the live content last went live. */
+    publishedAt: { type: String },
   },
   { timestamps: true },
 );

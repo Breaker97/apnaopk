@@ -14,6 +14,7 @@ import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { resolvePickupLifecycleUpdate } from "@/lib/checkout/pickup-fulfillment";
 import { auditUpdate, createAuditContext } from "@/lib/audit";
 import { notifyOrderStatus } from "@/lib/notifications/notifications";
+import { saveOrderOverReadStatuses } from "@/lib/orders/order-save-guard";
 
 const PickupLifecycleSchema = z.object({
   action: z.enum(["ready", "collected"]),
@@ -113,15 +114,23 @@ export const POST = withApi<{ id: string }>(
       order.status = "processing";
     }
 
-    await order.save();
+    // Only over the order as it was read, as the seller's pickup route does: a
+    // counter handover saved over a cancellation that landed in the meantime
+    // hands over goods the shopper was refunded for.
+    await saveOrderOverReadStatuses(
+      order,
+      before as { status?: string; subOrders?: Array<{ status?: string }> },
+    );
 
-    if (order.customerId) {
-      await notifyOrderStatus(
-        String(order.customerId),
-        order.orderNumber,
-        update.subOrderStatus,
-        String(order._id),
-      ).catch((error) =>
+    // The shopper hears about the ORDER, and only when the order moved: one
+    // consignment collected at the counter is not "your order was delivered"
+    // while another seller's parcel is still coming.
+    const wasOrderStatus = String((before as { status?: string }).status || "");
+    if (String(order.status) !== wasOrderStatus) {
+      await notifyOrderStatus({
+        orderId: String(order._id),
+        status: String(order.status),
+      }).catch((error) =>
         console.error("Failed to notify customer about pickup update:", error),
       );
     }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Link as LinkIcon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +14,18 @@ import {
   HEADER_CATEGORIES_ICONS,
   HEADER_CATEGORIES_OPEN_MODES,
   HEADER_COLUMN_COUNTS,
+  HEADER_DRAWER_SIDES,
+  HEADER_ROW_RETURNS,
+  HEADER_SEARCH_DRAWER_FIELD_STYLES,
+  MAX_SEARCH_DRAWER_COLLECTIONS,
+  MAX_SEARCH_TRENDING,
   HEADER_ICON_KEYS,
   HEADER_JUSTIFY_VALUES,
   HEADER_SEARCH_ICON_STYLES,
   MAX_HEADER_BUTTONS,
+  MAX_HEADER_LOGO_SIZE,
   type HeaderBackground,
+  MIN_HEADER_LOGO_SIZE,
   MIN_HEADER_ROW_GAP,
   type HeaderBrandItem,
   type HeaderButtonsItem,
@@ -53,7 +62,10 @@ import {
   HEADER_ICON_META,
   itemMeta,
 } from "@/components/admin/online-store/header-studio/layout-style";
+import type { HeaderOverlapTone, HeaderShadow } from "@/lib/site-config/header-config";
 import type { TSafe } from "@/components/admin/online-store/t-safe";
+import { MenuSelect } from "@/components/admin/online-store/header-studio/menu-select";
+import { CollectionSelect } from "@/components/admin/store-pages/collection-select";
 import { cn } from "@/lib/utils";
 
 /**
@@ -68,6 +80,21 @@ import { cn } from "@/lib/utils";
  * section instance on the header group document rather than a node of the
  * layout tree, so it carries no id.
  */
+/**
+ * The header's own settings — the ones that belong to no row, column or
+ * item. They live in the property panel's empty state because that is the
+ * one place a merchant looks when they have deselected everything, and
+ * because a separate card above the builder (where the location switch used
+ * to sit) reads as page furniture rather than as part of the header.
+ */
+export interface HeaderMainSettings {
+  showLocation: boolean;
+  overlapHome: boolean;
+  overlapTone: HeaderOverlapTone;
+  overlapScrim: number;
+  shadow: HeaderShadow;
+}
+
 export type StudioSelection =
   | { kind: "row"; rowId: string }
   | { kind: "column"; rowId: string; columnId: string }
@@ -82,6 +109,8 @@ interface PropertyPanelProps {
   column: HeaderLayoutColumn | null;
   item: HeaderLayoutItem | null;
   announcement: AnnouncementDraft;
+  main: HeaderMainSettings;
+  onPatchMain: (patch: Partial<HeaderMainSettings>) => void;
   onPatchRow: (rowId: string, patch: Partial<HeaderLayoutRow>) => void;
   onPatchColumn: (
     columnId: string,
@@ -101,6 +130,8 @@ export function PropertyPanel({
   column,
   item,
   announcement,
+  main,
+  onPatchMain,
   onPatchRow,
   onPatchColumn,
   onPatchItem,
@@ -123,7 +154,7 @@ export function PropertyPanel({
     if (selection?.kind === "row") {
       return tSafe("admin.headerStudio.panel.row", "Row");
     }
-    return tSafe("admin.headerStudio.panel.nothing", "Nothing selected");
+    return tSafe("admin.headerStudio.panel.main", "Header settings");
   };
 
   return (
@@ -137,12 +168,7 @@ export function PropertyPanel({
       <div className="p-4">
 
       {selection === null ? (
-        <p className="py-6 text-center text-xs text-muted-foreground">
-          {tSafe(
-            "admin.headerStudio.panel.empty",
-            "Select a row, a column or an item to edit its properties.",
-          )}
-        </p>
+        <MainFields tSafe={tSafe} main={main} onPatch={onPatchMain} />
       ) : null}
 
       {selection?.kind === "row" && row ? (
@@ -181,6 +207,181 @@ export function PropertyPanel({
       ) : null}
 
       </div>
+    </div>
+  );
+}
+
+/**
+ * The header's own settings, shown while nothing is selected.
+ *
+ * Everything here is storefront behaviour rather than paint, which is why
+ * none of it belongs to a node of the layout tree: the shopper-location
+ * switch turns on surfaces well beyond the header, and the overlap is about
+ * where the bar SITS on the page rather than what it looks like.
+ */
+function MainFields({
+  tSafe,
+  main,
+  onPatch,
+}: {
+  tSafe: TSafe;
+  main: HeaderMainSettings;
+  onPatch: (patch: Partial<HeaderMainSettings>) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <PanelHeading>
+        {tSafe("admin.headerStudio.panel.homeGroup", "Home page")}
+      </PanelHeading>
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.overlap", "Overlap the hero")}
+        checked={main.overlapHome}
+        onChange={(overlapHome) => onPatch({ overlapHome })}
+      />
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        {tSafe(
+          "admin.headerStudio.panel.overlapHint",
+          "The bar floats over the home page's first section so a full-bleed hero runs behind it, then returns to its normal colours as soon as the page scrolls. Home only — other pages open on content, not artwork.",
+        )}
+      </p>
+      {main.overlapHome ? (
+        <PanelRow
+          label={tSafe("admin.headerStudio.panel.overlapTone", "Hero tone")}
+        >
+          <SelectField
+            accent
+            ariaLabel={tSafe(
+              "admin.headerStudio.panel.overlapTone",
+              "Hero tone",
+            )}
+            value={main.overlapTone}
+            options={[
+              {
+                value: "dark" as HeaderOverlapTone,
+                label: tSafe(
+                  "admin.headerStudio.panel.overlapToneDark",
+                  "Dark hero — white header",
+                ),
+              },
+              {
+                value: "light" as HeaderOverlapTone,
+                label: tSafe(
+                  "admin.headerStudio.panel.overlapToneLight",
+                  "Light hero — dark header",
+                ),
+              },
+            ]}
+            onChange={(overlapTone) => onPatch({ overlapTone })}
+          />
+        </PanelRow>
+      ) : null}
+      {main.overlapHome ? (
+        <>
+          <PanelRow
+            label={tSafe("admin.headerStudio.panel.overlapScrim", "Fade behind the bar")}
+          >
+            <UnitField
+              ariaLabel={tSafe("admin.headerStudio.panel.overlapScrim", "Fade behind the bar")}
+              value={main.overlapScrim}
+              unit="%"
+              zeroLabel={tSafe("admin.headerStudio.panel.overlapScrimOff", "Off")}
+              min={0}
+              max={100}
+              step={5}
+              onChange={(overlapScrim) => onPatch({ overlapScrim })}
+              className="w-32"
+            />
+          </PanelRow>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {tSafe(
+              "admin.headerStudio.panel.overlapScrimHint",
+              "A soft gradient from the top edge that fades out under the floating bar, so the menu reads over a busy picture. Dark over a dark hero, light over a light one; gone as soon as the page scrolls.",
+            )}
+          </p>
+        </>
+      ) : null}
+
+      <Separator />
+
+      {/* The shadow under the bar: on or off, and its shape. */}
+      <PanelHeading>
+        {tSafe("admin.headerStudio.panel.shadowGroup", "Drop shadow")}
+      </PanelHeading>
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.shadow", "Shadow under the bar")}
+        checked={main.shadow.enabled}
+        onChange={(enabled) => onPatch({ shadow: { ...main.shadow, enabled } })}
+      />
+      {main.shadow.enabled ? (
+        <>
+          <PanelRow label={tSafe("admin.headerStudio.panel.shadowOffset", "Offset")}>
+            <UnitField
+              ariaLabel={tSafe("admin.headerStudio.panel.shadowOffset", "Offset")}
+              value={main.shadow.y}
+              unit="px"
+              min={0}
+              max={24}
+              onChange={(y) => onPatch({ shadow: { ...main.shadow, y } })}
+              className="w-32"
+            />
+          </PanelRow>
+          <PanelRow label={tSafe("admin.headerStudio.panel.shadowBlur", "Blur")}>
+            <UnitField
+              ariaLabel={tSafe("admin.headerStudio.panel.shadowBlur", "Blur")}
+              value={main.shadow.blur}
+              unit="px"
+              min={0}
+              max={60}
+              onChange={(blur) => onPatch({ shadow: { ...main.shadow, blur } })}
+              className="w-32"
+            />
+          </PanelRow>
+          <PanelRow label={tSafe("admin.headerStudio.panel.shadowStrength", "Strength")}>
+            <UnitField
+              ariaLabel={tSafe("admin.headerStudio.panel.shadowStrength", "Strength")}
+              value={main.shadow.opacity}
+              unit="%"
+              min={0}
+              max={100}
+              step={5}
+              onChange={(opacity) => onPatch({ shadow: { ...main.shadow, opacity } })}
+              className="w-32"
+            />
+          </PanelRow>
+        </>
+      ) : null}
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        {tSafe(
+          "admin.headerStudio.panel.shadowHint",
+          "Drawn under a solid bar. A glass bar, a bar whose rows paint themselves, and a bar floating over the hero cast none.",
+        )}
+      </p>
+
+      <Separator />
+
+      <PanelHeading>
+        {tSafe("admin.headerStudio.location.title", "Shopper location")}
+      </PanelHeading>
+      <ToggleField
+        label={tSafe("admin.headerStudio.location.toggle", "Show shopper location")}
+        checked={main.showLocation}
+        onChange={(showLocation) => onPatch({ showLocation })}
+      />
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        {tSafe(
+          "admin.headerStudio.location.description",
+          "Lets shoppers say where they are. Adds a “Deliver to” control to the header (beside the search bar, or wherever you drop the Location item), a Location filter with “Pickup near me” to the product listings, and carries the place into checkout — city pre-filled, nearest collection point first. For marketplaces whose sellers span more than one city.",
+        )}
+      </p>
+
+      <Separator />
+
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        {tSafe(
+          "admin.headerStudio.panel.empty",
+          "Select a row, a column or an item to edit its properties.",
+        )}
+      </p>
     </div>
   );
 }
@@ -482,12 +683,33 @@ function RowProperties({
         onChange={(hideOnScroll) => onPatch({ hideOnScroll })}
       />
       {row.hideOnScroll ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
-          {tSafe(
-            "admin.headerStudio.panel.hideOnScrollHint",
-            "Tucks away as the page scrolls down. A top row returns at the top; a lower row returns as soon as the page scrolls up.",
-          )}
-        </p>
+        <>
+          <PanelRow label={tSafe("admin.headerStudio.panel.returnOn", "Comes back")}>
+            <SelectField
+              accent
+              ariaLabel={tSafe("admin.headerStudio.panel.returnOn", "Comes back")}
+              value={row.returnOn}
+              options={HEADER_ROW_RETURNS.map((value) => ({
+                value,
+                label: tSafe(
+                  `admin.headerStudio.panel.returnOns.${value}`,
+                  value === "auto"
+                    ? "Automatic"
+                    : value === "top"
+                      ? "At the top of the page"
+                      : "When scrolling up",
+                ),
+              }))}
+              onChange={(returnOn) => onPatch({ returnOn })}
+            />
+          </PanelRow>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {tSafe(
+              "admin.headerStudio.panel.hideOnScrollHint",
+              "Tucks away as the page scrolls down. Automatic: a top row returns at the top of the page, a lower row as soon as the page scrolls up.",
+            )}
+          </p>
+        </>
       ) : null}
 
       <Separator />
@@ -746,8 +968,8 @@ function BrandFields({
         <UnitField
           value={item.size}
           unit="px"
-          min={16}
-          max={400}
+          min={MIN_HEADER_LOGO_SIZE}
+          max={MAX_HEADER_LOGO_SIZE}
           ariaLabel={tSafe("admin.headerStudio.panel.size", "Size")}
           onChange={(size) => onPatch({ size })}
         />
@@ -1006,6 +1228,38 @@ function SearchIconFields({
           onChange={(foreground) => onPatch({ foreground })}
         />
       </PanelRow>
+      {/* The capsule holds the typed query, so a label would have nowhere
+          to sit that is not the field itself. */}
+      {pill ? null : (
+        <>
+          <ToggleField
+            label={tSafe("admin.headerStudio.panel.showLabel", "Show label")}
+            checked={item.showLabel}
+            onChange={(showLabel) => onPatch({ showLabel })}
+          />
+          {item.showLabel ? (
+            <PanelRow label={tSafe("admin.headerStudio.panel.label", "Label")}>
+              <Input
+                value={item.label}
+                onChange={(event) => onPatch({ label: event.target.value })}
+                className="h-8 text-xs"
+              />
+            </PanelRow>
+          ) : null}
+          {/* The drawer brings its own field (see its Field style). */}
+          {item.drawer ? null : (
+            <ToggleField
+              label={tSafe("admin.headerStudio.panel.fieldLine", "Line under the field")}
+              checked={item.fieldLine}
+              onChange={(fieldLine) => onPatch({ fieldLine })}
+              hint={tSafe(
+                "admin.headerStudio.panel.fieldLineHint",
+                "Shown while the search field is open.",
+              )}
+            />
+          )}
+        </>
+      )}
       {pill ? (
         <>
           <PanelHeading>
@@ -1048,6 +1302,144 @@ function SearchIconFields({
           />
         </>
       ) : null}
+
+      <PanelHeading>
+        {tSafe("admin.headerStudio.panel.searchDrawer", "Search drawer")}
+      </PanelHeading>
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.searchDrawerToggle", "Open search drawer")}
+        checked={item.drawer}
+        onChange={(drawer) => onPatch({ drawer })}
+        hint={tSafe(
+          "admin.headerStudio.panel.searchDrawerHint",
+          "A panel drops from the top with a wide field, trending terms and product rows.",
+        )}
+      />
+      {item.drawer ? (
+        // Keyed by item: the trending box holds its own text while typing,
+        // and the panel is reused when the selection moves to another icon.
+        <SearchDrawerFields
+          key={item.id}
+          tSafe={tSafe}
+          item={item}
+          onPatch={onPatch}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * The search drawer's content. Trending terms are typed, comma-separated:
+ * the app keeps no search-volume data to rank them from, and a merchant's
+ * editorial pick is what the references show anyway.
+ */
+function SearchDrawerFields({
+  tSafe,
+  item,
+  onPatch,
+}: {
+  tSafe: TSafe;
+  item: HeaderSearchIconItem;
+  onPatch: (patch: Partial<HeaderSearchIconItem>) => void;
+}) {
+  // Edited as text and parsed on blur, so a comma mid-typing does not split
+  // a half-written term into two.
+  const [trendingText, setTrendingText] = useState(item.trending.join(", "));
+  const commitTrending = () => {
+    const terms = trendingText
+      .split(",")
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .slice(0, MAX_SEARCH_TRENDING);
+    onPatch({ trending: terms });
+    setTrendingText(terms.join(", "));
+  };
+
+  const rows = [...item.drawerCollections];
+  const setRow = (index: number, id: string) => {
+    const next = [...rows];
+    if (id) next[index] = id;
+    else next.splice(index, 1);
+    onPatch({ drawerCollections: [...new Set(next.filter(Boolean))] });
+  };
+  const showRows = Math.min(MAX_SEARCH_DRAWER_COLLECTIONS, rows.length + 1);
+
+  return (
+    <>
+      <PanelRow label={tSafe("admin.headerStudio.panel.drawerField", "Field")}>
+        <SelectField
+          accent
+          ariaLabel={tSafe("admin.headerStudio.panel.drawerField", "Field")}
+          value={item.drawerFieldStyle}
+          options={HEADER_SEARCH_DRAWER_FIELD_STYLES.map((style) => ({
+            value: style,
+            label: tSafe(
+              `admin.headerStudio.panel.drawerFieldStyles.${style}`,
+              style === "underline" ? "Bottom line" : "Outline",
+            ),
+          }))}
+          onChange={(drawerFieldStyle) => onPatch({ drawerFieldStyle })}
+        />
+      </PanelRow>
+      {/* A bare line has no corners to round. */}
+      {item.drawerFieldStyle === "outline" ? (
+        <PanelRow
+          label={tSafe("admin.headerStudio.panel.drawerFieldRadius", "Field radius")}
+        >
+          <UnitField
+            value={item.drawerFieldRadius}
+            unit="px"
+            max={999}
+            ariaLabel={tSafe(
+              "admin.headerStudio.panel.drawerFieldRadius",
+              "Field radius",
+            )}
+            onChange={(drawerFieldRadius) => onPatch({ drawerFieldRadius })}
+          />
+        </PanelRow>
+      ) : null}
+      <PanelRow
+        label={tSafe("admin.headerStudio.panel.trending", "Trending")}
+        align="start"
+      >
+        <div className="space-y-1">
+          <Input
+            value={trendingText}
+            onChange={(event) => setTrendingText(event.target.value)}
+            onBlur={commitTrending}
+            placeholder="wallets, speedy, pochette"
+            className="h-8 text-xs"
+            aria-label={tSafe("admin.headerStudio.panel.trending", "Trending")}
+          />
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {tSafe(
+              "admin.headerStudio.panel.trendingHint",
+              "Separate with commas. Up to 8.",
+            )}
+          </p>
+        </div>
+      </PanelRow>
+      {Array.from({ length: showRows }, (_, index) => (
+        <PanelRow
+          key={index}
+          label={
+            index === 0
+              ? tSafe("admin.headerStudio.panel.drawerRows", "Product rows")
+              : ""
+          }
+          align="start"
+        >
+          <CollectionSelect
+            value={rows[index] ?? ""}
+            onChange={(id) => setRow(index, id)}
+            placeholder={tSafe(
+              "admin.headerStudio.panel.drawerRowPick",
+              "Add a collection row…",
+            )}
+          />
+        </PanelRow>
+      ))}
     </>
   );
 }
@@ -1433,6 +1825,72 @@ function MenuButtonFields({
           />
         </PanelRow>
       ) : null}
+
+      <PanelHeading>
+        {tSafe("admin.headerStudio.panel.drawer", "Side drawer")}
+      </PanelHeading>
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.drawerToggle", "Open side drawer")}
+        checked={item.drawer}
+        onChange={(drawer) => onPatch({ drawer })}
+        hint={tSafe(
+          "admin.headerStudio.panel.drawerHint",
+          "Desktop. Phones keep the app drawer with account, currency and theme.",
+        )}
+      />
+      {item.drawer ? (
+        <>
+          <PanelRow
+            label={tSafe("admin.headerStudio.panel.drawerMenu", "Main links")}
+            align="start"
+          >
+            <MenuSelect
+              value={item.drawerMenu}
+              onChange={(drawerMenu) => onPatch({ drawerMenu })}
+              noneLabel={tSafe("admin.headerStudio.menus.pick", "Pick a menu")}
+              inactiveLabel={tSafe("admin.headerStudio.menus.inactive", "inactive")}
+              manageLabel={tSafe("admin.headerStudio.menus.manage", "Manage menus")}
+              ariaLabel={tSafe("admin.headerStudio.panel.drawerMenu", "Main links")}
+            />
+          </PanelRow>
+          {!item.drawerMenu ? (
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {tSafe(
+                "admin.headerStudio.panel.drawerMenuMissing",
+                "Until a menu is picked the button keeps opening the app drawer.",
+              )}
+            </p>
+          ) : null}
+          <PanelRow
+            label={tSafe("admin.headerStudio.panel.drawerSecondary", "Small links")}
+            align="start"
+          >
+            <MenuSelect
+              value={item.drawerSecondaryMenu}
+              onChange={(drawerSecondaryMenu) => onPatch({ drawerSecondaryMenu })}
+              noneLabel={tSafe("admin.headerStudio.menus.none", "None")}
+              inactiveLabel={tSafe("admin.headerStudio.menus.inactive", "inactive")}
+              manageLabel={tSafe("admin.headerStudio.menus.manage", "Manage menus")}
+              ariaLabel={tSafe("admin.headerStudio.panel.drawerSecondary", "Small links")}
+            />
+          </PanelRow>
+          <PanelRow label={tSafe("admin.headerStudio.panel.drawerSide", "Opens from")}>
+            <SelectField
+              accent
+              ariaLabel={tSafe("admin.headerStudio.panel.drawerSide", "Opens from")}
+              value={item.drawerSide}
+              options={HEADER_DRAWER_SIDES.map((side) => ({
+                value: side,
+                label: tSafe(
+                  `admin.headerStudio.panel.drawerSides.${side}`,
+                  side === "left" ? "Left" : "Right",
+                ),
+              }))}
+              onChange={(drawerSide) => onPatch({ drawerSide })}
+            />
+          </PanelRow>
+        </>
+      ) : null}
     </>
   );
 }
@@ -1749,8 +2207,34 @@ function IconsFields({
         />
       </PanelRow>
       <ToggleField
+        label={tSafe("admin.headerStudio.panel.showIcons", "Show icons")}
+        checked={item.showIcons}
+        // The pair cannot both be off, so whichever is carrying the cluster
+        // on its own is held on. The normalizer enforces the same rule, so a
+        // hand-edited document cannot get past it either.
+        disabled={item.showIcons && !item.showLabels}
+        hint={
+          item.showIcons && !item.showLabels
+            ? tSafe(
+                "admin.headerStudio.panel.showIconsLocked",
+                "Turn labels on first — the cluster cannot show neither.",
+              )
+            : undefined
+        }
+        onChange={(showIcons) => onPatch({ showIcons })}
+      />
+      <ToggleField
         label={tSafe("admin.headerStudio.panel.showLabels", "Show labels")}
         checked={item.showLabels}
+        disabled={item.showLabels && !item.showIcons}
+        hint={
+          item.showLabels && !item.showIcons
+            ? tSafe(
+                "admin.headerStudio.panel.showLabelsLocked",
+                "Turn icons on first — the cluster cannot show neither.",
+              )
+            : undefined
+        }
         onChange={(showLabels) => onPatch({ showLabels })}
       />
     </>

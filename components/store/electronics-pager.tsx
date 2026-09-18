@@ -40,7 +40,7 @@ export function ElectronicsPager({
           <span
             key={item}
             aria-current="page"
-            className="grid size-8 place-items-center rounded-full bg-foreground text-sm font-bold text-background"
+            className="grid size-8 place-items-center rounded-button bg-foreground text-sm font-bold text-background"
           >
             {item}
           </span>
@@ -48,7 +48,7 @@ export function ElectronicsPager({
           <Link
             key={item}
             href={pageHref(item)}
-            className="grid size-8 place-items-center rounded-full bg-muted text-sm font-bold text-foreground transition-colors hover:bg-muted/70"
+            className="grid size-8 place-items-center rounded-button bg-muted text-sm font-bold text-foreground transition-colors hover:bg-muted/70"
           >
             {item}
           </Link>
@@ -80,7 +80,7 @@ function PagerArrow({
     return (
       <span
         aria-hidden
-        className="grid size-8 place-items-center rounded-full bg-muted text-foreground opacity-40"
+        className="grid size-8 place-items-center rounded-button bg-muted text-foreground opacity-40"
       >
         {icon}
       </span>
@@ -90,7 +90,7 @@ function PagerArrow({
     <Link
       href={href}
       aria-label={label}
-      className="grid size-8 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-muted/70"
+      className="grid size-8 place-items-center rounded-button bg-muted text-foreground transition-colors hover:bg-muted/70"
     >
       {icon}
     </Link>

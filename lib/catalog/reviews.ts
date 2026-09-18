@@ -30,7 +30,7 @@ export async function recomputeProductRating(productId: string) {
       rating: Math.round(averageRating * 10) / 10,
       reviewCount: totalReviews,
     },
-    { new: true },
+    { returnDocument: "after" },
   )
     .select("slug")
     .lean();

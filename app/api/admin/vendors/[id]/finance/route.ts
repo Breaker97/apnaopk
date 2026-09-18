@@ -6,7 +6,6 @@ import { NotFoundError } from "@/lib/api/errors";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { getSettings } from "@/models/settings.model";
 import { isDefaultVendorRecord } from "@/lib/vendors/multi-vendor";
-import { DEFAULT_MIN_WITHDRAWAL_AMOUNT } from "@/lib/orders/order-settings";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { getVendorSalesBreakdowns } from "@/lib/vendors/vendor-sales";
 import {
@@ -17,11 +16,14 @@ import {
   fetchVendorCommissionCredit,
   fetchVendorOverpayment,
   isCommissionOwedSubOrder,
+  isPastPayoutHold,
+  payoutHoldCutoff,
   payableInCurrency,
   sumVendorPayable,
 } from "@/lib/vendors/vendor-earnings";
 import { withApi } from "@/lib/api/handler";
 import { roundMoney } from "@/lib/intl/money";
+import { resolveMinWithdrawal } from "@/lib/orders/order-settings";
 
 /** Bank fields a payout run needs to actually reach the vendor. */
 const REQUIRED_BANK_FIELDS = [
@@ -98,7 +100,21 @@ export const GET = withApi<{ id: string }>(
           amount: number;
           lastAt: Date | null;
         }>([
-          { $match: { vendorId: vendorObjectId } },
+          {
+            $match: {
+              vendorId: vendorObjectId,
+              // In the store currency like every other figure here. A payout
+              // in another currency added at face value made "Paid out" a sum
+              // of dollars and shillings labelled as dollars. A row from
+              // before the currency was recorded was paid in the store's.
+              $or: [
+                { currency },
+                { currency: { $exists: false } },
+                { currency: null },
+                { currency: "" },
+              ],
+            },
+          },
           {
             $group: {
               _id: "$status",
@@ -149,18 +165,37 @@ export const GET = withApi<{ id: string }>(
     // this screen reports in. Everything here used to be one sum across every
     // currency the vendor had ever traded in, labelled with the store's — so a
     // UGX sale inflated a dollar figure by a factor of about four thousand.
+    // Split at the payout hold, so "owed" is what a payout created now would
+    // actually carry, and the rest is shown as waiting on the return window
+    // rather than silently missing from both.
+    const holdCutoff = payoutHoldCutoff(settings);
+    const isUnpaidDelivered = (sub: {
+      status?: string;
+      payoutStatus?: string;
+    }) =>
+      sub.status === "delivered" &&
+      sub.payoutStatus !== "scheduled" &&
+      sub.payoutStatus !== "paid";
     const owedByCurrency = sumVendorPayable(
       payableOrders,
       id,
       refundByOrderId,
-      // Everything still unpaid, which is what payout creation would claim.
-      (sub) =>
-        sub.status === "delivered" &&
-        sub.payoutStatus !== "scheduled" &&
-        sub.payoutStatus !== "paid",
+      // Everything still unpaid and past the hold, which is what payout
+      // creation would claim.
+      (sub) => isUnpaidDelivered(sub) && isPastPayoutHold(sub, holdCutoff),
       currency,
     );
     const owed = payableInCurrency(owedByCurrency, currency);
+    const held = payableInCurrency(
+      sumVendorPayable(
+        payableOrders,
+        id,
+        refundByOrderId,
+        (sub) => isUnpaidDelivered(sub) && !isPastPayoutHold(sub, holdCutoff),
+        currency,
+      ),
+      currency,
+    );
     // Only `commissionAmount` is meaningful here. `netAmount` is what the
     // platform would owe the vendor, and on these orders it owes them nothing —
     // they were paid at the counter.
@@ -181,8 +216,14 @@ export const GET = withApi<{ id: string }>(
       currency,
     });
     const commissionGrossOwed = roundMoney(commissionOwed.commissionAmount);
+    // The store's own promotions on those sales are owed to the vendor and come
+    // off first — the same order `commissionOwedForVendor` bills in.
+    const commissionPromotionCredit = roundMoney(commissionOwed.promotionCredit);
+    const commissionAfterPromotions = roundMoney(
+      commissionGrossOwed - commissionPromotionCredit,
+    );
     const commissionCreditApplied = roundMoney(
-      Math.min(commissionCredit, commissionGrossOwed),
+      Math.min(commissionCredit, Math.max(0, commissionAfterPromotions)),
     );
     // What is owed in currencies this screen is NOT reporting. Dropping them
     // silently is how a balance goes uncollected forever, so they are named
@@ -245,10 +286,7 @@ export const GET = withApi<{ id: string }>(
       currency,
       // Balances this vendor holds in a currency the screen above cannot show.
       otherCurrencies,
-      minWithdrawalAmount: Number(
-        settings.orders?.commission?.minWithdrawalAmount ??
-          DEFAULT_MIN_WITHDRAWAL_AMOUNT,
-      ),
+      minWithdrawalAmount: resolveMinWithdrawal(settings, currency),
       // Recovered from the next payout, so "owed now" less this is what a
       // payout created today would actually carry.
       overpaid: roundMoney(overpaid),
@@ -259,12 +297,25 @@ export const GET = withApi<{ id: string }>(
         commissionAmount: roundMoney(owed.commissionAmount),
         orderCount: owed.orderIds.length,
       },
+      // Delivered and unpaid, but still inside the store's return window.
+      heldInReturnWindow: {
+        amount: roundMoney(held.netAmount),
+        orderCount: held.orderIds.length,
+      },
       // The other direction. Cash, COD and own-terminal sales never reach the
       // platform, so their commission cannot be deducted from a payout — it is
       // a debt, and until it is shown somewhere an admin has no way to know it
       // exists. Collecting it is not wired up yet; this reports the balance.
       commissionOwedByVendor: {
-        amount: roundMoney(commissionGrossOwed - commissionCreditApplied),
+        amount: Math.max(
+          0,
+          roundMoney(commissionAfterPromotions - commissionCreditApplied),
+        ),
+        // Promotions the store paid for on these sales, owed to the vendor.
+        promotionCredit: commissionPromotionCredit,
+        // Where they outweigh the commission: what the store owes on balance,
+        // which the next payout pays.
+        storeOwes: Math.max(0, roundMoney(-commissionAfterPromotions)),
         grossSales: roundMoney(commissionOwed.grossSales),
         orderCount: commissionOwed.orderIds.length,
         // Reported as well as deducted: a vendor whose whole bill is covered
@@ -282,8 +333,8 @@ export const GET = withApi<{ id: string }>(
         grossSales: roundMoney(lifetime?.grossSales ?? 0),
         commission: commissionRevenue,
         vendorEarnings: roundMoney(lifetime?.vendorEarnings ?? 0),
-        // Buyers paid this for the vendor's shipments; `vendorEarnings` is
-        // `subtotal - commission`, so the platform retains it.
+        // What buyers paid for this vendor's shipments that the store kept —
+        // the ones its own courier or carrier account delivered.
         shipping: shippingRetained,
       },
       platformRevenue: {

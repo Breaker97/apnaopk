@@ -7,6 +7,7 @@ import {
   ChevronsUpDown,
   Download,
   Eye,
+  FileDown,
   Globe,
   Pencil,
   Plus,
@@ -31,6 +32,10 @@ import { useCurrency } from "@/providers/currency-provider";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import {
+  ProductImportDialog,
+  downloadProductImportSample,
+} from "@/components/admin/product-import-dialog";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
 import type { ProductListItem as Product } from "@/types/product-list";
@@ -53,6 +58,8 @@ interface VendorProductsTableProps {
   };
 }
 
+const PRODUCTS_IMPORT_ENDPOINT = "/api/vendor/products/import-export";
+
 function normalizeStatus(value?: string) {
   if (value === "archived") return "unlisted";
   return value || "all";
@@ -72,7 +79,8 @@ export function VendorProductsTable({
   const { formatPrice } = useCurrency();
   const { confirm } = useConfirmation();
   const { boostingEnabled } = usePublicAppSettings();
-  const importInputId = "vendor-products-import-csv";
+  const canImport = canCreateProduct || canEditProduct;
+  const [importOpen, setImportOpen] = useState(false);
 
   // Boost row action target: opens the purchase dialog with the product
   // preselected. Active products only — the server enforces the same rule.
@@ -139,7 +147,7 @@ export function VendorProductsTable({
     try {
       const params = buildImportExportParams();
       const res = await fetch(
-        `/api/vendor/products/import-export?${params.toString()}`,
+        `${PRODUCTS_IMPORT_ENDPOINT}?${params.toString()}`,
       );
       if (!res.ok) throw new Error("Export failed");
 
@@ -159,57 +167,21 @@ export function VendorProductsTable({
   }, [buildImportExportParams]);
 
   const handleImportProducts = useCallback(() => {
-    document.getElementById(importInputId)?.click();
+    setImportOpen(true);
   }, []);
 
-  const handleImportFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = "";
-      if (!file) return;
+  const handleDownloadSample = useCallback(async () => {
+    try {
+      await downloadProductImportSample(PRODUCTS_IMPORT_ENDPOINT, "csv");
+    } catch {
+      toast.error(t("admin.productsDataTable.importDialog.sampleFailed"));
+    }
+  }, [t]);
 
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/vendor/products/import-export", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Import failed");
-        }
-
-        const result = data.data as {
-          created: number;
-          updated: number;
-          failed: number;
-          errors?: { row: number; message: string }[];
-        };
-        const summary = `Imported ${result.created} created, ${result.updated} updated`;
-        if (result.failed > 0) {
-          toast.error(
-            `${summary}. ${result.failed} failed${
-              result.errors?.[0]
-                ? `: row ${result.errors[0].row} ${result.errors[0].message}`
-                : "."
-            }`,
-          );
-        } else {
-          toast.success(summary);
-        }
-        list.handlePageChange(1);
-        list.refetch();
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Products could not be imported",
-        );
-      }
-    },
-    [list],
-  );
+  const handleImported = useCallback(() => {
+    list.handlePageChange(1);
+    list.refetch();
+  }, [list]);
 
   const tableHeader = useMemo(
     () =>
@@ -241,14 +213,22 @@ export function VendorProductsTable({
               label: t("admin.productsDataTable.actions.import"),
               icon: <Upload className="h-4 w-4" />,
               onClick: handleImportProducts,
-              disabled: !canCreateProduct && !canEditProduct,
+              disabled: !canImport,
+            },
+            {
+              id: "toolbar-import-sample",
+              label: t("admin.productsDataTable.actions.downloadSample"),
+              icon: <FileDown className="h-4 w-4" />,
+              onClick: handleDownloadSample,
+              disabled: !canImport,
             },
           ],
         },
       }),
     [
       canCreateProduct,
-      canEditProduct,
+      canImport,
+      handleDownloadSample,
       handleExportProducts,
       handleImportProducts,
       locale,
@@ -425,13 +405,15 @@ export function VendorProductsTable({
 
   return (
     <>
-      <input
-        id={importInputId}
-        type="file"
-        accept=".csv,text/csv,.json,application/json"
-        className="hidden"
-        onChange={handleImportFileChange}
-      />
+      {canImport && (
+        <ProductImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          endpoint={PRODUCTS_IMPORT_ENDPOINT}
+          audience="vendor"
+          onImported={handleImported}
+        />
+      )}
       <DataTable
         data={list.items}
         columns={columns}

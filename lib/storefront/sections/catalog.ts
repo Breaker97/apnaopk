@@ -16,7 +16,7 @@ import type {
  */
 const SECTION_COPY: Record<string, { name: string; description: string }> = {
   slideshow: {
-    name: "Hero Slider",
+    name: "Slider",
     description: "A grid of saved sliders, images, and your category list",
   },
   "promotion-banner": {
@@ -51,13 +51,21 @@ const SECTION_COPY: Record<string, { name: string; description: string }> = {
     name: "Featured Collection",
     description: "Collection rows — promo panel and product cards",
   },
+  "get-the-look": {
+    name: "Get the Look",
+    description: "One styled Look — its image, the pieces, Add All to Cart",
+  },
+  "looks-list": {
+    name: "Looks",
+    description: "Scrolling row of Looks — outfits kept as collections",
+  },
   "sponsored-rail": {
     name: "Sponsored Products",
     description: "Paid boost placements with organic fill",
   },
   "category-list": {
     name: "Category List",
-    description: "Category row — image cards or circular tiles",
+    description: "Category row — image cards, circular tiles, or labels on the image",
   },
   "category-mosaic": {
     name: "Category Mosaic",
@@ -195,11 +203,18 @@ export function getSectionCatalog(
       description: "",
     };
     const preferred = preferredVariants?.[def.type];
+    const preferredIsDesign = Boolean(
+      preferred && def.variants?.some((variant) => variant.key === preferred),
+    );
+    // A section that follows the template is never baked: its default,
+    // "theme", already wears the template's design, and a baked key would pin
+    // it so the next template switch could not restyle it.
     const starter: SectionStarter | undefined =
       def.variants &&
+      !def.designFollowsTheme &&
       preferred &&
       preferred !== def.variants[0].key &&
-      def.variants.some((variant) => variant.key === preferred)
+      preferredIsDesign
         ? {
             ...def.starter,
             settings: {
@@ -227,6 +242,12 @@ export function getSectionCatalog(
         key: variant.key,
         name: variant.name,
       })),
+      ...(def.designFollowsTheme && def.variants?.length
+        ? {
+            designFollowsTheme: true,
+            themeVariant: preferredIsDesign ? preferred : def.variants[0].key,
+          }
+        : {}),
       fields: def.fields,
       blocks: (def.blocks ?? []).map((block) => ({
         type: block.type,

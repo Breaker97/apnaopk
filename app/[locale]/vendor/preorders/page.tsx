@@ -9,7 +9,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
-import { Order } from "@/models";
+import { Order, Vendor } from "@/models";
 import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import {
@@ -20,6 +20,13 @@ import { PreordersTableSection } from "@/components/admin/preorders-table-sectio
 import { AdminListSkeleton } from "@/components/admin/admin-list-skeleton";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
+import {
+  resolvePreorderPolicy,
+  resolveVendorPreorderAccess,
+  type PreorderVendorAccess,
+} from "@/lib/orders/preorder-gating";
+import { PreorderBalancePolicyNotice } from "@/components/admin/preorder-balance-policy-notice";
+import { VendorPreorderAccessNotice } from "@/components/vendor/preorder-access-notice";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -49,7 +56,15 @@ export default async function VendorPreordersPage({
   if (!settings.multiVendorMode?.enabled) notFound();
 
   const vendorId = String(access.vendor._id);
-  const stats = await getVendorPreorderStats(vendorId);
+  // The area guard selects only the access fields, so `access.vendor` carries
+  // no `preorder` — read against it, an approved vendor was still shown the
+  // "Request access" gate.
+  const [stats, vendorPreorder] = await Promise.all([
+    getVendorPreorderStats(vendorId),
+    Vendor.findById(vendorId)
+      .select("preorder")
+      .lean<PreorderVendorAccess | null>(),
+  ]);
   const canEditPreorder =
     access.vendorPermissions.includes(VENDOR_PERMISSIONS.MANAGE_ORDERS) ||
     access.vendorPermissions.includes(VENDOR_PERMISSIONS.EDIT_ORDERS);
@@ -95,9 +110,31 @@ export default async function VendorPreordersPage({
     },
   ];
 
+  // Only a store that actually reviews vendors shows a gate; everywhere else
+  // this is silent, because there is nothing to ask for.
+  const preorderAccess = resolveVendorPreorderAccess(
+    settings.preorder,
+    vendorPreorder,
+  );
+  const preorderPolicy = resolvePreorderPolicy(settings.preorder);
+
   return (
     <div className="space-y-4">
+      {preorderAccess.blockedBy === "approval" ? (
+        <VendorPreorderAccessNotice
+          requestedAt={preorderAccess.requestedAt}
+          maxLeadDays={preorderAccess.maxLeadDays}
+          maxDepositPercent={preorderAccess.maxDepositPercent}
+        />
+      ) : null}
       <AdminStatsStrip items={statItems} />
+      {/* Which world this queue is in: one that empties itself, or one that
+          waits for the vendor. Read-only here — it is the store's policy, not
+          theirs (see the component). */}
+      <PreorderBalancePolicyNotice
+        autoRelease={preorderPolicy.autoRelease}
+        autoReleaseDelayDays={preorderPolicy.autoReleaseDelayDays}
+      />
       <Suspense
         fallback={
           <AdminListSkeleton

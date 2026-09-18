@@ -58,7 +58,7 @@ export const PUT = withApi<RouteParams>(
       const reordered = await GlobalVariant.findByIdAndUpdate(
         id,
         { $set: { position: body.position } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!reordered) return notFoundResponse("Global variant");
       return successResponse(reordered);
@@ -72,7 +72,7 @@ export const PUT = withApi<RouteParams>(
     const variant = await GlobalVariant.findByIdAndUpdate(
       id,
       { $set: input },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
     if (!variant) return notFoundResponse("Global variant");
     return successResponse(variant);

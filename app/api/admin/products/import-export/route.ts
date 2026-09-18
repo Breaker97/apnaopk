@@ -18,9 +18,11 @@ import {
   mergeScopeFilter,
 } from "@/lib/access/staff-scope";
 import {
+  auditProductImport,
   importProductsFile,
   productsCsvResponse,
 } from "@/lib/products/import-export";
+import { MAX_IMPORT_FILE_BYTES } from "@/lib/products/import-limits";
 import { withApi } from "@/lib/api/handler";
 
 function buildAdminProductQuery(params: {
@@ -149,6 +151,12 @@ export const POST = withApi(
     if (!(file instanceof File)) {
       return errorResponse("A CSV or JSON catalog file is required.", 400);
     }
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      return errorResponse(
+        "This file is larger than 5 MB. Split it into smaller files and import them one at a time.",
+        413,
+      );
+    }
 
     const settings = await getSettings();
     await syncDefaultVendorWithSettings(
@@ -156,19 +164,43 @@ export const POST = withApi(
       settings,
     );
     const defaultVendorId = String((await getOrCreateDefaultVendor(session.user.id))._id);
-    const allowedVendorIds =
-      hasStaffScope(access.staffScope) && access.staffScope?.vendorIds.length
-        ? access.staffScope.vendorIds
-        : undefined;
+
+    // The import is one request but many writes, so it is judged per row the
+    // way the product routes judge each write: creating needs the create
+    // permission, editing needs edit, and a scoped staff member only reaches
+    // the products — and vendors — their scope covers.
+    const isAdmin = session.user.role === USER_ROLES.ADMIN;
+    const holds = (permission: (typeof STAFF_PERMISSIONS)[keyof typeof STAFF_PERMISSIONS]) =>
+      isAdmin ||
+      Boolean(
+        access.staffPermissions?.includes(permission) ||
+          access.staffPermissions?.includes(STAFF_PERMISSIONS.MANAGE_PRODUCTS),
+      );
+    const scoped = !isAdmin && hasStaffScope(access.staffScope);
+    const scopeVendorIds = scoped ? (access.staffScope?.vendorIds ?? []) : [];
 
     const result = await importProductsFile(file.name, await file.text(), {
-      defaultVendorId: allowedVendorIds?.[0] || defaultVendorId,
+      defaultVendorId: scopeVendorIds[0] ?? defaultVendorId,
       productSource: "admin",
-      allowedVendorIds,
-      allowVendorColumn: session.user.role === USER_ROLES.ADMIN,
+      allowedVendorIds: scopeVendorIds.length > 0 ? scopeVendorIds : undefined,
+      productScopeFilter: buildStaffProductScopeFilter(access.staffScope),
+      createRefusal: !holds(STAFF_PERMISSIONS.CREATE_PRODUCTS)
+        ? "You do not have permission to create products."
+        : scoped && scopeVendorIds.length === 0
+          ? "Staff must be assigned to a vendor before creating products."
+          : undefined,
+      updateRefusal: holds(STAFF_PERMISSIONS.EDIT_PRODUCTS)
+        ? undefined
+        : "You do not have permission to edit products.",
+      allowVendorColumn: isAdmin,
       allowFeatured: true,
+      // Categories are created from the admin's category screen only, so only
+      // an admin's catalog may add them.
+      createMissingCategories: isAdmin,
       countryAvailability: settings.general?.countryAvailability,
     });
+
+    await auditProductImport(request, session, file.name, result);
 
     return successResponse(result);
   },

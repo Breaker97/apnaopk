@@ -20,6 +20,7 @@ interface AdminCollectionListParams {
   search?: string;
   status?: string;
   type?: string;
+  kind?: string;
   channel?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -28,10 +29,11 @@ function buildCollectionListFilter({
   search,
   status,
   type,
+  kind,
   channel,
 }: Pick<
   AdminCollectionListParams,
-  "search" | "status" | "type" | "channel"
+  "search" | "status" | "type" | "kind" | "channel"
 >): Record<string, unknown> {
   const query: Record<string, unknown> = {};
 
@@ -44,6 +46,7 @@ function buildCollectionListFilter({
   }
   if (status && status !== "all") query.status = status;
   if (type && type !== "all") query.collectionType = type;
+  if (kind && kind !== "all") query.kind = kind;
   if (channel && channel !== "all") query[`publishing.${channel}`] = true;
 
   return query;

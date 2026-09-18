@@ -22,6 +22,7 @@ import { ValidationError } from "@/lib/api/errors";
 import { QUANTITY_CONSUMING_RETURN_STATUSES } from "@/lib/returns/returns";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
 import {
+  DEFAULT_RETURN_WINDOW_DAYS,
   isMerchantFaultReturn,
   resolveReturnPolicy,
   shouldRefundReturnShipping,
@@ -39,8 +40,6 @@ import {
   type SubOrderPaymentShape,
 } from "@/lib/orders/order-payment-status";
 import { roundMoney } from "@/lib/intl/money";
-
-export const RETURN_WINDOW_DAYS = 30;
 
 type OrderItemLike = {
   productId: unknown;
@@ -64,7 +63,13 @@ interface ReturnPlanOrder {
   shippedAt?: Date;
   createdAt?: Date;
   items?: OrderItemLike[];
-  subOrders?: Array<SubOrderPaymentShape & { vendorId?: unknown }> | null;
+  subOrders?: Array<
+    SubOrderPaymentShape & {
+      vendorId?: unknown;
+      subtotal?: number;
+      couponDiscount?: number | null;
+    }
+  > | null;
   subtotal?: number;
   tax?: number;
   discount?: number;
@@ -133,7 +138,16 @@ function getDateBasis(order: ReturnPlanOrder) {
   return order.deliveredAt || order.shippedAt || order.createdAt || new Date();
 }
 
-export function assertReturnEligible(order: ReturnPlanOrder) {
+/**
+ * @param settings the store's settings, for the return window it has chosen.
+ *   Omitted, the window is the 30 days it was hardcoded to — so a caller that
+ *   has no settings to hand rejects exactly what it always rejected, rather
+ *   than admitting everything.
+ */
+export function assertReturnEligible(
+  order: ReturnPlanOrder,
+  settings?: ReturnPolicySettingsLike | null,
+) {
   if (order.status !== "delivered") {
     throw new ValidationError("Only delivered orders can be returned");
   }
@@ -145,11 +159,16 @@ export function assertReturnEligible(order: ReturnPlanOrder) {
     throw new ValidationError("Only paid orders can be returned");
   }
 
+  const windowDays = settings
+    ? resolveReturnPolicy(settings).windowDays
+    : DEFAULT_RETURN_WINDOW_DAYS;
   const basis = getDateBasis(order);
   const elapsedMs = Date.now() - new Date(basis).getTime();
   const elapsedDays = elapsedMs / (1000 * 60 * 60 * 24);
-  if (elapsedDays > RETURN_WINDOW_DAYS) {
-    throw new ValidationError("The 30-day return window has closed for this order");
+  if (elapsedDays > windowDays) {
+    throw new ValidationError(
+      `The ${windowDays}-day return window has closed for this order`,
+    );
   }
 }
 
@@ -297,6 +316,12 @@ export async function planReturnRequest(params: {
       orderSubtotal: subtotal,
       orderTax: Number(order.tax || 0),
       goodsDiscount,
+      ownGoodsDiscount: isShippingCoupon
+        ? null
+        : ownCouponDiscount(
+            order,
+            groupItems.map((item) => item.orderItem.vendorId),
+          ),
       chargedShipping,
       refundsShipping,
       merchantAtFault,
@@ -355,6 +380,7 @@ export async function planReturnRequest(params: {
  */
 export function recomputeReturnEstimate(params: {
   items: Array<{
+    vendorId?: unknown;
     unitPrice?: number | null;
     quantityApproved?: number | null;
     quantityRequested?: number | null;
@@ -386,6 +412,12 @@ export function recomputeReturnEstimate(params: {
     orderSubtotal: Number(order.subtotal || 0),
     orderTax: Number(order.tax || 0),
     goodsDiscount: isShippingCoupon ? 0 : orderDiscount,
+    ownGoodsDiscount: isShippingCoupon
+      ? null
+      : ownCouponDiscount(
+          params.order,
+          (params.items || []).map((item) => item?.vendorId),
+        ),
     chargedShipping: isShippingCoupon
       ? Math.max(0, ratedShipping - orderDiscount)
       : ratedShipping,
@@ -414,5 +446,29 @@ export async function loadReturnableOrder(params: {
   return order as unknown as ReturnPlanOrder & {
     orderNumber?: string;
     customerId?: unknown;
+  };
+}
+
+/**
+ * The returning seller's own slice of a scoped coupon, when the order recorded
+ * whose coupon it was and every line coming back belongs to one consignment.
+ * Null otherwise, which keeps the order-wide share.
+ */
+function ownCouponDiscount(
+  order: ReturnPlanOrder,
+  vendorIds: unknown[],
+): { amount: number; subtotal: number } | null {
+  const subOrders = order.subOrders || [];
+  if (!subOrders.some((sub) => typeof sub.couponDiscount === "number")) {
+    return null;
+  }
+  const vendors = new Set(vendorIds.map(String));
+  if (vendors.size !== 1) return null;
+  const [vendorId] = [...vendors];
+  const sub = subOrders.find((candidate) => String(candidate.vendorId) === vendorId);
+  if (!sub) return null;
+  return {
+    amount: Math.max(0, Number(sub.couponDiscount || 0)),
+    subtotal: Math.max(0, Number(sub.subtotal || 0)),
   };
 }

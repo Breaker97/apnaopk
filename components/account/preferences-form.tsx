@@ -19,6 +19,9 @@ interface CustomerProfile {
     priceDrops?: boolean;
     backInStock?: boolean;
   };
+  smsNotifications?: {
+    orderUpdates?: boolean;
+  };
   marketingOptIn?: boolean;
   preferredPaymentMethod?: string;
   preferredCurrency?: string;
@@ -30,6 +33,7 @@ export function PreferencesForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<CustomerProfile>({});
+  const [smsUpdatesAvailable, setSmsUpdatesAvailable] = useState(false);
 
   const fetchProfile = useCallback(
     () =>
@@ -37,6 +41,7 @@ export function PreferencesForm() {
         .then((res) => res.json())
         .then((json) => {
           if (json.success && json.data?.profile) setProfile(json.data.profile);
+          setSmsUpdatesAvailable(json.data?.smsUpdatesAvailable === true);
         })
         .catch((error) => {
           console.error("Failed to fetch profile:", error);
@@ -58,6 +63,9 @@ export function PreferencesForm() {
         body: JSON.stringify({
           marketingOptIn: profile.marketingOptIn,
           emailNotifications: profile.emailNotifications,
+          ...(smsUpdatesAvailable
+            ? { smsNotifications: profile.smsNotifications }
+            : {}),
           preferredPaymentMethod: profile.preferredPaymentMethod,
           preferredCurrency: profile.preferredCurrency,
           preferredLanguage: profile.preferredLanguage,
@@ -197,6 +205,33 @@ export function PreferencesForm() {
           </div>
         </CardContent>
       </Card>
+
+      {smsUpdatesAvailable && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("customerProfile.smsNotifications")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label>{t("customerProfile.smsOrderUpdates")}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {t("customerProfile.smsOrderUpdatesDesc")}
+                </p>
+              </div>
+              <Switch
+                checked={profile.smsNotifications?.orderUpdates ?? true}
+                onCheckedChange={(val) =>
+                  setProfile((prev) => ({
+                    ...prev,
+                    smsNotifications: { orderUpdates: val },
+                  }))
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Marketing Preferences */}
       <Card>

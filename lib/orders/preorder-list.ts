@@ -1,7 +1,11 @@
 import type { Types } from "mongoose";
 import { Order } from "@/models";
 import { connectDB } from "@/lib/db";
-import { PREORDER_ITEM_STATUS, PURCHASE_TYPE } from "@/lib/orders/preorders";
+import {
+  PREORDER_ALLOCATION_SORT,
+  PREORDER_ITEM_STATUS,
+  PURCHASE_TYPE,
+} from "@/lib/orders/preorders";
 import {
   buildStaffOrderScopeFilter,
   mergeScopeFilter,
@@ -117,9 +121,9 @@ export async function fetchPreorderList(
   const [orders, total] = await Promise.all([
     Order.find(query)
       .populate("customerId", "name email")
-      // Soonest release first; createdAt breaks ties between orders sharing a
-      // release date, so a row cannot straddle two pages.
-      .sort({ preorderReleaseDate: 1, createdAt: -1 })
+      // Soonest release first, then oldest commitment first. This is the
+      // allocation queue, not a display preference — see the constant.
+      .sort(PREORDER_ALLOCATION_SORT)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
@@ -139,7 +143,7 @@ export async function fetchPreorderExportRows(
 
   return Order.find(buildPreorderListFilter(params, context))
     .populate("customerId", "name email")
-    .sort({ preorderReleaseDate: 1, createdAt: -1 })
+    .sort(PREORDER_ALLOCATION_SORT)
     .limit(limit)
     .lean();
 }

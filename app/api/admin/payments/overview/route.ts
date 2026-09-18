@@ -33,9 +33,26 @@ export const GET = withApi(
       createdAt: { $gte: period.from, $lte: period.to },
     };
 
-    const [settings, orderAgg, txnAgg, payoutAgg, recentTransactions] =
+    const settings = await getSettings();
+    const storeCurrency = (
+      settings.general?.defaultCurrency || "USD"
+    ).toUpperCase();
+    // The store's own book currency, plus rows that carry none — which the
+    // ledger also counts as the store's. Every money figure below is read in it;
+    // anything genuinely in another currency is reported by Finance, in that
+    // currency. Refunds and payouts used to be summed across every currency and
+    // printed with this one's symbol.
+    const inStoreCurrency = {
+      $or: [
+        { currency: { $in: [storeCurrency, storeCurrency.toLowerCase()] } },
+        { currency: { $exists: false } },
+        { currency: null },
+        { currency: "" },
+      ],
+    };
+
+    const [orderAgg, txnAgg, payoutAgg, recentTransactions] =
       await Promise.all([
-        getSettings(),
         Order.aggregate([
           {
             $facet: {
@@ -43,9 +60,57 @@ export const GET = withApi(
               // them. This added every currency the store has ever traded in
               // into one figure and printed it with the store's own symbol —
               // the exact failure `lib/finance/reports.ts` exists to avoid.
+              // Every order money was collected on, including the ones since
+              // refunded. Counting only `paid` dropped a refunded order's
+              // charge from the total while its refund was still subtracted
+              // below — the same money taken off twice. A deposit pre-order
+              // counts what it has collected, not what it will.
               paidRevenue: [
-                { $match: { paymentStatus: "paid", ...inPeriod } },
-                { $group: { _id: "$currency", total: { $sum: "$total" } } },
+                {
+                  $match: {
+                    ...inPeriod,
+                    ...inStoreCurrency,
+                    $and: [
+                      {
+                        $or: [
+                          {
+                            paymentStatus: {
+                              $in: ["paid", "partially_refunded", "refunded"],
+                            },
+                          },
+                          {
+                            paymentStatus: "partially_paid",
+                            preorderOutstandingAmount: { $gt: 0 },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+                {
+                  $group: {
+                    _id: null,
+                    total: {
+                      $sum: {
+                        $cond: [
+                          { $eq: ["$paymentStatus", "partially_paid"] },
+                          {
+                            $max: [
+                              0,
+                              {
+                                $subtract: [
+                                  "$total",
+                                  { $ifNull: ["$preorderOutstandingAmount", 0] },
+                                ],
+                              },
+                            ],
+                          },
+                          "$total",
+                        ],
+                      },
+                    },
+                  },
+                },
               ],
               pendingOrders: [
                 {
@@ -64,6 +129,7 @@ export const GET = withApi(
                 { $count: "count" },
               ],
               methodBreakdown: [
+                { $match: inStoreCurrency },
                 {
                   $group: {
                     _id: "$paymentMethod",
@@ -79,16 +145,25 @@ export const GET = withApi(
           {
             $facet: {
               byType: [
+                { $match: inStoreCurrency },
                 { $group: { _id: "$type", count: { $sum: 1 }, total: { $sum: "$grossAmount" } } },
               ],
               byStatus: [
                 { $group: { _id: "$status", count: { $sum: 1 } } },
               ],
               byProvider: [
+                { $match: inStoreCurrency },
                 { $group: { _id: "$provider", count: { $sum: 1 }, total: { $sum: "$grossAmount" } } },
               ],
               refundTotal: [
-                { $match: { type: "refund", status: "succeeded", ...inPeriod } },
+                {
+                  $match: {
+                    type: "refund",
+                    status: "succeeded",
+                    ...inPeriod,
+                    ...inStoreCurrency,
+                  },
+                },
                 { $group: { _id: null, total: { $sum: "$grossAmount" } } },
               ],
             },
@@ -98,11 +173,16 @@ export const GET = withApi(
           {
             $facet: {
               pendingAmount: [
-                { $match: { status: { $in: ["pending", "processing"] } } },
+                {
+                  $match: {
+                    status: { $in: ["pending", "processing"] },
+                    ...inStoreCurrency,
+                  },
+                },
                 { $group: { _id: null, total: { $sum: "$netAmount" } } },
               ],
               paidAmount: [
-                { $match: { status: "paid" } },
+                { $match: { status: "paid", ...inStoreCurrency } },
                 { $group: { _id: null, total: { $sum: "$netAmount" } } },
               ],
               byStatus: [
@@ -124,10 +204,6 @@ export const GET = withApi(
     const txnMetrics = txnAgg?.[0] || {};
     const payoutMetrics = payoutAgg?.[0] || {};
 
-    const storeCurrency = (
-      settings.general?.defaultCurrency || "USD"
-    ).toUpperCase();
-
     return successResponse({
       period: {
         key: period.key,
@@ -138,14 +214,8 @@ export const GET = withApi(
         // The store's own book currency, plus the orders that carry none —
         // which the ledger also counts as the store's. Anything genuinely in
         // another currency is reported by Finance, in that currency.
-        paidRevenue: Number(
-          (orderMetrics.paidRevenue as Array<{ _id: string | null; total: number }> | undefined)
-            ?.filter((row) => {
-              const currency = String(row._id || "").toUpperCase();
-              return !currency || currency === storeCurrency;
-            })
-            .reduce((sum, row) => sum + Number(row.total || 0), 0) || 0,
-        ),
+        currency: storeCurrency,
+        paidRevenue: Number(orderMetrics.paidRevenue?.[0]?.total || 0),
         refundedAmount: Number(txnMetrics.refundTotal?.[0]?.total || 0),
         pendingPayments: Number(orderMetrics.pendingOrders?.[0]?.count || 0),
         refundedOrders: Number(orderMetrics.refundedOrders?.[0]?.count || 0),

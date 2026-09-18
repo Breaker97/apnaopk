@@ -69,7 +69,11 @@ export function StudioCanvas({
   onToggleAnnouncement: (enabled: boolean) => void;
 }) {
   return (
-    <div className="space-y-2.5">
+    // Clicking the canvas itself — the gaps between rows, the space under
+    // the last one — clears the selection, which is what brings the header's
+    // own settings back into the property panel. Every row, column and item
+    // stops its own click, so only genuine background clicks reach here.
+    <div className="space-y-2.5 pb-6" onClick={() => onSelect(null)}>
       <ChromeRow
         icon={Megaphone}
         label={tSafe("admin.headerStudio.chrome.announcement", "Announcement bar")}
@@ -156,7 +160,10 @@ function ChromeRow({
     <div
       role="group"
       aria-label={label}
-      onClick={onSelect}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
       className={cn(
         "flex items-stretch gap-2 rounded-[12px] border bg-card p-3 shadow-xs transition-shadow",
         isSelected && "border-emerald-500 ring-2 ring-emerald-500/30",
@@ -229,7 +236,10 @@ function CanvasRow({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       role="group"
       aria-label={tSafe("admin.headerStudio.canvas.row", "Header row")}
-      onClick={() => onSelect({ kind: "row", rowId: row.id })}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect({ kind: "row", rowId: row.id });
+      }}
       className={cn(
         "group/row flex items-stretch gap-2 rounded-[12px] border bg-card p-3 shadow-xs transition-shadow",
         isSelected && "border-emerald-500 ring-2 ring-emerald-500/30",

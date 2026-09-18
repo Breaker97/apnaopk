@@ -14,14 +14,26 @@ import {
 } from "@/lib/access/staff-scope";
 import {
   isQuoteRequestStatus,
+  type QuoteOfferState,
   type QuoteRequestStatus,
 } from "@/lib/quotes/quote-status";
+import { resolveOfferStates } from "@/lib/quotes/quote-offer";
 
 /**
- * Reading side of the quote inbox, shared by `/api/admin/quotes` and the
- * admin Quotes page's server component so the endpoint and the rendered
- * first page can never answer the same query differently.
+ * Reading side of the quote inbox behind `/api/admin/quotes`. The admin page
+ * is a client table that fetches through that route, so filtering, scoping and
+ * pagination all live here rather than being restated at the boundary.
  */
+
+/** The price the merchant sent back, as the admin table reads it. */
+export type QuoteOfferRow = {
+  unitPrice: number;
+  quantity: number;
+  note?: string;
+  expiresAt?: string;
+  offeredAt: string;
+  withdrawnAt?: string;
+};
 
 export type QuoteRequestRow = {
   _id: string;
@@ -37,6 +49,14 @@ export type QuoteRequestRow = {
   message?: string;
   status: QuoteRequestStatus;
   adminNote?: string;
+  offer?: QuoteOfferRow;
+  /**
+   * Whether that offer is still open, and if not why — derived from its expiry
+   * and the order it was spent on, never stored. See lib/quotes/quote-offer.ts.
+   */
+  offerState: QuoteOfferState;
+  /** The order the offer was spent on, when one was placed. */
+  orderId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -47,7 +67,7 @@ export type QuoteRequestRow = {
  * requests about it — an unscoped staff member (no vendorIds) sees everything,
  * exactly as they do on the product list.
  */
-function buildQuoteScopeFilter(scope?: StaffAccessScope | null) {
+export function buildQuoteScopeFilter(scope?: StaffAccessScope | null) {
   if (!hasStaffScope(scope) || scope!.vendorIds.length === 0) return {};
   return { vendorId: { $in: scope!.vendorIds } };
 }
@@ -84,8 +104,18 @@ export async function fetchQuoteRequestList(
 
   const { items, total } = await runListQuery(QuoteRequest, scoped, query);
 
+  // One batched read of the bound orders decides every row's offer state; the
+  // alternative is a per-row lookup on a page of fifty.
+  const offerStates = await resolveOfferStates(
+    items as unknown as Parameters<typeof resolveOfferStates>[0],
+  );
+  const rows = serializeRows<QuoteRequestRow[]>(items).map((row) => ({
+    ...row,
+    offerState: offerStates.get(row._id) ?? "none",
+  }));
+
   return listResult(
-    serializeRows<QuoteRequestRow[]>(items),
+    rows,
     query.usePagination ? query.page : 1,
     query.usePagination ? query.limit : total || 1,
     total,
@@ -100,4 +130,38 @@ export async function countNewQuoteRequests(
   return QuoteRequest.countDocuments(
     mergeScopeFilter({ status: "new" }, buildQuoteScopeFilter(scope)),
   );
+}
+
+
+/**
+ * The shopper's own quotes, for /account/quotes.
+ *
+ * Same rows the merchant works from, minus the parts that are none of the
+ * shopper's business: the internal note is never selected, so it cannot leak
+ * through a serializer that spreads whatever it was handed. Capped rather than
+ * paginated — a shopper with more than fifty open quotes is not a page-two
+ * problem, and the list is a follow-up tool, not a report.
+ */
+export async function fetchCustomerQuotes(
+  userId: string,
+  limit = 50,
+): Promise<QuoteRequestRow[]> {
+  await connectDB();
+
+  const items = await QuoteRequest.find({ userId })
+    .select(
+      "productId productName productSlug variantName quantity name email phone company message status offer orderId createdAt updatedAt",
+    )
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  const offerStates = await resolveOfferStates(
+    items as unknown as Parameters<typeof resolveOfferStates>[0],
+  );
+
+  return serializeRows<QuoteRequestRow[]>(items).map((row) => ({
+    ...row,
+    offerState: offerStates.get(row._id) ?? "none",
+  }));
 }

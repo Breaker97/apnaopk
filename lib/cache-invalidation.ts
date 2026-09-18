@@ -87,6 +87,67 @@ export function revalidateProductContent(options?: {
   ]);
 }
 
+/** Past this many products, naming each product page costs more than expiring them all. */
+const PER_SLUG_REVALIDATION_LIMIT = 50;
+
+/**
+ * Expire what a bulk product change (an import) touched.
+ *
+ * Every slug fans out to one path per locale, and Next de-duplicates its queue
+ * of pending tags with a linear scan — a thousand-row import listing each slug
+ * made that queue quadratic. Past a handful of products the product page
+ * *route* is expired instead, which covers every slug in every locale.
+ */
+export function revalidateBulkProductContent(
+  slugs: Array<string | null | undefined>,
+) {
+  const unique = uniqueStrings(slugs);
+  if (unique.length <= PER_SLUG_REVALIDATION_LIMIT) {
+    revalidateProductContent({ slugs: unique });
+    return;
+  }
+  revalidateProductContent();
+  revalidatePath("/[locale]/(store)/products/[slug]", "page");
+}
+
+/**
+ * Tag carried by one product's cached storefront detail. Keyed by slug because
+ * that is what the product page reads by, and what every stock movement already
+ * knows.
+ */
+export function productSlugTag(slug: string) {
+  return `product:${slug}`;
+}
+
+/**
+ * Expire what a stock movement (a sale, a cancellation, a restock) actually
+ * changed, instead of the whole catalog.
+ *
+ * A product's detail page shows counts, so its own cache always goes. Cards and
+ * listings only show whether something can be bought — a card has an
+ * out-of-stock badge, never a number, and "hide sold-out products" filters on
+ * the same yes/no — so they are expired only when a movement flipped a product
+ * or variant between sellable and sold out. Anything else they show is at most
+ * one revalidate window (60 s) behind, and the cart and checkout re-check stock
+ * live, so a stale listing can never oversell.
+ *
+ * Busting everything on every sale meant each order sent the next visitor to
+ * every product, listing and home page down the uncached path.
+ */
+export function revalidateProductStock(options: {
+  slugs: Array<string | null | undefined>;
+  availabilityChanged: boolean;
+}) {
+  if (options.availabilityChanged) {
+    revalidateProductContent({ slugs: options.slugs });
+    return;
+  }
+
+  for (const slug of uniqueStrings(options.slugs)) {
+    revalidateTag(productSlugTag(slug), IMMEDIATE_REVALIDATION);
+  }
+}
+
 export function revalidateSettingsContent() {
   revalidateCacheTags([CACHE_TAGS.settings]);
   revalidateStorefrontLayouts();

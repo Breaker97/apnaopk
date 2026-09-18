@@ -34,6 +34,13 @@ import {
  * sitemap is a discovery hint, not a cache — search engines re-crawl it on
  * their own schedule, and rebuilding it per request would run six collection
  * scans for every crawler that pings it.
+ *
+ * Being cached also means being prerendered: `next build` renders this route
+ * once to seed the cache, so an unreachable database at build time used to
+ * fail the whole build here. Both readers below degrade instead of throwing,
+ * so a build without a database produces a hub-pages-only sitemap and the
+ * first revalidation after boot — within the hour, from a server that can
+ * reach Mongo — replaces it with the full file.
  */
 export const revalidate = 3600;
 
@@ -84,11 +91,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     Math.floor(SITEMAP_URL_BUDGET / (localeList.length * ENTITY_TYPES)),
   );
 
-  const settings = await getStorefrontSettings();
-  const entities = await loadEntities(
-    perEntityLimit,
-    settings.isMultiVendorEnabled,
-  );
+  const settings = await loadSettings();
+  // Without settings the toggle is unknowable, so the sitemap describes the
+  // shape every store has: a single-vendor storefront with no vendor
+  // directory. Advertising one that 404s is the worse of the two guesses.
+  const multiVendor = settings?.isMultiVendorEnabled ?? false;
+  const entities = await loadEntities(perEntityLimit, multiVendor);
 
   const entries: MetadataRoute.Sitemap = [];
   const seen = new Set<string>();
@@ -135,7 +143,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // stores — both 404 while the toggle is off.
     if (
       (publicPath === "/become-vendor" || publicPath === "/vendors") &&
-      !settings.isMultiVendorEnabled
+      !multiVendor
     ) {
       continue;
     }
@@ -143,21 +151,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Merchant-authored pages, only while the admin has them switched on.
-  for (const key of CONTENT_PAGE_KEYS) {
-    if (settings.contentPages[key]?.visible) {
-      push(CONTENT_PAGE_META[key].publicPath, {
+  // Skipped wholesale when settings are unreadable: which of these exist is
+  // knowable only from the database, and a URL left out of the sitemap is
+  // still found by crawling, whereas one invented here is a 404 in Search
+  // Console.
+  if (settings) {
+    for (const key of CONTENT_PAGE_KEYS) {
+      if (settings.contentPages[key]?.visible) {
+        push(CONTENT_PAGE_META[key].publicPath, {
+          changeFrequency: "monthly",
+          priority: 0.3,
+        });
+      }
+    }
+    for (const page of settings.contentPages.customPages) {
+      if (!page.visible || !page.handle.trim()) continue;
+      push(`/pages/${page.handle}`, {
+        lastModified: page.updatedAt ? new Date(page.updatedAt) : undefined,
         changeFrequency: "monthly",
-        priority: 0.3,
+        priority: 0.4,
       });
     }
-  }
-  for (const page of settings.contentPages.customPages) {
-    if (!page.visible || !page.handle.trim()) continue;
-    push(`/pages/${page.handle}`, {
-      lastModified: page.updatedAt ? new Date(page.updatedAt) : undefined,
-      changeFrequency: "monthly",
-      priority: 0.4,
-    });
   }
 
   const pushAll = (
@@ -181,7 +195,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   pushAll("/collections", entities.collections, "weekly", 0.7);
   pushAll("/brands", entities.brands, "weekly", 0.6);
   pushAll("/blog", entities.posts, "weekly", 0.6);
-  if (settings.isMultiVendorEnabled) {
+  if (multiVendor) {
     pushAll("/vendors", entities.vendors, "weekly", 0.6);
   }
 
@@ -189,11 +203,52 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 }
 
 /**
+ * Settings, or null when they cannot be read. A sitemap that lists only the
+ * hub pages is a worse sitemap; a sitemap route that throws takes the build
+ * (or the request) with it.
+ */
+async function loadSettings() {
+  try {
+    return await getStorefrontSettings();
+  } catch (error) {
+    console.warn(
+      "[sitemap] settings unavailable — emitting hub pages only, without content pages or the vendor directory",
+      error,
+    );
+    return null;
+  }
+}
+
+/**
+ * The catalogue half of the sitemap, or empty lists when the database cannot
+ * be reached. Same reasoning as `loadSettings`, and the warning keeps a
+ * degraded file visible in build and runtime logs rather than silent.
+ */
+async function loadEntities(limit: number, multiVendor: boolean) {
+  try {
+    return await queryEntities(limit, multiVendor);
+  } catch (error) {
+    console.warn(
+      "[sitemap] catalogue unavailable — emitting hub pages only, without product, category, collection, brand, blog or vendor URLs",
+      error,
+    );
+    return {
+      products: [] as SitemapEntity[],
+      categories: [] as SitemapEntity[],
+      collections: [] as SitemapEntity[],
+      brands: [] as SitemapEntity[],
+      posts: [] as SitemapEntity[],
+      vendors: [] as SitemapEntity[],
+    };
+  }
+}
+
+/**
  * Every query reuses the same visibility filter its storefront page uses, so
  * the sitemap can never advertise a URL that 404s — a product hidden from the
  * online-store channel, an unapproved brand, a scheduled post.
  */
-async function loadEntities(limit: number, multiVendor: boolean) {
+async function queryEntities(limit: number, multiVendor: boolean) {
   await connectDB();
 
   const productConstraint = await getStorefrontProductConstraint();

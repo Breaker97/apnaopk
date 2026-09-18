@@ -38,6 +38,7 @@
     "yes": "Sí",
     "no": "No",
     "close": "Cerrar",
+    "scrollToTop": "Volver arriba",
     "back": "Atrás",
     "next": "Siguiente",
     "previous": "Anterior",
@@ -122,7 +123,8 @@
     "decreaseQuantity": "Reducir cantidad",
     "increaseQuantity": "Aumentar cantidad",
     "name": "Nombre",
-    "email": "Correo electrónico"
+    "email": "Correo electrónico",
+    "showingResultsFor": "Mostrando resultados para <q>{query}</q>"
   },
   "wishlist": {
     "title": "Mi lista de deseos",
@@ -306,7 +308,8 @@
         "bestRating": "Mejor valorados",
         "newest": "Más nuevos",
         "priceLowHigh": "Precio de menor a mayor",
-        "priceHighLow": "Precio de mayor a menor"
+        "priceHighLow": "Precio de mayor a menor",
+        "bestMatch": "Relevancia"
       }
     }
   },
@@ -470,6 +473,57 @@
     "quoteMessageOptional": "Mensaje (opcional)",
     "quoteMessagePlaceholder": "Cantidades, fecha de entrega, especificaciones…"
   },
+  "reviews": {
+    "basedOn": "Basado en {count} reseñas",
+    "writeReview": "Escribir una reseña",
+    "writeReviewCta": "¡Escribe una reseña!",
+    "noReviews": "Aún no hay reseñas",
+    "beFirst": "Sé el primero en reseñar este producto",
+    "verified": "Compra verificada",
+    "rating": "Valoración",
+    "all": "Todas",
+    "highlyRecommended": "Muy recomendado",
+    "postedBy": "Publicado {time} por {name}",
+    "postedTime": "Publicado {time}",
+    "brandResponse": "Respuesta de la marca",
+    "showingRange": "Mostrando {from} - {to} de {total} reseñas",
+    "anonymous": "Anónimo",
+    "checkingEligibility": "Comprobando tus pedidos elegibles...",
+    "comment": "Tu reseña *",
+    "commentPlaceholder": "Comparte tu experiencia con este producto",
+    "commentTooShort": "El comentario debe tener al menos 10 caracteres",
+    "dropzoneHint": "Admite imágenes de hasta 10 MB cada una.",
+    "dropzonePrimary": "Arrastra y suelta archivos aquí o haz clic para buscar",
+    "eligibleOrderRequired": "Solo puedes reseñar este producto después de que se entregue en uno de tus pedidos.",
+    "imageTooLarge": "Cada imagen debe pesar menos de 10 MB",
+    "imageUploadFailed": "Error al subir la imagen",
+    "invalidImage": "Solo se permiten archivos de imagen",
+    "loginToReview": "Inicia sesión para escribir una reseña de este producto.",
+    "maxImages": "Puedes subir hasta 4 imágenes",
+    "noReviewsForRating": "Aún no hay reseñas con esta valoración",
+    "oldest": "Más antiguas",
+    "photos": "Imágenes",
+    "selectRating": "Selecciona una valoración",
+    "submit": "Enviar reseña",
+    "submitFailed": "No se pudo enviar la reseña",
+    "submitted": "¡Reseña enviada correctamente!",
+    "title": "Título",
+    "titlePlaceholder": "Resume tu reseña",
+    "writeReviewHint": "Tu dirección de correo electrónico no se publicará. Los campos obligatorios están marcados con un asterisco (*).",
+    "yourRating": "Tu valoración",
+    "pendingTitle": "Valora tus compras",
+    "pendingDescription": "Tus pedidos han llegado. Cuéntales a otros compradores qué te parecen.",
+    "deliveredOn": "Entregado el {date}",
+    "rateStar": "Valorar con {count} de 5",
+    "showMore": "Mostrar {count} más",
+    "showFewer": "Mostrar menos",
+    "fromOrder": "Pedido #{orderNumber}",
+    "orderPromptTitle": "¿Qué tal tu pedido?",
+    "orderPromptOne": "Escribe una breve reseña de {name}: ayuda a otros compradores.",
+    "orderPromptMany": "{count} artículos de este pedido esperan tu reseña.",
+    "youRated": "Tu valoración",
+    "alreadyReviewed": "Ya has reseñado este producto. ¡Gracias por compartir tu experiencia!"
+  },
   "cart": {
     "yourCart": "Tu carrito",
     "shoppingCart": "Carrito de compras",
@@ -570,10 +624,11 @@
       "iotecPhoneHint": "Introduce el número de MTN o Airtel que se cobrará. Recibirás un aviso en ese teléfono para aprobar el pago.",
       "mtnMomoDetail": "Paga con MTN Mobile Money. Recibirás una solicitud en tu teléfono para aprobarla con tu PIN de MoMo.",
       "mtnMomoPhoneLabel": "Número de dinero móvil",
-      "mtnMomoPhonePlaceholder": "p. ej. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "p. ej. {example}",
       "mtnMomoPhoneHint": "Introduce el número MTN a cobrar. Recibirás una solicitud en ese teléfono para aprobar el pago."
     },
-    "switchToPickup": "Cambiar a recogida local"
+    "switchToPickup": "Cambiar a recogida local",
+    "enterAddressForShipping": "Introduce tu dirección de envío para ver los métodos de envío disponibles."
   },
   "orders": {
     "myOrders": "Mis pedidos",
@@ -624,7 +679,8 @@
       "partially_paid": "Parcialmente pagado",
       "refunded": "Reembolsado",
       "partially_refunded": "Parcialmente reembolsado"
-    }
+    },
+    "importDuties": "Aranceles de importación"
   },
   "vendor": {
     "vendorDashboard": "Panel del vendedor",
@@ -661,10 +717,11 @@
     "commission": "Comisión pagada",
     "activeProducts": "Productos activos",
     "netEarnings": "Ganancias netas",
-    "pending": "pendiente",
+    "awaitingPayment": "{amount} pendiente de pago",
     "recentOrders": "Pedidos recientes",
     "topProducts": "Productos más vendidos",
     "totalOrders": "Pedidos totales",
+    "openOrdersCount": "{count} abiertos",
     "totalProducts": "Total de productos",
     "totalRevenue": "Ingresos totales",
     "pendingOrders": "Pending Orders",
@@ -819,6 +876,7 @@
       "partially_refunded": "Parcialmente reembolsado"
     },
     "fulfillmentStatus": {
+      "preordered": "Reservado",
       "pending": "Sin completar",
       "processing": "En proceso",
       "shipped": "En tránsito",
@@ -1124,6 +1182,7 @@
       "subtotal": "Subtotal",
       "shipping": "Envío",
       "tax": "Impuesto",
+      "importDuties": "Aranceles de importación",
       "discount": "Descuento",
       "totalLabel": "Total",
       "timeline": "Cronología",
@@ -1243,7 +1302,7 @@
       "dateRange": "25 jul - 25 ago",
       "addActivity": "Agregar actividad",
       "sales": "Ventas",
-      "ordersDescription": "Un desglose de pedidos por proyecto con información detallada.",
+      "ordersDescription": "Totales del periodo seleccionado, desglosados por canal de venta.",
       "showHighlights": "Mostrar todos los destacados",
       "showSalesData": "Mostrar todos los datos de ventas",
       "viewAllOrders": "Ver todos los pedidos",
@@ -1337,7 +1396,9 @@
       "expenses": "Gastos",
       "receivables": "Cuentas por cobrar",
       "financeReports": "Informes",
-      "quotes": "Presupuestos"
+      "quotes": "Presupuestos",
+      "traffic": "Tráfico",
+      "searchInsights": "Análisis de búsquedas"
     },
     "users": "Usuarios",
     "usersDesc": "Gestiona usuarios y roles",
@@ -2802,6 +2863,11 @@
           "name": "Fashion",
           "description": "Tratamiento visual de estilo editorial para marcas premium de moda, belleza y estilo de vida.",
           "styleNote": "Se centra en merchandising orientado a imagen y narrativas refinadas de colecciones."
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "Merchandising editorial de moda: imágenes de campaña a todo lo ancho, mosaicos de lookbook y selecciones de temporada.",
+          "styleNote": "Pensada para ropa, calzado y accesorios: las imágenes mandan y la interfaz pasa a segundo plano."
         }
       },
       "activate": "Usar este tema"
@@ -3239,7 +3305,6 @@
         "live": "En vivo",
         "unsaved": "Cambios sin guardar"
       },
-      "subtitle": "El checkout conserva su flujo probado — aquí solo le das tu marca. Los pasos no se pueden reordenar, así los pagos nunca fallan.",
       "themeLink": "Ajustes del tema",
       "title": "Checkout",
       "toast": {
@@ -3271,7 +3336,21 @@
       },
       "brand": {
         "description": "Controla el logo, la descripción, el ancho y los colores del pie.",
-        "title": "Marca y diseño"
+        "title": "Marca y diseño",
+        "logoSourceLabel": "Fuente del logo del pie",
+        "storeLogo": "Logo de la tienda (recomendado)",
+        "storeLogoDescription": "Usa los logos de Marca y cambia entre el modo claro y el oscuro, como la cabecera.",
+        "customLogo": "Logo propio del pie",
+        "customLogoDescription": "Sube un diseño distinto solo para el pie.",
+        "synced": "Sincronizado con Marca",
+        "editBranding": "Editar en Marca",
+        "lightLogo": "Logo en modo claro",
+        "darkLogo": "Logo en modo oscuro",
+        "logoNotSet": "Sin subir",
+        "customLogoHint": "Estos logos se aplican solo al pie. Sin logo para el modo oscuro, el logo del pie se muestra en ambos modos; sin ninguno, se usan los logos de tu tienda.",
+        "matchHeaderSize": "Mismo tamaño que el logo de la cabecera",
+        "matchHeaderSizeHint": "Sigue a la cabecera: {desktop}px de ancho en pantallas grandes y {mobile}px en móviles.",
+        "logoThemeAuto": "Automático (según el fondo del pie)"
       },
       "colors": {
         "dark": "Colores en modo oscuro",
@@ -3306,6 +3385,9 @@
         "email": "Correo electrónico",
         "footerBackgroundColor": "Color de fondo del pie",
         "footerLogo": "Logo del pie",
+        "footerDarkLogo": "Logo del pie (modo oscuro)",
+        "logoWidth": "Ancho del logo",
+        "logoTheme": "Logo que se muestra",
         "footerTextColor": "Color del texto del pie",
         "fullWidthFooter": "Pie a ancho completo",
         "imageAlt": "Texto alternativo de la imagen",
@@ -3763,6 +3845,7 @@
       "publishPageTitle": "¿Publicar esta página?",
       "publishTitle": "¿Publicar la página de inicio?",
       "published": "Página de inicio publicada",
+      "duplicateSection": "Duplicar sección",
       "removeSection": "Quitar sección",
       "requiredSection": "Obligatoria",
       "restore": "Restaurar",
@@ -4771,6 +4854,7 @@
     },
     "chatWithVendor": "Chatear con el vendedor",
     "chatWithStore": "Chatear con la tienda",
+    "chatWithSeller": "Chatear con el vendedor",
     "startConversation": "Iniciar una conversación",
     "startDescription": "Pregunta por la disponibilidad, la entrega, las variantes o cualquier otra cosa.",
     "writeMessage": "Escribe un mensaje…",
@@ -5090,7 +5174,6 @@
       "canceled": "El pago se canceló. Inténtalo de nuevo.",
       "failed": "No se pudo iniciar el pago",
       "loadFailed": "No se pudo cargar la escala de posiciones",
-      "verifyFailed": "No se pudo verificar el pago",
       "pollTimeout": "Todavía no hemos podido confirmar el pago. Se activará automáticamente en cuanto se confirme.",
       "stepSlot": "Posición y fechas",
       "pickSlot": "Elige una posición y las fechas",
@@ -5203,7 +5286,6 @@
     "adminPassword": "Contraseña",
     "adminTitle": "Crea tu cuenta de administrador",
     "appUrl": "URL de la aplicación",
-    "appUrlHint": "Define NEXT_PUBLIC_APP_URL en el .env con la URL de tu tienda",
     "blockedHint": "Corrige los elementos anteriores y vuelve a comprobar: la instalación no puede continuar hasta que se superen.",
     "retry": "Comprobar de nuevo",
     "authSecret": "Secreto de autenticación",
@@ -5242,7 +5324,7 @@
       "secretAccessKey": "Clave de acceso secreta",
       "publicUrl": "URL pública"
     },
-    "nodeTooOld": "Se requiere Node.js 22 o superior",
+    "nodeTooOld": "Se requiere Node.js 22.12 o superior",
     "storeName": "Nombre de la tienda",
     "storeTitle": "Datos básicos de la tienda",
     "subtitle": "Unos pasos y ya estás vendiendo",

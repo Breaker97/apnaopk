@@ -32,12 +32,20 @@ type PayoutDetailsPayload = {
     grossSales: number;
     /** Signed correction carried in from an earlier payout; negative is a clawback. */
     adjustments?: number;
+    /** Commission owed on the vendor's own cash sales, deducted here. Inside `adjustments`. */
+    commissionOffset?: number;
+    /** Delivery charges the vendor earned, inside `netAmount`. */
+    shippingAmount?: number;
+    /** Store promotions owed on the vendor's cash sales, paid here. Inside `adjustments`. */
+    commissionCredit?: number;
     commissionAmount: number;
     netAmount: number;
     periodStart: string;
     periodEnd: string;
     createdAt: string;
     paidAt?: string;
+    /** When the money that left came back — a bounced transfer. */
+    reversedAt?: string;
     note?: string;
     paidFrom?: string;
     paymentReference?: string;
@@ -57,14 +65,6 @@ type PayoutDetailsPayload = {
     createdAt: string;
   }>;
 };
-
-const STATUSES = [
-  "pending",
-  "processing",
-  "paid",
-  "failed",
-  "cancelled",
-] as const;
 
 /** The happy path, in order. Failed and cancelled are exits, not steps. */
 const STEPS = ["pending", "processing", "paid"] as const;
@@ -165,6 +165,15 @@ export function AdminPayoutDetails({
   }, [payoutId]);
 
   const payout = data?.payout;
+  // The commission deduction sits inside `adjustments`; shown on its own row,
+  // so this is what is left of the adjustment once it is taken out.
+  const otherAdjustments =
+    Math.round(
+      ((payout?.adjustments ?? 0) +
+        (payout?.commissionOffset ?? 0) -
+        (payout?.commissionCredit ?? 0)) *
+        100,
+    ) / 100;
 
   /*
    * Nothing to save until something changed.
@@ -184,10 +193,32 @@ export function AdminPayoutDetails({
   }, [payout, status, note, reference, paidFrom]);
 
   /** A terminal payout accepts no further transitions; the API refuses them. */
-  const settled =
-    payout?.status === "paid" ||
-    payout?.status === "failed" ||
-    payout?.status === "cancelled";
+  const settled = payout?.status === "failed" || payout?.status === "cancelled";
+
+  /**
+   * What this payout can still become, matching the API's own table.
+   *
+   * A paid payout is nearly final: the one thing that can still happen to it
+   * is the bank sending the money back, and the screen offers exactly that
+   * rather than every status it could never reach.
+   */
+  const statusOptions = useMemo<readonly string[]>(() => {
+    switch (payout?.status) {
+      case "paid":
+        return ["paid", "failed"];
+      case "processing":
+        return ["processing", "paid", "failed", "cancelled"];
+      case "failed":
+        return ["failed"];
+      case "cancelled":
+        return ["cancelled"];
+      default:
+        return ["pending", "processing", "paid", "cancelled"];
+    }
+  }, [payout?.status]);
+
+  /** Marking a paid payout failed: the money came back and everything unwinds. */
+  const bouncing = payout?.status === "paid" && status === "failed";
 
   const updatePayout = async () => {
     setIsSaving(true);
@@ -357,14 +388,50 @@ export function AdminPayoutDetails({
                 }
                 value={`-${money(payout.commissionAmount)}`}
               />
-              {payout.adjustments ? (
+              {payout.shippingAmount ? (
+                <CalculationRow
+                  label={label("finance.payout.shippingAmount", "Delivery charges")}
+                  hint={label(
+                    "finance.payout.shippingAmountHint",
+                    "charged to shoppers for parcels the vendor delivered",
+                  )}
+                  value={`+${money(payout.shippingAmount)}`}
+                />
+              ) : null}
+              {payout.commissionOffset ? (
+                <CalculationRow
+                  label={label(
+                    "finance.payout.commissionOffset",
+                    "Commission on cash sales",
+                  )}
+                  hint={label(
+                    "finance.payout.commissionOffsetHint",
+                    "owed on sales the vendor took the money for, deducted here instead of invoiced",
+                  )}
+                  value={`-${money(payout.commissionOffset)}`}
+                />
+              ) : null}
+              {payout.commissionCredit ? (
+                <CalculationRow
+                  label={label(
+                    "finance.payout.commissionCredit",
+                    "Store promotions on cash sales",
+                  )}
+                  hint={label(
+                    "finance.payout.commissionCreditHint",
+                    "discounts the store paid for on sales the vendor collected, beyond the commission they owed",
+                  )}
+                  value={`+${money(payout.commissionCredit)}`}
+                />
+              ) : null}
+              {otherAdjustments ? (
                 <CalculationRow
                   label={label("finance.payout.adjustments", "Adjustments")}
                   hint={label(
                     "finance.payout.adjustmentsHint",
                     "recovered from this payout — already paid on orders refunded since",
                   )}
-                  value={money(payout.adjustments)}
+                  value={money(otherAdjustments)}
                 />
               ) : (
                 <CalculationRow
@@ -413,6 +480,15 @@ export function AdminPayoutDetails({
                   </p>
                 </div>
               </div>
+            ) : null}
+            {/* The payment happened; then it came back. Both are the record. */}
+            {payout.reversedAt ? (
+              <p className="mt-2 text-[13px] font-medium text-destructive">
+                {label(
+                  "finance.payout.returnedOn",
+                  "Came back {date} — the vendor is owed it again",
+                ).replace("{date}", dateTime(payout.reversedAt))}
+              </p>
             ) : null}
           </div>
         </CardContent>
@@ -475,7 +551,7 @@ export function AdminPayoutDetails({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUSES.map((option) => (
+                  {statusOptions.map((option) => (
                     <SelectItem key={option} value={option}>
                       {statusLabel(option)}
                     </SelectItem>
@@ -525,10 +601,15 @@ export function AdminPayoutDetails({
             <Label htmlFor="payout-note" className="mb-1.5 block">
               {label("finance.payout.note", "Note")}
               <span className="font-normal text-muted-foreground">
-                {label(
-                  "finance.payout.noteHint",
-                  "— kept on the payout and visible to the vendor",
-                )}
+                {bouncing
+                  ? label(
+                      "finance.payout.noteReturnedHint",
+                      "— required: why the money came back",
+                    )
+                  : label(
+                      "finance.payout.noteHint",
+                      "— kept on the payout and visible to the vendor",
+                    )}
               </span>
             </Label>
             <Input
@@ -543,10 +624,15 @@ export function AdminPayoutDetails({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4">
           <p className="flex max-w-[60ch] items-start gap-2 text-xs text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" />
-            {label(
-              "finance.payout.saveWarning",
-              "Marking a payout paid posts a ledger entry and settles the orders behind it. It cannot be unposted — a mistake is corrected with an adjustment.",
-            )}
+            {bouncing
+              ? label(
+                  "finance.payout.returnedWarning",
+                  "Use this only when the bank sent the money back. The ledger entry is reversed, the vendor is owed it again, and these sales go back into the next payout.",
+                )
+              : label(
+                  "finance.payout.saveWarning",
+                  "Marking a payout paid posts a ledger entry and settles the orders behind it. It cannot be unposted — a mistake is corrected with an adjustment.",
+                )}
           </p>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">

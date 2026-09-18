@@ -20,7 +20,8 @@ interface POSDiscountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subtotal: number;
-  tax: number;
+  /** The sale is taxed after this discount, so the preview needs the rate. */
+  taxRate: number;
   taxIncluded: boolean;
   current: POSDiscount | null;
   onApply: (discount: POSDiscount | null) => void;
@@ -28,7 +29,7 @@ interface POSDiscountDialogProps {
 }
 
 const REASON_OPTIONS = [
-  { value: "", label: "— No reason —" },
+  { value: "", label: "— Choose a reason —" },
   { value: "loyalty", label: "Loyalty / Returning customer" },
   { value: "damage", label: "Damaged item" },
   { value: "staff", label: "Staff discount" },
@@ -43,7 +44,7 @@ export function POSDiscountDialog({
   open,
   onOpenChange,
   subtotal,
-  tax,
+  taxRate,
   taxIncluded,
   current,
   onApply,
@@ -75,7 +76,9 @@ export function POSDiscountDialog({
     type === "percent" ? (subtotal * Math.min(numericValue, 100)) / 100 : Math.min(numericValue, subtotal);
   const newTotal = taxIncluded
     ? Math.max(0, subtotal - discountAmount)
-    : Math.max(0, subtotal - discountAmount + tax);
+    : Math.max(0, subtotal - discountAmount) * (1 + taxRate);
+  // A till discount says why, for the audit trail and the reports.
+  const needsReason = numericValue > 0 && !reason;
 
   const handleQuickPercent = (p: number) => {
     setType("percent");
@@ -271,6 +274,8 @@ export function POSDiscountDialog({
           </Button>
           <Button
             onClick={handleApply}
+            disabled={needsReason}
+            title={needsReason ? "Choose a reason for the discount" : undefined}
             className="rounded-xl bg-primary px-5 text-white hover:bg-primary/90"
           >
             <span className="mr-1">✓</span>

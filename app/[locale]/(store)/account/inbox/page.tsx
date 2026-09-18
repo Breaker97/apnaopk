@@ -4,7 +4,10 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/lib/auth/auth";
 import { ConversationInbox } from "@/components/chat/inbox/conversation-inbox";
 import { connectDB } from "@/lib/db";
-import { listConversations } from "@/lib/conversations/service";
+import {
+  listConversations,
+  previewConversationTarget,
+} from "@/lib/conversations/service";
 import { tryResolveConversationViewer } from "@/lib/conversations/viewer";
 import { buildLoginUrl } from "@/lib/auth/return-path";
 
@@ -76,17 +79,25 @@ export default async function CustomerInboxPage({
             !conversation.productContext,
         )
       : undefined;
+  const requestedVariantId =
+    typeof search.variant === "string" ? search.variant : undefined;
   const draftContext =
     (requestedProductId || requestedVendorId) && !existingContextConversation
       ? {
           productId: requestedProductId,
           vendorId: requestedVendorId,
-          variantId:
-            typeof search.variant === "string" ? search.variant : undefined,
+          variantId: requestedVariantId,
           variantName:
             typeof search.variantName === "string"
               ? search.variantName
               : undefined,
+          // The seller and product the shopper came from, shown before the
+          // first message so they can see what they are asking about.
+          preview: await previewConversationTarget({
+            productId: requestedProductId,
+            vendorId: requestedVendorId,
+            variantId: requestedVariantId,
+          }),
         }
       : undefined;
 

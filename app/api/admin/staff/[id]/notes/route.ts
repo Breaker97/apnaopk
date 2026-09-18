@@ -58,7 +58,7 @@ export const POST = withApi<{ id: string }>(
           },
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
 
     if (!profile) return notFoundResponse("Staff member");

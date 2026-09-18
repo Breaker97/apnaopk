@@ -145,3 +145,13 @@ export interface ConversationTarget {
     variantName?: string;
   };
 }
+
+/**
+ * A storefront chat button's context, resolved for the inbox's new-conversation
+ * pane before any thread exists: who the first message will reach and the
+ * product snapshot it will carry.
+ */
+export interface ConversationDraftPreview {
+  ownerName?: string;
+  productContext?: ConversationDTO["productContext"];
+}

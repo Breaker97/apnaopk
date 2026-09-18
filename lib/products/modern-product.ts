@@ -44,6 +44,8 @@ export type ProductMedia = {
   position?: number;
   mimeType?: string;
   thumbnailUrl?: string;
+  /** See ProductMedia.fit in types/index.ts. */
+  fit?: "auto" | "contain" | "cover";
 };
 
 export type ProductPreorder = {
@@ -101,6 +103,11 @@ export interface ModernProduct {
    * when the merchant adds the Category element in the card configurator.
    */
   category?: string | { _id?: string; name?: string; slug?: string };
+  /**
+   * The product's brand: an id on every card query (resolved through the
+   * card's brand directory), or populated where a loader already did.
+   */
+  brand?: string | { _id?: string; name?: string; slug?: string; logo?: string } | null;
   /** Units sold, when the surface carries it; powers the "N sold" tag. */
   soldCount?: number;
   /**

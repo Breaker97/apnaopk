@@ -54,7 +54,10 @@ export const POST = withApi(
       customerId: session.user.id,
     });
 
-    assertReturnEligible(order);
+    // Loaded before the lock so the eligibility check reads the store's own
+    // return window, and reused by the planner and the notification below.
+    const settings = await getSettings();
+    assertReturnEligible(order, settings);
 
     // Serialize return creation per order: the returnable-quantity check the
     // planner makes is read-then-create, so two concurrent submissions could
@@ -89,7 +92,6 @@ export const POST = withApi(
       ).catch((err) => console.error("Failed to release return lock:", err));
 
     try {
-      const settings = await getSettings();
       const plan = await planReturnRequest({
         order,
         items: body.items,

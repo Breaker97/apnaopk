@@ -118,6 +118,16 @@ const CollectionSchema = new Schema<ICollection>(
       required: true,
     },
 
+    // What the collection IS on the storefront: a shelf, or a Look — a
+    // styled outfit the Get the Look / Looks sections merchandise. Orthogonal
+    // to collectionType: a Look can be hand-picked or automated like any
+    // other collection.
+    kind: {
+      type: String,
+      enum: ["collection", "look"],
+      default: "collection",
+    },
+
     // Manual Collection: Product IDs
     products: [
       {
@@ -195,6 +205,7 @@ const CollectionSchema = new Schema<ICollection>(
 CollectionSchema.index({ status: 1 });
 CollectionSchema.index({ position: 1 });
 CollectionSchema.index({ collectionType: 1 });
+CollectionSchema.index({ kind: 1 });
 CollectionSchema.index({ "publishing.onlineStore": 1 });
 CollectionSchema.index({ "publishing.pointOfSale": 1 });
 CollectionSchema.index({ title: "text", description: "text" });

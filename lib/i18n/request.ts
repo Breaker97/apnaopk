@@ -68,10 +68,12 @@ const messages: Record<Locale, MessageValue> = {
   ig: mergeDeep(baseMessages, igMessages as unknown as MessageValue),
 };
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  const requestLocaleValue = await requestLocale;
-  const locale: Locale = locales.includes(requestLocaleValue as Locale)
-    ? (requestLocaleValue as Locale)
+export default getRequestConfig(async ({ locale: explicitLocale, requestLocale }) => {
+  // An explicit locale — `getTranslations({ locale })` from a route handler,
+  // where no `[locale]` segment was matched — wins over the request's own.
+  const requested = explicitLocale ?? (await requestLocale);
+  const locale: Locale = locales.includes(requested as Locale)
+    ? (requested as Locale)
     : defaultLocale;
 
   return {

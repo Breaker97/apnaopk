@@ -205,6 +205,28 @@ export async function canAccessPOS(
   }
 }
 
+/**
+ * Whether this till seat may give a discount — on a line or on the sale.
+ *
+ * Every POS seat could take any line or the whole sale to 100% off, with no
+ * reason required, which is the till's version of handing stock away. A
+ * discount is a pricing decision, so it belongs to the people who own the
+ * price: an admin, the vendor whose goods they are, and staff trusted to
+ * manage the POS. A seat that can only ring up sales rings them up at price.
+ */
+export async function canApplyPosDiscount(user: MinimalUser): Promise<boolean> {
+  if (!user) return false;
+  if (isAdmin(user) || isVendor(user)) return true;
+  if (isSeller(user) && user.id) {
+    const profile = await getStaffProfile(user.id);
+    return Boolean(
+      profile?.isActive &&
+        profile.permissions.includes(STAFF_PERMISSIONS.MANAGE_POS),
+    );
+  }
+  return false;
+}
+
 // ============================================
 // Staff Permission Checking
 // ============================================

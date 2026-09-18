@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
+  Bell,
+  BellRing,
   Heart,
   Home,
   LayoutDashboard,
@@ -16,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useWishlist } from "@/hooks/use-wishlist";
+import { useLiveResource } from "@/hooks/use-live-resource";
 import { buildLoginUrl } from "@/lib/auth/return-path";
 import { getRoleDashboardPath } from "@/lib/access/role-dashboard";
 import { AccountDrawer } from "@/components/layout/account-drawer";
@@ -77,7 +80,8 @@ function getInitials(name: string) {
  * inside that menu drawer, which lists them with their subcategories.
  *
  * Role-aware: staff-side roles (admin/vendor/staff) get a Dashboard tab in
- * place of Account and no Wishlist tab — the account area is customer-only.
+ * place of Account and no Wishlist or Notifications tab — the account area is
+ * customer-only, and their notifications live in the dashboard header's bell.
  * While the session resolves, those two slots show neutral placeholders so
  * the bar never reshuffles under the user's thumb. Once signed in, the Account
  * tab wears the user's avatar instead of the generic person glyph; while
@@ -128,6 +132,29 @@ export function StoreBottomNav({
     }
   }, [isLoading, isSynced, fetchWishlist, dashboardHref]);
 
+  // Only the unread count is shown, so one row is enough — `counts` comes back
+  // whatever the limit. Held idle for guests and staff-side roles: neither has
+  // a Notifications tab here, and a guest's request would only 401.
+  const notificationsEnabled = !isLoading && isAuthenticated && !dashboardHref;
+  const { data: notificationSnapshot, refresh: refreshNotifications } =
+    useLiveResource<{ counts?: { unread: number } }>(
+      notificationsEnabled ? "/api/notifications?tab=unread&limit=1" : null,
+    );
+  const unreadNotifications = notificationsEnabled
+    ? (notificationSnapshot?.counts?.unread ?? 0)
+    : 0;
+
+  // The notifications page announces its own reads, archives and deletes (see
+  // `CustomerNotifications`), so the badge follows at once rather than on the
+  // next background tick.
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+    const onStatsChanged = () => void refreshNotifications();
+    window.addEventListener("account:stats-changed", onStatsChanged);
+    return () =>
+      window.removeEventListener("account:stats-changed", onStatsChanged);
+  }, [notificationsEnabled, refreshNotifications]);
+
   const home = `/${locale}`;
 
   // Landmark and menu labels. No existing locale key fits either, and adding
@@ -145,6 +172,10 @@ export function StoreBottomNav({
   const wishlistHref = isAuthenticated
     ? wishlistPath
     : buildLoginUrl(locale, wishlistPath);
+  const notificationsPath = `/${locale}/account/notifications`;
+  const notificationsHref = isAuthenticated
+    ? notificationsPath
+    : buildLoginUrl(locale, notificationsPath);
 
   // A signed-in shopper's own photo is a faster "that's me" cue than the
   // generic glyph; initials cover accounts with no image, and guests keep the
@@ -154,12 +185,13 @@ export function StoreBottomNav({
       ? { src: user.image || undefined, name: user.name || "" }
       : null;
 
-  // The wishlist and account slots depend on the viewer's role — staff-side
-  // roles lose Wishlist and get Dashboard in place of Account. The storefront
+  // The wishlist, notifications and account slots depend on the viewer's
+  // role — staff-side roles lose Wishlist and Notifications and get Dashboard
+  // in place of Account. The storefront
   // pages are static, so the role is only known once the client session
   // resolves; committing to the customer layout during that window would
   // reshuffle the tabs under the user's thumb once the role arrives. Instead
-  // those two slots render neutral placeholders while loading (same idea as
+  // those slots render neutral placeholders while loading (same idea as
   // the header's account-button skeleton), and the role-invariant tabs stay
   // interactive throughout.
   const items: NavItem[] = [
@@ -184,6 +216,23 @@ export function StoreBottomNav({
               icon: Heart,
               label: t("common.wishlist"),
               badge: wishlistItems.length,
+            } as const,
+          ]),
+    // Notifications holds the centre slot for customers, the most prominent
+    // spot on the bar, so an order or refund update is never three taps deep
+    // in the account area. The bell rings while anything is unread.
+    ...(isLoading
+      ? [{ kind: "placeholder", key: "notifications" } as const]
+      : dashboardHref
+        ? []
+        : [
+            {
+              kind: "link",
+              key: "notifications",
+              href: notificationsHref,
+              icon: unreadNotifications > 0 ? BellRing : Bell,
+              label: t("common.notifications"),
+              badge: unreadNotifications,
             } as const,
           ]),
     // Opens the drawer the header renders (shared through `useMobileMenu`)
@@ -231,22 +280,20 @@ export function StoreBottomNav({
   ];
 
   // Every storefront path starts with `/${locale}`, so home has to match
-  // exactly or it would light up on every page. Wishlist lives under
-  // /account/, so the account tab has to disclaim that subtree or both tabs
-  // would light up at once.
+  // exactly or it would light up on every page. Wishlist and Notifications
+  // live under /account/, so the account tab has to disclaim those subtrees
+  // or two tabs would light up at once.
+  const within = (path: string) =>
+    pathname === path || pathname.startsWith(`${path}/`);
   const isActive = (key: string, href: string) => {
     if (key === "home") return pathname === home;
-    if (key === "wishlist") {
-      return (
-        pathname === wishlistPath || pathname.startsWith(`${wishlistPath}/`)
-      );
-    }
+    if (key === "wishlist") return within(wishlistPath);
+    if (key === "notifications") return within(notificationsPath);
     if (key === "account") {
-      const account = `/${locale}/account`;
       return (
-        (pathname === account || pathname.startsWith(`${account}/`)) &&
-        pathname !== wishlistPath &&
-        !pathname.startsWith(`${wishlistPath}/`)
+        within(`/${locale}/account`) &&
+        !within(wishlistPath) &&
+        !within(notificationsPath)
       );
     }
     const [path] = href.split("?");

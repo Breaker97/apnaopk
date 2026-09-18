@@ -30,6 +30,7 @@ import { getProductPriceRange } from "@/lib/products/price-display";
 import {
   clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
+  CARD_BROWSER_GRID_GAP,
 } from "./product-grid-columns";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { NumberInput } from "@/components/ui/number-input";
@@ -361,7 +362,7 @@ export function HomeProductsSectionInfinite({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-xs font-semibold text-foreground"
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-button border border-border bg-background px-3.5 text-xs font-semibold text-foreground"
                 >
                   <span className="max-w-36 truncate">{activeTabName}</span>
                   <ChevronDown
@@ -416,7 +417,7 @@ export function HomeProductsSectionInfinite({
               type="button"
               variant="outline"
               onClick={() => setIsFilterOpen((prev) => !prev)}
-              className="h-8 shrink-0 rounded-full border-border bg-background px-3.5 text-xs font-semibold text-foreground"
+              className="h-8 shrink-0 border-border bg-background px-3.5 text-xs font-semibold text-foreground"
             >
               <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
               {filterLabel}
@@ -437,7 +438,7 @@ export function HomeProductsSectionInfinite({
                   type="button"
                   onClick={() => setActiveCategorySlug(tab.slug)}
                   className={cn(
-                    "rounded-full px-5 py-2 text-sm font-semibold transition",
+                    "rounded-button px-5 py-2 text-sm font-semibold transition",
                     isActive
                       ? "bg-foreground text-background"
                       : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -452,7 +453,7 @@ export function HomeProductsSectionInfinite({
           <Button
             type="button"
             onClick={() => setIsFilterOpen((prev) => !prev)}
-            className="hidden h-10 rounded-full bg-foreground px-5 text-sm font-semibold text-background hover:bg-foreground/90 sm:inline-flex"
+            className="hidden h-10 bg-foreground px-5 text-sm font-semibold text-background hover:bg-foreground/90 sm:inline-flex"
           >
             <SlidersHorizontal className="mr-2 h-4 w-4" />
             {filterLabel}
@@ -474,7 +475,7 @@ export function HomeProductsSectionInfinite({
                     <button
                       type="button"
                       className={cn(
-                        "relative inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium",
+                        "relative inline-flex h-10 items-center gap-2 rounded-button border px-4 text-sm font-medium",
                         hasPriceFilter
                           ? "border-foreground text-foreground"
                           : "border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground",
@@ -557,7 +558,7 @@ export function HomeProductsSectionInfinite({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      className="inline-flex h-10 items-center gap-2 rounded-button border border-border px-4 text-sm font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
                       {currentSortLabel}
@@ -595,7 +596,8 @@ export function HomeProductsSectionInfinite({
 
         <div
           className={cn(
-            "mt-5 grid grid-cols-2 gap-x-3 gap-y-7 transition-opacity sm:mt-8 sm:gap-x-5 sm:gap-y-11 md:mt-8 md:grid-cols-3 md:gap-y-11",
+            "mt-5 grid grid-cols-2 transition-opacity sm:mt-8 md:mt-8 md:grid-cols-3",
+            CARD_BROWSER_GRID_GAP,
             PRODUCT_GRID_DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
             isRefetching && "pointer-events-none opacity-50",
           )}
@@ -636,7 +638,6 @@ export function HomeProductsSectionInfinite({
               type="button"
               variant="outline"
               onClick={() => void loadMore()}
-              className="rounded-full"
             >
               {t.has("common.retry") ? t("common.retry") : "Try again"}
             </Button>

@@ -24,6 +24,7 @@ import { CollectionSelect } from "./collection-select";
 import { CouponSelect } from "./coupon-select";
 import { ProductSelect } from "./product-select";
 import { SliderSelect } from "./slider-select";
+import { PanelGroup, PanelRow } from "./editor-shell";
 import {
   BackgroundSwatchField,
   editorBackground,
@@ -108,10 +109,121 @@ const WIDTH_GRID: Record<FieldWidth, string> = {
   full: "grid gap-4",
 };
 
+/**
+ * A control that fits a narrow property panel beside a preview, the way
+ * the slider editor keeps its numbers, switches and swatches beside the
+ * canvas: the short ones, and a one-line text or link, which stacks under
+ * its name. Only what grows — a paragraph, a picture, a list of picks —
+ * goes under the preview, unless the schema asked for the whole row.
+ */
+const PANEL_TYPES = new Set<Field["type"]>([
+  "number",
+  "select",
+  "toggle",
+  "color",
+  "background",
+  "datetime",
+  "text",
+  "url",
+  "slider",
+  "collection",
+  "coupon",
+]);
+/**
+ * Whether a field shows right now: fields gated on a sibling's value
+ * (`showWhen`) drop out while that value says so. The renderer and the
+ * editors deciding whether a group has anything to show read the same rule,
+ * so a group is never drawn around fields that are all hidden.
+ */
+export function isFieldShown(field: Field, settings: Record<string, unknown>): boolean {
+  if (!field.showWhen) return true;
+  return field.showWhen.values.includes(
+    settings[field.showWhen.key] as string | boolean,
+  );
+}
+
+export function isCompactField(field: Field): boolean {
+  // The grid width is a hint for the wide area's rows; only "full" says
+  // a control wants the whole row wherever it goes.
+  if (field.width === "full") return false;
+  return PANEL_TYPES.has(field.type);
+}
+
+/**
+ * The panel's groups, in order: how the block is laid out, how it is
+ * painted, what it shows or hides. Read off the field's type and key — the
+ * schemas name their fields plainly (`cardRadius`, `titleSize`,
+ * `showBadge`), so the key says which group a control belongs in.
+ */
+type PanelGroupKey = "content" | "layout" | "style" | "visibility";
+/**
+ * Fields named alike — `coverWidth`, `coverText`, `coverHeight`… — are
+ * one thing's settings, and read as one group named for it, wherever their
+ * types would otherwise have sent them. Three or more make a group; fewer
+ * fall to the type groups. Switches keep to Show & hide.
+ */
+function keyPrefix(key: string): string {
+  const match = key.match(/^[a-z]+/);
+  return match ? match[0] : key;
+}
+function prefixGroups(fields: Field[]): Map<string, Field[]> {
+  const byPrefix = new Map<string, Field[]>();
+  for (const field of fields) {
+    if (field.type === "toggle") continue;
+    const prefix = keyPrefix(field.key);
+    byPrefix.set(prefix, [...(byPrefix.get(prefix) ?? []), field]);
+  }
+  for (const [prefix, list] of byPrefix) {
+    if (list.length < 3) byPrefix.delete(prefix);
+  }
+  return byPrefix;
+}
+const STYLE_KEY =
+  /radius|corner|colou?r|shadow|border|background|fill|font|weight|case|size|overlay|darken|tint|opacity|shape|style|corners/i;
+/**
+ * Keys that decide WHAT a section shows rather than how it looks: where its
+ * products come from, how many, in what order. A merchant reads those as
+ * the section's content, and they are what gets reached for first; filed
+ * under Layout as the dropdowns and numbers they are, they sat in a folded
+ * group while the Content group opened on a title.
+ */
+const CONTENT_KEY = /^(source|limit|sort|sortBy|count|max)$|(Source|Limit|Ids?)$/;
+
+function panelGroupOf(field: Field): PanelGroupKey {
+  if (
+    field.type === "text" ||
+    field.type === "url" ||
+    field.type === "slider" ||
+    field.type === "collection" ||
+    field.type === "coupon" ||
+    CONTENT_KEY.test(field.key)
+  ) {
+    return "content";
+  }
+  if (field.type === "toggle") return "visibility";
+  if (field.type === "color" || field.type === "background") return "style";
+  if (STYLE_KEY.test(field.key)) return "style";
+  return "layout";
+}
+/** The short controls that sit beside their name on one line. */
+function inlineInPanel(field: Field): boolean {
+  return (
+    field.type === "select" ||
+    field.type === "number" ||
+    field.type === "toggle" ||
+    field.type === "color"
+  );
+}
+
 interface FieldRendererProps {
   fields: Field[];
   settings: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
+  /**
+   * "grid" packs runs of same-width fields abreast; "panel" stacks every
+   * field in one column, for a narrow property panel beside a preview.
+   */
+  layout?: "grid" | "panel";
   /** Storefront languages: locale tabs appear when there is more than one. */
   languages: string[];
   defaultLanguage: string;
@@ -127,6 +239,7 @@ export function FieldRenderer({
   fields,
   settings,
   onChange,
+  layout = "grid",
   languages,
   defaultLanguage,
   imageContext,
@@ -143,14 +256,7 @@ export function FieldRenderer({
   // grid closes up around it instead of leaving a hole.
   const runs: { width: FieldWidth; fields: Field[] }[] = [];
   for (const field of fields) {
-    if (
-      field.showWhen &&
-      !field.showWhen.values.includes(
-        settings[field.showWhen.key] as string | boolean,
-      )
-    ) {
-      continue;
-    }
+    if (!isFieldShown(field, settings)) continue;
     const width = fieldWidth(field);
     const last = runs[runs.length - 1];
     if (last && last.width === width) last.fields.push(field);
@@ -179,6 +285,26 @@ export function FieldRenderer({
           field.type === "toggle" ||
           field.type === "productList" ||
           field.type === "categoryList";
+        if (layout === "panel") {
+          const inline = inlineInPanel(field);
+          return (
+            <PanelRow key={field.key} label={label} hint={hint ?? undefined} stacked={!inline}>
+              <FieldControl
+                field={field}
+                label={label}
+                value={settings[field.key]}
+                onChange={(value) => onChange(field.key, value)}
+                onSiblingChange={onChange}
+                hasAltField={hasAltField}
+                languages={languages}
+                defaultLanguage={defaultLanguage}
+                imageContext={imageContext}
+                tSafe={tSafe}
+                compact={inline}
+              />
+            </PanelRow>
+          );
+        }
         return (
           <div
             key={field.key}
@@ -223,6 +349,52 @@ export function FieldRenderer({
         );
   };
 
+  if (layout === "panel") {
+    // Grouped, and folded past the first group once there is a lot: the
+    // merchant meets the layout first and opens the paint when they want it.
+    const visible = runs.flatMap((run) => run.fields);
+    const named = prefixGroups(visible);
+    const namedFields = new Set([...named.values()].flat());
+    const GROUP_NAMES: Record<PanelGroupKey, string> = {
+      content: tSafe("admin.storeBuilder.panelGroups.content", "Content"),
+      layout: tSafe("admin.storeBuilder.panelGroups.layout", "Layout"),
+      style: tSafe("admin.storeBuilder.panelGroups.style", "Style"),
+      visibility: tSafe("admin.storeBuilder.panelGroups.visibility", "Show & hide"),
+    };
+    const typed = (key: PanelGroupKey) => ({
+      key,
+      title: GROUP_NAMES[key],
+      folds: key === "style" || key === "visibility",
+      fields: visible.filter((field) => !namedFields.has(field) && panelGroupOf(field) === key),
+    });
+    // Words and layout first, then each named thing, then paint and switches.
+    const groups = [
+      typed("content"),
+      typed("layout"),
+      ...[...named].map(([prefix, fields]) => ({
+        key: `prefix:${prefix}`,
+        title: tSafe(`admin.storeBuilder.panelGroups.${prefix}`, humanize(prefix)),
+        folds: false,
+        fields,
+      })),
+      typed("style"),
+      typed("visibility"),
+    ].filter((group) => group.fields.length > 0);
+    return (
+      <>
+        {groups.map((group) => (
+          <PanelGroup
+            key={group.key}
+            title={group.title}
+            defaultOpen={!group.folds || visible.length <= 6}
+          >
+            {group.fields.map(renderField)}
+          </PanelGroup>
+        ))}
+      </>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {runs.map((run, index) => (
@@ -244,9 +416,12 @@ function FieldControl({
   defaultLanguage,
   imageContext,
   tSafe,
+  compact = false,
 }: {
   field: Field;
   label: string;
+  /** Sized to sit beside its name in a panel row. */
+  compact?: boolean;
   value: unknown;
   onChange: (value: unknown) => void;
   onSiblingChange: (key: string, value: unknown) => void;
@@ -276,7 +451,7 @@ function FieldControl({
         <NativeSelect
           value={String(value ?? field.default)}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full"
+          className={compact ? "h-8 w-36 text-xs" : "w-full"}
         >
           {field.options.map((option) => (
             <option key={option} value={option}>
@@ -296,9 +471,20 @@ function FieldControl({
           max={field.max}
           fallback={field.default}
           onChange={onChange}
+          className={compact ? "h-8 w-24 text-xs" : undefined}
         />
       );
     case "toggle":
+      // In a panel row the name is already on the left; the switch alone.
+      if (compact) {
+        return (
+          <Switch
+            checked={Boolean(value)}
+            onCheckedChange={(checked) => onChange(checked)}
+            aria-label={label}
+          />
+        );
+      }
       return (
         <label className="flex h-9 items-center justify-between gap-4 rounded-md border border-border bg-card px-3">
           <span className="truncate text-xs font-semibold">{label}</span>
@@ -370,6 +556,7 @@ function FieldControl({
           value={typeof value === "string" ? value : ""}
           onChange={onChange}
           noneLabel={tSafe("admin.storeBuilder.noColor", "None")}
+          compact={compact}
         />
       );
     case "productList":
@@ -431,6 +618,12 @@ function FieldControl({
           tSafe={tSafe}
           variant="button"
           className="w-44"
+          // A video only where the section actually plays one.
+          modes={
+            field.video
+              ? (["solid", "gradient", "image", "video"] as const)
+              : undefined
+          }
         />
       );
   }
@@ -499,10 +692,12 @@ function ColorControl({
   value,
   onChange,
   noneLabel,
+  compact = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   noneLabel: string;
+  compact?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -510,14 +705,17 @@ function ColorControl({
         type="color"
         value={value || "#000000"}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 w-12 cursor-pointer rounded-md border border-border bg-card p-1"
+        className={cn(
+          "cursor-pointer rounded-md border border-border bg-card p-1",
+          compact ? "h-8 w-9" : "h-9 w-12",
+        )}
         aria-label="Color"
       />
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="#000000"
-        className="w-28 font-mono text-xs"
+        className={cn("font-mono text-xs", compact ? "h-8 w-24" : "w-28")}
       />
       {value ? (
         <button
@@ -538,12 +736,14 @@ function NumberControl({
   max,
   fallback,
   onChange,
+  className,
 }: {
   value: number;
   min: number;
   max: number;
   fallback: number;
   onChange: (value: number) => void;
+  className?: string;
 }) {
   const [draft, setDraft] = useState(String(value));
   useApplyOnChange([value], () => setDraft(String(value)));
@@ -569,6 +769,7 @@ function NumberControl({
       onKeyDown={(event) => {
         if (event.key === "Enter") commit();
       }}
+      className={className}
     />
   );
 }

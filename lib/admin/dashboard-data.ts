@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { getSettings, Order, Product, ReturnRequest, User } from "@/models";
 import { RETURN_REFUND_STATUS } from "@/lib/returns/returns";
 import { USER_ROLES } from "@/config/app.config";
+import { buildOrderChartPoints } from "@/lib/admin/order-chart-points";
 import type {
   DashboardStats,
   LatestProduct,
@@ -13,7 +14,6 @@ import type {
 
 const RECENT_ORDERS_LIMIT = 5;
 const LATEST_PRODUCTS_LIMIT = 4;
-const CHART_MONTHS = 12;
 /**
  * Plausible aggregates its own numbers on a delay, so a fresh call per admin
  * page view buys nothing. Five minutes keeps the card current while collapsing
@@ -110,48 +110,10 @@ function getMonthBoundaries(now: Date) {
 /** Trailing 12 UTC months of orders/sales split by sales channel. */
 export const getOrderChartMetrics = cache(async (): Promise<OrderChartPoint[]> => {
   const rows = await loadOrderMetrics();
-  const now = new Date();
-
-  const buckets: OrderChartPoint[] = Array.from(
-    { length: CHART_MONTHS },
-    (_, index) => {
-      const date = new Date(
-        Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth() - (CHART_MONTHS - 1) + index,
-          1,
-        ),
-      );
-
-      return {
-        year: date.getUTCFullYear(),
-        monthIndex: date.getUTCMonth(),
-        inStoreOrders: 0,
-        onlineOrders: 0,
-        inStoreSales: 0,
-        onlineSales: 0,
-      };
-    },
+  return buildOrderChartPoints(
+    rows.map((row) => ({ ...row._id, orders: row.orders, sales: row.sales })),
+    new Date(),
   );
-
-  const bucketByKey = new Map(
-    buckets.map((bucket) => [`${bucket.year}-${bucket.monthIndex + 1}`, bucket]),
-  );
-
-  for (const row of rows) {
-    const bucket = bucketByKey.get(`${row._id.year}-${row._id.month}`);
-    if (!bucket) continue;
-
-    if (row._id.pos) {
-      bucket.inStoreOrders += row.orders;
-      bucket.inStoreSales += row.sales;
-    } else {
-      bucket.onlineOrders += row.orders;
-      bucket.onlineSales += row.sales;
-    }
-  }
-
-  return buckets;
 });
 
 /**

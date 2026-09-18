@@ -12,6 +12,10 @@ import { useRailEdges } from "@/components/store/scroll-rail";
 import { cn } from "@/lib/utils";
 import { type Locale } from "@/config/i18n.config";
 import { ElectronicsSectionHeading } from "./themes/electronics-section-heading";
+import {
+  CARD_SHELF_GAP,
+  PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES,
+} from "@/components/store/product-grid-columns";
 
 export interface ProductGroupTab {
   id: string;
@@ -28,18 +32,8 @@ export interface ProductGroupTab {
  */
 export type ProductGroupAppearance = "standard" | "centered";
 
-/**
- * Desktop shelf widths per visible-card count. Static strings — Tailwind
- * only compiles what it can see — with the gap term matched to the
- * scroller's lg gap (gap-5, 1.25rem). Same map as the new-arrivals shelf.
- */
-const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
-  2: "lg:auto-cols-[calc((100%_-_1.25rem)_/_2)]",
-  3: "lg:auto-cols-[calc((100%_-_2.5rem)_/_3)]",
-  4: "lg:auto-cols-[calc((100%_-_3.75rem)_/_4)]",
-  5: "lg:auto-cols-[calc((100%_-_5rem)_/_5)]",
-  6: "lg:auto-cols-[calc((100%_-_6.25rem)_/_6)]",
-};
+/** Desktop shelf widths per visible-card count — shared with the new-arrivals shelf. */
+const DESKTOP_COLUMN_CLASSES = PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES;
 
 /**
  * Client half of the tabbed product group: every tab's products are already
@@ -121,7 +115,8 @@ export function ProductGroupTabs({
   );
 
   return (
-    <section className="py-5 lg:py-8">
+    // No title: no top padding, so a Heading block above sits flush.
+    <section className={title ? "py-5 lg:py-8" : "pb-5 lg:pb-8"}>
       <div className="container mx-auto px-4">
         <div
           className={cn(
@@ -169,14 +164,15 @@ export function ProductGroupTabs({
                     "shrink-0 transition-colors",
                     centered
                       ? tab.id === active.id
-                        ? // The design dresses only the ACTIVE tab as a pill;
-                          // the rest sit bare on the hairline rail — and they
-                          // stay near-black, not muted, so the row reads as a
-                          // set of choices rather than one live and six dead.
-                          "h-[37.5px] rounded-full bg-foreground px-6 text-[15.4px] font-bold text-background"
+                        ? // The design dresses only the ACTIVE tab as a
+                          // button (theme radius); the rest sit bare on the
+                          // hairline rail — and they stay near-black, not
+                          // muted, so the row reads as a set of choices
+                          // rather than one live and six dead.
+                          "h-[37.5px] rounded-button bg-foreground px-6 text-[15.4px] font-bold text-background"
                         : "h-[37.5px] text-[15.4px] font-semibold text-foreground hover:opacity-70"
                       : cn(
-                          "rounded-full border px-4 py-1.5 text-sm font-medium",
+                          "rounded-button border px-4 py-1.5 text-sm font-medium",
                           tab.id === active.id
                             ? "border-foreground bg-foreground text-background"
                             : "border-border bg-card text-muted-foreground hover:text-foreground",
@@ -225,7 +221,8 @@ export function ProductGroupTabs({
             // like a two-product row — there are no arrows on a phone to say
             // otherwise. The sliver of the third card is the cue. From `sm`
             // the designed three-across returns, with the arrows to match.
-            "mt-6 grid snap-x snap-mandatory grid-flow-col auto-cols-[45%] gap-3 overflow-x-auto pb-2 sm:auto-cols-[calc((100%_-_2.5rem)_/_3)] sm:gap-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            "mt-6 grid snap-x snap-mandatory grid-flow-col auto-cols-[45%] overflow-x-auto pb-2 sm:auto-cols-[calc((100%_-_var(--card-grid-gap-x,1.25rem)_*_2)_/_3)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            CARD_SHELF_GAP,
             DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}
         >

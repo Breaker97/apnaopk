@@ -50,6 +50,15 @@ export function BrandAssetCard(props: {
    * is invisible on the default light tile.
    */
   darkPreview?: boolean;
+  /**
+   * Upload an SVG as an SVG instead of letting it be rasterized to WebP.
+   * The LOGO's exception: it is the one asset drawn at every size, from a
+   * 32px header to a print sheet, so a fixed-size bitmap is the wrong
+   * answer for it and the right answer for everything else. The server
+   * grants this only to a caller who already manages store media, since raw
+   * SVG can carry script and is served from the store's own media host.
+   */
+  keepVector?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -67,7 +76,10 @@ export function BrandAssetCard(props: {
       // when the bucket allows it, so a logo is not capped by the hosting
       // platform's request-body limit (4.5MB on Vercel, 1MB on a default
       // nginx). Falls back to POST /api/upload transparently.
-      const uploaded = await uploadFile(file, { onProgress: setProgress });
+      const uploaded = await uploadFile(file, {
+        onProgress: setProgress,
+        keepVector: props.keepVector,
+      });
       props.onChange(uploaded.url);
     } catch (uploadError) {
       setError(

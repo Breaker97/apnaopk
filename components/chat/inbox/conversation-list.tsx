@@ -82,7 +82,7 @@ export function ConversationList({
               type="button"
               onClick={() => onFilterChange(tab.key)}
               className={cn(
-                "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                "shrink-0 rounded-button px-2.5 py-1 text-xs font-medium transition-colors",
                 filter === tab.key
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-muted/70",

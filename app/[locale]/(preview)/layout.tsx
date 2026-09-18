@@ -1,5 +1,10 @@
 import { setRequestLocale } from "next-intl/server";
 import { ProductCardConfigProvider } from "@/components/products/product-card-config-context";
+import { getCardBrandDirectory } from "@/lib/brands/card-brand-directory";
+import {
+  cardGridGapVars,
+  productCardElementOn,
+} from "@/lib/products/product-card-config";
 import { CartProvider } from "@/hooks/use-cart";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { compileTheme } from "@/lib/storefront/themes/compile";
@@ -36,14 +41,25 @@ export default async function SectionPreviewLayout({
   const { theme, brand, productCardConfig } = await getStorefrontSettings();
   const themeSurface = compileTheme(theme.tokens, brand.colors);
 
+  // The card's Brand element resolves brand ids through this directory; a
+  // card that shows no Brand element costs no brand read at all.
+  const cardBrands = productCardElementOn(productCardConfig.groups, "brand")
+    ? await getCardBrandDirectory()
+    : {};
+
   return (
-    <ProductCardConfigProvider config={productCardConfig}>
+    <ProductCardConfigProvider config={productCardConfig} brands={cardBrands}>
       <CartProvider inert>
         <div
           className="store-surface bg-background"
           data-store-theme={theme.id}
           {...themeSurface.attributes}
-          style={themeSurface.vars as React.CSSProperties}
+          style={
+            {
+              ...themeSurface.vars,
+              ...cardGridGapVars(productCardConfig.style),
+            } as React.CSSProperties
+          }
         >
           {children}
         </div>

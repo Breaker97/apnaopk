@@ -37,7 +37,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCurrency } from "@/providers/currency-provider";
-import { getChartTicks, getNiceMax } from "@/lib/admin/dashboard-chart-scale";
+import {
+  getChartTicks,
+  getNiceCountMax,
+  getNiceMax,
+} from "@/lib/admin/dashboard-chart-scale";
 import type { OrderChartPoint } from "@/lib/admin/dashboard-types";
 import {
   DateRangePicker,
@@ -47,6 +51,49 @@ import {
 } from "@/components/ui/date-range-picker";
 
 type OrdersChartView = "orders" | "sales";
+
+interface ChartLink {
+  href: string;
+  labelKey: string;
+}
+
+interface ChartAreaLinks {
+  /** The "Add activity" menu. */
+  quickActions: ChartLink[];
+  /** Where the highlights dialog sends the reader for more. */
+  highlights: ChartLink[];
+  /** The sales-data dialog's footer button. */
+  report: ChartLink;
+}
+
+/** Locale-less; prefixed with the current locale when rendered. */
+const AREA_LINKS: Record<"admin" | "vendor", ChartAreaLinks> = {
+  admin: {
+    quickActions: [
+      { href: "/admin/products/new", labelKey: "admin.dashboardPage.addProduct" },
+      { href: "/admin/categories/new", labelKey: "admin.dashboardPage.addCategory" },
+      { href: "/admin/collections/new", labelKey: "admin.dashboardPage.addCollection" },
+      { href: "/admin/customers/new", labelKey: "admin.dashboardPage.addCustomer" },
+    ],
+    highlights: [
+      { href: "/admin/analytics", labelKey: "admin.sidebar.analytics" },
+      { href: "/admin/orders", labelKey: "admin.sidebar.orders" },
+    ],
+    report: { href: "/admin/analytics", labelKey: "admin.sidebar.analytics" },
+  },
+  vendor: {
+    // Vendors add categories and collections from their list pages; there is
+    // no vendor analytics page, so the dialogs lead to the orders list.
+    quickActions: [
+      { href: "/vendor/products/new", labelKey: "admin.dashboardPage.addProduct" },
+      { href: "/vendor/categories", labelKey: "admin.dashboardPage.addCategory" },
+      { href: "/vendor/collections", labelKey: "admin.dashboardPage.addCollection" },
+      { href: "/vendor/orders", labelKey: "admin.sidebar.orders" },
+    ],
+    highlights: [{ href: "/vendor/orders", labelKey: "admin.sidebar.orders" }],
+    report: { href: "/vendor/orders", labelKey: "admin.sidebar.orders" },
+  },
+};
 
 function getInitialDateRange(data: OrderChartPoint[]): AppliedDateRange {
   if (data.length === 0) {
@@ -66,13 +113,23 @@ function getInitialDateRange(data: OrderChartPoint[]): AppliedDateRange {
  * Trailing-12-month orders/sales chart with its side panel and drill-down
  * dialogs. Filtering and the totals below it are derived from the same server
  * payload, so switching the range or the orders/sales tab never refetches.
+ *
+ * Rendered by the admin and the vendor dashboards; `area` only picks where its
+ * links lead.
  */
-export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
+export function DashboardOrdersChart({
+  data,
+  area = "admin",
+}: {
+  data: OrderChartPoint[];
+  area?: "admin" | "vendor";
+}) {
   const t = useTranslations();
   const intlLocale = useLocale();
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || intlLocale || "en";
   const { formatPrice } = useCurrency();
+  const links = AREA_LINKS[area];
   const [view, setView] = React.useState<OrdersChartView>("orders");
   const [dateRange, setDateRange] = React.useState<AppliedDateRange>(() =>
     getInitialDateRange(data),
@@ -95,9 +152,12 @@ export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
     timeZone: "UTC",
   });
 
+  // A month is in the range when any day of it is, so a range starting on the
+  // 15th still shows that month instead of silently dropping it.
   const filteredData = data.filter((entry) => {
-    const monthDate = startOfDay(new Date(entry.year, entry.monthIndex, 1));
-    return monthDate >= dateRange.from && monthDate <= dateRange.to;
+    const monthStart = startOfDay(new Date(entry.year, entry.monthIndex, 1));
+    const monthEnd = startOfDay(new Date(entry.year, entry.monthIndex + 1, 0));
+    return monthStart <= dateRange.to && monthEnd >= dateRange.from;
   });
 
   const chartData = filteredData.map((entry) => ({
@@ -110,27 +170,41 @@ export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
     (acc, entry) => {
       acc.orders += entry.inStoreOrders + entry.onlineOrders;
       acc.sales += entry.inStoreSales + entry.onlineSales;
+      acc.inStoreOrders += entry.inStoreOrders;
+      acc.onlineOrders += entry.onlineOrders;
       acc.inStoreSales += entry.inStoreSales;
       acc.onlineSales += entry.onlineSales;
       return acc;
     },
-    { orders: 0, sales: 0, inStoreSales: 0, onlineSales: 0 },
+    {
+      orders: 0,
+      sales: 0,
+      inStoreOrders: 0,
+      onlineOrders: 0,
+      inStoreSales: 0,
+      onlineSales: 0,
+    },
   );
 
-  const chartMaxValue = getNiceMax(
-    chartData.reduce((max, item) => Math.max(max, item.inStore, item.online), 0),
+  const seriesMax = chartData.reduce(
+    (max, item) => Math.max(max, item.inStore, item.online),
+    0,
   );
+  const chartMaxValue =
+    view === "orders" ? getNiceCountMax(seriesMax) : getNiceMax(seriesMax);
   const chartTicks = getChartTicks(chartMaxValue);
 
+  const formatValue = (value: number) =>
+    view === "orders" ? numberFormatter.format(value) : formatPrice(value);
   const totalChartValue = view === "orders" ? totals.orders : totals.sales;
-  const totalChartTarget = Math.max(
-    getNiceMax(totalChartValue),
-    view === "orders" ? 100 : 1000,
-  );
-  const totalChartProgress =
-    totalChartTarget > 0
-      ? Math.min((totalChartValue / totalChartTarget) * 100, 100)
-      : 0;
+  // The bar under the total splits it by channel. It used to measure the total
+  // against a made-up round target ("0.00 … 100"), which meant nothing.
+  const inStoreTotal =
+    view === "orders" ? totals.inStoreOrders : totals.inStoreSales;
+  const onlineTotal = view === "orders" ? totals.onlineOrders : totals.onlineSales;
+  const inStoreShare =
+    totalChartValue > 0 ? (inStoreTotal / totalChartValue) * 100 : 0;
+  const onlineShare = totalChartValue > 0 ? 100 - inStoreShare : 0;
 
   return (
     <>
@@ -164,26 +238,11 @@ export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
                   {t("admin.dashboardPage.quickActions")}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/admin/products/new`}>
-                    {t("admin.dashboardPage.addProduct")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/admin/categories/new`}>
-                    {t("admin.dashboardPage.addCategory")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/admin/collections/new`}>
-                    {t("admin.dashboardPage.addCollection")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/admin/customers/new`}>
-                    {t("admin.dashboardPage.addCustomer")}
-                  </Link>
-                </DropdownMenuItem>
+                {links.quickActions.map((link) => (
+                  <DropdownMenuItem key={link.href} asChild>
+                    <Link href={`/${locale}${link.href}`}>{t(link.labelKey)}</Link>
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -300,25 +359,35 @@ export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
 
             <div>
               <p className="text-2xl font-semibold leading-tight tracking-tight text-foreground tabular-nums">
-                {view === "orders"
-                  ? numberFormatter.format(totalChartValue)
-                  : formatPrice(totalChartValue)}
+                {formatValue(totalChartValue)}
               </p>
             </div>
 
             <div className="space-y-2">
-              <div className="h-1.5 rounded-full bg-muted">
+              <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-1.5 rounded-full bg-blue-600"
-                  style={{ width: `${totalChartProgress}%` }}
+                  className="h-full bg-blue-600"
+                  style={{ width: `${inStoreShare}%` }}
+                />
+                <div
+                  className="h-full bg-muted-foreground/50"
+                  style={{ width: `${onlineShare}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>0.00</span>
-                <span>
-                  {view === "orders"
-                    ? numberFormatter.format(totalChartTarget)
-                    : formatPrice(totalChartTarget)}
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="size-2 rounded-[2px] bg-blue-600" />
+                  {t("admin.dashboardPage.stats.inStore")}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {formatValue(inStoreTotal)}
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="size-2 rounded-[2px] bg-muted-foreground/50" />
+                  {t("admin.dashboardPage.stats.online")}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {formatValue(onlineTotal)}
+                  </span>
                 </span>
               </div>
             </div>
@@ -385,21 +454,22 @@ export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Link
-              href={`/${locale}/admin/analytics`}
-              className="inline-flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted/50"
-            >
-              {t("admin.sidebar.analytics")}
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </Link>
-            <Link
-              href={`/${locale}/admin/orders`}
-              className="inline-flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted/50"
-            >
-              {t("admin.sidebar.orders")}
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </Link>
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-2",
+              links.highlights.length > 1 && "sm:grid-cols-2",
+            )}
+          >
+            {links.highlights.map((link) => (
+              <Link
+                key={link.href}
+                href={`/${locale}${link.href}`}
+                className="inline-flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted/50"
+              >
+                {t(link.labelKey)}
+                <ChevronRight className="size-4 text-muted-foreground rtl:rotate-180" />
+              </Link>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
@@ -457,11 +527,11 @@ export function DashboardOrdersChart({ data }: { data: OrderChartPoint[] }) {
             </table>
           </div>
           <div className="flex justify-end">
-            <Link href={`/${locale}/admin/analytics`}>
-              <Button variant="outline" className="h-8 text-xs">
-                {t("admin.sidebar.analytics")}
-              </Button>
-            </Link>
+            <Button asChild variant="outline" className="h-8 text-xs">
+              <Link href={`/${locale}${links.report.href}`}>
+                {t(links.report.labelKey)}
+              </Link>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

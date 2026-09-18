@@ -44,7 +44,7 @@ export async function demoteChannelConnection(params: {
           lastError: message,
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     );
     // Already demoted (or already revoked): the owner has been told.
     if (!demoted) return false;

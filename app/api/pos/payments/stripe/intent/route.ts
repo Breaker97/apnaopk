@@ -16,6 +16,7 @@ import {
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import { getEnabledPOSPaymentMethods } from "@/lib/pos/payment";
 import { calculatePOSOrderTotals } from "@/lib/pos/order-totals";
+import { assertPosDiscountAllowed } from "@/lib/pos/pos-discount-guard";
 
 const POSOrderItemSchema = z.object({
   productId: z.string().min(1),
@@ -74,6 +75,11 @@ export const POST = withApi(
 
     const body = await validateBody(request, POSStripeIntentBodySchema);
     let items = body.items;
+    // Before the card is charged, not only when the order is written.
+    await assertPosDiscountAllowed(session.user, {
+      items,
+      discount: body.discount,
+    });
 
     if (!getEnabledPOSPaymentMethods(settings.pos?.checkout?.paymentMethods).includes("card")) {
       throw new ValidationError("Card payment is not enabled for POS");

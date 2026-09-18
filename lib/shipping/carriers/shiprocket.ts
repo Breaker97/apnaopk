@@ -1,4 +1,5 @@
 import { carrierSupportsOrigin } from "@/lib/shipping/carrier-config";
+import { roundMoney } from "@/lib/intl/money";
 import {
   CARRIER_ERROR_CODES,
   CarrierError,
@@ -152,6 +153,7 @@ export function buildShiprocketOrderPayload(
 ): ShiprocketCreateOrderPayload {
   const parcel = request.parcels[0];
   const [firstName, ...restName] = request.shipTo.name.trim().split(/\s+/);
+  const shippingCharges = Math.max(0, Number(request.shippingAmount) || 0);
 
   return {
     order_id: request.reference,
@@ -177,18 +179,21 @@ export function buildShiprocketOrderPayload(
       selling_price: item.unitPrice,
     })),
     payment_method: request.cod ? "COD" : "Prepaid",
-    sub_total:
-      request.declaredValue?.amount ??
-      (request.items || []).reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0,
-      ),
-    // Shiprocket adds this to sub_total to get the amount the courier collects.
+    // Shiprocket collects `sub_total + shipping_charges` at the door, so on a
+    // COD parcel sub_total is whatever of `cod.amount` is not delivery. The
+    // goods' declared value is undiscounted and carries no tax: sent as-is,
+    // the courier collected the shopper's goods money without the tax, and
+    // more than they owed on every couponed order.
+    sub_total: request.cod
+      ? roundMoney(Math.max(0, request.cod.amount - shippingCharges))
+      : (request.declaredValue?.amount ??
+        (request.items || []).reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0,
+        )),
     // Without it a COD customer pays for the goods and nothing for delivery,
     // and the merchant silently absorbs the shipping the shopper was charged.
-    ...(request.shippingAmount && request.shippingAmount > 0
-      ? { shipping_charges: request.shippingAmount }
-      : {}),
+    ...(shippingCharges > 0 ? { shipping_charges: shippingCharges } : {}),
     length: toCentimetres(parcel.length, parcel.dimensionUnit),
     breadth: toCentimetres(parcel.width, parcel.dimensionUnit),
     height: toCentimetres(parcel.height, parcel.dimensionUnit),
@@ -446,9 +451,21 @@ export const shiprocketAdapter: CarrierAdapter = {
       });
     }
     const result = await shiprocketCancelOrder({ token, orderIds: [orderId] });
-    // Shiprocket cancels the consignment; it never refunds a label fee, so
-    // `refunded` is false by definition here.
-    return { refunded: false, state: result.message || "cancelled" };
+    // Shiprocket takes the freight from the account wallet when the AWB is
+    // assigned and credits it back when the consignment is cancelled before
+    // the courier collects it. This used to report `refunded: false`
+    // unconditionally — and since the books reverse a label's cost only on a
+    // refunded void, every Shiprocket parcel cancelled before pickup kept a
+    // shipping cost nobody paid, and kept its delivery charge moved off the
+    // vendor for a delivery that never happened.
+    //
+    // Once the courier holds the parcel a cancellation is a return, and the
+    // freight is spent. A refusal to cancel throws above, so reaching here
+    // means Shiprocket accepted it.
+    return {
+      refunded: !params.pickedUp,
+      state: result.message || "cancelled",
+    };
   },
 
   async testConnection(ctx) {

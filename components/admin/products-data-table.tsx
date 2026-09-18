@@ -16,6 +16,7 @@ import {
   Archive,
   CheckCircle2,
   CircleDot,
+  FileDown,
   ShoppingBag,
   Globe,
 } from "lucide-react";
@@ -35,6 +36,10 @@ import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import {
+  ProductImportDialog,
+  downloadProductImportSample,
+} from "@/components/admin/product-import-dialog";
 import type { ProductListItem as Product } from "@/types/product-list";
 
 
@@ -56,6 +61,7 @@ interface ProductsDataTableProps {
 }
 
 const PRODUCT_FILTER_IDS = ["vendor", "source", "tag"];
+const PRODUCTS_IMPORT_ENDPOINT = "/api/admin/products/import-export";
 
 /** The status dropdown offers "archived"; the tab it drives is "unlisted". */
 function normalizeStatus(status?: string) {
@@ -78,8 +84,8 @@ export function ProductsDataTable({
   const { formatPrice: formatCurrency } = useCurrency();
 
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
   const basePath = `/${locale}/${area}`;
-  const importInputId = "admin-products-import-csv";
 
   const list = useListNavigation<Product>({
     items: data,
@@ -250,7 +256,7 @@ export function ProductsDataTable({
     try {
       const params = buildImportExportParams();
       const res = await fetch(
-        `/api/admin/products/import-export?${params.toString()}`,
+        `${PRODUCTS_IMPORT_ENDPOINT}?${params.toString()}`,
       );
       if (!res.ok) throw new Error("Export failed");
 
@@ -270,57 +276,21 @@ export function ProductsDataTable({
   }, [buildImportExportParams]);
 
   const handleImportProducts = useCallback(() => {
-    document.getElementById(importInputId)?.click();
+    setImportOpen(true);
   }, []);
 
-  const handleImportFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = "";
-      if (!file) return;
+  const handleDownloadSample = useCallback(async () => {
+    try {
+      await downloadProductImportSample(PRODUCTS_IMPORT_ENDPOINT, "csv");
+    } catch {
+      toast.error(t("admin.productsDataTable.importDialog.sampleFailed"));
+    }
+  }, [t]);
 
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/admin/products/import-export", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Import failed");
-        }
-
-        const result = data.data as {
-          created: number;
-          updated: number;
-          failed: number;
-          errors?: { row: number; message: string }[];
-        };
-        const summary = `Imported ${result.created} created, ${result.updated} updated`;
-        if (result.failed > 0) {
-          toast.error(
-            `${summary}. ${result.failed} failed${
-              result.errors?.[0]
-                ? `: row ${result.errors[0].row} ${result.errors[0].message}`
-                : "."
-            }`,
-          );
-        } else {
-          toast.success(summary);
-        }
-        list.handlePageChange(1);
-        list.refetch();
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Products could not be imported",
-        );
-      }
-    },
-    [list],
-  );
+  const handleImported = useCallback(() => {
+    list.handlePageChange(1);
+    list.refetch();
+  }, [list]);
 
   // Price display helper
   const formatPrice = useCallback(
@@ -586,10 +556,23 @@ export function ProductsDataTable({
                   icon: <Upload className="h-4 w-4" />,
                   onClick: handleImportProducts,
                 },
+                {
+                  id: "toolbar-import-sample",
+                  label: t("admin.productsDataTable.actions.downloadSample"),
+                  icon: <FileDown className="h-4 w-4" />,
+                  onClick: handleDownloadSample,
+                },
               ],
             },
       }),
-    [basePath, handleExportProducts, handleImportProducts, readOnly, t],
+    [
+      basePath,
+      handleDownloadSample,
+      handleExportProducts,
+      handleImportProducts,
+      readOnly,
+      t,
+    ],
   );
 
   // Bulk actions
@@ -668,13 +651,15 @@ export function ProductsDataTable({
 
   return (
     <>
-      <input
-        id={importInputId}
-        type="file"
-        accept=".csv,text/csv,.json,application/json"
-        className="hidden"
-        onChange={handleImportFileChange}
-      />
+      {!readOnly && (
+        <ProductImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          endpoint={PRODUCTS_IMPORT_ENDPOINT}
+          audience="admin"
+          onImported={handleImported}
+        />
+      )}
       <DataTable
         data={list.items}
         columns={columns}

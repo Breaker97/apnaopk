@@ -7,11 +7,14 @@ import { isValidObjectId, validateBody } from "@/lib/api/validate";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import { getStripeForSecretKey, isStripeSecretKeyConfigured } from "@/lib/payments/stripe";
 import { settlePreorderBalanceFromIntent } from "@/lib/payments/preorder-balance";
+import { readPreorderBalanceToken } from "@/lib/payments/preorder-balance-link";
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
 import { z } from "zod";
 
 const BodySchema = z.object({
   paymentIntentId: z.string().min(1).max(255),
+  /** The same signed link the intent was started with — see that route. */
+  accessToken: z.string().max(200).optional(),
 });
 
 /**
@@ -25,17 +28,29 @@ const BodySchema = z.object({
  */
 export const POST = withApi<{ id: string }>(
   {
-    auth: "user",
+    auth: "optional",
     rateLimit: { action: "orders:preorder-balance:confirm", preset: "moderate" },
   },
   async ({ request, params, session }) => {
     if (!isValidObjectId(params.id)) return notFoundResponse("Order");
-    const { paymentIntentId } = await validateBody(request, BodySchema);
+    const { paymentIntentId, accessToken } = await validateBody(
+      request,
+      BodySchema,
+    );
 
-    const order = await Order.findOne({
-      _id: params.id,
-      customerId: session.user.id,
-    })
+    // Same two ways in as the route that started the intent, and the same
+    // reason — a guest's order is backed by a cart, so only the signed link
+    // can speak for them. The intent is still read back from Stripe below and
+    // still has to be the one stamped on THIS order, so the link buys entry,
+    // not trust.
+    const viaAccessLink = readPreorderBalanceToken(accessToken) === params.id;
+    if (!viaAccessLink && !session?.user?.id) return notFoundResponse("Order");
+
+    const order = await Order.findOne(
+      viaAccessLink
+        ? { _id: params.id }
+        : { _id: params.id, customerId: session?.user?.id },
+    )
       .select(
         "orderNumber status paymentStatus preorderOutstandingAmount preorderBalancePaymentIntentId preorderBalancePaidAt",
       )
@@ -57,7 +72,12 @@ export const POST = withApi<{ id: string }>(
     const result = await settlePreorderBalanceFromIntent(paymentIntent, settings);
 
     const after = await Order.findById(order._id)
-      .select("status paymentStatus preorderStatus preorderOutstandingAmount total")
+      .select(
+        // `subOrders` is not decoration: `getPreorderBalanceDue` nets off any
+        // consignment a vendor has cancelled, and without them it would
+        // report the shopper still owing for goods nobody is sending.
+        "status paymentStatus paymentMethod preorderStatus preorderOutstandingAmount total subOrders.status subOrders.items.preorderOutstandingAmount",
+      )
       .lean();
     // `alreadySettled` is the racing webhook having recorded the same intent,
     // which is a success. Every other unsettled outcome refunded the capture

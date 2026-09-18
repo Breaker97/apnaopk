@@ -11,6 +11,7 @@ import {
   TITLE_SIZE_FIELD_KEY,
   type SectionDefinition,
 } from "../types";
+import { themeUsesTwoToneHeadings } from "@/lib/storefront/themes/registry";
 
 /**
  * Paid boost placements. Content comes from live campaigns, never from
@@ -68,9 +69,9 @@ export const sponsoredRail: SectionDefinition = {
         locale={ctx.locale}
         limit={settings.limit as number}
         desktopColumns={settings.desktopColumns as number}
-        // The active theme decides the heading treatment (the compare-page
-        // precedent) — Electronics' two-tone, plain elsewhere.
-        themedHeading={ctx.themeId === "electronics"}
+        // The template's data decides the heading treatment (`headingStyle`),
+        // the same one the compare and all-categories pages wear.
+        themedHeading={themeUsesTwoToneHeadings(ctx.themeId)}
         ctx={ctx}
       />
     );

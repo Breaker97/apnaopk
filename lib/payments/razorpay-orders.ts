@@ -1,7 +1,9 @@
 import { Order } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
 import {
+  captureAuthorizedRazorpayPayment,
   toRazorpayAmountSubunits,
+  type RazorpayCredentials,
   type RazorpayPayment,
 } from "@/lib/payments/razorpay";
 import { gatewayFeeUpdate, razorpayFee } from "@/lib/payments/gateway-fee";
@@ -14,13 +16,19 @@ import {
 type FinalizeRazorpayOrderParams = {
   razorpayOrderId: string;
   payment: RazorpayPayment;
+  /**
+   * Lets the verifier capture a payment Razorpay has only authorized. The
+   * payer's verify call passes them; the webhook does not, because the events
+   * it settles on (`payment.captured`, `order.paid`) are captured already.
+   */
+  creds?: RazorpayCredentials;
   settings: SettingsDocument;
   sessionUserId?: string;
   cartSessionId?: string;
   customerEmail?: string;
 };
 
-/** Settles the order behind a captured Razorpay payment. */
+/** Settles the order behind a Razorpay payment, capturing it if need be. */
 export function finalizeRazorpayOrder(params: FinalizeRazorpayOrderParams) {
   return finalizeCapturedOrder({
     provider: {
@@ -31,7 +39,7 @@ export function finalizeRazorpayOrder(params: FinalizeRazorpayOrderParams) {
     findOrder: (scope) =>
       Order.findOne({ ...scope, razorpayOrderId: params.razorpayOrderId }),
     notFoundMessage: "Order not found for Razorpay payment",
-    verify: (order) => {
+    verify: async (order) => {
       if (params.payment.order_id !== params.razorpayOrderId) {
         throw new ValidationError("Razorpay order mismatch");
       }
@@ -46,32 +54,42 @@ export function finalizeRazorpayOrder(params: FinalizeRazorpayOrderParams) {
         throw new ValidationError("Razorpay currency mismatch");
       }
 
+      const amountDue = amountDueNow(order);
       const expectedAmount = toRazorpayAmountSubunits(
-        amountDueNow(order),
+        amountDue,
         expectedCurrency,
       );
       if (Number(params.payment.amount) !== expectedAmount) {
         throw new ValidationError("Razorpay amount mismatch");
       }
 
-      if (
-        params.payment.status !== "captured" &&
-        params.payment.captured !== true
-      ) {
+      // Captured here rather than by the route: `verify` runs only for an
+      // order that is still unpaid and not cancelled, so an authorized payment
+      // is never captured for an order that can no longer be settled.
+      const payment = params.creds
+        ? await captureAuthorizedRazorpayPayment({
+            creds: params.creds,
+            payment: params.payment,
+            amount: amountDue,
+            currency: expectedCurrency,
+          })
+        : params.payment;
+
+      if (payment.status !== "captured" && payment.captured !== true) {
         throw new ValidationError(
-          `Razorpay payment not captured: ${params.payment.status}`,
+          `Razorpay payment not captured: ${payment.status}`,
         );
       }
 
       return {
-        paymentId: params.payment.id,
+        paymentId: payment.id,
         paymentUpdate: {
-          razorpayPaymentId: params.payment.id,
+          razorpayPaymentId: payment.id,
           // `fee` appears once the payment is captured; an authorized-only
           // payment reports none, and gatewayFeeUpdate writes nothing for it.
-          ...gatewayFeeUpdate(razorpayFee(params.payment)),
+          ...gatewayFeeUpdate(razorpayFee(payment)),
         },
-        customerEmail: params.payment.email || undefined,
+        customerEmail: payment.email || undefined,
       };
     },
     settings: params.settings,

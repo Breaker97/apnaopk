@@ -34,6 +34,10 @@ const INDEXES = {
     { key: { status: 1, escalationNotifiedAt: 1, lastInboundAt: 1 } },
     { key: { contactId: 1, channel: 1, lastMessageAt: -1 } },
     {
+      key: { unreadForStore: 1 },
+      options: { partialFilterExpression: { unreadForStore: { $gt: 0 } } },
+    },
+    {
       key: { channelConnectionId: 1, externalThreadId: 1 },
       options: {
         unique: true,

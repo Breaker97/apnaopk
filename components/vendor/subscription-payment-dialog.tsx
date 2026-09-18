@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
-import { loadRazorpayCheckoutScript } from "@/components/checkout/checkout-helpers";
+import { openRazorpayCheckout } from "@/components/checkout/checkout-helpers";
 import {
   PaymentMethodPicker,
   type PlatformGateway,
@@ -34,6 +34,7 @@ interface InitiationResponse {
   name?: string;
   description?: string;
   prefill?: { email?: string; name?: string; contact?: string };
+  callbackUrl?: string;
 }
 
 const POLL_INTERVAL_MS = 4000;
@@ -171,85 +172,22 @@ export function SubscriptionPaymentDialog(props: {
 
       const initiation = response as InitiationResponse;
       if (initiation.type === "razorpay" && initiation.razorpayOrderId) {
-        await loadRazorpayCheckoutScript();
-        const Razorpay = (
-          window as unknown as {
-            Razorpay?: new (options: Record<string, unknown>) => {
-              open: () => void;
-              on: (event: string, cb: (r: unknown) => void) => void;
-            };
-          }
-        ).Razorpay;
-        if (!Razorpay) throw new Error("Razorpay checkout is unavailable");
-        await new Promise<void>((resolve, reject) => {
-          let settled = false;
-          const razorpay = new Razorpay({
-            key: initiation.keyId,
-            amount: initiation.amount,
-            currency: initiation.currency,
-            name: initiation.name,
-            description: initiation.description,
-            order_id: initiation.razorpayOrderId,
-            prefill: initiation.prefill,
-            handler: async (result: unknown) => {
-              settled = true;
-              try {
-                const payload = result as {
-                  razorpay_payment_id: string;
-                  razorpay_signature: string;
-                };
-                await fetch("/api/payments/razorpay/verify", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    razorpay_order_id: initiation.razorpayOrderId,
-                    razorpay_payment_id: payload.razorpay_payment_id,
-                    razorpay_signature: payload.razorpay_signature,
-                  }),
-                });
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            },
-            modal: {
-              ondismiss: () => {
-                if (!settled) {
-                  reject(
-                    new Error(
-                      label(
-                        "vendor.billing.paymentCanceled",
-                        "Payment was canceled. Please try again.",
-                      ),
-                    ),
-                  );
-                }
-              },
-            },
-          });
-          razorpay.on("payment.failed", (result: unknown) => {
-            settled = true;
-            const failure = result as {
-              error?: { description?: string; reason?: string };
-            };
-            reject(
-              new Error(
-                failure.error?.description ||
-                  failure.error?.reason ||
-                  "Razorpay payment failed",
-              ),
-            );
-          });
-          razorpay.open();
-        });
-        toast.success(
-          label(
-            "vendor.billing.paymentConfirmed",
-            "Payment confirmed. Your plan is active.",
+        // Never resolves: Razorpay returns the vendor to the dashboard, whose
+        // return verifier confirms the payment with the signature it carries.
+        await openRazorpayCheckout({
+          keyId: initiation.keyId ?? "",
+          razorpayOrderId: initiation.razorpayOrderId,
+          amount: initiation.amount ?? 0,
+          currency: initiation.currency ?? "",
+          name: initiation.name ?? "",
+          description: initiation.description,
+          callbackUrl: initiation.callbackUrl ?? "",
+          prefill: initiation.prefill,
+          canceledMessage: label(
+            "vendor.billing.paymentCanceled",
+            "Payment was canceled. Please try again.",
           ),
-        );
-        props.onOpenChange(false);
-        router.refresh();
+        });
         return;
       }
 

@@ -72,7 +72,11 @@ export const POST = withApi(
     const emailMatches = [order.customerId?.email, order.guestEmail]
       .filter(Boolean)
       .some((email) => email!.toLowerCase() === identifierLower);
-    const phoneMatches = [order.customerId?.phone, order.shippingAddress.phone]
+    const phoneMatches = [
+      order.customerId?.phone,
+      order.contactPhone,
+      order.shippingAddress.phone,
+    ]
       .filter(Boolean)
       .map((phone) => normalizePhone(phone!))
       .some((phone) => phone === identifierPhone);

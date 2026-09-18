@@ -24,6 +24,11 @@ interface IEmailDelivery {
     contentType?: string;
   }>;
   category: string;
+  /**
+   * One email per event per recipient — see `sendEmail`'s `dedupeKey`. Only
+   * notifications set it; a password reset or an invite must always go out.
+   */
+  dedupeKey?: string;
   status: EmailDeliveryStatus;
   attempts: number;
   maxAttempts: number;
@@ -47,6 +52,7 @@ const EmailDeliverySchema = new Schema<IEmailDelivery>(
     text: String,
     attachments: { type: Schema.Types.Mixed },
     category: { type: String, default: "transactional", index: true },
+    dedupeKey: String,
     status: {
       type: String,
       enum: ["queued", "sending", "retrying", "sent", "failed"],
@@ -65,6 +71,10 @@ const EmailDeliverySchema = new Schema<IEmailDelivery>(
 );
 
 EmailDeliverySchema.index({ status: 1, nextAttemptAt: 1, createdAt: 1 });
+EmailDeliverySchema.index(
+  { dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: "string" } } },
+);
 EmailDeliverySchema.index(
   { createdAt: 1 },
   { expireAfterSeconds: 90 * 24 * 60 * 60 },

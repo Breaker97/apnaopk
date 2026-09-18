@@ -23,7 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
-import type { ReturnPolicyPageData } from "@/lib/site-config/content-pages-config";
+import {
+  fillContentPlaceholders,
+  type ReturnPolicyPageData,
+} from "@/lib/site-config/content-pages-config";
 
 const stepIcons: LucideIcon[] = [
   ReceiptText,
@@ -46,9 +49,7 @@ const summaryIcons = [
   { icon: AlertTriangle, className: "text-amber-600" },
 ];
 
-function withStoreName(value: string, storeName: string) {
-  return value.replace(/\{storeName\}/g, storeName);
-}
+
 
 export function ReturnPolicyPageView({
   locale,
@@ -78,7 +79,10 @@ export function ReturnPolicyPageView({
               {page.title}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-              {withStoreName(page.description, storeName)}
+              {fillContentPlaceholders(page.description, {
+                storeName,
+                returnWindow: page.returnWindowValue,
+              })}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button asChild>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { locales } from "@/config/i18n.config";
+import { isIsoCurrencyCode } from "@/lib/intl/iso-currencies";
 import {
   MAX_ALLOWED_PASSWORD_LENGTH,
   MIN_ALLOWED_PASSWORD_LENGTH,
@@ -87,12 +88,12 @@ export const installPayloadSchema = z.object({
       .refine((value) => (locales as readonly string[]).includes(value), {
         message: "Unsupported language",
       }),
-    /** ISO-4217-ish; the currency list is admin-extensible, so shape only. */
+    /** A real ISO 4217 code — the wizard offers a picker of exactly these. */
     currency: z
       .string()
       .trim()
       .toUpperCase()
-      .regex(/^[A-Z]{3}$/, "Currency must be a 3-letter code"),
+      .refine(isIsoCurrencyCode, { message: "Unsupported currency" }),
     multiVendor: z.boolean(),
     /** Master switch for in-person selling; `pos.enabled` in settings. */
     pos: z.boolean(),
@@ -176,4 +177,104 @@ export function isPreflightBlocking(
     !preflight.databaseOk ||
     Boolean(preflight.authSecretProblem)
   );
+}
+
+/**
+ * The Node release the app supports — `engines` in package.json, the README
+ * and UPGRADE.md all name 22.12.0, so "any 22" would pass 22.0–22.11.
+ */
+export const NODE_VERSION_FLOOR = "22.12.0";
+
+/** Whether `version`, as `process.version` prints it ("v22.12.0"), meets the floor. */
+export function meetsNodeVersionFloor(
+  version: string,
+  floor: string = NODE_VERSION_FLOOR,
+): boolean {
+  const parse = (value: string) =>
+    value
+      .replace(/^v/, "")
+      .split(".")
+      .map((part) => Number.parseInt(part, 10));
+  const actual = parse(version);
+  const minimum = parse(floor);
+  for (let index = 0; index < 3; index += 1) {
+    const have = actual[index];
+    const need = minimum[index] ?? 0;
+    if (!Number.isFinite(have)) return false;
+    if (have !== need) return have > need;
+  }
+  return true;
+}
+
+/**
+ * What the browser's auth client calls when NEXT_PUBLIC_APP_URL is unset —
+ * the fallback in `lib/auth/auth-client.ts`.
+ */
+const APP_URL_FALLBACK = "http://localhost:3000";
+
+export type AppUrlProblem =
+  | { kind: "missing"; pageOrigin: string }
+  | {
+      kind: "invalid";
+      variable: "NEXT_PUBLIC_APP_URL" | "BETTER_AUTH_URL";
+      value: string;
+      pageOrigin: string;
+    }
+  | {
+      kind: "mismatch";
+      variable: "NEXT_PUBLIC_APP_URL" | "BETTER_AUTH_URL";
+      value: string;
+      pageOrigin: string;
+    };
+
+function httpOrigin(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether signing in will work on the address the installer is open on.
+ *
+ * "Is it set" is no check at all: `.env.example` ships both variables filled
+ * with http://localhost:3000, so a store deployed to its real domain passed
+ * while its sign-in form posted to the buyer's own machine. The browser's auth
+ * client calls NEXT_PUBLIC_APP_URL (inlined at build time), and the server
+ * trusts only the configured origins and builds email links and OAuth
+ * callbacks from BETTER_AUTH_URL — so each must be the origin in use.
+ *
+ * `authUrl` is BETTER_AUTH_URL alone; unset, the server follows `publicUrl`.
+ */
+export function findAppUrlProblem(input: {
+  publicUrl: string | null | undefined;
+  authUrl: string | null | undefined;
+  pageOrigin: string;
+}): AppUrlProblem | null {
+  const { pageOrigin } = input;
+  const publicUrl = input.publicUrl?.trim();
+  if (!publicUrl) {
+    return httpOrigin(APP_URL_FALLBACK) === httpOrigin(pageOrigin)
+      ? null
+      : { kind: "missing", pageOrigin };
+  }
+
+  const configured = [
+    { variable: "NEXT_PUBLIC_APP_URL" as const, value: publicUrl },
+    ...(input.authUrl?.trim()
+      ? [{ variable: "BETTER_AUTH_URL" as const, value: input.authUrl.trim() }]
+      : []),
+  ];
+  for (const { variable, value } of configured) {
+    const origin = httpOrigin(value);
+    if (!origin) return { kind: "invalid", variable, value, pageOrigin };
+    if (origin !== httpOrigin(pageOrigin)) {
+      return { kind: "mismatch", variable, value, pageOrigin };
+    }
+  }
+  return null;
 }

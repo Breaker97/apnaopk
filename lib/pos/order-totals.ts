@@ -1,6 +1,7 @@
 import {
   computeLineDiscountAmount,
 } from "@/lib/orders/order-vendors";
+import { roundMoney } from "@/lib/intl/money";
 
 export type POSOrderItemInput = {
   productId: string;
@@ -37,54 +38,60 @@ export function computePOSLineDiscountAmount(item: POSOrderItemInput): number {
   );
 }
 
+/** Whether a sale carries any discount, on a line or on the whole sale. */
+export function posSaleHasDiscount(params: {
+  items: Array<Pick<POSOrderItemInput, "lineDiscount">>;
+  discount?: Pick<POSOrderDiscountInput, "value"> | null;
+}): boolean {
+  return (
+    Number(params.discount?.value || 0) > 0 ||
+    params.items.some((item) => Number(item.lineDiscount?.value || 0) > 0)
+  );
+}
+
+/**
+ * The sale's money, worked out on the server alone.
+ *
+ * Tax is charged on what the shopper actually pays — after the line discounts
+ * AND the sale discount — the way online checkout charges it. It used to be
+ * charged before the sale discount, on money the till never collected, and was
+ * never rounded, so the stored tax and total carried float noise.
+ *
+ * The discount comes from its type and value only. The terminal's own figure
+ * used to be taken whenever it was within 0.5 of the computed one, which let a
+ * client nudge every sale's discount.
+ */
 export function calculatePOSOrderTotals(params: {
   items: POSOrderItemInput[];
   discount?: POSOrderDiscountInput;
   taxRate?: number;
 }) {
-  const subtotal = params.items.reduce(
-    (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
-    0,
+  const subtotal = roundMoney(
+    params.items.reduce(
+      (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+      0,
+    ),
   );
-  const lineDiscountTotal = params.items.reduce(
-    (sum, item) => sum + computePOSLineDiscountAmount(item),
-    0,
+  const lineDiscountTotal = roundMoney(
+    params.items.reduce((sum, item) => sum + computePOSLineDiscountAmount(item), 0),
   );
-  const discountedSubtotal = Math.max(0, subtotal - lineDiscountTotal);
-  const tax = discountedSubtotal * (params.taxRate ?? 0);
+  const discountedSubtotal = Math.max(0, roundMoney(subtotal - lineDiscountTotal));
   const shippingCost = 0;
 
   let discountAmount = 0;
   const discount = params.discount;
   if (discount && typeof discount === "object" && discount.value > 0) {
-    if (discount.type === "percent") {
-      discountAmount =
-        (discountedSubtotal * Math.min(discount.value, 100)) / 100;
-    } else {
-      discountAmount = Math.min(discount.value, discountedSubtotal);
-    }
-    if (
-      typeof discount.amount === "number" &&
-      Number.isFinite(discount.amount) &&
-      discount.amount >= 0
-    ) {
-      if (
-        discount.type === "percent" &&
-        Math.abs(discount.amount - discountAmount) < 0.5
-      ) {
-        discountAmount = discount.amount;
-      } else if (
-        discount.type === "amount" &&
-        Math.abs(discount.amount - discountAmount) < 0.5
-      ) {
-        discountAmount = discount.amount;
-      }
-    }
-    discountAmount = Math.max(0, Math.min(discountAmount, discountedSubtotal));
+    discountAmount =
+      discount.type === "percent"
+        ? (discountedSubtotal * Math.min(discount.value, 100)) / 100
+        : discount.value;
+    discountAmount = Math.max(0, Math.min(roundMoney(discountAmount), discountedSubtotal));
   }
 
-  const totalDiscount = lineDiscountTotal + discountAmount;
-  const total = Math.max(0, subtotal - totalDiscount + tax);
+  const taxable = Math.max(0, roundMoney(discountedSubtotal - discountAmount));
+  const tax = roundMoney(taxable * (params.taxRate ?? 0));
+  const totalDiscount = roundMoney(lineDiscountTotal + discountAmount);
+  const total = Math.max(0, roundMoney(taxable + tax));
 
   return {
     subtotal,

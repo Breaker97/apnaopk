@@ -101,4 +101,5 @@ export const HEADER_ICON_META: Record<
   contact: { label: "Contact", labelKey: "nav.contact", icon: Phone },
   language: { label: "Language", labelKey: "common.language", icon: Globe },
   currency: { label: "Currency", labelKey: "common.currency", icon: DollarSign },
+  menu: { label: "Menu", labelKey: "common.menu", icon: Menu },
 };

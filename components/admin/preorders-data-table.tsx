@@ -9,6 +9,7 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock3,
+  Banknote,
   CreditCard,
   Download,
   Eye,
@@ -48,6 +49,13 @@ interface PreorderItem {
   purchaseType?: string;
   preorderReleaseDate?: string;
   preorderStatus?: string;
+  /**
+   * Read only through `getPreorderBalanceDue`, which nets off the lines of any
+   * consignment a vendor has cancelled. The list query returns whole orders, so
+   * the figure was always on the row — it just had no name here, and the
+   * balance column quietly counted goods nobody is sending.
+   */
+  preorderOutstandingAmount?: number;
 }
 
 interface PreorderSubOrder {
@@ -262,6 +270,15 @@ export function PreordersDataTable({
   const [delayReleaseDate, setDelayReleaseDate] = useState("");
   const [delayReason, setDelayReason] = useState("");
   const [isDelaySubmitting, setIsDelaySubmitting] = useState(false);
+  const [balanceTarget, setBalanceTarget] = useState<{
+    id: string;
+    orderNumber: string;
+    amount: number;
+  } | null>(null);
+  const [balanceMethod, setBalanceMethod] = useState("Bank transfer");
+  const [balanceReference, setBalanceReference] = useState("");
+  const [balanceNote, setBalanceNote] = useState("");
+  const [isBalanceSubmitting, setIsBalanceSubmitting] = useState(false);
 
   const list = useListNavigation<PreorderOrder>({
     items: data,
@@ -275,15 +292,37 @@ export function PreordersDataTable({
 
   const runAction = useCallback(
     async (orderId: string, action: "ready" | "payment_due" | "cancel") => {
+      // Cancelling refunds whatever the shopper paid, so the confirmation says
+      // so. "Cancel this pre-order?" hid the fact that money moves.
+      if (
+        action === "cancel" &&
+        !window.confirm(
+          "Cancel this pre-order and refund everything the customer has paid?",
+        )
+      ) {
+        return;
+      }
       try {
-        await apiClient.put(`/api/${scope}/preorders/${orderId}`, { action });
-        toast.success(
-          action === "ready"
-            ? "Pre-order moved to fulfillment"
-            : action === "payment_due"
-              ? "Balance request sent"
-              : "Pre-order cancelled",
-        );
+        const result = await apiClient.put<{
+          refund?: { refunded?: boolean; reason?: string };
+        }>(`/api/${scope}/preorders/${orderId}`, { action });
+        if (action === "cancel") {
+          const refund = result?.refund;
+          // A refund the gateway would not take is the one outcome an admin
+          // has to act on, so it is a warning rather than a success line they
+          // would scroll past.
+          if (refund && !refund.refunded && refund.reason) {
+            toast.warning(`Pre-order cancelled — ${refund.reason}`);
+          } else {
+            toast.success("Pre-order cancelled and refunded");
+          }
+        } else {
+          toast.success(
+            action === "ready"
+              ? "Pre-order moved to fulfillment"
+              : "Balance request sent",
+          );
+        }
         list.refetch();
       } catch (error) {
         toast.error(
@@ -293,6 +332,31 @@ export function PreordersDataTable({
     },
     [list, scope],
   );
+
+  const submitRecordBalance = useCallback(async () => {
+    if (!balanceTarget || !balanceReference.trim()) return;
+    setIsBalanceSubmitting(true);
+    try {
+      await apiClient.post(
+        `/api/admin/preorders/${balanceTarget.id}/record-balance`,
+        {
+          amount: balanceTarget.amount,
+          method: balanceMethod.trim() || "Offline payment",
+          reference: balanceReference.trim(),
+          ...(balanceNote.trim() ? { note: balanceNote.trim() } : {}),
+        },
+      );
+      toast.success(`Balance recorded on ${balanceTarget.orderNumber}`);
+      setBalanceTarget(null);
+      list.refetch();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to record the balance",
+      );
+    } finally {
+      setIsBalanceSubmitting(false);
+    }
+  }, [balanceTarget, balanceMethod, balanceReference, balanceNote, list]);
 
   const runDelayAction = useCallback(
     (orderId: string) => {
@@ -372,13 +436,34 @@ export function PreordersDataTable({
       };
       if (
         action === "cancel" &&
-        !window.confirm(`Cancel ${items.length} selected pre-order(s)?`)
+        !window.confirm(
+          `Cancel ${items.length} selected pre-order(s) and refund everything the customers have paid?`,
+        )
       ) {
         return;
       }
       try {
-        await apiClient.post("/api/admin/preorders", body);
-        toast.success("Selected pre-orders updated");
+        const result = await apiClient.post<{
+          refunded?: number;
+          refundsNeedingAttention?: Array<{ orderNumber?: string; reason?: string }>;
+        }>("/api/admin/preorders", body);
+        const needsAttention = result?.refundsNeedingAttention || [];
+        if (action === "cancel" && needsAttention.length > 0) {
+          // Named rather than counted: an admin has to go and refund these by
+          // hand, and "3 failed" sends them hunting through the whole list.
+          toast.warning(
+            `Cancelled, but ${needsAttention.length} refund(s) need to be issued by hand: ${needsAttention
+              .map((row) => row.orderNumber)
+              .filter(Boolean)
+              .join(", ")}`,
+          );
+        } else if (action === "cancel") {
+          toast.success(
+            `Cancelled and refunded ${result?.refunded ?? items.length} pre-order(s)`,
+          );
+        } else {
+          toast.success("Selected pre-orders updated");
+        }
         list.refetch();
       } catch (error) {
         toast.error(
@@ -535,7 +620,7 @@ export function PreordersDataTable({
       {
         id: "terms",
         header: "Terms",
-        className: "w-[94px] max-w-[94px] !px-4",
+        className: "w-[124px] max-w-[124px] !px-4",
         headerClassName: "!px-4",
         cell: (row) => {
           const mode = row.preorderPaymentMode || "full";
@@ -545,16 +630,26 @@ export function PreordersDataTable({
               : mode === "pay_later"
                 ? "Pay later"
                 : "Full";
+          const dueNow = `Due now ${formatPrice(row.preorderDepositAmount || 0)}`;
+          const later = row.preorderOutstandingAmount
+            ? `Later ${formatPrice(row.preorderOutstandingAmount)}`
+            : null;
+          // One amount per line: side by side they ran past this fixed-width
+          // column (cells are `whitespace-nowrap`) and printed over the Subtotal.
           return (
             <div className="min-w-0">
               <div className="font-medium">{label}</div>
               {mode !== "full" ? (
-                <p className="text-xs text-muted-foreground">
-                  Due now {formatPrice(row.preorderDepositAmount || 0)}
-                  {row.preorderOutstandingAmount
-                    ? ` · Later ${formatPrice(row.preorderOutstandingAmount)}`
-                    : ""}
-                </p>
+                <>
+                  <p className="truncate text-xs text-muted-foreground" title={dueNow}>
+                    {dueNow}
+                  </p>
+                  {later ? (
+                    <p className="truncate text-xs text-muted-foreground" title={later}>
+                      {later}
+                    </p>
+                  ) : null}
+                </>
               ) : null}
             </div>
           );
@@ -619,14 +714,15 @@ export function PreordersDataTable({
               hasOutstandingBalance ? "payment_due" : "ready",
             ),
         });
-        if (scope === "admin") {
-          actions.push({
-            id: "delay",
-            label: "Update release date",
-            icon: <Clock3 className="h-4 w-4" />,
-            onClick: () => void runDelayAction(row._id),
-          });
-        }
+        // A vendor moves their own date too — they are the one who knows when
+        // the goods arrive. Bulk updates stay admin-only: they post to the
+        // admin collection route, which a vendor cannot reach.
+        actions.push({
+          id: "delay",
+          label: "Update release date",
+          icon: <Clock3 className="h-4 w-4" />,
+          onClick: () => void runDelayAction(row._id),
+        });
       }
 
       if (
@@ -639,6 +735,44 @@ export function PreordersDataTable({
           label: "Send balance reminder",
           icon: <CreditCard className="h-4 w-4" />,
           onClick: () => void runAction(row._id, "payment_due"),
+        });
+      }
+
+      // Paid, but still on `payment_due`: the balance landed while its stock
+      // was not recorded yet (the settle path then leaves it waiting), or a
+      // vendor's consignment was released before the money came in. Nothing
+      // else on the row moves it on, so it sat there paid for good.
+      if (
+        canEditPreorder &&
+        preorderStatus === "payment_due" &&
+        !hasOutstandingBalance
+      ) {
+        actions.push({
+          id: "ready",
+          label: "Move to fulfillment",
+          icon: <CheckCircle2 className="h-4 w-4" />,
+          onClick: () => void runAction(row._id, "ready"),
+        });
+      }
+
+      // The way out for a balance the store cannot collect online — a deposit
+      // taken on a gateway that cannot be charged a second time. Without it
+      // those orders stay part-paid for ever.
+      if (scope === "admin" && canEditPreorder && hasOutstandingBalance) {
+        actions.push({
+          id: "record-balance",
+          label: "Record balance received",
+          icon: <Banknote className="h-4 w-4" />,
+          onClick: () => {
+            setBalanceTarget({
+              id: row._id,
+              orderNumber: row.orderNumber,
+              amount: getPreorderBalanceDue(row),
+            });
+            setBalanceMethod("Bank transfer");
+            setBalanceReference("");
+            setBalanceNote("");
+          },
         });
       }
 
@@ -769,8 +903,9 @@ export function PreordersDataTable({
           <DialogHeader>
             <DialogTitle>Update release date</DialogTitle>
             <DialogDescription>
-              Customers will be notified with the new expected ship date and
-              optional delay reason.
+              {scope === "vendor"
+                ? "The customer is told the new date and your reason, and offered a full refund if it no longer works for them."
+                : "Customers are told the new expected ship date and the reason, and offered a full refund if it no longer works for them."}
             </DialogDescription>
           </DialogHeader>
 
@@ -792,6 +927,9 @@ export function PreordersDataTable({
                 htmlFor="preorder-delay-reason"
               >
                 Delay reason
+                {scope === "vendor" ? (
+                  <span className="text-destructive"> *</span>
+                ) : null}
               </label>
               <Textarea
                 id="preorder-delay-reason"
@@ -815,9 +953,113 @@ export function PreordersDataTable({
             <Button
               type="button"
               onClick={() => void submitDelayAction()}
-              disabled={!delayReleaseDate || isDelaySubmitting}
+              disabled={
+                !delayReleaseDate ||
+                isDelaySubmitting ||
+                // The server refuses a vendor's delay without a reason; say so
+                // before the round trip rather than after it.
+                (scope === "vendor" && !delayReason.trim())
+              }
             >
               {isDelaySubmitting ? "Updating..." : "Update and notify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(balanceTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isBalanceSubmitting) setBalanceTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record balance received</DialogTitle>
+            <DialogDescription>
+              For money that reached you outside the store — a bank transfer,
+              cash, or a payment link on another gateway. This settles the order
+              and releases it for fulfillment; it does not charge anyone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border p-3 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">
+                  {balanceTarget?.orderNumber}
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {formatPrice(balanceTarget?.amount || 0)}
+                </span>
+              </div>
+              <p className="text-muted-foreground mt-1 text-xs">
+                The whole balance, or nothing — a part payment would mark the
+                order paid while it is not.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium"
+                htmlFor="preorder-balance-method"
+              >
+                How it was paid
+              </label>
+              <Input
+                id="preorder-balance-method"
+                value={balanceMethod}
+                onChange={(event) => setBalanceMethod(event.target.value)}
+                placeholder="Bank transfer, cash, mobile money..."
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium"
+                htmlFor="preorder-balance-reference"
+              >
+                Reference
+              </label>
+              <Input
+                id="preorder-balance-reference"
+                value={balanceReference}
+                onChange={(event) => setBalanceReference(event.target.value)}
+                placeholder="Transfer id, receipt number..."
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-sm font-medium"
+                htmlFor="preorder-balance-note"
+              >
+                Internal note (optional)
+              </label>
+              <Textarea
+                id="preorder-balance-note"
+                value={balanceNote}
+                onChange={(event) => setBalanceNote(event.target.value)}
+                placeholder="Where the proof of payment lives, who confirmed it..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBalanceTarget(null)}
+              disabled={isBalanceSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void submitRecordBalance()}
+              disabled={!balanceReference.trim() || isBalanceSubmitting}
+            >
+              {isBalanceSubmitting
+                ? "Recording..."
+                : `Record ${formatPrice(balanceTarget?.amount || 0)}`}
             </Button>
           </DialogFooter>
         </DialogContent>

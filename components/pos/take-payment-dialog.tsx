@@ -389,8 +389,7 @@ export function POSTakePaymentDialog({
         return;
       }
       const stripe = stripeRef.current;
-      const cardNumber = cardNumberElementRef.current;
-      if (!stripe || !cardNumber || !stripeElementReady) {
+      if (!stripe || !cardNumberElementRef.current || !stripeElementReady) {
         setStripeElementError("Stripe is not ready");
         return;
       }
@@ -399,6 +398,12 @@ export function POSTakePaymentDialog({
       setStripeElementError(null);
       try {
         const intent = await onCreateStripeIntent();
+        // Read after the intent call, not before it: a remount in between
+        // leaves the earlier element destroyed, and Stripe then refuses a
+        // card it can no longer read ("make sure the Element you are
+        // attempting to use is mounted"). Nothing is charged either way.
+        const cardNumber = cardNumberElementRef.current;
+        if (!cardNumber) throw new Error("Stripe is not ready");
         const confirmation = await stripe.confirmCardPayment(
           intent.clientSecret,
           {

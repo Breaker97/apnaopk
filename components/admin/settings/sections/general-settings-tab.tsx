@@ -321,32 +321,6 @@ export function GeneralSettingsTab(props: {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="productSearchMode">
-                  {t("admin.settings.general.productSearch")}
-                </Label>
-                <SearchableSelect
-                  id="productSearchMode"
-                  value={props.settings.general.productSearchMode || "regex"}
-                  onValueChange={(v) =>
-                    props.updateNestedField("general.productSearchMode", v)
-                  }
-                  options={[
-                    {
-                      value: "regex",
-                      label: t("admin.settings.general.productSearchRegex"),
-                    },
-                    {
-                      value: "text",
-                      label: t("admin.settings.general.productSearchText"),
-                    },
-                  ]}
-                  searchPlaceholder={t("admin.settings.general.productSearch")}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.settings.general.productSearchDesc")}
-                </p>
-              </div>
-              <div className="space-y-2">
                 <Label>{t("admin.settings.general.defaultLanguage")}</Label>
                 <SearchableSelect
                   value={props.settings.general.defaultLanguage || "en"}

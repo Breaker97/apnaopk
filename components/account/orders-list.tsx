@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/providers/currency-provider";
 import { ORDER_STATUS } from "@/config/app.config";
+import { getPreorderStatusLabel } from "@/lib/orders/preorder-status-label";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
 // Matches the server default limit for /api/orders (parsePageLimit defaultLimit).
@@ -94,20 +95,6 @@ function getStatusBadge(status: string) {
     label: status,
   };
   return <Badge variant={variant}>{label}</Badge>;
-}
-
-function getPreorderStatusLabel(status?: string) {
-  const labels: Record<string, string> = {
-    reserved: "Reserved",
-    payment_due: "Payment due",
-    delayed: "Delayed",
-    partially_ready: "Partially ready",
-    ready: "Ready",
-    fulfilled: "Fulfilled",
-    cancelled: "Cancelled",
-    expired: "Expired",
-  };
-  return status ? labels[status] || status.replace(/_/g, " ") : null;
 }
 
 export function CustomerOrdersList({

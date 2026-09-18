@@ -5,6 +5,9 @@ import { ModernProductCard, type ModernProduct } from "./modern-product-card";
 import { ProductQuickViewModal } from "./product-quick-view-modal";
 import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 /** Cards on the first grid row are above the fold and eager-load their shot. */
 const FIRST_ROW_CARDS = 4;
@@ -38,7 +41,8 @@ export function ProductGridClient({
     <>
       <div
         className={cn(
-          "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5",
+          "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+          CARD_GRID_GAP,
           className,
         )}
       >

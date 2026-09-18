@@ -9,10 +9,10 @@ import {
 } from "@/lib/payments/paystack";
 import { finalizePaystackOrder } from "@/lib/payments/paystack-orders";
 import {
-  readPaystackRefund,
-  reconcileGatewayRefundReading,
-  reverseFailedGatewayRefund,
-} from "@/lib/orders/order-refund-sync";
+  syncPaystackDisputeEvent,
+  syncPaystackRefundEvent,
+} from "@/lib/payments/gateway-disputes";
+import type { PaystackDisputeLike } from "@/lib/orders/dispute-readings";
 import { isPlatformPaymentReference } from "@/models/platformPayment.model";
 import {
   findPlatformPaymentByReference,
@@ -23,7 +23,7 @@ import {
 type PaystackRefundPayload = {
   id?: unknown;
   status?: string;
-  amount?: number;
+  amount?: number | string;
   currency?: string;
   transaction_reference?: string;
   transaction?: { id?: unknown; reference?: string } | null;
@@ -74,18 +74,41 @@ export async function POST(request: NextRequest) {
   // the bank later rejected. Neither reached the books before this: the order
   // stayed fully paid and the vendor was still paid out for a sale the shopper
   // had their money back for.
+  //
+  // Paystack also pays an accepted chargeback as one of these refunds, so the
+  // transaction's refunds are read from its API, where each names its dispute
+  // — see `syncPaystackRefundEvent`.
   if (event.event?.startsWith("refund.") && event.data) {
     try {
-      const refund = event.data as PaystackRefundPayload;
-      if (event.event === "refund.failed" && refund.id) {
-        await reverseFailedGatewayRefund(String(refund.id));
-      } else {
-        await reconcileGatewayRefundReading(readPaystackRefund(refund));
-      }
+      await syncPaystackRefundEvent({
+        event: event.event,
+        refund: event.data as PaystackRefundPayload,
+        secretKey: creds.secretKey,
+      });
     } catch (error) {
       // 5xx so Paystack retries: a refund the books never learned about is
       // exactly the failure this handler exists to stop.
       console.error("Failed to process Paystack refund webhook:", error);
+      return NextResponse.json(
+        { error: "Failed to process webhook" },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({ received: true });
+  }
+
+  // A chargeback: opened, reminded, and decided. Accepting one — by the
+  // merchant, or automatically once its due date passes — refunds the shopper
+  // out of the next payout; declining keeps the money.
+  if (event.event?.startsWith("charge.dispute.") && event.data) {
+    try {
+      await syncPaystackDisputeEvent({
+        event: event.event,
+        dispute: event.data as unknown as PaystackDisputeLike,
+        secretKey: creds.secretKey,
+      });
+    } catch (error) {
+      console.error("Failed to process Paystack dispute webhook:", error);
       return NextResponse.json(
         { error: "Failed to process webhook" },
         { status: 500 },

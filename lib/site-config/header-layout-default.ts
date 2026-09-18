@@ -82,6 +82,7 @@ export function presetLinks(
     icon: "",
     description: "",
     menu: "list",
+    megaMenu: "",
     children: [],
   });
   return labels.map(([label, url, icon]) => ({
@@ -93,6 +94,7 @@ export function presetLinks(
     // Collections is the showcase menu out of the box: its entries carry
     // artwork, so the grid is the design that shows it.
     menu: label === "Collections" ? "grid" : "list",
+    megaMenu: "",
     // "Collections" drops a menu in every design; the two entries give the
     // preview its chevron and the merchant a shape to fill in.
     children:

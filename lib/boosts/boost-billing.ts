@@ -210,7 +210,7 @@ async function applyBoostPartialRefund(
         },
       },
     ],
-    { new: false },
+    { returnDocument: "before" },
   );
   if (!claimed) {
     await refreshBoostCredit(campaign._id as Types.ObjectId);

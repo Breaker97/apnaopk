@@ -3,9 +3,11 @@
 import { IOrder } from "@/types";
 import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, CreditCard, Store } from "lucide-react";
+import { Mail, Phone, Store } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
+import { OrderCheckoutAnswers } from "@/components/common/order-checkout-answers";
 
 interface OrderCustomerProps {
   order: IOrder & {
@@ -28,6 +30,8 @@ interface OrderCustomerProps {
 
 export function OrderCustomer({ order }: OrderCustomerProps) {
   const t = useTranslations("admin");
+  const tRoot = useTranslations();
+  const payment = getPaymentMethodMeta(tRoot, order.paymentMethod);
 
   const customer = typeof order.customerId === 'object' ? order.customerId : null;
   const shipping = order.shippingAddress;
@@ -85,11 +89,11 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
                   </a>
                 </div>
               )}
-              {(customer?.phone || shipping.phone) && (
+              {(order.contactPhone || customer?.phone || shipping.phone) && (
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a href={`tel:${customer?.phone || shipping.phone}`} className="hover:underline">
-                    {customer?.phone || shipping.phone}
+                  <a href={`tel:${order.contactPhone || customer?.phone || shipping.phone}`} className="hover:underline">
+                    {order.contactPhone || customer?.phone || shipping.phone}
                   </a>
                 </div>
               )}
@@ -118,6 +122,16 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
                 {shipping.apartment ? <p>{shipping.apartment}</p> : null}
                 <p>{shipping.city}, {shipping.state} {shipping.postalCode}</p>
                 <p>{shipping.country}</p>
+                {/* The number the courier rings. Contact info above prefers
+                    the account's phone, so this one was shown nowhere. */}
+                {shipping.phone ? (
+                  <a
+                    href={`tel:${shipping.phone}`}
+                    className="mt-1 block text-muted-foreground hover:underline"
+                  >
+                    {shipping.phone}
+                  </a>
+                ) : null}
               </div>
             )}
 
@@ -132,6 +146,14 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
               {billing.apartment ? <p>{billing.apartment}</p> : null}
               <p>{billing.city}, {billing.state} {billing.postalCode}</p>
               <p>{billing.country}</p>
+              {billing.phone ? (
+                <a
+                  href={`tel:${billing.phone}`}
+                  className="mt-1 block text-muted-foreground hover:underline"
+                >
+                  {billing.phone}
+                </a>
+              ) : null}
             </div>
 
             <Separator className="my-4" />
@@ -140,10 +162,8 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
               <h4 className="text-sm font-medium text-muted-foreground">{t("orderDetails.payment")}</h4>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <span className="capitalize">
-                {(order.paymentMethod || "").replace(/_/g, " ")}
-              </span>
+              <payment.Icon className="h-4 w-4 text-muted-foreground" />
+              <span>{payment.label}</span>
             </div>
             {/* An in-store sale and a web order looked identical here. Naming
                 the counter matters as much as naming the channel: "POS sale" is
@@ -166,6 +186,11 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
           </div>
         </CardContent>
       </Card>
+
+      <OrderCheckoutAnswers
+        customerNote={order.customerNote}
+        checkoutFields={order.checkoutFields}
+      />
 
       {/* Internal notes were captured on the order but had nowhere to surface,
           so anything a cashier or admin wrote was effectively write-only. */}

@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
           $set: setFields,
           ...(Object.keys(unsetFields).length ? { $unset: unsetFields } : {}),
         },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!vendor) throw new NotFoundError("Vendor");
 
@@ -365,6 +365,7 @@ export async function POST(request: NextRequest) {
             storeName: vendor.storeName,
             vendorEmail: session.user.email,
             vendorName: session.user.name,
+            submittedAt: application.submittedAt ?? undefined,
           },
           { settings, channels: adminVendorChannels },
         ),

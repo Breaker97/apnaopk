@@ -19,6 +19,12 @@ interface POSSoundSettings {
 
 export interface POSSettings {
   taxRate: number;
+  /**
+   * Whether this seat may give discounts — see `canApplyPosDiscount`. The
+   * server refuses them regardless; this only stops the till offering what it
+   * would refuse. Absent means allowed, the behaviour before the check existed.
+   */
+  canApplyDiscounts?: boolean;
   currency: string;
   locale: string;
   storeName?: string;

@@ -17,6 +17,7 @@ import {
   Hand,
   Globe,
   Store,
+  Shirt,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,6 +44,7 @@ interface Collection {
   description?: string;
   image?: { url: string; alt?: string };
   collectionType: "manual" | "automated";
+  kind?: "collection" | "look";
   status: "active" | "draft";
   productCount: number;
   publishing: {
@@ -300,19 +302,27 @@ export function CollectionsDataTable({
         id: "type",
         header: t("admin.collectionsDataTable.columns.type"),
         cell: (row) => (
-          <Badge variant="outline" className="flex items-center gap-1 w-fit">
-            {row.collectionType === "automated" ? (
-              <>
-                <Sparkles className="h-3 w-3" />
-                {t("admin.collectionsDataTable.types.automated")}
-              </>
-            ) : (
-              <>
-                <Hand className="h-3 w-3" />
-                {t("admin.collectionsDataTable.types.manual")}
-              </>
-            )}
-          </Badge>
+          <span className="flex flex-wrap items-center gap-1">
+            {row.kind === "look" ? (
+              <Badge className="flex w-fit items-center gap-1">
+                <Shirt className="h-3 w-3" />
+                {t("admin.collectionsDataTable.types.look")}
+              </Badge>
+            ) : null}
+            <Badge variant="outline" className="flex items-center gap-1 w-fit">
+              {row.collectionType === "automated" ? (
+                <>
+                  <Sparkles className="h-3 w-3" />
+                  {t("admin.collectionsDataTable.types.automated")}
+                </>
+              ) : (
+                <>
+                  <Hand className="h-3 w-3" />
+                  {t("admin.collectionsDataTable.types.manual")}
+                </>
+              )}
+            </Badge>
+          </span>
         ),
         className: "w-[140px]",
       },

@@ -75,6 +75,8 @@ export interface InitialAppearanceSettings {
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
+  /** Loading placeholders; empty keeps a neutral grey. */
+  skeletonColor?: string;
 }
 
 const defaultSettings = {

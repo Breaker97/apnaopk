@@ -10,6 +10,7 @@ import {
 import { ORDER_STATUS } from "@/config/app.config.js";
 import { DEMO_ACCOUNTS } from "@/config/demo-credentials";
 import { buildBarcodeRegistryEntries } from "@/lib/products/barcode-registry";
+import { backfillProductSearchIndex } from "@/lib/products/search-index";
 import { LOCAL_ASSET_PATHS } from "@/lib/seed-assets";
 import { sanitizeSectionInstances } from "@/lib/storefront/sections/instances";
 import { buildStorePageIdentity } from "@/models/store-page.model";
@@ -749,7 +750,10 @@ async function createOrders(
   // Determine sequential order numbering starting from ORD000001
   for (let i = 0; i < 20; i++) {
     const customer = pickOne(customers);
-    const isPos = i % 5 === 0;
+    // A POS sale is rung up AT a location. A store that stocks without any
+    // (the Women Fashion demo keeps plain product stock) gets online orders
+    // only, rather than an invented location its stock was never counted in.
+    const isPos = Boolean(defaultLocation) && i % 5 === 0;
     const numItems = 1 + Math.floor(Math.random() * 3);
 
     // Group items by vendor so we can build subOrders for multi-vendor splits
@@ -1280,7 +1284,10 @@ async function createBoostLadder(models, vendors, products, admin, Settings) {
       .slice(0, 10);
 
   // One product per vendor, so the demo rail shows different stores rather than
-  // the same seller twice.
+  // the same seller twice — then topped up from the rest, so a single-vendor
+  // store (the Women Fashion demo) still books two DIFFERENT products. A
+  // product holds one rung per day (BoostSlotDay is unique on productId+day),
+  // so the same product can never take both bookings.
   const byVendor = new Map();
   for (const product of products) {
     if (product.status !== "active") continue;
@@ -1288,6 +1295,12 @@ async function createBoostLadder(models, vendors, products, admin, Settings) {
     if (!byVendor.has(key)) byVendor.set(key, product);
   }
   const picks = [...byVendor.values()].slice(0, 2);
+  for (const product of products) {
+    if (picks.length >= 2) break;
+    if (product.status === "active" && !picks.includes(product)) {
+      picks.push(product);
+    }
+  }
   if (picks.length === 0) {
     console.log("   • no active products to book, ladder left empty");
     return;
@@ -1302,7 +1315,7 @@ async function createBoostLadder(models, vendors, products, admin, Settings) {
 
   let booked = 0;
   for (const [index, booking] of BOOKINGS.entries()) {
-    const product = picks[index % picks.length];
+    const product = picks[index];
     const rung = positions.find((p) => p.position === booking.position);
     if (!product || !rung) continue;
 
@@ -1963,6 +1976,11 @@ async function seed() {
 
     console.log("\n📦 Importing products...");
     const products = await createProducts(Product, BarcodeRegistry);
+    // The snapshot carries no `search` block (the export strips it), so the
+    // catalogue is indexed here through the app's own builder — the same one
+    // a product save runs — rather than shipped pre-computed.
+    const searchIndex = await backfillProductSearchIndex();
+    console.log(`   ✓ Indexed ${searchIndex.updated} products for search`);
 
     console.log("\n📚 Importing collections...");
     await createCollections(Collection);

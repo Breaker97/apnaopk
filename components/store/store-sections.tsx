@@ -5,7 +5,7 @@ import {
   getSectionDefinition,
   resolveSectionVariant,
 } from "@/lib/storefront/sections/registry";
-import { resolveSectionRender } from "@/lib/storefront/themes/overrides";
+import { getThemePreferredVariants } from "@/lib/storefront/themes/registry";
 import type {
   SectionInstance,
   SectionRenderContext,
@@ -23,14 +23,16 @@ import type {
  * render nothing rather than crash, and every instance is re-normalized
  * against the CURRENT definition before rendering.
  *
- * Which component actually runs is decided in this order:
+ * Which component actually runs is decided by data alone:
  *
- *   1. the instance's own VARIANT — a stored merchant choice, so it wins;
- *   2. a per-theme override for the type;
- *   3. the section's base renderer.
+ *   1. a design stored on the instance — a merchant choice, so it wins;
+ *   2. for sections that follow the template, the design the active
+ *      template's manifest names (`preferredVariants`);
+ *   3. the section's first design, or its base renderer when it has none.
  *
- * Variants outrank themes on purpose: "I picked the promo-row design for
- * this shelf" must survive switching theme, or the choice is not a choice.
+ * No theme has renderers of its own. A template is its tokens, its presets
+ * and the designs it names — so every section, and every feature a section
+ * has, exists under every template.
  */
 export function StoreSections({
   sections,
@@ -54,6 +56,7 @@ export function StoreSections({
   className?: string;
 }) {
   const renderedPerType = new Map<string, number>();
+  const preferredVariants = getThemePreferredVariants(ctx.themeId);
 
   return (
     <div className={className}>
@@ -74,10 +77,12 @@ export function StoreSections({
         renderedPerType.set(def.type, count + 1);
 
         const instance = normalizeSectionInstance(def, raw);
-        const variant = resolveSectionVariant(def, instance.settings);
-        // The active theme may skin this type; unresolved types fall through
-        // the manifest's extends chain to the base component.
-        const Render = variant?.Render ?? resolveSectionRender(ctx.themeId, def);
+        const variant = resolveSectionVariant(
+          def,
+          instance.settings,
+          preferredVariants,
+        );
+        const Render = variant?.Render ?? def.Render;
         const Skeleton = variant?.Skeleton ?? def.Skeleton;
         const node = (
           <Render

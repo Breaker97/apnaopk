@@ -18,6 +18,7 @@ export enum NotificationType {
   COUPON_APPLIED = "coupon_applied",
   SUPPORT_MESSAGE = "support_message",
   QUOTE_REQUEST = "quote_request",
+  QUOTE_OFFER = "quote_offer",
   CHAT_MESSAGE = "chat_message",
   BOOST_ACTIVATED = "boost_activated",
   BOOST_BOOKED = "boost_booked",

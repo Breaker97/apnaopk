@@ -34,6 +34,7 @@
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-skeleton: var(--skeleton);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -51,6 +52,14 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  /* rounded-button / rounded-input: the store theme's Button and Input radius
+     for controls that are not a <Button> or <Input> (chips, tabs, pagers,
+     native selects). Same fallbacks as the button and field rules below. */
+  --radius-button: var(--store-radius-button, calc(var(--radius) - 2px));
+  --radius-input: var(
+    --store-radius-input,
+    var(--store-radius-button, calc(var(--radius) - 2px))
+  );
 }
 
 :root {
@@ -137,6 +146,13 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Tailwind v4 dropped Preflight's pointer cursor on buttons, which left
+     every bare <button> (header actions, tab strips, quantity steppers)
+     showing the arrow. Restore it once here instead of per element. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 }
 
@@ -528,6 +544,22 @@ html::-webkit-scrollbar-thumb:hover {
   padding-inline: var(--store-page-padding, 1rem);
 }
 
+/* How far a page container's CONTENT sits from the surface's edge, for an
+   element that bleeds out of it (the product gallery). Custom properties
+   resolve where they are used, so the cqw here measures the nearest
+   inline-size container — the product page wraps itself in one spanning
+   the surface. Exact at every width and in both page-width modes, with no
+   measuring script and so no shift once the page has loaded. The fixed
+   mode's 1rem is the sections' own px-4. */
+.store-surface[data-container="fixed"] {
+  --store-content-inset: calc(
+    max(0px, (100cqw - var(--store-page-width, 1280px)) / 2) + 1rem
+  );
+}
+.store-surface[data-container="full"] {
+  --store-content-inset: var(--store-page-padding, 1rem);
+}
+
 /* Color scheme: the compiler always emits every role for both modes, so
    these carry no fallbacks — the mapping lives in one place, there. */
 :is(.store-surface, body[data-store-theme]) {
@@ -575,6 +607,36 @@ html::-webkit-scrollbar-thumb:hover {
   --store-link: var(--store-d-link);
 }
 
+/* A panel that paints its own field owns the light inside it. The deals
+   panel's ground is a colour the merchant picked (or the design's own
+   gradient) and is the same in both modes — its countdown cards are fixed
+   white for exactly that reason — so the product plane standing on it keeps
+   the light palette its colours were chosen against. Under the dark scheme
+   those cards turned into holes punched in a bright panel. */
+.store-deal-plane {
+  --background: var(--store-l-background);
+  --card: var(--store-l-surface);
+  --popover: var(--store-l-surface);
+  --muted: var(--store-l-surface-alt);
+  --secondary: var(--store-l-secondary);
+  --foreground: var(--store-l-text);
+  --card-foreground: var(--store-l-text);
+  --popover-foreground: var(--store-l-text);
+  --secondary-foreground: var(--store-l-on-secondary);
+  --muted-foreground: var(--store-l-text-muted);
+  --border: var(--store-l-border);
+  --input: var(--store-l-border);
+  --primary: var(--store-l-primary);
+  --ring: var(--store-l-primary);
+  --primary-foreground: var(--store-l-on-primary);
+  --accent: var(--store-l-accent);
+  --accent-foreground: var(--store-l-text);
+  --store-sale: var(--store-l-sale);
+  --store-rating: var(--store-l-rating);
+  --store-link: var(--store-l-link);
+  color-scheme: light;
+}
+
 /* Typography. Faces apply only when a token chose one (the attribute), so
    an untouched store keeps inheriting the app font; the treatment vars are
    always present. Weight/tracking/case stop at h3: h4+ are UI labels. */
@@ -593,18 +655,25 @@ html::-webkit-scrollbar-thumb:hover {
 /* Buttons: geometry and type from the theme, colors from the scheme. The
    selectors include the <body> mirror so buttons inside portaled overlays
    match. Only the default size takes the height token; icon buttons and
-   the small/large variants keep their own. */
-:is(.store-surface, body[data-store-theme]) [data-slot="button"] {
-  border-radius: var(--store-radius-button, var(--radius-md));
+   the small/large variants keep their own. Icon buttons keep their own shape
+   too (circles stay circles). A Button with role="combobox" is a form field
+   (country picker) and takes the field rule below instead.
+   The fallback is spelled out rather than var(--radius-md): that variable is
+   declared on :root, so it resolves against the app's 1rem there and never
+   sees the theme's --radius set on the store surface. */
+:is(.store-surface, body[data-store-theme]) [data-slot="button"]:not([role="combobox"], [data-size^="icon"]) {
+  border-radius: var(--store-radius-button, calc(var(--radius) - 2px));
+}
+:is(.store-surface, body[data-store-theme]) [data-slot="button"]:not([role="combobox"]) {
   font-weight: var(--store-btn-weight);
   text-transform: var(--store-btn-transform);
   letter-spacing: var(--store-btn-tracking);
 }
-:is(.store-surface, body[data-store-theme])[data-btn-font] [data-slot="button"],
-.store-surface[data-btn-font] [data-slot="button"] {
+:is(.store-surface, body[data-store-theme])[data-btn-font] [data-slot="button"]:not([role="combobox"]),
+.store-surface[data-btn-font] [data-slot="button"]:not([role="combobox"]) {
   font-family: var(--store-btn-font);
 }
-:is(.store-surface, body[data-store-theme]) [data-slot="button"][data-size="default"] {
+:is(.store-surface, body[data-store-theme]) [data-slot="button"][data-size="default"]:not([role="combobox"]) {
   height: var(--store-btn-height);
 }
 [data-hover="darken"] [data-slot="button"][data-variant="default"]:hover {
@@ -617,12 +686,19 @@ html::-webkit-scrollbar-thumb:hover {
 
 /* Form fields follow the buttons unless the input radius token says
    otherwise — a form whose fields and submit button disagree about their
-   corners reads as two products glued together. */
+   corners reads as two products glued together. A field that asks for
+   border-0 sits inside a composite control (a quantity stepper) whose own
+   box is the field, so it keeps its classes instead of drawing a second box. */
 :is(.store-surface, body[data-store-theme])
-  :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]) {
+  :is(
+    [data-slot="input"]:not(.border-0),
+    [data-slot="select-trigger"],
+    [data-slot="textarea"]:not(.border-0),
+    [data-slot="button"][role="combobox"]
+  ) {
   border-radius: var(
     --store-radius-input,
-    var(--store-radius-button, var(--radius-md))
+    var(--store-radius-button, calc(var(--radius) - 2px))
   );
   border-width: var(--store-border-input);
 }
@@ -632,6 +708,15 @@ html::-webkit-scrollbar-thumb:hover {
   border-radius: var(--store-radius-card);
   border-width: var(--store-border-card);
   box-shadow: var(--store-shadow-card);
+}
+/* Auth pages float a lone card on an empty page, so it keeps its lift even
+   when the theme's cards are flat — without one the form melts into the
+   page. Only the page's own card(s); cards nested inside a form stay themed. */
+:is(.store-surface, body[data-store-theme]) .auth-stage > [data-slot="card"],
+:is(.store-surface, body[data-store-theme]) .auth-stage > .auth-wide > [data-slot="card"] {
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.08),
+    0 4px 6px -4px rgb(0 0 0 / 0.08);
 }
 :is(.store-surface, body[data-store-theme]) [data-slot="badge"] {
   border-radius: var(--store-radius-badge);
@@ -655,25 +740,22 @@ body[data-store-theme]
  * CONTAINER queries against `.sl-frame` (the slider root), so a narrow cell
  * takes the portrait arrangement no matter how wide the window is.
  *
- * The saved-slider component sets -l/-s/-p custom properties per slide; the
- * blocks below pick a set. SQUARE is the default because it is the middle
- * band. Cuts must match SLIDE_SHAPE_MIN_LANDSCAPE / MAX_PORTRAIT in
- * lib/sliders/types.ts (7/5 = 1.4, 5/7 ≈ 0.714), and the paddings must match
- * SLIDE_COPY_PADDING / SLIDE_ART_PADDING.
+ * The slide component sets -l/-s/-p custom properties per slide (see
+ * slideLayoutVars, slideArtVars, textStyleVars and ctaStyleVars in
+ * lib/sliders/types.ts); the blocks below only pick a set. SQUARE is the
+ * default because it is the middle band. Cuts must match
+ * SLIDE_BAND_QUERIES in lib/sliders/types.ts — 7/4 = 1.75 and 5/7 ≈ 0.714,
+ * plus the wide-frame rule that keeps a tall desktop hero landscape. No
+ * number in these rules is the slide's own: every length arrives as a
+ * variable, so the two surfaces cannot disagree about one.
  *
- * The admin editor does NOT use these rules — its shape toggle previews a
- * forced band, so it resolves everything inline instead. */
+ * The admin editor uses these SAME rules. Its artboard is a `.sl-frame`
+ * drawn at the band's real frame size, so the query picks the band the
+ * merchant is looking at — one renderer, one stylesheet, no second copy that
+ * could drift. */
 .sl-frame {
   container-type: size;
   container-name: slide;
-}
-
-/* The editor canvas is a size container too, but UNNAMED: `cqw` inside it
-   resolves against the canvas exactly as it does against a live cell, while
-   the `@container slide (...)` rules below stay out of it — the editor forces
-   a band rather than querying for one. */
-.sl-canvas {
-  container-type: size;
 }
 
 .sl-content {
@@ -681,42 +763,50 @@ body[data-store-theme]
   justify-content: var(--sl-jc-s);
   align-items: var(--sl-ai-s);
   text-align: var(--sl-ta-s);
-  padding: 7.4419cqw;
+  padding: var(--sl-pad-s);
+  --sl-plate-pad: var(--sl-plate-pad-s);
   --sl-jc: var(--sl-jc-s);
   --sl-gap: var(--sl-gap-s);
   --sl-scale: var(--sl-scale-s);
 }
 
 /* The copy column spans the padded slide, and each text takes its own share
-   OF THAT — the same structure the editor canvas builds. Letting the column
+   OF THAT — the same structure on both surfaces. Letting the column
    shrink-wrap instead would make `width: 42%` mean 42% of whatever the longest
    line happened to be, so the storefront and the editor would disagree about
    what the admin set. */
 .sl-stack {
   display: flex;
-  width: 100%;
+  width: fit-content;
   max-width: 100%;
   flex-direction: column;
   align-items: var(--sl-jc);
-  /* The band's Scale multiplies the gap exactly as the editor canvas does —
-     text scaled without its gaps reads as a different arrangement. */
+  /* The band's Scale multiplies the gap as it multiplies the type — text
+     scaled without its gaps reads as a different arrangement. */
   gap: calc(var(--sl-gap, 12px) * var(--sl-scale, 1));
+  /* The plate behind the copy (slideLayoutVars): nothing until a slide
+     asks for one. It hugs the column, which hugs the copy. */
+  padding: var(--sl-plate-pad, 0px);
+  background-color: var(--sl-plate-bg, transparent);
+  border-radius: var(--sl-plate-r, 0px);
+  backdrop-filter: blur(var(--sl-plate-blur, 0px));
 }
 .sl-art {
   display: flex;
   justify-content: var(--sl-art-jc-s);
   align-items: var(--sl-art-ai-s);
-  padding: 5.5814cqw;
+  padding: var(--sl-art-pad-s);
   --sl-art-w: var(--sl-art-w-s);
   --sl-art-t: var(--sl-art-t-s);
 }
 
-@container slide (min-aspect-ratio: 7/5) {
+@container slide ((min-aspect-ratio: 7/4) or ((min-width: 900px) and (min-aspect-ratio: 5/4))) {
   .sl-content {
     justify-content: var(--sl-jc-l);
     align-items: var(--sl-ai-l);
     text-align: var(--sl-ta-l);
-    padding: 4.883cqw;
+    padding: var(--sl-pad-l);
+    --sl-plate-pad: var(--sl-plate-pad-l);
     --sl-jc: var(--sl-jc-l);
     --sl-gap: var(--sl-gap-l);
     --sl-scale: var(--sl-scale-l);
@@ -724,7 +814,7 @@ body[data-store-theme]
   .sl-art {
     justify-content: var(--sl-art-jc-l);
     align-items: var(--sl-art-ai-l);
-    padding: 2.4415cqw;
+    padding: var(--sl-art-pad-l);
     --sl-art-w: var(--sl-art-w-l);
     --sl-art-t: var(--sl-art-t-l);
   }
@@ -735,7 +825,8 @@ body[data-store-theme]
     justify-content: var(--sl-jc-p);
     align-items: var(--sl-ai-p);
     text-align: var(--sl-ta-p);
-    padding: 8.2645cqw;
+    padding: var(--sl-pad-p);
+    --sl-plate-pad: var(--sl-plate-pad-p);
     --sl-jc: var(--sl-jc-p);
     --sl-gap: var(--sl-gap-p);
     --sl-scale: var(--sl-scale-p);
@@ -743,7 +834,7 @@ body[data-store-theme]
   .sl-art {
     justify-content: var(--sl-art-jc-p);
     align-items: var(--sl-art-ai-p);
-    padding: 6.6116cqw;
+    padding: var(--sl-art-pad-p);
     --sl-art-w: var(--sl-art-w-p);
     --sl-art-t: var(--sl-art-t-p);
   }
@@ -755,24 +846,89 @@ body[data-store-theme]
 }
 
 /* Type styling per band. Each text carries its own -l/-s/-p custom properties
-   (set inline by the component, see `textStyleVars`); these three rules just
-   alias the right set down to the names the element renders with. One generic
-   rule serves every text on every slide, so adding a text element needs no CSS
-   at all. Bands must match the container queries above. */
+   (set inline by the component, see `textStyleVars`); these rules just alias
+   the right set down to the names the element renders with. The button adds
+   its box (`ctaStyleVars`). One generic rule serves every text on every
+   slide, so adding a text element needs no CSS at all. Bands must match the
+   container queries above. */
 .sl-text {
   --fs: var(--fs-s);
   --wt: var(--wt-s);
   --it: var(--it-s);
   --co: var(--co-s);
   --wd: var(--wd-s);
+  --ls: var(--ls-s);
+  --lh: var(--lh-s);
+  --tt: var(--tt-s);
+  --sh: var(--sh-s);
+  --hl: var(--hl-s);
+  --hi: var(--hi-s);
+  --hu: var(--hu-s);
+  --hm: var(--hm-s);
 }
-@container slide (min-aspect-ratio: 7/5) {
+/* A layer that exists per band (an art-directed picture, its overlay, a
+   band's own cutout): shown in its band, gone in the others. */
+.sl-band {
+  --sh: var(--sh-s);
+  display: var(--sh);
+}
+/* An art-directed background paints its band's picture through CSS, so the
+   browser fetches only the picture the band needs — never the desktop shot
+   on a phone. */
+.sl-bg--band {
+  --sl-bgi: var(--sl-bgi-s);
+  --sl-bgp: var(--sl-bgp-s);
+  --sl-bgf: var(--sl-bgf-s);
+  --sl-bgc: var(--sl-bgc-s);
+  --sl-bgg: var(--sl-bgg-s);
+  --sl-bgo: var(--sl-bgo-s);
+  background-image: var(--sl-bgg), var(--sl-bgi);
+  background-color: var(--sl-bgc);
+  background-size: cover;
+  background-position: var(--sl-bgp);
+}
+.sl-cta {
+  --px: var(--px-s);
+  --py: var(--py-s);
+  --mh: var(--mh-s);
+  --br: var(--br-s);
+  --bg: var(--bg-s);
+  --bd: var(--bd-s);
+}
+@container slide ((min-aspect-ratio: 7/4) or ((min-width: 900px) and (min-aspect-ratio: 5/4))) {
   .sl-text {
     --fs: var(--fs-l);
     --wt: var(--wt-l);
     --it: var(--it-l);
     --co: var(--co-l);
     --wd: var(--wd-l);
+    --ls: var(--ls-l);
+    --lh: var(--lh-l);
+    --tt: var(--tt-l);
+    --sh: var(--sh-l);
+    --hl: var(--hl-l);
+    --hi: var(--hi-l);
+    --hu: var(--hu-l);
+    --hm: var(--hm-l);
+  }
+  .sl-band {
+    --sh: var(--sh-l);
+  }
+  .sl-bg--band {
+    --sl-bgi: var(--sl-bgi-l);
+    --sl-bgp: var(--sl-bgp-l);
+    --sl-bgf: var(--sl-bgf-l);
+    --sl-bgc: var(--sl-bgc-l);
+    --sl-bgg: var(--sl-bgg-l);
+    --sl-bgo: var(--sl-bgo-l);
+  }
+  .sl-cta {
+    --px: var(--px-l);
+    --py: var(--py-l);
+    --mh: var(--mh-l);
+    --br: var(--br-l);
+    --bg: var(--bg-l);
+    --bd: var(--bd-l);
   }
 }
 @container slide (max-aspect-ratio: 5/7) {
@@ -782,6 +938,187 @@ body[data-store-theme]
     --it: var(--it-p);
     --co: var(--co-p);
     --wd: var(--wd-p);
+    --ls: var(--ls-p);
+    --lh: var(--lh-p);
+    --tt: var(--tt-p);
+    --sh: var(--sh-p);
+    --hl: var(--hl-p);
+    --hi: var(--hi-p);
+    --hu: var(--hu-p);
+    --hm: var(--hm-p);
+  }
+  .sl-band {
+    --sh: var(--sh-p);
+  }
+  .sl-bg--band {
+    --sl-bgi: var(--sl-bgi-p);
+    --sl-bgp: var(--sl-bgp-p);
+    --sl-bgf: var(--sl-bgf-p);
+    --sl-bgc: var(--sl-bgc-p);
+    --sl-bgg: var(--sl-bgg-p);
+    --sl-bgo: var(--sl-bgo-p);
+  }
+  .sl-cta {
+    --px: var(--px-p);
+    --py: var(--py-p);
+    --mh: var(--mh-p);
+    --br: var(--br-p);
+    --bg: var(--bg-p);
+    --bd: var(--bd-p);
+  }
+}
+
+/* The artwork layer in front of the copy: it still takes no pointer, so
+   the button under a cutout's edge stays clickable. */
+.sl-art--front {
+  pointer-events: none;
+}
+
+/* The carousel's own chrome (SavedSlider): arrow plates and indicators.
+   Colours come from the theme's foreground so they read on any slide. */
+.sl-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  transform: translateY(-50%);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  backdrop-filter: blur(6px);
+}
+.sl-arrow:hover {
+  background: var(--background);
+}
+.sl-arrow--round {
+  border-radius: 9999px;
+}
+.sl-arrow--square {
+  border-radius: 6px;
+}
+.sl-arrow--minimal {
+  background: transparent;
+  border-color: transparent;
+  backdrop-filter: none;
+  color: var(--foreground);
+}
+.sl-arrow--minimal:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+.sl-arrows--bottom .sl-arrow {
+  top: auto;
+  bottom: 0.75rem;
+  transform: none;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* The plate: its blur arrives as a variable (`--sl-bgf`) so a hover
+   filter can stack on it, and a blurred picture overscans its edges
+   (`--sl-bgo`) so the blur never shows a soft fringe at the frame. */
+.sl-bg {
+  filter: var(--sl-bgf, none);
+  inset: var(--sl-bgo, 0);
+}
+
+/* A highlighted word: *wrapped in asterisks* in the text. The band and the
+   inline padding cancel out (padding against a negative margin), so a
+   marker changes nothing about where the words fall. */
+.sl-hl {
+  color: var(--hl, inherit);
+  font-style: var(--hi, inherit);
+  text-decoration-line: var(--hu, none);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+  background-color: var(--hm, transparent);
+  border-radius: 0.15em;
+  padding-inline: 0.06em;
+  margin-inline: -0.06em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* A slow drift and zoom of the picture while the slide shows. */
+@keyframes sl-kenburns {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.1) translate(-1.5%, 1%);
+  }
+}
+.sl-bg--kenburns {
+  animation: sl-kenburns 18s ease-in-out infinite alternate;
+}
+/* A pan across the picture, scaled up a little so no edge shows. */
+@keyframes sl-pan {
+  from {
+    transform: scale(1.08) translateX(2%);
+  }
+  to {
+    transform: scale(1.08) translateX(-2%);
+  }
+}
+.sl-bg--pan {
+  animation: sl-pan 22s ease-in-out infinite alternate;
+}
+/* A settle from a zoom as the slide arrives — once. */
+@keyframes sl-zoom-out {
+  from {
+    transform: scale(1.14);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.sl-bg--zoom-out {
+  animation: sl-zoom-out 9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+/* A gentle rise and fall. */
+@keyframes sl-float {
+  from {
+    transform: scale(1.05) translateY(1.2%);
+  }
+  to {
+    transform: scale(1.05) translateY(-1.2%);
+  }
+}
+.sl-bg--float {
+  animation: sl-float 8s ease-in-out infinite alternate;
+}
+
+/* A background's hover effect (per-slide setting). The plate layer moves,
+   the copy and the darkening over it stay put. */
+.sl-slide[data-sl-hover] .sl-bg {
+  transition:
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.4s ease;
+}
+.sl-slide[data-sl-hover="zoom"]:hover .sl-bg {
+  transform: scale(1.06);
+}
+.sl-slide[data-sl-hover="darken"]:hover .sl-bg {
+  filter: var(--sl-bgf, none) brightness(0.82);
+}
+.sl-slide[data-sl-hover="brighten"]:hover .sl-bg {
+  filter: var(--sl-bgf, none) brightness(1.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sl-slide[data-sl-hover] .sl-bg {
+    transition: none;
+  }
+  .sl-slide[data-sl-hover="zoom"]:hover .sl-bg {
+    transform: none;
+  }
+  .sl-bg--kenburns,
+  .sl-bg--pan,
+  .sl-bg--zoom-out,
+  .sl-bg--float {
+    animation: none;
   }
 }
 
@@ -806,17 +1143,58 @@ body[data-store-theme]
   from { opacity: 0; transform: scale(0.92); }
   to { opacity: 1; transform: scale(1); }
 }
-.sl-reveal-fade { animation: sl-reveal-fade 0.6s ease both; }
-.sl-reveal-rise { animation: sl-reveal-rise 0.6s ease both; }
-.sl-reveal-slide-right { animation: sl-reveal-slide-right 0.6s ease both; }
-.sl-reveal-slide-left { animation: sl-reveal-slide-left 0.6s ease both; }
-.sl-reveal-zoom { animation: sl-reveal-zoom 0.6s ease both; }
+@keyframes sl-reveal-drop {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sl-reveal-zoom-out {
+  from { opacity: 0; transform: scale(1.1); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sl-reveal-blur {
+  from { opacity: 0; filter: blur(14px); }
+  to { opacity: 1; filter: blur(0); }
+}
+@keyframes sl-reveal-flip {
+  from { opacity: 0; transform: perspective(700px) rotateX(-55deg); }
+  to { opacity: 1; transform: perspective(700px) rotateX(0); }
+}
+@keyframes sl-reveal-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes sl-reveal-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes sl-reveal-rotate {
+  from { opacity: 0; transform: rotate(-6deg) translateY(14px); }
+  to { opacity: 1; transform: rotate(0) translateY(0); }
+}
+/* Each element of the column reveals on its own, `--i` places apart:
+   with a stagger of 0 they arrive together, as one reveal did. Duration
+   and stagger are the slide's (slideLayoutVars). */
+.sl-stack[class*="sl-reveal-"] > * {
+  animation-duration: var(--sl-reveal-ms, 600ms);
+  animation-timing-function: var(--sl-reveal-ease, ease);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--i, 0) * var(--sl-stagger, 0ms));
+}
+.sl-reveal-fade > * { animation-name: sl-reveal-fade; }
+.sl-reveal-rise > * { animation-name: sl-reveal-rise; }
+.sl-reveal-drop > * { animation-name: sl-reveal-drop; }
+.sl-reveal-slide-right > * { animation-name: sl-reveal-slide-right; }
+.sl-reveal-slide-left > * { animation-name: sl-reveal-slide-left; }
+.sl-reveal-zoom > * { animation-name: sl-reveal-zoom; }
+.sl-reveal-zoom-out > * { animation-name: sl-reveal-zoom-out; }
+.sl-reveal-blur > * { animation-name: sl-reveal-blur; }
+.sl-reveal-flip > * { animation-name: sl-reveal-flip; }
+.sl-reveal-wipe > * { animation-name: sl-reveal-wipe; }
+.sl-reveal-pop > * { animation-name: sl-reveal-pop; }
+.sl-reveal-rotate > * { animation-name: sl-reveal-rotate; }
 @media (prefers-reduced-motion: reduce) {
-  .sl-reveal-fade,
-  .sl-reveal-rise,
-  .sl-reveal-slide-right,
-  .sl-reveal-slide-left,
-  .sl-reveal-zoom {
+  .sl-stack[class*="sl-reveal-"] > * {
     animation: none;
   }
 }
@@ -1162,3 +1540,29 @@ body[data-store-theme]
   }
 }
 
+/* Floating chrome: the scroll-to-top button (components/store/scroll-to-top.tsx)
+   sits in the bottom-END corner, where the AI assistant's FAB may already be.
+   The assistant is pinned to a PHYSICAL side by the merchant, so "same corner"
+   depends on the writing direction; when it is, the scroll button stacks a FAB
+   height above it instead of underneath. The assistant renders nothing when it
+   is off, which is exactly when :has() stops matching. */
+[dir="ltr"]
+  .store-surface:has([data-store-fab="assistant"][data-fab-side="right"])
+  [data-store-fab="scroll-top"],
+[dir="rtl"]
+  .store-surface:has([data-store-fab="assistant"][data-fab-side="left"])
+  [data-store-fab="scroll-top"] {
+  margin-bottom: 4.25rem;
+}
+
+/* Loading placeholders (`bg-skeleton`, the Skeleton component and every
+   section skeleton). A neutral grey, deliberately not the accent tint: on a
+   coloured brand every loading screen pulsed in the brand hue and read as
+   content rather than as absence. Branding → Skeleton colour sets
+   `--skeleton` on <html> (app/layout.tsx) and wins over both. */
+:root {
+  --skeleton: rgb(0 0 0 / 0.06);
+}
+.dark {
+  --skeleton: rgb(255 255 255 / 0.08);
+}

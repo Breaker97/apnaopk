@@ -10,6 +10,7 @@ import {
   createSlide,
   normalizeSlides,
   type SliderDocument,
+  DEFAULT_SLIDER_CONTROLS,
 } from "@/lib/sliders/types";
 
 /**
@@ -82,6 +83,7 @@ export function PromotionBannerStudio({
       isActive: true,
       transition,
       autoplaySeconds,
+      controls: DEFAULT_SLIDER_CONTROLS,
       slides,
     }),
     [transition, autoplaySeconds, slides],

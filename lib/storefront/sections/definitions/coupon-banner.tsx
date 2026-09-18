@@ -76,7 +76,7 @@ export const couponBanner: SectionDefinition = {
     { key: "ctaLabel", type: "text", translatable: true, default: "Shop now" },
     { key: "link", type: "url", default: "" },
     // Unset paints the theme's dark plate, the strip's own look.
-    { key: "background", type: "background", width: "half" },
+    { key: "background", type: "background", width: "half", video: true },
   ],
   migrate: migrateCouponBanner,
   Render({ settings, ctx }) {

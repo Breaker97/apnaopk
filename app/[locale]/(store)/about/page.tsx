@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import {
-  AboutPageView,
-  fillAboutPlaceholders,
-} from "@/components/store/about-page-view";
+import { AboutPageView } from "@/components/store/about-page-view";
 import { fetchTestimonials } from "@/components/store/sections/testimonials";
+import { fillContentPlaceholders } from "@/lib/site-config/content-pages-config";
 import { JsonLd, generateOrganizationJsonLd } from "@/lib/site-config/seo";
 import { getAboutStatCounts } from "@/lib/storefront/about-stat-counts";
 import { resolveAboutStats } from "@/lib/storefront/about-stats";
@@ -31,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: page.metaTitle || page.title || "About Us",
     description:
       page.metaDescription ||
-      fillAboutPlaceholders(page.description, placeholders) ||
+      fillContentPlaceholders(page.description, placeholders) ||
       `Learn about ${storeName}, the sellers on it, and how it works.`,
   };
 }

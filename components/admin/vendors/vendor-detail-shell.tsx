@@ -41,6 +41,7 @@ import type {
 } from "./vendor-access-view";
 import { ProfileTab } from "./tabs/profile-tab";
 import { AccessTab } from "./tabs/access-tab";
+import { VendorPreorderAccessCard } from "./vendor-preorder-access-card";
 import { SubscriptionTab } from "./tabs/subscription-tab";
 import { ProductsTab } from "./tabs/products-tab";
 import { OrdersTab } from "./tabs/orders-tab";
@@ -779,13 +780,23 @@ export function VendorDetailShell({
           {isFetching ? (
             <DetailFormSkeleton cards={1} fieldsPerCard={6} />
           ) : (
-            <AccessTab
-              form={form}
-              setField={setField}
-              readOnly={readOnly}
-              locale={locale}
-              onOpenSubscription={() => setActiveTab("subscription")}
-            />
+            <div className="space-y-6">
+              <AccessTab
+                form={form}
+                setField={setField}
+                readOnly={readOnly}
+                locale={locale}
+                onOpenSubscription={() => setActiveTab("subscription")}
+              />
+              {/* Saved on its own, not by the page's Save: a grant or a
+                  withdrawal is a decision the vendor is notified about. */}
+              <VendorPreorderAccessCard
+                vendorId={vendorId}
+                storeName={form.storeName}
+                locale={locale}
+                readOnly={readOnly}
+              />
+            </div>
           )}
         </TabsContent>
 

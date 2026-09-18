@@ -577,6 +577,32 @@ const VendorSchema = new Schema<IVendor>(
       type: Boolean,
       default: false,
     },
+    /**
+     * Whether this vendor may open pre-orders.
+     *
+     * Only consulted when `settings.preorder.requireVendorApproval` is on. It
+     * is absent on every vendor that predates the field, which is why the
+     * setting defaults to off: switching it on is the moment a store decides
+     * to review its sellers, and until then nobody's listings change.
+     *
+     * `requestedAt` is what puts a vendor in the admin's approval queue —
+     * `approvedAt` without it is an admin granting access unprompted, which is
+     * fine and stays out of the queue.
+     */
+    preorder: {
+      type: new Schema(
+        {
+          enabled: { type: Boolean, default: false },
+          requestedAt: { type: Date },
+          approvedAt: { type: Date },
+          approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+          /** Why access was granted or refused — shown to the next admin. */
+          note: { type: String, trim: true, maxlength: 500 },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     commission: {
       type: Number,
       default: DEFAULT_VENDOR_COMMISSION_RATE,
@@ -713,6 +739,13 @@ const VendorSchema = new Schema<IVendor>(
     shipping: {
       type: VendorShippingSchema,
       default: undefined,
+    },
+    // Short-lived claim serializing payout creation for this vendor. Two
+    // payouts built at once each read the other's overpayment recovery and
+    // commission deduction as not yet taken, and both took them. Stale claims
+    // (a crashed request) expire on their own.
+    payoutLockAt: {
+      type: Date,
     },
   },
   {

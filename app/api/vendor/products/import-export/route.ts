@@ -1,9 +1,5 @@
 import { connectDB } from "@/lib/db";
-import {
-  AuthorizationError,
-  NotFoundError,
-  ValidationError,
-} from "@/lib/api/errors";
+import { AuthorizationError, NotFoundError } from "@/lib/api/errors";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { errorResponse, successResponse } from "@/lib/api/response";
 import { validateQuery } from "@/lib/api/validate";
@@ -15,9 +11,11 @@ import { hasVendorPermission, isAdmin, assertVendorPermission } from "@/lib/acce
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { checkPlanLimit } from "@/lib/vendors/vendor-limits";
 import {
+  auditProductImport,
   importProductsFile,
   productsCsvResponse,
 } from "@/lib/products/import-export";
+import { MAX_IMPORT_FILE_BYTES } from "@/lib/products/import-limits";
 import { withApi } from "@/lib/api/handler";
 
 function buildVendorProductQuery(params: {
@@ -136,37 +134,48 @@ export const POST = withApi(
     });
     if (!vendor) throw new AuthorizationError("Vendor profile not found");
 
-    // Enforce the plan's product cap. A CSV imports an unknown number of rows,
-    // so this is a coarse gate: block the import outright when the vendor is
-    // already at or over the cap. Rows within a partially-full plan still import
-    // and may overshoot the cap (soft limit) — the per-product create gate is
-    // the precise boundary; this only stops an already-full vendor.
-    const productLimit = await checkPlanLimit(vendor._id, "products", {
-      planId: vendor.planId,
-      settings,
-    });
-    if (!productLimit.allowed) {
-      throw new ValidationError({
-        plan: [
-          `Your plan allows up to ${productLimit.limit} products (you have ${productLimit.current}). Upgrade your plan before importing more.`,
-        ],
-      });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return errorResponse("A CSV or JSON catalog file is required.", 400);
     }
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      return errorResponse(
+        "This file is larger than 5 MB. Split it into smaller files and import them one at a time.",
+        413,
+      );
+    }
+
+    // The plan's product cap is enforced row by row: every row that would
+    // create a product past the cap fails with the upgrade message, while rows
+    // that update existing products still go through.
+    const productLimit = await checkPlanLimit(vendor._id, "products", {
+      planId: vendor.planId,
+      settings,
+    });
 
     const result = await importProductsFile(file.name, await file.text(), {
       defaultVendorId: String(vendor._id),
       productSource: "vendor",
-      forceVendorId: String(vendor._id),
+      allowedVendorIds: [String(vendor._id)],
+      createRefusal: canCreate
+        ? undefined
+        : "You do not have permission to create products.",
+      updateRefusal: canEdit
+        ? undefined
+        : "You do not have permission to edit products.",
       allowVendorColumn: false,
       allowFeatured: false,
+      // Vendors pick from the platform's categories; they never add to them.
+      createMissingCategories: false,
+      productLimit:
+        productLimit.limit == null
+          ? undefined
+          : { limit: productLimit.limit, current: productLimit.current },
       countryAvailability: settings.general?.countryAvailability,
     });
+
+    await auditProductImport(request, session, file.name, result);
 
     return successResponse(result);
   },

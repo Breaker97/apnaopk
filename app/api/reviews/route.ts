@@ -1,9 +1,10 @@
 import { connectDB, mongoose } from "@/lib/db";
-import { Review, Product, Order } from "@/models";
+import { Review, Product } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { AuthenticationError, ValidationError } from "@/lib/api/errors";
 import { rateLimitByIP, rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { recomputeProductRating } from "@/lib/catalog/reviews";
+import { isReviewableOrder } from "@/lib/catalog/review-eligibility";
 import { withApi } from "@/lib/api/handler";
 import { z } from "zod";
 import { validateBody } from "@/lib/api/validate";
@@ -202,15 +203,9 @@ export const POST = withApi(
       throw new ValidationError({ productId: ["Product not found"] });
     }
 
-    // Verify order exists and belongs to user, and contains the product
-    const order = await Order.findOne({
-      _id: orderId,
-      customerId: session.user.id,
-      "items.productId": productId,
-      status: { $in: ["delivered", "completed"] },
-    });
-
-    if (!order) {
+    // The order must be theirs, and the product's own consignment delivered —
+    // see lib/catalog/review-eligibility.ts for why not the order's status.
+    if (!(await isReviewableOrder(session.user.id, productId, orderId))) {
       throw new ValidationError({
         orderId: ["You can only review products from completed orders"],
       });

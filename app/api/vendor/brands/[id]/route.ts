@@ -169,7 +169,7 @@ export const PUT = withApi<{ id: string }>(
     const brand = await Brand.findByIdAndUpdate(
       id,
       { $set: update },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
 
     if (!brand) return notFoundResponse("Brand");

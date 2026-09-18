@@ -32,6 +32,7 @@
     "yes": "Mọọ",
     "no": "Mba",
     "close": "Mechie",
+    "scrollToTop": "Laghachi n’elu",
     "back": "Laghachi",
     "goBack": "Gaa azụ",
     "backToHome": "Laghachi n'ụlọ",
@@ -592,7 +593,51 @@
     "writeReview": "Dee Nyocha",
     "noReviews": "Enweghị nyocha",
     "beFirst": "Bụrụ onye mbụ",
-    "verified": "Nnata Azụmahịa"
+    "verified": "Nnata Azụmahịa",
+    "writeReviewCta": "Dee nyocha!",
+    "rating": "Ọkwa",
+    "all": "Ha niile",
+    "highlyRecommended": "A na-atụ aro ya nke ukwuu",
+    "postedBy": "{name} dere ya {time}",
+    "postedTime": "E dere ya {time}",
+    "brandResponse": "Nzaghachi ụdị ahịa",
+    "showingRange": "Na-egosi {from} - {to} n'ime nyocha {total}",
+    "anonymous": "Onye amaghị aha",
+    "checkingEligibility": "Na-enyocha usoro gị ruru eru...",
+    "comment": "Nyocha gị *",
+    "commentPlaceholder": "Kọọ ahụmịhe gị na ngwaahịa a",
+    "commentTooShort": "Nkọwa ga-enwe opekata mpe mkpụrụedemede 10",
+    "dropzoneHint": "Na-akwado onyonyo ruo 10MB nke ọ bụla.",
+    "dropzonePrimary": "Dọrọ ma tụba faịlụ ebe a, ma ọ bụ pịa ka ịchọgharịa",
+    "eligibleOrderRequired": "Ị nwere ike inyocha ngwaahịa a naanị mgbe e zigara ya n'otu n'ime usoro gị.",
+    "imageTooLarge": "Onyonyo ọ bụla ga-adị obere karịa 10MB",
+    "imageUploadFailed": "Ibugo onyonyo emeghị nke ọma",
+    "invalidImage": "Naanị faịlụ onyonyo ka a na-anabata",
+    "loginToReview": "Biko banye ka i dee nyocha maka ngwaahịa a.",
+    "maxImages": "Ị nwere ike ibugo ruo onyonyo 4",
+    "noReviewsForRating": "Enweghị nyocha maka ọkwa a ugbu a",
+    "oldest": "Nke kacha ochie",
+    "photos": "Onyonyo",
+    "selectRating": "Biko họrọ ọkwa",
+    "submit": "Zipu nyocha",
+    "submitFailed": "Enweghị ike izipu nyocha",
+    "submitted": "E zipuru nyocha nke ọma!",
+    "title": "Isiokwu",
+    "titlePlaceholder": "Chịkọta nyocha gị",
+    "writeReviewHint": "A gaghị ebipụta adreesị email gị. E ji kpakpando (*) kaa akara n'ubi ndị achọrọ.",
+    "yourRating": "Ọkwa gị",
+    "pendingTitle": "Nye ihe ị zụtara ọkwa",
+    "pendingDescription": "Usoro gị abịala. Gwa ndị ọzọ na-azụ ahịa ihe i chere.",
+    "deliveredOn": "E zigara ya {date}",
+    "rateStar": "Nye {count} n'ime 5",
+    "showMore": "Gosi {count} ọzọ",
+    "showFewer": "Gosi ole na ole",
+    "fromOrder": "Usoro #{orderNumber}",
+    "orderPromptTitle": "Kedu ka usoro gị si dị?",
+    "orderPromptOne": "Dee obere nyocha maka {name} — ọ na-enyere ndị ọzọ na-azụ ahịa aka.",
+    "orderPromptMany": "Ngwaahịa {count} sitere n'usoro a na-eche nyocha gị.",
+    "youRated": "Ị nyere ya ọkwa",
+    "alreadyReviewed": "Ị nyochalarịrị ngwaahịa a. Daalụ maka ịkọ ahụmịhe gị!"
   },
   "cart": {
     "title": "Keria Ahịa",
@@ -714,12 +759,13 @@
       "payOnDeliveryDescription": "Ị ga-akwụ ịgwụ mgbe ị nwetara",
       "mtnMomoDetail": "Kwụọ ụgwọ site na MTN Mobile Money. Ị ga-enweta ozi na ekwentị gị iji kwado ya na PIN MoMo gị.",
       "mtnMomoPhoneLabel": "Nọmba ego ekwentị",
-      "mtnMomoPhonePlaceholder": "dịka 0772 123 456",
+      "mtnMomoPhonePlaceholder": "dịka {example}",
       "mtnMomoPhoneHint": "Tinye nọmba MTN a ga-ana ụgwọ. A ga-eziga arịrịọ nkwado na ekwentị ahụ."
     },
     "billingSame": "Dị ka adreesị nnyefe",
     "billingDifferent": "Jiri adreesị ọzọ",
-    "switchToPickup": "Gbanwee ka ị buru n'ụlọ ahịa"
+    "switchToPickup": "Gbanwee ka ị buru n'ụlọ ahịa",
+    "enterAddressForShipping": "Tinye adreesị nnyefe gị ka ịhụ usoro nnyefe dị."
   },
   "orders": {
     "title": "Usoro m",
@@ -770,7 +816,8 @@
       "partially_paid": "Akwụọla ụfọdụ",
       "refunded": "Enyeghachiri ego",
       "partially_refunded": "Enyeghachiri ụfọdụ"
-    }
+    },
+    "importDuties": "Ụtụ mbubata"
   },
   "adminProfile": {
     "title": "Profaịlụ",
@@ -915,6 +962,7 @@
       "subtotal": "Subtotal",
       "shipping": "Nnyefe",
       "tax": "Ekele",
+      "importDuties": "Ụtụ mbubata",
       "discount": "Mbelata",
       "totalLabel": "Niile",
       "timeline": "Chronology",
@@ -1033,7 +1081,7 @@
       "dateRange": "Jul 25 - Aug 25",
       "addActivity": "Tinye omume",
       "sales": "Ahịa",
-      "ordersDescription": "Nchịkọta usoro niile.",
+      "ordersDescription": "Ngụkọta maka oge ị họọrọ, e kewara ya dịka ọwa ire si dị.",
       "showHighlights": "Gosi ihe niile",
       "showSalesData": "Gosi data ahịa",
       "viewAllOrders": "Lelọ anya usoro niile",
@@ -2182,7 +2230,6 @@
         "live": "Na-arụ ọrụ",
         "unsaved": "Mgbanwe ndị a na-echekwabeghị"
       },
-      "subtitle": "Ịkwụ ụgwọ na-ejigide usoro ya egosipụtara — tinye akara gị ebe a. Enweghị ike ịhazigharị usoro, ya mere ịkwụ ụgwọ anaghị emebi.",
       "themeLink": "Ntọala isiokwu",
       "title": "Ịkwụ ụgwọ",
       "toast": {
@@ -2214,7 +2261,21 @@
       },
       "brand": {
         "description": "Jikwaa akara ala ibe, nkọwa, obosara na agba.",
-        "title": "Akara na nhazi"
+        "title": "Akara na nhazi",
+        "logoSourceLabel": "Isi mmalite akara ala ibe",
+        "storeLogo": "Akara ụlọ ahịa (A na-akwado ya)",
+        "storeLogoDescription": "Ọ na-eji akara Akara ahịa gị ma na-agbanwe n'etiti ọnọdụ ìhè na ọchịchịrị, dị ka Isi Ibe.",
+        "customLogo": "Akara pụrụ iche nke ala ibe",
+        "customLogoDescription": "Bulite ihe osise dị iche naanị maka ala ibe.",
+        "synced": "Adakọrọ ya na Akara ahịa",
+        "editBranding": "Dezie na Akara ahịa",
+        "lightLogo": "Akara ọnọdụ ìhè",
+        "darkLogo": "Akara ọnọdụ ọchịchịrị",
+        "logoNotSet": "Ebuliteghị ya",
+        "customLogoHint": "Akara ndị a bụ naanị maka ala ibe. Ọ bụrụ na enweghị akara ọnọdụ ọchịchịrị, akara ala ibe ga-egosi n'ọnọdụ abụọ; ọ bụrụ na enweghị nke ọ bụla, a ga-eji akara ụlọ ahịa gị.",
+        "matchHeaderSize": "Otu nha ahụ akara Isi Ibe",
+        "matchHeaderSizeHint": "Ọ na-eso Isi Ibe: obosara {desktop}px na nnukwu ihuenyo, {mobile}px na ekwentị.",
+        "logoThemeAuto": "Akpaaka (dabara na ndabere ala ibe)"
       },
       "colors": {
         "dark": "Agba ọnọdụ ọchịchịrị",
@@ -2249,6 +2310,9 @@
         "email": "Ozi-e",
         "footerBackgroundColor": "Agba azụ ala ibe",
         "footerLogo": "Akara ala ibe",
+        "footerDarkLogo": "Akara ala ibe (ọnọdụ ọchịchịrị)",
+        "logoWidth": "Obosara akara",
+        "logoTheme": "Akara a ga-egosi",
         "footerTextColor": "Agba ederede ala ibe",
         "fullWidthFooter": "Ala ibe obosara zuru oke",
         "imageAlt": "Ederede ọzọ nke onyonyo",
@@ -2560,6 +2624,11 @@
           "description": "Ngosipụta anya dị ka akwụkwọ akụkọ maka akara ejiji, ịma mma na ndụ ọma dị elu.",
           "name": "Fashion",
           "styleNote": "Lekwasịrị anya n'ire ahịa site n'anya na akụkọ nchịkọta dị mma."
+        },
+        "women-fashion": {
+          "description": "Ngosi uwe n'ụdị magazin: foto mkpọsa zuru obosara, taịl lookbook na nhọrọ oge.",
+          "name": "Women Fashion",
+          "styleNote": "E wuru ya maka uwe, akpụkpọ ụkwụ na ihe ịchọ mma — foto na-edu, ihe ndị ọzọ na-agbada."
         }
       },
       "title": "Isiokwu"
@@ -2732,6 +2801,7 @@
       "publishPageTitle": "Bipụta ibe a?",
       "publishTitle": "Bipụta ibe ụlọ?",
       "published": "Ebipụtara ibe ụlọ",
+      "duplicateSection": "Detuo ngalaba",
       "removeSection": "Wepụ ngalaba",
       "requiredSection": "Achọrọ ya",
       "restore": "Weghachi",
@@ -3042,7 +3112,9 @@
     "earnings": "Mmanụ",
     "totalRevenue": "Mmanụ Niile",
     "netEarnings": "Mmanụ Net",
+    "awaitingPayment": "{amount} na-eche ịkwụ ụgwọ",
     "totalOrders": "Usoro Niile",
+    "openOrdersCount": "{count} mepee",
     "activeProducts": "Ngwaahịa Na-arụ ọrụ",
     "totalProducts": "Ngwaahịa Niile",
     "commission": "Commission",
@@ -3123,7 +3195,6 @@
     "active": "Na-arụ ọrụ",
     "byStatus": "Site na Ọnọdụ",
     "unableToLoadData": "Enweghị ike ibudata data.",
-    "pending": "dị n'aka",
     "productsPage": {
       "subtitle": "Jikwaa ngwaahịa",
       "description": "Lelọ anya ma jikwaa ngwaahịa"
@@ -3222,6 +3293,7 @@
       "partially_refunded": "Loghachiri nke ọpụpụ"
     },
     "fulfillmentStatus": {
+      "preordered": "Iwu tupu oge",
       "pending": "Enweghị nwufu",
       "processing": "Na-eme",
       "shipped": "N'ụzọ",
@@ -3771,6 +3843,7 @@
     },
     "chatWithVendor": "Soro onye na-ere ahịa kparịta",
     "chatWithStore": "Soro ụlọ ahịa kparịta",
+    "chatWithSeller": "Soro onye na-ere ahịa kparịta",
     "startConversation": "Malite mkparịta ụka",
     "startDescription": "Jụọ maka ịdị adị, nnyefe, ụdị dị iche iche ma ọ bụ ihe ọ bụla ọzọ.",
     "writeMessage": "Dee ozi…",
@@ -4090,7 +4163,6 @@
       "canceled": "Akagburu ịkwụ ụgwọ. Biko nwaa ọzọ.",
       "failed": "Enweghị ike ịmalite ịkwụ ụgwọ",
       "loadFailed": "Enweghị ike ibudata ubube ọnọdụ",
-      "verifyFailed": "Enweghị ike ịkwado ịkwụ ụgwọ",
       "pollTimeout": "Anyị enwebeghị ike ịkwado ịkwụ ụgwọ. Ọ ga-amalite na-akpaghị aka ozugbo akwadoro ya.",
       "stepSlot": "Ọnọdụ na ụbọchị",
       "pickSlot": "Họrọ ọnọdụ na ụbọchị",
@@ -4203,7 +4275,6 @@
     "adminPassword": "Okwuntughe",
     "adminTitle": "Mepụta akaụntụ onye nchịkwa gị",
     "appUrl": "URL ngwa",
-    "appUrlHint": "Dobe NEXT_PUBLIC_APP_URL na .env ka ọ bụrụ URL ụlọ ahịa gị",
     "blockedHint": "Dozie ihe ndị dị n'elu, wee lelee ọzọ — nwụnye enweghị ike ịga n'ihu tupu ha agafee.",
     "retry": "Lelee ọzọ",
     "authSecret": "Ihe nzuzo nkwenye",
@@ -4242,7 +4313,7 @@
       "secretAccessKey": "Igodo nzuzo",
       "publicUrl": "URL ọha"
     },
-    "nodeTooOld": "Achọrọ Node.js 22 ma ọ bụ nke ọhụrụ",
+    "nodeTooOld": "Achọrọ Node.js 22.12 ma ọ bụ nke ọhụrụ",
     "storeName": "Aha ụlọ ahịa",
     "storeTitle": "Ntọala ụlọ ahịa",
     "subtitle": "Nzọụkwụ ole na ole, ị na-amalite ire",

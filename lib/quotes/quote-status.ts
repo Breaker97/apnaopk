@@ -32,3 +32,30 @@ export function isQuoteRequestStatus(
 ): value is QuoteRequestStatus {
   return QUOTE_REQUEST_STATUSES.includes(value as QuoteRequestStatus);
 }
+
+/**
+ * How the merchant's price offer on a quote stands right now.
+ *
+ * Derived on read, never stored: only `offer.expiresAt`, `offer.withdrawnAt`
+ * and the quote's `orderId` are persisted, and every state below falls out of
+ * those three plus the bound order's own status. A stored copy would have to
+ * be swept by a cron to turn `live` into `expired`, and would disagree with
+ * reality for as long as the sweep was late — see lib/quotes/quote-offer.ts.
+ */
+export const QUOTE_OFFER_STATES = [
+  "none",
+  "live",
+  "expired",
+  "withdrawn",
+  "ordered",
+] as const;
+
+export type QuoteOfferState = (typeof QUOTE_OFFER_STATES)[number];
+
+export const QUOTE_OFFER_STATE_LABELS: Record<QuoteOfferState, string> = {
+  none: "No price sent",
+  live: "Offer open",
+  expired: "Offer expired",
+  withdrawn: "Offer withdrawn",
+  ordered: "Ordered",
+};

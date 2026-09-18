@@ -293,6 +293,12 @@ interface SlidesField extends BaseField {
  */
 interface BackgroundField extends BaseField {
   type: "background";
+  /**
+   * Offer a VIDEO background as well. Only for a section that lays
+   * `<BackgroundVideo>` under its content — the picker would otherwise
+   * promise a background the page cannot play.
+   */
+  video?: boolean;
 }
 
 export type Field =
@@ -440,6 +446,18 @@ export interface SectionVariant {
 export const VARIANT_FIELD_KEY = "variant";
 
 /**
+ * The variant value meaning "whatever design the active template uses".
+ *
+ * Offered — and made the default — only by sections that declare
+ * `designFollowsTheme`. It is what lets a template be pure data: the page
+ * stores "theme", the template's manifest names the design
+ * (`preferredVariants`), and switching templates restyles the page without a
+ * single line of per-theme code. A stored design key still wins, so a
+ * merchant who pins a design keeps it across every switch.
+ */
+export const THEME_VARIANT_KEY = "theme";
+
+/**
  * The settings key the registry reserves for a section's title size.
  *
  * Derived rather than declared: every section that shows a title gets the
@@ -496,6 +514,13 @@ export interface SectionCatalogEntry {
   locked?: boolean;
   /** Pre-developed designs, for the inspector's visual variant picker. */
   variants?: { key: string; name: string }[];
+  /** The variant select also offers "theme" — see `designFollowsTheme`. */
+  designFollowsTheme?: boolean;
+  /**
+   * The design "theme" resolves to under the ACTIVE template, so the editor
+   * scopes fields against the design the storefront is actually rendering.
+   */
+  themeVariant?: string;
   fields: Field[];
   blocks: { type: string; fields: Field[]; max?: number }[];
   starter?: SectionStarter;
@@ -548,6 +573,18 @@ export interface SectionDefinition {
    * every stored instance silently changes shape.
    */
   variants?: SectionVariant[];
+  /**
+   * The design is the active TEMPLATE's unless the instance pins one.
+   *
+   * The registry then offers `THEME_VARIANT_KEY` ("theme") first in the
+   * variant select and makes it the default, and the renderer resolves it
+   * through the active manifest's `preferredVariants` — falling back to the
+   * first design when the template names none. Use it for sections whose look
+   * has always followed the template (the listing, category and cart pages),
+   * so their stored documents keep rendering exactly as before: a template is
+   * data, and no theme ever needs code of its own to restyle a page.
+   */
+  designFollowsTheme?: boolean;
   fields: Field[];
   blocks?: BlockDefinition[];
   starter?: SectionStarter;

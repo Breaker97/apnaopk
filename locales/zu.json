@@ -32,6 +32,7 @@
     "yes": "Yebo",
     "no": "Cha",
     "close": "Vala",
+    "scrollToTop": "Skrolela phezulu",
     "back": "Emuva",
     "goBack": "Buyela Emuva",
     "backToHome": "Buyela Ekhaya",
@@ -592,7 +593,51 @@
     "writeReview": "Bhala Isibuyekezo",
     "noReviews": "Ayikabikho izibuyekezo nanamuhla",
     "beFirst": "Yiba owokuqala ukubuyekeza le mikhiqizo",
-    "verified": "Okuthengiwe Kwaqinisekisiwe"
+    "verified": "Okuthengiwe Kwaqinisekisiwe",
+    "writeReviewCta": "Bhala isibuyekezo!",
+    "rating": "Isilinganiso",
+    "all": "Konke",
+    "highlyRecommended": "Kunconywa kakhulu",
+    "postedBy": "Kuthunyelwe {time} ngu-{name}",
+    "postedTime": "Kuthunyelwe {time}",
+    "brandResponse": "Impendulo yebhrendi",
+    "showingRange": "Kuboniswa {from} - {to} kwezingu-{total} izibuyekezo",
+    "anonymous": "Ongaziwa",
+    "checkingEligibility": "Sihlola ama-oderi akho afanelekayo...",
+    "comment": "Isibuyekezo sakho *",
+    "commentPlaceholder": "Yabelana ngolwazi lwakho ngalo mkhiqizo",
+    "commentTooShort": "Amazwana kumele abe nezinhlamvu ezingu-10 okungenani",
+    "dropzoneHint": "Isekela izithombe ezifika ku-10MB ngasinye.",
+    "dropzonePrimary": "Hudula bese ulahla amafayela lapha, noma chofoza ukuze uphequlule",
+    "eligibleOrderRequired": "Ungabuyekeza lo mkhiqizo kuphela ngemuva kokuthi usulethiwe kwenye yama-oderi akho.",
+    "imageTooLarge": "Isithombe ngasinye kumele sibe ngaphansi kuka-10MB",
+    "imageUploadFailed": "Ukulayisha isithombe kwehlulekile",
+    "invalidImage": "Kuvunyelwe amafayela ezithombe kuphela",
+    "loginToReview": "Sicela ungene ukuze ubhale isibuyekezo salo mkhiqizo.",
+    "maxImages": "Ungalayisha izithombe ezifika kwezi-4",
+    "noReviewsForRating": "Azikabi khona izibuyekezo zalesi silinganiso",
+    "oldest": "Ezindala kakhulu",
+    "photos": "Izithombe",
+    "selectRating": "Sicela ukhethe isilinganiso",
+    "submit": "Thumela isibuyekezo",
+    "submitFailed": "Kwehlulekile ukuthumela isibuyekezo",
+    "submitted": "Isibuyekezo sithunyelwe ngempumelelo!",
+    "title": "Isihloko",
+    "titlePlaceholder": "Fingqa isibuyekezo sakho",
+    "writeReviewHint": "Ikheli lakho le-imeyili ngeke lishicilelwe. Izinkambu ezidingekayo zimakwe ngenkanyezi (*).",
+    "yourRating": "Isilinganiso sakho",
+    "pendingTitle": "Linganisa izinto ozithengile",
+    "pendingDescription": "Ama-oderi akho afikile. Tshela abanye abathengi ukuthi ucabangani.",
+    "deliveredOn": "Kulethwe {date}",
+    "rateStar": "Nika {count} kwezi-5",
+    "showMore": "Bonisa ezinye ezingu-{count}",
+    "showFewer": "Bonisa ezimbalwa",
+    "fromOrder": "I-oderi #{orderNumber}",
+    "orderPromptTitle": "Ibinjani i-oderi yakho?",
+    "orderPromptOne": "Bhala isibuyekezo esifushane nge-{name} — sisiza abanye abathengi.",
+    "orderPromptMany": "Izinto ezingu-{count} kule oderi zilinde isibuyekezo sakho.",
+    "youRated": "Usilinganisile",
+    "alreadyReviewed": "Usuwubuyekezile lo mkhiqizo. Siyabonga ngokwabelana ngolwazi lwakho!"
   },
   "cart": {
     "title": "Indwangu Yokuthenga",
@@ -714,12 +759,13 @@
       "payOnDeliveryDescription": "Uzobhadala lapho wuthola order yakho",
       "mtnMomoDetail": "Khokha nge-MTN Mobile Money. Uzothola isicelo efonini yakho ozosivuma nge-PIN yakho ye-MoMo.",
       "mtnMomoPhoneLabel": "Inombolo yemali yeselula",
-      "mtnMomoPhonePlaceholder": "isb. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "isb. {example}",
       "mtnMomoPhoneHint": "Faka inombolo ye-MTN ezokhokhiswa. Isicelo sokuvuma sizoya kuleyo foni."
     },
     "billingSame": "Kufana nokuthunyelwa",
     "billingDifferent": "Sebenzisa ikheli elihlukile lebilling",
-    "switchToPickup": "Shintshela ekulandeni esitolo"
+    "switchToPickup": "Shintshela ekulandeni esitolo",
+    "enterAddressForShipping": "Faka ikheli lakho lokuthumela ukuze ubone izindlela zokuthunyelwa ezitholakalayo."
   },
   "orders": {
     "title": "Oderi Zami",
@@ -770,7 +816,8 @@
       "partially_paid": "Ikhokhwe ingxenye",
       "refunded": "Ibuyiselwe",
       "partially_refunded": "Ibuyiselwe ingxenye"
-    }
+    },
+    "importDuties": "Intela yokungenisa"
   },
   "adminProfile": {
     "title": "Iphrofayela",
@@ -1619,7 +1666,7 @@
       "ordersTitle": "Ama-oda",
       "addActivity": "Engeza umsebenzi",
       "sales": "Ukuthengisa",
-      "ordersDescription": "Ukuhlukaniswa kwama-oda esewonke okuhambisana nemininingwane enemininingwane.",
+      "ordersDescription": "Izamba zesikhathi esikhethiwe, zihlukaniswe ngesiteshi sokuthengisa.",
       "showHighlights": "Bonisa amaphuzu avelele wonke",
       "showSalesData": "Bonisa yonke imininingwane yokuthengisa",
       "viewAllOrders": "Buka wonke ama-oda",
@@ -1791,7 +1838,6 @@
         "live": "Iyasebenza",
         "unsaved": "Izinguquko ezingalondoloziwe"
       },
-      "subtitle": "Ukukhokha kugcina uhambo lwakho oluqinisekisiwe — faka uphawu lwakho lapha. Izinyathelo azikwazi ukuhlelwa kabusha, ngakho izinkokhelo azilokothi ziphuke.",
       "themeLink": "Izilungiselelo zetimu",
       "title": "Ukukhokha",
       "toast": {
@@ -1823,7 +1869,21 @@
       },
       "brand": {
         "description": "Lawula ilogo yonyaweni, incazelo, ububanzi nemibala.",
-        "title": "Uphawu nesakhiwo"
+        "title": "Uphawu nesakhiwo",
+        "logoSourceLabel": "Umthombo welogo yonyaweni",
+        "storeLogo": "Ilogo yesitolo (Kunconyiwe)",
+        "storeLogoDescription": "Isebenzisa amalogo akho oPhawu futhi ishintsha phakathi kwemodi ekhanyayo nemnyama, njengoNhlokweni.",
+        "customLogo": "Ilogo eqondene nonyaweni",
+        "customLogoDescription": "Layisha umklamo ohlukile wonyawo kuphela.",
+        "synced": "Kuvunyelaniswe noPhawu",
+        "editBranding": "Hlela kuPhawu",
+        "lightLogo": "Ilogo yemodi ekhanyayo",
+        "darkLogo": "Ilogo yemodi emnyama",
+        "logoNotSet": "Akulayishiwe",
+        "customLogoHint": "Lawa malogo asebenza onyaweni kuphela. Uma ingekho ilogo yemodi emnyama, ilogo yonyawo iboniswa kuzo zombili izimodi; uma engekho noyedwa, kusetshenziswa amalogo esitolo sakho.",
+        "matchHeaderSize": "Usayizi ofanayo nelogo yaseNhlokweni",
+        "matchHeaderSizeHint": "Ilandela iNhloko: ububanzi obungu-{desktop}px ezikrinini ezinkulu, {mobile}px kumafoni.",
+        "logoThemeAuto": "Okuzenzakalelayo (kufana nengemuva lonyawo)"
       },
       "colors": {
         "dark": "Imibala yemodi emnyama",
@@ -1858,6 +1918,9 @@
         "email": "I-imeyili",
         "footerBackgroundColor": "Umbala wangemuva wonyaweni",
         "footerLogo": "Ilogo yonyaweni",
+        "footerDarkLogo": "Ilogo yonyawo (imodi emnyama)",
+        "logoWidth": "Ububanzi belogo",
+        "logoTheme": "Ilogo ezoboniswa",
         "footerTextColor": "Umbala wombhalo wonyaweni",
         "fullWidthFooter": "Unyaweni obubanzi obugcwele",
         "imageAlt": "Umbhalo wesithombe ongumfanekiso",
@@ -2169,6 +2232,11 @@
           "description": "Ukubukeka kwephephabhuku kwezimpawu zemfashini, ubuhle nempilo esezingeni eliphezulu.",
           "name": "Fashion",
           "styleNote": "Igxile ekuthengiseni ngokubonakalayo nasezindabeni zamaqoqo ezicolisisiwe."
+        },
+        "women-fashion": {
+          "description": "Ukuboniswa kwezingubo ngendlela yephephabhuku: izithombe zomkhankaso ezibanzi ngokuphelele, amathayela e-lookbook nokukhethwa kwezinkathi zonyaka.",
+          "name": "Women Fashion",
+          "styleNote": "Yakhelwe izingubo, izicathulo nezinsiza — izithombe ziyahola, okunye kuyahlehla."
         }
       },
       "title": "Amatimu"
@@ -2341,6 +2409,7 @@
       "publishPageTitle": "Shicilela leli khasi?",
       "publishTitle": "Shicilela ikhasi lekhaya?",
       "published": "Ikhasi lekhaya lishicilelwe",
+      "duplicateSection": "Kopisha isigaba",
       "removeSection": "Susa isigaba",
       "requiredSection": "Kuyadingeka",
       "restore": "Buyisela",
@@ -2651,7 +2720,9 @@
     "earnings": "Imali Engungu",
     "totalRevenue": "Inani Liphelele Lemali",
     "netEarnings": "Imali Engu Ngemali",
+    "awaitingPayment": "{amount} kulindelwe inkokhelo",
     "totalOrders": "Wonke Oderi",
+    "openOrdersCount": "{count} okuvulekile",
     "activeProducts": "Imikhiqizo Esebenzayo",
     "totalProducts": "Wonke Imikhiqizo",
     "commission": "Ikhomishini Ebekiwe",
@@ -2732,7 +2803,6 @@
     "active": "Isebenzayo",
     "byStatus": "Ngokwesimo",
     "unableToLoadData": "Ayikwazi ukulayisha idatha. Qinisekisa ukuthi uyombuki ofakazelayo.",
-    "pending": "ilindelayo",
     "productsPage": {
       "subtitle": "Lawula imikhiqizo yakho",
       "description": "Buka futhi ulawule imikhiqizo yestore yakho"
@@ -2831,6 +2901,7 @@
       "partially_refunded": "Okwebiyalo ngokwebi"
     },
     "fulfillmentStatus": {
+      "preordered": "I-oda langaphambili",
       "pending": "Okungagcwaliswanga",
       "processing": "Iprocessayo",
       "shipped": "Ithunyelwe",
@@ -3380,6 +3451,7 @@
     },
     "chatWithVendor": "Xoxa nomthengisi",
     "chatWithStore": "Xoxa nesitolo",
+    "chatWithSeller": "Xoxa nomthengisi",
     "startConversation": "Qala ingxoxo",
     "startDescription": "Buza ngokutholakala, ukulethwa, izinhlobo noma noma yini enye.",
     "writeMessage": "Bhala umlayezo…",
@@ -3699,7 +3771,6 @@
       "canceled": "Inkokhelo ikhanselwe. Sicela uzame futhi.",
       "failed": "Ayikwazanga ukuqalisa inkokhelo",
       "loadFailed": "Yehlulekile ukulayisha ileli yezikhundla",
-      "verifyFailed": "Inkokhelo ayikwazanga ukuqinisekiswa",
       "pollTimeout": "Asikakwazi ukuqinisekisa inkokhelo. Izoqala ngokuzenzakalelayo lapho iqinisekisiwe.",
       "stepSlot": "Isikhala nezinsuku",
       "pickSlot": "Khetha isikhundla nezinsuku",
@@ -3812,7 +3883,6 @@
     "adminPassword": "Iphasiwedi",
     "adminTitle": "Dala i-akhawunti yakho yomphathi",
     "appUrl": "I-URL ye-app",
-    "appUrlHint": "Setha i-NEXT_PUBLIC_APP_URL ku-.env ibe yi-URL yesitolo sakho",
     "blockedHint": "Lungisa izinto ezingenhla, bese uhlola futhi — ukufakwa ngeke kuqhubeke ngaphambi kokuba ziphumelele.",
     "retry": "Hlola futhi",
     "authSecret": "Imfihlo yokuqinisekisa",
@@ -3851,7 +3921,7 @@
       "secretAccessKey": "Ukhiye oyimfihlo wokufinyelela",
       "publicUrl": "I-URL yomphakathi"
     },
-    "nodeTooOld": "Kudingeka i-Node.js 22 noma entsha",
+    "nodeTooOld": "Kudingeka i-Node.js 22.12 noma entsha",
     "storeName": "Igama lesitolo",
     "storeTitle": "Izisekelo zesitolo",
     "subtitle": "Izinyathelo ezimbalwa, usuyathengisa",

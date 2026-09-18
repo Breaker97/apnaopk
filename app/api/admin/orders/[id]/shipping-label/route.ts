@@ -10,6 +10,7 @@ import {
 } from "@/lib/access/staff-scope";
 import { shipmentItemsForOrder } from "@/lib/shipping/shipments";
 import { generateShippingLabelPdf } from "@/lib/shipping/shipping-label-pdf";
+import { labelCashOnDelivery } from "@/lib/shipping/carriers/build-request";
 import type { IOrder } from "@/types";
 
 export const GET = withApi<{ id: string }>(
@@ -32,6 +33,13 @@ export const GET = withApi<{ id: string }>(
 
     const vendorId = shipment.vendorId ? String(shipment.vendorId) : undefined;
     const items = shipmentItemsForOrder(order, vendorId);
+    const subOrders = order.subOrders || [];
+    const subOrder =
+      subOrders.find(
+        (entry) => String(entry._id) === String(shipment.subOrderId),
+      ) ??
+      subOrders.find((entry) => vendorId && String(entry.vendorId) === vendorId) ??
+      (subOrders.length === 1 ? subOrders[0] : undefined);
     const pdf = await generateShippingLabelPdf({
       orderNumber: order.orderNumber,
       carrier: shipment.carrier,
@@ -60,6 +68,7 @@ export const GET = withApi<{ id: string }>(
       items: items.map((item) => ({ name: item.name, sku: item.sku, quantity: item.quantity })),
       parcel: shipment.parcel,
       internalLabel: shipment.label.source === "internal",
+      cashOnDelivery: await labelCashOnDelivery(order, subOrder),
     });
     return new Response(new Uint8Array(pdf), {
       headers: {

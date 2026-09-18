@@ -4,8 +4,8 @@ import { connectDB, mongoose } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 /**
- * Container health probe. A successful HTTP response proves both that Next.js
- * is accepting requests and that MongoDB can answer a round trip.
+ * Health probe used by the Coolify deployment. It verifies that both Next.js
+ * and the MongoDB connection are ready to serve requests.
  */
 export async function GET() {
   try {

@@ -35,14 +35,13 @@ export const POST = withApi(
 
     await connectDB();
 
-    const { code, cartItems, subtotal, shippingCost } = await validateBody(
-      request,
-      ValidateCouponSchema,
-    );
+    const { code, cartItems, subtotal, shippingCost, shippingByVendor } =
+      await validateBody(request, ValidateCouponSchema);
     const result = await validateAndCalculateCoupon({
       code,
       subtotal,
       shippingCost,
+      shippingByVendor,
       cartItems,
       userId: session?.user?.id,
     });
@@ -56,6 +55,11 @@ export const POST = withApi(
       discountTarget: result.discountTarget,
       maxDiscount: result.maxDiscount,
       description: result.description,
+      // So the page can price it the way checkout will: a seller's own
+      // free-shipping coupon covers their delivery, and a scoped coupon's
+      // discount falls on that seller's lines.
+      vendorShares: result.vendorShares,
+      shippingVendorId: result.shippingVendorId,
     });
   },
 );

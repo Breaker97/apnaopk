@@ -36,6 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { useTranslations } from "next-intl";
@@ -72,6 +73,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppSettings as useGlobalAppSettings } from "@/stores/app-settings";
 import {
   getDefaultHeaderSettings,
+  headerShadowCss,
   resolveHeaderLogoUrl,
   type HeaderMenuItem,
   type HeaderSettings,
@@ -99,7 +101,10 @@ import {
   headerLocationSlot,
 } from "@/lib/site-config/header-layout";
 import { getDefaultHeaderLayout } from "@/lib/site-config/header-layout-default";
-import { darkenHeaderLayout } from "@/lib/site-config/header-layout-scheme";
+import {
+  clearHeaderLayoutInk,
+  darkenHeaderLayout,
+} from "@/lib/site-config/header-layout-scheme";
 import { LocationPickerLazy } from "@/components/layout/location-picker-lazy";
 import type { ShopperLocation } from "@/lib/locations/shopper-location";
 import {
@@ -132,9 +137,11 @@ import {
 import { OverflowNav } from "@/components/layout/store-header/overflow-nav";
 import { NavDropdown } from "@/components/layout/store-header/nav-dropdown";
 import { CollectionsMenu } from "@/components/layout/store-header/collections-menu";
+import { NavMegaDropdown } from "@/components/layout/store-header/nav-mega-dropdown";
+import { searchIconShouldSubmit } from "@/lib/site-config/header-search-icon";
 import { useMobileMenu } from "@/stores/mobile-menu";
 import { CategoryTriggerGlyph } from "@/lib/site-config/header-trigger-style";
-import { useHydrated } from "@/hooks/use-client-value";
+import { useClientValue, useHydrated } from "@/hooks/use-client-value";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import dynamic from "next/dynamic";
@@ -148,6 +155,17 @@ const CartDrawer = dynamic(() =>
 const MobileMenuSheet = dynamic(() =>
   import("@/components/layout/store-header/mobile-menu-sheet").then(
     (module) => module.MobileMenuSheet,
+  ),
+);
+// Both drawers are chunks of their own, fetched the first time one opens.
+const SideDrawer = dynamic(() =>
+  import("@/components/layout/store-header/side-drawer").then(
+    (module) => module.SideDrawer,
+  ),
+);
+const SearchDrawer = dynamic(() =>
+  import("@/components/layout/store-header/search-drawer").then(
+    (module) => module.SearchDrawer,
   ),
 );
 const CustomMegaMenuPanel = dynamic(() =>
@@ -178,6 +196,12 @@ interface StoreHeaderProps {
   locale: Locale;
   menuItems?: HeaderMenuItem[];
   megaMenuItems?: HeaderMenuItem[];
+  /**
+   * Navigation menus the Header Studio linked to items, by handle — the side
+   * drawer's lists and nav links' mega dropdowns. Fetched on the server for
+   * exactly the handles the layout names (collectLinkedMenuHandles).
+   */
+  linkedMenus?: Record<string, HeaderMenuItem[]>;
   headerSettings?: HeaderSettings;
   // Nav categories + collections are now fetched on the server (in the store
   // layout) and passed in, so the mega-menu renders in the initial HTML instead
@@ -215,6 +239,7 @@ export function StoreHeader({
   locale,
   menuItems,
   megaMenuItems,
+  linkedMenus,
   headerSettings,
   initialCategories,
   initialCollections,
@@ -244,6 +269,26 @@ export function StoreHeader({
     if (isCartOpen) setCartDrawerMounted(true);
   });
   const [mobileMenuMounted, setMobileMenuMounted] = useState(false);
+  /**
+   * The editorial drawers. The item that opened one hands over its own
+   * settings, so two menu buttons (or two search icons) in one header each
+   * open theirs. Kept after close, so the closing animation still has
+   * something to animate; set once, the drawer's chunk stays mounted.
+   */
+  const [sideDrawer, setSideDrawer] = useState<{
+    side: "left" | "right";
+    primary: HeaderMenuItem[];
+    secondary: HeaderMenuItem[];
+    label: string;
+  } | null>(null);
+  const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
+  const [searchDrawer, setSearchDrawer] = useState<{
+    trending: string[];
+    collections: string[];
+    fieldStyle: "outline" | "underline";
+    fieldRadius: number;
+  } | null>(null);
+  const [searchDrawerOpen, setSearchDrawerOpen] = useState(false);
   useApplyOnChange([isOpen], () => {
     if (isOpen) setMobileMenuMounted(true);
   });
@@ -252,9 +297,20 @@ export function StoreHeader({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [pendingLanguageCode, setPendingLanguageCode] = useState(language.code);
   const [searchQuery, setSearchQuery] = useState("");
+  /**
+   * Whether the plain search icon's field was OPEN (focused) when the icon
+   * was pressed. Read on pointer-down: pressing the button moves focus to it,
+   * so by the click the field has always just lost it.
+   */
+  const searchFieldWasOpenRef = useRef(false);
   const [searchSuggestions, setSearchSuggestions] = useState<
     SearchSuggestion[]
   >([]);
+  // The words the suggestions are really for, when a misspelling was
+  // corrected ("ipone" → "iphone"). Updated with the rows, never apart.
+  const [searchCorrectedTo, setSearchCorrectedTo] = useState<string | null>(
+    null,
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -293,6 +349,38 @@ export function StoreHeader({
   const debouncedSearchQuery = useDebounce(searchQuery.trim(), 350);
   // Category scope for the search bar's dropdown; "" = all categories.
   const [searchCategory, setSearchCategory] = useState("");
+  // The scope the suggestions are fetched under: the picker's category while
+  // the scoped bar has focus, "" for every other field.
+  const [suggestionCategory, setSuggestionCategory] = useState("");
+  // The product listing's own query string, or null anywhere else. Read on
+  // every render, so a navigation (the header's own push, a category link,
+  // back/forward) or a reload hands it the new URL.
+  const listingSearch = useClientValue(
+    () =>
+      window.location.pathname === `/${locale}/products`
+        ? window.location.search
+        : null,
+    null,
+  );
+  // On the listing the bar shows what the grid under it is filtered by, so a
+  // reload or a category link doesn't leave it blank and the next search
+  // starts from the scope on screen. A category the picker does not offer (a
+  // subcategory, a multi-select from the sidebar) reads as "All".
+  useApplyOnChange([listingSearch], () => {
+    if (listingSearch === null) return;
+    const params = new URLSearchParams(listingSearch);
+    const category = params.get("category") ?? "";
+    setSearchQuery(params.get("search") ?? "");
+    setSearchCategory(
+      categories.some((node) => node.slug === category) ? category : "",
+    );
+  });
+  const allCategoriesLabel = t.has("common.allCategories")
+    ? t("common.allCategories")
+    : "All categories";
+  const searchCategoryLabel =
+    categories.find((node) => node.slug === searchCategory)?.name ??
+    allCategoriesLabel;
   // The All Categories button's rendered width. An item with no width of
   // its own fills its column, and the rail beneath it has to match what
   // the column gave it — read off the button rather than guessed.
@@ -329,6 +417,23 @@ export function StoreHeader({
       : stored;
   }, [headerSettings, darkScheme, darkColors]);
   const headerTransparent = headerColorMode === "transparent";
+  /**
+   * The floating bar. `overlapLayout` is the LAYOUT half — true for the
+   * whole home page, so the bar is pulled out of the flow once and the page
+   * never reflows; only its paint follows the scroll (`overlapping`, below,
+   * once `scrolled` is known).
+   *
+   * Desktop only, and decided in CSS (`lg:` classes) so neither size flashes
+   * the other's bar before hydration. On a phone the compact bar plus its
+   * search row is a third of a short hero: it sits above the hero instead.
+   */
+  const overlapHome = headerSettings?.layout.overlapHome ?? false;
+  const overlapTone = headerSettings?.layout.overlapTone ?? "dark";
+  const overlapScrim = headerSettings?.layout.overlapScrim ?? 0;
+  // The shadow under a solid bar — the merchant's, or the one it always had.
+  const barShadow = headerShadowCss(headerSettings?.layout.shadow);
+  const homePaths = [`/${locale}`, `/${locale}/`, "/"];
+  const overlapLayout = overlapHome && homePaths.includes(pathname);
   const headerLogoUrl = headerSettings?.brand.logoUrl?.trim() || "";
   const headerDarkLogoUrl = headerSettings?.brand.darkLogoUrl?.trim() || "";
   const headerLogoAlt = headerSettings?.brand.logoAlt?.trim() || "";
@@ -466,14 +571,26 @@ export function StoreHeader({
     height: searchHeight,
   } as CSSProperties;
 
-  const handleSearch = (e: React.FormEvent) => {
+  /**
+   * Submit a search. `category` is passed only by the search bar that shows
+   * the category picker ("" = its "All categories"): every other field shares
+   * this handler and the typed text, but has no picker, so it must never
+   * narrow by a scope it does not display. With nothing typed the picker's
+   * choice is still a search — a category opens that category's listing and
+   * "All categories" the full one, clearing a category left on the URL.
+   */
+  const handleSearch = (e: React.FormEvent, category?: string) => {
     e.preventDefault();
     setShowSearchSuggestions(false);
-    if (searchQuery.trim()) {
-      const params = new URLSearchParams({ search: searchQuery });
-      if (searchCategory) params.set("category", searchCategory);
-      router.push(`/${locale}/products?${params.toString()}`);
-    }
+    const query = searchQuery.trim();
+    if (!query && category === undefined) return;
+    const params = new URLSearchParams();
+    if (query) params.set("search", query);
+    if (category) params.set("category", category);
+    const queryString = params.toString();
+    router.push(
+      `/${locale}/products${queryString ? `?${queryString}` : ""}`,
+    );
   };
 
   const handleAISalesAgentOpen = () => {
@@ -485,9 +602,14 @@ export function StoreHeader({
     setSearchQuery(value);
     if (value.trim().length < 2) {
       setSearchSuggestions([]);
+      setSearchCorrectedTo(null);
       setIsSearching(false);
       setShowSearchSuggestions(false);
+      return;
     }
+    // Open on the keystroke, not on the response: the panel appears once
+    // and stays, and only its rows change as the shopper keeps typing.
+    setShowSearchSuggestions(true);
   };
 
   const handleLogout = async () => {
@@ -728,6 +850,9 @@ export function StoreHeader({
           // full variant/media-heavy product documents.
           cardFieldsOnly: "true",
         });
+        // The same scope Enter would search, so the panel previews the
+        // results page rather than the whole catalogue.
+        if (suggestionCategory) params.set("category", suggestionCategory);
 
         const response = await fetch(`/api/products?${params.toString()}`, {
           signal: controller.signal,
@@ -736,20 +861,28 @@ export function StoreHeader({
         const products = Array.isArray(result?.data?.data)
           ? result.data.data
           : [];
+        // Only the rows change. Opening is the keystroke's job, so a response
+        // that lands after the field lost focus cannot pop the panel back up.
         setSearchSuggestions(products);
-        setShowSearchSuggestions(true);
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
+        const correctedTo = result?.data?.searchCorrection?.to;
+        setSearchCorrectedTo(typeof correctedTo === "string" ? correctedTo : null);
+      } catch {
+        // Asked on the signal, not the error: aborted with a reason, fetch
+        // rejects with that reason rather than an AbortError, and treating
+        // it as a failure blanked the rows the next request was replacing.
+        if (!controller.signal.aborted) {
           setSearchSuggestions([]);
+          setSearchCorrectedTo(null);
         }
       } finally {
-        setIsSearching(false);
+        // The superseding request owns the spinner now.
+        if (!controller.signal.aborted) setIsSearching(false);
       }
     };
 
     void fetchSuggestions();
     return () => controller.abort("cleanup");
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, suggestionCategory]);
 
   /**
    * Rows marked "hide on scroll" go two ways.
@@ -777,6 +910,18 @@ export function StoreHeader({
     (row, index) => row.hideOnScroll && index >= leadingHidingRows,
   );
   /**
+   * Whether a hidden row comes back as soon as the page scrolls up, or only
+   * at its top. "auto" is by position: a top row rides off with the page
+   * (the wrapper's sticky offset) and returns at the top; a lower row folds
+   * and returns on scroll-up. Either can be told otherwise.
+   */
+  const rowReturnsOnScrollUp = (row: HeaderLayoutRow, index: number) =>
+    row.returnOn === "scrollUp" ||
+    (row.returnOn === "auto" && index >= leadingHidingRows);
+  const hasScrollUpLeading = tree.rows
+    .slice(0, leadingHidingRows)
+    .some((row) => row.returnOn === "scrollUp");
+  /**
    * A brand with a scroll size shrinks to it once scrolled, and its row
    * compacts by the same ratio — the header that tightens as you read. It
    * rides on the same direction-and-dead-band state as the folding rows,
@@ -794,8 +939,41 @@ export function StoreHeader({
   };
   const hasScalingBrand = tree.rows.some((row) => brandScaleOf(row) < 1);
   const [scrolled, setScrolled] = useState(false);
+  /**
+   * Whether the page has scrolled past the top zone at all — no intent, no
+   * dead band. A hidden row that returns only at the top reads this.
+   */
+  const [pastTop, setPastTop] = useState(false);
+  /**
+   * Whether the page sits at its very top. The overlap reads THIS, not
+   * `scrolled`: the fold's state is about intent — a short scroll back up
+   * unfolds the header anywhere on the page — and painting the bar
+   * transparent again over the middle of a listing left it floating over
+   * content with no hero behind it. Transparent means "the hero is still
+   * behind me", and that is only ever true at the top.
+   */
+  const [atTop, setAtTop] = useState(true);
   useEffect(() => {
-    if (!hasFoldingRows && !hasScalingBrand) return;
+    if (!overlapLayout) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // A few pixels of slack: a rubber-band bounce must not flip it.
+      setAtTop(window.scrollY <= 8);
+    };
+    update();
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [overlapLayout]);
+  // The fold and the shrinking brand follow scroll INTENT, below.
+  useEffect(() => {
+    if (!hasFoldingRows && !hasScalingBrand && !hasScrollUpLeading) return;
     let frame = 0;
     let lastY = window.scrollY;
     let settleUntil = 0;
@@ -815,6 +993,7 @@ export function StoreHeader({
       if (performance.now() < settleUntil) return;
       // Near the top the header is always whole; the zone is wide enough
       // that a fold's own reflow cannot bounce back across it.
+      setPastTop(y >= TOP_ZONE);
       let next: boolean | null = null;
       if (y < TOP_ZONE) {
         travel = 0;
@@ -841,7 +1020,21 @@ export function StoreHeader({
       window.removeEventListener("scroll", onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [hasFoldingRows, hasScalingBrand]);
+  }, [hasFoldingRows, hasScalingBrand, hasScrollUpLeading]);
+
+  /** Transparent while the hero is still behind it — at the top of the home
+   * page, and nowhere else; normal from the first scroll on. */
+  const overlapping = overlapLayout && atTop;
+  const overlapInk = overlapTone === "dark" ? "#ffffff" : "#111111";
+  /**
+   * The tree as the floating bar paints it. Kept apart from `tree` so the
+   * structural reads above it (folding rows, the brand scale) stay on the
+   * stored one — only what is DRAWN changes as the hero passes.
+   */
+  const paintedTree = useMemo(
+    () => (overlapping ? clearHeaderLayoutInk(tree) : tree),
+    [overlapping, tree],
+  );
   // A blurred row shows what scrolls beneath it, so the bar's own opaque
   // paint stands down and each row carries its own.
   const rowsPaintThemselves = tree.rows.some((row) => row.blur > 0);
@@ -851,7 +1044,46 @@ export function StoreHeader({
   // leading hiding rows (slid off once scrolled) do not count. Their height
   // is also what the wrapper's `top` retreats by.
   const stickyWrapperRef = useRef<HTMLDivElement>(null);
-  const [hiddenOffset, setHiddenOffset] = useState(0);
+  const [leadingHeights, setLeadingHeights] = useState<number[]>([]);
+  /**
+   * How far the wrapper retreats: the heights of the leading hiding rows,
+   * in order, up to the first one that is showing. A row that returns at
+   * the top always counts — it rides off with the page and comes back with
+   * it; one that returns on scroll-up counts only while the scroll is down.
+   */
+  const hiddenOffset = useMemo(() => {
+    let offset = 0;
+    for (let index = 0; index < leadingHidingRows; index += 1) {
+      const row = tree.rows[index];
+      const hidden = rowReturnsOnScrollUp(row, index) ? scrolled : true;
+      if (!hidden) break;
+      offset += leadingHeights[index] ?? 0;
+    }
+    return offset;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rowReturnsOnScrollUp reads only leadingHidingRows
+  }, [leadingHeights, leadingHidingRows, scrolled, tree.rows]);
+  /**
+   * The bar's height AT REST, which is what the overlap pulls back out of
+   * the flow. Measured only while the page is at the top: once scrolled, a
+   * folding row shrinks the bar, and following that shrink would slide the
+   * whole page up underneath it.
+   */
+  const [restHeight, setRestHeight] = useState(0);
+  /**
+   * A floating bar before its resting height is known — the server render,
+   * and the first client frames. It cannot be pulled out of the flow by a
+   * margin yet, so it takes no room another way: absolute, at its own
+   * static position. The hero is under it from the first paint, instead of
+   * a white band above the hero until the measurement lands.
+   */
+  const floatingUnmeasured = overlapLayout && restHeight === 0;
+  // Read inside the observer below, which must not re-subscribe every time
+  // the scroll state flips. Synced in its own effect, which runs before any
+  // resize the fold goes on to produce.
+  const scrolledRef = useRef(scrolled);
+  useEffect(() => {
+    scrolledRef.current = scrolled;
+  }, [scrolled]);
 
   useEffect(() => {
     const el = stickyWrapperRef.current;
@@ -864,11 +1096,21 @@ export function StoreHeader({
     let published = -1;
     const update = () => {
       const rows = el.querySelectorAll<HTMLElement>("[data-header-row]");
-      let hidden = 0;
+      const heights: number[] = [];
       for (let index = 0; index < leadingHidingRows; index += 1) {
-        hidden += rows[index]?.offsetHeight ?? 0;
+        heights.push(rows[index]?.offsetHeight ?? 0);
       }
-      setHiddenOffset((current) => (current === hidden ? current : hidden));
+      const hidden = heights.reduce((sum, height) => sum + height, 0);
+      setLeadingHeights((current) =>
+        current.length === heights.length &&
+        current.every((height, index) => height === heights[index])
+          ? current
+          : heights,
+      );
+      if (!scrolledRef.current) {
+        const rest = Math.round(el.offsetHeight);
+        setRestHeight((current) => (current === rest ? current : rest));
+      }
       const height = headerSticky
         ? Math.max(0, Math.round(el.offsetHeight - hidden))
         : 0;
@@ -907,12 +1149,18 @@ export function StoreHeader({
     };
   }, []);
 
-  /** Open/close handlers shared by every search field on the header. */
-  const searchFieldFocusProps = {
+  /**
+   * Open/close handlers shared by every search field on the header.
+   * `category` is the field's own scope, as for `handleSearch`: the field
+   * that takes focus decides what the shared suggestions panel is fetched
+   * under, so it never previews a scope the field does not show.
+   */
+  const searchFieldFocusProps = (category = "") => ({
     onFocus: () => {
       if (closeSuggestionsTimeoutRef.current) {
         clearTimeout(closeSuggestionsTimeoutRef.current);
       }
+      setSuggestionCategory(category);
       if (searchQuery.trim().length >= 2) {
         setShowSearchSuggestions(true);
       }
@@ -922,27 +1170,45 @@ export function StoreHeader({
         setShowSearchSuggestions(false);
       }, 140);
     },
-  };
+  });
 
   /**
    * Product suggestions dropdown, shared by every search field. Only the
    * field that has focus shows it, since the panel keys off one query.
+   *
+   * Stale-while-revalidate on purpose: while the next query is in flight the
+   * previous rows stay in place, dimmed, and are replaced when the response
+   * lands. Swapping them for a loading row collapsed the panel and re-grew it
+   * on every keystroke, which read as the whole dialog blinking.
    */
   const renderSearchSuggestions = (panelClassName: string) =>
     showSearchSuggestions && searchQuery.trim().length >= 2 ? (
       <div
         className={cn(
           "absolute top-full z-50 mt-2 overflow-hidden rounded-2xl border bg-background text-foreground shadow-lg",
+          "animate-in fade-in-0 zoom-in-95 duration-150",
           panelClassName,
         )}
+        aria-busy={isSearching}
       >
+        {searchCorrectedTo && searchSuggestions.length > 0 && (
+          <p className="border-b px-4 py-2 text-xs text-muted-foreground">
+            {t.rich("common.showingResultsFor", {
+              query: searchCorrectedTo,
+              q: (chunks) => (
+                <strong className="font-semibold text-foreground">{chunks}</strong>
+              ),
+            })}
+          </p>
+        )}
         <div className="max-h-80 overflow-y-auto p-2">
-          {isSearching ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
-              {t("common.loading")}
-            </div>
-          ) : searchSuggestions.length > 0 ? (
-            <div className="space-y-1">
+          {searchSuggestions.length > 0 ? (
+            <div
+              className={cn(
+                "space-y-1 transition-opacity duration-150",
+                isSearching && "opacity-60",
+              )}
+            >
               {searchSuggestions.map((product) => {
                 const label = product.name || product.title || "Product";
                 return (
@@ -977,17 +1243,78 @@ export function StoreHeader({
             </div>
           ) : (
             <div className="px-3 py-2 text-sm text-muted-foreground">
-              {t("common.noProductsFound")}
+              {isSearching ? t("common.loading") : t("common.noProductsFound")}
             </div>
           )}
         </div>
-        {!isSearching && searchSuggestions.length > 0 && (
+        {searchSuggestions.length > 0 && (
           <div className="border-t px-3 py-2 text-xs text-muted-foreground">
             {t("common.pressEnterToSearch")} &quot;{searchQuery}&quot;
           </div>
         )}
       </div>
     ) : null;
+
+  /**
+   * The search icon set to open the drawer: the same button and capsule the
+   * inline search draws, minus the field — the drawer is where typing
+   * happens, so a field here would be a second, narrower one.
+   */
+  const renderSearchDrawerTrigger = (
+    item: HeaderSearchIconItem,
+    pill: boolean,
+  ) => {
+    const open = () => openSearchDrawerFor(item);
+    const labelled = item.showLabel && !pill && Boolean(item.label);
+    const glyph = (
+      <span
+        className={cn(
+          "shrink-0",
+          labelled ? "flex items-center" : "grid place-items-center",
+        )}
+        style={{
+          borderRadius: item.roundness,
+          padding: pill ? "8px 14px" : 8,
+          ...backgroundCss(item.background),
+          ...surfaceInkCss(item.background, item.foreground),
+        }}
+      >
+        <Search style={{ width: item.size, height: item.size }} />
+        {labelled ? (
+          <span className="ms-2 text-sm font-semibold">{item.label}</span>
+        ) : null}
+      </span>
+    );
+    return (
+      <button
+        type="button"
+        onClick={open}
+        aria-label={searchPlaceholder}
+        aria-haspopup="dialog"
+        className="relative shrink-0 transition-opacity hover:opacity-80"
+        style={paddingStyle(item.padding)}
+      >
+        {pill ? (
+          <span
+            className="flex items-center justify-end gap-1 p-1 pl-3"
+            style={{
+              width: item.width,
+              borderRadius: item.pillRoundness,
+              borderWidth: item.borderThickness,
+              borderStyle: "solid",
+              borderColor: item.border || "transparent",
+              ...backgroundCss(item.pillBackground),
+              ...surfaceInkCss(item.pillBackground),
+            }}
+          >
+            {glyph}
+          </span>
+        ) : (
+          glyph
+        )}
+      </button>
+    );
+  };
 
   /** A link's target as the studio stored it, made absolute for this locale. */
   const hrefFor = (raw: string) => {
@@ -1202,17 +1529,34 @@ export function StoreHeader({
   );
 
   /** The cart button; the badge counts what is in the cart. */
-  const cartButton = (size: number, label: ReactNode = null) => (
+  /**
+   * `showGlyph` off makes the label the control — the icons cluster set to
+   * words only. The count badge moves onto whichever of the two is actually
+   * on screen, so a bag holding three items says so either way.
+   */
+  const cartButton = (
+    size: number,
+    label: ReactNode = null,
+    showGlyph = true,
+  ) => (
     <button
       type="button"
       onClick={() => setIsCartOpen(true)}
       className="flex flex-col items-center gap-1 transition-opacity hover:opacity-70"
       aria-label={t("common.openCart")}
     >
-      <IconCount size={size} count={totalItems}>
-        <ShoppingCart style={{ width: size, height: size }} />
-      </IconCount>
-      {label}
+      {showGlyph ? (
+        <>
+          <IconCount size={size} count={totalItems}>
+            <ShoppingCart style={{ width: size, height: size }} />
+          </IconCount>
+          {label}
+        </>
+      ) : (
+        <IconCount size={size} count={totalItems}>
+          {label}
+        </IconCount>
+      )}
     </button>
   );
 
@@ -1555,6 +1899,20 @@ export function StoreHeader({
       />
     ) : null;
     const label = link.label || "Link";
+    // A linked menu wins over the link's own sub-links, which stay stored.
+    // An unlinked, missing or empty menu falls through to them.
+    const megaItems = link.megaMenu ? linkedMenus?.[link.megaMenu] : undefined;
+    if (megaItems && megaItems.length > 0) {
+      return (
+        <NavMegaDropdown
+          key={link.id}
+          label={<span style={labelFill}>{label}</span>}
+          icon={icon}
+          labelStyle={fillColorCss(fill)}
+          items={megaItems}
+        />
+      );
+    }
     if (link.children.length > 0) {
       return (
         <NavDropdown
@@ -1791,16 +2149,17 @@ export function StoreHeader({
   const renderSearchBar = (item: HeaderSearchBarItem) => {
     if (!showSearch) return null;
     const showScope = item.showCategoryFilter && categories.length > 0;
+    const scope = showScope ? searchCategory : "";
     const placeholderColor = backgroundAccentColor(item.textStyle.fill);
     const locationControl = locationControlFor(item.id);
     const form = (
       <form
-        onSubmit={handleSearch}
+        onSubmit={(e) => handleSearch(e, showScope ? scope : undefined)}
         className="relative min-w-0 flex-1"
         style={paddingStyle(item.padding)}
       >
         <div
-          {...searchFieldFocusProps}
+          {...searchFieldFocusProps(scope)}
           className="flex items-center gap-2 pl-4 pr-1.5"
           style={{
             height: item.height,
@@ -1827,29 +2186,37 @@ export function StoreHeader({
             }
           />
           {showScope ? (
-            <div className="relative flex shrink-0 items-center border-l border-current/20 pl-2 opacity-80">
-              <select
-                aria-label={
-                  t.has("common.allCategories")
-                    ? t("common.allCategories")
-                    : "All categories"
-                }
+            <div className="flex shrink-0 items-center border-l border-current/20 pl-2 opacity-80">
+              <SearchableSelect
                 value={searchCategory}
-                onChange={(event) => setSearchCategory(event.target.value)}
-                className="max-w-32 cursor-pointer appearance-none truncate bg-transparent pr-5 text-xs font-medium outline-none"
-              >
-                <option value="">
-                  {t.has("common.allCategories")
-                    ? t("common.allCategories")
-                    : "All"}
-                </option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category.slug}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-0 h-3 w-3" />
+                onValueChange={(category) => {
+                  setSearchCategory(category);
+                  setSuggestionCategory(category);
+                }}
+                options={[
+                  { value: "", label: allCategoriesLabel },
+                  ...categories.map((category) => ({
+                    value: category.slug,
+                    label: category.name,
+                  })),
+                ]}
+                searchPlaceholder={`${t("common.search")}...`}
+                emptyText={t("common.noResults")}
+                align="end"
+                contentClassName="w-60"
+                // The bar's own ink and surface, not the default bordered
+                // field: a box inside the bar's frame reads as a second input.
+                trigger={
+                  <button
+                    type="button"
+                    aria-label={`${t("common.categories")}: ${searchCategoryLabel}`}
+                    className="flex max-w-36 cursor-pointer items-center gap-1 rounded-sm px-1 py-1 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-current/30"
+                  >
+                    <span className="truncate">{searchCategoryLabel}</span>
+                    <ChevronDown className="size-3 shrink-0" />
+                  </button>
+                }
+              />
             </div>
           ) : null}
           <button
@@ -1900,18 +2267,50 @@ export function StoreHeader({
 
   const renderSearchIconOnly = (item: HeaderSearchIconItem) => {
     const pill = item.style === "pill";
+    if (item.drawer) return renderSearchDrawerTrigger(item, pill);
     const button = (
       <button
         type="submit"
         aria-label={searchPlaceholder}
-        onClick={(event) => {
-          if (searchQuery.trim()) return;
-          event.preventDefault();
-          event.currentTarget.form
-            ?.querySelector<HTMLInputElement>("input")
-            ?.focus();
+        onPointerDown={(event) => {
+          const field =
+            event.currentTarget.form?.querySelector<HTMLInputElement>("input");
+          searchFieldWasOpenRef.current = Boolean(
+            field && document.activeElement === field,
+          );
         }}
-        className="grid shrink-0 place-items-center transition-opacity hover:opacity-80"
+        onClick={(event) => {
+          const field =
+            event.currentTarget.form?.querySelector<HTMLInputElement>("input");
+          // Enter in the field submits by "clicking" this button with focus
+          // still in the field and no pointer-down first — that is a search
+          // from an open field too.
+          const wasOpen =
+            searchFieldWasOpenRef.current ||
+            Boolean(field && document.activeElement === field);
+          searchFieldWasOpenRef.current = false;
+          // See searchIconShouldSubmit: a closed field still holds the last
+          // query, and submitting it sent every click back to old results.
+          if (
+            searchIconShouldSubmit({
+              pill,
+              fieldWasOpen: wasOpen,
+              query: searchQuery,
+            })
+          ) {
+            return;
+          }
+          event.preventDefault();
+          field?.focus();
+          // Selected, so typing replaces the old query instead of adding to it.
+          field?.select();
+        }}
+        className={cn(
+          "shrink-0 transition-opacity hover:opacity-80",
+          item.showLabel && !pill
+            ? "flex items-center"
+            : "grid place-items-center",
+        )}
         style={{
           borderRadius: item.roundness,
           padding: pill ? "8px 14px" : 8,
@@ -1920,6 +2319,11 @@ export function StoreHeader({
         }}
       >
         <Search style={{ width: item.size, height: item.size }} />
+        {/* Plain style only: inside the capsule the label would sit where
+            the typed query goes. */}
+        {item.showLabel && !pill && item.label ? (
+          <span className="ms-2 text-sm font-semibold">{item.label}</span>
+        ) : null}
       </button>
     );
     const input = (
@@ -1931,6 +2335,12 @@ export function StoreHeader({
         className={cn(
           "min-w-0 bg-transparent text-sm outline-none transition-[width] duration-200",
           pill ? "w-full flex-1" : "w-0 focus:w-44",
+          // The line takes the header's ink, so it inverts with the rest of
+          // the bar over a hero. Transparent while closed: the field is
+          // zero-wide then, and its border must not linger as a dot.
+          !pill &&
+            item.fieldLine &&
+            "h-8 border-b border-transparent focus:border-current",
         )}
       />
     );
@@ -1939,7 +2349,7 @@ export function StoreHeader({
         onSubmit={handleSearch}
         className="relative shrink-0"
         style={paddingStyle(item.padding)}
-        {...searchFieldFocusProps}
+        {...searchFieldFocusProps()}
       >
         {pill ? (
           <div
@@ -2043,11 +2453,48 @@ export function StoreHeader({
       "relative flex shrink-0 items-center transition-opacity hover:opacity-70",
       item.showLabels ? "flex-col gap-1" : "",
     );
+    // With the glyphs off the label IS the control, so it steps up from a
+    // caption under an icon to something worth clicking.
     const caption = (text: string) =>
       item.showLabels ? (
-        <span className="text-[10px] font-medium leading-none">{text}</span>
+        <span
+          className={cn(
+            "font-medium leading-none",
+            item.showIcons ? "text-[10px]" : "text-sm",
+          )}
+        >
+          {text}
+        </span>
       ) : null;
+    const glyph = (node: ReactNode) => (item.showIcons ? node : null);
+    /** A glyph whose badge must survive the glyph being switched off. */
+    const counted = (node: ReactNode, text: string, count: number) =>
+      item.showIcons ? (
+        <>
+          <IconCount size={item.size} count={count}>
+            {node}
+          </IconCount>
+          {caption(text)}
+        </>
+      ) : (
+        <IconCount size={item.size} count={count}>
+          {caption(text)}
+        </IconCount>
+      );
     switch (key) {
+      case "menu":
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setIsOpen(true)}
+            aria-label={t.has("common.menu") ? t("common.menu") : "Menu"}
+            className={shell}
+          >
+            {glyph(<Menu style={size} />)}
+            {caption(t.has("common.menu") ? t("common.menu") : "Menu")}
+          </button>
+        );
       case "theme":
         return showThemeToggle ? (
           <button
@@ -2059,7 +2506,7 @@ export function StoreHeader({
             }
             className={shell}
           >
-            {isDark ? <Sun style={size} /> : <Moon style={size} />}
+            {glyph(isDark ? <Sun style={size} /> : <Moon style={size} />)}
             {caption(t.has("common.theme") ? t("common.theme") : "Theme")}
           </button>
         ) : null;
@@ -2071,16 +2518,17 @@ export function StoreHeader({
             aria-label={t("nav.wishlist")}
             className={shell}
           >
-            <IconCount size={item.size} count={wishlistItems.length}>
-              <Heart style={size} />
-            </IconCount>
-            {caption(t("nav.wishlist"))}
+            {counted(
+              <Heart style={size} />,
+              t("nav.wishlist"),
+              wishlistItems.length,
+            )}
           </Link>
         ) : null;
       case "cart":
         return (
           <Fragment key={key}>
-            {cartButton(item.size, caption(t("common.cart")))}
+            {cartButton(item.size, caption(t("common.cart")), item.showIcons)}
           </Fragment>
         );
       case "compare":
@@ -2091,7 +2539,7 @@ export function StoreHeader({
             aria-label={t.has("nav.compare") ? t("nav.compare") : "Compare"}
             className={shell}
           >
-            <ArrowLeftRight style={size} />
+            {glyph(<ArrowLeftRight style={size} />)}
             {caption(t.has("nav.compare") ? t("nav.compare") : "Compare")}
           </Link>
         );
@@ -2103,7 +2551,7 @@ export function StoreHeader({
             aria-label={t.has("nav.contact") ? t("nav.contact") : "Contact"}
             className={shell}
           >
-            <Phone style={size} />
+            {glyph(<Phone style={size} />)}
             {caption(t.has("nav.contact") ? t("nav.contact") : "Contact")}
           </Link>
         );
@@ -2115,11 +2563,15 @@ export function StoreHeader({
                 type="button"
                 className={cn(shell, "gap-2 text-left leading-none")}
               >
-                <FlagIcon
-                  countryCode={language.countryCode}
-                  size={item.size}
-                  aria-hidden="true"
-                />
+                {/* The flag is this control's glyph; the code is its label,
+                    and the one thing it cannot go without. */}
+                {glyph(
+                  <FlagIcon
+                    countryCode={language.countryCode}
+                    size={item.size}
+                    aria-hidden="true"
+                  />,
+                )}
                 <span className="text-[12px] font-medium">
                   {language.code.toUpperCase()}
                 </span>
@@ -2166,7 +2618,12 @@ export function StoreHeader({
     if (isLoading || !mounted) {
       return (
         <div
-          className="h-9 w-24 animate-pulse rounded-md bg-muted"
+          // Over the hero the placeholder is a wash of the bar's own ink,
+          // not the page's muted grey — which read as a white block.
+          className={cn(
+            "h-9 w-24 animate-pulse rounded-md",
+            overlapping ? "bg-current/15" : "bg-muted",
+          )}
           style={shell}
         />
       );
@@ -2266,11 +2723,59 @@ export function StoreHeader({
     );
   };
 
-  /** The hamburger: opens the same drawer the phone's Menu tab does. */
+  /** Opens the search drawer with the settings of the icon that asked. */
+  const openSearchDrawerFor = (item: HeaderSearchIconItem) => {
+    setSearchDrawer({
+      trending: item.trending,
+      collections: item.drawerCollections,
+      fieldStyle: item.drawerFieldStyle,
+      fieldRadius: item.drawerFieldRadius,
+    });
+    setSearchDrawerOpen(true);
+  };
+
+  /**
+   * The search icon whose drawer the side drawer's Search hands over to —
+   * the first one set to open a drawer. None, and the side drawer searches
+   * from its own field instead.
+   */
+  const drawerSearchIcon = (() => {
+    for (const row of tree.rows) {
+      for (const column of row.columns) {
+        for (const entry of column.items) {
+          if (entry.type === "searchIcon" && entry.drawer) return entry;
+        }
+      }
+    }
+    return null;
+  })();
+
+  /**
+   * The hamburger. By default it opens the same app drawer the phone's Menu
+   * tab does; set to open the side drawer it opens that instead — unless the
+   * linked menu is missing or empty, where an empty panel would be worse
+   * than the app drawer it replaces.
+   */
+  const openMenuFor = (item: HeaderMenuButtonItem) => {
+    const primary = item.drawer ? (linkedMenus?.[item.drawerMenu] ?? []) : [];
+    if (primary.length === 0) {
+      setIsOpen(true);
+      return;
+    }
+    setSideDrawer({
+      side: item.drawerSide,
+      primary,
+      secondary: linkedMenus?.[item.drawerSecondaryMenu] ?? [],
+      label:
+        item.label || (t.has("common.menu") ? t("common.menu") : "Menu"),
+    });
+    setSideDrawerOpen(true);
+  };
+
   const renderMenuButton = (item: HeaderMenuButtonItem) => (
     <button
       type="button"
-      onClick={() => setIsOpen(true)}
+      onClick={() => openMenuFor(item)}
       aria-label={item.label || (t.has("common.menu") ? t("common.menu") : "Menu")}
       className="flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80"
       style={{
@@ -2343,31 +2848,119 @@ export function StoreHeader({
       <div
         ref={stickyWrapperRef}
         data-sticky-header
-        className={`${headerSticky ? "sticky" : "relative"} z-50 w-full`}
-        style={headerSticky ? { top: -hiddenOffset } : undefined}
+        // Read by StoreChromeHeight: a floating bar takes no room, so a
+        // full-height hero under it must measure the viewport, not the
+        // viewport minus a header that is not there.
+        data-header-overlap={overlapLayout ? "" : undefined}
+        className={cn(
+          floatingUnmeasured
+            ? cn(
+                "lg:absolute lg:inset-x-0",
+                headerSticky ? "max-lg:sticky max-lg:top-0" : "max-lg:relative",
+              )
+            : headerSticky
+              ? "sticky"
+              : "relative",
+          // Pulled out of the flow by its own resting height, from lg only.
+          overlapLayout && !floatingUnmeasured && "lg:-mb-(--header-rest-h)",
+          "z-50 w-full",
+          // A row that returns on scroll-up slides back in rather than
+          // snapping; a top-returning row rides with the page and needs none.
+          hasScrollUpLeading && "transition-[top] duration-300 ease-out",
+        )}
+        style={{
+          // No `top` while absolute: that would leave the static position
+          // for the containing block's edge, over whatever sits above.
+          ...(headerSticky && !floatingUnmeasured ? { top: -hiddenOffset } : {}),
+          ...(overlapLayout && !floatingUnmeasured
+            ? { "--header-rest-h": `${restHeight}px` }
+            : {}),
+        } as CSSProperties}
       >
         <header
           className={cn(
-            "w-full [&_button]:cursor-pointer",
-            headerTransparent
-              ? "border-b border-border/40 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
-              : rowsPaintThemselves
-                ? "bg-transparent"
-                : "bg-background shadow-[0_2px_10px_rgba(15,23,42,0.06)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.35)]",
+            "relative w-full [&_button]:cursor-pointer",
+            // The fade back to the configured bar as the hero passes.
+            overlapLayout && "transition-colors duration-300",
+            overlapping && "max-lg:[box-shadow:var(--header-bar-shadow,none)]",
+            // Floating is desktop-only: below lg the bar keeps its own paint.
+            overlapping
+              ? headerTransparent
+                ? "max-lg:border-b max-lg:border-border/40 max-lg:bg-background/70 max-lg:backdrop-blur-md max-lg:supports-[backdrop-filter]:bg-background/60 lg:bg-transparent"
+                : rowsPaintThemselves
+                  ? "bg-transparent"
+                  : "bg-background lg:bg-transparent"
+              : headerTransparent
+                ? "border-b border-border/40 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/60"
+                : rowsPaintThemselves
+                  ? "bg-transparent"
+                  : "bg-background",
           )}
-          style={headerThemeStyle}
+          style={{
+            ...headerThemeStyle,
+            // Only the solid bar casts it: glass shows the page through, and
+            // self-painting rows carry their own. A floating bar casts none —
+            // on desktop, the only size that floats.
+            ...(!headerTransparent && !rowsPaintThemselves && barShadow
+              ? overlapping
+                ? { "--header-bar-shadow": barShadow }
+                : { boxShadow: barShadow }
+              : {}),
+          } as CSSProperties}
         >
+          {/* A soft fade from the top edge, in the hero tone's own shadow —
+              black over a dark hero, white over a light one — reaching past
+              the bar's foot so the ink reads over a busy picture. Behind the
+              rows, in front of the hero; gone as the bar returns to its
+              colours. */}
+          {overlapLayout && overlapScrim > 0 ? (
+            <div
+              aria-hidden
+              className="pointer-events-none max-lg:hidden absolute inset-x-0 top-0 -z-10 h-[160%] transition-opacity duration-300"
+              style={{
+                opacity: overlapping ? 1 : 0,
+                background: `linear-gradient(to bottom, ${
+                  overlapTone === "dark" ? "rgba(0,0,0," : "rgba(255,255,255,"
+                }${overlapScrim / 100}), transparent)`,
+              }}
+            />
+          ) : null}
           {/* From lg up: the layout tree, row by row. A row's paint spans
               the full width — a coloured nav strip runs edge to edge — while
               its columns sit inside the container. */}
-          <div className="hidden lg:block">
-            {tree.rows.map((row, index) => {
+          <div
+            className="hidden lg:block"
+            style={
+              overlapping
+                ? ({
+                    // Ink only: the popover variables stay as configured, or
+                    // every dropdown opened from the floating bar would come
+                    // up transparent too.
+                    "--background": "transparent",
+                    "--foreground": overlapInk,
+                    "--muted-foreground": overlapInk,
+                    // `color` itself, not only the token: globals.css applies
+                    // text-foreground at BODY, so an item that does not use
+                    // the utility inherits the page's ink and would stay dark
+                    // on a dark hero however the variable is set here.
+                    color: overlapInk,
+                  } as CSSProperties)
+                : undefined
+            }
+          >
+            {paintedTree.rows.map((row, index) => {
               const columns = visibleColumns(row);
               // Leading hiding rows are slid off by the wrapper's `top`;
               // only a hiding row below a fixed one has to fold.
               const folds = row.hideOnScroll && index >= leadingHidingRows;
-              const folded = folds && scrolled;
-              const rowTone = surfaceTone(row.background);
+              const folded =
+                folds && (rowReturnsOnScrollUp(row, index) ? scrolled : pastTop);
+              // While floating, the surface behind every row is the hero,
+              // not the row's own paint — so the logo picks its artwork from
+              // the tone the merchant named for it.
+              const rowTone = overlapping
+                ? overlapTone
+                : surfaceTone(row.background);
               return (
                 // A folding row folds through a 1fr → 0fr grid track, which
                 // animates its height without knowing what that height is.
@@ -2397,12 +2990,18 @@ export function StoreHeader({
                 <div
                   className={cn(folds && "min-h-0 overflow-hidden")}
                   style={{
-                    ...backgroundCss(row.background),
-                    ...rowSurfaceCss(row),
-                    ...rowBlurCss(row),
-                    borderBottom: row.borderBottom
-                      ? `${row.borderBottom}px solid ${row.borderColor || "currentColor"}`
-                      : undefined,
+                    // A floating row paints nothing: its own background, its
+                    // ink and its rule would all draw a bar across the hero.
+                    ...(overlapping
+                      ? {}
+                      : {
+                          ...backgroundCss(row.background),
+                          ...rowSurfaceCss(row),
+                          ...rowBlurCss(row),
+                          borderBottom: row.borderBottom
+                            ? `${row.borderBottom}px solid ${row.borderColor || "currentColor"}`
+                            : undefined,
+                        }),
                   }}
                 >
                   <div className={headerContainerClass}>
@@ -2479,12 +3078,23 @@ export function StoreHeader({
                 so results and the AI trigger behave identically. */}
             {showSearch && showMobileSearch && (
               <form onSubmit={handleSearch} className="pb-3">
-                <div className="relative" {...searchFieldFocusProps}>
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <div className="relative" {...searchFieldFocusProps()}>
+                  {/* The field paints its own background (`--header-search-bg`),
+                      so its icon and placeholder take the FIELD's ink, never the
+                      bar's: over a transparent header the bar's text is white,
+                      and a white placeholder on the white pill vanished. */}
+                  <Search
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                    style={
+                      activeHeaderColors
+                        ? { color: "var(--header-search-text)" }
+                        : undefined
+                    }
+                  />
                   <Input
                     type="search"
                     placeholder={searchPlaceholder}
-                    className="h-10 w-full rounded-full border border-[#dddddd] bg-transparent pl-11 pr-12 text-sm shadow-none placeholder:opacity-70 focus-visible:border-[#d3d3d3] focus-visible:bg-transparent focus-visible:ring-0 dark:border-white/15 dark:focus-visible:border-white/25"
+                    className="h-10 w-full rounded-full border border-[#dddddd] bg-transparent pl-11 pr-12 text-sm shadow-none placeholder:text-[color:var(--header-search-text,var(--muted-foreground))] placeholder:opacity-70 focus-visible:border-[#d3d3d3] focus-visible:bg-transparent focus-visible:ring-0 dark:border-white/15 dark:focus-visible:border-white/25"
                     style={mobileSearchInputStyle}
                     value={searchQuery}
                     onChange={(e) => handleSearchQueryChange(e.target.value)}
@@ -2562,6 +3172,62 @@ export function StoreHeader({
               categoryMobileLimit={categoryMobileLimit}
               collectionsLimit={collectionsLimit}
               megaMenuRootLimit={MAX_MEGA_MENU_ROOT_ITEMS}
+            />
+          ) : null}
+
+          {sideDrawer ? (
+            <SideDrawer
+              open={sideDrawerOpen}
+              onOpenChange={setSideDrawerOpen}
+              side={sideDrawer.side}
+              primary={sideDrawer.primary}
+              secondary={sideDrawer.secondary}
+              label={sideDrawer.label}
+              onSearch={
+                showSearch && drawerSearchIcon
+                  ? () => openSearchDrawerFor(drawerSearchIcon)
+                  : undefined
+              }
+              onSearchSubmit={
+                showSearch
+                  ? (query) => {
+                      setSearchQuery(query);
+                      router.push(
+                        `/${locale}/products?search=${encodeURIComponent(query)}`,
+                      );
+                    }
+                  : undefined
+              }
+              languages={languages.map(({ code, name }) => ({ code, name }))}
+              currentLanguage={locale || language.code}
+              onLanguageChange={(code) => {
+                const current = locale || language.code;
+                if (code !== current) {
+                  router.push(swapLocaleInPathname(pathname, current, code));
+                }
+              }}
+            />
+          ) : null}
+
+          {searchDrawer ? (
+            <SearchDrawer
+              open={searchDrawerOpen}
+              onOpenChange={setSearchDrawerOpen}
+              locale={locale}
+              // The header's own search state: one query, one suggestion
+              // fetch, one submit — shared with every other search field.
+              query={searchQuery}
+              onQueryChange={handleSearchQueryChange}
+              onSubmit={handleSearch}
+              suggestions={searchSuggestions}
+              isSearching={isSearching}
+              correctedTo={searchCorrectedTo}
+              placeholder={searchPlaceholder}
+              trending={searchDrawer.trending}
+              collectionIds={searchDrawer.collections}
+              fieldStyle={searchDrawer.fieldStyle}
+              fieldRadius={searchDrawer.fieldRadius}
+              brand={{ logoUrl: currentLogoUrl, name: brandName }}
             />
           ) : null}
         </header>

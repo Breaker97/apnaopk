@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import Link from "next/link";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import {
   useState,
@@ -24,6 +24,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -48,6 +56,10 @@ import {
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/providers/currency-provider";
+import {
+  buildPreorderMandateText,
+  preorderMandateRequired,
+} from "@/lib/payments/preorder-mandate";
 import { toast } from "@/components/ui/toast-notification";
 import { AppImage } from "@/components/ui/app-image";
 import { CouponInput } from "@/components/checkout/coupon-input";
@@ -86,6 +98,7 @@ import {
   trackPaymentInfo,
 } from "@/lib/analytics/events";
 import { saveGuestCheckoutEmail } from "@/lib/checkout/checkout-guest-contact";
+import { isCartPricesChangedResponse } from "@/lib/checkout/cart-price-change";
 import { buildLoginUrl } from "@/lib/auth/return-path";
 import { cn } from "@/lib/utils";
 import {
@@ -93,13 +106,30 @@ import {
   DEFAULT_ORDER_SHIPPING_COST,
   DEFAULT_ORDER_TAX_RATE,
 } from "@/lib/orders/order-settings";
-import { signOut } from "@/lib/auth/auth-client";
+import { signOut, signUp } from "@/lib/auth/auth-client";
+import {
+  contactModeCollects,
+  type CheckoutCustomField,
+  type ConfigurableAddressField,
+  type PublicCheckoutSettings,
+} from "@/lib/checkout/checkout-config";
+import {
+  CHECKOUT_NOTE_MAX,
+  activeCheckoutCustomFields,
+  evaluateCheckoutSubmission,
+  paymentMethodNeedsEmail,
+  type CheckoutIssueCode,
+} from "@/lib/checkout/checkout-form-policy";
+import { MIN_ALLOWED_PASSWORD_LENGTH } from "@/lib/auth/password-policy";
 import {
   requiresPickupSelection,
   type CheckoutFulfillmentMethod,
 } from "@/lib/checkout/pickup-fulfillment-shared";
 import {
+  DELIVERY_DESTINATION_FIELDS,
+  MANUAL_DELIVERY_ADDRESS_FIELDS,
   PaymentProviderLogo,
+  accountRecipientName,
   buildCheckoutAddressPayload,
   canOfferToSaveAddress,
   createStripeElementStyle,
@@ -110,7 +140,8 @@ import {
   formatPreorderDate,
   getCheckoutProductId,
   getCouponErrorMessage,
-  loadRazorpayCheckoutScript,
+  hasDeliveryDestination,
+  openRazorpayCheckout,
   requiresFreshShippingQuote,
   savedAddressFormValues,
   savedAddressIndexForLocation,
@@ -121,7 +152,6 @@ import {
   type CheckoutFormData,
   type CheckoutShippingResolution,
   type CheckoutVendorRateGroup,
-  type RazorpayCheckoutResponse,
   type SavedCheckoutAddress,
 } from "@/components/checkout/checkout-helpers";
 import { resolveInitialPickupLocationId } from "@/lib/checkout/pickup-distance";
@@ -131,6 +161,7 @@ import {
 } from "@/lib/locations/shopper-location";
 import { readStoredShopperLocationFromBrowser } from "@/lib/locations/shopper-location-client";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { preorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
 
 type PickupAvailabilityState = {
   loading: boolean;
@@ -160,13 +191,38 @@ const IOTEC_CHANNELS = [
   },
 ];
 
-export function CheckoutContent() {
+/** The form's plain text inputs — the ones a floating-label input can bind. */
+type CheckoutTextFieldName = {
+  [K in keyof CheckoutFormData]-?: CheckoutFormData[K] extends string | undefined
+    ? K
+    : never;
+}[keyof CheckoutFormData];
+
+/** Form paths for a billing address's configurable fields. */
+const BILLING_FORM_FIELD = {
+  firstName: "billingFirstName",
+  lastName: "billingLastName",
+  apartment: "billingApartment",
+  postalCode: "billingPostalCode",
+  state: "billingState",
+  phone: "billingPhone",
+} as const satisfies Record<ConfigurableAddressField, keyof CheckoutFormData>;
+
+interface CheckoutContentProps {
+  /**
+   * The admin's checkout settings, server-rendered by the page so the form
+   * opens with the right fields instead of re-laying itself out after a fetch.
+   */
+  settings: PublicCheckoutSettings;
+}
+
+export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentProps) {
   const t = useTranslations();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = params.locale as string;
-  const { countryAvailability } = useAppSettings();
+  const { countryAvailability, mtnMomoPhoneExample } = useAppSettings();
   const defaultCountry = useMemo(() => {
     if (isCountryAllowed("United States", countryAvailability)) {
       return "United States";
@@ -182,7 +238,6 @@ export function CheckoutContent() {
     subtotal,
     shippableSubtotal,
     totalWeight,
-    clearCart,
     refreshCart,
     removeItem,
     isLoading,
@@ -194,11 +249,53 @@ export function CheckoutContent() {
   // how Shopify handles digital checkouts. The server applies the same rule.
   const isDigitalOnly = items.length > 0 && !hasShippableItems;
 
+  const { formatPrice, currency } = useCurrency();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const collects = contactModeCollects(checkoutSettings.contact.mode);
+  const { guestCheckout, signupAtCheckout } = checkoutSettings.accounts;
+  // With guest checkout off, a guest's only way through is the account this
+  // checkout creates for them.
+  const accountRequired = !isAuthenticated && !guestCheckout && signupAtCheckout;
+  const activeCustomFields = activeCheckoutCustomFields(checkoutSettings, {
+    digitalOnly: isDigitalOnly,
+  });
+
+  const tr = (key: string, fallback: string) => (t.has(key) ? t(key) : fallback);
+  const issueMessage = (code: CheckoutIssueCode) => {
+    switch (code) {
+      case "invalid_email":
+        return t("validation.email");
+      case "invalid_phone":
+        return tr("validation.phone", "Enter a valid phone number");
+      case "invalid_number":
+        return tr("validation.number", "Enter a number");
+      case "invalid_date":
+        return tr("validation.date", "Enter a valid date");
+      case "invalid_option":
+        return tr("validation.option", "Choose one of the options");
+      case "too_long":
+        return tr("validation.tooLong", "This answer is too long");
+      default:
+        return t("validation.required");
+    }
+  };
+
   const checkoutSchema = z
     .object({
       firstName: z.string(),
       lastName: z.string(),
-      email: z.string().email(t("validation.email")),
+      email: z.string(),
+      contactPhone: z.string(),
+      createAccount: z.boolean(),
+      accountPassword: z.string(),
+      customerNote: z.string(),
+      // Values may be absent (a field added while this tab was open); what
+      // an answer must be is the policy's call below, not the base shape's —
+      // a failure here would skip the refinement and hide every other error.
+      customFields: z.record(
+        z.string(),
+        z.union([z.string(), z.boolean()]).optional(),
+      ),
       phone: z.string(),
       address: z.string(),
       apartment: z.string().optional(),
@@ -232,39 +329,103 @@ export function CheckoutContent() {
       billingPhone: z.string(),
     })
     .superRefine((data, ctx) => {
+      const issue = (path: string, message: string) =>
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: path.split("."),
+          message,
+        });
       const requireFields = (fields: Array<keyof CheckoutFormData>) => {
         for (const field of fields) {
           const value = data[field];
           if (typeof value !== "string" || !value.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [field],
-              message: t("validation.required"),
-            });
+            issue(field, t("validation.required"));
           }
         }
       };
+      const billingCollected =
+        isDigitalOnly || data.billingSameAsShipping === "different";
 
-      // Shipping address is only collected for carts with physical items.
-      if (!isDigitalOnly) {
-        requireFields(["lastName", "address", "city", "country"]);
+      // Street, city and country: never configurable, a delivery needs them.
+      if (!isDigitalOnly) requireFields([...DELIVERY_DESTINATION_FIELDS]);
+      if (billingCollected) {
+        requireFields(["billingAddress", "billingCity", "billingCountry"]);
       }
 
-      // Billing fields are required when billing differs from shipping — and
-      // always on digital-only checkouts, where billing is the only address.
-      if (isDigitalOnly || data.billingSameAsShipping === "different") {
-        requireFields([
-          "billingLastName",
-          "billingAddress",
-          "billingCity",
-          "billingPostalCode",
-          "billingCountry",
-        ]);
+      // Everything the admin configured — the same evaluation the payment
+      // routes run, so the form cannot accept what the server refuses.
+      const { issues } = evaluateCheckoutSubmission({
+        settings: checkoutSettings,
+        // A guest creating an account is still a guest to the order until
+        // the sign-up lands; the gate is on the form itself.
+        isAuthenticated: isAuthenticated || data.createAccount || accountRequired,
+        digitalOnly: isDigitalOnly,
+        email: data.email,
+        phone: data.contactPhone,
+        accountEmail: user?.email,
+        accountPhone: user?.phone,
+        paymentMethod: data.paymentMethod,
+        iotecChannel: data.iotecChannel,
+        shippingAddress: isDigitalOnly
+          ? undefined
+          : {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              apartment: data.apartment,
+              postalCode: data.postalCode,
+              state: data.state,
+              phone: data.phone,
+            },
+        billingAddress: billingCollected
+          ? {
+              firstName: data.billingFirstName,
+              lastName: data.billingLastName,
+              apartment: data.billingApartment,
+              postalCode: data.billingPostalCode,
+              state: data.billingState,
+              phone: data.billingPhone,
+            }
+          : undefined,
+        customerNote: data.customerNote,
+        customFields: data.customFields,
+      });
+      for (const entry of issues) {
+        const message = issueMessage(entry.code);
+        switch (entry.scope) {
+          case "contact":
+            if (entry.field === "email") issue("email", message);
+            else if (entry.field === "phone") issue("contactPhone", message);
+            break;
+          case "shipping":
+            issue(entry.field, message);
+            break;
+          case "billing":
+            issue(BILLING_FORM_FIELD[entry.field], message);
+            break;
+          case "custom":
+            issue(`customFields.${entry.field}`, message);
+            break;
+          case "note":
+            issue("customerNote", message);
+            break;
+        }
+      }
+
+      // The account this checkout creates signs in by email and password.
+      if (!isAuthenticated && (data.createAccount || accountRequired)) {
+        if (!data.email.trim()) issue("email", t("validation.required"));
+        if (data.accountPassword.length < MIN_ALLOWED_PASSWORD_LENGTH) {
+          issue(
+            "accountPassword",
+            tr(
+              "checkout.account.passwordTooShort",
+              `Use at least ${MIN_ALLOWED_PASSWORD_LENGTH} characters`,
+            ),
+          );
+        }
       }
     });
 
-  const { formatPrice, currency } = useCurrency();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { isDark } = useAppTheme();
   const stripeElementStyle = useMemo(
     () => createStripeElementStyle(isDark),
@@ -276,8 +437,18 @@ export function CheckoutContent() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [emailMarketingOptIn, setEmailMarketingOptIn] = useState(false);
+  // Opt-in by default; only the admin's "pre-ticked" setting starts it on.
+  const [emailMarketingOptIn, setEmailMarketingOptIn] = useState(
+    checkoutSettings.contact.marketingOptIn.enabled &&
+      checkoutSettings.contact.marketingOptIn.defaultChecked,
+  );
   const [preorderAccepted, setPreorderAccepted] = useState(false);
+  // Separate from the shipping acknowledgement above on purpose: one says
+  // "I know this ships later", the other hands the store a card to keep.
+  // Folding them together would make a payment authorisation something a
+  // shopper gives away while agreeing to a delivery date.
+  const [preorderMandateAccepted, setPreorderMandateAccepted] =
+    useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState<{
     stripeEnabled: boolean;
@@ -339,20 +510,6 @@ export function CheckoutContent() {
     zones: [],
     fallbackRate: { enabled: false, name: "Standard", price: 0 },
   });
-  // Admin-configured checkout branding (constrained editor): trust copy under
-  // the Payment heading + the policy-link row under the pay button.
-  const [checkoutBranding, setCheckoutBranding] = useState<{
-    message: string;
-    showSecureBadge: boolean;
-    supportText: string;
-    policyLinks: { label: string; href: string; visible: boolean }[];
-  }>({
-    message: "",
-    showSecureBadge: true,
-    supportText: "",
-    policyLinks: [],
-  });
-
   const [cardholderName, setCardholderName] = useState("");
   const [stripeElementReady, setStripeElementReady] = useState(false);
   const [stripeElementError, setStripeElementError] = useState<string | null>(
@@ -363,6 +520,14 @@ export function CheckoutContent() {
   const cardNumberElementRef = useRef<StripeCardNumberElement | null>(null);
   const cardExpiryElementRef = useRef<StripeCardExpiryElement | null>(null);
   const cardCvcElementRef = useRef<StripeCardCvcElement | null>(null);
+  // Read by the mount effect without being dependencies of it. `t` is a new
+  // function every time the layout re-sends its messages — which any
+  // `router.refresh()` does, and the storefront refreshes on tab focus — so
+  // depending on it threw away the card the shopper had already typed, and
+  // mid-payment handed `confirmCardPayment` an element that no longer
+  // existed ("make sure the Element you are attempting to use is mounted").
+  const tRef = useRef(t);
+  const stripeElementStyleRef = useRef(stripeElementStyle);
   const recoveredTokenRef = useRef<string | null>(null);
   const autoAppliedCouponRef = useRef<string | null>(null);
   const trackedCheckoutSignaturesRef = useRef<Set<string>>(new Set());
@@ -381,7 +546,10 @@ export function CheckoutContent() {
     () => items.some((item) => item.purchaseType === "preorder"),
     [items],
   );
-  const preorderDateLabel = useMemo(() => {
+  // The latest of the pre-order release dates, which is what the server's
+  // `getPreorderReleaseDateForOrder` picks too — the mandate text below is
+  // composed on both sides and the two have to agree on their inputs.
+  const preorderLatestReleaseDate = useMemo(() => {
     const dates = items
       .filter((item) => item.purchaseType === "preorder")
       .map((item) => {
@@ -391,12 +559,18 @@ export function CheckoutContent() {
         return date && !Number.isNaN(date.getTime()) ? date : null;
       })
       .filter((date): date is Date => Boolean(date));
-    if (dates.length === 0) return "";
-    const latest = dates.reduce((max, date) =>
+    if (dates.length === 0) return null;
+    return dates.reduce((max, date) =>
       date.getTime() > max.getTime() ? date : max,
     );
-    return formatPreorderDate(latest);
   }, [items]);
+  const preorderDateLabel = useMemo(
+    () =>
+      preorderLatestReleaseDate
+        ? formatPreorderDate(preorderLatestReleaseDate)
+        : "",
+    [preorderLatestReleaseDate],
+  );
 
   useApplyOnChange([hasPreorderItems], () => {
     if (!hasPreorderItems) setPreorderAccepted(false);
@@ -463,16 +637,23 @@ export function CheckoutContent() {
     };
   }, []);
 
-  useApplyOnChange([isAuthenticated], () => {
-    setEmailMarketingOptIn(isAuthenticated);
-  });
-
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
+      contactPhone: "",
+      createAccount: false,
+      accountPassword: "",
+      customerNote: "",
+      // Seeded per field so every input is controlled from the first render.
+      customFields: Object.fromEntries(
+        checkoutSettings.customFields.map((field) => [
+          field.id,
+          field.type === "checkbox" ? false : "",
+        ]),
+      ),
       phone: "",
       address: "",
       apartment: "",
@@ -506,6 +687,9 @@ export function CheckoutContent() {
   >(null);
   const [deliveryAddressMode, setDeliveryAddressMode] =
     useState<CheckoutDeliveryAddressMode>("manual");
+  const deliveryFieldToFocus = useRef<
+    (typeof MANUAL_DELIVERY_ADDRESS_FIELDS)[number] | null
+  >(null);
   // Opt-in, not opt-out: saving is a write to the shopper's account, and a
   // pre-ticked box would file every one-time address they ever used.
   const [saveDeliveryAddress, setSaveDeliveryAddress] = useState(false);
@@ -550,18 +734,17 @@ export function CheckoutContent() {
     if (!currentEmail && user?.email) {
       form.setValue("email", user.email, { shouldValidate: true });
     }
+    if (!form.getValues("contactPhone") && user?.phone) {
+      form.setValue("contactPhone", user.phone);
+    }
 
     // Fill name from user profile
-    if (user?.name) {
-      const parts = user.name.trim().split(/\s+/);
-      const first = parts.slice(0, -1).join(" ") || "";
-      const last = parts[parts.length - 1] || "";
-      if (!form.getValues("firstName") && first) {
-        form.setValue("firstName", first);
-      }
-      if (!form.getValues("lastName") && last) {
-        form.setValue("lastName", last);
-      }
+    const { firstName: first, lastName: last } = accountRecipientName(user?.name);
+    if (!form.getValues("firstName") && first) {
+      form.setValue("firstName", first);
+    }
+    if (!form.getValues("lastName") && last) {
+      form.setValue("lastName", last);
     }
 
     let active = true;
@@ -594,7 +777,7 @@ export function CheckoutContent() {
         );
         if (defaultIndex === null || hasManualDeliveryFields) return;
 
-        const values = savedAddressFormValues(addresses[defaultIndex]!);
+        const values = savedAddressFormValues(addresses[defaultIndex]!, user?.name);
         form.setValue("firstName", values.firstName);
         form.setValue("lastName", values.lastName);
         form.setValue("address", values.address);
@@ -662,24 +845,6 @@ export function CheckoutContent() {
           setShippingConfig(
             json.data.shipping || { enabled: false, zones: [] },
           );
-          if (json.data.checkout?.trust) {
-            setCheckoutBranding({
-              message:
-                typeof json.data.checkout.trust.message === "string"
-                  ? json.data.checkout.trust.message
-                  : "",
-              showSecureBadge:
-                json.data.checkout.trust.showSecureBadge !== false,
-              supportText:
-                typeof json.data.checkout.trust.supportText === "string"
-                  ? json.data.checkout.trust.supportText
-                  : "",
-              policyLinks: Array.isArray(json.data.checkout.policyLinks)
-                ? json.data.checkout.policyLinks
-                : [],
-            });
-          }
-
           // Only the "nothing at all is set up" case is decided here. Which
           // method the form lands on is `paymentMethods` below and the effect
           // that follows it — those know what is actually rendered, including
@@ -838,6 +1003,20 @@ export function CheckoutContent() {
       return sum + (opt?.cost ?? g.cost);
     }, 0);
   }, [perVendorMode, vendorRateGroups, vendorShippingSelections]);
+  // Each seller's delivery as selected — what a seller's own free-shipping
+  // coupon covers, priced the same way checkout will price it.
+  const shippingByVendor = useMemo(() => {
+    if (!perVendorMode) return undefined;
+    return Object.fromEntries(
+      vendorRateGroups.map((g) => {
+        const selId = vendorShippingSelections[g.vendorId] ?? g.selectedOptionId;
+        const opt =
+          g.options.find((o) => o.id === selId) ||
+          g.options.find((o) => o.id === g.selectedOptionId);
+        return [g.vendorId, opt?.cost ?? g.cost];
+      }),
+    );
+  }, [perVendorMode, vendorRateGroups, vendorShippingSelections]);
 
   const selectedSingleOption =
     shippingOptions.find((option) => option.id === selectedShippingOptionId) ||
@@ -852,11 +1031,22 @@ export function CheckoutContent() {
     ? perVendorShippingCost
     : singleShippingCost;
   const shippingCost = fulfillmentMethod === "pickup" ? 0 : deliveryShippingCost;
+  // Delivery is quoted only once the shopper has said where it is going — the
+  // pre-filled default country alone is not that (see hasDeliveryDestination;
+  // the cart estimator holds back for the same reason). Pickup and
+  // download-only carts have nothing to rate, so they never wait on a quote.
+  const shippingRatesWanted =
+    fulfillmentMethod === "delivery" &&
+    !isDigitalOnly &&
+    hasDeliveryDestination({
+      address: watchedAddress,
+      city: watchedCity,
+      country: watchedCountry,
+    });
   const shippingUnavailable =
     fulfillmentMethod === "delivery" && serverShippingResolution?.available === false;
   const shippingQuotePending = requiresFreshShippingQuote({
-    hasDestination:
-      fulfillmentMethod === "delivery" && Boolean(watchedCountry.trim()),
+    hasDestination: shippingRatesWanted,
     loading: isShippingRateLoading,
     resolution: serverShippingResolution,
   });
@@ -952,13 +1142,8 @@ export function CheckoutContent() {
 
   // Fetch authoritative product/variant-aware rates for both single and
   // per-vendor carts. The server normalizes weight units and excludes digital
-  // items before selecting rates.
-  // Nothing to rate for pickup, digital-only carts or a missing country; the
-  // request below only runs when there is.
-  const shippingRatesWanted =
-    fulfillmentMethod !== "pickup" &&
-    !isDigitalOnly &&
-    Boolean(watchedCountry && watchedCountry.trim());
+  // items before selecting rates. The request only runs while
+  // `shippingRatesWanted`.
   useApplyOnChange(
     [
       items,
@@ -967,6 +1152,7 @@ export function CheckoutContent() {
       shippingRateRetry,
       fulfillmentMethod,
       isDigitalOnly,
+      shippingRatesWanted,
     ],
     () => {
       if (!shippingRatesWanted) {
@@ -1070,7 +1256,7 @@ export function CheckoutContent() {
     const address = savedAddresses[index];
     if (!address) return;
 
-    const values = savedAddressFormValues(address);
+    const values = savedAddressFormValues(address, user?.name);
     form.setValue("firstName", values.firstName, { shouldValidate: true });
     form.setValue("lastName", values.lastName, { shouldValidate: true });
     form.setValue("address", values.address, { shouldValidate: true });
@@ -1158,6 +1344,7 @@ export function CheckoutContent() {
     shippingCost,
     taxRate,
     coupon: appliedCoupon,
+    shippingByVendor,
     currency: currency.code,
   });
   const discount = totals.subtotalDiscount;
@@ -1165,12 +1352,28 @@ export function CheckoutContent() {
   const discountedShippingCost = totals.discountedShippingCost;
   const tax = totals.tax;
   const total = totals.total + customsDutyAmount;
-  const preorderOutstandingAmount = hasPreorderItems
-    ? items.reduce(
-        (sum, item) => sum + Number(item.preorderOutstandingAmount || 0),
-        0,
+  // What each pre-order line leaves for later once the coupon is shared
+  // between its deposit and its balance — the split checkout charges by.
+  const preorderOutstandingByLine = hasPreorderItems
+    ? preorderOutstandingAfterCoupon(
+        items.map((item) => ({
+          price: item.price,
+          quantity: item.quantity,
+          purchaseType: item.purchaseType,
+          preorderOutstandingAmount: item.preorderOutstandingAmount,
+          vendorId: item.vendorId ?? null,
+        })),
+        {
+          goodsDiscount: totals.subtotalDiscount,
+          vendorShares: appliedCoupon?.vendorShares,
+        },
+        currency.code,
       )
-    : 0;
+    : [];
+  const preorderOutstandingAmount = preorderOutstandingByLine.reduce(
+    (sum, value) => sum + value,
+    0,
+  );
   const preorderDueNow = Math.max(0, total - preorderOutstandingAmount);
   const appliedCouponForDisplay = appliedCoupon
     ? {
@@ -1243,6 +1446,7 @@ export function CheckoutContent() {
             cartItems: couponCartItems,
             subtotal,
             shippingCost,
+            ...(shippingByVendor ? { shippingByVendor } : {}),
           }),
         });
         const data = await res.json().catch(() => null);
@@ -1263,6 +1467,8 @@ export function CheckoutContent() {
           type: data.data.type,
           discountTarget: data.data.discountTarget,
           maxDiscount: data.data.maxDiscount,
+          vendorShares: data.data.vendorShares,
+          shippingVendorId: data.data.shippingVendorId,
         });
       } catch (error) {
         if (!active) return;
@@ -1281,6 +1487,7 @@ export function CheckoutContent() {
     appliedCoupon?.code,
     couponCartItems,
     couponCodeFromCart,
+    shippingByVendor,
     items.length,
     settingsLoaded,
     shippingCost,
@@ -1288,8 +1495,11 @@ export function CheckoutContent() {
     t,
   ]);
 
+  const trackAbandonedCheckout = checkoutSettings.abandonedCheckouts.enabled;
   useEffect(() => {
-    if (!items.length) return;
+    // Switched off in the checkout settings: nothing about this checkout is
+    // recorded for recovery.
+    if (!items.length || !trackAbandonedCheckout) return;
 
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = form.subscribe({
@@ -1298,7 +1508,9 @@ export function CheckoutContent() {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         const email = typeof value.email === "string" ? value.email.trim() : "";
-        const phone = typeof value.phone === "string" ? value.phone.trim() : "";
+        const phone =
+          (typeof value.contactPhone === "string" && value.contactPhone.trim()) ||
+          (typeof value.phone === "string" ? value.phone.trim() : "");
         if (!email && !phone) return;
 
         const shippingAddress = buildCheckoutAddressPayload({
@@ -1368,9 +1580,14 @@ export function CheckoutContent() {
     tax,
     total,
     totals.discount,
+    trackAbandonedCheckout,
   ]);
 
   const watchedEmail = useWatch({ control: form.control, name: "email" });
+  const watchedCreateAccount = useWatch({
+    control: form.control,
+    name: "createAccount",
+  });
   const contactLabel = user?.email || watchedEmail;
   const contactInitial = String(user?.name || contactLabel || "C")
     .trim()
@@ -1395,8 +1612,46 @@ export function CheckoutContent() {
       : "Standard";
 
   const selectedPayment = useWatch({ control: form.control, name: "paymentMethod" });
+  // The sentence the shopper agrees to, built by the same function the server
+  // uses to compose the copy it stores on the order — so the record is of what
+  // was actually on screen. See `lib/payments/preorder-mandate.ts`.
+  //
+  // Asked of anyone paying by card, signed in or not: a guest's card is kept on
+  // a Customer minted for their checkout, so a guest's say-so is needed exactly
+  // like anybody else's. Not asked at all for any other method — nothing is
+  // kept, so a sentence about keeping a card would be permission for nothing.
+  // The server applies the identical rule (`savesCard` in deferred-balance.ts).
+  // Declared after `selectedPayment`, which it reads.
+  const needsPreorderMandate =
+    preorderMandateRequired(preorderOutstandingAmount) &&
+    selectedPayment === "card";
+  const preorderMandateText = useMemo(
+    () =>
+      needsPreorderMandate
+        ? buildPreorderMandateText({
+            outstandingAmount: preorderOutstandingAmount,
+            currency: currency.code,
+            releaseDate: preorderLatestReleaseDate,
+          })
+        : "",
+    [
+      needsPreorderMandate,
+      preorderOutstandingAmount,
+      currency.code,
+      preorderLatestReleaseDate,
+    ],
+  );
+  // A cart that stops owing anything later — or a shopper who switches away
+  // from card — must not carry a card authorisation nobody is being shown.
+  useApplyOnChange([needsPreorderMandate], () => {
+    if (!needsPreorderMandate) setPreorderMandateAccepted(false);
+  });
   const selectedIotecChannel =
     useWatch({ control: form.control, name: "iotecChannel" }) || "mobile_money";
+  const watchedBillingCountry = useWatch({
+    control: form.control,
+    name: "billingCountry",
+  });
   const billingAddressMode = useWatch({
     control: form.control,
     name: "billingSameAsShipping",
@@ -1412,6 +1667,19 @@ export function CheckoutContent() {
       setStripeElementError(null);
     }
   });
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
+  useEffect(() => {
+    stripeElementStyleRef.current = stripeElementStyle;
+    // Restyled in place on a theme switch. Tearing the elements down and
+    // building them again would clear the card number mid-form.
+    cardNumberElementRef.current?.update({ style: stripeElementStyle });
+    cardExpiryElementRef.current?.update({ style: stripeElementStyle });
+    cardCvcElementRef.current?.update({ style: stripeElementStyle });
+  }, [stripeElementStyle]);
+
   useEffect(() => {
     const publishableKey = stripePublishableKey;
     if (!stripeMountWanted || !publishableKey) {
@@ -1456,18 +1724,20 @@ export function CheckoutContent() {
         const elements = stripe.elements();
         stripeElementsRef.current = elements;
 
+        const style = stripeElementStyleRef.current;
+        const translate = tRef.current;
         const cardNumber = elements.create("cardNumber", {
-          style: stripeElementStyle,
+          style,
           showIcon: false,
-          placeholder: t("payment.cardNumber"),
+          placeholder: translate("payment.cardNumber"),
         });
         const cardExpiry = elements.create("cardExpiry", {
-          style: stripeElementStyle,
-          placeholder: t("payment.expiryDate"),
+          style,
+          placeholder: translate("payment.expiryDate"),
         });
         const cardCvc = elements.create("cardCvc", {
-          style: stripeElementStyle,
-          placeholder: t("payment.cvv"),
+          style,
+          placeholder: translate("payment.cvv"),
         });
 
         cardNumber.on("change", (ev) => {
@@ -1520,8 +1790,6 @@ export function CheckoutContent() {
     cardNumberMountEl,
     cardExpiryMountEl,
     cardCvcMountEl,
-    stripeElementStyle,
-    t,
     stripeMountWanted,
     stripePublishableKey,
   ]);
@@ -1705,6 +1973,33 @@ export function CheckoutContent() {
   const onSubmit = async (data: CheckoutFormData) => {
     setIsSubmitting(true);
     setError(null);
+    // Once the order is in, the button keeps spinning until the success page
+    // replaces this one, rather than flipping back to a live "Complete order"
+    // over a cart the server has already emptied. The success page re-reads
+    // the cart, so nothing is cleared here to hold the hand-off up.
+    let handedOff = false;
+    const goToSuccess = (href: string) => {
+      handedOff = true;
+      router.push(href);
+    };
+    // A payment route refused because a price moved since this summary was
+    // drawn; nothing was charged. The cart already holds the new prices, so it
+    // is re-read quietly (a loud refresh would swap the filled-in form for the
+    // skeleton) and the summary shows the total the shopper would really pay.
+    // A coupon goes too, as it does when a line is removed: its discount was
+    // worked out on the old prices and the total must not quote it.
+    const pricesChangedError = async () => {
+      const hadCoupon = Boolean(appliedCoupon);
+      await refreshCart(true).catch((err) =>
+        console.error("Failed to re-read the cart after a price change:", err),
+      );
+      if (hadCoupon) setAppliedCoupon(null);
+      return new Error(
+        hadCoupon
+          ? t("checkout.pricesChangedCouponRemoved")
+          : t("checkout.pricesChanged"),
+      );
+    };
 
     try {
       if (pickupSelectionRequired) {
@@ -1800,6 +2095,81 @@ export function CheckoutContent() {
       if (hasPreorderItems && !preorderAccepted) {
         throw new Error("Please confirm the pre-order shipping terms");
       }
+      if (needsPreorderMandate && !preorderMandateAccepted) {
+        throw new Error(
+          "Please authorise the remaining balance to be charged to your card when your pre-order ships",
+        );
+      }
+
+      // "Create an account": signed up before payment, so the order belongs
+      // to the account from the start. The session the sign-up opens is picked
+      // up by the requests below; the cart refresh (silent — a loading flip
+      // would unmount the card fields) folds the guest cart into the account's.
+      let placingAsGuest = !isAuthenticated;
+      if (!isAuthenticated && (data.createAccount || accountRequired)) {
+        const accountName =
+          `${data.firstName} ${data.lastName}`.trim() ||
+          `${data.billingFirstName} ${data.billingLastName}`.trim() ||
+          data.email.split("@")[0];
+        const signUpResult = await signUp.email({
+          name: accountName,
+          email: data.email.trim(),
+          password: data.accountPassword,
+          callbackURL: `/${locale}/email-verified`,
+          ...(data.contactPhone.trim() ? { phone: data.contactPhone.trim() } : {}),
+        } as Parameters<typeof signUp.email>[0]);
+        if (signUpResult.error) {
+          const code = (signUpResult.error as { code?: string }).code || "";
+          throw new Error(
+            /USER_ALREADY_EXISTS/i.test(code)
+              ? tr(
+                  "checkout.account.exists",
+                  "An account with this email already exists. Log in, or untick “Create an account”.",
+                )
+              : signUpResult.error.message || t("common.error"),
+          );
+        }
+        const signedIn = Boolean(
+          (signUpResult.data as { token?: string | null } | null)?.token,
+        );
+        if (signedIn) {
+          placingAsGuest = false;
+          await refreshCart(true);
+        } else if (!guestCheckout) {
+          // The store verifies emails first, and takes no guest orders.
+          toast.success(
+            tr(
+              "checkout.account.verifyFirst",
+              "Account created. Verify your email, then log in to finish your order.",
+            ),
+          );
+          return;
+        } else {
+          toast.success(
+            tr(
+              "checkout.account.verifyLater",
+              "Account created — verify your email to see this order in it.",
+            ),
+          );
+        }
+      }
+
+      // Only the answers to fields this checkout actually shows; the server
+      // drops anything else regardless.
+      const customFieldValues = Object.fromEntries(
+        activeCustomFields
+          .map((field) => [field.id, data.customFields?.[field.id]] as const)
+          .filter(([, value]) => value !== undefined && value !== ""),
+      );
+      const contactPayload = {
+        phone: data.contactPhone.trim() || undefined,
+        customerNote:
+          checkoutSettings.orderNote.visibility !== "hidden"
+            ? data.customerNote.trim() || undefined
+            : undefined,
+        customFields:
+          Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
+      };
 
       const shippingAddress = buildCheckoutAddressPayload(
         {
@@ -1813,7 +2183,7 @@ export function CheckoutContent() {
           country: data.country,
           phone: data.phone,
         },
-        user?.phone || "",
+        data.contactPhone.trim() || user?.phone || "",
       );
       const billingAddress =
         isDigitalOnly || data.billingSameAsShipping === "different"
@@ -1844,9 +2214,33 @@ export function CheckoutContent() {
       // A guest has no session for the success page to download the invoice
       // with, so it verifies through the public tracking endpoint instead —
       // which needs the email this order is about to be placed under.
-      if (!isAuthenticated) {
-        saveGuestCheckoutEmail(data.email);
+      if (placingAsGuest) {
+        // The public invoice lookup matches either; the email is the better key.
+        saveGuestCheckoutEmail(data.email.trim() || data.contactPhone);
       }
+
+      // What placing the order looks like, whichever way it is paid for. Shared
+      // because the card path can end up here too: a pre-order with nothing to
+      // pay today is placed through this endpoint after its card is set up.
+      const checkoutPayload = {
+        shippingAddress: isDigitalOnly ? undefined : shippingAddress,
+        billingAddress,
+        paymentMethod: data.paymentMethod,
+        email: data.email.trim() || undefined,
+        ...contactPayload,
+        couponCode: appliedCoupon?.code,
+        locale,
+        fulfillmentMethod,
+        pickupLocationId: selectedPickupLocationId ?? undefined,
+        selectedShippingOptionId,
+        vendorShippingSelections: perVendorMode
+          ? vendorShippingSelections
+          : undefined,
+        preorderAcknowledged: hasPreorderItems ? preorderAccepted : undefined,
+        preorderMandateAccepted: needsPreorderMandate
+          ? preorderMandateAccepted
+          : undefined,
+      };
 
       if (
         data.paymentMethod === "card" &&
@@ -1855,8 +2249,7 @@ export function CheckoutContent() {
         paymentConfig.stripePublishableKey
       ) {
         const stripe = stripeRef.current;
-        const cardNumber = cardNumberElementRef.current;
-        if (!stripe || !cardNumber || !stripeElementReady) {
+        if (!stripe || !cardNumberElementRef.current || !stripeElementReady) {
           throw new Error("Stripe is not ready");
         }
 
@@ -1867,7 +2260,8 @@ export function CheckoutContent() {
             shippingAddress: isDigitalOnly ? undefined : shippingAddress,
             billingAddress,
             locale,
-            email: data.email,
+            email: data.email.trim() || undefined,
+            ...contactPayload,
             couponCode: appliedCoupon?.code,
             fulfillmentMethod,
           pickupLocationId: selectedPickupLocationId ?? undefined,
@@ -1878,37 +2272,98 @@ export function CheckoutContent() {
             preorderAcknowledged: hasPreorderItems
               ? preorderAccepted
               : undefined,
+            preorderMandateAccepted: needsPreorderMandate
+              ? preorderMandateAccepted
+              : undefined,
           }),
         });
         const intentJson = await intentRes.json().catch(() => null);
         if (!intentRes.ok || !intentJson?.success) {
+          if (isCartPricesChangedResponse(intentJson)) {
+            throw await pricesChangedError();
+          }
           throw new Error(
             intentJson?.message || "Failed to initialize card payment",
           );
         }
 
         const clientSecret = String(intentJson.data?.clientSecret || "");
+        // A pre-order with nothing to pay today comes back as a SetupIntent
+        // instead: there is no charge to confirm, only a card to keep.
+        const isCardSetup = intentJson.data?.mode === "setup";
         const paymentIntentId = String(intentJson.data?.paymentIntentId || "");
-        if (!clientSecret || !paymentIntentId) {
+        const setupIntentId = String(intentJson.data?.setupIntentId || "");
+        if (!clientSecret || !(isCardSetup ? setupIntentId : paymentIntentId)) {
           throw new Error("Failed to initialize card payment");
         }
 
-        const confirm = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: cardNumber,
-            billing_details: {
-              name: cardholderName || billingAddress.fullName,
-              email: data.email,
-              phone: billingAddress.phone,
-              address: {
-                line1: billingAddress.street,
-                line2: billingAddress.apartment || undefined,
-                city: billingAddress.city,
-                state: billingAddress.state || undefined,
-                postal_code: billingAddress.postalCode,
-              },
+        // Read here rather than before the intent call: a remount during
+        // that round trip leaves the earlier element destroyed, and Stripe
+        // refuses a card it can no longer read. The intent is unconfirmed
+        // either way, so nothing is charged.
+        const cardNumber = cardNumberElementRef.current;
+        if (!cardNumber) {
+          throw new Error("Stripe is not ready");
+        }
+
+        const cardPaymentMethod = {
+          card: cardNumber,
+          billing_details: {
+            name: cardholderName || billingAddress.fullName,
+            email: data.email.trim() || undefined,
+            phone: billingAddress.phone,
+            address: {
+              line1: billingAddress.street,
+              line2: billingAddress.apartment || undefined,
+              city: billingAddress.city,
+              state: billingAddress.state || undefined,
+              postal_code: billingAddress.postalCode,
             },
           },
+        };
+
+        if (isCardSetup) {
+          const setup = await stripe.confirmCardSetup(clientSecret, {
+            payment_method: cardPaymentMethod,
+          });
+          if (setup.error) {
+            throw new Error(setup.error.message || "Card could not be saved");
+          }
+          if (setup.setupIntent?.status !== "succeeded") {
+            throw new Error("Card could not be saved");
+          }
+
+          // No money moved, so no webhook will build this order — it is placed
+          // here, naming the setup so the server can read the card off it. The
+          // server verifies that setup against Stripe rather than trusting the
+          // id, so a failure here loses nothing but the saved card.
+          const placeRes = await fetch("/api/payments/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...checkoutPayload,
+              setupIntentId: setup.setupIntent.id,
+            }),
+          });
+          const placeJson = await placeRes.json().catch(() => null);
+          if (!placeRes.ok || !placeJson?.success) {
+            if (isCartPricesChangedResponse(placeJson)) {
+              throw await pricesChangedError();
+            }
+            throw new Error(
+              placeJson?.message || "Failed to place the pre-order",
+            );
+          }
+          toast.success(t("checkout.orderPlaced"));
+          goToSuccess(
+            placeJson.data?.redirectUrl ||
+              `/${locale}/checkout/success?order=${placeJson.data?.orderNumber}`,
+          );
+          return;
+        }
+
+        const confirm = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: cardPaymentMethod,
         });
 
         if (confirm.error) {
@@ -1920,7 +2375,7 @@ export function CheckoutContent() {
           throw new Error("Payment was not completed");
         }
 
-        router.push(
+        goToSuccess(
           `/${locale}/checkout/success?payment_intent=${encodeURIComponent(
             confirm.paymentIntent?.id || paymentIntentId,
           )}`,
@@ -1932,19 +2387,7 @@ export function CheckoutContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          shippingAddress: isDigitalOnly ? undefined : shippingAddress,
-          billingAddress,
-          paymentMethod: data.paymentMethod,
-          email: data.email,
-          couponCode: appliedCoupon?.code,
-          locale,
-          fulfillmentMethod,
-          pickupLocationId: selectedPickupLocationId ?? undefined,
-          selectedShippingOptionId,
-          vendorShippingSelections: perVendorMode
-            ? vendorShippingSelections
-            : undefined,
-          preorderAcknowledged: hasPreorderItems ? preorderAccepted : undefined,
+          ...checkoutPayload,
           ...(data.paymentMethod === "iotec"
             ? {
                 iotecChannel: data.iotecChannel || "mobile_money",
@@ -1960,6 +2403,9 @@ export function CheckoutContent() {
       const result = await res.json();
 
       if (!res.ok || !result.success) {
+        if (isCartPricesChangedResponse(result)) {
+          throw await pricesChangedError();
+        }
         throw new Error(result.message || "Failed to process checkout");
       }
 
@@ -1994,11 +2440,10 @@ export function CheckoutContent() {
       }
 
       if (data.paymentMethod === "cod") {
-        await clearCart();
         toast.success(
           t("checkout.orderPlaced"),
         );
-        router.push(
+        goToSuccess(
           result.data.redirectUrl ||
             `/${locale}/checkout/success?order=${result.data.orderNumber}`,
         );
@@ -2007,91 +2452,28 @@ export function CheckoutContent() {
 
       if (data.paymentMethod === "razorpay") {
         const payload = result.data || {};
-        const keyId = String(payload.keyId || "");
-        const razorpayOrderId = String(payload.razorpayOrderId || "");
-        const amount = Number(payload.amount || 0);
-        const checkoutCurrency = String(
-          payload.currency || currency.code || "INR",
-        );
 
-        if (!keyId || !razorpayOrderId || !amount) {
-          throw new Error("Failed to initialize Razorpay payment");
-        }
-
-        await loadRazorpayCheckoutScript();
-        const Razorpay = window.Razorpay;
-        if (!Razorpay) {
-          throw new Error("Razorpay checkout is unavailable");
-        }
-
-        const checkoutResponse = await new Promise<RazorpayCheckoutResponse>(
-          (resolve, reject) => {
-            let settled = false;
-            const razorpay = new Razorpay({
-              key: keyId,
-              amount,
-              currency: checkoutCurrency,
-              name: String(payload.name || "Store"),
-              description: String(payload.description || "Order payment"),
-              order_id: razorpayOrderId,
-              prefill: {
-                name: shippingAddress.fullName,
-                email: data.email,
-                contact: shippingAddress.phone,
-              },
-              notes: {
-                orderNumber: String(payload.orderNumber || ""),
-              },
-              handler: (response) => {
-                settled = true;
-                resolve(response);
-              },
-              modal: {
-                ondismiss: () => {
-                  if (!settled) {
-                    reject(
-                      new Error("Payment was canceled. Please try again."),
-                    );
-                  }
-                },
-              },
-            });
-
-            razorpay.on("payment.failed", (response) => {
-              settled = true;
-              reject(
-                new Error(
-                  response.error?.description ||
-                    response.error?.reason ||
-                    "Razorpay payment failed",
-                ),
-              );
-            });
-
-            razorpay.open();
+        // Never resolves: Razorpay takes the page to its callback, which lands
+        // the shopper on the success page to verify. Closing Razorpay's window
+        // rejects, and the order stays pending for another attempt.
+        await openRazorpayCheckout({
+          keyId: String(payload.keyId || ""),
+          razorpayOrderId: String(payload.razorpayOrderId || ""),
+          amount: Number(payload.amount || 0),
+          currency: String(payload.currency || currency.code || "INR"),
+          name: String(payload.name || "Store"),
+          description: String(payload.description || "Order payment"),
+          callbackUrl: String(payload.callbackUrl || ""),
+          prefill: {
+            name: shippingAddress.fullName,
+            email: data.email.trim() || undefined,
+            contact: shippingAddress.phone,
           },
-        );
-
-        const verifyRes = await fetch("/api/payments/razorpay/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(checkoutResponse),
+          notes: {
+            orderNumber: String(payload.orderNumber || ""),
+          },
+          canceledMessage: "Payment was canceled. Please try again.",
         });
-        const verifyJson = await verifyRes.json().catch(() => null);
-
-        if (!verifyRes.ok || !verifyJson?.success) {
-          throw new Error(
-            verifyJson?.message || "Failed to verify Razorpay payment",
-          );
-        }
-
-        await clearCart();
-        toast.success(
-          t("checkout.orderPlaced"),
-        );
-        router.push(
-          `/${locale}/checkout/success?order=${verifyJson.data.orderNumber}`,
-        );
         return;
       }
 
@@ -2105,7 +2487,7 @@ export function CheckoutContent() {
         if (result.data.iotecExternalId) {
           params.set("iotec_external_id", String(result.data.iotecExternalId));
         }
-        router.push(`/${locale}/checkout/success?${params.toString()}`);
+        goToSuccess(`/${locale}/checkout/success?${params.toString()}`);
         return;
       }
 
@@ -2117,7 +2499,7 @@ export function CheckoutContent() {
         const params = new URLSearchParams({
           mtn_momo_reference_id: String(result.data.mtnMomoReferenceId || ""),
         });
-        router.push(`/${locale}/checkout/success?${params.toString()}`);
+        goToSuccess(`/${locale}/checkout/success?${params.toString()}`);
         return;
       }
 
@@ -2131,9 +2513,26 @@ export function CheckoutContent() {
       setError(message);
       toast.error(message || t("common.error"));
     } finally {
-      setIsSubmitting(false);
+      if (!handedOff) setIsSubmitting(false);
     }
   };
+
+  // A selected saved address collapses the delivery fields, and react-hook-form
+  // can only focus an invalid field that is rendered — so a saved address the
+  // schema rejects left "Complete order" doing nothing at all. Reopen the
+  // fields, still filled in, and focus the one that failed.
+  const onInvalid = (errors: FieldErrors<CheckoutFormData>) => {
+    const field = MANUAL_DELIVERY_ADDRESS_FIELDS.find((name) => errors[name]);
+    if (!field || deliveryAddressMode === "manual") return;
+    deliveryFieldToFocus.current = field;
+    setDeliveryAddressMode("manual");
+  };
+  useEffect(() => {
+    const field = deliveryFieldToFocus.current;
+    if (!field || deliveryAddressMode !== "manual") return;
+    deliveryFieldToFocus.current = null;
+    form.setFocus(field);
+  }, [deliveryAddressMode, form]);
 
   // The cart provider starts with isLoading=true, so this branch runs on every
   // mount — right after the SSR skeleton. Returning the same skeleton keeps the
@@ -2141,6 +2540,37 @@ export function CheckoutContent() {
   // and then expanding it back out once the cart resolves.
   if (isLoading) {
     return <CheckoutSkeleton />;
+  }
+
+  // Guest checkout off and no account creation here: sign in first. The
+  // payment routes refuse the order anyway; this says so before the form.
+  if (!authLoading && !isAuthenticated && !guestCheckout && !signupAtCheckout) {
+    return (
+      <div className="container mx-auto max-w-md px-4 py-16 text-center">
+        <Lock className="mx-auto mb-4 h-8 w-8 text-muted-foreground" />
+        <h1 className="mb-2 text-2xl font-bold">
+          {tr("checkout.account.loginRequiredTitle", "Log in to check out")}
+        </h1>
+        <p className="mb-6 text-muted-foreground">
+          {tr(
+            "checkout.account.loginRequired",
+            "This store takes orders from signed-in customers. Log in or create an account to continue.",
+          )}
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button asChild>
+            <Link href={buildLoginUrl(locale, `/${locale}/checkout`)}>
+              {t("common.login")}
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/${locale}/register`}>
+              {tr("common.register", "Create account")}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (items.length === 0) {
@@ -2168,7 +2598,7 @@ export function CheckoutContent() {
   // section — "shipping street-address" and "billing street-address" are two
   // different fields to it, while a bare "street-address" makes it guess.
   const renderFloatingField = (
-    name: keyof CheckoutFormData,
+    name: CheckoutTextFieldName,
     label: string,
     type = "text",
     autoComplete?: string,
@@ -2212,6 +2642,152 @@ export function CheckoutContent() {
       )}
     />
   );
+  const optionalSuffix = ` ${tr("checkout.optionalSuffix", "(optional)")}`;
+  const addressFieldShown = (key: ConfigurableAddressField) =>
+    checkoutSettings.fields[key].visibility !== "hidden";
+  const addressFieldLabel = (
+    key: ConfigurableAddressField | "country" | "address" | "city",
+    fallback: string,
+  ) => checkoutSettings.fields[key].label || fallback;
+  const customFieldsAt = (placement: CheckoutCustomField["placement"]) =>
+    activeCustomFields.filter((field) => field.placement === placement);
+
+  // One of the store's own checkout fields. Text-like answers use the same
+  // floating label as the address; the rest need a label that stays put.
+  const renderCustomField = (customField: CheckoutCustomField) => {
+    const name = `customFields.${customField.id}` as const;
+    const label =
+      customField.label +
+      (customField.visibility === "optional" ? optionalSuffix : "");
+    const help = customField.helpText ? (
+      <p className="pt-1 text-xs text-muted-foreground">{customField.helpText}</p>
+    ) : null;
+    const inputType =
+      customField.type === "phone"
+        ? "tel"
+        : customField.type === "number" || customField.type === "email"
+          ? customField.type
+          : "text";
+
+    return (
+      <FormField
+        key={customField.id}
+        control={form.control}
+        name={name}
+        render={({ field }) => {
+          const textValue = typeof field.value === "string" ? field.value : "";
+          if (customField.type === "checkbox") {
+            return (
+              <FormItem className="space-y-0">
+                <div className="flex items-start gap-3 pt-1">
+                  <FormControl>
+                    <Checkbox
+                      id={`checkout-${customField.id}`}
+                      checked={field.value === true}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                      className="mt-0.5"
+                    />
+                  </FormControl>
+                  <Label
+                    htmlFor={`checkout-${customField.id}`}
+                    className="cursor-pointer text-sm font-normal leading-5"
+                  >
+                    {label}
+                  </Label>
+                </div>
+                {help}
+                <FormMessage />
+              </FormItem>
+            );
+          }
+          if (
+            customField.type === "textarea" ||
+            customField.type === "select" ||
+            customField.type === "date"
+          ) {
+            return (
+              <FormItem className="space-y-1.5">
+                <Label htmlFor={`checkout-${customField.id}`}>{label}</Label>
+                <FormControl>
+                  {customField.type === "textarea" ? (
+                    <Textarea
+                      id={`checkout-${customField.id}`}
+                      value={textValue}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      placeholder={customField.placeholder}
+                      rows={3}
+                    />
+                  ) : customField.type === "select" ? (
+                    <Select value={textValue} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id={`checkout-${customField.id}`}
+                        className="h-12 w-full"
+                      >
+                        <SelectValue
+                          placeholder={
+                            customField.placeholder ||
+                            tr("checkout.selectOption", "Select an option")
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customField.options.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id={`checkout-${customField.id}`}
+                      type="date"
+                      value={textValue}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      className="h-12"
+                    />
+                  )}
+                </FormControl>
+                {help}
+                <FormMessage />
+              </FormItem>
+            );
+          }
+          return (
+            <FormItem className="space-y-0">
+              <div className="relative">
+                <FormControl>
+                  <Input
+                    name={field.name}
+                    ref={field.ref}
+                    value={textValue}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    type={inputType}
+                    inputMode={
+                      customField.type === "number"
+                        ? "decimal"
+                        : customField.type === "phone"
+                          ? "tel"
+                          : undefined
+                    }
+                    placeholder=" "
+                    className={floatingInputClass}
+                  />
+                </FormControl>
+                <label className={floatingLabelClass}>{label}</label>
+              </div>
+              {help}
+              <FormMessage />
+            </FormItem>
+          );
+        }}
+      />
+    );
+  };
+
   const savedAddressesTitle = t.has("checkout.savedAddresses")
     ? t("checkout.savedAddresses")
     : "Saved addresses";
@@ -2287,7 +2863,11 @@ export function CheckoutContent() {
   return (
     <div className="min-h-screen bg-background">
       <Form {...form}>
-        <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}>
+        <form
+          onSubmit={(event) =>
+            void form.handleSubmit(onSubmit, onInvalid)(event)
+          }
+        >
           <div className="mx-auto  lg:grid lg:grid-cols-2">
             {/* Left column - Form */}
             <div className="px-4 py-8 lg:px-10 lg:py-12 lg:pr-16">
@@ -2300,12 +2880,18 @@ export function CheckoutContent() {
                 ) : null}
 
                 <div className="space-y-8">
-                  {/* Contact Section */}
+                  {/* Contact Section — what it asks for is the checkout
+                      settings' contact mode; see evaluateCheckoutSubmission. */}
                   <section className="space-y-4 border-b pb-6">
                     {!isAuthenticated && (
                       <div className="space-y-1">
                         <h2 className="text-xl font-semibold tracking-tight">
-                          Checkout as Guest
+                          {guestCheckout
+                            ? tr("checkout.guestTitle", "Checkout as Guest")
+                            : tr(
+                                "checkout.account.createToCheckout",
+                                "Create an account to check out",
+                              )}
                         </h2>
                         <p className="text-muted-foreground text-sm">
                           {t("common.or")}{" "}
@@ -2313,15 +2899,17 @@ export function CheckoutContent() {
                             href={buildLoginUrl(locale, `/${locale}/checkout`)}
                             className="font-medium text-foreground underline underline-offset-4"
                           >
-                            Log in
+                            {tr("checkout.logIn", "Log in")}
                           </Link>{" "}
-                          for faster checkout
+                          {tr("checkout.forFasterCheckout", "for faster checkout")}
                         </p>
                       </div>
                     )}
 
                     <div className="space-y-3">
-                      <h3 className="text-lg font-semibold">Contact details</h3>
+                      <h3 className="text-lg font-semibold">
+                        {tr("checkout.contactDetails", "Contact details")}
+                      </h3>
                       {isAuthenticated && contactLabel ? (
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
@@ -2357,24 +2945,116 @@ export function CheckoutContent() {
                             {t("common.logout")}
                           </Button>
                         </div>
-                      ) : (
-                        renderFloatingField("email", "Email", "email", "email")
-                      )}
-                      <div className="flex items-center gap-2 pt-1">
-                        <Checkbox
-                          id="checkout-newsletter"
-                          checked={emailMarketingOptIn}
-                          onCheckedChange={(checked) =>
-                            setEmailMarketingOptIn(checked === true)
-                          }
-                        />
-                        <Label
-                          htmlFor="checkout-newsletter"
-                          className="cursor-pointer text-sm font-normal"
-                        >
-                          Email me with news and others
-                        </Label>
-                      </div>
+                      ) : collects.email ? (
+                        renderFloatingField(
+                          "email",
+                          (checkoutSettings.contact.emailLabel ||
+                            tr("checkout.email", "Email")) +
+                            (checkoutSettings.contact.mode === "email_or_phone" &&
+                            !(watchedCreateAccount || accountRequired)
+                              ? optionalSuffix
+                              : ""),
+                          "email",
+                          "email",
+                        )
+                      ) : null}
+                      {collects.phone
+                        ? renderFloatingField(
+                            "contactPhone",
+                            (checkoutSettings.contact.phoneLabel ||
+                              t("checkout.phone")) +
+                              (checkoutSettings.contact.mode === "email_or_phone"
+                                ? optionalSuffix
+                                : ""),
+                            "tel",
+                            "tel",
+                          )
+                        : null}
+                      {checkoutSettings.contact.mode === "email_or_phone" &&
+                      !isAuthenticated ? (
+                        <p className="text-xs text-muted-foreground">
+                          {tr(
+                            "checkout.emailOrPhoneHint",
+                            "Enter an email or a phone number — we'll send order updates there.",
+                          )}
+                        </p>
+                      ) : null}
+                      {checkoutSettings.contact.marketingOptIn.enabled ? (
+                        <div className="flex items-center gap-2 pt-1">
+                          <Checkbox
+                            id="checkout-newsletter"
+                            checked={emailMarketingOptIn}
+                            onCheckedChange={(checked) =>
+                              setEmailMarketingOptIn(checked === true)
+                            }
+                          />
+                          <Label
+                            htmlFor="checkout-newsletter"
+                            className="cursor-pointer text-sm font-normal"
+                          >
+                            {checkoutSettings.contact.marketingOptIn.label ||
+                              tr(
+                                "checkout.marketingOptIn",
+                                "Email me with news and offers",
+                              )}
+                          </Label>
+                        </div>
+                      ) : null}
+
+                      {/* Account creation at checkout. Optional as a tick-box
+                          while guests may order; the only way in when not. */}
+                      {!isAuthenticated && signupAtCheckout ? (
+                        <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+                          {accountRequired ? (
+                            <p className="text-sm font-medium">
+                              {tr(
+                                "checkout.account.requiredHint",
+                                "Choose a password for your new account.",
+                              )}
+                            </p>
+                          ) : (
+                            <FormField
+                              control={form.control}
+                              name="createAccount"
+                              render={({ field }) => (
+                                <FormItem className="space-y-0">
+                                  <div className="flex items-start gap-3">
+                                    <FormControl>
+                                      <Checkbox
+                                        id="checkout-create-account"
+                                        checked={field.value}
+                                        onCheckedChange={(checked) =>
+                                          field.onChange(checked === true)
+                                        }
+                                        className="mt-0.5"
+                                      />
+                                    </FormControl>
+                                    <Label
+                                      htmlFor="checkout-create-account"
+                                      className="cursor-pointer text-sm font-normal leading-5"
+                                    >
+                                      {tr(
+                                        "checkout.account.create",
+                                        "Create an account for faster checkout next time",
+                                      )}
+                                    </Label>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          )}
+                          {accountRequired || watchedCreateAccount
+                            ? renderFloatingField(
+                                "accountPassword",
+                                tr("checkout.account.password", "Password"),
+                                "password",
+                                "new-password",
+                              )
+                            : null}
+                        </div>
+                      ) : null}
+
+                      {customFieldsAt("contact").map(renderCustomField)}
                     </div>
                   </section>
 
@@ -2494,7 +3174,7 @@ export function CheckoutContent() {
                                 triggerClassName="h-14 rounded-lg pt-6 pb-2 items-end [&>span]:text-base"
                               />
                               <span className="pointer-events-none absolute left-3 top-2 text-xs text-muted-foreground z-10">
-                                {t("checkout.country")}
+                                {addressFieldLabel("country", t("checkout.country"))}
                               </span>
                             </div>
                             <FormMessage />
@@ -2502,51 +3182,76 @@ export function CheckoutContent() {
                         )}
                       />
 
-                      <div className="grid grid-cols-2 gap-3">
-                        {renderFloatingField(
-                          "firstName",
-                          t("checkout.firstName"),
-                          "text",
-                          "shipping given-name",
-                        )}
-                        {renderFloatingField(
-                          "lastName",
-                          t("checkout.lastName"),
-                          "text",
-                          "shipping family-name",
-                        )}
-                      </div>
+                      {/* Name, apartment, postcode, state and phone are each
+                          required, optional or hidden per the checkout
+                          settings; a lone name part takes the full row. */}
+                      {addressFieldShown("firstName") || addressFieldShown("lastName") ? (
+                        <div
+                          className={cn(
+                            "grid gap-3",
+                            addressFieldShown("firstName") &&
+                              addressFieldShown("lastName") &&
+                              "grid-cols-2",
+                          )}
+                        >
+                          {addressFieldShown("firstName")
+                            ? renderFloatingField(
+                                "firstName",
+                                addressFieldLabel("firstName", t("checkout.firstName")),
+                                "text",
+                                "shipping given-name",
+                              )
+                            : null}
+                          {addressFieldShown("lastName")
+                            ? renderFloatingField(
+                                "lastName",
+                                addressFieldLabel("lastName", t("checkout.lastName")),
+                                "text",
+                                "shipping family-name",
+                              )
+                            : null}
+                        </div>
+                      ) : null}
 
                       {/* Address */}
                       {renderFloatingField(
                         "address",
-                        t("checkout.address"),
+                        addressFieldLabel("address", t("checkout.address")),
                         "text",
                         "shipping address-line1",
                       )}
 
                       {/* Apartment */}
-                      {renderFloatingField(
-                        "apartment",
-                        t("checkout.apartment"),
-                        "text",
-                        "shipping address-line2",
-                      )}
+                      {addressFieldShown("apartment")
+                        ? renderFloatingField(
+                            "apartment",
+                            addressFieldLabel("apartment", t("checkout.apartment")),
+                            "text",
+                            "shipping address-line2",
+                          )
+                        : null}
 
                       {/* City + Postal code */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div
+                        className={cn(
+                          "grid gap-3",
+                          addressFieldShown("postalCode") && "grid-cols-2",
+                        )}
+                      >
                         {renderFloatingField(
                           "city",
-                          t("checkout.city"),
+                          addressFieldLabel("city", t("checkout.city")),
                           "text",
                           "shipping address-level2",
                         )}
-                        {renderFloatingField(
-                          "postalCode",
-                          t("checkout.postalCode"),
-                          "text",
-                          "shipping postal-code",
-                        )}
+                        {addressFieldShown("postalCode")
+                          ? renderFloatingField(
+                              "postalCode",
+                              addressFieldLabel("postalCode", t("checkout.postalCode")),
+                              "text",
+                              "shipping postal-code",
+                            )
+                          : null}
                       </div>
 
                       {/* State — not decoration. Shipping zones match their
@@ -2562,6 +3267,7 @@ export function CheckoutContent() {
                           to the rate engine and only one of them is priced
                           correctly. Countries we have no region list for still
                           get a text input. */}
+                      {addressFieldShown("state") ? (
                       <FormField
                         control={form.control}
                         name="state"
@@ -2576,7 +3282,7 @@ export function CheckoutContent() {
                                   field.onChange(value);
                                   setSelectedSavedAddressIndex(null);
                                 }}
-                                label={t("checkout.state")}
+                                label={addressFieldLabel("state", t("checkout.state"))}
                                 autoComplete="shipping address-level1"
                               />
                             </FormControl>
@@ -2584,6 +3290,19 @@ export function CheckoutContent() {
                           </FormItem>
                         )}
                       />
+                      ) : null}
+
+                      {/* Delivery phone — the contact phone stands in when
+                          this is hidden or left blank. */}
+                      {addressFieldShown("phone")
+                        ? renderFloatingField(
+                            "phone",
+                            addressFieldLabel("phone", t("checkout.phone")),
+                            "tel",
+                            "shipping tel",
+                          )
+                        : null}
+
 
                       {/* Appears only once the address is complete and is not
                           one the account already has, so it never offers to
@@ -2609,6 +3328,12 @@ export function CheckoutContent() {
                         </div>
                       ) : null}
                     </div> : null}
+
+                    {customFieldsAt("delivery").length > 0 ? (
+                      <div className="space-y-3">
+                        {customFieldsAt("delivery").map(renderCustomField)}
+                      </div>
+                    ) : null}
                   </section>
                   )}
 
@@ -2641,7 +3366,13 @@ export function CheckoutContent() {
                       ) : null}
                     </div>
                     <div className="space-y-2">
-                      {shippingRateFailed ? (
+                      {!shippingRatesWanted ? (
+                        // No address yet, so nothing has been quoted — and
+                        // nothing refused either.
+                        <p className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+                          {t("checkout.enterAddressForShipping")}
+                        </p>
+                      ) : shippingRateFailed ? (
                         <div
                           role="alert"
                           className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive"
@@ -2880,6 +3611,51 @@ export function CheckoutContent() {
                     </section>
                   ) : null}
 
+                  {/* Additional information — the order note and the store's
+                      own questions placed after delivery. */}
+                  {checkoutSettings.orderNote.visibility !== "hidden" ||
+                  customFieldsAt("additional").length > 0 ? (
+                    <section className="space-y-3">
+                      <h2 className="text-lg font-semibold">
+                        {tr("checkout.additionalInformation", "Additional information")}
+                      </h2>
+                      {customFieldsAt("additional").map(renderCustomField)}
+                      {checkoutSettings.orderNote.visibility !== "hidden" ? (
+                        <FormField
+                          control={form.control}
+                          name="customerNote"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1.5">
+                              <Label htmlFor="checkout-customer-note">
+                                {(checkoutSettings.orderNote.label ||
+                                  tr("checkout.orderNote", "Order note")) +
+                                  (checkoutSettings.orderNote.visibility === "optional"
+                                    ? optionalSuffix
+                                    : "")}
+                              </Label>
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  id="checkout-customer-note"
+                                  rows={3}
+                                  maxLength={CHECKOUT_NOTE_MAX}
+                                  placeholder={
+                                    checkoutSettings.orderNote.placeholder ||
+                                    tr(
+                                      "checkout.orderNotePlaceholder",
+                                      "Special instructions for your order",
+                                    )
+                                  }
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : null}
+                    </section>
+                  ) : null}
+
                   {/* Payment */}
                   <section className="space-y-4">
                     <div className="space-y-2">
@@ -2887,10 +3663,10 @@ export function CheckoutContent() {
                         {t("checkout.paymentMethod")}
                       </h2>
                       <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        {checkoutBranding.showSecureBadge ? (
+                        {checkoutSettings.trust.showSecureBadge ? (
                           <Lock className="h-3.5 w-3.5 shrink-0" />
                         ) : null}
-                        {checkoutBranding.message.trim() ||
+                        {checkoutSettings.trust.message.trim() ||
                           t("checkout.payment.secure")}
                       </p>
                     </div>
@@ -2943,6 +3719,32 @@ export function CheckoutContent() {
                                       <method.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                                     </Label>
 
+                                    {/* A gateway that cannot open without an
+                                        email, on a checkout that did not ask
+                                        for one. */}
+                                    {isSelected &&
+                                    !isAuthenticated &&
+                                    !collects.email &&
+                                    paymentMethodNeedsEmail(
+                                      method.value,
+                                      selectedIotecChannel,
+                                    ) ? (
+                                      <div className="space-y-2 border-t bg-muted/20 px-4 pt-4">
+                                        <p className="text-xs text-muted-foreground">
+                                          {tr(
+                                            "checkout.payment.emailRequired",
+                                            "This payment method sends your receipt by email.",
+                                          )}
+                                        </p>
+                                        {renderFloatingField(
+                                          "email",
+                                          checkoutSettings.contact.emailLabel ||
+                                            tr("checkout.email", "Email"),
+                                          "email",
+                                          "email",
+                                        )}
+                                      </div>
+                                    ) : null}
                                     {isSelected ? (
                                       isCard ? (
                                         <div className="space-y-3 border-t bg-muted/20 px-4 py-4">
@@ -3145,6 +3947,7 @@ export function CheckoutContent() {
                                                     autoComplete="tel"
                                                     placeholder={t(
                                                       "checkout.payment.mtnMomoPhonePlaceholder",
+                                                      { example: mtnMomoPhoneExample },
                                                     )}
                                                     className="h-11 rounded-md px-4 text-[15px]"
                                                   />
@@ -3252,7 +4055,7 @@ export function CheckoutContent() {
                                               triggerClassName="h-14 rounded-lg pt-6 pb-2 items-end [&>span]:text-base"
                                             />
                                             <span className="pointer-events-none absolute left-3 top-2 z-10 text-xs text-muted-foreground">
-                                              {t("checkout.country")}
+                                              {addressFieldLabel("country", t("checkout.country"))}
                                             </span>
                                           </div>
                                           <FormMessage />
@@ -3260,55 +4063,102 @@ export function CheckoutContent() {
                                       )}
                                     />
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                      {renderFloatingField(
-                                        "billingFirstName",
-                                        t("checkout.firstName"),
-                                        "text",
-                                        "billing given-name",
-                                      )}
-                                      {renderFloatingField(
-                                        "billingLastName",
-                                        t("checkout.lastName"),
-                                        "text",
-                                        "billing family-name",
-                                      )}
-                                    </div>
+                                    {addressFieldShown("firstName") ||
+                                    addressFieldShown("lastName") ? (
+                                      <div
+                                        className={cn(
+                                          "grid gap-3",
+                                          addressFieldShown("firstName") &&
+                                            addressFieldShown("lastName") &&
+                                            "grid-cols-2",
+                                        )}
+                                      >
+                                        {addressFieldShown("firstName")
+                                          ? renderFloatingField(
+                                              "billingFirstName",
+                                              addressFieldLabel("firstName", t("checkout.firstName")),
+                                              "text",
+                                              "billing given-name",
+                                            )
+                                          : null}
+                                        {addressFieldShown("lastName")
+                                          ? renderFloatingField(
+                                              "billingLastName",
+                                              addressFieldLabel("lastName", t("checkout.lastName")),
+                                              "text",
+                                              "billing family-name",
+                                            )
+                                          : null}
+                                      </div>
+                                    ) : null}
 
                                     {renderFloatingField(
                                       "billingAddress",
-                                      t("checkout.address"),
+                                      addressFieldLabel("address", t("checkout.address")),
                                       "text",
                                       "billing address-line1",
                                     )}
-                                    {renderFloatingField(
-                                      "billingApartment",
-                                      t("checkout.apartment"),
-                                      "text",
-                                      "billing address-line2",
-                                    )}
+                                    {addressFieldShown("apartment")
+                                      ? renderFloatingField(
+                                          "billingApartment",
+                                          addressFieldLabel("apartment", t("checkout.apartment")),
+                                          "text",
+                                          "billing address-line2",
+                                        )
+                                      : null}
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div
+                                      className={cn(
+                                        "grid gap-3",
+                                        addressFieldShown("postalCode") && "grid-cols-2",
+                                      )}
+                                    >
                                       {renderFloatingField(
                                         "billingCity",
-                                        t("checkout.city"),
+                                        addressFieldLabel("city", t("checkout.city")),
                                         "text",
                                         "billing address-level2",
                                       )}
-                                      {renderFloatingField(
-                                        "billingPostalCode",
-                                        t("checkout.postalCode"),
-                                        "text",
-                                        "billing postal-code",
-                                      )}
+                                      {addressFieldShown("postalCode")
+                                        ? renderFloatingField(
+                                            "billingPostalCode",
+                                            addressFieldLabel("postalCode", t("checkout.postalCode")),
+                                            "text",
+                                            "billing postal-code",
+                                          )
+                                        : null}
                                     </div>
 
-                                    {renderFloatingField(
-                                      "billingPhone",
-                                      t("checkout.phone"),
-                                      "tel",
-                                      "billing tel",
-                                    )}
+                                    {addressFieldShown("state") ? (
+                                      <FormField
+                                        control={form.control}
+                                        name="billingState"
+                                        render={({ field }) => (
+                                          <FormItem className="space-y-0">
+                                            <FormControl>
+                                              <RegionSelect
+                                                id="checkout-billing-state"
+                                                country={watchedBillingCountry}
+                                                value={field.value || ""}
+                                                onChange={field.onChange}
+                                                label={addressFieldLabel("state", t("checkout.state"))}
+                                                autoComplete="billing address-level1"
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    ) : null}
+
+                                    {addressFieldShown("phone")
+                                      ? renderFloatingField(
+                                          "billingPhone",
+                                          addressFieldLabel("phone", t("checkout.phone")),
+                                          "tel",
+                                          "billing tel",
+                                        )
+                                      : null}
                                   </div>
                                 ) : null}
                               </div>
@@ -3341,6 +4191,35 @@ export function CheckoutContent() {
                           {preorderOutstandingAmount > 0
                             ? `Due today: ${formatPrice(preorderDueNow)}. Due before shipping: ${formatPrice(preorderOutstandingAmount)}.`
                             : ""}
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* The card-on-file authorisation. Deliberately its own box
+                      and its own tick: the one above is about when the goods
+                      arrive, this one hands the store a card to charge later,
+                      and a shopper should never give the second away by
+                      agreeing to the first. Same treatment as its neighbour so
+                      the two read as the pair of terms they are. The wording
+                      comes from the module the server composes its stored copy
+                      with, so the record matches what was on screen. */}
+                  {needsPreorderMandate && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="checkout-preorder-mandate"
+                          checked={preorderMandateAccepted}
+                          onCheckedChange={(checked) =>
+                            setPreorderMandateAccepted(checked === true)
+                          }
+                          className="mt-0.5"
+                        />
+                        <Label
+                          htmlFor="checkout-preorder-mandate"
+                          className="cursor-pointer text-sm font-normal leading-5 text-blue-900 dark:text-blue-100"
+                        >
+                          {preorderMandateText}
                         </Label>
                       </div>
                     </div>
@@ -3380,11 +4259,11 @@ export function CheckoutContent() {
                   {/* Admin-configured policy links + support line (checkout
                       appearance settings). Relative hrefs get the locale
                       prefix; absolute URLs open in a new tab. */}
-                  {checkoutBranding.policyLinks.some(
+                  {checkoutSettings.policyLinks.some(
                     (link) => link.visible,
                   ) ? (
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-1">
-                      {checkoutBranding.policyLinks
+                      {checkoutSettings.policyLinks
                         .filter((link) => link.visible)
                         .map((link, index) =>
                           link.href.startsWith("/") ? (
@@ -3409,9 +4288,9 @@ export function CheckoutContent() {
                         )}
                     </div>
                   ) : null}
-                  {checkoutBranding.supportText.trim() ? (
+                  {checkoutSettings.trust.supportText.trim() ? (
                     <p className="pt-1 text-center text-xs text-muted-foreground">
-                      {checkoutBranding.supportText}
+                      {checkoutSettings.trust.supportText}
                     </p>
                   ) : null}
                 </div>
@@ -3510,6 +4389,7 @@ export function CheckoutContent() {
                       cartItems={couponCartItems}
                       subtotal={subtotal}
                       shippingCost={shippingCost}
+                      shippingByVendor={shippingByVendor}
                       appliedCoupon={appliedCouponForDisplay}
                       onApply={(coupon) => setAppliedCoupon(coupon)}
                       onRemove={() => setAppliedCoupon(null)}
@@ -3537,7 +4417,7 @@ export function CheckoutContent() {
 
                   {/* Cart items */}
                   <div className="space-y-5">
-                    {items.map((item) => {
+                    {items.map((item, lineIndex) => {
                       const checkoutItem = item as CheckoutCartItem;
                       const rawVariant =
                         checkoutItem.variantLabel ||
@@ -3604,18 +4484,26 @@ export function CheckoutContent() {
                                   {Number(
                                     checkoutItem.preorderOutstandingAmount || 0,
                                   ) > 0 ? (
+                                    // After the coupon, which comes off this
+                                    // line's deposit and balance in the same
+                                    // proportion — so each shrinks by the
+                                    // factor the balance did.
                                     <p>
                                       Due now{" "}
                                       {formatPrice(
-                                        Number(
-                                          checkoutItem.preorderDepositAmount ||
-                                            0,
-                                        ),
+                                        Number(checkoutItem.preorderDepositAmount || 0) *
+                                          (Number(
+                                            preorderOutstandingByLine[lineIndex] ??
+                                              checkoutItem.preorderOutstandingAmount ??
+                                              0,
+                                          ) /
+                                            Number(checkoutItem.preorderOutstandingAmount || 1)),
                                       )}{" "}
                                       / later{" "}
                                       {formatPrice(
                                         Number(
-                                          checkoutItem.preorderOutstandingAmount ||
+                                          preorderOutstandingByLine[lineIndex] ??
+                                            checkoutItem.preorderOutstandingAmount ??
                                             0,
                                         ),
                                       )}

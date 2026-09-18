@@ -27,11 +27,15 @@ interface ICoupon extends Document {
   maxDiscount?: number;
   usageLimit?: number;
   usedCount: number;
+  /** Uses kept for checkouts still taking payment: hold key → when it lapses. */
+  holds?: Map<string, Date>;
   perUserLimit?: number;
   startDate: Date;
   endDate: Date;
   status: CouponStatus;
   vendorId?: mongoose.Types.ObjectId;
+  /** Who pays for the discount — see the schema. */
+  fundedBy?: "platform" | "vendor";
   applicableProducts?: mongoose.Types.ObjectId[];
   applicableCategories?: mongoose.Types.ObjectId[];
   excludedProducts?: mongoose.Types.ObjectId[];
@@ -86,6 +90,16 @@ const CouponSchema = new Schema<ICoupon>(
       type: Number,
       default: 0,
     },
+    // A use kept for each checkout that has not paid yet, so a limited coupon
+    // cannot be handed to more shoppers than it has uses. Keyed by shopper and
+    // lapsing on its own — see `holdCouponUse`. Never selected by default: the
+    // keys identify shoppers, and coupon lists reach vendors.
+    holds: {
+      type: Map,
+      of: Date,
+      default: undefined,
+      select: false,
+    },
     perUserLimit: {
       type: Number,
       default: 1,
@@ -108,6 +122,30 @@ const CouponSchema = new Schema<ICoupon>(
       type: Schema.Types.ObjectId,
       ref: "Vendor",
       default: null,
+    },
+    /**
+     * Who pays for the goods discount on a seller's items: the store, or the
+     * sellers whose items it discounts.
+     *
+     * The marketplace convention: a seller's own coupon is that seller's cost,
+     * a store-wide promotion is the store's. Before this every coupon came out
+     * of the sellers' earnings — a site-wide 10% promotion was paid ninety
+     * percent by vendors who never chose to run it.
+     *
+     * Only a store coupon reads it; a vendor's own coupon is always the
+     * vendor's, whatever is stored. Absent means the store. Frozen onto each
+     * order at checkout (`order.coupon.fundedBy`), so changing it later moves
+     * no money on orders already placed.
+     *
+     * A free-shipping coupon reads it too, on the delivery charge instead of
+     * the goods: a store-wide "free delivery this weekend" used to come out of
+     * the sellers who carried the parcels, for a promotion they never chose to
+     * run. Funded by the store, a seller still earns the charge their parcel
+     * was rated at.
+     */
+    fundedBy: {
+      type: String,
+      enum: ["platform", "vendor"],
     },
     applicableProducts: [
       {

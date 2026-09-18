@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
-import { sendEmail } from "@/lib/email/email";
+import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { auth } from "@/lib/auth/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getSettings } from "@/models/settings.model";
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       message: escapeHtml(data.message).replace(/\n/g, "<br />"),
     };
 
-    if (settings.email?.enabled && recipient) {
+    if (isEmailDeliveryConfigured(settings) && recipient) {
       const sent = await sendEmail({
         to: recipient,
         replyTo: data.email,

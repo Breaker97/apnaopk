@@ -26,7 +26,9 @@ const AddressSchema = new Schema<Address>(
     apartment: { type: String },
     city: { type: String, required: true },
     state: { type: String, required: true },
-    postalCode: { type: String, required: true },
+    // Not required: the checkout settings can leave the postcode optional or
+    // hidden, for countries that have none.
+    postalCode: { type: String },
     country: { type: String, required: true },
     phone: { type: String },
   },
@@ -90,6 +92,13 @@ const OrderItemSchema = new Schema<OrderItem>(
       type: String,
       enum: ["standard", "preorder"],
       default: "standard",
+    },
+    // The quote whose offer priced this line. Kept on the order so the sale
+    // can be traced back to the negotiation that produced it, and so settling
+    // the payment can close the quote out.
+    quoteId: {
+      type: Schema.Types.ObjectId,
+      ref: "QuoteRequest",
     },
     preorderReleaseDate: {
       type: Date,
@@ -280,6 +289,41 @@ const SubOrderSchema = new Schema<SubOrder>({
     type: Date,
   },
   /**
+   * This consignment's slice of a coupon that was limited to some of the cart
+   * — one vendor's own coupon, or a product or category list. Absent on an
+   * order whose coupon covered everything (or that had none), which shares
+   * `Order.discount` by sales exactly as every order before this field did.
+   * The ledger, the payout and a return estimate read it, so a vendor's
+   * coupon comes out of that vendor's goods and nobody else's.
+   */
+  couponDiscount: {
+    type: Number,
+    min: 0,
+  },
+  /**
+   * What a free-shipping coupon took off THIS consignment's delivery.
+   *
+   * Absent on an order placed before this field (or rated as one shipment
+   * without a coupon), where the ledger and the payout share the order's
+   * discount over every parcel by its rated cost — which is how those orders
+   * were paid out. Stamped, one seller's free-shipping coupon stops costing
+   * the other sellers their delivery charge. See `shippingShares` on the
+   * validated coupon.
+   */
+  shippingDiscount: {
+    type: Number,
+    min: 0,
+  },
+  /**
+   * Stamped when this consignment's share was sent back on its cancellation.
+   * The claim that makes that refund happen once, whichever route cancelled
+   * it and however many times the request arrived — see
+   * `refundOrderCancellation` in lib/orders/preorder-cancel-refund.ts.
+   */
+  cancelRefundClaimedAt: {
+    type: Date,
+  },
+  /**
    * Whose hands this consignment's cash lands in, frozen at checkout.
    *
    * Only meaningful on a COD order, and stamped regardless so nothing has to
@@ -291,6 +335,30 @@ const SubOrderSchema = new Schema<SubOrder>({
   codCollectedBy: {
     type: String,
     enum: Object.values(COD_COLLECTED_BY),
+  },
+  /**
+   * Who earns this consignment's delivery charge, frozen at checkout: the
+   * vendor when they deliver it, the store when its courier does. See
+   * `lib/shipping/shipping-revenue.ts`.
+   *
+   * No default, deliberately: absence means "written before this existed",
+   * when the store kept every delivery charge, and that is how such an order
+   * is still read — a default would hand vendors delivery money on orders
+   * they were already paid out for without it.
+   */
+  shippingRevenueTo: {
+    type: String,
+    enum: ["vendor", "platform"],
+  },
+  /**
+   * Set while a label bought on the STORE's carrier account covers this
+   * parcel: the store paid for delivery, so the store keeps the charge even
+   * where the vendor otherwise would. Cleared when that label is voided and
+   * refunded. Never touched once the consignment is on a payout — what a
+   * payout paid is not taken back by a label bought afterwards.
+   */
+  platformLabelAt: {
+    type: Date,
   },
   /**
    * Who marked it collected. Unset when a gateway settled it — there is no
@@ -374,6 +442,14 @@ const SubOrderSchema = new Schema<SubOrder>({
   commissionSettlementId: {
     type: Schema.Types.ObjectId,
     ref: "CommissionInvoice",
+  },
+  /**
+   * When that invoice froze its amount — the moment a later refund is measured
+   * against, the way `payoutClaimedAt` is for a payout. Absent on consignments
+   * invoiced before it existed, which fall back to `commissionSettledAt`.
+   */
+  commissionClaimedAt: {
+    type: Date,
   },
 });
 
@@ -460,6 +536,22 @@ const OrderSchema = new Schema<IOrder>(
       enum: Object.values(PAYMENT_STATUS),
       default: PAYMENT_STATUS.PENDING,
     },
+    /**
+     * When the order's payment was recorded — the first money that arrived,
+     * a pre-order's deposit included. The ledger dates the sale by it.
+     *
+     * Before this the sale was dated by `createdAt`, so a cash order placed on
+     * 30 June and paid at the door on 20 July was June's revenue, and a closed
+     * June moved it into whatever month happened to be open. A consignment
+     * collected on its own carries its own `subOrders[].paidAt`; a balance
+     * carries `preorderBalancePaidAt`.
+     *
+     * Absent on orders recorded before it existed, and on orders nothing has
+     * been collected on — the ledger then falls back to the charge row's time.
+     */
+    paidAt: {
+      type: Date,
+    },
     // Currency the order was charged in, frozen at creation. Refunds and the
     // ledger must use this — resolving from the CURRENT default currency
     // mislabels historical orders whenever the store currency changes.
@@ -492,6 +584,12 @@ const OrderSchema = new Schema<IOrder>(
     // unreversed and both claim it. Held across resolving the split and writing
     // the row, in `createRefundTransaction`.
     refundLockAt: {
+      type: Date,
+    },
+    // Set in the write that reserves an in-app refund and cleared once its row
+    // is written: while it stands, a gateway refund webhook waits instead of
+    // recording the same refund a second time. See lib/orders/refund-in-flight.ts.
+    refundInFlightAt: {
       type: Date,
     },
     // Client-generated idempotency key for POS sales. A network blip after the
@@ -726,6 +824,16 @@ const OrderSchema = new Schema<IOrder>(
         type: Schema.Types.ObjectId,
         ref: "Coupon",
       },
+      /**
+       * Who paid for the goods discount, frozen at checkout: the store, or the
+       * sellers whose items it discounted. Absent — every order placed before
+       * this existed — means the sellers, which is how those orders were paid
+       * out and posted. See `fundedBy` on the Coupon model.
+       */
+      fundedBy: {
+        type: String,
+        enum: ["platform", "vendor"],
+      },
       // Set to true once the coupon's usedCount has actually been
       // incremented for this order. Used to gate decrementing on
       // cancel/refund so we never under- or over-count usage.
@@ -769,6 +877,52 @@ const OrderSchema = new Schema<IOrder>(
     preorderAcknowledgedAt: {
       type: Date,
     },
+    /**
+     * When the shopper authorised their card to be kept and charged for the
+     * balance, and the exact words they authorised.
+     *
+     * Stored rather than derived because that is the whole point of it: a
+     * mandate is evidence, and evidence rebuilt later from today's wording
+     * proves nothing about what was on screen at the time. Composed server
+     * side from the server's own figures — the client sends a bare `true` —
+     * so the text cannot be dictated by whoever is checking out. Absent on
+     * every pre-order paid in full, which has no balance to authorise.
+     *
+     * See `lib/payments/preorder-mandate.ts`.
+     */
+    preorderMandateAcceptedAt: {
+      type: Date,
+    },
+    preorderMandateText: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+    },
+    /**
+     * The card kept for the balance, as a Stripe PaymentMethod.
+     *
+     * Saved at checkout (`setup_future_usage` on a deposit, a SetupIntent when
+     * nothing is charged today) and never used on its own: an off-session
+     * charge also needs the shopper's Customer, which is on the user, and the
+     * mandate above, which is the permission. Present only where all three are.
+     */
+    preorderSavedPaymentMethodId: {
+      type: String,
+    },
+    /**
+     * The Stripe Customer that saved card is attached to.
+     *
+     * Kept on the order because Stripe will only charge a saved card
+     * off-session when the SAME Customer is named with it, and a guest has no
+     * user account to keep a Customer on — theirs is minted for the checkout
+     * (`resolveGuestStripeCustomerId`) and lives only here. A signed-in
+     * shopper's is stamped too: it is the Customer the card was actually saved
+     * against, which a later re-mint on the user (a deleted customer, a new
+     * Stripe account) would otherwise lose track of.
+     */
+    stripeCustomerId: {
+      type: String,
+    },
     preorderPaymentMode: {
       type: String,
       enum: ["full", "deposit", "pay_later"],
@@ -807,6 +961,88 @@ const OrderSchema = new Schema<IOrder>(
     },
     preorderBalancePaidAt: {
       type: Date,
+    },
+    /**
+     * The gateway's cut of the balance payment alone, stamped with it. The
+     * order's `paymentFee` is the deposit's and the balance's together once
+     * the balance is in, and without this the balance's fee could not be told
+     * apart — so it was never posted.
+     */
+    preorderBalancePaymentFee: {
+      type: Number,
+      min: 0,
+    },
+    /**
+     * The PayPal order raised to collect the balance, while the shopper is
+     * away approving it and afterwards.
+     *
+     * Two jobs, both of which need the ORDER id rather than the capture id the
+     * balance reference records: it is how PayPal's return to the capture route
+     * finds which Storify order the approval was for, and it is what a refund
+     * reads back to ask PayPal how much of the balance is still refundable.
+     * Overwritten by a fresh attempt, which is safe: PayPal moves no money on
+     * approval, only on the capture call this app makes.
+     */
+    preorderBalancePaypalOrderId: {
+      type: String,
+    },
+    /**
+     * When the store actually ASKED for the balance (the move to
+     * `payment_due`), as opposed to when the goods were promised.
+     *
+     * The expiry sweep counted its grace period from the release date alone,
+     * which is the right clock only while the two coincide. A batch that
+     * lands late — release date in June, stock received and payment requested
+     * in July — was already past its grace the moment the request went out,
+     * so the shopper was reminded and cancelled in the SAME cron run. Stamped
+     * once and never moved by a repeat click, so re-running the action cannot
+     * quietly extend a shopper's runway either.
+     */
+    preorderBalanceRequestedAt: {
+      type: Date,
+    },
+    /**
+     * The dunning record for the card on file: how many times the store has
+     * tried to take the balance off it, when it last tried, and what Stripe
+     * said the last time it refused.
+     *
+     * All three are one mechanism, not three facts. `...LastChargeAt` is the
+     * claim AND the backoff — an attempt is made only by the caller that can
+     * move it, and only once it is older than the retry window, so two
+     * overlapping sweeps cannot both charge and a failure cannot be retried
+     * in a tight loop. `...Attempts` stops the retries after a few rather
+     * than hammering a dead card until the expiry sweep gets there.
+     * `...LastChargeCode` is Stripe's own code, kept because the answer to
+     * `authentication_required` is different in kind from the answer to a
+     * decline: no off-session retry will ever pass it, only the shopper can.
+     *
+     * See `lib/payments/preorder-balance-charge.ts`.
+     */
+    preorderBalanceChargeAttempts: {
+      type: Number,
+      min: 0,
+    },
+    preorderBalanceLastChargeAt: {
+      type: Date,
+    },
+    preorderBalanceLastChargeCode: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+    /**
+     * Which balance reminders have already gone out, as stage keys.
+     *
+     * The scheduled job's whole idempotency rests on this: it claims each
+     * order with `$addToSet` and only notifies if the claim actually added the
+     * stage, so two overlapping runs — or a retry after a timeout — cannot
+     * send the same reminder twice. A single `lastReminderSentAt` timestamp
+     * could not do that, because two stages fall due in the same window and
+     * the second would look like the first.
+     */
+    preorderBalanceRemindersSent: {
+      type: [String],
+      default: undefined,
     },
     channel: {
       type: String,
@@ -865,6 +1101,29 @@ const OrderSchema = new Schema<IOrder>(
     notes: {
       type: String,
       maxlength: 1000,
+    },
+    customerNote: {
+      type: String,
+      maxlength: 1000,
+    },
+    contactPhone: {
+      type: String,
+      trim: true,
+      maxlength: 30,
+    },
+    checkoutFields: {
+      type: [
+        new Schema(
+          {
+            key: { type: String, required: true },
+            label: { type: String, required: true },
+            type: { type: String, required: true },
+            value: { type: String, maxlength: 1000 },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
     },
   },
   {
@@ -949,6 +1208,13 @@ OrderSchema.index(
 OrderSchema.index(
   { posLocalReceiptNumber: 1 },
   { partialFilterExpression: { posLocalReceiptNumber: { $gt: "" } } },
+);
+// PayPal's return names only its own order id, so this is the lookup the
+// capture route makes on every pre-order balance payment. Partial, because all
+// but a handful of orders never carry one.
+OrderSchema.index(
+  { preorderBalancePaypalOrderId: 1 },
+  { partialFilterExpression: { preorderBalancePaypalOrderId: { $gt: "" } } },
 );
 // Mirror the Stripe/Pesapal duplicate-order protection for the remaining
 // gateways: nothing should ever create two orders with the same gateway

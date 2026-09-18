@@ -61,6 +61,8 @@ interface AppSettingsContextValue {
   supportedLanguages: string[];
   /** Store-wide country options allowed in checkout, onboarding, and forms. */
   countryAvailability: CountryAvailability;
+  /** Example MTN MoMo number for wallet-number placeholders, in the configured OpCo's format. */
+  mtnMomoPhoneExample: string;
   logoUrl?: string;
   darkModeLogoUrl?: string;
   faviconUrl?: string;
@@ -96,6 +98,7 @@ const defaultAppSettings: AppSettingsContextValue = {
   defaultLanguage: DEFAULT_LANGUAGE,
   supportedLanguages: [],
   countryAvailability: { ...DEFAULT_COUNTRY_AVAILABILITY },
+  mtnMomoPhoneExample: "231881234567",
   logoUrl: undefined,
   darkModeLogoUrl: undefined,
   faviconUrl: undefined,
@@ -163,6 +166,9 @@ export function AppSettingsProvider({
             countryAvailability: normalizeCountryAvailability(
               data.data.countryAvailability,
             ),
+            mtnMomoPhoneExample:
+              data.data.payment?.mtnMomoPhoneExample ||
+              defaultAppSettings.mtnMomoPhoneExample,
             logoUrl: data.data.logoUrl,
             darkModeLogoUrl: data.data.darkModeLogoUrl,
             faviconUrl: resolveFaviconUrl(data.data.faviconUrl),

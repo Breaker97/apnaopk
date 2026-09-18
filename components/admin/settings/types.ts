@@ -1,6 +1,11 @@
 import type { CredentialEnvSources } from "@/lib/settings/credentials";
 import type { CredentialMetaMap } from "@/lib/settings/credential-fields";
 import type { CountryAvailability } from "@/lib/intl/country-availability";
+import type { NotificationSettings } from "@/lib/notifications/notification-settings";
+import type {
+  CheckoutGatewayId,
+  CheckoutGatewayReadiness,
+} from "@/lib/payments/checkout-gateways";
 import type {
   CarrierLabelFileType,
   CarrierLabelStorage,
@@ -65,12 +70,13 @@ export interface Settings {
     supportedCurrencies: string[];
     countryAvailability: CountryAvailability;
     timezone: string;
-    productSearchMode?: "regex" | "text";
   };
   appearance: {
     primaryColor: string;
     secondaryColor: string;
     accentColor: string;
+    /** Loading placeholders; empty keeps a neutral grey. */
+    skeletonColor?: string;
     /** Legacy documents may still hold `"system"`; read via `normalizeThemeMode`. */
     theme: "light" | "dark" | "system";
 
@@ -160,6 +166,12 @@ export interface Settings {
       razorpay?: "test" | "live";
       paystack?: "test" | "live";
     };
+    /**
+     * Whether each gateway could take a checkout payment once switched on, and
+     * what stops it when not — the same rule the storefront applies, computed
+     * from the saved settings (lib/payments/checkout-gateways.ts).
+     */
+    checkoutGateways?: Record<CheckoutGatewayId, CheckoutGatewayReadiness>;
     demoMode?: {
       enabled?: boolean;
       message?: string;
@@ -191,31 +203,22 @@ export interface Settings {
     apiKey?: string;
     logRetentionDays?: 7 | 30 | 90;
   };
-  notifications: {
-    admin: {
-      newOrders: NotificationChannelSettings;
-      newCustomers: NotificationChannelSettings;
-      newVendors: NotificationChannelSettings;
-      returns: NotificationChannelSettings;
-      payments: NotificationChannelSettings;
+  sms: {
+    enabled: boolean;
+    twilio?: {
+      // The SID and token are never sent to the browser — presence is read
+      // from `_meta.credentials`. The keys exist so an admin can type one.
+      accountSid?: string;
+      authToken?: string;
+      messagingServiceSid?: string;
+      fromNumber?: string;
     };
-    staff: {
-      newOrders: NotificationChannelSettings;
-      newCustomers: NotificationChannelSettings;
-      returns: NotificationChannelSettings;
-      payments: NotificationChannelSettings;
-      lowStock: NotificationChannelSettings;
-    };
-    vendor: {
-      applicationStatus: NotificationChannelSettings;
-      newOrders: NotificationChannelSettings;
-      returns: NotificationChannelSettings;
-    };
-    customer: {
-      orderUpdates: NotificationChannelSettings;
-      returnUpdates: NotificationChannelSettings;
-    };
+    /** ISO-2. */
+    defaultCountry?: string;
+    includeLinks?: boolean;
+    logRetentionDays?: 7 | 30 | 90;
   };
+  notifications: NotificationSettings;
   orders: {
     prefix: string;
     taxRate: number;
@@ -224,9 +227,12 @@ export interface Settings {
     commission: {
       vendorRate: number;
       minWithdrawalAmount: number;
+      /** A minimum of its own for a payout in another currency. */
+      minWithdrawalByCurrency?: Record<string, number> | null;
     };
     /** Optional: a store saved before these settings existed carries none. */
     returns?: {
+      windowDays?: number;
       shippingRefund?: "never" | "merchant_fault" | "always";
       restockingFeePercent?: number;
       returnShippingFee?: number;
@@ -461,6 +467,17 @@ export interface Settings {
     canManagePayouts: boolean;
     canAccessPOS: boolean;
   };
+  preorder: {
+    enabled: boolean;
+    requireVendorApproval: boolean;
+    maxLeadDays: number;
+    maxDepositPercent: number;
+    expiryGraceDays: number;
+    autoRelease: boolean;
+    autoReleaseDelayDays: number;
+    reservePercent: number;
+    reserveDays: number;
+  };
   vendorConfig: {
     plansEnabled: boolean;
     allowRegistration: boolean;
@@ -581,11 +598,7 @@ interface CustomColorPreset {
   accentColor: string;
 }
 
-export interface NotificationChannelSettings {
-  inApp: boolean;
-  email: boolean;
-  browserPush: boolean;
-}
+export type { NotificationChannelSettings } from "@/lib/notifications/notification-settings";
 
 export interface CustomShareButton {
   id: string;

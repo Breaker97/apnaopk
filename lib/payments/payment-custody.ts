@@ -60,6 +60,27 @@ export const PLATFORM_GATEWAY_PAYMENT_METHODS = [
   "mtn_momo",
 ] as const;
 
+/**
+ * Whether an order naming this method would read as money the PLATFORM holds:
+ * a gateway, or cash on delivery, whose custody is settled per consignment and
+ * can be the platform's courier.
+ *
+ * An order made by hand must never carry one. Nothing verified a payment, yet
+ * the payout filter reads the method alone — so a manual order marked paid "by
+ * card" was paid out to its vendor in money no gateway ever took. Compared
+ * trimmed and case-blind, because the Mongo arm matches exactly and the
+ * predicate lowercases: "Card" would otherwise mean one thing to each.
+ */
+export function isPlatformCustodyMethod(
+  method: string | null | undefined,
+): boolean {
+  const normalized = String(method || "").trim().toLowerCase();
+  return (
+    normalized === "cod" ||
+    (PLATFORM_GATEWAY_PAYMENT_METHODS as readonly string[]).includes(normalized)
+  );
+}
+
 /** The order fields the custody rule reads. */
 export type PaymentCustodyOrder = {
   paymentMethod?: string | null;

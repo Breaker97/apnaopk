@@ -86,7 +86,7 @@ async function RenderSlides({ settings, ctx }: SectionRenderProps) {
   // merchant saved before that rule stay in storage, unrendered.
   const slides = (settings.slides as SliderSlide[]).slice(0, 1);
   const products = await resolveSlideProducts(slides);
-  const renderSlides = buildRenderSlides(slides, products).filter(
+  const renderSlides = buildRenderSlides(slides, products, { locale: ctx.locale }).filter(
     slideShowsSomething,
   );
   if (renderSlides.length === 0) {

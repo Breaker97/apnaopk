@@ -23,7 +23,7 @@ export interface BoostCampaignStats {
 
 /**
  * Day-bucket + placement aggregation for one campaign, shared by the vendor
- * and admin stats routes (salesByDay pattern from /api/vendor/analytics).
+ * and admin stats routes.
  * Buckets are keyed by UTC "YYYY-MM-DD" strings, so grouping is a plain
  * string group — no $dateToString needed.
  */

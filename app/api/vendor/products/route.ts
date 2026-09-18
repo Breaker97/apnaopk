@@ -11,12 +11,17 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { checkPlanLimit } from "@/lib/vendors/vendor-limits";
 import { getSettings } from "@/models/settings.model";
+import { assertProductPreorderAllowed } from "@/lib/orders/preorder-gating";
+import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validateBody, validateQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema, CreateProductSchema } from "@/lib/validations";
 import { auditCreate, createAuditContext } from "@/lib/audit";
 import { syncProductCollections } from "@/lib/catalog/collections";
-import { syncProductCategory } from "@/lib/catalog/categories";
+import {
+  assertCategoryAcceptsProducts,
+  syncProductCategory,
+} from "@/lib/catalog/categories";
 import {
   assignMissingProductBarcodes,
   extractClearedProductFields,
@@ -149,6 +154,7 @@ export const POST = withApi(
     }
 
     const body = await validateBody(request, CreateProductSchema);
+    await assertCategoryAcceptsProducts(body.category);
     const countryOfOrigin = body.shipping?.countryOfOrigin?.trim();
     if (
       countryOfOrigin &&
@@ -196,6 +202,19 @@ export const POST = withApi(
     const cleanedPreorder = sanitizePreorderSettings(
       (body as unknown as Record<string, unknown>).preorder,
     );
+
+    // A pre-order commits the PLATFORM to a refund it cannot decline, so the
+    // limits are checked before the product exists rather than at sell time.
+    assertProductPreorderAllowed({
+      product: {
+        price: (body as unknown as { price?: number }).price,
+        preorder: cleanedPreorder as never,
+        variants: cleanedVariants as never,
+      },
+      policy: settings.preorder,
+      vendor,
+      storeCanCollectBalance: storeCanCollectDeferredBalance(settings.payment),
+    });
 
     // Global slug uniqueness — the storefront resolves products by slug alone,
     // so a slug shared across vendors makes one product unreachable.

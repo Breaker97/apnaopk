@@ -126,7 +126,7 @@ export const PUT = withApi<RouteParams>(
     const plan = await VendorPlan.findByIdAndUpdate(
       id,
       { $set: update },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean();
     if (!plan) return notFoundResponse("Plan");
 

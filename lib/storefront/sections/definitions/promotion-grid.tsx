@@ -7,11 +7,13 @@ import {
   DEFAULT_PROMO_GRID,
   MAX_SLIDER_CELLS,
   PROMO_GRIDS,
+  SECTION_GRID_SPACING_FIELDS,
   SLIDER_HEIGHTS,
   SLIDER_WIDTHS,
   THEME_SLIDER_INHERIT,
   getSliderGrid,
   migratePromotionGridV1,
+  readSectionGridSpacing,
   readSliderCell,
   resolveSliderLayout,
   sliderCellIsFilled,
@@ -83,6 +85,8 @@ export const promotionGrid: SectionDefinition = {
       ],
       default: DEFAULT_HEIGHT,
     },
+    // Spacing and corners, shared with the Slider.
+    ...SECTION_GRID_SPACING_FIELDS,
   ],
   blocks: [
     {
@@ -126,33 +130,36 @@ export const promotionGrid: SectionDefinition = {
     const heightClass = fullHeight
       ? FULL_HEIGHT_CLASS
       : (HEIGHT_CLASSES[height] ?? HEIGHT_CLASSES[DEFAULT_HEIGHT]);
-    const roundedClass =
-      width === "full" || width === "fullHeight"
-        ? "rounded-none"
-        : "rounded-xl";
+    const spacing = readSectionGridSpacing(settings);
+    // Edge to edge means square: a rounded corner against the screen's own
+    // edge shows the page through the gap.
+    const edgeToEdge = width === "full" || width === "fullHeight";
     const gridNode = (
       <SectionGrid
         grid={grid}
         cells={cells}
         locale={ctx.locale}
         heightClass={heightClass}
-        roundedClass={roundedClass}
+        gap={spacing.gap}
+        radius={edgeToEdge ? "0px" : spacing.radius}
       />
     );
 
-    if (width === "full" || width === "fullHeight") {
+    if (edgeToEdge) {
       return <section>{gridNode}</section>;
     }
     if (width === "fullPadding" || width === "fullHeightPadding") {
       return (
         <section className="py-4">
-          <div className="px-4">{gridNode}</div>
+          <div style={{ paddingInline: spacing.sidePadding }}>{gridNode}</div>
         </section>
       );
     }
     return (
       <section className="py-4 lg:py-6">
-        <div className="container mx-auto px-4">{gridNode}</div>
+        <div className="container mx-auto" style={{ paddingInline: spacing.sidePadding }}>
+          {gridNode}
+        </div>
       </section>
     );
   },
@@ -160,6 +167,8 @@ export const promotionGrid: SectionDefinition = {
     const grid = getSliderGrid(settings.grid);
     const { width, height } = resolveSliderLayout(settings, ctx?.themeSettings);
     const fullHeight = width === "fullHeight" || width === "fullHeightPadding";
+    const spacing = readSectionGridSpacing(settings);
+    const edgeToEdge = width === "full" || width === "fullHeight";
     const frame = (
       <SectionGridSkeleton
         grid={grid}
@@ -168,26 +177,25 @@ export const promotionGrid: SectionDefinition = {
             ? FULL_HEIGHT_CLASS
             : (HEIGHT_CLASSES[height] ?? HEIGHT_CLASSES[DEFAULT_HEIGHT])
         }
-        roundedClass={
-          width === "full" || width === "fullHeight"
-            ? "rounded-none"
-            : "rounded-xl"
-        }
+        gap={spacing.gap}
+        radius={edgeToEdge ? "0px" : spacing.radius}
       />
     );
-    if (width === "full" || width === "fullHeight") {
+    if (edgeToEdge) {
       return <section aria-hidden>{frame}</section>;
     }
     if (width === "fullPadding" || width === "fullHeightPadding") {
       return (
         <section className="py-4" aria-hidden>
-          <div className="px-4">{frame}</div>
+          <div style={{ paddingInline: spacing.sidePadding }}>{frame}</div>
         </section>
       );
     }
     return (
       <section className="py-4 lg:py-6" aria-hidden>
-        <div className="container mx-auto px-4">{frame}</div>
+        <div className="container mx-auto" style={{ paddingInline: spacing.sidePadding }}>
+          {frame}
+        </div>
       </section>
     );
   },

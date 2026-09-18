@@ -121,6 +121,8 @@ export interface IUser {
   // 2FA fields
   twoFactorEnabled?: boolean;
   twoFactorSecret?: string;
+  /** Stripe Customer for this shopper — see `lib/payments/stripe-customer.ts`. */
+  stripeCustomerId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -178,6 +180,8 @@ export interface ICustomerProfile {
   // Marketing & Communication
   marketingOptIn: boolean;
   emailNotifications: EmailNotificationPreferences;
+  /** Covers order, pre-order and return texts. Absent on profiles saved before SMS. */
+  smsNotifications?: { orderUpdates: boolean };
 
   // Cached Aggregated Stats
   stats: CustomerStats;
@@ -237,12 +241,25 @@ export interface IVendor {
    * documents or a subscription. Absent/false = no badge.
    */
   verified?: boolean;
+  /**
+   * Pre-order access. Only consulted when
+   * `settings.preorder.requireVendorApproval` is on — see the vendor model.
+   */
+  preorder?: {
+    enabled?: boolean;
+    requestedAt?: Date;
+    approvedAt?: Date;
+    approvedBy?: Types.ObjectId | string;
+    note?: string;
+  };
   commission: number;
   /**
    * Whether `commission` is the store default, a plan's rate, or a per-vendor
    * override an admin typed. Absent reads as "default" — see the model.
    */
   commissionSource?: "default" | "plan" | "manual";
+  /** Claim serializing payout creation — see the model. */
+  payoutLockAt?: Date;
   rating: number;
   totalSales: number;
   /** @deprecated legacy grant list; read only as a fallback. See `permissionOverrides`. */
@@ -535,6 +552,9 @@ interface UnitPriceMeasurement {
 
 type MediaType = "image" | "video" | "model" | "external_video";
 
+const PRODUCT_MEDIA_FITS = ["auto", "contain", "cover"] as const;
+export type ProductMediaFit = (typeof PRODUCT_MEDIA_FITS)[number];
+
 export interface ProductMedia {
   _id: string;
   type: MediaType;
@@ -551,6 +571,13 @@ export interface ProductMedia {
   /** external_video only: embed provider + parsed video id. */
   provider?: "youtube" | "vimeo";
   embedId?: string;
+  /**
+   * How this image sits in the product page's frames: "auto" follows the
+   * page's Image fit setting, "contain" floats it inside with air around it
+   * (a cut-out on a transparent background), "cover" fills the frame edge to
+   * edge (a lifestyle shot). Images only.
+   */
+  fit?: ProductMediaFit;
 }
 
 /**
@@ -638,6 +665,20 @@ interface ProductSEO {
   pageTitle?: string;
   metaDescription?: string;
   handle?: string;
+}
+
+/**
+ * The derived search block every product carries — see
+ * lib/products/search.ts. `v` is the builder version that produced it.
+ */
+export interface ProductSearchIndex {
+  v: number;
+  /** The normalized name, stop words removed; what the ranking reads. */
+  name: string;
+  /** Prefix-matchable words from the primary fields; indexed. */
+  terms: string[];
+  /** `terms` plus the description words, one string; the unindexed fallback. */
+  text: string;
 }
 
 // Money range used for `priceRange` and `compareAtPriceRange` (Shopify-style)
@@ -884,6 +925,8 @@ export interface IProduct {
   variants: ProductVariant[];
   preorder?: PreorderSettings;
   seo?: ProductSEO;
+  /** Derived on every write; never set by a caller. */
+  search?: ProductSearchIndex;
   publishing?: ProductPublishing;
   shipping?: {
     isPhysicalProduct?: boolean;
@@ -931,6 +974,13 @@ export interface CartItem {
   preorderOutstandingAmount?: number;
   preorderSupplierEta?: Date;
   preorderBatchName?: string;
+  /**
+   * The accepted quote this line is priced by, for a "price on request"
+   * product. Its presence is the only reason such a line may sit in a cart at
+   * all — every price surface refuses the product otherwise. The price is
+   * still re-read from the quote at checkout, never trusted from here.
+   */
+  quoteId?: Types.ObjectId | string;
   /**
    * Who sells this line. Attached by `GET /api/cart` from the product, never
    * stored on the cart: a cart can outlive a store rename by weeks, and the
@@ -991,8 +1041,20 @@ export interface ICart {
   recoveredAt?: Date;
   /** Set atomically while an order-creation request is consuming this cart. */
   checkoutClaimedAt?: Date;
+  /** Set by the recovery-email sweep as it claims the cart. */
+  recoveryEmailClaimedAt?: Date;
   /** Stripe intents rejected by the tamper guard and auto-refunded — must never fulfil an order. */
   rejectedPaymentIntentIds?: string[];
+  /**
+   * The order note and checkout-field answers of the latest Stripe checkout,
+   * which creates its order later from the webhook — too large and too free
+   * to ride in Stripe's 500-character metadata values.
+   */
+  checkoutDetails?: {
+    customerNote?: string;
+    contactPhone?: string;
+    checkoutFields?: OrderCheckoutField[];
+  };
 }
 
 // ============================================
@@ -1022,6 +1084,8 @@ export interface OrderItem {
   preorderOutstandingAmount?: number;
   preorderSupplierEta?: Date;
   preorderBatchName?: string;
+  /** The quote whose offer priced this line, when it came from one. */
+  quoteId?: Types.ObjectId;
   customs?: {
     countryOfOrigin?: string;
     hsCode?: string;
@@ -1098,6 +1162,12 @@ export interface SubOrder {
    */
   paymentStatus?: PaymentStatus;
   paidAt?: Date;
+  /** This consignment's slice of a scoped coupon; absent means shared by sales. */
+  couponDiscount?: number;
+  /** What a free-shipping coupon took off this consignment's delivery. */
+  shippingDiscount?: number;
+  /** When this consignment's share was refunded on its cancellation. */
+  cancelRefundClaimedAt?: Date;
   /** User id of whoever marked it collected; unset for gateway settlement. */
   paymentCollectedBy?: string;
   /**
@@ -1105,6 +1175,13 @@ export interface SubOrder {
    * Absent means `vendor`. Read it through `lib/cod-collection.ts`.
    */
   codCollectedBy?: CodCollectedBy;
+  /**
+   * Who earns this consignment's delivery charge, frozen at checkout. Absent
+   * means the store. Read it through `lib/shipping/shipping-revenue.ts`.
+   */
+  shippingRevenueTo?: "vendor" | "platform";
+  /** Set while a label on the store's carrier account covers this parcel. */
+  platformLabelAt?: Date;
   trackingNumber?: string;
   /** This vendor's own carrier; the order-level one cannot hold two. */
   carrier?: string;
@@ -1123,6 +1200,8 @@ export interface SubOrder {
    */
   commissionSettledAt?: Date;
   commissionSettlementId?: Types.ObjectId;
+  /** When the invoice that claimed this consignment froze its amount. */
+  commissionClaimedAt?: Date;
 }
 
 export interface OrderLoyaltyState {
@@ -1172,6 +1251,8 @@ export interface IOrder {
   returnRequestLockAt?: Date;
   /** Short-lived claim serializing refund splits per order. */
   refundLockAt?: Date;
+  /** An in-app refund is between its reservation and its row. */
+  refundInFlightAt?: Date;
   /** Client-generated idempotency key for POS sales. */
   posClientRequestId?: string;
   /**
@@ -1239,6 +1320,8 @@ export interface IOrder {
     code: string;
     type?: string;
     value?: number;
+    /** Who paid for the goods discount; absent means the sellers. */
+    fundedBy?: "platform" | "vendor";
   };
   total: number;
   hasPreorder?: boolean;
@@ -1246,6 +1329,13 @@ export interface IOrder {
   preorderReleaseDate?: Date;
   preorderReserved?: boolean;
   preorderAcknowledgedAt?: Date;
+  /** Card-on-file authorisation for the balance — see the order model. */
+  preorderMandateAcceptedAt?: Date;
+  preorderMandateText?: string;
+  /** The Stripe PaymentMethod kept for the balance. See the order model. */
+  preorderSavedPaymentMethodId?: string;
+  /** The Stripe Customer that saved card belongs to. See the order model. */
+  stripeCustomerId?: string;
   preorderPaymentMode?: "full" | "deposit" | "pay_later";
   preorderDepositAmount?: number;
   preorderOutstandingAmount?: number;
@@ -1255,6 +1345,20 @@ export interface IOrder {
   preorderCustomerNotifiedAt?: Date;
   preorderBalancePaymentIntentId?: string;
   preorderBalancePaidAt?: Date;
+  /** The gateway's cut of the balance payment alone. */
+  preorderBalancePaymentFee?: number;
+  /** When the order's payment was first recorded. */
+  paidAt?: Date;
+  /** The PayPal order raised to collect the balance — see the order model. */
+  preorderBalancePaypalOrderId?: string;
+  /** When the balance was asked for — the expiry clock. See the order model. */
+  preorderBalanceRequestedAt?: Date;
+  /** Dunning state for the card on file — see the order model. */
+  preorderBalanceChargeAttempts?: number;
+  preorderBalanceLastChargeAt?: Date;
+  preorderBalanceLastChargeCode?: string;
+  /** Balance-reminder stages already sent — see the order model. */
+  preorderBalanceRemindersSent?: string[];
   channel: "online" | "pos";
   posLocationId?: string;
   staffId?: string;
@@ -1269,9 +1373,30 @@ export interface IOrder {
   statusChangedBy?: string;
   /** Last auto-ship sweep pass; bounds the sweep's scan. */
   autoShipCheckedAt?: Date;
+  /** Staff-only internal notes. */
   notes?: string;
+  /** The note the shopper left at checkout (checkout settings `orderNote`). */
+  customerNote?: string;
+  /**
+   * The phone the shopper gave to be reached on (checkout settings
+   * `contact.mode`) — may differ from the delivery phone on the address.
+   */
+  contactPhone?: string;
+  /**
+   * Answers to the store's own checkout fields. Self-describing — the label
+   * is snapshotted — so the order still reads right after the field is
+   * renamed or deleted.
+   */
+  checkoutFields?: OrderCheckoutField[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface OrderCheckoutField {
+  key: string;
+  label: string;
+  type: string;
+  value: string;
 }
 
 // ============================================
@@ -1386,6 +1511,13 @@ interface CollectionPublishing {
   pointOfSale: boolean;
 }
 
+/**
+ * What a collection IS on the storefront. A "look" is a styled outfit — a
+ * campaign image and the pieces in it — that the Get the Look and Looks
+ * sections merchandise; a plain collection is a shelf.
+ */
+export type CollectionKind = "collection" | "look";
+
 export interface ICollection {
   _id: Types.ObjectId;
   title: string;
@@ -1395,6 +1527,8 @@ export interface ICollection {
   descriptionHtml?: string;
   image?: CollectionImage;
   collectionType: "manual" | "automated";
+  /** Absent on documents written before Looks existed — read as "collection". */
+  kind?: CollectionKind;
   products: Types.ObjectId[];
   conditions: CollectionCondition[];
   conditionMatch: "all" | "any";

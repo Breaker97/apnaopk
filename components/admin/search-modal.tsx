@@ -26,6 +26,7 @@ function useAdminNavItems(t: (key: string) => string): NavItem[] {
     { label: t("admin.sidebar.content"), href: "/admin/content" },
     { label: t("admin.sidebar.markets"), href: "/admin/markets" },
     { label: t("admin.sidebar.analytics"), href: "/admin/analytics" },
+    { label: t("admin.sidebar.searchInsights"), href: "/admin/analytics/search" },
     { label: t("admin.sidebar.onlineStore"), href: "/admin/online-store" },
     { label: t("admin.sidebar.themes"), href: "/admin/online-store/theme" },
     {

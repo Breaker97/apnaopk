@@ -28,7 +28,7 @@ export const GET = withApi(
     rateLimit: { action: "admin:collections:list", preset: "lenient" },
   },
   async ({ request }) => {
-    const { page, limit, search, status, type, channel, sortOrder } =
+    const { page, limit, search, status, type, kind, channel, sortOrder } =
       validateQuery(request, CollectionListQuerySchema);
 
     const list = await fetchAdminCollectionList({
@@ -37,6 +37,7 @@ export const GET = withApi(
       search,
       status,
       type,
+      kind,
       channel,
       sortOrder,
     });

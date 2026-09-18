@@ -58,7 +58,9 @@ export function paginatedResponse<T>(
   data: T[],
   page: number,
   limit: number,
-  total: number
+  total: number,
+  /** Fields that ride beside `data` and `pagination`, e.g. a search correction. */
+  extra?: Record<string, unknown>
 ): NextResponse<ApiResponse<PaginatedResponse<T>>> {
   const totalPages = Math.ceil(total / limit);
 
@@ -75,6 +77,7 @@ export function paginatedResponse<T>(
           hasNext: page < totalPages,
           hasPrev: page > 1,
         },
+        ...extra,
       },
     },
     { headers: NO_STORE_HEADERS }

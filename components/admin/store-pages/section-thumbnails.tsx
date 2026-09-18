@@ -197,6 +197,48 @@ const SCENES: Record<string, () => React.ReactNode> = {
       ))}
     </div>
   ),
+  "category-list:overlay": () => (
+    <div className="flex h-full items-center justify-between gap-1.5 px-1">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <span key={index} className="relative flex flex-1">
+          <ImgBlock className="aspect-[4/5] w-full" />
+          <span className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">
+            <Line w="w-1/2" strong />
+          </span>
+        </span>
+      ))}
+    </div>
+  ),
+  "get-the-look": () => (
+    <div className="flex h-full gap-1.5">
+      <ImgBlock className="w-2/5 shrink-0" />
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <Line w="w-10" strong />
+        <Line w="w-14" />
+        <CardRow count={3} />
+        <span className="mt-auto block h-2 w-full rounded-[3px] bg-primary/70" />
+      </span>
+    </div>
+  ),
+  "looks-list": () => (
+    <div className="flex h-full flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Line w="w-10" strong />
+        <span className="flex gap-0.5">
+          <span className="h-2 w-2 rounded-full bg-foreground/20" />
+          <span className="h-2 w-2 rounded-full bg-foreground/20" />
+        </span>
+      </div>
+      <div className="flex gap-1.5">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <span key={index} className="flex min-w-0 flex-1 flex-col gap-1">
+            <ImgBlock className="aspect-[4/5] w-full" />
+            <Line w="w-2/3" />
+          </span>
+        ))}
+      </div>
+    </div>
+  ),
   heading: () => (
     <div className="grid h-full place-items-center">
       <Line w="w-16" strong />
@@ -662,7 +704,105 @@ const SCENES: Record<string, () => React.ReactNode> = {
       ))}
     </div>
   ),
+  // The designs of the sections that follow the template. Each "classic" is
+  // the section's own long-standing picture (aliased below); the other design
+  // draws what makes it different.
+  "service-benefits:electronics": () => (
+    <div className="grid h-full grid-cols-4 divide-x divide-foreground/20 border border-foreground/20">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <span key={index} className="flex items-center gap-1 px-1">
+          <span className="h-3 w-3 shrink-0 border border-foreground/30" />
+          <Line w="w-full" strong />
+        </span>
+      ))}
+    </div>
+  ),
+  "testimonials:luxe": () => (
+    <div className="flex h-full flex-col items-center justify-center gap-1">
+      <span className="font-serif text-[14px] leading-none text-foreground/40">
+        &ldquo;
+      </span>
+      <Line w="w-3/4" strong />
+      <Line w="w-1/2" />
+      <span className="mt-0.5 h-3 w-3 rounded-full bg-foreground/30" />
+    </div>
+  ),
+  "products-main:electronics": () => (
+    <div className="flex h-full flex-col gap-1">
+      <span className="flex justify-center">
+        <Line w="w-1/3" strong />
+      </span>
+      <div className="flex flex-1 gap-1.5">
+        <div className="flex w-5 shrink-0 flex-col gap-1 border-r border-foreground/15 pr-1">
+          <Line w="w-full" />
+          <Line w="w-2/3" />
+          <Line w="w-full" />
+        </div>
+        <div className="grid flex-1 grid-cols-4 gap-1">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <ImgBlock key={index} className="h-full w-full" />
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+  "category-header:electronics": () => (
+    <div className="flex h-full flex-col items-center justify-center gap-1.5">
+      <Line w="w-1/2" strong />
+      <span className="flex gap-1.5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <span key={index} className="h-3.5 w-3.5 rounded-full bg-foreground/15" />
+        ))}
+      </span>
+    </div>
+  ),
+  "category-main:electronics": () => (
+    <div className="flex h-full gap-1.5">
+      <div className="flex w-5 shrink-0 flex-col gap-1 rounded-[3px] bg-foreground/8 p-1">
+        <Line w="w-full" />
+        <Line w="w-2/3" />
+        <Line w="w-full" />
+      </div>
+      <div className="grid flex-1 grid-cols-3 gap-1">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <ImgBlock key={index} className="h-full w-full" />
+        ))}
+      </div>
+    </div>
+  ),
+  "cart-main:electronics": () => (
+    <div className="flex h-full gap-1.5">
+      <div className="flex flex-1 flex-col divide-y divide-foreground/15 border-y border-foreground/15">
+        {[0, 1].map((index) => (
+          <span key={index} className="flex flex-1 items-center gap-1.5">
+            <ImgBlock className="aspect-square h-3/4" />
+            <Line w="w-1/2" strong />
+            <span className="ml-auto">
+              <Line w="w-4" />
+            </span>
+          </span>
+        ))}
+      </div>
+      <div className="flex w-1/3 flex-col gap-1 rounded-[3px] border border-foreground/15 p-1.5">
+        <Line w="w-full" />
+        <Line w="w-2/3" />
+        <span className="mt-auto">
+          <Cta />
+        </span>
+      </div>
+    </div>
+  ),
 };
+for (const type of [
+  "service-benefits",
+  "testimonials",
+  "products-main",
+  "category-header",
+  "category-main",
+  "cart-main",
+]) {
+  SCENES[`${type}:classic`] = SCENES[type];
+}
 
 /**
  * True when a DEDICATED scene exists for this exact key. The picker's

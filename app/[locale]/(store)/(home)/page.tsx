@@ -11,6 +11,7 @@ import type {
   SectionRenderContext,
 } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
+import { getActiveThemeManifest } from "@/lib/storefront/themes/registry";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -65,7 +66,8 @@ export default async function HomePage({ params }: PageProps) {
       locale: locale as Locale,
       defaultLanguage: DEFAULT_LANGUAGE,
       isMultiVendorEnabled: false,
-      themeId: "electronics",
+      // With the settings unreadable, the store's default template.
+      themeId: getActiveThemeManifest(undefined).id,
       templateType: "home",
     };
   }

@@ -98,6 +98,27 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
+/**
+ * Whether a hostname belongs to a private network — the ranges a router
+ * hands out at home or in an office, plus loopback. Used to widen the
+ * trusted origins for LAN testing outside production; anything routable
+ * from the internet answers false.
+ */
+function isPrivateNetworkHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host === "[::1]" || host === "::1") return true;
+  // A name, not an address (a tunnel or a staging domain): not our call.
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
+  const [a, b] = host.split(".").map(Number);
+  if (a === 127 || a === 10) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  // 169.254.0.0/16 — link-local, what a device picks with no DHCP.
+  if (a === 169 && b === 254) return true;
+  return false;
+}
+
 function createAuth(
   db: Db,
   client?: MongoClient,
@@ -122,13 +143,49 @@ function createAuth(
   // Both env vars are legitimate origins for the same deployment and buyers
   // routinely set only one. Trusting both avoids a same-site request being
   // rejected as cross-origin because the other var carries the real domain.
-  const trustedOrigins = Array.from(
+  const configuredOrigins = Array.from(
     new Set(
       [baseURL, process.env.NEXT_PUBLIC_APP_URL, process.env.BETTER_AUTH_URL]
         .map((origin) => (origin || "").trim())
         .filter(Boolean),
     ),
   );
+
+  /**
+   * A request the browser made to the very address it is displaying is
+   * trusted as well, as long as that address is a private one.
+   *
+   * Testing a build from a phone or a second computer means opening it at
+   * `http://192.168.1.5:3000`, and running it on this machine means
+   * `http://localhost:3000` — two origins, only one of which the env vars
+   * can name, so the other's sign-in POST was refused as cross-origin even
+   * though it reached the right server. Same-origin requests cannot be
+   * cross-site forgery by definition, and the check is narrowed further to
+   * hosts that are not routable from the internet (RFC 1918, link-local,
+   * loopback), so a public deployment behaves exactly as before: it trusts
+   * the origins it was configured with and nothing else.
+   *
+   * Deliberately not gated on NODE_ENV: `next start` on a laptop runs as
+   * production, which is precisely the build a merchant tests across
+   * devices before shipping.
+   */
+  const trustedOrigins = (request?: Request) => {
+    const origin = request?.headers.get("origin")?.trim();
+    if (!origin || configuredOrigins.includes(origin)) return configuredOrigins;
+    let url: URL;
+    try {
+      url = new URL(origin);
+    } catch {
+      return configuredOrigins;
+    }
+    if (!isPrivateNetworkHost(url.hostname)) return configuredOrigins;
+    // Same-origin only: the Host the request arrived on must be the host
+    // the page was served from, so a page on another site cannot borrow it.
+    const host = request?.headers.get("host")?.trim().toLowerCase();
+    return host && host === url.host.toLowerCase()
+      ? [...configuredOrigins, origin]
+      : configuredOrigins;
+  };
 
   const socialProviders: Record<
     string,

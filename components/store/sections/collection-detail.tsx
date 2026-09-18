@@ -17,6 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { CollectionTemplateResource } from "@/lib/storefront/sections/types";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 /**
  * The collection template's two halves — header (banner, description,
@@ -285,7 +288,7 @@ async function CollectionPagination({
 
 function ProductsGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
       {Array.from({ length: 12 }).map((_, i) => (
         <ModernProductCardSkeleton key={i} />
       ))}

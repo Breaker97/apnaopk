@@ -19,7 +19,10 @@ import { validateQuery, validateBody } from "@/lib/api/validate";
 import { ProductListQuerySchema, CreateProductSchema } from "@/lib/validations";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { syncProductCollections } from "@/lib/catalog/collections";
-import { syncProductCategory } from "@/lib/catalog/categories";
+import {
+  assertCategoryAcceptsProducts,
+  syncProductCategory,
+} from "@/lib/catalog/categories";
 import {
   getOrCreateDefaultVendor,
   syncDefaultVendorWithSettings,
@@ -160,6 +163,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await validateBody(request, CreateProductSchema);
     const productData = body;
+    await assertCategoryAcceptsProducts(productData.category);
     const countryOfOrigin = productData.shipping?.countryOfOrigin?.trim();
     if (countryOfOrigin) {
       const settings = await getSettings();

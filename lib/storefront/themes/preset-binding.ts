@@ -104,12 +104,46 @@ export function createPresetBinder({
       return sections.map((section) => {
         switch (section.type) {
           case "featured-collection": {
+            // v2 rows carry one collection block per shelf; each empty one
+            // is bound in turn so a two-row starter arrives as two rows.
+            const rows = section.blocks ?? [];
+            if (rows.some((block) => block.type === "collection")) {
+              return {
+                ...section,
+                blocks: rows.map((block) => {
+                  if (
+                    block.type !== "collection" ||
+                    text(block.settings.collection)
+                  ) {
+                    return block;
+                  }
+                  const collection = nextCollection();
+                  return collection
+                    ? { ...block, settings: { ...block.settings, collection } }
+                    : block;
+                }),
+              };
+            }
             if (text(section.settings.collectionId)) return section;
             const collectionId = nextCollection();
             if (!collectionId) return section;
             return {
               ...section,
               settings: { ...section.settings, collectionId },
+            };
+          }
+
+          // A Look is a collection, so the starter's Get the Look binds to
+          // the next one in the pool the way a shelf does; the merchant then
+          // points it at a real Look. The Looks row needs nothing: its
+          // automatic source lists whatever is marked as a Look.
+          case "get-the-look": {
+            if (text(section.settings.collection)) return section;
+            const collection = nextCollection();
+            if (!collection) return section;
+            return {
+              ...section,
+              settings: { ...section.settings, collection },
             };
           }
 

@@ -32,7 +32,6 @@ import {
 } from "@/lib/orders/order-settings";
 import { normalizeContentPagesSettings } from "@/lib/site-config/content-pages-config";
 import { resolveReturnPolicy } from "@/lib/returns/return-policy";
-import { RETURN_WINDOW_DAYS } from "@/lib/returns/return-plan";
 import {
   deliveryWindowFromShipping,
   returnsNoteFromPolicy,
@@ -99,7 +98,6 @@ export const getProductFulfillmentNotes = unstable_cache(
         : null,
       returns: returnsNoteFromPolicy({
         requiresShipping: item.requiresShipping,
-        windowDays: RETURN_WINDOW_DAYS,
         policy: resolveReturnPolicy(settings),
         policyPage: normalizeContentPagesSettings(settings.contentPages).returns
           .visible,

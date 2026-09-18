@@ -44,27 +44,51 @@ function lowStock(product: StorefrontProductCard): number | null {
 
 /**
  * The product plane of the Electronics DEALS panel, in whichever arrangement
- * the merchant chose. The cards are fixed WHITE like the panel's countdown
- * cards: the host paints its own ground, so every colour in here is chosen
- * against white, not against tokens — except the sale price, which is the
- * merchant's `--primary` on purpose.
+ * the merchant chose. The plane carries `store-deal-plane`, which pins the
+ * store's LIGHT palette to it in both schemes: the panel paints its own
+ * ground — the same field, and the same white countdown cards, whatever the
+ * page's theme — so the cards standing on it are coloured against that
+ * field, never against the page. Every token below therefore resolves light,
+ * the sale price included, and nothing in here takes a `dark:` variant.
  *
  * Below lg every layout is the same thing: the featured deal (if the layout
  * has one), then ONE rail holding the rest. At lg the rail is `contents` and
  * each card takes the named area its slot maps to, so the arrangement is
  * the layout's grid and nothing in the DOM has to move.
  */
+/** How a card shows its picture: the fit, and the air around a contained one. */
+interface DealImageStyle {
+  fit: "contain" | "cover";
+  /** px; -1 = the card's own padding. */
+  padding: number;
+}
+
+/**
+ * The picture's classes and inline padding. A contained picture keeps the
+ * card's own air unless the merchant set some; a filled one has none.
+ */
+function dealImageProps(image: DealImageStyle, ownPadding: string, cap: number) {
+  if (image.fit === "cover") return { className: "object-cover", style: undefined };
+  if (image.padding < 0) return { className: cn("object-contain", ownPadding), style: undefined };
+  return { className: "object-contain", style: { padding: Math.min(image.padding, cap) } };
+}
+
 export function ElectronicsDealsProducts({
   products,
   locale,
   layout,
   showStock,
+  imageFit = "contain",
+  imagePadding = -1,
 }: {
   products: StorefrontProductCard[];
   locale: Locale;
   layout: DealLayout;
   showStock: boolean;
+  imageFit?: "contain" | "cover";
+  imagePadding?: number;
 }) {
+  const image: DealImageStyle = { fit: imageFit, padding: imagePadding };
   const items = products.slice(0, layout.slots);
   if (items.length === 0) return null;
 
@@ -76,7 +100,7 @@ export function ElectronicsDealsProducts({
   // everywhere keeps the tracks to the layout's proportions.
   return (
     <div
-      className="flex flex-col gap-3 lg:grid lg:flex-1 lg:items-stretch lg:gap-4 lg:[grid-template-areas:var(--deal-areas)] lg:[grid-template-columns:var(--deal-cols)] lg:[grid-template-rows:var(--deal-rows)]"
+      className="store-deal-plane flex flex-col gap-[var(--deal-gap-m,0.75rem)] lg:grid lg:flex-1 lg:items-stretch lg:gap-[var(--deal-gap,1rem)] lg:[grid-template-areas:var(--deal-areas)] lg:[grid-template-columns:var(--deal-cols)] lg:[grid-template-rows:var(--deal-rows)]"
       style={{
         ["--deal-cols" as string]: layout.columns,
         ["--deal-rows" as string]: layout.rows,
@@ -92,11 +116,12 @@ export function ElectronicsDealsProducts({
             product={hero}
             locale={locale}
             showStock={showStock}
+            image={image}
           />
         </div>
       ) : null}
       {rest.length > 0 ? (
-        <ScrollRail className="flex snap-x gap-3 scroll-px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:contents [&::-webkit-scrollbar]:hidden">
+        <ScrollRail className="flex snap-x gap-[var(--deal-gap-m,0.75rem)] scroll-px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:contents [&::-webkit-scrollbar]:hidden">
           {rest.map((product) => {
             const slot = items.indexOf(product);
             return (
@@ -106,6 +131,7 @@ export function ElectronicsDealsProducts({
                 locale={locale}
                 showStock={showStock}
                 area={layout.slotAreas[slot]}
+                image={image}
               />
             );
           })}
@@ -135,12 +161,14 @@ function SmallDealCard({
   locale,
   showStock,
   area,
+  image: imageStyle,
 }: {
   product: StorefrontProductCard;
   locale: Locale;
   showStock: boolean;
   /** The grid area this card takes at lg. */
   area: string;
+  image: DealImageStyle;
 }) {
   const t = useTranslations();
   const { formatPrice } = useCurrency();
@@ -159,15 +187,15 @@ function SmallDealCard({
     // when there is room for both, above it when there is not. In either
     // shape the photo takes whatever height the cell has to give, so a
     // tall cell means a bigger picture rather than a small card in a big
-    // white box.
+    // empty box.
     <div
-      className="@container flex w-[74%] min-w-0 shrink-0 snap-start rounded-xl bg-card sm:min-h-40 sm:w-[46%] lg:w-auto"
+      className="@container flex w-[74%] min-w-0 shrink-0 snap-start rounded-[var(--deal-card-radius,0.75rem)] bg-card sm:min-h-40 sm:w-[46%] lg:w-auto"
       style={{ gridArea: area }}
     >
       <div className="flex h-full w-full flex-col gap-2 p-2 @[260px]:flex-row @[260px]:items-center @[260px]:py-1.5 @[260px]:pe-0 @[260px]:ps-1.5">
         <Link
           href={href}
-          className="relative min-h-[140px] flex-1 overflow-hidden rounded-lg bg-muted @[260px]:w-[44%] @[260px]:min-h-[130px] @[260px]:flex-none @[260px]:self-stretch"
+          className="relative min-h-[140px] flex-1 overflow-hidden rounded-[max(0px,calc(var(--deal-card-radius,0.75rem)-4px))] bg-muted @[260px]:w-[44%] @[260px]:min-h-[130px] @[260px]:flex-none @[260px]:self-stretch"
         >
           {discount > 0 ? (
             // What a deals panel is FOR. The struck-through price alone
@@ -182,7 +210,7 @@ function SmallDealCard({
               alt={product.name}
               fill
               sizes="(min-width: 1024px) 240px, 40vw"
-              className="object-contain p-2"
+              {...dealImageProps(imageStyle, "p-2", 16)}
             />
           ) : null}
         </Link>
@@ -191,7 +219,7 @@ function SmallDealCard({
               card has the height to wrap a name it lacks the width to fit. */}
           <Link
             href={href}
-            className="line-clamp-2 text-[14px] font-semibold leading-tight tracking-[-0.03em] text-black @[260px]:text-[16px] @[420px]:text-[19px]"
+            className="line-clamp-2 text-[14px] font-semibold leading-tight tracking-[-0.03em] text-card-foreground @[260px]:text-[16px] @[420px]:text-[19px]"
           >
             {product.name}
           </Link>
@@ -218,7 +246,7 @@ function SmallDealCard({
           <Link
             href={href}
             data-slot="button"
-            className="hidden h-[30px] w-full max-w-[140px] items-center justify-center rounded-md border-[0.713px] border-border text-[10px] font-bold text-muted-foreground transition-colors hover:border-primary/50 hover:text-zinc-900 sm:flex"
+            className="hidden h-[30px] w-full max-w-[140px] items-center justify-center rounded-md border-[0.713px] border-border text-[10px] font-bold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground sm:flex"
           >
             {t("common.view")}
           </Link>
@@ -232,10 +260,12 @@ function FeaturedDealCard({
   product,
   locale,
   showStock,
+  image: imageStyle,
 }: {
   product: StorefrontProductCard;
   locale: Locale;
   showStock: boolean;
+  image: DealImageStyle;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -350,7 +380,7 @@ function FeaturedDealCard({
     // twice the width the design drew it at, and the photo column would eat
     // most of it. Past 820px the columns split evenly and the copy steps up
     // a size, so the card reads as a spread rather than a stretched card.
-    <div className="@container h-full rounded-xl border-[0.5px] border-border bg-card p-3 shadow-[0px_41.78px_13.88px_rgba(0,0,0,0.06)] sm:p-4 sm:px-6 sm:pb-4 sm:pt-[22px]">
+    <div className="@container h-full rounded-[var(--deal-card-radius,0.75rem)] border-[0.5px] border-border bg-card p-3 shadow-[0px_41.78px_13.88px_rgba(0,0,0,0.06)] sm:p-4 sm:px-6 sm:pb-4 sm:pt-[22px]">
       {/* Photo beside copy only when the card itself is wide enough for
           both: the featured slot of a "Featured + 4" is a third of the
           panel, and two columns in 400px wrapped the name to four lines and
@@ -359,7 +389,7 @@ function FeaturedDealCard({
           natural height beneath it. */}
       <div className="grid h-full grid-rows-[minmax(0,1fr)_auto] gap-3 @[540px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[540px]:grid-rows-none @[540px]:items-stretch @[540px]:gap-[25.6px] @[820px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @[820px]:gap-10">
         <div className="flex flex-col gap-2.5">
-          <div className="relative flex min-h-48 flex-1 items-center justify-center overflow-hidden rounded-lg bg-muted @[540px]:min-h-[236px]">
+          <div className="relative flex min-h-48 flex-1 items-center justify-center overflow-hidden rounded-[max(0px,calc(var(--deal-card-radius,0.75rem)-4px))] bg-muted @[540px]:min-h-[236px]">
             {discount > 0 ? (
               <span className="absolute start-2 top-2 z-10 rounded bg-(--store-sale,#e11d48) px-2 py-1 text-[10px] font-extrabold leading-none text-white">
                 -{discount}%
@@ -371,7 +401,7 @@ function FeaturedDealCard({
                 alt={product.name}
                 fill
                 sizes="(min-width: 640px) 280px, 100vw"
-                className="object-contain p-4"
+                {...dealImageProps(imageStyle, "p-4", 48)}
               />
             ) : null}
             {images.length > 1 ? (
@@ -380,7 +410,7 @@ function FeaturedDealCard({
                   type="button"
                   onClick={() => step(-1)}
                   aria-label={t("common.previous")}
-                  className="absolute start-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-card/80 text-zinc-700 shadow-sm transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-card sm:start-[6.4px] sm:size-4"
+                  className="absolute start-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-card sm:start-[6.4px] sm:size-4"
                 >
                   <ChevronLeft className="size-4 rtl:rotate-180 sm:size-2" />
                 </button>
@@ -388,7 +418,7 @@ function FeaturedDealCard({
                   type="button"
                   onClick={() => step(1)}
                   aria-label={t("common.next")}
-                  className="absolute end-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-card/80 text-zinc-700 shadow-sm transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-card sm:end-[6.4px] sm:size-4"
+                  className="absolute end-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-card/80 text-foreground/70 shadow-sm transition-colors before:absolute before:-inset-2 before:content-[''] hover:bg-card sm:end-[6.4px] sm:size-4"
                 >
                   <ChevronRight className="size-4 rtl:rotate-180 sm:size-2" />
                 </button>
@@ -457,7 +487,7 @@ function FeaturedDealCard({
                         "size-3 sm:size-[11px]",
                         index < rating
                           ? "fill-amber-400 text-amber-400"
-                          : "fill-zinc-200 text-zinc-200",
+                          : "fill-muted-foreground/25 text-muted-foreground/25",
                       )}
                     />
                   ))}
@@ -555,7 +585,7 @@ function FeaturedDealCard({
             disabled={adding}
             // A button a thumb can land on: the design's 8.7px label was
             // drawn for a mockup, not a shopper.
-            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#303030] text-[13px] font-bold text-white transition-colors hover:bg-black disabled:opacity-60 @[820px]:h-12 @[820px]:max-w-sm @[820px]:text-[14px]"
+            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-foreground text-[13px] font-bold text-background transition-colors hover:bg-foreground/85 disabled:opacity-60 @[820px]:h-12 @[820px]:max-w-sm @[820px]:text-[14px]"
           >
             <ShoppingCart className="size-4" />
             {t("common.addToCart")}

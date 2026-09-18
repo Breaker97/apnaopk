@@ -61,6 +61,9 @@ export const GET = withApi(
     const invoices = await CommissionInvoice.find({
       vendorId: vendor._id,
       status: COMMISSION_INVOICE_STATUS.OPEN,
+      // A bill being deducted from a payout is not the vendor's to pay: paying
+      // it here as well would collect the same commission twice.
+      payoutId: null,
     })
       .select("amount currency orderIds note createdAt")
       .sort({ createdAt: -1 })
@@ -120,6 +123,11 @@ export const POST = withApi(
     }
     if (invoice.status === COMMISSION_INVOICE_STATUS.CANCELLED) {
       throw new ValidationError("This invoice was cancelled");
+    }
+    if (invoice.payoutId) {
+      throw new ValidationError(
+        "This commission is being deducted from your next payout, so there is nothing to pay here",
+      );
     }
 
     // One open attempt per invoice: `createPlatformPaymentAttempt` expires any

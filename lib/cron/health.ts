@@ -31,7 +31,10 @@ export const CRON_STALE_AFTER_MS: Record<string, number> = {
   "orange-money-reconcile": 90 * 60 * 1000, // every 15 minutes
   "mtn-momo-reconcile": 90 * 60 * 1000, // every 15 minutes
   "vendor-subscriptions": 6 * 60 * 60 * 1000, // hourly
+  "gateway-disputes": 6 * 60 * 60 * 1000, // hourly
   finance: 36 * 60 * 60 * 1000, // daily
+  preorders: 36 * 60 * 60 * 1000, // daily
+  "abandoned-checkouts": 90 * 60 * 1000, // every 15 minutes
 };
 
 /**

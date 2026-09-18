@@ -21,10 +21,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
+import { NativeSelect } from "@/components/ui/native-select";
+import { SliderRow } from "@/components/admin/store-pages/product-main-editor";
+import {
+  SECTION_GRID_CORNERS,
+  SECTION_GRID_SPACING,
+  readSectionGridSpacing,
+} from "@/lib/storefront/sections/slider-grids";
 import { SliderPreview } from "@/components/admin/sliders/slider-card";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
-import { normalizeSlides, type SliderDocument } from "@/lib/sliders/types";
+import { normalizeSliderDocument, type SliderDocument } from "@/lib/sliders/types";
 import {
   SLIDER_GRIDS,
   getSliderGrid,
@@ -137,7 +144,7 @@ export function HeroSliderStudio({
     }
   };
 
-  const commitSetting = (key: string, value: string) => {
+  const commitSetting = (key: string, value: unknown) => {
     materializeSettings({ [key]: value });
     if (isLegacy) onBlocksChange(() => effective.blocks);
   };
@@ -177,6 +184,7 @@ export function HeroSliderStudio({
   const [sliders, setSliders] = useState<SliderDocument[] | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [setupDialog, setSetupDialog] = useState<SliderSetupKind | null>(null);
+  const [spacingOpen, setSpacingOpen] = useState(false);
   const [cellDialog, setCellDialog] = useState<{
     index: number;
     mode: "choose" | "sliders" | "image";
@@ -187,12 +195,9 @@ export function HeroSliderStudio({
       .get<SliderDocument[]>("/api/admin/sliders")
       .then((list) => {
         if (!Array.isArray(list)) return setSliders([]);
-        setSliders(
-          list.map((entry) => ({
-            ...entry,
-            slides: normalizeSlides(entry.slides),
-          })),
-        );
+        // Read through the one normalizer: the PUBLISHED content, a
+        // pre-version-2 document migrated on the way.
+        setSliders(list.map(normalizeSliderDocument));
       })
       .catch(() => setSliders((current) => current ?? []));
   };
@@ -269,6 +274,19 @@ export function HeroSliderStudio({
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         ))}
+        {/* Spacing: gaps, side padding and corners. */}
+        {sectionType === "promotion-grid" || sectionType === "slideshow" ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 rounded-lg font-medium"
+            onClick={() => setSpacingOpen(true)}
+          >
+            {tSafe("admin.storeBuilder.sliderBlock.spacing", "Spacing")}
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        ) : null}
         <Button asChild type="button" size="sm" className="ms-auto rounded-lg">
           <Link href={slidersHref} target="_blank">
             {manageLabel}
@@ -288,6 +306,15 @@ export function HeroSliderStudio({
         onOpenCell={(index) => setCellDialog({ index, mode: "choose" })}
         onClearCell={(index) => setCell(index, emptyCellSettings())}
       />
+
+      {spacingOpen ? (
+        <GridSpacingDialog
+          settings={effective.settings}
+          onChange={commitSetting}
+          onOpenChange={setSpacingOpen}
+          tSafe={tSafe}
+        />
+      ) : null}
 
       {setupDialog ? (
         <SliderSetupDialog
@@ -323,6 +350,91 @@ export function HeroSliderStudio({
         />
       ) : null}
     </div>
+  );
+}
+
+// ---- spacing ---------------------------------------------------------------
+
+/**
+ * The promotion grid's spacing controls in a dialog, like the studio's other
+ * setup panels: gap between cells, padding at the sides, and corners — set
+ * here, or the theme's card radius.
+ */
+function GridSpacingDialog({
+  settings,
+  onChange,
+  onOpenChange,
+  tSafe,
+}: {
+  settings: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+  onOpenChange: (open: boolean) => void;
+  tSafe: ReturnType<typeof createTSafe>;
+}) {
+  const spacing = readSectionGridSpacing(settings);
+  const corners = settings.corners === "theme" ? "theme" : "custom";
+  const radius =
+    typeof settings.radius === "number"
+      ? settings.radius
+      : SECTION_GRID_SPACING.radius.default;
+  const label = (key: string, fallback: string) =>
+    tSafe(`admin.storeBuilder.fields.${key}`, fallback);
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {tSafe("admin.storeBuilder.sliderBlock.spacingTitle", "Spacing and corners")}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <SliderRow
+            label={label("gap", "Gap between cells")}
+            value={spacing.gap}
+            max={SECTION_GRID_SPACING.gap.max}
+            onChange={(gap) => onChange("gap", gap)}
+          />
+          <SliderRow
+            label={label("sidePadding", "Side padding")}
+            value={spacing.sidePadding}
+            max={SECTION_GRID_SPACING.sidePadding.max}
+            onChange={(sidePadding) => onChange("sidePadding", sidePadding)}
+          />
+          <div className="flex items-center justify-between gap-3">
+            <span className="min-w-0 truncate text-sm text-foreground">
+              {label("corners", "Corners")}
+            </span>
+            <NativeSelect
+              value={corners}
+              aria-label={label("corners", "Corners")}
+              onChange={(event) => onChange("corners", event.target.value)}
+              className="h-9 w-44 shrink-0"
+            >
+              {SECTION_GRID_CORNERS.map((option) => (
+                <option key={option} value={option}>
+                  {tSafe(`admin.storeBuilder.options.${option}`, option)}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          {corners === "custom" ? (
+            <SliderRow
+              label={label("radius", "Corner radius")}
+              value={radius}
+              max={SECTION_GRID_SPACING.radius.max}
+              onChange={(next) => onChange("radius", next)}
+            />
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            {tSafe(
+              "admin.storeBuilder.sliderBlock.spacingHint",
+              "The edge-to-edge widths stay square and ignore the side padding.",
+            )}
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

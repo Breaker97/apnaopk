@@ -24,7 +24,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
 import { useCurrency } from "@/providers/currency-provider";
-import { loadRazorpayCheckoutScript } from "@/components/checkout/checkout-helpers";
+import { openRazorpayCheckout } from "@/components/checkout/checkout-helpers";
+import { RAZORPAY_RETURN_PARAM } from "@/lib/payments/razorpay-callback";
 import {
   PaymentMethodPicker,
   type PlatformGateway,
@@ -69,6 +70,7 @@ interface InitiationResponse {
   name?: string;
   description?: string;
   prefill?: { email?: string; name?: string; contact?: string };
+  callbackUrl?: string;
 }
 
 const POLL_INTERVAL_MS = 4000;
@@ -134,6 +136,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
         "trxref",
         "OrderTrackingId",
         "OrderMerchantReference",
+        ...Object.values(RAZORPAY_RETURN_PARAM),
       ]) {
         params.delete(key);
       }
@@ -153,7 +156,15 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
     }
 
     apiClient
-      .post<{ paid: boolean }>("/api/vendor/commission/verify", { paymentId })
+      .post<{ paid: boolean }>("/api/vendor/commission/verify", {
+        paymentId,
+        // A Razorpay return carries the signed payment; the route cannot ask
+        // Razorpay about this attempt without it.
+        razorpayPaymentId:
+          searchParams.get(RAZORPAY_RETURN_PARAM.paymentId) ?? undefined,
+        razorpaySignature:
+          searchParams.get(RAZORPAY_RETURN_PARAM.signature) ?? undefined,
+      })
       .then(({ paid }) => {
         toast[paid ? "success" : "info"](
           paid
@@ -245,91 +256,22 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       }
 
       if (response.type === "razorpay" && response.razorpayOrderId) {
-        await loadRazorpayCheckoutScript();
-        const Razorpay = (
-          window as unknown as {
-            Razorpay?: new (options: Record<string, unknown>) => {
-              open: () => void;
-              on: (event: string, cb: (r: unknown) => void) => void;
-            };
-          }
-        ).Razorpay;
-        if (!Razorpay) throw new Error("Razorpay checkout is unavailable");
-        const payload = await new Promise<{
-          razorpay_payment_id: string;
-          razorpay_signature: string;
-        }>((resolve, reject) => {
-          let settled = false;
-          const razorpay = new Razorpay({
-            key: response.keyId,
-            amount: response.amount,
-            currency: response.currency,
-            name: response.name,
-            description: response.description,
-            order_id: response.razorpayOrderId,
-            prefill: response.prefill,
-            handler: (result: unknown) => {
-              settled = true;
-              resolve(
-                result as {
-                  razorpay_payment_id: string;
-                  razorpay_signature: string;
-                },
-              );
-            },
-            modal: {
-              ondismiss: () => {
-                if (!settled) {
-                  reject(
-                    new Error(
-                      label(
-                        "vendor.commission.canceled",
-                        "Payment was canceled. The invoice is still open.",
-                      ),
-                    ),
-                  );
-                }
-              },
-            },
-          });
-          razorpay.on("payment.failed", (result: unknown) => {
-            settled = true;
-            const failure = result as {
-              error?: { description?: string; reason?: string };
-            };
-            reject(
-              new Error(
-                failure.error?.description ||
-                  failure.error?.reason ||
-                  "Razorpay payment failed",
-              ),
-            );
-          });
-          razorpay.open();
+        // Never resolves: Razorpay returns the vendor to this page, whose
+        // return effect verifies the payment with the signature it carries.
+        await openRazorpayCheckout({
+          keyId: response.keyId ?? "",
+          razorpayOrderId: response.razorpayOrderId,
+          amount: response.amount ?? 0,
+          currency: response.currency ?? "",
+          name: response.name ?? "",
+          description: response.description,
+          callbackUrl: response.callbackUrl ?? "",
+          prefill: response.prefill,
+          canceledMessage: label(
+            "vendor.commission.canceled",
+            "Payment was canceled. The invoice is still open.",
+          ),
         });
-
-        const verify = await apiClient.post<{ paid: boolean }>(
-          "/api/vendor/commission/verify",
-          {
-            paymentId: response.paymentId,
-            razorpayPaymentId: payload.razorpay_payment_id,
-            razorpaySignature: payload.razorpay_signature,
-          },
-        );
-        if (!verify.paid) {
-          throw new Error(
-            label(
-              "vendor.commission.verifyFailed",
-              "We could not confirm that payment yet.",
-            ),
-          );
-        }
-        toast.success(
-          label("vendor.commission.settled", "Commission invoice settled."),
-        );
-        setPayingInvoice(null);
-        await load();
-        router.refresh();
         return;
       }
 

@@ -104,6 +104,14 @@ export function BrandListView({
                   // a wide-but-short strip.
                   className={cn(
                     "h-full w-auto max-w-full object-contain opacity-80 grayscale transition-all hover:opacity-100 hover:grayscale-0",
+                    // A brand's logo file is drawn for a white page: dark ink,
+                    // often on transparency. On a dark surface that mark all
+                    // but vanishes, so at rest the row is flattened to white
+                    // ink instead of grey — the same muted-then-true reading
+                    // the light theme gets, and hover still returns the real
+                    // logo in its own colours.
+                    "dark:opacity-70 dark:brightness-0 dark:invert",
+                    "dark:hover:opacity-100 dark:hover:brightness-100 dark:hover:invert-0",
                     strip ? "max-h-11 sm:max-h-20" : "max-h-20 sm:max-h-24",
                   )}
                   sizes="(min-width: 640px) 176px, 112px"

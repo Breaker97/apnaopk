@@ -25,7 +25,7 @@ export const PUT = withApi<{ id: string }>(
     const before = await BlogComment.findById(id);
     if (!before) throw new NotFoundError("Comment");
 
-    const after = await BlogComment.findByIdAndUpdate(id, data, { new: true });
+    const after = await BlogComment.findByIdAndUpdate(id, data, { returnDocument: "after" });
     if (!after) throw new NotFoundError("Comment");
 
     if (data.status && data.status !== before.status) {
@@ -37,7 +37,7 @@ export const PUT = withApi<{ id: string }>(
           {
             $inc: { commentCount: isCounted ? 1 : -1 },
           },
-          { new: true },
+          { returnDocument: "after" },
         )
           .select("slug")
           .lean();
@@ -63,7 +63,7 @@ export const DELETE = withApi<{ id: string }>(
         {
           $inc: { commentCount: -1 },
         },
-        { new: true },
+        { returnDocument: "after" },
       )
         .select("slug")
         .lean();

@@ -66,6 +66,10 @@ import {
   PRODUCT_CARD_COLOR_TOKENS,
   PRODUCT_CARD_ELEMENTS,
   PRODUCT_CARD_ELEMENT_LABELS,
+  PRODUCT_CARD_BRAND_DISPLAYS,
+  productCardElementOn,
+  showBrandOnCard,
+  type ProductCardBrandDisplay,
   PRODUCT_CARD_PREVIEW_ASPECTS,
   PRODUCT_CARD_PREVIEW_ASPECT_LABELS,
   PRODUCT_CARD_TEMPLATE_IDS,
@@ -73,6 +77,8 @@ import {
   PRODUCT_CARD_TEMPLATES,
   EMPTY_CARD_TYPOGRAPHY,
   getDefaultProductCardConfig,
+  MAX_CARD_GRID_COLUMN_GAP,
+  MAX_CARD_GRID_ROW_GAP,
   normalizeProductCardConfig,
   productCardTypographyDefaults,
   type ProductCardAction,
@@ -157,6 +163,7 @@ const VISIBILITY_ROWS: { key: keyof ProductCardVisibility; label: string }[] = [
 
 const TYPOGRAPHY_ROWS: { key: ProductCardTypographyKey; label: string }[] = [
   { key: "brand", label: "Brand Text" },
+  { key: "seller", label: "Seller Text" },
   { key: "product", label: "Product Text" },
   { key: "category", label: "Category Text" },
   { key: "price", label: "Price Text" },
@@ -200,8 +207,11 @@ export function ProductCardBuilder({
   locale,
   switcher,
   storeSurface,
+  sampleBrand = null,
 }: {
   locale: string;
+  /** One of the store's brands with a logo, for the Brand element's preview. */
+  sampleBrand?: { name: string; logo: string } | null;
   /** The storefront editor's page switcher, rendered as this page's title. */
   switcher?: PageSwitcher;
   /** The active theme, compiled — see the page's doc comment. */
@@ -561,6 +571,7 @@ export function ProductCardBuilder({
                 and shipped at 234px is a different design. */}
             <ProductCardPreview
               config={config}
+              brand={sampleBrand}
               actionLabels={previewActionLabels}
               hasOptions={previewHasOptions}
               chooseOptionsLabel={tSafe("product.chooseOptions", "Choose options")}
@@ -1014,6 +1025,65 @@ export function ProductCardBuilder({
 
               <div className="space-y-2.5">
                 {subheading(
+                  tSafe("admin.productCardStudio.styleGrid", "Grid spacing"),
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate text-sm text-foreground">
+                    {tSafe(
+                      "admin.productCardStudio.styleRows.gridGapCustom",
+                      "Custom spacing between cards",
+                    )}
+                  </span>
+                  <Switch
+                    checked={config.style.gridGapCustom}
+                    onCheckedChange={(gridGapCustom) =>
+                      patchStyle({ gridGapCustom })
+                    }
+                  />
+                </div>
+                {config.style.gridGapCustom ? (
+                  <>
+                    <SliderRow
+                      label={tSafe(
+                        "admin.productCardStudio.styleRows.gridColumnGap",
+                        "Column gap",
+                      )}
+                      value={config.style.gridColumnGap}
+                      max={MAX_CARD_GRID_COLUMN_GAP}
+                      onChange={(gridColumnGap) =>
+                        patchStyle({ gridColumnGap })
+                      }
+                    />
+                    <SliderRow
+                      label={tSafe(
+                        "admin.productCardStudio.styleRows.gridRowGap",
+                        "Row gap",
+                      )}
+                      value={config.style.gridRowGap}
+                      max={MAX_CARD_GRID_ROW_GAP}
+                      onChange={(gridRowGap) => patchStyle({ gridRowGap })}
+                    />
+                    <GridSpacingDiagram
+                      columnGap={config.style.gridColumnGap}
+                      rowGap={config.style.gridRowGap}
+                    />
+                  </>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  {config.style.gridGapCustom
+                    ? tSafe(
+                        "admin.productCardStudio.gridGapHintOn",
+                        "Applies to every product grid and shelf, on phones too.",
+                      )
+                    : tSafe(
+                        "admin.productCardStudio.gridGapHintOff",
+                        "Each grid keeps its built-in spacing, tighter on phones.",
+                      )}
+                </p>
+              </div>
+
+              <div className="space-y-2.5">
+                {subheading(
                   tSafe("admin.productCardStudio.styleTypography", "Typography"),
                 )}
                 {TYPOGRAPHY_ROWS.map(({ key, label }) => (
@@ -1070,6 +1140,89 @@ export function ProductCardBuilder({
                     patchStyle({ discountChipColor })
                   }
                 />
+              </div>
+
+              <div className="space-y-2.5">
+                {subheading(
+                  tSafe("admin.productCardStudio.styleBrand", "Brand"),
+                )}
+                {/* The settings below style the Brand ELEMENT. A card without
+                    one — every card saved before Brand and Seller split,
+                    whose old "Brand" line now reads as Seller — would change
+                    nothing, so say so and offer the fix. */}
+                {!productCardElementOn(config.groups, "brand") ? (
+                  <div className="space-y-2 rounded-lg border border-amber-300/70 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                    <p>
+                      {config.groups.some((entry) =>
+                        entry.items.some((item) => item.key === "seller"),
+                      )
+                        ? tSafe(
+                            "admin.productCardStudio.brandMissingSeller",
+                            "This card doesn't show the product's brand. The line under the image is the Seller — the store name — which is what the old Brand element always printed.",
+                          )
+                        : tSafe(
+                            "admin.productCardStudio.brandMissing",
+                            "This card doesn't show the product's brand yet, so these settings have nothing to change.",
+                          )}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="bg-background"
+                      onClick={() => commitGroups(showBrandOnCard(config.groups))}
+                    >
+                      {config.groups.some((entry) =>
+                        entry.items.some((item) => item.key === "seller"),
+                      )
+                        ? tSafe(
+                            "admin.productCardStudio.brandReplaceSeller",
+                            "Show brand instead of seller",
+                          )
+                        : tSafe(
+                            "admin.productCardStudio.brandAdd",
+                            "Add brand to card",
+                          )}
+                    </Button>
+                  </div>
+                ) : null}
+                <SelectRow
+                  label={tSafe(
+                    "admin.productCardStudio.styleRows.brandDisplay",
+                    "Brand shows",
+                  )}
+                  value={config.style.brandDisplay}
+                  options={PRODUCT_CARD_BRAND_DISPLAYS.map((key) => ({
+                    key,
+                    label: tSafe(
+                      `admin.productCardStudio.brandDisplays.${key}`,
+                      key === "logo" ? "Logo" : "Name",
+                    ),
+                  }))}
+                  onChange={(brandDisplay: ProductCardBrandDisplay) =>
+                    patchStyle({ brandDisplay })
+                  }
+                />
+                {config.style.brandDisplay === "logo" ? (
+                  <SliderRow
+                    label={tSafe(
+                      "admin.productCardStudio.styleRows.brandLogoHeight",
+                      "Logo height",
+                    )}
+                    value={config.style.brandLogoHeight}
+                    min={8}
+                    max={80}
+                    onChange={(brandLogoHeight) => patchStyle({ brandLogoHeight })}
+                  />
+                ) : null}
+                {config.style.brandDisplay === "logo" ? (
+                  <p className="text-xs text-muted-foreground">
+                    {tSafe(
+                      "admin.productCardStudio.brandLogoHint",
+                      "A logo never runs wider than the card, so a wide wordmark stops growing once it spans the card — sooner on phones, where cards are narrower.",
+                    )}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-2.5">
@@ -1294,6 +1447,34 @@ export function ProductCardBuilder({
 }
 
 // ---- Select row -----------------------------------------------------------
+
+/**
+ * The card preview is one card, which says nothing about the space between
+ * cards — so the spacing controls draw their own miniature: a two-row grid
+ * at half scale, tiles at a card's proportions.
+ */
+function GridSpacingDiagram({
+  columnGap,
+  rowGap,
+}: {
+  columnGap: number;
+  rowGap: number;
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      className="grid grid-cols-4 rounded-lg border border-dashed border-border p-3"
+      style={{ columnGap: columnGap / 2, rowGap: rowGap / 2 }}
+    >
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="flex flex-col gap-1">
+          <div className="aspect-[3/4] rounded-sm bg-muted" />
+          <div className="h-1 w-3/4 rounded-full bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function SelectRow<T extends string>({
   label,

@@ -375,7 +375,7 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
             providerStateUpdatedAt: payment.providerStateUpdatedAt,
           },
         },
-        { upsert: true, new: true },
+        { upsert: true, returnDocument: "after" },
       ).lean<{ _id: unknown } | null>();
 
       // Plan revenue. A subscription billed by the provider's own engine never

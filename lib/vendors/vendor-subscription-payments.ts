@@ -334,7 +334,7 @@ async function recordOneShotSubscriptionPayment(
           lastError: null,
         },
       },
-      { new: false },
+      { returnDocument: "before" },
     )
       .select("stripeCheckoutSessionId")
       .lean<{ stripeCheckoutSessionId?: string | null } | null>();

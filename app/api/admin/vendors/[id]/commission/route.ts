@@ -157,6 +157,16 @@ export const PATCH = withApi<{ id: string }>(
     });
     if (!invoice) return notFoundResponse("Invoice");
 
+    // Deducted from a payout: that payout settles it when it is paid and gives
+    // its sales back if it is cancelled. Collecting or cancelling it here as
+    // well would bill the commission twice, or free sales the payout already
+    // took the money for.
+    if (invoice.payoutId) {
+      throw new ValidationError(
+        "This commission is being deducted from a payout — pay or cancel that payout instead",
+      );
+    }
+
     if (action === "cancel") {
       if (invoice.status === COMMISSION_INVOICE_STATUS.PAID) {
         throw new ValidationError(
@@ -196,6 +206,19 @@ export const PATCH = withApi<{ id: string }>(
       currency: invoice.currency,
       reference: `VCOM-${String(invoice._id)}-${Date.now().toString(36)}`,
     });
+
+    // The vendor's own checkout for this invoice is superseded. Expired rather
+    // than cancelled: a payer who completes it anyway is still recorded — and,
+    // with the invoice already collected, flagged for a refund instead of
+    // settling the same commission twice.
+    await PlatformPayment.updateMany(
+      {
+        commissionInvoiceId: invoice._id,
+        status: PLATFORM_PAYMENT_STATUS.PENDING,
+        _id: { $ne: attempt._id },
+      },
+      { $set: { status: PLATFORM_PAYMENT_STATUS.EXPIRED } },
+    );
 
     // No amount is passed, so the guarded mark-paid skips its gateway
     // cross-check — there is no gateway here, the admin is asserting the money

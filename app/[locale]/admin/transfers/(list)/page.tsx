@@ -6,9 +6,11 @@ import { AdminListSkeleton } from "@/components/admin/admin-list-skeleton";
 import { TransfersList } from "@/components/admin/transfers/transfers-list";
 import {
   fetchTransferList,
+  fetchTransferLocationOptions,
   TRANSFERS_DEFAULT_PAGE_SIZE,
 } from "@/lib/inventory/transfer-list";
 import { serializeRows } from "@/lib/api/list-query";
+import { resolveTransferLocationAccess } from "@/lib/inventory/transfers";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -23,7 +25,7 @@ export default async function AdminTransfersPage({
   const search = await searchParams;
   setRequestLocale(locale);
 
-  await requireAdminOrStaffPageAccess({
+  const { session } = await requireAdminOrStaffPageAccess({
     locale,
     required: [STAFF_PERMISSIONS.VIEW_INVENTORY],
   });
@@ -40,7 +42,11 @@ export default async function AdminTransfersPage({
         />
       }
     >
-      <TransfersTable locale={locale} searchParams={search} />
+      <TransfersTable
+        locale={locale}
+        searchParams={search}
+        user={session.user}
+      />
     </Suspense>
   );
 }
@@ -48,9 +54,11 @@ export default async function AdminTransfersPage({
 async function TransfersTable({
   locale,
   searchParams,
+  user,
 }: {
   locale: string;
   searchParams: { [key: string]: string | string[] | undefined };
+  user: Parameters<typeof resolveTransferLocationAccess>[0];
 }) {
   // Rebuilt as URLSearchParams so the page reads the query string through the
   // very same parser the API route uses.
@@ -62,7 +70,11 @@ async function TransfersTable({
     params.set("limit", String(TRANSFERS_DEFAULT_PAGE_SIZE));
   }
 
-  const list = await fetchTransferList(params);
+  const allowed = await resolveTransferLocationAccess(user);
+  const [list, locationOptions] = await Promise.all([
+    fetchTransferList(params, allowed),
+    fetchTransferLocationOptions(allowed),
+  ]);
 
   return (
     <TransfersList
@@ -75,6 +87,7 @@ async function TransfersTable({
         totalPages: list.totalPages,
       }}
       counters={list.counters}
+      locationOptions={locationOptions}
     />
   );
 }

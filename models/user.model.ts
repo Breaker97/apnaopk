@@ -145,6 +145,22 @@ const UserSchema = new Schema<UserDoc>(
       enum: [USER_ROLES.CUSTOMER, USER_ROLES.VENDOR],
       default: USER_ROLES.CUSTOMER,
     },
+    // The shopper's Stripe Customer, minted lazily the first time they pay by
+    // card (`lib/payments/stripe-customer.ts`).
+    //
+    // A saved card can only hang off a Customer, so a deposit or pay-later
+    // pre-order has nothing to vault against until this exists. No card is
+    // saved yet — this only gives every card payment a person to belong to,
+    // so that the consent flow which does save one has somewhere to put it.
+    //
+    // Neither unique nor indexed on purpose: it is read by `_id` and never
+    // searched by. Nor is it authoritative — an id this Stripe account does
+    // not recognise (a deleted customer, a new account, a test/live switch) is
+    // treated as absent and re-minted by the resolver.
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
     vendorOnboarding: {
       type: VendorOnboardingSchema,
     },

@@ -228,7 +228,7 @@ async function run() {
     ...(dateFilter ? { paidAt: dateFilter } : {}),
   };
   const payouts = await Payout.find(payoutFilter)
-    .select("_id payoutNumber vendorId netAmount currency paidAt")
+    .select("_id payoutNumber vendorId netAmount commissionOffset commissionCredit paidFrom currency paidAt")
     .lean();
   log(`${payouts.length} paid payout(s) to replay`);
   for (const payout of payouts) {
@@ -290,7 +290,7 @@ async function run() {
     };
     const shipments = await Shipment.find(labelFilter)
       .select(
-        "_id vendorId orderId rate bookingSequence purchase.purchasedAt purchase.billedTo createdAt",
+        "_id vendorId orderId subOrderId rate bookingSequence purchase.purchasedAt purchase.billedTo purchase.shippingToStore createdAt",
       )
       .lean();
     log(`${shipments.length} purchased label(s) to replay`);
@@ -311,6 +311,18 @@ async function run() {
         bookingSequence: shipment.bookingSequence,
         billedTo: shipment.purchase?.billedTo,
       });
+      // A live label that moved its parcel's delivery charge to the store —
+      // restated under the same booking key, so an entry already there stays
+      // the only one.
+      if (shipment.purchase?.shippingToStore && shipment.subOrderId) {
+        totals.labels += await postEvents.postShippingToStore({
+          orderId: shipment.orderId,
+          subOrderId: shipment.subOrderId,
+          shipmentId: shipment._id,
+          bookingSequence: shipment.bookingSequence,
+          date: shipment.purchase?.purchasedAt || shipment.createdAt,
+        });
+      }
     }
   }
 

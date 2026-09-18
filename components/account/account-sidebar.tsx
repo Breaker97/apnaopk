@@ -112,7 +112,7 @@ export function AccountSidebar({ locale, stats = {} }: AccountSidebarProps) {
         key={link.href}
         href={`/${locale}${link.href}`}
         className={cn(
-          "flex items-center justify-between px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+          "flex items-center justify-between px-3 py-1.5 rounded-button text-sm font-medium transition-colors",
           isActive(link.href)
             ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",

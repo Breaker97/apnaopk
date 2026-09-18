@@ -222,7 +222,7 @@ export async function connectMetaChannel(params: {
       // token. `$set` here quietly rewrote that on every save.
       $setOnInsert: { createdByUserId: new Types.ObjectId(target.actorUserId) },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
   return serializeChannelConnection(connection);
 }
@@ -307,7 +307,7 @@ export async function connectTelegramChannel(params: {
       $unset: { lastError: "", tokenExpiresAt: "" },
       $setOnInsert: { createdByUserId: new Types.ObjectId(target.actorUserId) },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 
   // The bot is ours now, so pointing it at our webhook can only affect us.

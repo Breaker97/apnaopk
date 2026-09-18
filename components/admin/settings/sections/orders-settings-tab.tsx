@@ -14,6 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SettingSwitchRow } from "@/components/admin/settings/fields/setting-switch-row";
+import {
+  DEFAULT_RETURN_WINDOW_DAYS,
+  MAX_RETURN_WINDOW_DAYS,
+  MIN_RETURN_WINDOW_DAYS,
+} from "@/lib/returns/return-policy";
 import type { Settings } from "@/components/admin/settings/types";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
@@ -160,6 +165,29 @@ export function OrdersSettingsTab(props: {
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="returnWindowDays">
+              {t("admin.settings.orders.returnWindowDays")}
+            </Label>
+            <NumberInput
+              id="returnWindowDays"
+              min={MIN_RETURN_WINDOW_DAYS}
+              max={MAX_RETURN_WINDOW_DAYS}
+              step={1}
+              value={returns.windowDays ?? DEFAULT_RETURN_WINDOW_DAYS}
+              whenEmpty={DEFAULT_RETURN_WINDOW_DAYS}
+              onValueChange={(next) =>
+                updateNestedField(
+                  "orders.returns.windowDays",
+                  next ?? DEFAULT_RETURN_WINDOW_DAYS,
+                )
+              }
+            />
+            <p className="text-sm text-muted-foreground">
+              {t("admin.settings.orders.returnWindowDaysHint")}
+            </p>
+          </div>
+
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="returnShippingRefund">
               {t("admin.settings.orders.shippingRefund")}

@@ -406,12 +406,12 @@ function NotConfigured({
           </p>
         </div>
         {area === "admin" ? (
-          <Link href={`/${locale}/admin/settings?section=analytics`}>
-            <Button variant="outline" className="gap-2">
+          <Button asChild variant="outline" className="gap-2">
+            <Link href={`/${locale}/admin/settings/analytics`}>
               <Settings className="h-4 w-4" />
               {t("admin.analyticsPage.notConfigured.cta")}
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         ) : null}
       </CardContent>
     </Card>

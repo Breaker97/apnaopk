@@ -5,6 +5,7 @@
 
 import { getAppName } from "@/lib/email/email";
 import { formatCurrency } from "@/lib/intl/money";
+import { escapeHtml } from "@/lib/email/escape-html";
 
 interface OrderItem {
   name: string;
@@ -36,8 +37,38 @@ interface OrderEmailData {
   paymentMethod: string;
   status?: string;
   trackingNumber?: string;
+  /** Absolute link for "View Order Details" — account page or public tracking page. */
+  orderUrl: string;
   /** Set when the order includes digital files — renders a downloads card. */
   downloadsUrl?: string;
+  /** The shopper's order note (checkout settings `orderNote`). */
+  customerNote?: string;
+  /** Answers to the store's own checkout fields, labels as ordered. */
+  checkoutFields?: Array<{ label: string; type: string; value: string }>;
+}
+
+/** "Additional information": what the shopper answered at checkout. */
+function checkoutAnswersCard(data: OrderEmailData): string {
+  const fields = (data.checkoutFields ?? []).filter((field) => field.value);
+  const note = data.customerNote?.trim();
+  if (fields.length === 0 && !note) return "";
+
+  const row = (label: string, value: string) => `
+      <p style="font-size: 14px; color: #71717a; margin: 0 0 4px 0;">${escapeHtml(label)}</p>
+      <p style="font-size: 14px; color: #18181b; margin: 0 0 16px 0; white-space: pre-wrap;">${escapeHtml(value)}</p>`;
+
+  return `<div class="card">
+      <h3 style="font-size: 14px; font-weight: 600; color: #18181b; margin: 0 0 12px 0;">Additional information</h3>
+      ${fields
+        .map((field) =>
+          row(
+            field.label,
+            field.type === "checkbox" ? (field.value === "true" ? "Yes" : "No") : field.value,
+          ),
+        )
+        .join("")}
+      ${note ? row("Order note", note) : ""}
+    </div>`;
 }
 
 const baseStyles = `
@@ -125,7 +156,6 @@ export function orderConfirmationTemplate(
   options?: EmailTemplateOptions,
 ): string {
   const appName = options?.storeName || getAppName();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const currency = (options?.currency || "USD").toUpperCase();
   const locale = options?.locale;
 
@@ -240,6 +270,8 @@ export function orderConfirmationTemplate(
       }</p>
     </div>
     
+    ${checkoutAnswersCard(data)}
+
     ${
       data.downloadsUrl
         ? `<div class="card">
@@ -251,7 +283,7 @@ export function orderConfirmationTemplate(
     }
 
     <div style="text-align: center; padding: 20px 0;">
-      <a href="${appUrl}/en/account/orders/${data.orderNumber}" class="button">View Order Details</a>
+      <a href="${data.orderUrl}" class="button">View Order Details</a>
     </div>
 
     <div class="footer">
@@ -275,10 +307,10 @@ export function orderConfirmationTemplate(
  * function able to build one was never called. Asking for what it uses is what
  * lets a courier webhook send this email with the order id it already has.
  */
-export interface OrderStatusEmailData {
+interface OrderStatusEmailData {
   orderNumber: string;
-  /** Used for the deep link; falls back to the orders list when absent. */
-  orderId?: string;
+  /** Absolute: the account order page, or the public tracking page for a guest. */
+  orderUrl: string;
   newStatus: string;
   trackingNumber?: string;
   /** The carrier's own tracking page, when the carrier gave us one. */
@@ -286,9 +318,17 @@ export interface OrderStatusEmailData {
   carrier?: string;
 }
 
-export function orderStatusUpdateTemplate(data: OrderStatusEmailData): string {
-  const appName = getAppName();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+/**
+ * Takes the store's name and logo like the confirmation email does; it used to
+ * print `NEXT_PUBLIC_APP_NAME`, so a store renamed in Settings still sent its
+ * shipping emails under the name it was installed with.
+ */
+export function orderStatusUpdateTemplate(
+  data: OrderStatusEmailData,
+  options?: Pick<EmailTemplateOptions, "storeName" | "logoUrl">,
+): string {
+  const appName = options?.storeName || getAppName();
+  const logoUrl = absoluteAssetUrl(options?.logoUrl);
 
   const statusMessages: Record<string, { title: string; message: string }> = {
     processing: {
@@ -304,7 +344,7 @@ export function orderStatusUpdateTemplate(data: OrderStatusEmailData): string {
     delivered: {
       title: "Your order has been delivered! ✅",
       message:
-        "Your order has been delivered. We hope you enjoy your purchase!",
+        "Your order has been delivered. We hope you enjoy your purchase! When you have had a chance to try it, a quick review helps other shoppers choose.",
     },
     cancelled: {
       title: "Your order has been cancelled",
@@ -330,9 +370,9 @@ export function orderStatusUpdateTemplate(data: OrderStatusEmailData): string {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">${appName}</div>
+      ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" style="max-height: 40px; max-width: 180px;" />` : `<div class="logo">${appName}</div>`}
     </div>
-    
+
     <div class="card">
       <h1 class="title">${statusInfo.title}</h1>
       <p class="subtitle">${statusInfo.message}</p>
@@ -371,9 +411,10 @@ export function orderStatusUpdateTemplate(data: OrderStatusEmailData): string {
     </div>
 
     <div style="text-align: center; padding: 20px 0;">
-      <a href="${appUrl}/en/account/orders${
-        data.orderId ? `/${data.orderId}` : ""
-      }" class="button">View Order Details</a>
+      <a href="${data.orderUrl}" class="button">${
+        // The order page is where each delivered item is rated.
+        data.newStatus === "delivered" ? "Rate Your Items" : "View Order Details"
+      }</a>
     </div>
 
     <div class="footer">

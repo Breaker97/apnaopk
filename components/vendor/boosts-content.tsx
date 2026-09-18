@@ -15,6 +15,7 @@ import {
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
+import { RAZORPAY_RETURN_PARAM } from "@/lib/payments/razorpay-callback";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { useCurrencyFormatter } from "@/providers/currency-provider";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
@@ -244,6 +245,9 @@ export function BoostsContent(props: {
       params.delete("trxref");
       params.delete("OrderTrackingId");
       params.delete("OrderMerchantReference");
+      for (const key of Object.values(RAZORPAY_RETURN_PARAM)) {
+        params.delete(key);
+      }
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname);
     };
@@ -259,6 +263,12 @@ export function BoostsContent(props: {
     apiClient
       .post<{ paid: boolean }>("/api/vendor/boosts/checkout/verify", {
         paymentId,
+        // A Razorpay return carries the signed payment; the route cannot ask
+        // Razorpay about this attempt without it.
+        razorpayPaymentId:
+          searchParams.get(RAZORPAY_RETURN_PARAM.paymentId) ?? undefined,
+        razorpaySignature:
+          searchParams.get(RAZORPAY_RETURN_PARAM.signature) ?? undefined,
       })
       .then(({ paid }) => {
         if (paid) {

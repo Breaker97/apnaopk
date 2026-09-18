@@ -23,12 +23,14 @@ import {
   shippoCreateShipment,
   shippoCreateTransaction,
   shippoFindTransactionForRate,
+  shippoGetRate,
   shippoGetTransaction,
   shippoMessageText,
   shippoRefundTransaction,
   shippoTrack,
   shippoValidateAddress,
   shippoWhoAmI,
+  transactionRateId,
   type ShippoAddress,
   type ShippoCustomsItem,
   type ShippoParcel,
@@ -277,6 +279,8 @@ function labelFromTransaction(
   ctx: CarrierContext,
   carrierName: string,
   serviceName?: string,
+  /** Set only when the label was bought against a rate other than the quote. */
+  rate?: ShippoRate,
 ): CarrierLabel {
   if (transaction.status === "ERROR") {
     throw new CarrierError({
@@ -300,20 +304,73 @@ function labelFromTransaction(
     });
   }
 
+  const bought = rate ? toQuote(rate, "") : undefined;
   return {
     transactionId: transaction.object_id,
     trackingNumber: transaction.tracking_number || "",
     trackingUrl: transaction.tracking_url_provider,
     labelUrl: transaction.label_url,
     labelFormat: ctx.shippo?.labelFileType || "PDF_4x6",
-    carrierName,
-    serviceName,
+    carrierName: bought?.carrierName ?? carrierName,
+    serviceName: bought?.serviceName ?? serviceName,
+    rateId: bought?.rateId,
+    serviceToken: bought?.serviceToken,
+    amount: bought?.amount,
+    currency: bought?.currency,
+    estimatedDays: bought?.estimatedDays,
     resume: {
       providerTransactionId: transaction.object_id,
       trackingNumber: transaction.tracking_number,
       labelUrl: transaction.label_url,
     },
   };
+}
+
+/**
+ * Write the transaction down the moment Shippo has created it.
+ *
+ * Shippo charges when the transaction is created, not when we record it. Before
+ * this, the handle existed only in the success write at the end of the
+ * purchase — so a function killed between the two left a paid label with no
+ * trace on the parcel. The claim then went stale, the quotes expired, and the
+ * retry bought a second label against a fresh rate: two charges, one of them
+ * never voidable because nothing pointed at it.
+ *
+ * Skipped for an ERROR transaction, which charged nothing and must not become
+ * the resume state every later retry reads back.
+ */
+async function checkpointTransaction(
+  params: Parameters<CarrierAdapter["purchaseLabel"]>[1],
+  transaction: ShippoTransaction,
+) {
+  if (!transaction?.object_id || transaction.status === "ERROR") return;
+  await params
+    .onProgress?.({
+      providerTransactionId: transaction.object_id,
+      trackingNumber: transaction.tracking_number || undefined,
+      labelUrl: transaction.label_url || undefined,
+    })
+    .catch(() => undefined);
+}
+
+/**
+ * The rate a resumed transaction was really bought against.
+ *
+ * Undefined when it is the quote in hand, or when it cannot be read — the
+ * label itself is what matters, and failing a purchase that already succeeded
+ * because a secondary lookup did would strand it again.
+ */
+async function boughtRate(
+  token: string,
+  transaction: ShippoTransaction,
+  quote: CarrierRateQuote,
+): Promise<ShippoRate | undefined> {
+  const rateId = transactionRateId(transaction);
+  if (!rateId || rateId === quote.rateId) return undefined;
+  if (typeof transaction.rate === "object" && transaction.rate?.amount) {
+    return transaction.rate;
+  }
+  return shippoGetRate({ token, rateId }).catch(() => undefined);
 }
 
 export const shippoAdapter: CarrierAdapter = {
@@ -390,12 +447,18 @@ export const shippoAdapter: CarrierAdapter = {
         token,
         transactionId: resume.providerTransactionId,
       });
-      return labelFromTransaction(
-        existing,
-        ctx,
-        quote.carrierName,
-        quote.serviceName,
-      );
+      // An ERROR transaction charged nothing, so there is nothing to resume:
+      // clinging to it would fail every retry the same way for good. Buying
+      // afresh against the quote in hand is what the retry was for.
+      if (existing.status !== "ERROR") {
+        return labelFromTransaction(
+          existing,
+          ctx,
+          quote.carrierName,
+          quote.serviceName,
+          await boughtRate(token, existing, quote),
+        );
+      }
     }
 
     let transaction: ShippoTransaction;
@@ -414,6 +477,7 @@ export const shippoAdapter: CarrierAdapter = {
         rateId: quote.rateId,
       }).catch(() => null);
       if (recovered?.status === "SUCCESS") {
+        await checkpointTransaction(params, recovered);
         return labelFromTransaction(
           recovered,
           ctx,
@@ -424,6 +488,7 @@ export const shippoAdapter: CarrierAdapter = {
       throw error;
     }
 
+    await checkpointTransaction(params, transaction);
     return labelFromTransaction(
       transaction,
       ctx,

@@ -284,12 +284,65 @@ export async function createRefundTransaction(params: {
    * refunds left behind.
    */
   allocation?: RefundAllocationShare[] | null;
+  /**
+   * The consignments this refund belongs to, when it is them being called off
+   * rather than money back on the whole order: the split is then taken from
+   * those consignments alone. See `resolveRefundAllocation`.
+   */
+  consignmentIds?: ReadonlyArray<unknown> | null;
+  /**
+   * Recorded by hand for money sent back from the gateway's own dashboard.
+   * The gateway will report that refund under an id this row does not carry,
+   * so the amount is left waiting for it: the report is matched here instead
+   * of being written as a second refund. See `reconcileGatewayOrderRefunds`.
+   */
+  awaitingGatewayRefund?: boolean;
+  /**
+   * A chargeback recorded by hand before its gateway reported it. The
+   * dispute's report is matched to this row instead of becoming a second one
+   * — see `applyGatewayDispute`. Never paired with a refund the gateway
+   * reports: the shopper's bank taking money back is not a refund anyone sent.
+   */
+  awaitingGatewayDispute?: boolean;
+  /**
+   * More facts about where this money went — the dispute behind a chargeback,
+   * the other ids a gateway uses for the same money. Merged into the row's
+   * `metadata` beneath the fields this function sets itself.
+   */
+  metadata?: Record<string, unknown>;
+  /**
+   * Where the row came from, when the caller knows better than "an admin
+   * refunded it" — a chargeback, a refund reported by the gateway.
+   */
+  source?: string;
+  /**
+   * Whether someone still has to send this money.
+   *
+   * A refund no gateway carries — cash on delivery, a POS sale, mobile money,
+   * a manual sale — was recorded as succeeded and nothing ever asked whether
+   * the shopper was actually paid; only a return tracked that. Neither did a
+   * Pesapal refund, which Pesapal only carries out once it approves the
+   * request. Such a row now stays pending settlement until an admin records
+   * how and when the money went (`PATCH /api/admin/payments/transactions/[id]`).
+   *
+   * Defaults to exactly those cases. `not_required` is for a caller that
+   * already knows the money moved (a refund made in the gateway's dashboard, a
+   * reversal the gateway reported) or tracks it elsewhere (a return).
+   */
+  settlement?: "required" | "not_required";
+  /** Tell admins a hand refund is waiting. Off where the caller already has. */
+  notifySettlement?: boolean;
 }) {
   const safeAmount = Math.max(0, Number(params.amount || 0));
   if (!Number.isFinite(safeAmount) || safeAmount <= 0) return null;
 
   const gross = Number(params.order.total || 0);
   const chargeExternalId = getChargeExternalId(params.order);
+  const settlementRequired =
+    params.settlement === "required" ||
+    (params.settlement !== "not_required" &&
+      (params.gatewayCalled === false ||
+        String(params.order.paymentMethod || "").toLowerCase() === "pesapal"));
 
   // Serialize the split per order. `refundedTotal` already stops two refunds
   // exceeding the order between them, but the amount is not the only thing
@@ -330,6 +383,7 @@ export async function createRefundTransaction(params: {
       orderId: params.order._id,
       amount: safeAmount,
       supplied: params.allocation,
+      consignmentIds: params.consignmentIds,
     });
   } catch (error) {
     // Never block a refund that has already left the gateway. Without a split
@@ -358,7 +412,10 @@ export async function createRefundTransaction(params: {
     refundAllocation:
       allocation && allocation.length > 0 ? allocation : undefined,
     metadata: {
-      source: params.gatewayCalled === false ? "admin-refund-manual" : "admin-refund",
+      ...(params.metadata || {}),
+      source:
+        params.source ||
+        (params.gatewayCalled === false ? "admin-refund-manual" : "admin-refund"),
       channel: params.order.channel || "online",
       posLocationId: params.order.posLocationId,
       orderGrossAmount: gross,
@@ -368,6 +425,13 @@ export async function createRefundTransaction(params: {
       ...(params.externalRefundIds && params.externalRefundIds.length > 1
         ? { gatewayRefundIds: params.externalRefundIds }
         : {}),
+      ...(params.awaitingGatewayRefund
+        ? { awaitingGatewayRefunds: [{ key: "manual", amount: safeAmount }] }
+        : {}),
+      ...(params.awaitingGatewayDispute
+        ? { awaitingGatewayDisputes: [{ key: "manual", amount: safeAmount }] }
+        : {}),
+      ...(settlementRequired ? { settlement: { required: true } } : {}),
     },
     createdBy: params.createdBy,
   });
@@ -398,6 +462,22 @@ export async function createRefundTransaction(params: {
     amount: safeAmount,
     refundId: txn?._id,
   });
+
+  if (settlementRequired && params.notifySettlement !== false) {
+    const { notifyAdminsPaymentAnomaly } = await import(
+      "@/lib/notifications/notifications"
+    );
+    const pesapal =
+      String(params.order.paymentMethod || "").toLowerCase() === "pesapal";
+    await notifyAdminsPaymentAnomaly({
+      title: pesapal ? "Pesapal refund awaiting approval" : "Refund to send by hand",
+      message: pesapal
+        ? `A refund of ${safeAmount} ${getCurrency(params.order)} on order ${params.order.orderNumber} was requested from Pesapal and only goes back once Pesapal approves it. Record it as settled on the transaction when it has.`
+        : `A refund of ${safeAmount} ${getCurrency(params.order)} on order ${params.order.orderNumber} has no gateway to carry it. Send it to the shopper and record how on the transaction.`,
+    }).catch((error) =>
+      console.error("Failed to announce a refund awaiting settlement:", error),
+    );
+  }
 
   return txn;
 }

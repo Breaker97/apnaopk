@@ -29,6 +29,7 @@ export function OrderItems({ order }: OrderItemsProps) {
 
   const isSplitShipment = order.subOrders && order.subOrders.length > 1;
   const discount = Number(order.discount || 0);
+  const dutyAmount = Number(order.customs?.dutyAmount || 0);
   const refundedTotal = Number(order.refundedTotal || 0);
 
   return (
@@ -122,6 +123,16 @@ export function OrderItems({ order }: OrderItemsProps) {
             <span className="text-muted-foreground">{t("orderDetails.tax")}</span>
             <span>{formatPrice(order.tax)}</span>
           </div>
+          {/* Added to the total at checkout; without its own row the lines
+              above did not add up to it. */}
+          {dutyAmount > 0 ? (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                {t("orderDetails.importDuties")}
+              </span>
+              <span>{formatPrice(dutyAmount)}</span>
+            </div>
+          ) : null}
           {discount > 0 ? (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">

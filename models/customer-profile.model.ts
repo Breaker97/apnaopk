@@ -18,6 +18,18 @@ const EmailNotificationsSchema = new Schema(
   { _id: false },
 );
 
+/**
+ * Text-message opt-out. On by default because the store decides which events
+ * are texted at all (Settings → Notifications, SMS off everywhere until then);
+ * this is the shopper's way out of the ones it chose.
+ */
+const SmsNotificationsSchema = new Schema(
+  {
+    orderUpdates: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
 const CustomerShippingAddressSchema = new Schema(
   {
     firstName: { type: String },
@@ -122,6 +134,10 @@ const CustomerProfileSchema = new Schema<ICustomerProfile>(
     },
     emailNotifications: {
       type: EmailNotificationsSchema,
+      default: () => ({}),
+    },
+    smsNotifications: {
+      type: SmsNotificationsSchema,
       default: () => ({}),
     },
 

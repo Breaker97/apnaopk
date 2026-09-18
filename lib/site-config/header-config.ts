@@ -3,6 +3,8 @@ import {
   resolveHeaderLayout,
 } from "@/lib/site-config/header-layout-default";
 import {
+  DEFAULT_HEADER_LOGO_SIZE,
+  headerBrandItem,
   type HeaderLayout,
 } from "@/lib/site-config/header-layout";
 import { isRecord } from "@/lib/utils";
@@ -79,6 +81,39 @@ export type HeaderColorMode = (typeof HEADER_COLOR_MODES)[number];
  * which may be dark navy or pale yellow, and "transparent" takes whatever
  * the page behind it happens to be.
  */
+/**
+ * The surface behind the bar while it floats over the home hero — so it
+ * names what is BEHIND the ink, like `surfaceTone` does for a row: "dark"
+ * (a dark photograph) asks for white type and the inverse logo, "light" for
+ * the ordinary dark type. Not inferred from the artwork: the hero is a
+ * merchant's own picture, and sampling it client-side would flicker on load
+ * and could not run for the first paint.
+ */
+const HEADER_OVERLAP_TONES = ["dark", "light"] as const;
+export type HeaderOverlapTone = (typeof HEADER_OVERLAP_TONES)[number];
+
+/**
+ * The bar's drop shadow: drawn under an opaque bar only — a glass bar and a
+ * bar floating over the hero cast none. Off, or an offset down, a blur and
+ * a strength (the shadow's opacity, 0–100).
+ */
+export interface HeaderShadow {
+  enabled: boolean;
+  y: number;
+  blur: number;
+  opacity: number;
+}
+
+/** The bar's shadow as CSS, or nothing when it is off. Unset = the shipped shadow. */
+export function headerShadowCss(shadow: HeaderShadow | undefined): string | undefined {
+  const value = shadow ?? DEFAULT_HEADER_SHADOW;
+  if (!value.enabled || value.opacity <= 0) return undefined;
+  return `0 ${value.y}px ${value.blur}px rgba(15, 23, 42, ${value.opacity / 100})`;
+}
+
+/** The shadow the bar always had: 2px down, 10px soft, 6%. */
+const DEFAULT_HEADER_SHADOW: HeaderShadow = { enabled: true, y: 2, blur: 10, opacity: 6 };
+
 const HEADER_LOGO_VARIANTS = ["auto", "light", "dark"] as const;
 export type HeaderLogoVariant = (typeof HEADER_LOGO_VARIANTS)[number];
 
@@ -148,6 +183,28 @@ export interface HeaderSettings {
      * (text colors still apply); "color" paints the theme primary.
      */
     color: HeaderColorMode;
+    /**
+     * Float the bar over the HOME page's first section, so a full-bleed hero
+     * runs under it. The bar keeps its slot in the flow and is pulled back
+     * out with a negative margin, so nothing reflows when its paint changes
+     * on scroll — it is transparent at the top and returns to the configured
+     * bar as soon as the page moves.
+     *
+     * Home only: every other page opens on content rather than artwork, and
+     * a floating bar there would sit on top of the first heading.
+     */
+    overlapHome: boolean;
+    /** The surface the floating bar sits on, which decides its ink. */
+    overlapTone: HeaderOverlapTone;
+    /**
+     * A soft fade behind the floating bar, 0–100: the strength at the top
+     * edge of a gradient in the hero tone's shadow (black over a dark hero,
+     * white over a light one) that fades out under the bar, so the menu
+     * reads over a busy picture. 0 draws nothing.
+     */
+    overlapScrim: number;
+    /** The drop shadow under the bar; see HeaderShadow. */
+    shadow: HeaderShadow;
   };
   brand: {
     logoUrl: string;
@@ -303,6 +360,10 @@ const DEFAULT_HEADER_SETTINGS: HeaderSettings = {
     fullWidth: false,
     variant: "classic",
     color: "light",
+    overlapHome: false,
+    overlapTone: "dark",
+    overlapScrim: 0,
+    shadow: { ...DEFAULT_HEADER_SHADOW },
   },
   brand: {
     logoUrl: "",
@@ -450,6 +511,19 @@ function normalizeHeaderLogoVariant(
     (HEADER_LOGO_VARIANTS as readonly string[]).includes(value)
     ? (value as HeaderLogoVariant)
     : fallback;
+}
+
+function normalizeHeaderShadow(value: unknown, fallback: HeaderShadow): HeaderShadow {
+  const raw =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  return {
+    enabled: normalizeBoolean(raw.enabled, fallback.enabled),
+    y: normalizeLimit(raw.y, fallback.y, 0, 24),
+    blur: normalizeLimit(raw.blur, fallback.blur, 0, 60),
+    opacity: normalizeLimit(raw.opacity, fallback.opacity, 0, 100),
+  };
 }
 
 function normalizeLimit(
@@ -640,6 +714,22 @@ export function normalizeHeaderSettings(value: unknown): HeaderSettings {
         // color mode — honor it so glass headers stay glass.
         layout.transparent === true ? "transparent" : defaults.layout.color,
       ),
+      overlapHome: normalizeBoolean(
+        layout.overlapHome,
+        defaults.layout.overlapHome,
+      ),
+      overlapTone: HEADER_OVERLAP_TONES.includes(
+        layout.overlapTone as HeaderOverlapTone,
+      )
+        ? (layout.overlapTone as HeaderOverlapTone)
+        : defaults.layout.overlapTone,
+      overlapScrim: normalizeLimit(
+        layout.overlapScrim,
+        defaults.layout.overlapScrim,
+        0,
+        100,
+      ),
+      shadow: normalizeHeaderShadow(layout.shadow, defaults.layout.shadow),
     },
     brand: {
       logoUrl: defaults.brand.logoUrl,
@@ -888,6 +978,27 @@ export function normalizeHeaderSettings(value: unknown): HeaderSettings {
         ...normalizePositionRecord(pagesMenu.positions),
       },
     },
+  };
+}
+
+/** A logo's width in px on each side of the header's `lg` breakpoint. */
+export interface LogoWidths {
+  /** From `lg` up. */
+  desktop: number;
+  /** Below `lg`. */
+  mobile: number;
+}
+
+/**
+ * The widths the storefront header draws the logo at: its layout's brand
+ * item from `lg` up (the studio's Size — the scroll size is only a transient
+ * state), and the compact bar's width below. The footer's "same size as the
+ * header" reads these, so the two logos stay equal whichever one is edited.
+ */
+export function headerLogoWidths(header: HeaderSettings): LogoWidths {
+  return {
+    desktop: headerBrandItem(header.builder)?.size ?? DEFAULT_HEADER_LOGO_SIZE,
+    mobile: header.brand.mobileLogoWidth,
   };
 }
 

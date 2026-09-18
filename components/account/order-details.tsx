@@ -17,6 +17,8 @@ import {
   ExternalLink,
   Loader2,
   RotateCcw,
+  Star,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +76,16 @@ import {
 } from "@/components/shipping/delivery-exception";
 import { OrderDownloads } from "@/components/account/order-downloads";
 import { PreorderBalanceCard } from "@/components/account/preorder-balance-card";
+import { PreorderAddressEditor } from "@/components/store/preorder-address-editor";
+import { getPreorderStatusLabel } from "@/lib/orders/preorder-status-label";
+import { ReviewDialog, type ReviewTarget } from "@/components/reviews/review-dialog";
+import { StarRatingDisplay } from "@/components/reviews/star-rating";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { formatPickupWindow } from "@/lib/checkout/pickup-fulfillment-shared";
+import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
+import { OrderCheckoutAnswers } from "@/components/common/order-checkout-answers";
+import type { OrderCheckoutField } from "@/types";
+import type { OrderReviewState } from "@/lib/catalog/review-eligibility";
 
 interface OrderItem {
   productId:
@@ -147,10 +158,14 @@ interface Order {
   shippingCost?: number;
   tax: number;
   discount?: number;
+  /** Import duty collected at checkout; already inside `total`. */
+  customs?: { dutyAmount?: number };
   total: number;
   items: OrderItem[];
   shippingAddress: ShippingAddress;
   billingAddress?: ShippingAddress;
+  customerNote?: string;
+  checkoutFields?: OrderCheckoutField[];
   fulfillment?: {
     method: "delivery" | "pickup";
     pickup?: {
@@ -169,6 +184,16 @@ interface Order {
   preorderStatus?: string;
   preorderPaymentMode?: string;
   preorderOutstandingAmount?: number;
+  preorderReleaseDate?: string;
+  /** Set only once a date has actually moved, so it doubles as "was delayed". */
+  preorderOriginalReleaseDate?: string;
+  preorderDelayReason?: string;
+  /** Computed by the order API — see `PreorderBalanceCard`. */
+  preorderBalanceDue?: number;
+  preorderPaidSoFar?: number;
+  preorderBalanceDeadline?: string;
+  /** One per delivered product; absent from everything not yet delivered. */
+  reviewStates?: OrderReviewState[];
   createdAt: string;
   updatedAt: string;
 }
@@ -240,8 +265,20 @@ interface OrderDetailsProps {
   locale: string;
 }
 
+/** An order line's product, whether the API sent the id or the document. */
+function describeItem(item: OrderItem) {
+  const product = typeof item.productId === "object" ? item.productId : null;
+  return {
+    productId: product ? product._id : String(item.productId),
+    name: product ? product.name : item.name,
+    slug: product?.slug ?? null,
+    image: item.image || product?.images?.[0] || null,
+  };
+}
+
 export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const t = useTranslations();
+  const tf = useFallbackTranslator(t);
   const { formatPrice } = useCurrency();
   const { confirm } = useConfirmation();
   const [order, setOrder] = useState<Order | null>(null);
@@ -268,6 +305,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
     message: string;
   } | null>(null);
   const [refundDestination, setRefundDestination] = useState<RefundDestinationInput>({});
+  const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
 
   // Bumped after the shopper pays a pre-order balance so the page re-reads
   // the order instead of showing a "pay" prompt for money already taken.
@@ -334,8 +372,29 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       const data = await res.json();
 
       if (data.success) {
-        toast.success(t("orders.orderCancelled"));
-        setOrder({ ...order, status: ORDER_STATUS.CANCELLED });
+        // A cancelled pre-order sends money back, and the shopper should be
+        // told which of the two happened rather than being left to check their
+        // statement. `refund.refunded === false` on an order that collected
+        // nothing is not a failure — it is a pay-later reservation with no
+        // deposit to return, which the message below does not claim otherwise.
+        const refund = data.data?.refund as
+          | { refunded?: boolean; amount?: number; reason?: string }
+          | undefined;
+        if (refund?.refunded && typeof refund.amount === "number") {
+          toast.success(
+            tf(
+              "orders.orderCancelledRefunded",
+              "Order cancelled. {amount} is on its way back to you.",
+              { amount: formatPrice(refund.amount) },
+            ),
+          );
+        } else {
+          toast.success(t("orders.orderCancelled"));
+        }
+        // Re-read rather than patching the status locally: the cancellation
+        // also moves the payment status, the consignments and the pre-order
+        // state, and a hand-patched copy would disagree with all three.
+        setOrderReloadKey((key) => key + 1);
       } else {
         toast.error(data.message || t("orders.orderCancelFailed"));
       }
@@ -669,7 +728,28 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   // where one seller has already handed goods to a courier, cancelling now
   // takes only the rest — a partial outcome behind a button labelled "Cancel
   // order", which is not a thing to spring on someone.
-  const canCancel = order.status === ORDER_STATUS.PENDING && !hasDispatchedShipment;
+  // `preordered` belongs here as much as `pending` does. A reservation waiting
+  // months for a release date is the state a shopper is MOST likely to want out
+  // of, the API has always accepted the transition, and nothing has shipped by
+  // definition — yet the button was hidden, so the only way out was to ask
+  // support. Cancelling now refunds whatever was collected.
+  const canCancel =
+    (order.status === ORDER_STATUS.PENDING ||
+      order.status === ORDER_STATUS.PREORDERED) &&
+    !hasDispatchedShipment;
+  const preorderStatusLabel = order.hasPreorder
+    ? getPreorderStatusLabel(order.preorderStatus)
+    : null;
+  const formatPreorderDay = (value?: string) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : format(date, "d MMM yyyy");
+  };
+  const preorderExpectedLabel = formatPreorderDay(order.preorderReleaseDate);
+  const preorderOriginalLabel = formatPreorderDay(
+    order.preorderOriginalReleaseDate,
+  );
+
   const isReturnEligibleOrder =
     order.status === ORDER_STATUS.DELIVERED &&
     // `partially_paid` belongs here: a split order sits there while one
@@ -680,6 +760,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       order.paymentStatus === "partially_refunded");
   const shippingAmount = order.shipping ?? order.shippingCost ?? 0;
   const discountAmount = order.discount ?? 0;
+  const dutyAmount = Number(order.customs?.dutyAmount || 0);
   const billingAddress = order.billingAddress || order.shippingAddress;
   const pickup = order.fulfillment?.method === "pickup"
     ? order.fulfillment.pickup
@@ -718,6 +799,32 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const canRequestReturn =
     isReturnEligibleOrder &&
     order.items.some((_, index) => getReturnableQuantity(index) > 0);
+
+  // Reviews are per product: two lines of one product (two sizes, say) share
+  // a single review, so they share its state and are asked about once.
+  const reviewStateByProduct = new Map(
+    (order.reviewStates ?? []).map((state) => [state.productId, state]),
+  );
+  const reviewTargetFor = (item: OrderItem): ReviewTarget => {
+    const { productId, name, image } = describeItem(item);
+    return {
+      productId,
+      orderId: order._id,
+      name,
+      image,
+      orderNumber: order.orderNumber,
+    };
+  };
+  const pendingReviews: ReviewTarget[] = [];
+  for (const item of order.items) {
+    const { productId } = describeItem(item);
+    if (
+      reviewStateByProduct.get(productId)?.canReview &&
+      !pendingReviews.some((target) => target.productId === productId)
+    ) {
+      pendingReviews.push(reviewTargetFor(item));
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -768,11 +875,94 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         </div>
       </div>
 
+      {/* What a pre-order shopper actually wants to know, and the one screen
+          that never told them: when it is expected, whether that date has
+          moved and why. The orders LIST carried the date all along; the detail
+          page — the one the "your pre-order was delayed" mail links to — showed
+          only the balance card, so the reason for the delay reached nobody. */}
+      {order.hasPreorder ? (
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <CalendarClock className="h-5 w-5 text-primary" aria-hidden />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="font-semibold">
+                {preorderStatusLabel ??
+                  tf("orders.preorderDetails.title", "Pre-order")}
+              </p>
+              {preorderExpectedLabel ? (
+                <p className="text-sm text-muted-foreground">
+                  {tf(
+                    "orders.preorderDetails.expected",
+                    "Expected around {date}",
+                    { date: preorderExpectedLabel },
+                  )}
+                </p>
+              ) : null}
+              {/* Only once a date has actually moved — the original is stamped
+                  by the delay action and by nothing else. */}
+              {preorderOriginalLabel &&
+              preorderOriginalLabel !== preorderExpectedLabel ? (
+                <p className="text-sm text-muted-foreground">
+                  {tf(
+                    "orders.preorderDetails.movedFrom",
+                    "Originally expected {date}",
+                    { date: preorderOriginalLabel },
+                  )}
+                  {order.preorderDelayReason
+                    ? ` — ${order.preorderDelayReason}`
+                    : ""}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <PreorderBalanceCard
         order={order}
         locale={locale}
         onPaid={() => setOrderReloadKey((key) => key + 1)}
       />
+
+      {/* The delivery notification lands here, so the ask sits at the top
+          rather than below the addresses; each line below carries its own
+          button too. */}
+      {pendingReviews.length > 0 ? (
+        <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="rounded-lg bg-background p-2">
+              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">
+                {tf("reviews.orderPromptTitle", "How was your order?")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {pendingReviews.length === 1
+                  ? tf(
+                      "reviews.orderPromptOne",
+                      "Share a quick review of {name} — it helps other shoppers.",
+                      { name: pendingReviews[0].name },
+                    )
+                  : tf(
+                      "reviews.orderPromptMany",
+                      "{count} items from this order are waiting for your review.",
+                      { count: pendingReviews.length },
+                    )}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="shrink-0"
+            onClick={() => setReviewTarget(pendingReviews[0])}
+          >
+            {tf("reviews.writeReview", "Write a Review")}
+          </Button>
+        </div>
+      ) : null}
 
       {/* Info Cards */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -827,10 +1017,30 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                   {order.shippingAddress.phone}
                 </p>
               )}
+              {/* A pre-order waits long enough for people to move. Offered only
+                  while nothing has shipped; the server re-checks every rule,
+                  including the ones this screen cannot see. */}
+              {order.hasPreorder &&
+              order.status === "preordered" &&
+              !pickup ? (
+                <div className="pt-3">
+                  <PreorderAddressEditor
+                    orderId={order._id}
+                    address={order.shippingAddress}
+                    onSaved={() => setOrderReloadKey((key) => key + 1)}
+                  />
+                </div>
+              ) : null}
             </div>
             )}
           </CardContent>
         </Card>
+
+        <OrderCheckoutAnswers
+          className="gap-1"
+          customerNote={order.customerNote}
+          checkoutFields={order.checkoutFields}
+        />
 
         {pickup ? (
           <Card className="gap-1">
@@ -970,7 +1180,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                 <span className="text-muted-foreground">
                   {t("common.method")}
                 </span>
-                <span className="capitalize">{order.paymentMethod}</span>
+                <span>{getPaymentMethodMeta(t, order.paymentMethod).label}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
@@ -1045,19 +1255,13 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                 {group.indexes.map((index) => {
                   const item = order.items[index];
                   if (!item) return null;
-                  const productName =
-                    typeof item.productId === "object"
-                      ? item.productId.name
-                      : item.name;
-                  const productSlug =
-                    typeof item.productId === "object"
-                      ? item.productId.slug
-                      : null;
-                  const productImage =
-                    item.image ||
-                    (typeof item.productId === "object"
-                      ? item.productId.images?.[0]
-                      : null);
+                  const {
+                    productId,
+                    name: productName,
+                    slug: productSlug,
+                    image: productImage,
+                  } = describeItem(item);
+                  const reviewState = reviewStateByProduct.get(productId);
 
                   return (
                     <div key={index} className="flex gap-4">
@@ -1089,6 +1293,22 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                         <p className="text-sm text-muted-foreground">
                           {t("common.qty")}: {item.quantity}
                         </p>
+                        {reviewState?.rating ? (
+                          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <StarRatingDisplay rating={reviewState.rating} />
+                            {tf("reviews.youRated", "You rated this")}
+                          </p>
+                        ) : reviewState?.canReview ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 h-7 gap-1.5 px-2.5 text-xs"
+                            onClick={() => setReviewTarget(reviewTargetFor(item))}
+                          >
+                            <Star className="h-3.5 w-3.5" />
+                            {tf("reviews.writeReview", "Write a Review")}
+                          </Button>
+                        ) : null}
                       </div>
                       <div className="text-right">
                         <p className="font-medium">
@@ -1141,11 +1361,46 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                 <span>{formatPrice(order.tax)}</span>
               </div>
             )}
+            {/* Added to the total at checkout, so without its own row the lines
+                above did not add up to it. */}
+            {dutyAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {t("orders.importDuties")}
+                </span>
+                <span>{formatPrice(dutyAmount)}</span>
+              </div>
+            )}
             <Separator className="my-2" />
             <div className="flex justify-between text-base font-semibold">
               <span>{t("common.total")}</span>
               <span>{formatPrice(order.total)}</span>
             </div>
+            {/* A deposit pre-order is not settled by the total: say here, next
+                to it, what has been paid and what is still owed — the same
+                figures as the balance card and the invoice. */}
+            {order.hasPreorder &&
+            typeof order.preorderBalanceDue === "number" &&
+            order.preorderBalanceDue > 0 ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {t("orders.preorderBalance.paidSoFar")}
+                  </span>
+                  <span>
+                    {formatPrice(
+                      typeof order.preorderPaidSoFar === "number"
+                        ? Math.max(0, order.preorderPaidSoFar)
+                        : Math.max(0, order.total - order.preorderBalanceDue),
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>{t("orders.preorderBalance.balanceDue")}</span>
+                  <span>{formatPrice(order.preorderBalanceDue)}</span>
+                </div>
+              </>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -1274,10 +1529,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
             <div className="grid gap-3">
               <Label>Items</Label>
               {order.items.map((item, index) => {
-                const productName =
-                  typeof item.productId === "object"
-                    ? item.productId.name
-                    : item.name;
+                const productName = describeItem(item).name;
                 const returnableQuantity = getReturnableQuantity(index);
                 return (
                   <div
@@ -1407,6 +1659,26 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ReviewDialog
+        target={reviewTarget}
+        onClose={() => setReviewTarget(null)}
+        onReviewed={(reviewed, rating) => {
+          setReviewTarget(null);
+          setOrder((current) =>
+            current
+              ? {
+                  ...current,
+                  reviewStates: (current.reviewStates ?? []).map((state) =>
+                    state.productId === reviewed.productId
+                      ? { ...state, rating, canReview: false }
+                      : state,
+                  ),
+                }
+              : current,
+          );
+        }}
+      />
     </div>
   );
 }

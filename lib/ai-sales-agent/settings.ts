@@ -17,6 +17,7 @@ export const DEFAULT_AI_SALES_AGENT_SETTINGS: IAISalesAgentSettings = {
   temperature: 0.3,
   reasoningEffort: "minimal",
   maxRecommendations: 4,
+  monthlyTokenBudget: 0,
   agentName: "Sales AI",
   greeting:
     "Hi! I can help you find products, compare options, add items to your cart, and check order status.",
@@ -104,6 +105,11 @@ export function normalizeAISalesAgentSettings(
     typeof incoming.tone === "string" && TONE_SET.has(incoming.tone)
       ? (incoming.tone as AISalesAgentTone)
       : DEFAULT_AI_SALES_AGENT_SETTINGS.tone;
+  // A whole number of tokens; anything else — negative, fractional, absent —
+  // is "no budget", never a budget of zero that would silence the assistant.
+  const budget = Number(incoming.monthlyTokenBudget);
+  const monthlyTokenBudget =
+    Number.isFinite(budget) && budget > 0 ? Math.floor(budget) : 0;
 
   return {
     ...DEFAULT_AI_SALES_AGENT_SETTINGS,
@@ -111,6 +117,7 @@ export function normalizeAISalesAgentSettings(
     model,
     reasoningEffort,
     tone,
+    monthlyTokenBudget,
     widget: {
       ...DEFAULT_AI_SALES_AGENT_SETTINGS.widget,
       ...widgetIncoming,

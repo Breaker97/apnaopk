@@ -118,7 +118,7 @@ export function RegionSelect({
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}
         className={cn(
-          "flex h-14 w-full appearance-none rounded-lg border border-input bg-transparent px-3 pt-6 pb-1.5 text-base shadow-xs transition-[color,box-shadow] outline-none",
+          "flex h-14 w-full appearance-none rounded-input border border-input bg-transparent px-3 pt-6 pb-1.5 text-base shadow-xs transition-[color,box-shadow] outline-none",
           "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
           "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
           !isKnownValue && !value && "text-muted-foreground",

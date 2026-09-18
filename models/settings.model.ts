@@ -52,6 +52,7 @@ import {
 } from "@/config/branding.config";
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
+  type NotificationChannelSettings,
   type NotificationSettings,
 } from "@/lib/notifications/notification-settings";
 import {
@@ -69,6 +70,9 @@ import {
   DEFAULT_RESTOCKING_FEE_PERCENT,
   DEFAULT_RETURN_SHIPPING_FEE,
   DEFAULT_RETURN_SHIPPING_REFUND,
+  DEFAULT_RETURN_WINDOW_DAYS,
+  MAX_RETURN_WINDOW_DAYS,
+  MIN_RETURN_WINDOW_DAYS,
   NEW_STORE_RETURN_SHIPPING_REFUND,
   RETURN_SHIPPING_REFUND_MODES,
   type ReturnShippingRefundMode,
@@ -128,8 +132,6 @@ interface IGeneralSettings {
   supportedCurrencies: string[];
   countryAvailability: CountryAvailability;
   timezone: string;
-  /** `regex` (substring, default) or `text` (indexed whole-word, ranked). */
-  productSearchMode?: "regex" | "text";
 }
 
 // ============================================
@@ -149,6 +151,8 @@ interface IAppearanceSettings {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  /** Loading placeholders. Empty keeps a neutral grey. */
+  skeletonColor?: string;
   /**
    * Configured theme. `"system"` is a legacy value only readable from
    * pre-existing documents — read it through `normalizeThemeMode()`, never
@@ -295,12 +299,40 @@ interface IEmailSettings {
 }
 
 // ============================================
+// SMS Settings Sub-interface
+// ============================================
+
+export interface ISmsSettings {
+  /** Master switch. `.env` credentials alone never send a text. */
+  enabled: boolean;
+  twilio: {
+    accountSid?: string;
+    authToken?: string;
+    /** Preferred sender — Twilio then picks a number from the service. */
+    messagingServiceSid?: string;
+    /** A Twilio number (E.164) or an alphanumeric sender ID. */
+    fromNumber?: string;
+  };
+  /**
+   * ISO-2 country for numbers typed without a country code on a profile.
+   * An order's number is read against its shipping country first.
+   */
+  defaultCountry?: string;
+  /** Append the relevant page link — useful, but often a second segment. */
+  includeLinks: boolean;
+  logRetentionDays?: 7 | 30 | 90;
+}
+
+// ============================================
 // Order Settings Sub-interface
 // ============================================
 
 interface ICommissionSettings {
   vendorRate: number; // Percentage
+  /** In the store's own currency. */
   minWithdrawalAmount: number;
+  /** A minimum of its own for a payout in another currency — see `resolveMinWithdrawal`. */
+  minWithdrawalByCurrency?: Map<string, number>;
 }
 
 /**
@@ -309,6 +341,7 @@ interface ICommissionSettings {
  * `resolveReturnPolicy` in lib/return-policy.ts.
  */
 interface IReturnPolicySettings {
+  windowDays: number;
   shippingRefund: ReturnShippingRefundMode;
   restockingFeePercent: number;
   returnShippingFee: number;
@@ -732,6 +765,70 @@ interface IMultiVendorModeSettings {
    */
   packPolicy?: Partial<Record<VendorPermissionPack, boolean>>;
 }
+/**
+ * Platform-wide limits on what a vendor may promise with a pre-order.
+ *
+ * A pre-order is the platform taking money for something a VENDOR has not made
+ * yet, so the risk lands here rather than on the seller: an over-promised
+ * release date or an outsized deposit becomes the platform's refund and the
+ * platform's chargeback. Until these settings existed, any vendor could open a
+ * pre-order on any product for any lead time, with no cap and no review.
+ *
+ * The defaults deliberately change nothing on upgrade. `requireVendorApproval`
+ * is OFF, so a store already selling pre-orders keeps selling them the day it
+ * updates; `maxDepositPercent` is 100, which is the existing (implicit) clamp.
+ * The one default that bites is `maxLeadDays`, set high enough to pass any
+ * honest drop and low enough to stop a two-year promise. Tightening these is
+ * the store owner's decision to make deliberately, not one to be made for them
+ * by a version bump that quietly delists their catalogue.
+ */
+export interface IPreorderSettings {
+  /** Master switch. Off means no vendor may open a pre-order at all. */
+  enabled: boolean;
+  /** Require an admin to approve each vendor before they can sell one. */
+  requireVendorApproval: boolean;
+  /** How far ahead a release date may be set. */
+  maxLeadDays: number;
+  /** The largest deposit a vendor may ask for, as a percent of the line. */
+  maxDepositPercent: number;
+  /** Days past the release date an unpaid balance survives before expiry. */
+  expiryGraceDays: number;
+  /**
+   * Ask for the balance — and release a fully-paid pre-order for fulfilment —
+   * without anybody clicking, once the release date has come.
+   *
+   * Off by default, and deliberately so: asking for money is a statement that
+   * the goods are ready, and only the store knows whether they are. A store
+   * that ships on the day it promised can turn this on and stop chasing its
+   * own queue; a store whose dates slip should leave it off and keep clicking.
+   *
+   * It never invents a date. It acts on the release date the vendor already
+   * set, which is why it is safe in a way that guessing a NEW date would not
+   * be (see `countOverdueReleases`, which still only counts).
+   *
+   * A fully-paid pre-order is additionally gated on stock actually existing —
+   * releasing one consumes the received units, and that claim fails and
+   * retries rather than shipping goods nobody has. An order that still owes a
+   * balance consumes nothing yet, so for that one the date is the only gate,
+   * exactly as it is when an admin clicks "ask for payment".
+   */
+  autoRelease: boolean;
+  /** Days to wait past the release date before {@link autoRelease} acts. */
+  autoReleaseDelayDays: number;
+  /**
+   * Share of a pre-order payout held back against a late dispute, as a
+   * percent. Zero — the default — switches the reserve off entirely.
+   *
+   * Card networks count a dispute window from the EXPECTED DELIVERY date, so a
+   * pre-order sold three months ahead can be charged back long after the
+   * vendor has been paid and moved on. Holding a slice for a while is the only
+   * lever the platform has once the money has left.
+   */
+  reservePercent: number;
+  /** How long a held slice stays held, counted from the payout. */
+  reserveDays: number;
+}
+
 // ============================================
 // Vendor Configuration Sub-interface
 // ============================================
@@ -966,6 +1063,12 @@ export interface IAISalesAgentSettings {
   temperature: number;
   reasoningEffort: AISalesAgentReasoningEffort;
   maxRecommendations: number;
+  /**
+   * Tokens the assistant may spend per calendar month (UTC), all chats
+   * together; 0 = unlimited. Past it the assistant answers from the
+   * catalogue without the model — lib/ai-sales-agent/usage.ts.
+   */
+  monthlyTokenBudget: number;
   agentName: string;
   greeting: string;
   tone: AISalesAgentTone;
@@ -1033,6 +1136,8 @@ interface IOnlineStoreSettings {
   activeTheme?: string;
   /** Per-theme values: { [themeId]: Record<fieldKey, value> }. */
   themeSettings?: Record<string, Record<string, unknown>>;
+  /** Per-theme merchant CSS: { [themeId]: sheet }. See themes/custom-css.ts. */
+  customCss?: Record<string, string>;
 }
 type INotificationSettings = NotificationSettings;
 type IHeaderSettings = HeaderSettings;
@@ -1061,6 +1166,7 @@ export interface ISettings extends Document {
   appearance: IAppearanceSettings;
   payment: IPaymentSettings;
   email: IEmailSettings;
+  sms: ISmsSettings;
   orders: IOrderSettings;
   shipping: IShippingSettings;
   seo: ISEOSettings;
@@ -1070,6 +1176,7 @@ export interface ISettings extends Document {
   security: ISecuritySettings;
   pos: IPOSSettings;
   multiVendorMode: IMultiVendorModeSettings;
+  preorder: IPreorderSettings;
   vendorConfig: IVendorConfigSettings;
   catalog: ICatalogSettings;
   boosting: IBoostingSettings;
@@ -1090,6 +1197,12 @@ export interface ISettings extends Document {
    * not this document, defines the shape.
    */
   productCard: unknown;
+  /**
+   * Slide templates a merchant saved from the slider editor. Stored Mixed
+   * and normalized at every read through `normalizeSlideTemplate()` —
+   * lib/sliders/types.ts defines the shape.
+   */
+  sliderTemplates: unknown;
   /**
    * Theme engine state: which theme is active and each theme's setting
    * values, keyed by theme id so switching preserves both sides. Stored
@@ -1146,6 +1259,43 @@ const rateLimitPresetField = () => ({
   type: String,
   enum: [...RATE_LIMIT_PRESETS],
   default: "default",
+});
+
+/**
+ * One event's channel switches, built from the shared defaults. The fifteen
+ * hand-written copies this replaced each restated their booleans as literals,
+ * free to disagree with DEFAULT_NOTIFICATION_SETTINGS — and adding a channel
+ * meant editing all fifteen.
+ */
+const notificationChannelField = (defaults: NotificationChannelSettings) => ({
+  type: new Schema<NotificationChannelSettings>(
+    {
+      inApp: { type: Boolean, default: defaults.inApp },
+      email: { type: Boolean, default: defaults.email },
+      browserPush: { type: Boolean, default: defaults.browserPush },
+      sms: { type: Boolean, default: defaults.sms },
+    },
+    { _id: false },
+  ),
+  default: () => ({ ...defaults }),
+});
+
+/** An audience's events — admin, staff, vendor or customer. */
+const notificationGroupField = (
+  defaults: Record<string, NotificationChannelSettings>,
+) => ({
+  type: new Schema(
+    Object.fromEntries(
+      Object.entries(defaults).map(([event, channels]) => [
+        event,
+        notificationChannelField(channels),
+      ]),
+    ),
+    { _id: false },
+  ),
+  // A copy: handing Mongoose the shared constant let a document write into
+  // the defaults every later document starts from.
+  default: () => structuredClone(defaults),
 });
 
 const CarrierAuthFailureSchema = new Schema<ICarrierAuthFailure>(
@@ -1220,12 +1370,6 @@ const SettingsSchema = new Schema<ISettings>(
             }),
           },
           timezone: { type: String, default: DEFAULT_TIMEZONE },
-          // How the storefront matches a search — see lib/products/search.ts.
-          productSearchMode: {
-            type: String,
-            enum: ["regex", "text"],
-            default: "regex",
-          },
         },
         { _id: false },
       ),
@@ -1239,6 +1383,7 @@ const SettingsSchema = new Schema<ISettings>(
           primaryColor: { type: String, default: DEFAULT_PRIMARY_COLOR },
           secondaryColor: { type: String, default: DEFAULT_SECONDARY_COLOR },
           accentColor: { type: String, default: DEFAULT_ACCENT_COLOR },
+          skeletonColor: { type: String, default: "" },
           theme: {
             type: String,
             // "system" stays in the enum only so documents written before
@@ -1480,6 +1625,36 @@ const SettingsSchema = new Schema<ISettings>(
       default: () => ({}),
     },
 
+    // SMS Settings (Twilio)
+    sms: {
+      type: new Schema(
+        {
+          enabled: { type: Boolean, default: false },
+          twilio: {
+            type: new Schema(
+              {
+                accountSid: String,
+                authToken: String,
+                messagingServiceSid: String,
+                fromNumber: String,
+              },
+              { _id: false },
+            ),
+            default: () => ({}),
+          },
+          defaultCountry: String,
+          includeLinks: { type: Boolean, default: true },
+          logRetentionDays: {
+            type: Number,
+            enum: [7, 30, 90],
+            default: 30,
+          },
+        },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
+
     // Order Settings
     orders: {
       type: new Schema(
@@ -1517,6 +1692,11 @@ const SettingsSchema = new Schema<ISettings>(
                   default: DEFAULT_MIN_WITHDRAWAL_AMOUNT,
                   min: 0,
                 },
+                minWithdrawalByCurrency: {
+                  type: Map,
+                  of: { type: Number, min: 0 },
+                  default: undefined,
+                },
               },
               { _id: false },
             ),
@@ -1525,6 +1705,12 @@ const SettingsSchema = new Schema<ISettings>(
           returns: {
             type: new Schema(
               {
+                windowDays: {
+                  type: Number,
+                  default: DEFAULT_RETURN_WINDOW_DAYS,
+                  min: MIN_RETURN_WINDOW_DAYS,
+                  max: MAX_RETURN_WINDOW_DAYS,
+                },
                 shippingRefund: {
                   type: String,
                   enum: RETURN_SHIPPING_REFUND_MODES,
@@ -2113,6 +2299,30 @@ const SettingsSchema = new Schema<ISettings>(
       default: () => ({}),
     },
 
+    // Pre-order guard rails (see IPreorderSettings for why these defaults)
+    preorder: {
+      type: new Schema(
+        {
+          enabled: { type: Boolean, default: true },
+          requireVendorApproval: { type: Boolean, default: false },
+          maxLeadDays: { type: Number, default: 180, min: 1, max: 730 },
+          maxDepositPercent: { type: Number, default: 100, min: 0, max: 100 },
+          expiryGraceDays: { type: Number, default: 14, min: 1, max: 365 },
+          // Off by default, like the reserve below and for the same reason: a
+          // version bump must never start asking a store's shoppers for money
+          // on its behalf.
+          autoRelease: { type: Boolean, default: false },
+          autoReleaseDelayDays: { type: Number, default: 0, min: 0, max: 90 },
+          // Off by default: withholding a vendor's money is a policy a store
+          // opts into, never something a version bump starts doing to them.
+          reservePercent: { type: Number, default: 0, min: 0, max: 50 },
+          reserveDays: { type: Number, default: 90, min: 1, max: 365 },
+        },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
+
     // Vendor Configuration (onboarding + plan policy)
     vendorConfig: {
       type: new Schema(
@@ -2199,210 +2409,16 @@ const SettingsSchema = new Schema<ISettings>(
     notifications: {
       type: new Schema(
         {
-          admin: {
-            type: new Schema(
-              {
-                newOrders: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.admin.newOrders,
-                },
-                newCustomers: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.admin.newCustomers,
-                },
-                newVendors: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.admin.newVendors,
-                },
-                returns: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.admin.returns,
-                },
-                payments: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.admin.payments,
-                },
-              },
-              { _id: false },
-            ),
-            default: () => DEFAULT_NOTIFICATION_SETTINGS.admin,
-          },
-          staff: {
-            type: new Schema(
-              {
-                newOrders: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.staff.newOrders,
-                },
-                newCustomers: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.staff.newCustomers,
-                },
-                returns: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.staff.returns,
-                },
-                payments: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.staff.payments,
-                },
-                lowStock: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: false },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.staff.lowStock,
-                },
-              },
-              { _id: false },
-            ),
-            default: () => DEFAULT_NOTIFICATION_SETTINGS.staff,
-          },
-          vendor: {
-            type: new Schema(
-              {
-                applicationStatus: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () =>
-                    DEFAULT_NOTIFICATION_SETTINGS.vendor.applicationStatus,
-                },
-                newOrders: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.vendor.newOrders,
-                },
-                returns: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () => DEFAULT_NOTIFICATION_SETTINGS.vendor.returns,
-                },
-              },
-              { _id: false },
-            ),
-            default: () => DEFAULT_NOTIFICATION_SETTINGS.vendor,
-          },
-          customer: {
-            type: new Schema(
-              {
-                orderUpdates: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () =>
-                    DEFAULT_NOTIFICATION_SETTINGS.customer.orderUpdates,
-                },
-                returnUpdates: {
-                  type: new Schema(
-                    {
-                      inApp: { type: Boolean, default: true },
-                      email: { type: Boolean, default: true },
-                      browserPush: { type: Boolean, default: true },
-                    },
-                    { _id: false },
-                  ),
-                  default: () =>
-                    DEFAULT_NOTIFICATION_SETTINGS.customer.returnUpdates,
-                },
-              },
-              { _id: false },
-            ),
-            default: () => DEFAULT_NOTIFICATION_SETTINGS.customer,
-          },
+          admin: notificationGroupField(DEFAULT_NOTIFICATION_SETTINGS.admin),
+          staff: notificationGroupField(DEFAULT_NOTIFICATION_SETTINGS.staff),
+          vendor: notificationGroupField(DEFAULT_NOTIFICATION_SETTINGS.vendor),
+          customer: notificationGroupField(
+            DEFAULT_NOTIFICATION_SETTINGS.customer,
+          ),
         },
         { _id: false },
       ),
-      default: () => DEFAULT_NOTIFICATION_SETTINGS,
+      default: () => structuredClone(DEFAULT_NOTIFICATION_SETTINGS),
     },
 
     // Storage Settings
@@ -2521,6 +2537,7 @@ const SettingsSchema = new Schema<ISettings>(
             default: "minimal",
           },
           maxRecommendations: { type: Number, default: 4, min: 1, max: 8 },
+          monthlyTokenBudget: { type: Number, default: 0, min: 0 },
           agentName: { type: String, default: "Sales AI" },
           greeting: {
             type: String,
@@ -2742,6 +2759,12 @@ const SettingsSchema = new Schema<ISettings>(
     // Product card configurator. Absent on older documents — readers
     // normalize, so no default beyond an empty object is needed here.
     productCard: {
+      type: Schema.Types.Mixed,
+      default: () => ({}),
+    },
+
+    // Saved slide templates. Absent on older documents — readers normalize.
+    sliderTemplates: {
       type: Schema.Types.Mixed,
       default: () => ({}),
     },

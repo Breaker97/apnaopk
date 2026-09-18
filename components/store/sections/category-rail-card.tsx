@@ -143,7 +143,7 @@ export async function CategoryRailChips({
         <Link
           key={category._id}
           href={`/${locale}/categories/${encodeURIComponent(category.slug)}`}
-          className="flex h-10 shrink-0 snap-start items-center gap-2 rounded-full border border-border bg-background pe-3.5 ps-2.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:border-foreground/30 hover:text-foreground"
+          className="flex h-10 shrink-0 snap-start items-center gap-2 rounded-button border border-border bg-background pe-3.5 ps-2.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:border-foreground/30 hover:text-foreground"
         >
           <span className="grid h-6 w-6 shrink-0 place-items-center">
             {category.icon || category.image ? (

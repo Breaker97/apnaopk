@@ -1,10 +1,11 @@
-import { Order, OrderComment, ReturnRequest } from "@/models";
+import { Order, OrderComment, ReturnRequest, Vendor } from "@/models";
 import {
   buildCommentAudienceFilter,
   NOT_DELETED_ORDER_COMMENT_FILTER,
 } from "@/models/order-comment.model";
 import { InventoryLocation } from "@/models/inventory-location.model";
 import { AuditLog } from "@/models/audit-log.model";
+import { PaymentTransaction } from "@/models/payment-transaction.model";
 import { connectDB } from "@/lib/db";
 import { isValidObjectId } from "@/lib/api/validate";
 import {
@@ -116,8 +117,87 @@ export async function getOrderDetails(
     posLocationName = location?.name;
   }
 
+  // Who each consignment belongs to, by store name. A split order's sub-orders
+  // carry only a vendor id, and a list of ids is no help to someone deciding
+  // which seller's parcel to call off.
+  const vendorIds = [
+    ...new Set(
+      ((order.subOrders || []) as Array<{ vendorId?: unknown }>)
+        .map((sub) => (sub.vendorId ? String(sub.vendorId) : ""))
+        .filter(Boolean),
+    ),
+  ];
+  const consignmentSellers: Record<string, string> = {};
+  if (vendorIds.length > 1) {
+    const vendors = await Vendor.find({ _id: { $in: vendorIds } })
+      .select("storeName")
+      .lean<Array<{ _id: unknown; storeName?: string }>>();
+    for (const vendor of vendors) {
+      if (vendor.storeName) consignmentSellers[String(vendor._id)] = vendor.storeName;
+    }
+  }
+
+  // The chargebacks standing on a split order, and whose sellers each falls
+  // on — so an admin who knows whose goods were disputed can say so. Only a
+  // split order has sellers to choose between.
+  let chargebacks: Array<{
+    _id: string;
+    amount: number;
+    createdAt?: Date;
+    disputeId?: string;
+    vendorIds: string[];
+  }> = [];
+  if (vendorIds.length > 1) {
+    const rows = await PaymentTransaction.find({
+      orderId: order._id,
+      type: "refund",
+      status: "succeeded",
+      "metadata.source": { $in: ["gateway-chargeback", "admin-chargeback-manual"] },
+    })
+      .select("grossAmount createdAt metadata.dispute refundAllocation")
+      .sort({ createdAt: 1 })
+      .lean<
+        Array<{
+          _id: unknown;
+          grossAmount?: number;
+          createdAt?: Date;
+          metadata?: { dispute?: { id?: string } };
+          refundAllocation?: Array<{
+            vendorId?: unknown;
+            merchandise?: number;
+            shipping?: number;
+            tax?: number;
+            duty?: number;
+          }>;
+        }>
+      >();
+    chargebacks = rows.map((row) => ({
+      _id: String(row._id),
+      amount: Number(row.grossAmount || 0),
+      createdAt: row.createdAt,
+      disputeId: row.metadata?.dispute?.id,
+      vendorIds: [
+        ...new Set(
+          (row.refundAllocation || [])
+            .filter(
+              (share) =>
+                Number(share.merchandise || 0) +
+                  Number(share.shipping || 0) +
+                  Number(share.tax || 0) +
+                  Number(share.duty || 0) >
+                0,
+            )
+            .map((share) => String(share.vendorId || ""))
+            .filter(Boolean),
+        ),
+      ],
+    }));
+  }
+
   // ObjectIds and Dates are not serializable across the RSC boundary.
-  return JSON.parse(JSON.stringify({ ...order, posLocationName }));
+  return JSON.parse(
+    JSON.stringify({ ...order, posLocationName, consignmentSellers, chargebacks }),
+  );
 }
 
 export async function getOrderReturnRequests(

@@ -1,4 +1,4 @@
-import type { BlockInstance, SectionInstance } from "./types";
+import type { BlockInstance, Field, SectionInstance } from "./types";
 
 /**
  * The Hero Slider's layout vocabulary — shared by the storefront renderer,
@@ -254,6 +254,92 @@ export function resolveSliderLayout(
       heightKeys,
       DEFAULT_SLIDER_HEIGHT,
     ),
+  };
+}
+
+/** The grid shipped with these; the spacing fields default to them. */
+export const SECTION_GRID_SPACING = {
+  gap: { default: 14, min: 0, max: 48 },
+  sidePadding: { default: 16, min: 0, max: 80 },
+  radius: { default: 12, min: 0, max: 48 },
+} as const;
+
+/** Corners either set here, or the theme's card radius (Themes → Shapes). */
+export const SECTION_GRID_CORNERS = ["custom", "theme"] as const;
+
+/**
+ * The spacing fields a grid section carries (the Slider and the Promotion
+ * Grid). The defaults ARE the values the grids shipped with — 12px gaps
+ * (14px from lg), 16px at the sides of the padded widths, 12px corners in
+ * the contained widths — so an untouched section is unchanged.
+ */
+export const SECTION_GRID_SPACING_FIELDS: Field[] = [
+  {
+    key: "gap",
+    type: "number",
+    default: SECTION_GRID_SPACING.gap.default,
+    min: SECTION_GRID_SPACING.gap.min,
+    max: SECTION_GRID_SPACING.gap.max,
+    width: "third",
+    hint: "Between the cells, in pixels. Phones use a little less.",
+  },
+  {
+    key: "sidePadding",
+    type: "number",
+    default: SECTION_GRID_SPACING.sidePadding.default,
+    min: SECTION_GRID_SPACING.sidePadding.min,
+    max: SECTION_GRID_SPACING.sidePadding.max,
+    width: "third",
+    hint: "At the sides of the grid, in pixels. The edge-to-edge widths ignore it.",
+  },
+  {
+    key: "corners",
+    type: "select",
+    options: SECTION_GRID_CORNERS,
+    default: "custom",
+    width: "third",
+    hint: "The edge-to-edge widths stay square.",
+  },
+  {
+    key: "radius",
+    type: "number",
+    default: SECTION_GRID_SPACING.radius.default,
+    min: SECTION_GRID_SPACING.radius.min,
+    max: SECTION_GRID_SPACING.radius.max,
+    width: "third",
+    showWhen: { key: "corners", values: ["custom"] },
+  },
+];
+
+export interface SectionGridSpacing {
+  /** px between cells on desktop; phones take a little less. */
+  gap: number;
+  /** px at the sides of the grid; the edge-to-edge widths ignore it. */
+  sidePadding: number;
+  /** A CSS length for the cells' corners. */
+  radius: string;
+}
+
+/**
+ * A grid section's spacing settings, with the shipped values for anything
+ * unset — so a promotion grid saved before these existed keeps its 12px
+ * corners and 14px gaps.
+ */
+export function readSectionGridSpacing(
+  settings: Record<string, unknown>,
+): SectionGridSpacing {
+  const num = (value: unknown, spec: { default: number; min: number; max: number }) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.min(spec.max, Math.max(spec.min, Math.round(value)))
+      : spec.default;
+  const radius = num(settings.radius, SECTION_GRID_SPACING.radius);
+  return {
+    gap: num(settings.gap, SECTION_GRID_SPACING.gap),
+    sidePadding: num(settings.sidePadding, SECTION_GRID_SPACING.sidePadding),
+    radius:
+      settings.corners === "theme"
+        ? `var(--store-radius-card, ${SECTION_GRID_SPACING.radius.default}px)`
+        : `${radius}px`,
   };
 }
 

@@ -206,7 +206,9 @@ export function SearchableSelect({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder={searchPlaceholder}
-            className="h-9 border-0 px-0 shadow-none focus-visible:ring-0"
+            // `!`: the storefront's theme gives every input its field border
+            // (globals.css), and this one sits borderless in the panel's row.
+            className="h-9 border-0! px-0 shadow-none focus-visible:ring-0"
           />
         </div>
         <div

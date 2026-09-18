@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 export type PlatformGateway =
   | "stripe"
@@ -49,6 +50,7 @@ export function PaymentMethodPicker(props: {
 }) {
   const t = useTranslations();
   const label = useFallbackTranslator(t);
+  const { mtnMomoPhoneExample } = useAppSettings();
 
   if (props.methods.length === 0) {
     return (
@@ -144,7 +146,7 @@ export function PaymentMethodPicker(props: {
           <Input
             id="boost-mtn-momo-phone"
             type="tel"
-            placeholder="07XXXXXXXX"
+            placeholder={mtnMomoPhoneExample}
             value={props.mtnMomoPhone}
             onChange={(e) => props.onMtnMomoPhoneChange(e.target.value)}
           />

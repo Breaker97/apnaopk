@@ -27,6 +27,7 @@ export function BrandAssetFields(props: {
           maxSizeMB={5}
           formats={["png", "jpg", "jpeg", "svg", "webp"]}
           recommended="400x120px"
+          keepVector
         />
         <BrandAssetCard
           label="Dark Theme Logo"
@@ -37,6 +38,7 @@ export function BrandAssetFields(props: {
           maxSizeMB={5}
           formats={["png", "jpg", "jpeg", "svg", "webp"]}
           recommended="400x120px"
+          keepVector
           darkPreview
         />
         <BrandAssetCard

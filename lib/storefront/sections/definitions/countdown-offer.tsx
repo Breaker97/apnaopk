@@ -2,6 +2,7 @@ import { CountdownOffer } from "@/components/store/sections/countdown-offer";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
 import { ElectronicsDeals } from "@/components/store/sections/themes/electronics-deals";
 import { normalizeBackground } from "@/lib/sliders/types";
+import { getProductDetailImageStyle } from "@/lib/storefront/pages/product-image-style";
 import {
   DEAL_LAYOUTS,
   DEFAULT_DEAL_LAYOUT,
@@ -44,8 +45,18 @@ const banner: SectionDefinition["Render"] = (renderProps) => (
  * presentation choice, not a content one: the stored image is untouched and
  * comes back with the banner design.
  */
-const dealsPanel: SectionDefinition["Render"] = (renderProps) => {
+const dealsPanel: SectionDefinition["Render"] = async (renderProps) => {
   const { settings, ctx } = renderProps;
+  // The cards' pictures: the product page's own fit and padding, unless
+  // the block picks its own.
+  const ownFit = settings.imageFit;
+  const image: { fit: "contain" | "cover"; padding: number } =
+    ownFit === "contain" || ownFit === "cover"
+      ? { fit: ownFit, padding: -1 }
+      : await getProductDetailImageStyle();
+  const themeCorners = settings.corners === "theme";
+  const px = (value: unknown, fallback: number) =>
+    `${typeof value === "number" ? value : fallback}px`;
   return (
     <ElectronicsDeals
       {...props(renderProps)}
@@ -56,6 +67,15 @@ const dealsPanel: SectionDefinition["Render"] = (renderProps) => {
       minHeight={typeof settings.height === "number" ? settings.height : 360}
       showSavings={settings.showSavings !== false}
       showStock={settings.showStock !== false}
+      cardGap={typeof settings.cardGap === "number" ? settings.cardGap : 16}
+      panelRadius={
+        themeCorners ? "var(--store-radius-card, 16px)" : px(settings.panelRadius, 16)
+      }
+      cardRadius={
+        themeCorners ? "var(--store-radius-card, 12px)" : px(settings.cardRadius, 12)
+      }
+      imageFit={image.fit}
+      imagePadding={image.padding}
       emptyState={sectionEmptyState(ctx, {
         title: "Deals panel",
         hint: "Set when the offer ends — the panel counts down to that moment, so without it there is nothing to show.",
@@ -109,6 +129,7 @@ export const countdownOffer: SectionDefinition = {
       type: "background",
       variants: ["deals-panel"],
       width: "third",
+      video: true,
     },
     {
       key: "foreground",
@@ -130,6 +151,55 @@ export const countdownOffer: SectionDefinition = {
       type: "toggle",
       default: true,
       variants: ["deals-panel"],
+    },
+    // The cards: their spacing, corners and pictures. Defaults are the
+    // values the panel shipped with; corners can follow the theme instead.
+    {
+      key: "cardGap",
+      type: "number",
+      default: 16,
+      min: 0,
+      max: 48,
+      variants: ["deals-panel"],
+      width: "third",
+      hint: "Between the deal cards, in pixels. Phones use a little less.",
+    },
+    {
+      key: "corners",
+      type: "select",
+      options: ["custom", "theme"],
+      default: "custom",
+      variants: ["deals-panel"],
+      width: "third",
+    },
+    {
+      key: "panelRadius",
+      type: "number",
+      default: 16,
+      min: 0,
+      max: 48,
+      variants: ["deals-panel"],
+      width: "third",
+      showWhen: { key: "corners", values: ["custom"] },
+    },
+    {
+      key: "cardRadius",
+      type: "number",
+      default: 12,
+      min: 0,
+      max: 48,
+      variants: ["deals-panel"],
+      width: "third",
+      showWhen: { key: "corners", values: ["custom"] },
+    },
+    {
+      key: "imageFit",
+      type: "select",
+      options: ["followProduct", "contain", "cover"],
+      default: "followProduct",
+      variants: ["deals-panel"],
+      width: "third",
+      hint: "Follow product page: the fit and padding the product page's gallery uses.",
     },
     // How the deals are arranged — edited through the layout picker, never
     // the bare dropdown, but it normalizes and stores as a plain select.

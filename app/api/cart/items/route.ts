@@ -23,6 +23,13 @@ import {
   type PreorderSettingsShape,
 } from "@/lib/orders/preorders";
 import { withApi } from "@/lib/api/handler";
+import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
+import {
+  loadShopperOffers,
+  matchOffersToLines,
+  resolveOfferForLine,
+  type LiveQuoteOffer,
+} from "@/lib/quotes/quote-offer";
 
 type LeanVariant = {
   _id: { toString: () => string };
@@ -39,6 +46,7 @@ type LeanProduct = {
   price: number;
   stock: number;
   status?: string;
+  priceOnRequest?: boolean;
   productSource?: unknown;
   images?: string[];
   media?: { _id: string; url: string }[];
@@ -108,6 +116,27 @@ export const POST = withApi(
       throw new ValidationError("Please select a variant for this product");
     }
 
+    // "Price on request": the product carries price 0, so there is no number
+    // to put on a line — unless the merchant answered this shopper's request
+    // with one. The offer decides the price and fixes the quantity; without
+    // one the buy box shows a quote button and this refuses the line, which is
+    // what catches a tab left open from before the switch was flipped, a
+    // cached card, or a hand-rolled POST.
+    let quoteOffer: LiveQuoteOffer | null = null;
+    if (isQuoteOnlyProduct(product)) {
+      quoteOffer = await resolveOfferForLine({
+        userId,
+        productId,
+        variantId,
+        quantity,
+      });
+      if (!quoteOffer) {
+        throw new ValidationError(
+          "This product is available by quote — request a price instead",
+        );
+      }
+    }
+
     const purchase = resolvePurchaseType({
       product,
       variantId,
@@ -117,7 +146,11 @@ export const POST = withApi(
       throw new ValidationError("Insufficient stock");
     }
 
-    const price = selectedVariant ? selectedVariant.price : product.price;
+    const price = quoteOffer
+      ? quoteOffer.unitPrice
+      : selectedVariant
+        ? selectedVariant.price
+        : product.price;
     const name = product.name;
     const variantName = selectedVariant?.name;
     const image =
@@ -175,7 +208,14 @@ export const POST = withApi(
     );
 
     if (existingItemIndex > -1) {
-      const newQuantity = cart.items[existingItemIndex].quantity + quantity;
+      // Adding again normally means "one more"; on a quoted line it means
+      // "the lot I was quoted", because the offer is only good for that exact
+      // quantity. Incrementing would push the line past it and the offer would
+      // stop resolving at checkout — the shopper would watch their price
+      // vanish for having clicked twice.
+      const newQuantity = quoteOffer
+        ? quantity
+        : cart.items[existingItemIndex].quantity + quantity;
       const nextPurchase = resolvePurchaseType({
         product,
         variantId,
@@ -194,6 +234,7 @@ export const POST = withApi(
           : undefined;
       cart.items[existingItemIndex].quantity = newQuantity;
       cart.items[existingItemIndex].price = price;
+      cart.items[existingItemIndex].quoteId = quoteOffer?.quoteId;
       cart.items[existingItemIndex].name = name;
       cart.items[existingItemIndex].variantName = variantName;
       cart.items[existingItemIndex].image = image;
@@ -234,6 +275,7 @@ export const POST = withApi(
         variantId: variantId || undefined,
         quantity,
         price,
+        quoteId: quoteOffer?.quoteId,
         name,
         variantName,
         image,
@@ -266,7 +308,27 @@ export const POST = withApi(
     // refresh landed. One indexed lookup here removes that whole class of
     // flicker and makes this response shape-compatible with `GET /api/cart`.
     const savedItems = cart.toObject().items as Array<Record<string, unknown>>;
-    const productFacts = await resolveCartProducts(savedItems);
+    // Without the shopper's live offers this read would call every quoted line
+    // invisible — including the one just added — and the response would tell
+    // the cart to drop it again.
+    const savedLines = savedItems.map((item) => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: Number(item.quantity ?? 0),
+    }));
+    const quotedLineKeys = new Set(
+      matchOffersToLines(
+        savedLines,
+        await loadShopperOffers(userId, {
+          productIds: savedLines
+            .map((line) => String(line.productId ?? ""))
+            .filter(Boolean),
+        }),
+      ).keys(),
+    );
+    const productFacts = await resolveCartProducts(savedItems, {
+      quotedLineKeys,
+    });
 
     const response = createdResponse({
       ...cart.toObject(),

@@ -37,7 +37,6 @@ import {
 } from "@/lib/inventory/inventory";
 import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
 import { fetchVendorOrderList } from "@/lib/vendors/vendor-order-list";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
@@ -290,14 +289,6 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
-    revalidateProductContent({
-      slugs: products
-        .map((p) => p.slug)
-        .filter(
-          (slug): slug is string =>
-            typeof slug === "string" && slug.length > 0,
-        ),
-    });
 
     let order;
     try {
@@ -323,6 +314,7 @@ export async function POST(request: NextRequest) {
         billingAddress: body.billingAddress || body.shippingAddress,
         paymentMethod: body.paymentMethod,
         paymentStatus: body.paymentStatus,
+        ...(body.paymentStatus === PAYMENT_STATUS.PAID ? { paidAt: new Date() } : {}),
         subtotal,
         shippingCost,
         tax,

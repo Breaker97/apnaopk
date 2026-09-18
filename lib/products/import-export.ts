@@ -1,31 +1,64 @@
-import { NextResponse } from "next/server";
 import { mongoose } from "@/lib/db";
-import { Product, Category, Brand } from "@/models";
-import { syncProductCategory } from "@/lib/catalog/categories";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
-import { escapeRegExp } from "@/lib/strings";
-import { PRODUCT_STATUS } from "@/config/app.config";
+import { Product, Category, Brand, Vendor } from "@/models";
+import { syncProductAggregates } from "@/models/product.model";
+import {
+  assertCategoryAcceptsProducts,
+  syncProductCategory,
+} from "@/lib/catalog/categories";
+import { updateAllCollectionProductCounts } from "@/lib/catalog/collections";
+import {
+  isProductFormatChange,
+  normalizeProductShippingData,
+  type ProductShippingData,
+} from "@/lib/catalog/product-shipping";
+import {
+  csvFileResponse,
+  csvLine,
+  datedCsvFilename,
+  parseCsv,
+} from "@/lib/catalog/csv";
+import { revalidateBulkProductContent } from "@/lib/cache-invalidation";
+import { escapeRegExp, slugify } from "@/lib/strings";
+import { isRecord } from "@/lib/utils";
+import { PRODUCT_STATUS, type ProductStatus } from "@/config/app.config";
 import {
   assertProductBarcodesAreUnique,
   buildBarcodeValidationPayload,
 } from "@/lib/products/barcode-validation";
 import { assignProductLookupCodes } from "@/lib/products/barcode-normalization";
 import { inspectBarcode, type BarcodeFormat, type BarcodeSource } from "@/lib/barcode/standards";
-import { syncProductBarcodeRegistry } from "@/lib/products/barcode-registry";
+import {
+  releaseProductBarcodeRegistry,
+  reserveProductBarcodeRegistry,
+  syncProductBarcodeRegistry,
+} from "@/lib/products/barcode-registry";
 import { ValidationError } from "@/lib/api/errors";
+import { audit, createAuditContext } from "@/lib/audit";
 import {
   areCountryValuesEquivalent,
   isCountryAllowed,
 } from "@/lib/intl/country-availability";
 import {
-  flattenAdvancedProductCatalog,
+  normalizeAdvancedProduct,
   parseAdvancedProductCatalog,
+  toImportValues,
 } from "@/lib/products/advanced-import";
 import {
+  assignMissingProductBarcodes,
   sanitizeOptionsForMongoose,
   sanitizeVariantsForMongoose,
 } from "@/lib/products/sanitize";
+import { mergeScopeFilter } from "@/lib/access/staff-scope";
+import { releaseBoostInventoryIfProductWentDark } from "@/lib/boosts/boosts";
+import { MediaUrlSchema } from "@/lib/validations";
+import { MAX_IMPORT_ROWS } from "@/lib/products/import-limits";
+import type { ProductMedia } from "@/types";
 
+/**
+ * The product file's columns, in the order the export writes them. The import
+ * reads all of them except `marketplaceEligible` and `vendor`, which only
+ * describe the row for whoever opens the export.
+ */
 const PRODUCT_CSV_HEADERS = [
   "id",
   "title",
@@ -52,6 +85,9 @@ const PRODUCT_CSV_HEADERS = [
   "pointOfSale",
   "featured",
   "productType",
+  "isPhysicalProduct",
+  "inventoryTracked",
+  "digitalDownloadLimit",
   "weight",
   "weightUnit",
   "countryOfOrigin",
@@ -63,7 +99,56 @@ const PRODUCT_CSV_HEADERS = [
 
 type ProductCsvHeader = (typeof PRODUCT_CSV_HEADERS)[number];
 
-type ProductCsvRow = Record<string, string>;
+const EXPORT_ONLY_COLUMNS = new Set<string>(["marketplaceEligible", "vendor"]);
+
+/**
+ * Every column the importer reads. `options` and `variants` carry the JSON
+ * catalog's structured fields through the same row pipeline.
+ */
+const IMPORT_COLUMNS = [
+  ...PRODUCT_CSV_HEADERS.filter((column) => !EXPORT_ONLY_COLUMNS.has(column)),
+  "options",
+  "variants",
+];
+
+function columnKey(header: string) {
+  return header.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Header spelling → column. Case, spaces, `_` and `-` never matter, so
+ * "Compare Price", "compare_price" and "comparePrice" are the same column; the
+ * aliases cover the names other platforms' exports use.
+ */
+const COLUMN_BY_KEY = new Map<string, string>([
+  ...IMPORT_COLUMNS.map((column): [string, string] => [columnKey(column), column]),
+  ["name", "title"],
+  ["handle", "slug"],
+  ["image", "images"],
+  ["categoryname", "category"],
+  ["brandname", "brand"],
+]);
+
+const EXPORT_ONLY_KEYS = new Set([...EXPORT_ONLY_COLUMNS].map(columnKey));
+
+/** A row needs one of these to either create (title) or find (the rest) a product. */
+const ROW_KEY_COLUMNS = new Set(["title", "id", "slug", "sku"]);
+
+/** Same cap the product form's media uploader and the product API enforce. */
+const MAX_PRODUCT_MEDIA = 10;
+const MAX_DOWNLOAD_LIMIT = 1000;
+
+const PRODUCT_STATUSES = Object.values(PRODUCT_STATUS);
+const BARCODE_FORMATS: readonly BarcodeFormat[] = ["ean13", "upca", "gtin14", "code128"];
+const BARCODE_SOURCES: readonly BarcodeSource[] = ["manufacturer", "gs1", "internal"];
+const WEIGHT_UNITS = ["g", "kg", "lb", "oz"] as const;
+const PRODUCT_SOURCES = ["admin", "vendor"] as const;
+const TRUE_VALUES = new Set(["true", "1", "yes", "y", "on"]);
+const FALSE_VALUES = new Set(["false", "0", "no", "n", "off"]);
+
+// ============================================
+// Export
+// ============================================
 
 type ProductForCsv = {
   _id?: unknown;
@@ -71,9 +156,7 @@ type ProductForCsv = {
   name?: string;
   slug?: string;
   sku?: string;
-  skuNormalized?: string;
   barcode?: string;
-  barcodeNormalized?: string;
   barcodeFormat?: BarcodeFormat;
   barcodeSource?: BarcodeSource;
   description?: string;
@@ -87,7 +170,7 @@ type ProductForCsv = {
   brand?: { _id?: unknown; name?: string } | string | null;
   tags?: string[];
   images?: string[];
-  media?: { url?: string }[];
+  media?: { url?: string; type?: string; position?: number }[];
   publishing?: { onlineStore?: boolean; pointOfSale?: boolean };
   featured?: boolean;
   productType?: string;
@@ -98,70 +181,11 @@ type ProductForCsv = {
     countryOfOrigin?: string;
     hsCode?: string;
   };
-  inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
+  inventory?: { tracked?: boolean };
   digitalDelivery?: { downloadLimit?: number };
   productSource?: string;
   vendorId?: { _id?: unknown; storeName?: string } | string | null;
-  variants?: Array<Record<string, unknown>>;
 };
-
-type ProductImportResult = {
-  created: number;
-  updated: number;
-  failed: number;
-  errors: { row: number; message: string }[];
-};
-
-type ProductImportContext = {
-  defaultVendorId: string;
-  productSource: "admin" | "vendor";
-  allowedVendorIds?: string[];
-  forceVendorId?: string;
-  allowVendorColumn?: boolean;
-  allowFeatured?: boolean;
-  createMissingCategories?: boolean;
-  countryAvailability: unknown;
-};
-
-const STATUS_VALUES = new Set(Object.values(PRODUCT_STATUS));
-const MAX_IMPORT_ROWS = 1000;
-
-function normalizeProductStatus(value: string) {
-  return STATUS_VALUES.has(value as (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS])
-    ? (value as (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS])
-    : PRODUCT_STATUS.DRAFT;
-}
-
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-export function buildImportedCategorySeed(input: string) {
-  const name = input.trim();
-  const slug = toHandle(name);
-  if (!name || !slug) {
-    throw new Error("Category name must contain letters or numbers.");
-  }
-
-  return {
-    name,
-    slug,
-    description: `Imported category: ${name}`,
-    isActive: true,
-    featured: false,
-    productCount: 0,
-  };
-}
-
-function csvEscape(value: unknown) {
-  const text = value == null ? "" : String(value);
-  if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-  return text;
-}
 
 function getObjectId(value: unknown) {
   if (!value) return "";
@@ -192,110 +216,30 @@ function joinList(values?: string[]) {
   return Array.isArray(values) ? values.filter(Boolean).join("|") : "";
 }
 
-function splitList(value: string) {
-  return value
-    .split(/[|,]/)
-    .map((item) => item.trim())
+/** The product's pictures in gallery order — videos and 3D models have no column. */
+function imageUrls(product: ProductForCsv) {
+  if (!Array.isArray(product.media) || product.media.length === 0) {
+    return product.images || [];
+  }
+  return [...product.media]
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .filter((item) => (item.type || "image") === "image")
+    .map((item) => item.url || "")
     .filter(Boolean);
 }
 
-function parseBoolean(value: string, fallback?: boolean) {
-  const text = value.trim().toLowerCase();
-  if (!text) return fallback;
-  if (["true", "1", "yes", "y", "on"].includes(text)) return true;
-  if (["false", "0", "no", "n", "off"].includes(text)) return false;
-  return fallback;
-}
-
-function parseOptionalNumber(value?: string) {
-  const text = value?.trim();
-  if (!text) return undefined;
-  const number = Number(text);
-  return Number.isFinite(number) ? number : undefined;
-}
-
-function parseRequiredNumber(value: string, fallback?: number) {
-  const parsed = parseOptionalNumber(value);
-  return parsed ?? fallback ?? 0;
-}
-
-function submittedCountryOfOrigin(row: ProductCsvRow) {
-  const hasCountryColumn =
-    Object.prototype.hasOwnProperty.call(row, "countryOfOrigin") ||
-    Object.prototype.hasOwnProperty.call(row, "country_of_origin");
-  return hasCountryColumn
-    ? (row.countryOfOrigin || row.country_of_origin || "").trim()
-    : undefined;
-}
-
-function parseCsv(text: string): ProductCsvRow[] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < text.length; index++) {
-    const char = text[index];
-    const next = text[index + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        field += '"';
-        index++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-      continue;
-    }
-
-    if ((char === "\n" || char === "\r") && !inQuotes) {
-      if (char === "\r" && next === "\n") index++;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-      continue;
-    }
-
-    field += char;
-  }
-
-  row.push(field);
-  rows.push(row);
-
-  const [rawHeaders, ...bodyRows] = rows.filter((items) =>
-    items.some((item) => item.trim()),
-  );
-  if (!rawHeaders) return [];
-
-  const headers = rawHeaders.map((header) => header.trim());
-  return bodyRows.map((items) => {
-    const record: ProductCsvRow = {};
-    headers.forEach((header, index) => {
-      record[header] = (items[index] || "").trim();
-    });
-    return record;
-  });
+function numberCell(value: number | undefined) {
+  return value == null ? "" : String(value);
 }
 
 function buildCsvRow(product: ProductForCsv): Record<ProductCsvHeader, string> {
-  const images =
-    Array.isArray(product.media) && product.media.length > 0
-      ? product.media.map((item) => item.url || "").filter(Boolean)
-      : product.images || [];
-
   const barcodeInspection = product.barcode
     ? inspectBarcode(product.barcode, {
         format: product.barcodeFormat,
         source: product.barcodeSource,
       })
     : null;
+  const isPhysicalProduct = product.shipping?.isPhysicalProduct !== false;
 
   return {
     id: getObjectId(product._id),
@@ -308,23 +252,27 @@ function buildCsvRow(product: ProductForCsv): Record<ProductCsvHeader, string> {
     marketplaceEligible: String(barcodeInspection?.marketplaceEligible ?? false),
     description: product.description || "",
     shortDescription: product.shortDescription || "",
-    price: product.price == null ? "" : String(product.price),
-    comparePrice:
-      product.comparePrice == null ? "" : String(product.comparePrice),
-    cost: product.cost == null ? "" : String(product.cost),
-    stock: product.stock == null ? "" : String(product.stock),
+    price: numberCell(product.price),
+    comparePrice: numberCell(product.comparePrice),
+    cost: numberCell(product.cost),
+    stock: numberCell(product.stock),
     status: product.status || "",
     category: getDisplayName(product.category),
     categoryId: getObjectId(product.category),
     brand: getDisplayName(product.brand),
     brandId: getObjectId(product.brand),
     tags: joinList(product.tags),
-    images: joinList(images),
+    images: joinList(imageUrls(product)),
     onlineStore: String(product.publishing?.onlineStore ?? true),
     pointOfSale: String(product.publishing?.pointOfSale ?? false),
     featured: String(product.featured ?? false),
     productType: product.productType || "",
-    weight: product.shipping?.weight == null ? "" : String(product.shipping.weight),
+    isPhysicalProduct: String(isPhysicalProduct),
+    inventoryTracked: String(isPhysicalProduct && product.inventory?.tracked !== false),
+    digitalDownloadLimit: isPhysicalProduct
+      ? ""
+      : String(product.digitalDelivery?.downloadLimit ?? 0),
+    weight: numberCell(product.shipping?.weight),
     weightUnit: product.shipping?.weightUnit || "",
     countryOfOrigin: product.shipping?.countryOfOrigin || "",
     hsCode: product.shipping?.hsCode || "",
@@ -334,492 +282,1021 @@ function buildCsvRow(product: ProductForCsv): Record<ProductCsvHeader, string> {
   };
 }
 
-function buildProductsCsv(products: ProductForCsv[]) {
-  const rows = products.map((product) => {
-    const record = buildCsvRow(product);
-    return PRODUCT_CSV_HEADERS.map((header) => csvEscape(record[header])).join(",");
-  });
-
-  return [PRODUCT_CSV_HEADERS.join(","), ...rows].join("\n");
+export function productsCsvResponse(products: ProductForCsv[], prefix: string) {
+  return csvFileResponse(datedCsvFilename(prefix), [
+    PRODUCT_CSV_HEADERS.join(","),
+    ...products.map((product) => {
+      const record = buildCsvRow(product);
+      return csvLine(PRODUCT_CSV_HEADERS.map((header) => record[header]));
+    }),
+  ]);
 }
 
-export function productsCsvResponse(products: ProductForCsv[], prefix: string) {
-  return new NextResponse(buildProductsCsv(products), {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${prefix}-${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv"`,
-    },
-  });
+// ============================================
+// Import
+// ============================================
+
+type ProductImportResult = {
+  created: number;
+  updated: number;
+  failed: number;
+  /** `row` is the spreadsheet row (CSV) or product number (JSON); 0 = the file itself. */
+  errors: { row: number; message: string }[];
+  warnings: string[];
+};
+
+export type ProductImportContext = {
+  /** Vendor a new row is filed under when it names none. */
+  defaultVendorId: string;
+  productSource: "admin" | "vendor";
+  /** Vendors this caller may write to; absent means any (platform admin). */
+  allowedVendorIds?: string[];
+  /** A staff member's product scope; every matched product must satisfy it. */
+  productScopeFilter?: Record<string, unknown>;
+  /** Set when the caller may not create products — rows that would create fail with it. */
+  createRefusal?: string;
+  /** Set when the caller may not edit products — rows that match one fail with it. */
+  updateRefusal?: string;
+  /** Honour the `vendorId` and `productSource` columns (platform admin only). */
+  allowVendorColumn?: boolean;
+  allowFeatured?: boolean;
+  /**
+   * Create the categories a JSON catalog names that do not exist yet. Category
+   * creation is admin-only everywhere else, so only an admin's import may.
+   */
+  createMissingCategories?: boolean;
+  /** The vendor plan's product cap, when one applies. */
+  productLimit?: { limit: number; current: number };
+  countryAvailability: unknown;
+};
+
+type ImportRecord =
+  | { row: number; values: Record<string, string> }
+  | { row: number; error: string };
+
+function fileError(message: string, failed = 0): ProductImportResult {
+  return {
+    created: 0,
+    updated: 0,
+    failed,
+    errors: [{ row: 0, message }],
+    warnings: [],
+  };
+}
+
+export function buildImportedCategorySeed(input: string) {
+  const name = input.trim();
+  const slug = slugify(name);
+  if (!name || !slug) {
+    throw new Error("Category name must contain letters or numbers.");
+  }
+
+  return {
+    name,
+    slug,
+    description: `Imported category: ${name}`,
+    isActive: true,
+    featured: false,
+    productCount: 0,
+  };
+}
+
+// --- Reading cells -------------------------------------------------------
+//
+// A cell left empty means "no value": a new product takes the default and an
+// existing one keeps what it has. A cell with a value that does not parse is
+// an error for that row — never a silent default. That is what used to turn
+// "1,299.00" into a price of 0 on a live product.
+
+type Cells = Record<string, string>;
+
+function cellText(cells: Cells, column: string): string | undefined {
+  const value = cells[column]?.trim();
+  return value ? value : undefined;
+}
+
+function cellNumber(
+  cells: Cells,
+  column: string,
+  example: string,
+): number | undefined {
+  const value = cellText(cells, column);
+  if (value === undefined) return undefined;
+  if (!/^(\d+(\.\d+)?|\.\d+)$/.test(value)) {
+    throw new Error(
+      `${column} must be a plain number such as ${example}, without currency symbols or thousands separators (got "${value}").`,
+    );
+  }
+  return Number(value);
+}
+
+function cellCount(cells: Cells, column: string, max?: number): number | undefined {
+  const value = cellText(cells, column);
+  if (value === undefined) return undefined;
+  if (!/^\d+$/.test(value) || (max !== undefined && Number(value) > max)) {
+    throw new Error(
+      max === undefined
+        ? `${column} must be a whole number of 0 or more (got "${value}").`
+        : `${column} must be a whole number from 0 to ${max} (got "${value}").`,
+    );
+  }
+  return Number(value);
+}
+
+function cellFlag(cells: Cells, column: string): boolean | undefined {
+  const value = cellText(cells, column);
+  if (value === undefined) return undefined;
+  const normalized = value.toLowerCase();
+  if (TRUE_VALUES.has(normalized)) return true;
+  if (FALSE_VALUES.has(normalized)) return false;
+  throw new Error(`${column} must be true or false (got "${value}").`);
+}
+
+function cellChoice<T extends string>(
+  cells: Cells,
+  column: string,
+  choices: readonly T[],
+  aliases: Record<string, T> = {},
+): T | undefined {
+  const value = cellText(cells, column);
+  if (value === undefined) return undefined;
+  const normalized = value.toLowerCase();
+  const match = choices.find((choice) => choice === normalized) ?? aliases[normalized];
+  if (!match) {
+    throw new Error(
+      `${column} must be one of ${[...choices, ...Object.keys(aliases)].join(", ")} (got "${value}").`,
+    );
+  }
+  return match;
+}
+
+function cellTags(cells: Cells): string[] | undefined {
+  const value = cellText(cells, "tags");
+  if (value === undefined) return undefined;
+  return [
+    ...new Set(
+      value
+        .split(/[|,]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 /**
- * Category/brand lookups repeat for most rows of an import (a thousand-row
- * file usually spans a few dozen categories), so each run memoizes them by
- * the row's identifier. Promises are cached, so concurrent rows with the
- * same key share one lookup and a missing category is created once.
+ * Image URLs are separated by `|`. A comma separates them only when every
+ * piece is itself a URL: image CDNs put commas inside URLs (`w_400,h_400`),
+ * and splitting one of those would import two broken images.
  */
-type ResolutionCache<T> = Map<string, Promise<T>>;
-
-function categoryCacheKey(row: ProductCsvRow): string {
-  const id = row.categoryId || row.category_id || "";
-  const name = (row.category || row.categoryName || row.category_name || "")
-    .trim()
-    .toLowerCase();
-  return id || name ? `${id}|${name}` : "";
-}
-
-function brandCacheKey(row: ProductCsvRow): string {
-  const id = row.brandId || row.brand_id || "";
-  const name = (row.brand || row.brandName || row.brand_name || "")
-    .trim()
-    .toLowerCase();
-  return id || name ? `${id}|${name}` : "";
-}
-
-function resolveCategory(
-  row: ProductCsvRow,
-  createMissingCategory = false,
-  cache?: ResolutionCache<string | undefined>,
-): Promise<string | undefined> {
-  const key = cache ? categoryCacheKey(row) : "";
-  if (!cache || !key) return resolveCategoryUncached(row, createMissingCategory);
-  let pending = cache.get(key);
-  if (!pending) {
-    pending = resolveCategoryUncached(row, createMissingCategory);
-    cache.set(key, pending);
+function splitImageUrls(value: string): string[] {
+  if (value.includes("|")) {
+    return value.split("|").map((url) => url.trim()).filter(Boolean);
   }
-  return pending;
+  const pieces = value.split(",").map((url) => url.trim()).filter(Boolean);
+  return pieces.length > 1 && pieces.every((url) => /^(https?:\/\/|\/(?!\/))/i.test(url))
+    ? pieces
+    : [value];
 }
 
-function resolveBrand(
-  row: ProductCsvRow,
-  cache?: ResolutionCache<string | null>,
-): Promise<string | null> {
-  const key = cache ? brandCacheKey(row) : "";
-  if (!cache || !key) return resolveBrandUncached(row);
-  let pending = cache.get(key);
-  if (!pending) {
-    pending = resolveBrandUncached(row);
-    cache.set(key, pending);
+function cellImages(cells: Cells): string[] | undefined {
+  const value = cellText(cells, "images");
+  if (value === undefined) return undefined;
+  const urls = [...new Set(splitImageUrls(value))];
+  // The rule the product API applies: http(s) or a path on this site — never
+  // javascript:, data: or a bare file name.
+  const invalid = urls.find((url) => !MediaUrlSchema.safeParse(url).success);
+  if (invalid) {
+    throw new Error(`images: "${invalid}" is not a link to an image. Use a public https:// URL.`);
   }
-  return pending;
-}
-
-async function resolveCategoryUncached(
-  row: ProductCsvRow,
-  createMissingCategory = false,
-) {
-  const categoryId = row.categoryId || row.category_id;
-  if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
-    const byId = await Category.findById(categoryId).select("_id").lean();
-    if (byId) return String(byId._id);
-  }
-
-  const category = row.category || row.categoryName || row.category_name;
-  if (!category) return undefined;
-
-  const slug = toHandle(category);
-  const byName = await Category.findOne({
-    $or: [
-      { slug },
-      { name: { $regex: `^${escapeRegExp(category)}$`, $options: "i" } },
-    ],
-  })
-    .select("_id")
-    .lean();
-
-  if (byName) return String(byName._id);
-  if (!createMissingCategory) return undefined;
-
-  const importedCategory = buildImportedCategorySeed(category);
-  const created = await Category.findOneAndUpdate(
-    { slug: importedCategory.slug },
-    { $setOnInsert: importedCategory },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
-  )
-    .select("_id")
-    .lean();
-
-  return created ? String(created._id) : undefined;
-}
-
-async function resolveBrandUncached(row: ProductCsvRow) {
-  const brandId = row.brandId || row.brand_id;
-  if (brandId && mongoose.Types.ObjectId.isValid(brandId)) {
-    const byId = await Brand.findById(brandId).select("_id").lean();
-    if (byId) return String(byId._id);
-  }
-
-  const brand = row.brand || row.brandName || row.brand_name;
-  if (!brand) return null;
-
-  const slug = toHandle(brand);
-  const byName = await Brand.findOne({
-    deletedAt: null,
-    $or: [
-      { slug },
-      { name: { $regex: `^${escapeRegExp(brand)}$`, $options: "i" } },
-    ],
-  })
-    .select("_id")
-    .lean();
-
-  return byName ? String(byName._id) : null;
-}
-
-function hasColumn(row: ProductCsvRow, column: string) {
-  return Object.prototype.hasOwnProperty.call(row, column);
-}
-
-function parseJsonArrayColumn(row: ProductCsvRow, column: string): unknown[] | undefined {
-  if (!hasColumn(row, column)) return undefined;
-  const value = row[column]?.trim();
-  if (!value) return [];
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) {
-      throw new Error(`${column} must be a JSON array.`);
-    }
-    return parsed;
-  } catch (error) {
+  if (urls.length > MAX_PRODUCT_MEDIA) {
     throw new Error(
-      error instanceof Error && error.message.endsWith("must be a JSON array.")
-        ? error.message
-        : `${column} must be valid JSON.`,
+      `images: a product can have at most ${MAX_PRODUCT_MEDIA} images (got ${urls.length}).`,
+    );
+  }
+  return urls;
+}
+
+function cellJsonArray(cells: Cells, column: string): unknown[] | undefined {
+  const value = cellText(cells, column);
+  if (value === undefined) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${column} must be valid JSON.`);
+  }
+  if (!Array.isArray(parsed)) throw new Error(`${column} must be a JSON array.`);
+  return parsed;
+}
+
+function readRow(cells: Cells) {
+  return {
+    id: cellText(cells, "id"),
+    title: cellText(cells, "title"),
+    slug: cellText(cells, "slug"),
+    sku: cellText(cells, "sku"),
+    barcode: cellText(cells, "barcode"),
+    barcodeFormat: cellChoice(cells, "barcodeFormat", BARCODE_FORMATS),
+    barcodeSource: cellChoice(cells, "barcodeSource", BARCODE_SOURCES),
+    description: cellText(cells, "description"),
+    shortDescription: cellText(cells, "shortDescription"),
+    price: cellNumber(cells, "price", "24.99"),
+    comparePrice: cellNumber(cells, "comparePrice", "29.99"),
+    cost: cellNumber(cells, "cost", "12.50"),
+    stock: cellCount(cells, "stock"),
+    // The dashboard calls the "unlisted" status Archived, so accept both.
+    status: cellChoice<ProductStatus>(cells, "status", PRODUCT_STATUSES, {
+      archived: PRODUCT_STATUS.UNLISTED,
+    }),
+    category: cellText(cells, "category"),
+    categoryId: cellText(cells, "categoryId"),
+    brand: cellText(cells, "brand"),
+    brandId: cellText(cells, "brandId"),
+    tags: cellTags(cells),
+    images: cellImages(cells),
+    onlineStore: cellFlag(cells, "onlineStore"),
+    pointOfSale: cellFlag(cells, "pointOfSale"),
+    featured: cellFlag(cells, "featured"),
+    productType: cellText(cells, "productType"),
+    isPhysicalProduct: cellFlag(cells, "isPhysicalProduct"),
+    inventoryTracked: cellFlag(cells, "inventoryTracked"),
+    digitalDownloadLimit: cellCount(cells, "digitalDownloadLimit", MAX_DOWNLOAD_LIMIT),
+    weight: cellNumber(cells, "weight", "0.5"),
+    weightUnit: cellChoice(cells, "weightUnit", WEIGHT_UNITS),
+    countryOfOrigin: cellText(cells, "countryOfOrigin"),
+    hsCode: cellText(cells, "hsCode"),
+    productSource: cellChoice(cells, "productSource", PRODUCT_SOURCES),
+    vendorId: cellText(cells, "vendorId"),
+    options: cellJsonArray(cells, "options"),
+    variants: cellJsonArray(cells, "variants"),
+  };
+}
+
+type ProductRow = ReturnType<typeof readRow>;
+
+type BarcodePayload = Record<string, unknown> & { variants?: Record<string, unknown>[] };
+
+// --- Stored products ------------------------------------------------------
+
+type StoredVariant = Record<string, unknown> & {
+  _id?: unknown;
+  optionValues?: unknown;
+  barcode?: string;
+  locationInventory?: unknown[];
+};
+
+type ExistingProduct = {
+  _id: unknown;
+  vendorId?: unknown;
+  slug?: string;
+  status?: string;
+  category?: unknown;
+  images?: string[];
+  media?: ProductMedia[];
+  publishing?: { onlineStore?: boolean } | null;
+  shipping?: ProductShippingData;
+  variants?: StoredVariant[];
+};
+
+/**
+ * The product a row describes: by `id`, then `slug`, then `sku`. The first key
+ * that finds something wins, so a row that names an id is never re-routed to
+ * whichever product happens to share its SKU.
+ *
+ * Ids and slugs are unique across the store and are looked up across every
+ * vendor the caller may write to; a SKU only means something inside one
+ * vendor's catalog.
+ */
+async function findExistingProduct(
+  row: ProductRow,
+  vendorId: string,
+  context: ProductImportContext,
+): Promise<ExistingProduct | null> {
+  const access = mergeScopeFilter(
+    context.allowedVendorIds ? { vendorId: { $in: context.allowedVendorIds } } : {},
+    context.productScopeFilter ?? {},
+  );
+
+  if (row.id && mongoose.Types.ObjectId.isValid(row.id)) {
+    const byId = await Product.findOne(
+      mergeScopeFilter({ _id: row.id }, access),
+    ).lean<ExistingProduct | null>();
+    if (byId) return byId;
+  }
+
+  const slug = row.slug ? slugify(row.slug) : "";
+  if (slug) {
+    const bySlug = await Product.findOne(
+      mergeScopeFilter({ slug }, access),
+    ).lean<ExistingProduct | null>();
+    if (bySlug) return bySlug;
+  }
+
+  if (row.sku) {
+    const bySku = await Product.find(
+      mergeScopeFilter({ vendorId, sku: row.sku }, access),
+    )
+      .limit(2)
+      .lean<ExistingProduct[]>();
+    if (bySku.length > 1) {
+      throw new Error(
+        `SKU "${row.sku}" is used by more than one product. Add the id column from an export to say which one to update.`,
+      );
+    }
+    if (bySku[0]) return bySku[0];
+  }
+
+  return null;
+}
+
+/**
+ * A slug no other product uses — checked across every vendor, not just this
+ * one: the storefront finds a product by slug alone, so two vendors sharing
+ * one would leave one of the products unreachable.
+ */
+async function uniqueProductSlug(base: string, excludeId?: unknown): Promise<string> {
+  const taken = await Product.find({
+    slug: { $regex: `^${escapeRegExp(base)}(-\\d+)?$` },
+    ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+  })
+    .select("slug")
+    .lean<{ slug?: string }[]>();
+  const used = new Set(taken.map((product) => product.slug));
+  if (!used.has(base)) return base;
+  let suffix = 2;
+  while (used.has(`${base}-${suffix}`)) suffix++;
+  return `${base}-${suffix}`;
+}
+
+function assertCountryAllowed(
+  country: string | undefined,
+  current: string | undefined,
+  context: ProductImportContext,
+) {
+  if (!country) return;
+  if (current && areCountryValuesEquivalent(country, current)) return;
+  if (!isCountryAllowed(country, context.countryAvailability)) {
+    throw new Error(
+      `countryOfOrigin "${country}" is not one of the countries this store sells from.`,
     );
   }
 }
 
-function buildProductPatch(
-  row: ProductCsvRow,
-  existing: ProductForCsv | null,
-  categoryId?: string,
-  brandId?: string | null,
+/**
+ * The media list for an images column, or `null` when it would change nothing.
+ *
+ * An image the file lists again keeps its entry — the id a variant points at,
+ * its alt text, its fit — and media the column cannot describe (videos, 3D
+ * models) stays after the images. Rebuilding every entry from bare URLs is
+ * what used to give a re-imported export fresh ids, broken variant images and
+ * videos relabelled as pictures.
+ */
+function mergeImageMedia(
+  existing: ProductMedia[] | undefined,
+  urls: string[],
+): ProductMedia[] | null {
+  const media = Array.isArray(existing)
+    ? [...existing].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    : [];
+  const images = media.filter((item) => (item.type || "image") === "image");
+  const others = media.filter((item) => (item.type || "image") !== "image");
+  if (
+    images.length === urls.length &&
+    images.every((item, index) => item.url === urls[index])
+  ) {
+    return null;
+  }
+
+  const byUrl = new Map(images.map((item) => [item.url, item]));
+  const next: ProductMedia[] = [
+    ...urls.map(
+      (url) => byUrl.get(url) ?? { _id: crypto.randomUUID(), type: "image" as const, url },
+    ),
+    ...others,
+  ];
+  if (next.length > MAX_PRODUCT_MEDIA) {
+    throw new Error(
+      `images: this product also has ${others.length} video or 3D media, and a product can hold at most ${MAX_PRODUCT_MEDIA} media files in total.`,
+    );
+  }
+  return next.map((item, position) => ({ ...item, position }));
+}
+
+function prepareVariants(input: unknown[], isPhysicalProduct: boolean) {
+  return sanitizeVariantsForMongoose(input).map((variant) => ({
+    ...variant,
+    stock: isPhysicalProduct ? Math.max(0, Number(variant.stock) || 0) : 0,
+    requiresShipping: isPhysicalProduct,
+  }));
+}
+
+function variantKey(optionValues: unknown) {
+  if (!Array.isArray(optionValues)) return "";
+  return optionValues
+    .map((optionValue) =>
+      isRecord(optionValue)
+        ? `${String(optionValue.optionName ?? "").trim().toLowerCase()}=${String(optionValue.value ?? "").trim().toLowerCase()}`
+        : "",
+    )
+    .sort()
+    .join("|");
+}
+
+/**
+ * Keep the identity of every variant a re-import describes again (same option
+ * values). Carts, orders and per-location stock all point at a variant's id;
+ * replacing the array wholesale would orphan them and hand every variant a new
+ * barcode on each import.
+ */
+function carryVariantIdentity(
+  next: Record<string, unknown>[],
+  existing: StoredVariant[] | undefined,
 ) {
-  const title = (row.title || row.name || existing?.title || existing?.name || "").trim();
-  const slugSource = row.slug || row.handle || title;
-  const status = (row.status || existing?.status || PRODUCT_STATUS.DRAFT).trim();
-  const images = splitList(row.images || row.image || "");
-  const importedCountryOfOrigin = submittedCountryOfOrigin(row);
-  const isPhysicalProduct = parseBoolean(
-    row.isPhysicalProduct,
-    existing?.shipping?.isPhysicalProduct ?? true,
-  );
-  const optionInput = parseJsonArrayColumn(row, "options");
-  const variantInput = parseJsonArrayColumn(row, "variants");
+  if (!Array.isArray(existing) || existing.length === 0) return next;
+  const byKey = new Map(existing.map((variant) => [variantKey(variant.optionValues), variant]));
+  return next.map((variant) => {
+    const previous = byKey.get(variantKey(variant.optionValues));
+    if (!previous) return variant;
+    const carried: Record<string, unknown> = { ...variant, _id: String(previous._id) };
+    if (!variant.barcode && previous.barcode) {
+      carried.barcode = previous.barcode;
+      carried.barcodeFormat = previous.barcodeFormat;
+      carried.barcodeSource = previous.barcodeSource;
+    }
+    for (const field of ["locationInventory", "inventory", "preorder", "mediaId", "image"]) {
+      if (previous[field] !== undefined && variant[field] === undefined) {
+        carried[field] = previous[field];
+      }
+    }
+    return carried;
+  });
+}
 
-  const barcodeFormatValues = new Set<BarcodeFormat>([
-    "ean13",
-    "upca",
-    "gtin14",
-    "code128",
-  ]);
-  const barcodeSourceValues = new Set<BarcodeSource>([
-    "manufacturer",
-    "gs1",
-    "internal",
-  ]);
-  const barcodeFormat = barcodeFormatValues.has(row.barcodeFormat as BarcodeFormat)
-    ? (row.barcodeFormat as BarcodeFormat)
-    : undefined;
-  const barcodeSource = barcodeSourceValues.has(row.barcodeSource as BarcodeSource)
-    ? (row.barcodeSource as BarcodeSource)
-    : undefined;
+function describeImportError(error: unknown): string {
+  if (error instanceof ValidationError) {
+    const messages = Object.entries(error.errors).flatMap(([field, list]) =>
+      list.map((message) => (field === "_error" ? message : `${field}: ${message}`)),
+    );
+    return messages.join(" ") || error.message;
+  }
+  if (error instanceof mongoose.Error.ValidationError) {
+    return Object.values(error.errors)
+      .map((detail) => detail.message)
+      .join(" ");
+  }
+  if (error instanceof mongoose.Error.CastError) {
+    return `${error.path}: "${String(error.value)}" is not a valid value.`;
+  }
+  if (isRecord(error) && error.code === 11000) {
+    return "Another product was saved with the same slug at the same moment. Import the row again.";
+  }
+  return error instanceof Error ? error.message : "Import failed.";
+}
 
-  const patch: Record<string, unknown> = {
-    name: title,
-    title,
-    description:
-      row.description ||
-      existing?.description ||
-      `${title} product description`,
-    shortDescription: row.shortDescription || row.short_description || undefined,
-    price: parseRequiredNumber(row.price, existing?.price),
-    comparePrice: parseOptionalNumber(row.comparePrice || row.compare_price),
-    cost: parseOptionalNumber(row.cost),
-    sku: row.sku || existing?.sku || "",
-    barcode: row.barcode || undefined,
-    barcodeFormat,
-    barcodeSource,
-    stock: isPhysicalProduct ? parseRequiredNumber(row.stock, existing?.stock) : 0,
-    status: normalizeProductStatus(status),
-    tags: splitList(row.tags || ""),
-    productType: row.productType || row.product_type || undefined,
-    publishing: {
-      onlineStore: parseBoolean(
-        row.onlineStore || row.online_store,
-        existing?.publishing?.onlineStore ?? true,
-      ),
-      pointOfSale: parseBoolean(
-        row.pointOfSale || row.point_of_sale,
-        existing?.publishing?.pointOfSale ?? false,
-      ),
-    },
-    shipping: {
-      isPhysicalProduct,
-      weight: parseOptionalNumber(row.weight),
-      weightUnit: row.weightUnit || row.weight_unit || "kg",
-      countryOfOrigin:
-        importedCountryOfOrigin === undefined
-          ? existing?.shipping?.countryOfOrigin
-          : importedCountryOfOrigin || undefined,
-      hsCode: row.hsCode || row.hs_code || undefined,
+// --- One import run -------------------------------------------------------
+
+type CategoryNode = { id: string; name: string; slug: string; parentId: string | null };
+
+/**
+ * Everything one file's rows share: the category tree (loaded once — a store
+ * has hundreds of categories at most, and a thousand-row file names the same
+ * few dozen over and over), memoised brand/vendor/leaf checks, and what the
+ * run touched, so counts and caches are refreshed once at the end instead of
+ * once per row.
+ */
+function createImportRun(context: ProductImportContext) {
+  let categoryNodes: Promise<CategoryNode[]> | undefined;
+  const leafChecks = new Map<string, Promise<void>>();
+  const brands = new Map<string, Promise<string>>();
+  const vendors = new Map<string, Promise<void>>();
+  const touchedSlugs = new Set<string>();
+  const touchedCategoryIds = new Set<string>();
+  let created = 0;
+
+  function loadCategories() {
+    categoryNodes ??= Category.find({})
+      .select("_id name slug parentId")
+      .lean<Array<{ _id: unknown; name?: string; slug?: string; parentId?: unknown }>>()
+      .then((rows) =>
+        rows.map((category) => ({
+          id: String(category._id),
+          name: String(category.name ?? ""),
+          slug: String(category.slug ?? ""),
+          parentId: category.parentId ? String(category.parentId) : null,
+        })),
+      );
+    return categoryNodes;
+  }
+
+  function categoryPath(node: CategoryNode, nodes: CategoryNode[]) {
+    const names = [node.name];
+    let parentId = node.parentId;
+    while (parentId && names.length < 5) {
+      const parent = nodes.find((candidate) => candidate.id === parentId);
+      if (!parent) break;
+      names.unshift(parent.name);
+      parentId = parent.parentId;
+    }
+    return names.join(" > ");
+  }
+
+  /**
+   * A category by id, name, slug or path ("Women > Dresses"). A name several
+   * branches share is refused rather than guessed: filing the product under
+   * the wrong "Accessories" is invisible until a shopper can't find it.
+   */
+  async function resolveCategory(row: ProductRow): Promise<string> {
+    const nodes = await loadCategories();
+    if (row.categoryId) {
+      if (nodes.some((node) => node.id === row.categoryId)) return row.categoryId;
+      // An export from another store carries ids this one never had; its
+      // category name still resolves.
+      if (!row.category) throw new Error(`categoryId "${row.categoryId}" was not found.`);
+    }
+    const value = row.category ?? "";
+
+    if (value.includes(">")) {
+      let parentId: string | null = null;
+      for (const part of value.split(">").map((name) => name.trim().toLowerCase())) {
+        const match = nodes.find(
+          (node) => node.parentId === parentId && node.name.trim().toLowerCase() === part,
+        );
+        if (!match) {
+          throw new Error(`Category "${value}" was not found. Check each level of the path.`);
+        }
+        parentId = match.id;
+      }
+      if (parentId) return parentId;
+    }
+
+    const named = nodes.filter((node) => node.name.trim().toLowerCase() === value.toLowerCase());
+    if (named.length === 1) return named[0].id;
+    // Slugs are unique, so a value that is exactly one settles a shared name —
+    // including a top-level category, which has no longer path to write.
+    const exactSlug = nodes.find((node) => node.slug === value);
+    if (exactSlug) return exactSlug.id;
+    if (named.length > 1) {
+      throw new Error(
+        `Several categories are named "${value}": ${named
+          .map((node) => `${categoryPath(node, nodes)} (slug: ${node.slug})`)
+          .join(", ")}. Write the full path or the slug instead.`,
+      );
+    }
+
+    const bySlug = nodes.find(
+      (node) => node.slug === value.toLowerCase() || node.slug === slugify(value),
+    );
+    if (bySlug) return bySlug.id;
+
+    if (!context.createMissingCategories) {
+      throw new Error(
+        `Category "${value}" was not found. Create it under Categories first, or use an existing category's name.`,
+      );
+    }
+    const seed = buildImportedCategorySeed(value);
+    const createdCategory = await Category.findOneAndUpdate(
+      { slug: seed.slug },
+      { $setOnInsert: seed },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+    )
+      .select("_id")
+      .lean<{ _id: unknown } | null>();
+    if (!createdCategory) throw new Error(`Category "${value}" could not be created.`);
+    const node = { id: String(createdCategory._id), name: seed.name, slug: seed.slug, parentId: null };
+    nodes.push(node);
+    return node.id;
+  }
+
+  /** The one leaf rule, asked once per category however many rows use it. */
+  function assertLeafCategory(categoryId: string) {
+    let check = leafChecks.get(categoryId);
+    if (!check) {
+      check = assertCategoryAcceptsProducts(categoryId);
+      leafChecks.set(categoryId, check);
+    }
+    return check;
+  }
+
+  function resolveBrand(row: ProductRow): Promise<string> {
+    const key = `${row.brandId ?? ""}|${(row.brand ?? "").toLowerCase()}`;
+    let pending = brands.get(key);
+    if (!pending) {
+      pending = (async () => {
+        if (row.brandId && mongoose.Types.ObjectId.isValid(row.brandId)) {
+          const byId = await Brand.findOne({ _id: row.brandId, deletedAt: null })
+            .select("_id")
+            .lean<{ _id: unknown } | null>();
+          if (byId) return String(byId._id);
+        }
+        if (!row.brand) throw new Error(`brandId "${row.brandId}" was not found.`);
+        const byName = await Brand.findOne({
+          deletedAt: null,
+          $or: [
+            { slug: slugify(row.brand) },
+            { name: { $regex: `^${escapeRegExp(row.brand)}$`, $options: "i" } },
+          ],
+        })
+          .select("_id")
+          .lean<{ _id: unknown } | null>();
+        if (!byName) {
+          throw new Error(
+            `Brand "${row.brand}" was not found. Create it under Brands first, or leave the brand empty.`,
+          );
+        }
+        return String(byName._id);
+      })();
+      brands.set(key, pending);
+    }
+    return pending;
+  }
+
+  function assertVendorExists(vendorId: string) {
+    let check = vendors.get(vendorId);
+    if (!check) {
+      check = Vendor.exists({ _id: vendorId }).then((exists) => {
+        if (!exists) {
+          throw new Error(
+            `Vendor "${vendorId}" was not found. Leave vendorId empty to import the product into your own store.`,
+          );
+        }
+      });
+      vendors.set(vendorId, check);
+    }
+    return check;
+  }
+
+  function assertPlanAllowsAnother() {
+    const limit = context.productLimit;
+    if (limit && limit.current + created >= limit.limit) {
+      throw new Error(
+        `Your plan allows up to ${limit.limit} products. Upgrade your plan to import more.`,
+      );
+    }
+  }
+
+  function touch(slugs: Array<string | undefined>, categoryIds: Array<unknown>) {
+    for (const slug of slugs) if (slug) touchedSlugs.add(slug);
+    for (const id of categoryIds) if (id) touchedCategoryIds.add(String(id));
+  }
+
+  async function finish() {
+    if (touchedSlugs.size === 0) return;
+    for (const categoryId of touchedCategoryIds) {
+      await syncProductCategory(categoryId, null);
+    }
+    // Automated collections match on tags, price and status — any imported
+    // row can change what they hold.
+    await updateAllCollectionProductCounts().catch((error) =>
+      console.error("[product-import] collection counts:", error),
+    );
+    revalidateBulkProductContent([...touchedSlugs]);
+  }
+
+  return {
+    context,
+    resolveCategory,
+    assertLeafCategory,
+    resolveBrand,
+    assertVendorExists,
+    assertPlanAllowsAnother,
+    touch,
+    finish,
+    countCreated: () => {
+      created++;
     },
   };
+}
 
-  if (optionInput !== undefined) {
-    patch.options = sanitizeOptionsForMongoose(optionInput);
+type ImportRun = ReturnType<typeof createImportRun>;
+
+async function createProduct(
+  row: ProductRow,
+  vendorId: string,
+  run: ImportRun,
+): Promise<void> {
+  const { context } = run;
+  if (context.createRefusal) throw new Error(context.createRefusal);
+  if (context.allowedVendorIds && !context.allowedVendorIds.includes(vendorId)) {
+    throw new Error("You do not have access to this vendor's products.");
   }
-  if (variantInput !== undefined) {
-    patch.variants = sanitizeVariantsForMongoose(variantInput).map((variant) => ({
-      ...variant,
-      stock: isPhysicalProduct ? Number(variant.stock) || 0 : 0,
-      requiresShipping: isPhysicalProduct,
-    }));
-  }
-  if (hasColumn(row, "inventoryTracked") || !isPhysicalProduct) {
-    patch.inventory = {
-      tracked: isPhysicalProduct
-        ? parseBoolean(
-            row.inventoryTracked,
-            existing?.inventory?.tracked ?? true,
-          )
-        : false,
-      continueSellingWhenOutOfStock: false,
-    };
-  }
-  if (hasColumn(row, "digitalDownloadLimit")) {
-    patch.digitalDelivery = {
-      downloadLimit: Math.min(1000, parseRequiredNumber(row.digitalDownloadLimit)),
-    };
+  if (!row.title) {
+    throw new Error("No product matches this row's id, slug or SKU, and a new product needs a title.");
   }
 
-  if (slugSource) {
-    const slug = toHandle(slugSource);
-    patch.slug = slug;
-    patch.handle = slug;
-    patch.seo = { ...(existing as { seo?: object } | null)?.seo, handle: slug };
+  const isPhysicalProduct = row.isPhysicalProduct !== false;
+  const variants = row.variants ? prepareVariants(row.variants, isPhysicalProduct) : [];
+  if (row.price === undefined && variants.length === 0) {
+    throw new Error("price is required for a new product.");
+  }
+  if (!row.category && !row.categoryId) {
+    throw new Error("category is required for a new product.");
   }
 
-  if (images.length > 0) {
-    patch.images = images;
-    patch.media = images.map((url, index) => ({
+  run.assertPlanAllowsAnother();
+  if (context.allowVendorColumn && vendorId !== context.defaultVendorId) {
+    await run.assertVendorExists(vendorId);
+  }
+  assertCountryAllowed(row.countryOfOrigin, undefined, context);
+  const categoryId = await run.resolveCategory(row);
+  await run.assertLeafCategory(categoryId);
+  const brandId = row.brand || row.brandId ? await run.resolveBrand(row) : null;
+
+  // A title in a script slugify drops (বাংলা, العربية, 中文) still needs a URL.
+  const productId = new mongoose.Types.ObjectId();
+  const slug = await uniqueProductSlug(
+    slugify(row.slug || row.title) || slugify(row.sku || "") || `product-${String(productId).slice(-8)}`,
+  );
+  const images = row.images ?? [];
+
+  const document: Record<string, unknown> = {
+    _id: productId,
+    vendorId,
+    // Only a row that names its vendor carries that product's own source —
+    // the round trip of a vendor's product through an admin export.
+    productSource:
+      context.allowVendorColumn && row.vendorId && row.productSource
+        ? row.productSource
+        : context.productSource,
+    name: row.title,
+    title: row.title,
+    slug,
+    handle: slug,
+    seo: { handle: slug },
+    // The model requires a description; the title is a neutral stand-in the
+    // merchant can replace, unlike invented copy.
+    description: row.description ?? row.shortDescription ?? row.title,
+    shortDescription: row.shortDescription,
+    price: row.price ?? 0,
+    comparePrice: row.comparePrice,
+    cost: row.cost,
+    sku: row.sku,
+    barcode: row.barcode,
+    barcodeFormat: row.barcodeFormat,
+    barcodeSource: row.barcodeSource,
+    stock: isPhysicalProduct ? (row.stock ?? 0) : 0,
+    status: row.status ?? PRODUCT_STATUS.DRAFT,
+    category: categoryId,
+    brand: brandId,
+    tags: row.tags ?? [],
+    images,
+    media: images.map((url, position) => ({
       _id: crypto.randomUUID(),
       type: "image",
       url,
-      position: index,
-    }));
+      position,
+    })),
+    productType: row.productType,
+    featured: context.allowFeatured ? (row.featured ?? false) : false,
+    publishing: {
+      onlineStore: row.onlineStore ?? true,
+      pointOfSale: row.pointOfSale ?? false,
+    },
+    shipping: {
+      isPhysicalProduct,
+      weight: row.weight,
+      weightUnit: row.weightUnit ?? "kg",
+      countryOfOrigin: row.countryOfOrigin,
+      hsCode: row.hsCode,
+    },
+    inventory: {
+      tracked: isPhysicalProduct ? (row.inventoryTracked ?? true) : false,
+      continueSellingWhenOutOfStock: false,
+    },
+    ...(row.digitalDownloadLimit !== undefined
+      ? { digitalDelivery: { downloadLimit: row.digitalDownloadLimit } }
+      : {}),
+    options: row.options ? sanitizeOptionsForMongoose(row.options) : [],
+    variants,
+  };
+
+  assignMissingProductBarcodes(document);
+  assignProductLookupCodes(document as BarcodePayload);
+  await assertProductBarcodesAreUnique(Product, document as BarcodePayload);
+
+  // Same order as the product create routes: validate (which runs the model's
+  // derived-field hook), reserve the barcodes, save, then settle the registry.
+  const product = new Product(document);
+  await product.validate();
+  try {
+    await reserveProductBarcodeRegistry(
+      String(product._id),
+      product.toObject() as unknown as Record<string, unknown>,
+    );
+    await product.save();
+    await syncProductBarcodeRegistry(
+      String(product._id),
+      product.toObject() as unknown as Record<string, unknown>,
+    );
+  } catch (error) {
+    await releaseProductBarcodeRegistry(String(product._id));
+    throw error;
   }
 
-  if (categoryId) patch.category = categoryId;
-  if (brandId !== undefined) patch.brand = brandId;
+  run.countCreated();
+  run.touch([product.slug], [categoryId]);
+}
 
-  Object.keys(patch).forEach((key) => {
-    if (patch[key] === undefined) delete patch[key];
+async function updateProduct(
+  row: ProductRow,
+  existing: ExistingProduct,
+  run: ImportRun,
+): Promise<void> {
+  const { context } = run;
+  if (context.updateRefusal) throw new Error(context.updateRefusal);
+  const productId = String(existing._id);
+
+  if (
+    context.allowVendorColumn &&
+    row.vendorId &&
+    row.vendorId !== getObjectId(existing.vendorId)
+  ) {
+    throw new Error(
+      "vendorId does not match the product this row updates. An import cannot move a product to another vendor.",
+    );
+  }
+  if (
+    row.isPhysicalProduct !== undefined &&
+    isProductFormatChange(existing.shipping, { isPhysicalProduct: row.isPhysicalProduct })
+  ) {
+    throw new Error(
+      "isPhysicalProduct cannot change after a product is created. Create a new product instead.",
+    );
+  }
+  const isPhysicalProduct = existing.shipping?.isPhysicalProduct !== false;
+  assertCountryAllowed(row.countryOfOrigin, existing.shipping?.countryOfOrigin, context);
+
+  // Only what the row actually fills in is written, and nested objects by
+  // path: `$set: { shipping: {...} }` would replace the whole object and wipe
+  // the parcel size and customs text a file has no columns for.
+  const set: Record<string, unknown> = {};
+  const assign = (path: string, value: unknown) => {
+    if (value !== undefined) set[path] = value;
+  };
+
+  if (row.title) {
+    set.title = row.title;
+    set.name = row.title;
+  }
+  assign("description", row.description);
+  assign("shortDescription", row.shortDescription);
+  assign("price", row.price);
+  assign("comparePrice", row.comparePrice);
+  assign("cost", row.cost);
+  assign("sku", row.sku);
+  assign("barcode", row.barcode);
+  assign("barcodeFormat", row.barcodeFormat);
+  assign("barcodeSource", row.barcodeSource);
+  if (row.stock !== undefined) set.stock = isPhysicalProduct ? row.stock : 0;
+  assign("status", row.status);
+  assign("tags", row.tags);
+  assign("productType", row.productType);
+  assign("publishing.onlineStore", row.onlineStore);
+  assign("publishing.pointOfSale", row.pointOfSale);
+  if (context.allowFeatured) assign("featured", row.featured);
+  if (isPhysicalProduct) assign("inventory.tracked", row.inventoryTracked);
+  assign("digitalDelivery.downloadLimit", row.digitalDownloadLimit);
+
+  const shippingChanges = Object.entries({
+    weight: row.weight,
+    weightUnit: row.weightUnit,
+    countryOfOrigin: row.countryOfOrigin,
+    hsCode: row.hsCode,
+  }).filter(([, value]) => value !== undefined);
+  if (shippingChanges.length > 0) {
+    // Normalized the way the create hook does it (country codes upper-cased,
+    // HS codes reduced to digits), then written field by field.
+    const normalized = normalizeProductShippingData({
+      ...existing.shipping,
+      ...(Object.fromEntries(shippingChanges) as ProductShippingData),
+    });
+    for (const [field] of shippingChanges) {
+      assign(`shipping.${field}`, normalized[field as keyof ProductShippingData]);
+    }
+  }
+
+  const requestedSlug = row.slug ? slugify(row.slug) : "";
+  if (requestedSlug && requestedSlug !== existing.slug) {
+    const slug = await uniqueProductSlug(requestedSlug, existing._id);
+    set.slug = slug;
+    set.handle = slug;
+    set["seo.handle"] = slug;
+  }
+
+  const oldCategoryId = existing.category ? String(existing.category) : "";
+  if (row.category || row.categoryId) {
+    const categoryId = await run.resolveCategory(row);
+    if (categoryId !== oldCategoryId) {
+      // Only a move has to satisfy the leaf rule, as in the product PUT routes.
+      await run.assertLeafCategory(categoryId);
+      set.category = categoryId;
+    }
+  }
+  if (row.brand || row.brandId) set.brand = await run.resolveBrand(row);
+
+  if (row.images) {
+    const media = mergeImageMedia(existing.media, row.images);
+    if (media) {
+      set.media = media;
+      set.images = row.images;
+    }
+  }
+
+  if (row.options !== undefined) set.options = sanitizeOptionsForMongoose(row.options);
+  if (row.variants !== undefined) {
+    set.variants = carryVariantIdentity(
+      prepareVariants(row.variants, isPhysicalProduct),
+      existing.variants,
+    );
+  }
+
+  if (Object.keys(set).length === 0) return;
+
+  if ((Array.isArray(set.variants) && set.variants.length > 0) || "barcode" in set) {
+    assignMissingProductBarcodes(set);
+  }
+  assignProductLookupCodes(set as BarcodePayload);
+  const barcodePayload = buildBarcodeValidationPayload(
+    existing as unknown as BarcodePayload,
+    set as BarcodePayload,
+  );
+  await assertProductBarcodesAreUnique(Product, barcodePayload, {
+    excludeProductId: productId,
   });
 
-  return patch;
-}
-
-function buildMatch(row: ProductCsvRow, vendorId: string) {
-  const conditions: Record<string, unknown>[] = [];
-  const id = row.id || row._id;
-  if (id && mongoose.Types.ObjectId.isValid(id)) {
-    conditions.push({ _id: id, vendorId });
+  let updated: ExistingProduct | null;
+  try {
+    await reserveProductBarcodeRegistry(productId, barcodePayload);
+    updated = await Product.findOneAndUpdate(
+      { _id: existing._id },
+      { $set: set },
+      { returnDocument: "after", runValidators: true },
+    ).lean<ExistingProduct | null>();
+  } catch (error) {
+    await syncProductBarcodeRegistry(productId, existing as unknown as Record<string, unknown>);
+    throw error;
   }
-  if (row.slug) conditions.push({ slug: toHandle(row.slug), vendorId });
-  if (row.sku) conditions.push({ sku: row.sku, vendorId });
-  return conditions;
+  if (!updated) {
+    await syncProductBarcodeRegistry(productId, existing as unknown as Record<string, unknown>);
+    throw new Error("This product was deleted while the file was importing.");
+  }
+
+  await syncProductBarcodeRegistry(productId, updated as unknown as Record<string, unknown>);
+  // `findOneAndUpdate` skips the validate hook, so price ranges, the stock
+  // roll-up and the search block are recomputed exactly as the PUT routes do.
+  await syncProductAggregates(productId);
+  // Archiving or unpublishing a boosted product frees its booked positions,
+  // the same as saving that change from the product form.
+  await releaseBoostInventoryIfProductWentDark(productId, existing, updated);
+
+  run.touch([existing.slug, updated.slug], [oldCategoryId, updated.category]);
 }
 
-function canUseVendor(vendorId: string, allowedVendorIds?: string[]) {
-  if (!allowedVendorIds || allowedVendorIds.length === 0) return true;
-  return allowedVendorIds.includes(vendorId);
-}
-
-async function importProductRows(
-  rows: ProductCsvRow[],
+async function importProductRecords(
+  records: ImportRecord[],
   context: ProductImportContext,
+  warnings: string[] = [],
 ): Promise<ProductImportResult> {
+  if (records.length > MAX_IMPORT_ROWS) {
+    return fileError(
+      `A file can import up to ${MAX_IMPORT_ROWS} products at a time; this one has ${records.length}. Split it into smaller files.`,
+      records.length,
+    );
+  }
+
   const result: ProductImportResult = {
     created: 0,
     updated: 0,
     failed: 0,
     errors: [],
+    warnings,
   };
+  const run = createImportRun(context);
 
-  if (rows.length > MAX_IMPORT_ROWS) {
-    return {
-      ...result,
-      failed: rows.length,
-      errors: [
-        {
-          row: 0,
-          message: `Import supports up to ${MAX_IMPORT_ROWS} rows at a time.`,
-        },
-      ],
-    };
-  }
-
-  const categoryCache: ResolutionCache<string | undefined> = new Map();
-  const brandCache: ResolutionCache<string | null> = new Map();
-
-  for (let index = 0; index < rows.length; index++) {
-    const rowNumber = index + 2;
-    const row = rows[index];
-
+  for (const record of records) {
     try {
-      const title = (row.title || row.name || "").trim();
-      if (!title) throw new Error("Title is required.");
-
-      const requestedVendorId =
-        context.allowVendorColumn && row.vendorId && mongoose.Types.ObjectId.isValid(row.vendorId)
-          ? row.vendorId
-          : undefined;
-      const vendorId = context.forceVendorId || requestedVendorId || context.defaultVendorId;
-      if (!canUseVendor(vendorId, context.allowedVendorIds)) {
-        throw new Error("You do not have access to this product vendor.");
+      if ("error" in record) throw new Error(record.error);
+      const row = readRow(record.values);
+      const vendorId =
+        context.allowVendorColumn && row.vendorId ? row.vendorId : context.defaultVendorId;
+      if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+        throw new Error(`vendorId "${vendorId}" is not a valid id.`);
       }
 
-      const existingConditions = buildMatch(row, vendorId);
-      const existing =
-        existingConditions.length > 0
-          ? await Product.findOne({ $or: existingConditions }).lean<ProductForCsv | null>()
-          : null;
-
-      const importedCountryOfOrigin = submittedCountryOfOrigin(row);
-      if (
-        importedCountryOfOrigin &&
-        (!existing ||
-          !areCountryValuesEquivalent(
-            importedCountryOfOrigin,
-            existing.shipping?.countryOfOrigin,
-          )) &&
-        !isCountryAllowed(
-          importedCountryOfOrigin,
-          context.countryAvailability,
-        )
-      ) {
-        throw new ValidationError({
-          "shipping.countryOfOrigin": ["Selected country is not available"],
-        });
-      }
-
-      const categoryId = await resolveCategory(
-        row,
-        Boolean(context.createMissingCategories),
-        categoryCache,
-      );
-      if (!existing && !categoryId) {
-        throw new Error("Category is required and must match an existing category.");
-      }
-
-      const oldCategoryId = getObjectId(existing?.category);
-      const brandId = await resolveBrand(row, brandCache);
-      const patch = buildProductPatch(row, existing, categoryId, brandId);
-      if (!context.allowFeatured) delete patch.featured;
-      else if (row.featured) patch.featured = parseBoolean(row.featured, false);
-      assignProductLookupCodes(
-        patch as Record<string, unknown> & {
-          variants?: Record<string, unknown>[];
-        },
-      );
-
-      if (existing?._id) {
-        const currentSlug = existing.slug;
-        const nextSlug = typeof patch.slug === "string" ? patch.slug : currentSlug;
-        if (nextSlug && nextSlug !== currentSlug) {
-          const conflict = await Product.exists({
-            vendorId,
-            slug: nextSlug,
-            _id: { $ne: existing._id },
-          });
-          if (conflict) {
-            patch.slug = `${nextSlug}-${Date.now()}`;
-            patch.handle = patch.slug;
-            patch.seo = { ...(patch.seo || {}), handle: patch.slug };
-          }
-        }
-
-        await assertProductBarcodesAreUnique(
-          Product,
-          buildBarcodeValidationPayload(
-            existing as Record<string, unknown> & {
-              variants?: Record<string, unknown>[];
-            },
-            patch as Record<string, unknown> & {
-              variants?: Record<string, unknown>[];
-            },
-          ),
-          { excludeProductId: String(existing._id) },
-        );
-
-        const updated = await Product.findOneAndUpdate(
-          { _id: existing._id, vendorId },
-          { $set: patch },
-          { new: true, runValidators: true },
-        ).lean<ProductForCsv | null>();
-
-        if (updated) {
-          await syncProductBarcodeRegistry(
-            String(updated._id),
-            updated as unknown as Record<string, unknown>,
-          );
-        }
-
-        const newCategoryId = getObjectId(updated?.category);
-        if (oldCategoryId !== newCategoryId) {
-          await syncProductCategory(oldCategoryId || null, newCategoryId || null);
-        }
-        revalidateProductContent({ slugs: [currentSlug, updated?.slug] });
+      const existing = await findExistingProduct(row, vendorId, context);
+      if (existing) {
+        await updateProduct(row, existing, run);
         result.updated++;
       } else {
-        const slug = String(patch.slug || toHandle(title));
-        const conflict = await Product.exists({ vendorId, slug });
-        const finalSlug = conflict ? `${slug}-${Date.now()}` : slug;
-        const createPayload = {
-          ...patch,
-          vendorId,
-          productSource:
-            context.allowVendorColumn && row.productSource === "vendor"
-              ? "vendor"
-              : context.productSource,
-          slug: finalSlug,
-          handle: finalSlug,
-          seo: { ...((patch.seo as object | undefined) || {}), handle: finalSlug },
-          category: categoryId,
-        };
-        await assertProductBarcodesAreUnique(Product, createPayload);
-        const created = await Product.create(createPayload);
-
-        await syncProductBarcodeRegistry(
-          String(created._id),
-          created.toObject() as unknown as Record<string, unknown>,
-        );
-
-        await syncProductCategory(null, String(created.category));
-        revalidateProductContent({ slugs: [created.slug] });
+        await createProduct(row, vendorId, run);
         result.created++;
       }
     } catch (error) {
-      const countryErrors =
-        error instanceof ValidationError
-          ? error.errors["shipping.countryOfOrigin"]
-          : undefined;
       result.failed++;
-      result.errors.push({
-        row: rowNumber,
-        message: countryErrors?.[0]
-          ? `shipping.countryOfOrigin: ${countryErrors[0]}`
-          : error instanceof Error
-            ? error.message
-            : "Import failed.",
-      });
+      result.errors.push({ row: record.row, message: describeImportError(error) });
     }
   }
 
+  await run.finish();
   return result;
 }
 
@@ -827,32 +1304,64 @@ async function importProductsCsv(
   csvText: string,
   context: ProductImportContext,
 ): Promise<ProductImportResult> {
-  return importProductRows(parseCsv(csvText), context);
+  const { headers, records } = parseCsv(csvText);
+  if (headers.length === 0) return fileError("The file is empty.");
+
+  const columns = headers.map((header) => COLUMN_BY_KEY.get(columnKey(header)));
+  if (!columns.some((column) => column && ROW_KEY_COLUMNS.has(column))) {
+    return fileError(
+      `The first row must hold the column names from the sample file (title, price, category, …). This file starts with: ${headers
+        .slice(0, 4)
+        .join(", ")}.`,
+    );
+  }
+
+  const ignored = headers.filter(
+    (header, index) => header && !columns[index] && !EXPORT_ONLY_KEYS.has(columnKey(header)),
+  );
+  const warnings = ignored.length
+    ? [`These columns were not recognised and were ignored: ${ignored.join(", ")}.`]
+    : [];
+
+  return importProductRecords(
+    records.map(({ row, values }) => {
+      const cells: Cells = {};
+      headers.forEach((header, index) => {
+        const column = columns[index];
+        const value = values[header] ?? "";
+        // Two spellings of one column ("name" and "title"): a filled cell wins.
+        if (column && (value || !(column in cells))) cells[column] = value;
+      });
+      return { row, values: cells };
+    }),
+    // A spreadsheet has no way to say where in the tree a new category would
+    // go, so CSV rows only ever file products under categories that exist.
+    { ...context, createMissingCategories: false },
+    warnings,
+  );
 }
 
 export async function importProductsJson(
   jsonText: string,
   context: ProductImportContext,
 ): Promise<ProductImportResult> {
+  let products: unknown[];
   try {
-    return await importProductRows(
-      flattenAdvancedProductCatalog(parseAdvancedProductCatalog(jsonText)),
-      { ...context, createMissingCategories: true },
-    );
+    products = parseAdvancedProductCatalog(jsonText);
   } catch (error) {
-    return {
-      created: 0,
-      updated: 0,
-      failed: 1,
-      errors: [
-        {
-          row: 0,
-          message:
-            error instanceof Error ? error.message : "Advanced product import failed.",
-        },
-      ],
-    };
+    return fileError(error instanceof Error ? error.message : "Advanced product import failed.");
   }
+
+  return importProductRecords(
+    products.map((raw, index) => {
+      try {
+        return { row: index + 1, values: toImportValues(normalizeAdvancedProduct(raw)) };
+      } catch (error) {
+        return { row: index + 1, error: describeImportError(error) };
+      }
+    }),
+    context,
+  );
 }
 
 export function importProductsFile(
@@ -863,4 +1372,32 @@ export function importProductsFile(
   return filename.trim().toLowerCase().endsWith(".json")
     ? importProductsJson(content, context)
     : importProductsCsv(content, context);
+}
+
+/**
+ * One audit entry per import that changed the catalog — who ran it, which
+ * file, and what it did. The product routes audit every single write; a
+ * thousand of them arriving in one request should not be the one path that
+ * leaves no trace. A file whose every row was refused changed nothing.
+ */
+export async function auditProductImport(
+  request: Parameters<typeof createAuditContext>[0],
+  session: Parameters<typeof createAuditContext>[1],
+  fileName: string,
+  result: ProductImportResult,
+) {
+  if (result.created === 0 && result.updated === 0) return;
+  await audit(createAuditContext(request, session), {
+    action: "BULK_ACTION",
+    resource: "product",
+    changes: {
+      summary: `Imported "${fileName}": ${result.created} created, ${result.updated} updated, ${result.failed} failed`,
+    },
+    metadata: {
+      fileName,
+      created: result.created,
+      updated: result.updated,
+      failed: result.failed,
+    },
+  });
 }

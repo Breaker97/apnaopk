@@ -10,6 +10,7 @@ import { verifyVendorCheckoutSession } from "@/lib/vendors/vendor-stripe-billing
 import { verifyPlatformPayment } from "@/lib/payments/platform-payments";
 import { PlatformPayment, VendorApplication } from "@/models";
 import { PLATFORM_PAYMENT_KIND, USER_ROLES } from "@/config/app.config";
+import { RAZORPAY_RETURN_PARAM } from "@/lib/payments/razorpay-callback";
 
 async function resolveApplicant() {
   const session = await auth.api.getRegistrationSession({
@@ -23,6 +24,16 @@ async function resolveApplicant() {
     throw new AuthenticationError();
   }
   return session;
+}
+
+/** A Razorpay return field, or undefined when absent or implausibly long. */
+function readRazorpayParam(
+  request: NextRequest,
+  name: string,
+  maxLength: number,
+): string | undefined {
+  const value = request.nextUrl.searchParams.get(name)?.trim();
+  return value && value.length <= maxLength ? value : undefined;
 }
 
 /**
@@ -67,7 +78,20 @@ export async function GET(request: NextRequest) {
           { status: 404 },
         );
       }
-      const { paid } = await verifyPlatformPayment(payment, settings);
+      const { paid } = await verifyPlatformPayment(payment, settings, {
+        // Present on a Razorpay return; without them the attempt cannot be
+        // checked against Razorpay at all.
+        razorpayPaymentId: readRazorpayParam(
+          request,
+          RAZORPAY_RETURN_PARAM.paymentId,
+          100,
+        ),
+        razorpaySignature: readRazorpayParam(
+          request,
+          RAZORPAY_RETURN_PARAM.signature,
+          200,
+        ),
+      });
       const application = payment.applicationId
         ? await VendorApplication.findById(payment.applicationId)
             .select("status paymentStatus")

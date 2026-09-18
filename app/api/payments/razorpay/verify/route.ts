@@ -2,17 +2,11 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import {
-  captureRazorpayPayment,
   fetchRazorpayPayment,
   getRazorpayCredentials,
-  getRazorpayCurrencyExponent,
   verifyRazorpayPaymentSignature,
 } from "@/lib/payments/razorpay";
 import { finalizeRazorpayOrder } from "@/lib/payments/razorpay-orders";
-import {
-  findPlatformPaymentByRazorpayOrderId,
-  verifyPlatformPayment,
-} from "@/lib/payments/platform-payments";
 import {
   rateLimitByIP,
   rateLimitBySession,
@@ -87,44 +81,15 @@ export const POST = withApi(
       throw new ValidationError("Razorpay payment signature mismatch");
     }
 
-    // Vendor→platform payments (boosts, subscriptions) have their own verify
-    // route, but a client that lands here with a platform order id must not
-    // fall into the Order lookup and 404.
-    const platformPayment =
-      await findPlatformPaymentByRazorpayOrderId(razorpayOrderId);
-    if (platformPayment) {
-      const { paid } = await verifyPlatformPayment(platformPayment, settings, {
-        razorpayPaymentId,
-        razorpaySignature,
-      });
-      return NextResponse.json({
-        success: true,
-        data: { platformPayment: true, paid },
-      });
-    }
-
-    let payment = await fetchRazorpayPayment({
+    const payment = await fetchRazorpayPayment({
       creds,
       paymentId: razorpayPaymentId,
     });
 
-    if (payment.status === "authorized" && payment.captured !== true) {
-      const paymentCurrency = String(
-        payment.currency ||
-        settings.general?.defaultCurrency || "INR"
-      ).toUpperCase();
-      const currencyExponent = getRazorpayCurrencyExponent(paymentCurrency);
-      payment = await captureRazorpayPayment({
-        creds,
-        paymentId: razorpayPaymentId,
-        amount: Number(payment.amount || 0) / 10 ** currencyExponent,
-        currency: paymentCurrency,
-      });
-    }
-
     const result = await finalizeRazorpayOrder({
       razorpayOrderId,
       payment,
+      creds,
       settings,
       sessionUserId: session?.user?.id,
       cartSessionId,

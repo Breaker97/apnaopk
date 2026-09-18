@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import mongoose from "mongoose";
 import {
   BadgeCheck,
   Clock3,
@@ -11,8 +10,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
-import { connectDB } from "@/lib/db";
-import { Order } from "@/models";
 import {
   AdminStatsStrip,
   type AdminStatsStripItem,
@@ -23,6 +20,7 @@ import { parsePageQuery } from "@/lib/api/validate";
 import { serializeRows } from "@/lib/api/list-query";
 import { OrderListQuerySchema } from "@/lib/validations";
 import { fetchVendorOrderList } from "@/lib/vendors/vendor-order-list";
+import { getVendorOrderTotals } from "@/lib/vendors/vendor-order-metrics";
 import { getStoreMoneyFormatter } from "@/lib/intl/server-currency";
 
 interface PageProps {
@@ -125,68 +123,20 @@ export default async function VendorOrdersPage({
   );
 }
 
+/**
+ * The strip's counters, from the module the vendor dashboard reads too — so
+ * "Total Revenue" here and on the dashboard is one number.
+ */
 async function getVendorOrdersStats(vendorId: string): Promise<VendorOrdersStats> {
-  await connectDB();
-  const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
-
-  const [result] = await Order.aggregate([
-    {
-      $match: {
-        subOrders: {
-          $elemMatch: { vendorId: vendorObjectId },
-        },
-      },
-    },
-    { $unwind: "$subOrders" },
-    { $match: { "subOrders.vendorId": vendorObjectId } },
-    {
-      $group: {
-        _id: "$_id",
-        paymentStatus: { $first: "$paymentStatus" },
-        isOpen: {
-          $max: {
-            $cond: [
-              { $in: ["$subOrders.status", ["delivered", "cancelled"]] },
-              0,
-              1,
-            ],
-          },
-        },
-        vendorRevenue: { $sum: "$subOrders.vendorEarnings" },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalOrders: { $sum: 1 },
-        openOrders: { $sum: "$isOpen" },
-        paidOrders: {
-          $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, 1, 0] },
-        },
-        totalRevenue: {
-          $sum: {
-            $cond: [
-              { $eq: ["$paymentStatus", "paid"] },
-              "$vendorRevenue",
-              0,
-            ],
-          },
-        },
-      },
-    },
-  ]);
-
-  const totalOrders = result?.totalOrders ?? 0;
-  const openOrders = result?.openOrders ?? 0;
-  const paidOrders = result?.paidOrders ?? 0;
-  const totalRevenue = result?.totalRevenue ?? 0;
+  const totals = await getVendorOrderTotals(vendorId);
 
   return {
-    totalOrders,
-    openOrders,
-    paidOrders,
-    totalRevenue,
-    averageOrderValue: paidOrders > 0 ? totalRevenue / paidOrders : 0,
+    totalOrders: totals.totalOrders,
+    openOrders: totals.openOrders,
+    paidOrders: totals.paidOrders,
+    totalRevenue: totals.totalRevenue,
+    averageOrderValue:
+      totals.paidOrders > 0 ? totals.totalRevenue / totals.paidOrders : 0,
   };
 }
 

@@ -96,7 +96,7 @@ export const POST = withApi<{ id: string }>(
           createdBy: session.user.id,
         },
       },
-      { upsert: true, new: true, runValidators: true },
+      { upsert: true, returnDocument: "after", runValidators: true },
     );
 
     // Mirrors the admin route: a hand-entered AWB is a real parcel and belongs

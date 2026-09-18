@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { LayoutGrid } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,8 @@ import { VARIANT_FIELD_KEY } from "@/lib/storefront/sections/types";
 import type { SectionCatalogEntry } from "@/lib/storefront/sections/types";
 import { fieldsForVariant } from "@/lib/storefront/sections/variant-fields";
 import { cn } from "@/lib/utils";
-import { EditorGroup, FieldRenderer } from "./field-renderer";
+import { EditorGroup, FieldRenderer, isCompactField, isFieldShown } from "./field-renderer";
+import { EditorShell, PanelGroup } from "./editor-shell";
 import { OptionTile } from "./slider-setup-panels";
 
 type TSafe = ReturnType<typeof createTSafe>;
@@ -41,6 +42,7 @@ const PLACED_KEYS = new Set(["layout", "productIds", VARIANT_FIELD_KEY]);
  * places and wonder where it went.
  */
 export function CountdownOfferEditor({
+  preview,
   entry,
   variant,
   settings,
@@ -50,6 +52,8 @@ export function CountdownOfferEditor({
   locale,
   sectionId,
 }: {
+  /** The storefront's render of the section, from the builder. */
+  preview?: ReactNode;
   entry: SectionCatalogEntry;
   variant: string | undefined;
   settings: Record<string, unknown>;
@@ -66,22 +70,37 @@ export function CountdownOfferEditor({
   const fields = fieldsForVariant(entry.fields, variant);
   const imageContext = { locale, sectionType: entry.type, sectionId };
 
-  // The image banner design has no arrangement and no deals: it is the
-  // generic form, and nothing else.
-  if (variant !== "deals-panel") {
-    return (
-      <EditorGroup
-        title={tSafe("admin.storeBuilder.sectionEditor.settings", "Settings")}
-      >
-        <FieldRenderer
-          fields={fields.filter((field) => field.key !== VARIANT_FIELD_KEY)}
-          settings={settings}
-          onChange={onSettingChange}
-          languages={languages}
-          defaultLanguage={defaultLanguage}
-          imageContext={imageContext}
-        />
+  // The slider editor's shape: short controls in the panel beside the
+  // preview, wide ones — the copy, the pictures — under it.
+  const renderFields = (list: typeof fields, layout: "grid" | "panel") => (
+    <FieldRenderer
+      fields={list}
+      layout={layout}
+      settings={settings}
+      onChange={onSettingChange}
+      languages={languages}
+      defaultLanguage={defaultLanguage}
+      imageContext={imageContext}
+    />
+  );
+  const contentGroup = (list: typeof fields) =>
+    list.some((field) => isFieldShown(field, settings)) ? (
+      <EditorGroup title={tSafe("admin.storeBuilder.sectionEditor.content", "Content")}>
+        {renderFields(list, "grid")}
       </EditorGroup>
+    ) : null;
+
+  if (variant !== "deals-panel") {
+    const plain = fields.filter((field) => field.key !== VARIANT_FIELD_KEY);
+    const compact = plain.filter((field) => isCompactField(field));
+    const wide = plain.filter((field) => !isCompactField(field));
+    return (
+      <EditorShell
+        preview={preview}
+        panel={compact.length > 0 ? renderFields(compact, "panel") : null}
+      >
+        {contentGroup(wide)}
+      </EditorShell>
     );
   }
 
@@ -91,55 +110,53 @@ export function CountdownOfferEditor({
     : [];
   const layoutLabel = (key: string, fallback: string) =>
     tSafe(`admin.storeBuilder.countdown.layouts.${key}`, fallback);
+  const placed = fields.filter((field) => !PLACED_KEYS.has(field.key));
+  const compact = placed.filter((field) => isCompactField(field));
+  const wide = placed.filter((field) => !isCompactField(field));
 
   return (
-    <div className="space-y-6">
-      <EditorGroup
-        title={tSafe("admin.storeBuilder.fields.layout", "Layout")}
-        hint={tSafe(
-          "admin.storeBuilder.countdown.layoutHint",
-          "How the deals are arranged. The featured slot is the large card with gallery, colours and add-to-cart.",
-        )}
-      >
-        <div className="flex flex-wrap items-center gap-4 rounded-[10px] border bg-muted/30 p-3">
-          <div className="w-40 rounded-md bg-card p-2 shadow-sm">
-            <LayoutThumb layout={layout} />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-sm font-semibold">
-              {layoutLabel(layout.key, layout.label)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {tSafe("admin.storeBuilder.countdown.slotsUsed", "{count} of {max} slots", {
-                count: Math.min(picks.length, layout.slots),
-                max: layout.slots,
-              })}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setLayoutOpen(true)}
-            className="gap-2"
+    <EditorShell
+      preview={preview}
+      panel={
+        <>
+          {/* The arrangement first: the one choice the rest hangs off. */}
+          <PanelGroup
+            title={tSafe("admin.storeBuilder.fields.layout", "Layout")}
+            hint={tSafe(
+              "admin.storeBuilder.countdown.layoutHint",
+              "How the deals are arranged. The featured slot is the large card with gallery, colours and add-to-cart.",
+            )}
+            badge={tSafe("admin.storeBuilder.countdown.slotsUsed", "{count} of {max} slots", {
+              count: Math.min(picks.length, layout.slots),
+              max: layout.slots,
+            })}
           >
-            <LayoutGrid className="h-4 w-4" />
-            {tSafe("admin.storeBuilder.countdown.changeLayout", "Change layout")}
-          </Button>
-        </div>
-      </EditorGroup>
-
-      <EditorGroup
-        title={tSafe("admin.storeBuilder.sectionEditor.settings", "Settings")}
-      >
-        <FieldRenderer
-          fields={fields.filter((field) => !PLACED_KEYS.has(field.key))}
-          settings={settings}
-          onChange={onSettingChange}
-          languages={languages}
-          defaultLanguage={defaultLanguage}
-          imageContext={imageContext}
-        />
-      </EditorGroup>
+            <div className="flex items-center gap-3">
+              <div className="w-24 shrink-0 rounded-md border border-border bg-muted/40 p-1.5">
+                <LayoutThumb layout={layout} />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <p className="truncate text-xs font-semibold">
+                  {layoutLabel(layout.key, layout.label)}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLayoutOpen(true)}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  {tSafe("admin.storeBuilder.countdown.changeLayout", "Change layout")}
+                </Button>
+              </div>
+            </div>
+          </PanelGroup>
+          {compact.length > 0 ? renderFields(compact, "panel") : null}
+        </>
+      }
+    >
+      {contentGroup(wide)}
 
       <EditorGroup
         title={tSafe("admin.storeBuilder.countdown.dealsTitle", "Deals")}
@@ -173,7 +190,7 @@ export function CountdownOfferEditor({
         onSelect={(key) => onSettingChange("layout", key)}
         tSafe={tSafe}
       />
-    </div>
+    </EditorShell>
   );
 }
 

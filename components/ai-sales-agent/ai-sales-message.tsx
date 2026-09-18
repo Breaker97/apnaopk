@@ -234,6 +234,7 @@ export function AISalesMessageBubble({
   pendingActions,
   helperText,
   labels = DEFAULT_LABELS,
+  streaming = false,
 }: {
   message: AISalesChatMessage;
   primaryColor: string;
@@ -243,6 +244,8 @@ export function AISalesMessageBubble({
   pendingActions: Set<string>;
   helperText?: string;
   labels?: AISalesMessageLabels;
+  /** The reply is still arriving; a caret shows the text is growing. */
+  streaming?: boolean;
 }) {
   const isUser = message.role === "user";
 
@@ -264,8 +267,14 @@ export function AISalesMessageBubble({
       <AISalesAssistantAvatar primaryColor={primaryColor} />
       <div className="flex w-full max-w-[85%] flex-col">
         {message.content && (
-          <div className="w-fit max-w-full rounded-3xl bg-muted px-4 py-2.5 text-sm leading-relaxed text-foreground">
+          <div className="w-fit max-w-full whitespace-pre-line rounded-3xl bg-muted px-4 py-2.5 text-sm leading-relaxed text-foreground">
             {message.content}
+            {streaming && (
+              <span
+                aria-hidden
+                className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-current align-[-2px]"
+              />
+            )}
           </div>
         )}
         {helperText && (

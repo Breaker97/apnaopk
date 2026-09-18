@@ -1,0 +1,188 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "name": "Accessories",
+    "slug": "accessories",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789467064448-cm48x8/fc80443baccde47af414c3ecacaaf15f.jpg",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Accessories"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-14T18:40:28.325Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-15T10:11:06.363Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa7a031197ff91b01f8635c"
+    },
+    "name": "Bags",
+    "slug": "bags",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789467881748-83j4c4/c9fdbb0117c58d070816265572dbf2a9.jpg",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Bags"
+    },
+    "productCount": 13,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-14T07:20:17.122Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:14:55.585Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa683b29e1a8ac7a89ff102"
+    },
+    "name": "Dresses",
+    "slug": "dresses",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789468507430-kuve1u/c8256836b22623ec28acee93d75d69b8.jpg",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Dresses"
+    },
+    "productCount": 6,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-13T11:06:26.375Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T18:33:49.829Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "name": "Perfume",
+    "slug": "perfume",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789467953550-5hf1y3/ccc24b6daa619aa9f94d8c238b1f97b3.jpg",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Perfume"
+    },
+    "productCount": 4,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-15T09:55:22.375Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-17T08:18:56.074Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa7a304197ff91b01f8635d"
+    },
+    "name": "Shoes",
+    "slug": "shoes",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789468231416-qxaf5f/e4cd81a85059ca904e7057188e491a23.jpg",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Shoes"
+    },
+    "productCount": 12,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-14T07:32:20.171Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-17T06:32:38.531Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa7b2c7197ff91b01f86361"
+    },
+    "name": "Skirts",
+    "slug": "skirts",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789377018907-bu9k35/ChatGPT_Image_Sep_14__2026__03_10_10_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6aa683b29e1a8ac7a89ff102"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Skirts"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-14T08:39:35.218Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-17T04:56:08.508Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa7955c714b90af7520cb3c"
+    },
+    "name": "Tops",
+    "slug": "s",
+    "description": "",
+    "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789367641020-kzgf9r/OnPaste.20260914-123353.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6aa683b29e1a8ac7a89ff102"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 20,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-14T06:34:04.589Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T18:34:10.266Z"
+    },
+    "__v": 0
+  }
+]

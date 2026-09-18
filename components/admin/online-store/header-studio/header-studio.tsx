@@ -18,7 +18,6 @@ import {
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast-notification";
 import {
   createHeaderItem,
@@ -45,6 +44,7 @@ import { ItemDrawer } from "@/components/admin/online-store/header-studio/item-d
 import { StudioCanvas } from "@/components/admin/online-store/header-studio/canvas";
 import {
   PropertyPanel,
+  type HeaderMainSettings,
   type StudioSelection,
 } from "@/components/admin/online-store/header-studio/property-panel";
 import { NavLinksModal } from "@/components/admin/online-store/header-studio/nav-links-modal";
@@ -288,6 +288,20 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
       prev
         ? { ...prev, widgets: { ...prev.widgets, showLocationPicker } }
         : prev,
+    );
+  };
+
+  /**
+   * The header's own settings, as one patch. `showLocation` lives under
+   * `widgets` and the overlap pair under `layout`; the panel does not need
+   * to know that, so the split happens here.
+   */
+  const patchMain = (patch: Partial<HeaderMainSettings>) => {
+    if (patch.showLocation !== undefined) setShowLocation(patch.showLocation);
+    const { showLocation: _ignored, ...layoutPatch } = patch;
+    if (Object.keys(layoutPatch).length === 0) return;
+    setHeader((prev) =>
+      prev ? { ...prev, layout: { ...prev.layout, ...layoutPatch } } : prev,
     );
   };
 
@@ -558,32 +572,9 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
         />
       </section>
 
-      {/* Storefront options the layout tree does not carry. */}
-      <section className="mt-8 flex flex-wrap items-start justify-between gap-4 rounded-[12px] border bg-card p-4 shadow-xs">
-        <div className="min-w-0 max-w-2xl space-y-0.5">
-          <h2 className="text-base font-semibold">
-            {tSafe("admin.headerStudio.location.title", "Shopper location")}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {tSafe(
-              "admin.headerStudio.location.description",
-              "Lets shoppers say where they are. Adds a “Deliver to” control to the header, a Location filter with “Pickup near me” to the product listings, and carries the place into checkout — city pre-filled, nearest collection point first. For marketplaces whose sellers span more than one city.",
-            )}
-          </p>
-        </div>
-        <label className="flex shrink-0 items-center gap-3 text-sm font-medium">
-          {tSafe("admin.headerStudio.location.toggle", "Show shopper location")}
-          <Switch
-            checked={header.widgets.showLocationPicker}
-            onCheckedChange={setShowLocation}
-            aria-label={tSafe(
-              "admin.headerStudio.location.toggle",
-              "Show shopper location",
-            )}
-          />
-        </label>
-      </section>
-
+      {/* Storefront options the layout tree does not carry are edited in
+          the property panel's empty state (MainFields) — beside the header
+          they change, rather than in a card the merchant scrolls past. */}
       {/* Builder: the drawer, the canvas and the property panel. */}
       <section className="mt-10 space-y-4">
         <div className="space-y-0.5">
@@ -637,6 +628,14 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
             <PropertyPanel
               tSafe={tSafe}
               selection={selection}
+              main={{
+                showLocation: header.widgets.showLocationPicker,
+                overlapHome: header.layout.overlapHome,
+                overlapTone: header.layout.overlapTone,
+                overlapScrim: header.layout.overlapScrim,
+                shadow: header.layout.shadow,
+              }}
+              onPatchMain={patchMain}
               row={selected.row}
               column={selected.column}
               item={selected.item}

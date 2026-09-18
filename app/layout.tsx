@@ -33,6 +33,8 @@ import {
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { buildCustomColorVars } from "@/lib/site-config/appearance-colors";
 import { normalizeCountryAvailability } from "@/lib/intl/country-availability";
+import { mtnMomoPhoneExample } from "@/lib/payments/mtn-momo";
+import { resolveMtnMomoCredentials } from "@/lib/settings/credentials";
 
 // Self-hosted (latin subset, variable weight, SIL OFL — see app/fonts/OFL-*.txt)
 // so `next build` no longer reaches Google Fonts: an offline or firewalled
@@ -179,6 +181,12 @@ const getInitialAppSettings = unstable_cache(
         countryAvailability: normalizeCountryAvailability(
           general?.countryAvailability,
         ),
+        // Same value /api/settings/public serves; without it here every store
+        // would show the fallback number whatever its MTN country.
+        mtnMomoPhoneExample: mtnMomoPhoneExample(
+          resolveMtnMomoCredentials(settings.payment?.mtn_momo)
+            .targetEnvironment,
+        ),
         logoUrl: general?.logoUrl || undefined,
         darkModeLogoUrl: general?.darkModeLogoUrl || undefined,
         faviconUrl: resolveFaviconUrl(general?.faviconUrl),
@@ -264,6 +272,7 @@ export default async function RootLayout({
     primary: appearance?.primaryColor ?? DEFAULT_PRIMARY_COLOR,
     secondary: appearance?.secondaryColor ?? DEFAULT_SECONDARY_COLOR,
     accent: appearance?.accentColor ?? DEFAULT_ACCENT_COLOR,
+    skeleton: appearance?.skeletonColor ?? "",
   });
 
   return (

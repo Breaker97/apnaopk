@@ -14,7 +14,10 @@
  */
 
 import { Types } from "mongoose";
-import { isPlatformSettled } from "@/lib/payments/payment-custody";
+import {
+  isPlatformSettled,
+  PLATFORM_GATEWAY_PAYMENT_METHODS,
+} from "@/lib/payments/payment-custody";
 import { quantizeToCurrency } from "@/lib/intl/money";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
 import { feeInChargeCurrency } from "@/lib/payments/gateway-fee";
@@ -26,6 +29,10 @@ import {
 } from "@/lib/finance/accounts";
 import { postingKey, type LedgerPosting } from "@/lib/finance/ledger";
 import { LEDGER_SOURCE_KIND } from "@/models/ledger-entry.model";
+import {
+  SHIPPING_REVENUE_TO,
+  vendorEarnsShipping,
+} from "@/lib/shipping/shipping-revenue";
 
 interface PostingOrderItem {
   cost?: number | null;
@@ -33,11 +40,23 @@ interface PostingOrderItem {
 }
 
 export interface PostingSubOrder {
+  _id?: unknown;
   vendorId?: unknown;
   subtotal?: number | null;
   commission?: number | null;
   vendorEarnings?: number | null;
   shippingCost?: number | null;
+  /**
+   * This consignment's slice of a coupon limited to some of the cart. Present
+   * on every consignment of an order that recorded the split, absent on the
+   * rest — see `decomposeOrder` for how it moves the goods between vendors.
+   */
+  couponDiscount?: number | null;
+  /**
+   * What a free-shipping coupon took off THIS parcel's delivery. Present on
+   * every consignment of an order that recorded the split, absent on the rest.
+   */
+  shippingDiscount?: number | null;
   items?: PostingOrderItem[] | null;
   /**
    * Who collected the cash on delivery, stamped at checkout.
@@ -56,6 +75,17 @@ export interface PostingSubOrder {
    * order on the first collection books money nobody has handed over.
    */
   paymentStatus?: string | null;
+  /**
+   * Fulfilment state, read for one question only: was this consignment called
+   * off? See the balance pair in `orderPaidPostings`.
+   */
+  status?: string | null;
+  /** When THIS consignment's money arrived — a cash parcel paid for at the door. */
+  paidAt?: Date | string | null;
+  /** Who earns the delivery charge — see `lib/shipping/shipping-revenue.ts`. */
+  shippingRevenueTo?: string | null;
+  /** Set while a label on the store's own carrier account covers the parcel. */
+  platformLabelAt?: Date | string | null;
 }
 
 export interface PostingOrder {
@@ -85,7 +115,11 @@ export interface PostingOrder {
   shippingCost?: number | null;
   /** Order-level discount, in `currency`. Read only to size the shipping half. */
   discount?: number | null;
-  coupon?: { type?: string | null } | null;
+  coupon?: {
+    type?: string | null;
+    /** Who paid for the goods discount; absent means the sellers did. */
+    fundedBy?: string | null;
+  } | null;
   /**
    * Import duty added to `total` after the totals were computed, so it is in
    * neither the tax nor the shipping figure and has to be taken out of
@@ -96,8 +130,21 @@ export interface PostingOrder {
   createdAt?: Date | null;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  /**
+   * The order's own status. Read only by a refund, to tell an order handed
+   * back from money returned on one that is still waiting on its balance.
+   */
+  status?: string | null;
   /** The part of `total` a deposit-mode pre-order has not collected yet. */
   preorderOutstandingAmount?: number | null;
+  /** When that balance arrived, however it arrived. Absent while it is owed. */
+  preorderBalancePaidAt?: Date | string | null;
+  /**
+   * The gateway's cut of the balance payment alone. `paymentFee` holds the
+   * deposit's and the balance's together once the balance is in, so this is
+   * what lets each be posted on the day it was charged.
+   */
+  preorderBalancePaymentFee?: number | null;
   channel?: string | null;
   stripePaymentIntentId?: string | null;
   paymentFee?: number | null;
@@ -126,6 +173,14 @@ const ASSUMED_CURRENCY_NOTE =
 const assumedNote = (order: { currencyAssumed?: boolean }) =>
   order.currencyAssumed ? ASSUMED_CURRENCY_NOTE : null;
 
+/** Methods whose money sits in a gateway balance until it settles to the bank. */
+const GATEWAY_CASH_METHODS: ReadonlySet<string> = new Set([
+  ...PLATFORM_GATEWAY_PAYMENT_METHODS,
+  "stripe",
+  // A pay-later pre-order still charges its shipping and tax by card.
+  "pay_later",
+]);
+
 /**
  * Which cash account this order's money landed in.
  *
@@ -134,15 +189,28 @@ const assumedNote = (order: { currencyAssumed?: boolean }) =>
  * `cash_gateway`, which claimed a gateway had processed money no gateway ever
  * saw; the notes are physical either way, so they belong in the same account
  * the POS drawer uses.
+ *
+ * Everything else that is not a gateway is money the store took itself — a
+ * bank transfer, a payment recorded by hand on an order an admin created —
+ * and it was booked into `cash_gateway` too, so the gateway balance on the
+ * books grew by money no gateway had and the bank came up short.
  */
-function cashAccountFor(order: {
+export function cashAccountFor(order: {
   channel?: string | null;
   paymentMethod?: string | null;
 }) {
-  return String(order.channel || "").toLowerCase() === "pos" ||
-    String(order.paymentMethod || "").toLowerCase() === "cod"
-    ? LEDGER_ACCOUNT.CASH_ON_HAND
-    : LEDGER_ACCOUNT.CASH_GATEWAY;
+  const method = String(order.paymentMethod || "").trim().toLowerCase();
+  if (
+    String(order.channel || "").toLowerCase() === "pos" ||
+    method === "cod" ||
+    method === "cash"
+  ) {
+    return LEDGER_ACCOUNT.CASH_ON_HAND;
+  }
+  // No method at all is a row from before the field, booked as it always was.
+  return !method || GATEWAY_CASH_METHODS.has(method)
+    ? LEDGER_ACCOUNT.CASH_GATEWAY
+    : LEDGER_ACCOUNT.CASH_BANK;
 }
 
 /**
@@ -241,11 +309,17 @@ interface OrderDecomposition {
  * Every part is allocated so the shares sum EXACTLY back to `total`: cash in
  * has to equal what was charged, whatever the rounding.
  */
-export function decomposeOrder(order: PostingOrder): OrderDecomposition | null {
+export function decomposeOrder(
+  order: Omit<PostingOrder, "_id">,
+): OrderDecomposition | null {
   const currency = String(order.currency || "").toUpperCase();
   const total = money(order.total);
   const subOrders = (order.subOrders || []).filter(Boolean);
-  if (!currency || total <= 0 || subOrders.length === 0) return null;
+  // A zero total is a real sale when the store's own coupon paid for all of
+  // it: the seller is owed their goods and charged commission on them, and
+  // refusing to decompose it left the payout paying out of a payable the sale
+  // never credited. Every share is then zero, which posts nothing on its own.
+  if (!currency || total < 0 || subOrders.length === 0) return null;
 
   const q = (value: number) => quantizeToCurrency(value, currency);
   const tax = q(money(order.tax));
@@ -277,18 +351,43 @@ export function decomposeOrder(order: PostingOrder): OrderDecomposition | null {
   const balanceStillOwed =
     String(order.paymentStatus || "").trim().toLowerCase() === "partially_paid";
 
-  const merchandiseWeights = subOrders.map((sub) =>
-    Math.max(0, money(sub.subtotal)),
+  const salesWeights = subOrders.map((sub) => Math.max(0, money(sub.subtotal)));
+  // What each consignment's goods actually sold for. `merchandise` is already
+  // net of the order's discount, and weighting it by gross sales handed every
+  // vendor a slice of every coupon — one vendor's own 20-off came 10 off a
+  // vendor who never offered it. An order that recorded whose coupon it was
+  // is weighted by goods after each consignment's own slice; one that did not
+  // shares the discount by sales, exactly as before.
+  const recordsCouponSplit = subOrders.some(
+    (sub) => typeof sub.couponDiscount === "number",
   );
+  const merchandiseWeights = recordsCouponSplit
+    ? subOrders.map((sub) =>
+        Math.max(0, money(sub.subtotal) - Math.max(0, money(sub.couponDiscount))),
+      )
+    : salesWeights;
   const merchandiseShares = allocate(merchandise, merchandiseWeights, currency);
-  const shippingShares = allocate(
-    shipping,
-    subOrders.map((sub) => Math.max(0, money(sub.shippingCost))),
-    currency,
+  // Delivery is charged per parcel, so a free-shipping coupon that paid for
+  // ONE seller's delivery must come off that parcel. Weighting the discounted
+  // total by rated cost spread it over every parcel instead, and one seller's
+  // coupon took the other sellers' delivery charge with it. An order that
+  // recorded whose delivery was free is weighted by what each parcel actually
+  // charged; one that did not shares it by rated cost, exactly as before.
+  const recordsShippingSplit = subOrders.some(
+    (sub) => typeof sub.shippingDiscount === "number",
   );
+  const shippingWeights = subOrders.map((sub) =>
+    Math.max(
+      0,
+      money(sub.shippingCost) -
+        (recordsShippingSplit ? Math.max(0, money(sub.shippingDiscount)) : 0),
+    ),
+  );
+  const shippingShares = allocate(shipping, shippingWeights, currency);
   const taxShares = allocate(tax, merchandiseWeights, currency);
   const dutyShares = allocate(duty, merchandiseWeights, currency);
-  const outstandingShares = allocate(outstanding, merchandiseWeights, currency);
+  // The balance is agreed on undiscounted lines, so it stays shared by sales.
+  const outstandingShares = allocate(outstanding, salesWeights, currency);
 
   return {
     currency,
@@ -304,8 +403,137 @@ export function decomposeOrder(order: PostingOrder): OrderDecomposition | null {
   };
 }
 
+export interface ConsignmentCharge {
+  currency: string;
+  /** Goods after every discount. */
+  merchandise: number;
+  /** Delivery actually charged, after a free-shipping coupon. */
+  shipping: number;
+  tax: number;
+  duty: number;
+  /** Everything the buyer pays for this consignment. */
+  total: number;
+}
+
+/**
+ * What the buyer is charged for ONE consignment — the slice of `order.total`
+ * the sale books for it.
+ *
+ * Read off `decomposeOrder` rather than the sub-order's face values, which are
+ * undiscounted and carry no tax: a courier told to collect `subtotal +
+ * shippingCost` took the goods money without the tax, over-collected on every
+ * couponed order, and left the cash in hand short of what the ledger posted.
+ *
+ * Null when the order cannot be decomposed (no currency, nothing charged) or
+ * the consignment is not on it.
+ */
+export function consignmentCharge(
+  order: Omit<PostingOrder, "_id">,
+  subOrderId: unknown,
+): ConsignmentCharge | null {
+  const decomposition = decomposeOrder(order);
+  if (!decomposition) return null;
+  const index = (order.subOrders || [])
+    .filter(Boolean)
+    .findIndex((sub) => String(sub._id) === String(subOrderId));
+  const share = index >= 0 ? decomposition.shares[index] : undefined;
+  if (!share) return null;
+
+  const { currency } = decomposition;
+  return {
+    currency,
+    merchandise: share.merchandise,
+    shipping: share.shipping,
+    tax: share.tax,
+    duty: share.duty,
+    total: quantizeToCurrency(
+      share.merchandise + share.shipping + share.tax + share.duty,
+      currency,
+    ),
+  };
+}
+
+/**
+ * The part of each consignment's goods discount the STORE paid for, flat by
+ * position — zero everywhere unless the order's coupon was store-funded.
+ *
+ * A store-funded coupon leaves the seller's side of the sale whole: they are
+ * owed, and charged commission on, what the goods sold for before the
+ * discount, and the store bears the difference as a promotion. The shopper
+ * still paid the discounted price, which is what `decomposeOrder`'s cash
+ * shares stay; this is the gap between those and the sale the seller made.
+ *
+ * Read off the consignment's recorded slice when the coupon recorded one, and
+ * otherwise shared by sales, exactly as the discount itself was. A
+ * free-shipping coupon discounts delivery, not goods: its funding is
+ * `storeFundedShippingShares`.
+ */
+export function storeFundedDiscountShares(
+  order: Omit<PostingOrder, "_id">,
+  currency: string,
+): number[] {
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  const none = subOrders.map(() => 0);
+  if (String(order.coupon?.fundedBy || "") !== "platform") return none;
+  if (isFreeShippingCouponType(order.coupon?.type)) return none;
+  const discount = Math.max(0, money(order.discount));
+  if (discount <= 0) return none;
+
+  if (subOrders.some((sub) => typeof sub.couponDiscount === "number")) {
+    return subOrders.map((sub) =>
+      quantizeToCurrency(Math.max(0, money(sub.couponDiscount)), currency),
+    );
+  }
+  return allocate(
+    discount,
+    subOrders.map((sub) => Math.max(0, money(sub.subtotal))),
+    currency,
+  );
+}
+
+/**
+ * What the STORE paid of each consignment's delivery, through a free-shipping
+ * coupon it funded.
+ *
+ * A store-wide "free delivery this weekend" came out of the sellers who
+ * delivered the parcels: they earned the discounted charge, or nothing at all,
+ * for a promotion the store ran. Funded by the store, the seller earns the
+ * delivery the parcel was rated at and the store bears the difference, exactly
+ * as it does for a discount on goods.
+ *
+ * A seller's own free-shipping coupon is their promotion and funds nothing
+ * here — it simply comes off what they earn, on their own parcel only.
+ */
+export function storeFundedShippingShares(
+  order: Omit<PostingOrder, "_id">,
+  currency: string,
+): number[] {
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  const none = subOrders.map(() => 0);
+  if (String(order.coupon?.fundedBy || "") !== "platform") return none;
+  if (!isFreeShippingCouponType(order.coupon?.type)) return none;
+  const discount = Math.max(0, money(order.discount));
+  if (discount <= 0) return none;
+
+  if (subOrders.some((sub) => typeof sub.shippingDiscount === "number")) {
+    return subOrders.map((sub) =>
+      quantizeToCurrency(Math.max(0, money(sub.shippingDiscount)), currency),
+    );
+  }
+  // An order placed before the split was recorded: shared by what each parcel
+  // was rated at, which is how it was discounted.
+  return allocate(
+    Math.min(discount, Math.max(0, money(order.shippingCost))),
+    subOrders.map((sub) => Math.max(0, money(sub.shippingCost))),
+    currency,
+  );
+}
+
 /** Payment states that mean this consignment's money has NOT arrived. */
 const UNCOLLECTED_PAYMENT_STATUSES = new Set(["pending", "partially_paid"]);
+
+/** Spelled out rather than imported, as the set above is. */
+const CANCELLED_STATUS = "cancelled";
 
 /**
  * Has this consignment's money arrived?
@@ -361,7 +589,11 @@ export function orderPaidPostings(
   if (!decomposition) return [];
   const { currency } = decomposition;
 
-  const date = order.paidAt || order.createdAt || new Date();
+  // Dated when the money arrived, never when the order was placed: a cash
+  // order placed on 30 June and paid at the door on 20 July is July's sale.
+  // The order's own `paidAt` is stamped when its payment is recorded; a
+  // consignment collected on its own carries its own, below.
+  const orderDate = toDate(order.paidAt) || toDate(order.createdAt) || new Date();
   const subOrders = (order.subOrders || []).filter(Boolean);
 
   const custody = {
@@ -378,6 +610,8 @@ export function orderPaidPostings(
   };
   const entries: LedgerPosting[] = [];
   const posted: boolean[] = [];
+  const storeFunded = storeFundedDiscountShares(order, currency);
+  const storeFundedShipping = storeFundedShippingShares(order, currency);
 
   subOrders.forEach((sub, index) => {
     // Nothing has arrived for this consignment yet. Its entries are written by
@@ -387,6 +621,15 @@ export function orderPaidPostings(
       return;
     }
     posted.push(true);
+    // A consignment paid for on its own — a cash parcel handed over at the
+    // door — is dated by its own collection. A pre-order's consignments are
+    // stamped when the BALANCE lands, but its sale was the deposit's, so the
+    // order's own date stands for them.
+    const hasDepositTerms = money(order.preorderOutstandingAmount) > 0;
+    const date =
+      (hasDepositTerms ? toDate(order.paidAt) : null) ||
+      toDate(sub.paidAt) ||
+      orderDate;
 
     const vendorId = sub.vendorId ? String(sub.vendorId) : "";
     const isOwn = context.defaultVendorIds.has(vendorId);
@@ -450,15 +693,21 @@ export function orderPaidPostings(
       // Marketplace sale: split the merchandise share into the platform's cut
       // and the vendor's, in the proportion the sub-order itself recorded, so
       // the ledger agrees with what the payout will pay.
+      //
+      // Split from the sale the vendor MADE, which is the goods before any
+      // discount the store paid for — see `storeFundedDiscountShares`. The
+      // shopper paid less by exactly that much, and the store bears it below.
+      const funded = storeFunded[index] ?? 0;
+      const soldFor = quantizeToCurrency(merchandiseShare + funded, currency);
       const subtotal = money(sub.subtotal);
       const commissionRatio =
         subtotal > 0 ? money(sub.commission) / subtotal : 0;
       const commission = quantizeToCurrency(
-        merchandiseShare * commissionRatio,
+        soldFor * commissionRatio,
         currency,
       );
       const vendorShare = quantizeToCurrency(
-        merchandiseShare - commission,
+        soldFor - commission,
         currency,
       );
 
@@ -489,41 +738,107 @@ export function orderPaidPostings(
             key: line("payable"),
           });
         }
-      } else if (commission > 0) {
+        // The discount the store paid for: the commission and the vendor's
+        // share above were drawn on the full price, and only this much less
+        // arrived.
+        if (funded > 0) {
+          entries.push({
+            date,
+            book,
+            debit: LEDGER_ACCOUNT.PROMOTIONS,
+            credit: cashAccount,
+            amount: funded,
+            currency,
+            source,
+            vendorId: sub.vendorId as Types.ObjectId,
+            key: line("promotion"),
+          });
+        }
+      } else if (commission > 0 || funded > 0) {
         // The vendor took the money. No cash reached the platform, so the only
         // entry is the claim on them — which is precisely the figure the
         // Receivables screen exists to collect.
+        if (commission > 0) {
+          entries.push({
+            date,
+            book,
+            debit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
+            credit: LEDGER_ACCOUNT.COMMISSION_INCOME,
+            amount: commission,
+            currency,
+            source,
+            vendorId: sub.vendorId as Types.ObjectId,
+            note: assumedNote(order),
+            key: line("commission-receivable"),
+          });
+        }
+        // They collected the discounted price but are owed the full one: the
+        // store's side of its promotion comes off what they owe it, and can
+        // leave the store owing them.
+        if (funded > 0) {
+          entries.push({
+            date,
+            book,
+            debit: LEDGER_ACCOUNT.PROMOTIONS,
+            credit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
+            amount: funded,
+            currency,
+            source,
+            vendorId: sub.vendorId as Types.ObjectId,
+            note: assumedNote(order),
+            key: line("promotion"),
+          });
+        }
+      }
+    }
+
+    // Delivery is income for whoever pays to deliver. The store's own sale,
+    // and a parcel the store's courier carries, keep it as shipping income; a
+    // vendor delivering their own parcel earns it, so it is owed to them.
+    //
+    // Read off the stamp alone, never off whether a label has been bought
+    // since: a label on the store's account moves the charge to the store with
+    // an entry of its own (`shippingToStorePostings`), so replaying this sale
+    // later cannot post the same delivery twice under two different keys.
+    if (shippingShare > 0 || (storeFundedShipping[index] ?? 0) > 0) {
+      const owedToVendor = !isOwn && shippingStampedToVendor(sub);
+      // What the store paid of this parcel's delivery. The seller earns the
+      // full rated charge; only the part the shopper paid is cash.
+      const fundedShipping = owedToVendor
+        ? quantizeToCurrency(storeFundedShipping[index] ?? 0, currency)
+        : 0;
+      if (shippingShare + fundedShipping > 0 && platformHoldsCash) {
         entries.push({
           date,
           book,
-          debit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
-          credit: LEDGER_ACCOUNT.COMMISSION_INCOME,
-          amount: commission,
+          debit: cashAccount,
+          credit: owedToVendor
+            ? LEDGER_ACCOUNT.VENDOR_PAYABLE
+            : LEDGER_ACCOUNT.SHIPPING_INCOME,
+          amount: shippingShare + fundedShipping,
           currency,
           source,
           vendorId: sub.vendorId as Types.ObjectId,
           note: assumedNote(order),
-          key: line("commission-receivable"),
+          key: line(owedToVendor ? "shipping-payable" : "shipping"),
         });
       }
-    }
-
-    // Shipping is the platform's income in both books — `vendorEarnings` is
-    // subtotal minus commission with no shipping in it, which is the business
-    // decision already encoded in the payout maths.
-    if (shippingShare > 0 && platformHoldsCash) {
-      entries.push({
-        date,
-        book,
-        debit: cashAccount,
-        credit: LEDGER_ACCOUNT.SHIPPING_INCOME,
-        amount: shippingShare,
-        currency,
-        source,
-        vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(order),
-        key: line("shipping"),
-      });
+      // The store's half of that delivery, as the promotion it is. Cash nets
+      // back to what the shopper actually paid to have it delivered.
+      if (fundedShipping > 0 && platformHoldsCash) {
+        entries.push({
+          date,
+          book,
+          debit: LEDGER_ACCOUNT.PROMOTIONS,
+          credit: cashAccount,
+          amount: fundedShipping,
+          currency,
+          source,
+          vendorId: sub.vendorId as Types.ObjectId,
+          note: assumedNote(order),
+          key: line("shipping-promotion"),
+        });
+      }
     }
 
     if (taxShare > 0 && platformHoldsCash) {
@@ -590,9 +905,23 @@ export function orderPaidPostings(
       // later re-post collides with it and the shopper goes on owing money they
       // have paid. What decides it is the order's payment state, since the
       // deposit terms themselves never change.
-      if (!decomposition.balanceStillOwed) {
+      //
+      // Except for a consignment that has been CALLED OFF. Its share of the
+      // balance is no longer asked for — `getPreorderBalanceDue` nets it out of
+      // what the shopper owes — so when the rest of the balance arrives and the
+      // order reads paid, this money did not. Posting it anyway would debit
+      // cash for a payment nobody made, which is the one direction an
+      // accounting error must never go.
+      //
+      // The receivable it raised is therefore left standing, deliberately:
+      // visible and conservative, where a silent cash overstatement is neither.
+      // Taking it off properly means reversing the uncollected part of that
+      // consignment's SALE — a write-off, not a collection — which is the
+      // payment-legs work in the deferred multi-gateway plan.
+      if (!decomposition.balanceStillOwed && sub.status !== CANCELLED_STATUS) {
         entries.push({
-          date,
+          // The day the balance came in, not the day of the deposit.
+          date: toDate(order.preorderBalancePaidAt) || date,
           book,
           debit: cashAccount,
           credit: LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE,
@@ -610,12 +939,30 @@ export function orderPaidPostings(
   // The gateway's cut, where it was reported and can be stated in this
   // currency. An unconvertible foreign fee is left out rather than guessed —
   // the same rule the charge transaction follows.
+  // A pre-order's balance is its own charge with its own fee, and `paymentFee`
+  // holds both once it is in. Posting the sum under the one key the deposit's
+  // fee already used meant the balance's fee was never posted at all; each is
+  // posted now, under its own key, dated when it was charged.
+  const balanceFeeRaw = Math.max(0, money(order.preorderBalancePaymentFee));
+  const depositFeeRaw =
+    order.paymentFee == null
+      ? null
+      : Math.max(0, money(order.paymentFee) - balanceFeeRaw);
   const fee = feeInChargeCurrency({
-    fee: order.paymentFee,
+    fee: depositFeeRaw,
     feeCurrency: order.paymentFeeCurrency,
     chargeCurrency: currency,
     rate: order.paymentFeeRate,
   });
+  const balanceFee =
+    balanceFeeRaw > 0 && order.preorderBalancePaidAt
+      ? feeInChargeCurrency({
+          fee: balanceFeeRaw,
+          feeCurrency: order.paymentFeeCurrency,
+          chargeCurrency: currency,
+          rate: order.paymentFeeRate,
+        })
+      : undefined;
   // A gateway kept a cut of money that reached someone's account: either the
   // platform's, or the store's own on its own sale. Only over the consignments
   // that actually posted — a fee cannot have been charged on money that has not
@@ -633,7 +980,7 @@ export function orderPaidPostings(
         context.defaultVendorIds.has(sub.vendorId ? String(sub.vendorId) : ""),
     );
     entries.push({
-      date,
+      date: orderDate,
       book: anyOwn ? LEDGER_BOOK.OWN : LEDGER_BOOK.MARKETPLACE,
       debit: LEDGER_ACCOUNT.PROCESSING_FEES,
       credit: cashAccount,
@@ -644,12 +991,37 @@ export function orderPaidPostings(
       note:
         order.paymentFeeCurrency &&
         order.paymentFeeCurrency.toUpperCase() !== currency
-          ? `Converted from ${order.paymentFee} ${order.paymentFeeCurrency}`
+          ? `Converted from ${depositFeeRaw} ${order.paymentFeeCurrency}`
           : null,
+    });
+  }
+  if (balanceFee && balanceFee > 0 && anyPlatformCash) {
+    const anyOwn = subOrders.some(
+      (sub, index) =>
+        posted[index] &&
+        context.defaultVendorIds.has(sub.vendorId ? String(sub.vendorId) : ""),
+    );
+    entries.push({
+      date: toDate(order.preorderBalancePaidAt) || orderDate,
+      book: anyOwn ? LEDGER_BOOK.OWN : LEDGER_BOOK.MARKETPLACE,
+      debit: LEDGER_ACCOUNT.PROCESSING_FEES,
+      credit: cashAccount,
+      amount: quantizeToCurrency(balanceFee, currency),
+      currency,
+      source,
+      key: postingKey(LEDGER_SOURCE_KIND.ORDER, order._id, "processing-fee-balance"),
+      note: "The pre-order balance payment's fee",
     });
   }
 
   return entries;
+}
+
+/** A date from a stored value, or null for nothing usable. */
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /**
@@ -786,20 +1158,7 @@ export function refundBacks(params: {
 }): number[] {
   const { decomposition, subOrders, amount } = params;
   const currency = decomposition.currency;
-  const taken = params.alreadyReversed;
-
-  const remaining = decomposition.shares.flatMap((share, index) =>
-    [share.merchandise, share.shipping, share.tax, share.duty].map(
-      (value, part) =>
-        Math.max(
-          0,
-          quantizeToCurrency(
-            value - money(taken?.[index * PARTS + part]),
-            currency,
-          ),
-        ),
-    ),
-  );
+  const remaining = remainingParts(decomposition, params.alreadyReversed);
 
   return (
     backsFromAllocation({
@@ -810,6 +1169,115 @@ export function refundBacks(params: {
       currency,
     }) ?? allocate(amount, remaining, currency)
   );
+}
+
+/**
+ * What the sale booked for each part of each consignment, less what earlier
+ * refunds already reversed — flat per consignment then part, never negative.
+ */
+function remainingParts(
+  decomposition: OrderDecomposition,
+  alreadyReversed?: readonly number[] | null,
+): number[] {
+  const currency = decomposition.currency;
+  return decomposition.shares.flatMap((share, index) =>
+    [share.merchandise, share.shipping, share.tax, share.duty].map(
+      (value, part) =>
+        Math.max(
+          0,
+          quantizeToCurrency(
+            value - money(alreadyReversed?.[index * PARTS + part]),
+            currency,
+          ),
+        ),
+    ),
+  );
+}
+
+/**
+ * How much of each consignment's charge no refund has reversed yet.
+ *
+ * The ceiling on what calling one consignment off can still give back: an
+ * earlier refund that already took part of it — a goodwill credit spread over
+ * the order, say — has handed that part back once, and refunding the whole
+ * consignment again would hand it back twice.
+ */
+export function unreversedConsignmentTotals(
+  decomposition: OrderDecomposition,
+  alreadyReversed?: readonly number[] | null,
+): number[] {
+  const remaining = remainingParts(decomposition, alreadyReversed);
+  return decomposition.shares.map((_, index) =>
+    quantizeToCurrency(
+      remaining
+        .slice(index * PARTS, index * PARTS + PARTS)
+        .reduce((sum, value) => sum + value, 0),
+      decomposition.currency,
+    ),
+  );
+}
+
+/**
+ * What a refund reverses when it belongs to some consignments and not others.
+ *
+ * `refundBacks` prorates a refund nobody itemised over what is left of the
+ * WHOLE order. That is right for "some money back on this order" and wrong for
+ * "this seller's parcel was called off": the refund was spread over every
+ * seller, so a vendor who had delivered lost a share of their payable to
+ * somebody else's cancellation, and the cancelled consignment kept payable
+ * that no sale would ever back. The same happens to a split cash order refunded
+ * while one parcel is still out: part of the refund landed on a consignment
+ * whose money never arrived, where no entry could post it.
+ *
+ * `include` names, by position, the consignments the refund belongs to. The
+ * refund is prorated over what is left of those alone — their own goods,
+ * delivery, tax and duty, in the proportion the sale booked them. If they have
+ * less left than the refund, the rest is spread over the others rather than
+ * dropped, so the parts still add up to the money that moved.
+ *
+ * Null when nothing included has anything left to reverse; the caller then
+ * prorates across the order as before.
+ */
+export function scopedRefundBacks(params: {
+  decomposition: OrderDecomposition;
+  amount: number;
+  include: ReadonlyArray<boolean>;
+  alreadyReversed?: readonly number[] | null;
+}): number[] | null {
+  const { decomposition, include } = params;
+  const currency = decomposition.currency;
+  const amount = quantizeToCurrency(Math.max(0, money(params.amount)), currency);
+  if (amount <= 0) return null;
+
+  const remaining = remainingParts(decomposition, params.alreadyReversed);
+  const inScope = remaining.map((value, flat) =>
+    include[Math.floor(flat / PARTS)] ? value : 0,
+  );
+  const scopeTotal = quantizeToCurrency(
+    inScope.reduce((sum, value) => sum + value, 0),
+    currency,
+  );
+  if (scopeTotal <= 0) return null;
+
+  const fromScope = Math.min(amount, scopeTotal);
+  const backs = allocate(fromScope, inScope, currency);
+
+  const excess = quantizeToCurrency(amount - fromScope, currency);
+  if (excess > 0) {
+    const outOfScope = remaining.map((value, flat) =>
+      include[Math.floor(flat / PARTS)] ? 0 : value,
+    );
+    const spill = allocate(
+      excess,
+      outOfScope.some((value) => value > 0) ? outOfScope : inScope,
+      currency,
+    );
+    spill.forEach((value, index) => {
+      backs[index] = quantizeToCurrency((backs[index] ?? 0) + value, currency);
+    });
+  }
+
+  return backs;
 }
 
 /**
@@ -865,6 +1333,17 @@ export function refundPostings(params: {
    * order-level refunds that have no item context — those still prorate.
    */
   allocation?: RefundAllocationInput[] | null;
+  /**
+   * What the reversed sale is taken out of. `cash` for a refund — money going
+   * back. `receivable` for the part of a called-off pre-order's sale whose
+   * balance never arrived: nothing is paid back for it, the shopper simply no
+   * longer owes it. See `balanceWriteOffPostings`.
+   */
+  against?: "cash" | "receivable";
+  /** Key and source overrides, for the write-off, which is not a refund. */
+  keyBase?: string;
+  sourceKind?: (typeof LEDGER_SOURCE_KIND)[keyof typeof LEDGER_SOURCE_KIND];
+  note?: string;
 }): LedgerPosting[] {
   const decomposition = decomposeOrder(params.order);
   if (!decomposition) return [];
@@ -879,8 +1358,9 @@ export function refundPostings(params: {
 
   const date = params.date || new Date();
   const subOrders = (params.order.subOrders || []).filter(Boolean);
+  const sourceKind = params.sourceKind ?? LEDGER_SOURCE_KIND.REFUND;
   const source = {
-    kind: LEDGER_SOURCE_KIND.REFUND,
+    kind: sourceKind,
     id: (params.refundId ?? params.order._id) as Types.ObjectId,
     ref: params.order.orderNumber ?? null,
   };
@@ -889,12 +1369,17 @@ export function refundPostings(params: {
     channel: params.order.channel,
     stripePaymentIntentId: params.order.stripePaymentIntentId,
   };
-  const cashAccount = cashAccountFor(params.order);
+  // What the reversal comes out of — see `against`.
+  const cashAccount =
+    params.against === "receivable"
+      ? LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE
+      : cashAccountFor(params.order);
+  const noteFor = (order: PostingOrder) => params.note ?? assumedNote(order);
 
   const entries: LedgerPosting[] = [];
-  const keyBase = String(params.refundId ?? `${String(params.order._id)}-${amount}`);
-  /** What fraction of the sale is being unwound. */
-  const ratio = total > 0 ? amount / total : 0;
+  const keyBase =
+    params.keyBase ??
+    String(params.refundId ?? `${String(params.order._id)}-${amount}`);
 
   // What the refund was actually made of, when the refund knows. A return is
   // scoped to particular items, so its composition is a FACT the return record
@@ -926,6 +1411,8 @@ export function refundPostings(params: {
     allocation: params.allocation,
     alreadyReversed: params.alreadyReversed,
   });
+  const storeFunded = storeFundedDiscountShares(params.order, currency);
+  const storeFundedShipping = storeFundedShippingShares(params.order, currency);
 
   subOrders.forEach((sub, index) => {
     // A consignment whose money never arrived posted no sale, so there is
@@ -941,7 +1428,7 @@ export function refundPostings(params: {
     const taxBack = backs[index * PARTS + 2] ?? 0;
     const dutyBack = backs[index * PARTS + 3] ?? 0;
     const line = (part: string) =>
-      postingKey(LEDGER_SOURCE_KIND.REFUND, keyBase, part, vendorId || index);
+      postingKey(sourceKind, keyBase, part, vendorId || index);
     // Per consignment, for the same reason the sale is — and it has to agree
     // with the sale, or a refund would hand back money down a path the original
     // never took. Including the own-store arm: the store refunds its own cash
@@ -958,7 +1445,7 @@ export function refundPostings(params: {
         currency,
         source,
         vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(params.order),
+        note: noteFor(params.order),
         key: line("tax-back"),
       });
     }
@@ -973,63 +1460,79 @@ export function refundPostings(params: {
         currency,
         source,
         vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(params.order),
+        note: noteFor(params.order),
         key: line("duty-back"),
       });
     }
 
-    // Unwinding a part-paid sale unwinds the part that was never collected
-    // along with it: the shopper no longer owes a balance on an order that has
-    // been handed back. Without this, refunding a deposit pre-order in full
-    // took the WHOLE total out of cash — including the sixty the store never
-    // received — and left the receivable standing against nothing.
-    //
-    // Proportional, like every other part here. A partial refund is modelled as
-    // unwinding that fraction of the whole sale, which is the only reading
-    // consistent with the sale having posted in full.
-    //
-    // Only while the balance is still owed. Once it has been collected the
-    // receivable is already off the books, and crediting it again would leave
-    // the shopper owed money by a store they bought from.
-    const outstandingBack = decomposition.balanceStillOwed
-      ? quantizeToCurrency(share.outstanding * ratio, currency)
-      : 0;
-    if (outstandingBack > 0 && platformHoldsCash) {
-      entries.push({
-        date,
-        book,
-        debit: cashAccount,
-        credit: LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE,
-        amount: outstandingBack,
-        currency,
-        source,
-        vendorId: sub.vendorId as Types.ObjectId,
-        note: "Balance no longer owed",
-        key: line("outstanding-back"),
-      });
-    }
+    // A called-off pre-order's balance that never arrived is not refunded —
+    // nobody paid it. Its part of the sale comes off against what the shopper
+    // owed instead, once, in `balanceWriteOffPostings`, however many refunds
+    // the cancellation took. Unwinding a share of it here with every refund
+    // undid only that refund's fraction of a balance the shopper will now
+    // never be asked for, and left the rest standing as a debt and a sale.
 
-    // Delivery the platform charged for and is now handing back. Against
-    // shipping income, so the shipping margin the overview reports stays the
-    // difference between what was kept and what a carrier cost.
-    if (shippingBack > 0 && platformHoldsCash) {
+    // Delivery handed back, out of wherever the charge sits now: shipping
+    // income for the store's own delivery, so the shipping margin the overview
+    // reports stays the difference between what was kept and what a carrier
+    // cost; the vendor's payable when the vendor earned it.
+    const vendorEarnedShipping = !isOwn && vendorEarnsShipping(sub);
+    // The store's half of a delivery it paid for through a free-shipping
+    // coupon, in the same proportion as the delivery going back. The sale
+    // credited the vendor the whole rated charge, so the whole rated charge is
+    // what comes off them again.
+    const fundedShipping = vendorEarnedShipping
+      ? (storeFundedShipping[index] ?? 0)
+      : 0;
+    // In the same proportion as the delivery going back. A delivery the store
+    // paid for in full charged the shopper nothing, so there is no cash share
+    // to measure against: the consignment's own refund ratio stands in, which
+    // for the whole consignment refunded takes the whole promotion back.
+    const chargedHere = share.merchandise + share.shipping + share.tax + share.duty;
+    const backHere = merchandiseBack + shippingBack + taxBack + dutyBack;
+    const shippingBackRatio =
+      share.shipping > 0
+        ? shippingBack / share.shipping
+        : chargedHere > 0
+          ? Math.min(1, backHere / chargedHere)
+          : 0;
+    const shippingPromotionBack =
+      fundedShipping > 0 && shippingBackRatio > 0
+        ? quantizeToCurrency(fundedShipping * shippingBackRatio, currency)
+        : 0;
+    if (shippingBack + shippingPromotionBack > 0 && platformHoldsCash) {
       entries.push({
         date,
         book,
-        debit: LEDGER_ACCOUNT.SHIPPING_INCOME,
+        debit: vendorEarnedShipping
+          ? LEDGER_ACCOUNT.VENDOR_PAYABLE
+          : LEDGER_ACCOUNT.SHIPPING_INCOME,
         credit: cashAccount,
-        amount: shippingBack,
+        amount: shippingBack + shippingPromotionBack,
         currency,
         source,
         vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(params.order),
+        note: noteFor(params.order),
         key: line("shipping-back"),
       });
+      if (shippingPromotionBack > 0) {
+        entries.push({
+          date,
+          book,
+          debit: cashAccount,
+          credit: LEDGER_ACCOUNT.PROMOTIONS,
+          amount: shippingPromotionBack,
+          currency,
+          source,
+          vendorId: sub.vendorId as Types.ObjectId,
+          note: noteFor(params.order),
+          key: line("shipping-promotion-back"),
+        });
+      }
     }
 
-    if (merchandiseBack <= 0) return;
-
     if (isOwn) {
+      if (merchandiseBack <= 0) return;
       entries.push({
         date,
         book,
@@ -1039,7 +1542,7 @@ export function refundPostings(params: {
         currency,
         source,
         vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(params.order),
+        note: noteFor(params.order),
         key: line("refund"),
       });
       return;
@@ -1048,6 +1551,32 @@ export function refundPostings(params: {
     // The same split the sale used, applied to the same merchandise figure.
     const subtotal = money(sub.subtotal);
     const commissionRatio = subtotal > 0 ? money(sub.commission) / subtotal : 0;
+    // A store-funded discount goes back with the goods, in proportion: the
+    // sale being unwound was made at the full price, and the store's share of
+    // it stops being a cost. Measured against the sale's own cash share, so
+    // several refunds together take back exactly what the sale posted.
+    const funded = storeFunded[index] ?? 0;
+    // Goods the store paid for charged the shopper nothing, so there is no
+    // cash share to measure the reversal against — the consignment's own
+    // refund ratio stands in, exactly as it does for a funded delivery. Left
+    // at zero, a 100%-off order refunded for its delivery kept the seller's
+    // payable and the store's promotion standing for goods nobody received.
+    const merchandiseBackRatio =
+      share.merchandise > 0
+        ? merchandiseBack / share.merchandise
+        : chargedHere > 0
+          ? Math.min(1, backHere / chargedHere)
+          : 0;
+    const promotionBack =
+      funded > 0 && merchandiseBackRatio > 0
+        ? quantizeToCurrency(funded * merchandiseBackRatio, currency)
+        : 0;
+
+    // Nothing of this consignment's sale is coming back: neither the shopper's
+    // money nor the store's own promotion on it.
+    if (merchandiseBack + promotionBack <= 0) return;
+
+    const soldForBack = quantizeToCurrency(merchandiseBack + promotionBack, currency);
     // Less whatever the platform kept as a refund administration fee. Held
     // back rather than reversed, so it stays as commission income and the
     // vendor's payable absorbs it — the shopper is refunded the same either
@@ -1055,16 +1584,33 @@ export function refundPostings(params: {
     // refund did before the fee existed.
     const retained = Math.min(
       Math.max(0, money(retainedByVendor.get(vendorId))),
-      merchandiseBack * commissionRatio,
+      soldForBack * commissionRatio,
     );
     const commissionBack = quantizeToCurrency(
-      merchandiseBack * commissionRatio - retained,
+      soldForBack * commissionRatio - retained,
       currency,
     );
     const vendorBack = quantizeToCurrency(
-      merchandiseBack - commissionBack,
+      soldForBack - commissionBack,
       currency,
     );
+
+    if (promotionBack > 0) {
+      entries.push({
+        date,
+        book,
+        debit: platformHoldsCash
+          ? cashAccount
+          : LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
+        credit: LEDGER_ACCOUNT.PROMOTIONS,
+        amount: promotionBack,
+        currency,
+        source,
+        vendorId: sub.vendorId as Types.ObjectId,
+        note: noteFor(params.order),
+        key: line("promotion-back"),
+      });
+    }
 
     if (commissionBack > 0) {
       entries.push({
@@ -1078,7 +1624,7 @@ export function refundPostings(params: {
         currency,
         source,
         vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(params.order),
+        note: noteFor(params.order),
         key: line("commission-back"),
       });
     }
@@ -1094,13 +1640,346 @@ export function refundPostings(params: {
         currency,
         source,
         vendorId: sub.vendorId as Types.ObjectId,
-        note: assumedNote(params.order),
+        note: noteFor(params.order),
         key: line("payable-back"),
       });
     }
   });
 
   return entries;
+}
+
+/**
+ * The part of a called-off pre-order's sale whose balance never arrived.
+ *
+ * A deposit pre-order posts its WHOLE sale when the deposit lands, with the
+ * balance sitting in `customer_receivable` until it arrives. Called off before
+ * it did, only the deposit goes back to the shopper, so a refund can only ever
+ * unwind the deposit's part — and the rest stayed on the books for good: a
+ * debt the shopper will never be asked for, commission income on goods that
+ * never shipped, and a vendor payable no sale backs. On a 100 order with a 40
+ * deposit, cancelling left 60 owed, 6 of commission and 54 owed to the vendor.
+ *
+ * This takes that part off against the receivable, per consignment that was
+ * called off (or all of them, when the order itself was), in the proportions
+ * the sale booked it. It is never more than the consignment's balance, nor
+ * more than refunds have left of its sale, so it is the same whether it runs
+ * before the deposit refund or after it. Keyed per consignment, so however
+ * many times a cancellation path asks, it is written once.
+ *
+ * Nothing at all once the balance arrived: then the whole sale was paid for,
+ * and refunding it is what unwinds it.
+ */
+/**
+ * A cancelled consignment the shopper never paid a penny for.
+ *
+ * An order the store's own coupon paid for in full is a real sale: the seller
+ * is owed their goods and charged commission on them, and the store carries
+ * the discount as a promotion. Called off, none of that is true any more — and
+ * no refund can unwind it, because there is no money to send back, so nothing
+ * ever did: the seller kept a payable for goods nobody received and the store
+ * kept the cost of a promotion that bought nothing.
+ *
+ * Only consignments whose whole charge was zero are written off here. Anything
+ * the shopper actually paid for comes back through the refund that returns it,
+ * which reverses the store's share of it in the same proportion.
+ */
+export function storeFundedCancellationPostings(params: {
+  order: PostingOrder;
+  context: OrderPostingContext;
+  /** Consignments called off; omitted means every cancelled one on the order. */
+  cancelledSubOrderIds?: ReadonlyArray<unknown> | null;
+  date?: Date;
+}): LedgerPosting[] {
+  const { order } = params;
+  const decomposition = decomposeOrder(order);
+  if (!decomposition) return [];
+  const { currency } = decomposition;
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  const funded = storeFundedDiscountShares(order, currency);
+  const orderCalledOff =
+    String(order.status || "").trim().toLowerCase() === CANCELLED_STATUS;
+  const named = params.cancelledSubOrderIds?.length
+    ? new Set(params.cancelledSubOrderIds.map((id) => String(id)))
+    : null;
+  const date = params.date || new Date();
+  const source = {
+    kind: LEDGER_SOURCE_KIND.ORDER,
+    id: order._id as Types.ObjectId,
+    ref: order.orderNumber ?? null,
+  };
+
+  const entries: LedgerPosting[] = [];
+  subOrders.forEach((sub, index) => {
+    const cancelled = named
+      ? named.has(String(sub._id))
+      : orderCalledOff || sub.status === CANCELLED_STATUS;
+    if (!cancelled) return;
+    if (!isConsignmentCollected(order, sub)) return;
+
+    const vendorId = sub.vendorId ? String(sub.vendorId) : "";
+    if (params.context.defaultVendorIds.has(vendorId)) return;
+
+    const share = decomposition.shares[index]!;
+    const charged = share.merchandise + share.shipping + share.tax + share.duty;
+    // The shopper paid something for this one, so the refund unwinds it.
+    if (charged > 0) return;
+
+    const gift = quantizeToCurrency(funded[index] ?? 0, currency);
+    if (gift <= 0) return;
+
+    const subtotal = money(sub.subtotal);
+    const commissionRatio = subtotal > 0 ? money(sub.commission) / subtotal : 0;
+    const commissionBack = quantizeToCurrency(gift * commissionRatio, currency);
+    const vendorBack = quantizeToCurrency(gift - commissionBack, currency);
+    const line = (part: string) =>
+      postingKey(LEDGER_SOURCE_KIND.ORDER, order._id, part, vendorId || index);
+    const book: LedgerBook = LEDGER_BOOK.MARKETPLACE;
+
+    if (vendorBack > 0) {
+      entries.push({
+        date,
+        book,
+        debit: LEDGER_ACCOUNT.VENDOR_PAYABLE,
+        credit: LEDGER_ACCOUNT.PROMOTIONS,
+        amount: vendorBack,
+        currency,
+        source,
+        vendorId: sub.vendorId as Types.ObjectId,
+        note: "Cancelled — the store's own discount paid for this sale",
+        key: line("cancel-payable-back"),
+      });
+    }
+    if (commissionBack > 0) {
+      entries.push({
+        date,
+        book,
+        debit: LEDGER_ACCOUNT.COMMISSION_INCOME,
+        credit: LEDGER_ACCOUNT.PROMOTIONS,
+        amount: commissionBack,
+        currency,
+        source,
+        vendorId: sub.vendorId as Types.ObjectId,
+        note: "Cancelled — the store's own discount paid for this sale",
+        key: line("cancel-commission-back"),
+      });
+    }
+  });
+
+  return entries;
+}
+
+export function balanceWriteOffPostings(params: {
+  order: PostingOrder;
+  context: OrderPostingContext;
+  /** What refunds already reversed, flat per consignment then part. */
+  alreadyReversed?: readonly number[] | null;
+  date?: Date;
+  /**
+   * What the books still hold as owed by the shopper, per vendor, for this
+   * order — the ceiling on what can be written off. The caller reads it from
+   * the ledger, which is the only place that knows whether a consignment's
+   * balance was already collected, or already written off, before it was
+   * called off. Without it the order's own balance date is the best guess.
+   */
+  receivableByVendor?: ReadonlyMap<string, number> | null;
+}): LedgerPosting[] {
+  const { order } = params;
+  const receivable = params.receivableByVendor ?? null;
+  if (!receivable && toDate(order.preorderBalancePaidAt)) return [];
+  const decomposition = decomposeOrder(order);
+  if (!decomposition) return [];
+  const subOrders = (order.subOrders || []).filter(Boolean);
+  const orderCalledOff =
+    String(order.status || "").trim().toLowerCase() === CANCELLED_STATUS;
+  const unreversed = unreversedConsignmentTotals(
+    decomposition,
+    params.alreadyReversed,
+  );
+  const custody = {
+    paymentMethod: order.paymentMethod,
+    channel: order.channel,
+    stripePaymentIntentId: order.stripePaymentIntentId,
+  };
+
+  const entries: LedgerPosting[] = [];
+  subOrders.forEach((sub, index) => {
+    if (!orderCalledOff && sub.status !== CANCELLED_STATUS) return;
+    if (!isConsignmentCollected(order, sub)) return;
+    const vendorId = sub.vendorId ? String(sub.vendorId) : "";
+    const isOwn = params.context.defaultVendorIds.has(vendorId);
+    // The balance was only ever raised as a receivable where the store holds
+    // the money — see the outstanding pair in `orderPaidPostings`.
+    if (!isOwn && !isPlatformSettled(custody, sub)) return;
+
+    const outstanding = decomposition.shares[index]?.outstanding ?? 0;
+    const stillOwed = receivable
+      ? Math.max(0, receivable.get(vendorId) ?? 0)
+      : Number.POSITIVE_INFINITY;
+    const writeOff = quantizeToCurrency(
+      Math.min(outstanding, unreversed[index] ?? 0, stillOwed),
+      decomposition.currency,
+    );
+    if (writeOff <= 0) return;
+
+    const backs = scopedRefundBacks({
+      decomposition,
+      amount: writeOff,
+      include: subOrders.map((_, position) => position === index),
+      alreadyReversed: params.alreadyReversed,
+    });
+    if (!backs) return;
+
+    entries.push(
+      ...refundPostings({
+        order,
+        amount: writeOff,
+        refundId: order._id,
+        date: params.date,
+        context: params.context,
+        alreadyReversed: params.alreadyReversed,
+        allocation: [
+          {
+            vendorId: sub.vendorId,
+            merchandise: backs[index * PARTS] ?? 0,
+            shipping: backs[index * PARTS + 1] ?? 0,
+            tax: backs[index * PARTS + 2] ?? 0,
+            duty: backs[index * PARTS + 3] ?? 0,
+          },
+        ],
+        against: "receivable",
+        keyBase: `${String(order._id)}:balance-write-off`,
+        sourceKind: LEDGER_SOURCE_KIND.ORDER,
+        note: "Pre-order balance no longer owed — it was called off before it arrived",
+      }),
+    );
+  });
+  return entries;
+}
+
+/**
+ * What a card network charged the store for a chargeback.
+ *
+ * A cost of taking card payments, like the processing fee, dated when the
+ * gateway took it. Given back — in part or whole — when the store wins the
+ * dispute, which is the `returned` mirror under its own key. Posted in the
+ * currency the gateway charged it in, which is the account's and not always
+ * the order's: no rate is known here, and inventing one would be worse than a
+ * report that names the currency.
+ *
+ * The disputed money itself is not here. It is recorded as a refund — the
+ * shopper's bank handed it back — so the sale, the vendor's payable and the
+ * payout's clawback all unwind through the one path every refund takes.
+ */
+export function disputeFeePostings(params: {
+  disputeId: string;
+  orderId: unknown;
+  orderNumber?: string | null;
+  amount: number;
+  currency: string;
+  date: Date;
+  book: LedgerBook;
+  returned?: boolean;
+  /**
+   * Which of several fees on one dispute this is. PayPal lists each fee it
+   * moves — a dispute fee, a chargeback fee, a transaction fee it gives back —
+   * and one key per dispute would post only the first. Left out, the key is
+   * the one a single fee each way was always posted under.
+   */
+  part?: string;
+  /** Added to the entry's note — what the gateway actually charged, when converted. */
+  note?: string;
+}): LedgerPosting[] {
+  const currency = String(params.currency || "").toUpperCase();
+  const amount = quantizeToCurrency(money(params.amount), currency);
+  if (!currency || amount <= 0 || !params.disputeId) return [];
+  return [
+    {
+      date: params.date,
+      book: params.book,
+      debit: params.returned
+        ? LEDGER_ACCOUNT.CASH_GATEWAY
+        : LEDGER_ACCOUNT.PROCESSING_FEES,
+      credit: params.returned
+        ? LEDGER_ACCOUNT.PROCESSING_FEES
+        : LEDGER_ACCOUNT.CASH_GATEWAY,
+      amount,
+      currency,
+      source: {
+        kind: LEDGER_SOURCE_KIND.ORDER,
+        id: params.orderId as Types.ObjectId,
+        ref: params.orderNumber ?? null,
+      },
+      note: `${
+        params.returned
+          ? `Chargeback fee returned — dispute ${params.disputeId} won`
+          : `Chargeback fee — dispute ${params.disputeId}`
+      }${params.note ? ` (${params.note})` : ""}`,
+      key: postingKey(
+        LEDGER_SOURCE_KIND.ORDER,
+        params.orderId,
+        "dispute",
+        params.disputeId,
+        params.returned ? "fee-returned" : "fee",
+        params.part || undefined,
+      ),
+    },
+  ];
+}
+
+/**
+ * What a chargeback took beyond the sale, moved to the books.
+ *
+ * `amount` is a change, not a balance: a loss booked (`returned` false) or
+ * given back when the store wins the money back (`returned` true). Each change
+ * is its own entry under its own `part`, so the loss can grow, shrink and
+ * return across several reads of one dispute and the entries always add up to
+ * what the gateway is still holding beyond the sale.
+ */
+export function chargebackLossPostings(params: {
+  disputeId: string;
+  orderId: unknown;
+  orderNumber?: string | null;
+  amount: number;
+  currency: string;
+  date: Date;
+  book: LedgerBook;
+  returned?: boolean;
+  part: number;
+}): LedgerPosting[] {
+  const currency = String(params.currency || "").toUpperCase();
+  const amount = quantizeToCurrency(money(params.amount), currency);
+  if (!currency || amount <= 0 || !params.disputeId) return [];
+  return [
+    {
+      date: params.date,
+      book: params.book,
+      debit: params.returned
+        ? LEDGER_ACCOUNT.CASH_GATEWAY
+        : LEDGER_ACCOUNT.CHARGEBACK_LOSSES,
+      credit: params.returned
+        ? LEDGER_ACCOUNT.CHARGEBACK_LOSSES
+        : LEDGER_ACCOUNT.CASH_GATEWAY,
+      amount,
+      currency,
+      source: {
+        kind: LEDGER_SOURCE_KIND.ORDER,
+        id: params.orderId as Types.ObjectId,
+        ref: params.orderNumber ?? null,
+      },
+      note: params.returned
+        ? `Chargeback beyond the sale returned — dispute ${params.disputeId}`
+        : `Chargeback beyond what was left of the sale — dispute ${params.disputeId}`,
+      key: postingKey(
+        LEDGER_SOURCE_KIND.ORDER,
+        params.orderId,
+        "dispute",
+        params.disputeId,
+        "beyond-sale",
+        params.part,
+      ),
+    },
+  ];
 }
 
 /**
@@ -1138,35 +2017,187 @@ export function refundReversalPostings(params: {
 }
 
 /** A payout clearing: a liability settled, never an expense. */
+/** Whether checkout said the vendor earns this consignment's delivery. */
+function shippingStampedToVendor(sub: PostingSubOrder): boolean {
+  return String(sub.shippingRevenueTo || "") === SHIPPING_REVENUE_TO.VENDOR;
+}
+
+/**
+ * A label bought on the store's own carrier account for a parcel whose
+ * delivery the vendor was going to earn: the store paid to deliver it after
+ * all, so the delivery charge the sale owed the vendor becomes the store's.
+ *
+ * Keyed by the label booking rather than the consignment, so a label voided
+ * and bought again moves the charge once per booking, each reversed by its own
+ * void — and a replay of the same booking posts nothing new. `amount` is what
+ * of the consignment's delivery is still unrefunded; the caller works it out
+ * from the same decomposition the sale posted.
+ */
+export function shippingToStorePostings(params: {
+  orderId: unknown;
+  orderNumber?: string | null;
+  vendorId?: unknown;
+  shipmentId: unknown;
+  bookingSequence?: number | null;
+  amount: number;
+  currency: string;
+  date: Date;
+  /** Hand the charge back to the vendor — the label was voided and refunded. */
+  reversal?: boolean;
+  /**
+   * The vendor took the shopper's money at the door, so there is no payable to
+   * take the charge out of: the store delivered a parcel it was never paid for
+   * and bills them for it, alongside the commission they already owe.
+   */
+  billToVendor?: boolean;
+}): LedgerPosting[] {
+  const currency = String(params.currency || "").toUpperCase();
+  const amount = quantizeToCurrency(money(params.amount), currency);
+  if (!currency || amount <= 0) return [];
+  const booking = labelKey(params.shipmentId, params.bookingSequence);
+  const owed = params.billToVendor
+    ? LEDGER_ACCOUNT.COMMISSION_RECEIVABLE
+    : LEDGER_ACCOUNT.VENDOR_PAYABLE;
+  return [
+    {
+      date: params.date,
+      book: LEDGER_BOOK.MARKETPLACE,
+      debit: params.reversal ? LEDGER_ACCOUNT.SHIPPING_INCOME : owed,
+      credit: params.reversal ? owed : LEDGER_ACCOUNT.SHIPPING_INCOME,
+      amount,
+      currency,
+      source: {
+        kind: LEDGER_SOURCE_KIND.ORDER,
+        id: params.orderId as Types.ObjectId,
+        ref: params.orderNumber ?? null,
+      },
+      vendorId: params.vendorId as Types.ObjectId,
+      note: params.reversal
+        ? params.billToVendor
+          ? "Delivery no longer billed to the vendor — the store's label was voided"
+          : "Delivery charge back to the vendor — the store's label was voided"
+        : params.billToVendor
+          ? "Delivery billed to the vendor — the store's courier carried a parcel they took the cash for"
+          : "Delivery charge to the store — delivered on the store's carrier account",
+      key: `${booking}:${params.billToVendor ? "shipping-billed" : "shipping-to-store"}${params.reversal ? ":reversal" : ""}`,
+    },
+  ];
+}
+
 export function payoutPaidPostings(payout: {
   _id: unknown;
   payoutNumber?: string | null;
   vendorId?: unknown;
   netAmount?: number | null;
+  /** Commission owed on the vendor's cash sales, deducted from this payout. */
+  commissionOffset?: number | null;
+  /** What the store owed on balance on those sales, paid in this payout. */
+  commissionCredit?: number | null;
+  /** How the money left — the account it left from. Absent means the bank. */
+  paidFrom?: string | null;
   currency?: string | null;
   paidAt?: Date | null;
 }): LedgerPosting[] {
   const currency = String(payout.currency || "").toUpperCase();
   const amount = money(payout.netAmount);
-  if (!currency || amount <= 0) return [];
+  const offset = money(payout.commissionOffset);
+  const credit = money(payout.commissionCredit);
+  if (!currency || (amount <= 0 && offset <= 0 && credit <= 0)) return [];
 
-  return [
-    {
-      date: payout.paidAt || new Date(),
+  const date = payout.paidAt || new Date();
+  const source = {
+    kind: LEDGER_SOURCE_KIND.PAYOUT,
+    id: payout._id as Types.ObjectId,
+    ref: payout.payoutNumber ?? null,
+  };
+  const entries: LedgerPosting[] = [];
+
+  if (amount > 0) {
+    entries.push({
+      date,
       book: LEDGER_BOOK.MARKETPLACE,
       debit: LEDGER_ACCOUNT.VENDOR_PAYABLE,
-      credit: LEDGER_ACCOUNT.CASH_BANK,
+      // The account it actually left from. A payout handed over in cash was
+      // credited to the bank, leaving the bank short and the till long.
+      credit:
+        payout.paidFrom === "cash"
+          ? LEDGER_ACCOUNT.CASH_ON_HAND
+          : payout.paidFrom === "gateway"
+            ? LEDGER_ACCOUNT.CASH_GATEWAY
+            : LEDGER_ACCOUNT.CASH_BANK,
       amount,
       currency,
-      source: {
-        kind: LEDGER_SOURCE_KIND.PAYOUT,
-        id: payout._id as Types.ObjectId,
-        ref: payout.payoutNumber ?? null,
-      },
+      source,
       vendorId: payout.vendorId as Types.ObjectId,
       key: postingKey(LEDGER_SOURCE_KIND.PAYOUT, payout._id, "paid"),
-    },
-  ];
+    });
+  }
+
+  // The commission the vendor owed on sales they took the cash for, settled by
+  // not sending that much of what they are owed. No money moves, so no cash
+  // account is touched: what the platform owes the vendor and what the vendor
+  // owes the platform simply come down together. Posted as income nowhere —
+  // the commission was income when the sale happened, which is what raised
+  // the receivable this clears.
+  if (offset > 0) {
+    entries.push({
+      date,
+      book: LEDGER_BOOK.MARKETPLACE,
+      debit: LEDGER_ACCOUNT.VENDOR_PAYABLE,
+      credit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
+      amount: offset,
+      currency,
+      source,
+      vendorId: payout.vendorId as Types.ObjectId,
+      key: postingKey(LEDGER_SOURCE_KIND.PAYOUT, payout._id, "commission-offset"),
+    });
+  }
+
+  // The reverse: the store's promotions on those sales left it owing the
+  // vendor, which the receivable carried as a negative. Moved to what the
+  // vendor is owed, so the payout's cash entry above settles it.
+  if (credit > 0) {
+    entries.push({
+      date,
+      book: LEDGER_BOOK.MARKETPLACE,
+      debit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
+      credit: LEDGER_ACCOUNT.VENDOR_PAYABLE,
+      amount: credit,
+      currency,
+      source,
+      vendorId: payout.vendorId as Types.ObjectId,
+      key: postingKey(LEDGER_SOURCE_KIND.PAYOUT, payout._id, "commission-credit"),
+    });
+  }
+
+  return entries;
+}
+
+/**
+ * A payout the money came back from.
+ *
+ * A bank transfer can bounce days after it left — a closed account, a wrong
+ * IBAN — and the store is then holding money its books say it handed over.
+ * The payout's own entries, flipped, under their own keys: the vendor is owed
+ * it again, the cash is back in the account it left from, and the commission
+ * the payout deducted is owed again.
+ *
+ * Reversing rather than deleting, as a failed refund is: the payment did
+ * happen on the day it happened, and a ledger that quietly loses a day is
+ * worse than one that shows the mistake and its correction.
+ */
+export function payoutReversalPostings(
+  payout: Parameters<typeof payoutPaidPostings>[0] & { reversedAt?: Date | null },
+): LedgerPosting[] {
+  const date = payout.reversedAt || new Date();
+  return payoutPaidPostings(payout).map((entry) => ({
+    ...entry,
+    date,
+    debit: entry.credit,
+    credit: entry.debit,
+    key: `${entry.key}:reversal`,
+    note: "Payout returned — the money came back",
+  }));
 }
 
 /** A vendor paying the platform for a boost or a subscription. */

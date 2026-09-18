@@ -15,7 +15,18 @@ import type { IOrder, SubOrder } from "@/types";
 
 export interface ShipmentScope {
   order: IOrder;
-  subOrder: SubOrder;
+  /**
+   * The consignment this action is about.
+   *
+   * Absent only where the caller does not need one — listing an order's
+   * parcels, or acting on a shipment that names its own sub-order. An admin
+   * looking at a split order has not chosen a consignment yet, and demanding
+   * one there took the whole Shipments panel away from every split order: the
+   * list request 404'd, the card swallowed the failure and rendered nothing,
+   * so there was no label, no tracking and no way to ship the remaining
+   * sellers' parcels at all.
+   */
+  subOrder?: SubOrder;
   customerEmail?: string;
   /** Vendor id when the caller is a vendor; undefined for admin/staff. */
   vendorId?: string;
@@ -28,6 +39,11 @@ export async function loadShipmentScope(params: {
   /** Picks the sub-order. Vendors are pinned to their own. */
   subOrderId?: string;
   vendorId?: string;
+  /**
+   * Whether the action is meaningless without a consignment. True only for
+   * rate shopping, which has to know what it is putting in a box.
+   */
+  requireSubOrder?: boolean;
 }): Promise<ShipmentScope> {
   const order = await Order.findOne({
     _id: params.orderId,
@@ -52,7 +68,9 @@ export async function loadShipmentScope(params: {
     subOrder = subOrders[0];
   }
 
-  if (!subOrder) throw new NotFoundError("Sub-order");
+  if (!subOrder && params.requireSubOrder !== false) {
+    throw new NotFoundError("Sub-order");
+  }
 
   // Carriers want a contact address on the consignee, and an order stores only
   // a customerId — so it is resolved once, here, for every carrier route.

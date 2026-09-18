@@ -66,6 +66,8 @@ import {
   type OrderStatusActionDefinition,
 } from "@/lib/orders/order-status-workflow";
 import { apiClient } from "@/lib/api/client";
+import { disputeGatewayForMethod } from "@/lib/payments/dispute-gateways";
+import { refundSettlesOutOfBand } from "@/lib/returns/refund-settlement";
 import {
   getSavedThermalPrinterName,
   printPdfBlobWithQz,
@@ -153,6 +155,7 @@ export function OrderHeader({
   const [refundValues, setRefundValues] = useState<InputDialogValues>({
     amount: "",
     reason: "",
+    settle: "send",
   });
   const [refundErrors, setRefundErrors] = useState<
     Record<string, string | undefined>
@@ -570,7 +573,7 @@ export function OrderHeader({
       return;
     }
 
-    setRefundValues({ amount: "", reason: "" });
+    setRefundValues({ amount: "", reason: "", settle: "send" });
     setRefundErrors({});
     setRefundDialogKind(kind);
   };
@@ -614,26 +617,37 @@ export function OrderHeader({
     setRefundErrors({});
     setIsUpdating(true);
 
+    // Money that has already gone back is only recorded, never sent again: a
+    // refund made in the gateway's own dashboard, or a chargeback the
+    // customer's bank took. The server matches either to the gateway's report
+    // when it arrives, so it is counted once.
+    const settle = values.settle || "send";
+    const isChargeback = settle === "chargeback";
+    const alreadyGone = settle === "already" || isChargeback;
+
     try {
       // A return refund is capped server-side at the value of the goods coming
       // back, so only record this refund against a return when the amount
       // actually fits what is left of that cap. Routing every refund through
       // an open return made a FULL order refund impossible — the returns API
       // rejected the order total with "use the order refund flow for larger
-      // refunds", and this screen has no other way to reach that flow.
-      const returnRequestForRefund = returnRequests.find((request) => {
-        if (
-          !["approved", "received", "inspected", "refund_pending"].includes(
-            request.status,
-          )
-        ) {
-          return false;
-        }
-        const estimate = Number(request.estimatedRefundTotal || 0);
-        if (estimate <= 0) return true;
-        const remaining = estimate - Number(request.actualRefundAmount || 0);
-        return amount <= remaining + 0.01;
-      });
+      // refunds", and this screen has no other way to reach that flow. A
+      // chargeback is the bank's, not a return's, so it never goes that way.
+      const returnRequestForRefund = isChargeback
+        ? undefined
+        : returnRequests.find((request) => {
+            if (
+              !["approved", "received", "inspected", "refund_pending"].includes(
+                request.status,
+              )
+            ) {
+              return false;
+            }
+            const estimate = Number(request.estimatedRefundTotal || 0);
+            if (estimate <= 0) return true;
+            const remaining = estimate - Number(request.actualRefundAmount || 0);
+            return amount <= remaining + 0.01;
+          });
       await apiClient.put(
         returnRequestForRefund
           ? `/api/admin/returns/${returnRequestForRefund._id}`
@@ -643,6 +657,7 @@ export function OrderHeader({
               status: "refunded",
               refundAmount: amount,
               refundReason: values.reason.trim() || undefined,
+              ...(alreadyGone ? { manualRefund: true } : {}),
             }
           : {
               paymentStatus:
@@ -651,7 +666,14 @@ export function OrderHeader({
                   : "partially_refunded",
               refundAmount: amount,
               refundReason: values.reason.trim() || undefined,
-              ...describedRefund(values),
+              ...(isChargeback ? {} : describedRefund(values)),
+              ...(alreadyGone ? { manualRefund: true } : {}),
+              ...(isChargeback
+                ? {
+                    manualRefundKind: "chargeback",
+                    chargebackDisputeId: (values.disputeId || "").trim() || undefined,
+                  }
+                : {}),
             },
       );
 
@@ -720,7 +742,47 @@ export function OrderHeader({
       : []),
   ];
 
+  // How the money goes back. Sending it is the default; the other two only
+  // record money that has already left, so nothing is paid out twice.
+  const refundOutOfBand = refundSettlesOutOfBand({
+    paymentMethod: order.paymentMethod,
+    channel: order.channel,
+  });
+  const refundDisputeGateway = refundOutOfBand
+    ? null
+    : disputeGatewayForMethod(order.paymentMethod);
+  const recordingChargeback = refundValues.settle === "chargeback";
+  const settleField: InputDialogField = {
+    name: "settle",
+    label: t("orderDetails.refundSettleLabel"),
+    options: [
+      {
+        value: "send",
+        label: refundOutOfBand
+          ? t("orderDetails.refundSettleRecordToSend")
+          : t("orderDetails.refundSettleSend"),
+      },
+      {
+        value: "already",
+        label: refundOutOfBand
+          ? t("orderDetails.refundSettleAlreadyReturned")
+          : t("orderDetails.refundSettleAlreadyAtGateway"),
+        description: t("orderDetails.refundSettleAlreadyHint"),
+      },
+      ...(refundDisputeGateway
+        ? [
+            {
+              value: "chargeback",
+              label: t("orderDetails.refundSettleChargeback"),
+              description: t("orderDetails.refundSettleChargebackHint"),
+            },
+          ]
+        : []),
+    ],
+  };
+
   const refundFields: InputDialogField[] = [
+    settleField,
     ...(refundDialogKind === "partial"
       ? [
           {
@@ -735,7 +797,15 @@ export function OrderHeader({
           },
         ]
       : []),
-    ...describeFields,
+    ...(recordingChargeback
+      ? [
+          {
+            name: "disputeId",
+            label: t("orderDetails.refundChargebackDisputeId"),
+            placeholder: t("orderDetails.refundChargebackDisputeIdPlaceholder"),
+          },
+        ]
+      : describeFields),
     {
       name: "reason",
       label: t("orderDetails.refundReasonOptional"),
@@ -769,9 +839,13 @@ export function OrderHeader({
 
   return (
     <>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
+      {/* Title and actions share a row only when there is room for both. At
+          common laptop widths the badges and the four actions did not fit, and
+          the row ran off the right edge — taking "More actions", and with it
+          refunds and status changes, out of reach. */}
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-2xl font-bold tracking-tight">
               {t("orderDetails.orderNumber", { number: order.orderNumber })}
             </h1>
@@ -844,7 +918,7 @@ export function OrderHeader({
 
         {/* The action bar is what you clicked to get here — it has no place on
             the printed sheet. */}
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden xl:shrink-0 xl:justify-end">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             {t("orderDetails.print")}

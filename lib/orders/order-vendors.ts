@@ -4,6 +4,11 @@ import {
   type CodCollectedBy,
 } from "@/config/app.config";
 import { resolveCodCollector } from "@/lib/payments/cod-collection";
+import {
+  resolveShippingRevenueTo,
+  SHIPPING_REVENUE_TO,
+  type ShippingRevenueTo,
+} from "@/lib/shipping/shipping-revenue";
 import { resolveDefaultVendorId } from "@/lib/vendors/multi-vendor";
 import { Vendor } from "@/models";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
@@ -50,6 +55,10 @@ type OrderSubOrderItem = {
 };
 
 type OrderSubOrderInput = {
+  /** This consignment's slice of a scoped coupon — see `couponDiscountByVendor`. */
+  couponDiscount?: number;
+  /** What a free-shipping coupon took off this consignment's delivery. */
+  shippingDiscount?: number;
   vendorId: string;
   items: OrderSubOrderItem[];
   subtotal: number;
@@ -58,6 +67,7 @@ type OrderSubOrderInput = {
   status: string;
   /** Who takes the cash if this sale is COD; frozen here at creation. */
   codCollectedBy: CodCollectedBy;
+  shippingRevenueTo: ShippingRevenueTo;
 };
 
 type VendorIdRecord = {
@@ -247,6 +257,13 @@ export async function buildVendorSubOrders<T>(
      * `vendor` — the behaviour every order had before this existed.
      */
     codCollectedByDefault?: string;
+    /**
+     * A scoped coupon's goods discount, by vendor, from
+     * `validateAndCalculateCoupon`'s `vendorShares`. Given, every consignment
+     * records its own slice (zero when the coupon did not reach it); omitted,
+     * none does, and the order's single discount is shared by sales as before.
+     */
+    couponDiscountByVendor?: Record<string, number>;
   },
 ): Promise<OrderSubOrderInput[]> {
   const fallbackCommissionPercent = Number.isFinite(
@@ -261,7 +278,7 @@ export async function buildVendorSubOrders<T>(
   const vendorIds = [...vendorGroups.keys()];
   const vendorDocs = vendorIds.length
     ? await Vendor.find({ _id: { $in: vendorIds } })
-        .select("commission shipping.codCollectedBy")
+        .select("commission isDefault shipping.codCollectedBy")
         .lean()
     : [];
   const commissionByVendorId = new Map<string, number>();
@@ -269,7 +286,13 @@ export async function buildVendorSubOrders<T>(
   // every order-creation path funnels through, and frozen onto the consignment
   // — see `lib/cod-collection.ts` for why it must not be looked up later.
   const codCollectorByVendorId = new Map<string, CodCollectedBy>();
+  // The store's own consignments: every delivery charge on them is already
+  // the store's, whoever carries the parcel.
+  const storeVendorIds = new Set<string>();
   for (const vendor of vendorDocs) {
+    if ((vendor as { isDefault?: boolean }).isDefault) {
+      storeVendorIds.add(String(vendor._id));
+    }
     if (typeof vendor.commission === "number") {
       commissionByVendorId.set(String(vendor._id), vendor.commission);
     }
@@ -305,10 +328,17 @@ export async function buildVendorSubOrders<T>(
       Math.round(subtotal * (commissionPercent / 100) * 100) / 100;
     const vendorEarnings = Math.round((subtotal - commission) * 100) / 100;
 
+    const codCollectedBy =
+      codCollectorByVendorId.get(vendorId) ?? COD_COLLECTED_BY.VENDOR;
     subOrders.push({
       vendorId,
-      codCollectedBy:
-        codCollectorByVendorId.get(vendorId) ?? COD_COLLECTED_BY.VENDOR,
+      codCollectedBy,
+      // Who delivers is who earns the delivery charge — frozen with the rest,
+      // for the same reason: a later settings change must not move money on
+      // orders already placed.
+      shippingRevenueTo: storeVendorIds.has(vendorId)
+        ? SHIPPING_REVENUE_TO.PLATFORM
+        : resolveShippingRevenueTo(codCollectedBy),
       items: vendorItems.map((item) => {
         const lineDiscount = options.getLineDiscount?.(item) ?? null;
         const lineDiscountAmount = lineDiscount
@@ -352,6 +382,14 @@ export async function buildVendorSubOrders<T>(
       subtotal,
       commission,
       vendorEarnings,
+      ...(options.couponDiscountByVendor
+        ? {
+            couponDiscount: Math.min(
+              subtotal,
+              Math.max(0, Number(options.couponDiscountByVendor[vendorId] || 0)),
+            ),
+          }
+        : {}),
       status: options.status || ORDER_STATUS.PENDING,
     });
   }

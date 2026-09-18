@@ -46,12 +46,12 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "supportedCurrencies",
     "countryAvailability",
     "timezone",
-    "productSearchMode",
   ] as const),
   appearance: section([
     "primaryColor",
     "secondaryColor",
     "accentColor",
+    "skeletonColor",
     "theme",
     "contrast",
     "rtl",
@@ -84,6 +84,13 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "apiKey",
     "logRetentionDays",
   ] as const),
+  sms: section([
+    "enabled",
+    "twilio",
+    "defaultCountry",
+    "includeLinks",
+    "logRetentionDays",
+  ] as const),
   orders: section([
     "prefix",
     "taxRate",
@@ -112,6 +119,8 @@ export const SETTINGS_SECTION_SCHEMAS = {
   // constants. Left as free text it is also a loaded gun: one stray
   // `Disallow: /` de-indexes the whole store.
   seo: section(["metaTitle", "metaDescription", "metaKeywords", "ogImage"] as const),
+  /** Saved slide templates (Online Store → Sliders → save as template). */
+  sliderTemplates: section(["items"] as const),
   social: section([
     "facebookUrl",
     "twitterUrl",
@@ -185,6 +194,17 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "canAccessPOS",
     "packPolicy",
   ] as const),
+  preorder: section([
+    "enabled",
+    "requireVendorApproval",
+    "maxLeadDays",
+    "maxDepositPercent",
+    "expiryGraceDays",
+    "autoRelease",
+    "autoReleaseDelayDays",
+    "reservePercent",
+    "reserveDays",
+  ] as const),
   vendorConfig: section([
     "plansEnabled",
     "allowRegistration",
@@ -239,6 +259,7 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "temperature",
     "reasoningEffort",
     "maxRecommendations",
+    "monthlyTokenBudget",
     "agentName",
     "greeting",
     "tone",
@@ -287,9 +308,23 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "copyright",
     "paymentMethods",
   ] as const),
-  checkout: section(["layout", "trust", "policyLinks"] as const),
+  checkout: section(
+    [
+      "layout",
+      "trust",
+      "policyLinks",
+      "contact",
+      "fields",
+      "orderNote",
+      "customFields",
+      "accounts",
+      "abandonedCheckouts",
+    ] as const,
+  ),
+  // `version` must survive the allow-list: without it every save reads
+  // back as a pre-v2 card, whose "brand" element is renamed to "seller".
   productCard: section(
-    ["template", "groups", "visibility", "action", "style"] as const,
+    ["version", "template", "groups", "visibility", "action", "style"] as const,
   ),
   homePage: section(["sectionOrder", "sections"] as const),
   // Every built-in page (terms, privacy, …, about) plus the custom list. The

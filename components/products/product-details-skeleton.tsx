@@ -6,6 +6,9 @@ import {
   THUMBNAIL_TILE_CLASS,
 } from "@/components/products/gallery-layout";
 import { cn } from "@/lib/utils";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 // Skeletons for the product detail route. Dimensions mirror the real
 // components (product-details.tsx, product-image-gallery.tsx, reviews-list.tsx,
@@ -158,7 +161,7 @@ export function ReviewsSkeleton() {
 export function RelatedProductsSkeleton() {
   return (
     <div
-      className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4"
+      className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}
       aria-hidden="true"
     >
       {Array.from({ length: 4 }).map((_, i) => (

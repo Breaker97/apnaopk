@@ -10,6 +10,7 @@ import type { BarcodeFormat, BarcodeSource } from "@/lib/barcode/standards";
 import type { InventoryListResult } from "@/lib/inventory/inventory-list";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { escapeRegExp } from "@/lib/strings";
+import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
 
 /**
  * Vendor inventory list query.
@@ -254,7 +255,10 @@ export async function fetchVendorInventoryList(
 
   const skip = (page - 1) * limit;
   const total = inventoryItems.length;
-  const paginatedItems = inventoryItems.slice(skip, skip + limit);
+  const paginatedItems = await attachIncomingStock(
+    inventoryItems.slice(skip, skip + limit),
+    locationId || undefined,
+  );
   const totalPages = Math.ceil(total / limit);
 
   return {

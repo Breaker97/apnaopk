@@ -443,3 +443,129 @@ export const LUXE_HOME_PRESET: SectionInstance[] = [
     Array.from({ length: 5 }, () => ({ type: "image" })),
   ),
 ];
+
+/**
+ * Women's Fashion — the apparel home, to the design top-to-bottom: the
+ * campaign hero, the four department tiles with their names on the picture,
+ * the tabbed Best Selling shelf, the five-tile magazine grid, two collection
+ * rows (a feature panel beside three pieces), the deals panel, the Get the
+ * Look outfit with Add All to Cart, the Looks row, and the journal.
+ *
+ * Every section here either carries its own copy or is one the activation
+ * binder fills from the merchant's catalogue (`preset-binding.ts`) — nothing
+ * arrives as a blank frame. The hero and the magazine grid are authored in
+ * the grid/cell shape the current sections use, so their v1 migration is a
+ * pass-through rather than a reshape. The Looks row is automatic: it lists
+ * whatever the merchant marks as a Look, and stays quiet until they do.
+ */
+export const WOMEN_FASHION_HOME_PRESET: SectionInstance[] = [
+  // Full-bleed campaign image: the theme's own slider tokens already say
+  // full/threeQuarters, but the hero states them so switching TO this theme
+  // from a contained one actually changes the frame.
+  instance(
+    "women-fashion",
+    1,
+    "slideshow",
+    { grid: "single", width: "full", height: "threeQuarters" },
+    [{ type: "cell", settings: { kind: "image" } }],
+  ),
+  // The design's four tiles, names on the pictures. Untitled: the tiles
+  // read as departments without a heading over them.
+  instance("women-fashion", 2, "category-list", {
+    variant: "overlay",
+    title: "",
+    source: "featured",
+    limit: 4,
+  }),
+  instance(
+    "women-fashion",
+    3,
+    "product-group",
+    { variant: "centered", title: "Best Selling" },
+    [
+      { type: "tab", settings: { label: "Featured", source: "featured" } },
+      { type: "tab", settings: { label: "New In", source: "latest" } },
+      { type: "tab", settings: { label: "On Sale", source: "discounted" } },
+    ],
+  ),
+  // The magazine grid: tall ends, two small tiles over a wide one — the
+  // same "feature" shape as Electronics, dressed by the binder.
+  instance(
+    "women-fashion",
+    4,
+    "promotion-grid",
+    { grid: "feature", width: "fixed", height: "half" },
+    Array.from({ length: 5 }, () => ({
+      type: "cell",
+      settings: { kind: "image" },
+    })),
+  ),
+  // Two collection rows, no heading over them — the panel carries each
+  // row's name. Three pieces beside the panel, as drawn.
+  instance(
+    "women-fashion",
+    5,
+    "featured-collection",
+    { title: "" },
+    Array.from({ length: 2 }, () => ({
+      type: "collection",
+      settings: { limit: 3 },
+    })),
+  ),
+  instance("women-fashion", 6, "countdown-offer", {
+    variant: "deals-panel",
+    subheading: "Today's Featured",
+    heading: "Deals",
+    ctaLabel: "View All Deals",
+    link: "/products",
+  }),
+  // The paid boost rail, for the same reason Electronics carries one: home
+  // placement depths are read from the PUBLISHED home's sponsored-rail, so a
+  // starter without one makes home boosts unsellable on a fresh install.
+  instance("women-fashion", 7, "sponsored-rail", { limit: 8 }),
+  instance("women-fashion", 8, "get-the-look", {
+    title: "Get the Look",
+    subtitle: "Curated pieces styled together for effortless elegance",
+    limit: 4,
+    ctaLabel: "Add All to Cart",
+  }),
+  instance("women-fashion", 9, "looks-list", {
+    title: "More Looks to Love",
+    source: "looks",
+    limit: 8,
+  }),
+  instance("women-fashion", 10, "blog-posts", {
+    title: "Top Articles",
+    limit: 3,
+    desktopColumns: 3,
+  }),
+];
+
+/**
+ * The apparel product page: the side-rail gallery, which is the arrangement
+ * a fashion PDP is drawn around — the shot column beside the buy box rather
+ * than a thumbnail strip beneath it.
+ *
+ * Stated at all for the parity reason the Classic and Luxe product presets
+ * are: Electronics publishes a bottom-gallery product page on activation, so
+ * a theme that stayed silent here would leave Electronics' product page
+ * published forever while its home page changed.
+ */
+export const WOMEN_FASHION_PRODUCT_PRESET: SectionInstance[] =
+  getDefaultProductTemplateSections("left");
+
+/**
+ * Its chrome: the shipping promise above the header, the plain bar below.
+ * Stated in full (bars included) because a group preset missing its required
+ * core fails the write gate — which is exactly the check that keeps chrome
+ * from being deleted by an activation.
+ */
+export const WOMEN_FASHION_GROUP_PRESETS = {
+  header: [
+    instance("women-fashion-header", 1, "announcement-bar", {
+      text: "Complimentary shipping on all orders over $100",
+    }),
+    instance("women-fashion-header", 2, "header-bar", {}),
+  ],
+  footer: [instance("women-fashion-footer", 1, "footer-bar", {})],
+};

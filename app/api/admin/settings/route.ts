@@ -26,7 +26,10 @@ import {
 import { normalizeFooterSettings } from "@/lib/site-config/footer-config";
 import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
 import { normalizeProductCardConfig } from "@/lib/products/product-card-config";
-import { resolveSmtpConfig } from "@/lib/settings/credentials";
+import {
+  resolveSmtpConfig,
+  resolveTwilioConfig,
+} from "@/lib/settings/credentials";
 import { clearStorageConfigCache } from "@/lib/storage";
 import { normalizePathPrefix } from "@/lib/storage/key";
 import {
@@ -46,7 +49,11 @@ import {
   revalidateSettingsContent,
 } from "@/lib/cache-invalidation";
 import { ORDER_PREFIX_PATTERN } from "@/lib/orders/order-settings";
-import { RETURN_SHIPPING_REFUND_MODES } from "@/lib/returns/return-policy";
+import {
+  MAX_RETURN_WINDOW_DAYS,
+  MIN_RETURN_WINDOW_DAYS,
+  RETURN_SHIPPING_REFUND_MODES,
+} from "@/lib/returns/return-policy";
 import { MAX_PLACEMENT_DEPTH } from "@/lib/boosts/boost-placement-depths";
 import {
   BOOST_HOLD_MAX_MINUTES,
@@ -79,6 +86,7 @@ import {
   applySectionAllowList,
 } from "@/lib/settings/section-registry";
 import { assertSectionVersions } from "@/lib/settings/section-versions";
+import { validateSmsSettings } from "@/lib/sms/sms-settings";
 
 
 function toPlainRecord(value: unknown): Record<string, unknown> {
@@ -101,6 +109,19 @@ function toPlainRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
+/**
+ * Settings stored as a Mongoose Map, written whole.
+ *
+ * Walked like any other object, `{ UGX: 180000 }` became a write to
+ * `…minWithdrawalByCurrency.UGX` — which a Map that did not exist yet silently
+ * dropped — and a currency removed from the form was simply never written, so
+ * it could not be removed at all. The form sends the whole map, so the whole
+ * map is what is stored.
+ */
+const WHOLE_VALUE_SETTINGS_PATHS = new Set([
+  "orders.commission.minWithdrawalByCurrency",
+]);
+
 function flattenToDotPaths(
   basePath: string,
   value: Record<string, unknown>,
@@ -108,6 +129,10 @@ function flattenToDotPaths(
   const out: Record<string, unknown> = {};
 
   const walk = (prefix: string, current: unknown) => {
+    if (WHOLE_VALUE_SETTINGS_PATHS.has(prefix)) {
+      out[prefix] = current;
+      return;
+    }
     if (isPlainObject(current)) {
       for (const [k, v] of Object.entries(current)) {
         walk(`${prefix}.${k}`, v);
@@ -794,6 +819,7 @@ function validateOrderSettings(data: Record<string, unknown>) {
       throw new ValidationError("Return policy settings are invalid");
     }
     const allowedReturnKeys = new Set([
+      "windowDays",
       "shippingRefund",
       "restockingFeePercent",
       "returnShippingFee",
@@ -805,6 +831,14 @@ function validateOrderSettings(data: Record<string, unknown>) {
       if (!allowedReturnKeys.has(key)) {
         throw new ValidationError(`Invalid return policy setting: ${key}`);
       }
+    }
+    if (Object.prototype.hasOwnProperty.call(data.returns, "windowDays")) {
+      requireFiniteNumber(
+        data.returns.windowDays,
+        "Return window",
+        MIN_RETURN_WINDOW_DAYS,
+        MAX_RETURN_WINDOW_DAYS,
+      );
     }
     if (Object.prototype.hasOwnProperty.call(data.returns, "shippingRefund")) {
       if (
@@ -871,7 +905,11 @@ function validateOrderSettings(data: Record<string, unknown>) {
     if (!isPlainObject(data.commission)) {
       throw new ValidationError("Commission settings are invalid");
     }
-    const allowedCommissionKeys = new Set(["vendorRate", "minWithdrawalAmount"]);
+    const allowedCommissionKeys = new Set([
+      "vendorRate",
+      "minWithdrawalAmount",
+      "minWithdrawalByCurrency",
+    ]);
     for (const key of Object.keys(data.commission)) {
       if (!allowedCommissionKeys.has(key)) {
         throw new ValidationError(`Invalid commission setting: ${key}`);
@@ -888,6 +926,22 @@ function validateOrderSettings(data: Record<string, unknown>) {
         "Minimum withdrawal amount",
         0,
       );
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data.commission, "minWithdrawalByCurrency")
+    ) {
+      const byCurrency = data.commission.minWithdrawalByCurrency;
+      if (byCurrency !== null && !isPlainObject(byCurrency)) {
+        throw new ValidationError("Minimum payouts by currency are invalid");
+      }
+      for (const [code, amount] of Object.entries(
+        (byCurrency || {}) as Record<string, unknown>,
+      )) {
+        if (!/^[A-Z]{3}$/.test(code)) {
+          throw new ValidationError(`"${code}" is not a currency code`);
+        }
+        requireFiniteNumber(amount, `Minimum payout in ${code}`, 0);
+      }
     }
   }
 }
@@ -1082,6 +1136,7 @@ export const PUT = withApi(
       if (section === "orders") validateOrderSettings(sectionData);
       if (section === "security") validateSecuritySettings(sectionData);
       if (section === "email") validateEmailSettings(sectionData);
+      if (section === "sms") validateSmsSettings(sectionData);
       if (section === "vendorConfig") validateVendorConfigSettings(sectionData);
       if (section === "storage") {
         normalizeStorageSettings(sectionData);
@@ -1189,6 +1244,9 @@ export const PUT = withApi(
         if (key === "email" && isPlainObject(value)) {
           validateEmailSettings(value);
         }
+        if (key === "sms" && isPlainObject(value)) {
+          validateSmsSettings(value);
+        }
         if (key === "vendorConfig" && isPlainObject(value)) {
           validateVendorConfigSettings(value);
         }
@@ -1257,6 +1315,16 @@ export const PUT = withApi(
     ) {
       throw new ValidationError(
         "SMTP username and password are required. Enter a password or configure SMTP_USER and SMTP_PASS.",
+      );
+    }
+    const smsWasUpdated =
+      section === "sms" ||
+      (!section &&
+        isPlainObject(data) &&
+        Object.prototype.hasOwnProperty.call(data, "sms"));
+    if (smsWasUpdated && settings.sms?.enabled && !resolveTwilioConfig(settings)) {
+      throw new ValidationError(
+        "To turn SMS on, enter the Twilio Account SID and Auth Token (or set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN) and a Messaging Service SID or From number.",
       );
     }
     const beforeSecurity = isPlainObject(

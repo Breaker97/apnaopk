@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import { type Locale } from "@/config/i18n.config";
+import {
+  listingCategoryTrail,
+  resolveListingCategory,
+} from "@/lib/storefront/listing-category";
 import { resolveRequestLocation } from "@/lib/locations/resolve-request-location";
-import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
+import { ProductsBreadcrumb } from "@/components/store/sections/listing/products-breadcrumb";
 import { StoreSections } from "@/components/store/store-sections";
-import { setRequestLocale, getTranslations } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
+import {
+  listingBreadcrumbAlignClass,
+  listingBreadcrumbInCover,
+  readProductsListingLayout,
+} from "@/lib/storefront/sections/products-listing-layout";
 import { getTemplateSections } from "@/lib/storefront/pages/get-template";
 import type { SectionRenderContext } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
@@ -11,6 +21,27 @@ import { SearchAnalytics } from "@/components/analytics/search-analytics";
 interface PageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+/**
+ * Opened on one category, the tab and the share card name the category;
+ * otherwise the store's own metadata stands, as it always has.
+ */
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const context = await resolveListingCategory(await searchParams);
+  if (!context) return {};
+  const { category } = context;
+  const title = category.seo?.pageTitle || category.name;
+  const description = category.seo?.metaDescription || category.description;
+  return {
+    title,
+    ...(description ? { description } : {}),
+    openGraph: {
+      title,
+      ...(description ? { description } : {}),
+      ...(category.image ? { images: [{ url: category.image, alt: category.name }] } : {}),
+    },
+  };
 }
 
 /**
@@ -30,14 +61,18 @@ export default async function ProductsPage({
   setRequestLocale(locale);
 
   const location = resolveRequestLocation(search);
-  const [t, template, storefront] = await Promise.all([
-    getTranslations({ locale }),
+  const [template, storefront] = await Promise.all([
     getTemplateSections("products"),
     getStorefrontSettings(),
   ]);
 
   const searchQuery =
     typeof search.search === "string" ? search.search : undefined;
+  // The category the listing is opened on, if one: the trail comes from it.
+  const listingCategory = await resolveListingCategory(search);
+  const trail = listingCategory
+    ? listingCategoryTrail(listingCategory, { searchQuery })
+    : [];
 
   const ctx: SectionRenderContext = {
     locale: locale as Locale,
@@ -49,26 +84,36 @@ export default async function ProductsPage({
     resource: { type: "products", searchParams: search, location },
   };
 
+  // A listing cover can carry the breadcrumb; then the cover draws it and
+  // the page must not draw a second one above.
+  const listing = template.sections.find(
+    (section) => section.type === "products-main",
+  );
+  const listingLayout = listing
+    ? readProductsListingLayout(listing.settings)
+    : null;
+  const breadcrumbInCover = listingLayout
+    ? listingBreadcrumbInCover(listingLayout)
+    : false;
+  // The trail the page draws follows the same alignment as the one a cover
+  // would: the setting describes the breadcrumb, not where it happens to sit.
+  const crumbAlign = listingLayout
+    ? listingBreadcrumbAlignClass(listingLayout, "left")
+    : "";
+
   return (
-    <div className="pb-8">
-      <div className="container mx-auto px-4 pt-8">
-        <SearchAnalytics query={searchQuery} />
-        {/* A search narrows this listing rather than leaving it, so
-            "Products" becomes the link back to the unfiltered grid and the
-            query takes the current-page slot. */}
-        <StoreBreadcrumb
-          className="mb-4"
-          locale={locale}
-          items={
-            searchQuery
-              ? [
-                  { label: t("nav.products"), href: "/products" },
-                  { label: `${t("common.search")}: "${searchQuery}"` },
-                ]
-              : [{ label: t("nav.products") }]
-          }
-        />
-      </div>
+    <div className={breadcrumbInCover ? "pb-8 pt-6" : "pb-8"}>
+      <SearchAnalytics query={searchQuery} />
+      {breadcrumbInCover ? null : (
+        <div className="container mx-auto px-4 pt-8">
+          <ProductsBreadcrumb
+            className={`mb-4 ${crumbAlign}`}
+            locale={locale}
+            searchQuery={searchQuery}
+            trail={trail}
+          />
+        </div>
+      )}
 
       <StoreSections sections={template.sections} ctx={ctx} />
     </div>

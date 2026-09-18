@@ -32,6 +32,7 @@
     "yes": "Yes",
     "no": "No",
     "close": "Close",
+    "scrollToTop": "Nenda juu",
     "back": "Back",
     "goBack": "Go Back",
     "backToHome": "Back to Home",
@@ -137,7 +138,8 @@
     "decreaseQuantity": "Punguza idadi",
     "increaseQuantity": "Ongeza idadi",
     "name": "Jina",
-    "email": "Barua pepe"
+    "email": "Barua pepe",
+    "showingResultsFor": "Inaonyesha matokeo ya <q>{query}</q>"
   },
   "ui": {
     "dataTable": {
@@ -353,7 +355,8 @@
         "bestRating": "Best Rating",
         "newest": "Newest",
         "priceLowHigh": "Price Low - High",
-        "priceHighLow": "Price High - Low"
+        "priceHighLow": "Price High - Low",
+        "bestMatch": "Inayolingana zaidi"
       }
     }
   },
@@ -588,11 +591,55 @@
     "quoteMessagePlaceholder": "Idadi, tarehe ya kuwasilisha, vipimo…"
   },
   "reviews": {
-    "basedOn": "Based on {count} reviews",
-    "writeReview": "Write a Review",
-    "noReviews": "No reviews yet",
-    "beFirst": "Be the first to review this product",
-    "verified": "Verified Purchase"
+    "basedOn": "Kulingana na maoni {count}",
+    "writeReview": "Andika Maoni",
+    "noReviews": "Bado hakuna maoni",
+    "beFirst": "Kuwa wa kwanza kutoa maoni kuhusu bidhaa hii",
+    "verified": "Ununuzi Uliothibitishwa",
+    "writeReviewCta": "Andika maoni!",
+    "rating": "Ukadiriaji",
+    "all": "Zote",
+    "highlyRecommended": "Inapendekezwa sana",
+    "postedBy": "Imechapishwa {time} na {name}",
+    "postedTime": "Imechapishwa {time}",
+    "brandResponse": "Jibu la chapa",
+    "showingRange": "Inaonyesha {from} - {to} kati ya maoni {total}",
+    "anonymous": "Bila jina",
+    "checkingEligibility": "Inakagua maagizo yako yanayostahiki...",
+    "comment": "Maoni yako *",
+    "commentPlaceholder": "Shiriki uzoefu wako na bidhaa hii",
+    "commentTooShort": "Maoni lazima yawe na angalau herufi 10",
+    "dropzoneHint": "Inakubali picha hadi MB 10 kila moja.",
+    "dropzonePrimary": "Buruta na uachie faili hapa, au bofya ili kuvinjari",
+    "eligibleOrderRequired": "Unaweza kutoa maoni kuhusu bidhaa hii baada tu ya kuwasilishwa katika mojawapo ya maagizo yako.",
+    "imageTooLarge": "Kila picha lazima iwe chini ya MB 10",
+    "imageUploadFailed": "Kupakia picha kumeshindikana",
+    "invalidImage": "Faili za picha pekee ndizo zinazoruhusiwa",
+    "loginToReview": "Tafadhali ingia ili kuandika maoni kuhusu bidhaa hii.",
+    "maxImages": "Unaweza kupakia hadi picha 4",
+    "noReviewsForRating": "Bado hakuna maoni kwa ukadiriaji huu",
+    "oldest": "Za zamani zaidi",
+    "photos": "Picha",
+    "selectRating": "Tafadhali chagua ukadiriaji",
+    "submit": "Tuma maoni",
+    "submitFailed": "Imeshindwa kutuma maoni",
+    "submitted": "Maoni yametumwa kwa mafanikio!",
+    "title": "Kichwa",
+    "titlePlaceholder": "Fupisha maoni yako",
+    "writeReviewHint": "Anwani yako ya barua pepe haitachapishwa. Sehemu zinazohitajika zimewekwa alama ya nyota (*).",
+    "yourRating": "Ukadiriaji wako",
+    "pendingTitle": "Kadiria ununuzi wako",
+    "pendingDescription": "Maagizo yako yamefika. Waambie wanunuzi wengine unavyoona.",
+    "deliveredOn": "Imewasilishwa {date}",
+    "rateStar": "Kadiria {count} kati ya 5",
+    "showMore": "Onyesha {count} zaidi",
+    "showFewer": "Onyesha chache",
+    "fromOrder": "Agizo #{orderNumber}",
+    "orderPromptTitle": "Agizo lako lilikuwaje?",
+    "orderPromptOne": "Andika maoni mafupi kuhusu {name} — yanawasaidia wanunuzi wengine.",
+    "orderPromptMany": "Bidhaa {count} kutoka agizo hili zinasubiri maoni yako.",
+    "youRated": "Umekadiria",
+    "alreadyReviewed": "Tayari umetoa maoni kuhusu bidhaa hii. Asante kwa kushiriki uzoefu wako!"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -726,12 +773,13 @@
       "iotecPhoneHint": "Weka namba ya MTN au Airtel itakayotozwa. Utapokea ujumbe kwenye simu hiyo ili kuidhinisha malipo.",
       "mtnMomoDetail": "Lipa kwa MTN Mobile Money. Utapokea ombi kwenye simu yako la kuidhinisha kwa PIN yako ya MoMo.",
       "mtnMomoPhoneLabel": "Namba ya pesa za simu",
-      "mtnMomoPhonePlaceholder": "mf. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "mf. {example}",
       "mtnMomoPhoneHint": "Weka namba ya MTN itakayotozwa. Ombi la kuidhinisha litatumwa kwenye simu hiyo."
     },
     "billingSame": "Same as shipping address",
     "billingDifferent": "Use a different billing address",
-    "switchToPickup": "Badilisha kwenda kuchukua dukani"
+    "switchToPickup": "Badilisha kwenda kuchukua dukani",
+    "enterAddressForShipping": "Weka anwani yako ya usafirishaji ili uone njia za usafirishaji zinazopatikana."
   },
   "orders": {
     "title": "My Orders",
@@ -782,7 +830,8 @@
       "partially_paid": "Imelipwa kwa sehemu",
       "refunded": "Imerejeshwa",
       "partially_refunded": "Imerejeshwa kwa sehemu"
-    }
+    },
+    "importDuties": "Ushuru wa kuingiza"
   },
   "adminProfile": {
     "title": "Profile",
@@ -927,6 +976,7 @@
       "subtotal": "Subtotal",
       "shipping": "Shipping",
       "tax": "Tax",
+      "importDuties": "Ushuru wa kuingiza",
       "discount": "Discount",
       "totalLabel": "Total",
       "timeline": "Timeline",
@@ -1045,7 +1095,7 @@
       "dateRange": "25 Jul - 25 Aug",
       "addActivity": "Ongeza shughuli",
       "sales": "Mauzo",
-      "ordersDescription": "Muhtasari wa jumla ya maagizo ukiwa na maelezo ya kina.",
+      "ordersDescription": "Jumla za kipindi ulichochagua, zimegawanywa kwa njia ya mauzo.",
       "showHighlights": "Onyesha vivutio vyote",
       "showSalesData": "Onyesha data yote ya mauzo",
       "viewAllOrders": "Tazama maagizo yote",
@@ -1140,7 +1190,9 @@
       "expenses": "Matumizi",
       "receivables": "Madeni unayodai",
       "financeReports": "Ripoti",
-      "quotes": "Nukuu za bei"
+      "quotes": "Nukuu za bei",
+      "traffic": "Trafiki",
+      "searchInsights": "Maarifa ya utafutaji"
     },
     "pos": "Point of Sale",
     "posLocations": "POS Locations",
@@ -2850,6 +2902,11 @@
           "name": "Fashion",
           "description": "Editorial-style visual treatment for premium fashion, beauty, and lifestyle brands.",
           "styleNote": "Focuses on imagery-first merchandising and refined collection narratives."
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "Uonyeshaji wa mavazi kwa mtindo wa jarida: picha za kampeni za upana kamili, vigae vya lookbook na mikusanyiko ya msimu.",
+          "styleNote": "Imejengwa kwa nguo, viatu na vifaa — picha zinaongoza, mengine yanarudi nyuma."
         }
       },
       "activate": "Tumia mandhari hii"
@@ -3313,7 +3370,6 @@
         "live": "Hewani",
         "unsaved": "Mabadiliko hayajahifadhiwa"
       },
-      "subtitle": "Malipo huhifadhi mtiririko wake uliothibitishwa — weka chapa yako hapa. Hatua haziwezi kupangwa upya, kwa hivyo malipo hayavunjiki kamwe.",
       "themeLink": "Mipangilio ya mandhari",
       "title": "Malipo",
       "toast": {
@@ -3345,7 +3401,21 @@
       },
       "brand": {
         "description": "Dhibiti nembo ya kijachini, maelezo, upana na rangi.",
-        "title": "Chapa na mpangilio"
+        "title": "Chapa na mpangilio",
+        "logoSourceLabel": "Chanzo cha nembo ya kijachini",
+        "storeLogo": "Nembo ya duka (Inapendekezwa)",
+        "storeLogoDescription": "Hutumia nembo za Chapa yako na hubadilika kati ya hali ya mwanga na ya giza, kama Kichwa.",
+        "customLogo": "Nembo maalum ya kijachini",
+        "customLogoDescription": "Pakia muundo tofauti kwa ajili ya kijachini pekee.",
+        "synced": "Imesawazishwa na Chapa",
+        "editBranding": "Hariri kwenye Chapa",
+        "lightLogo": "Nembo ya hali ya mwanga",
+        "darkLogo": "Nembo ya hali ya giza",
+        "logoNotSet": "Haijapakiwa",
+        "customLogoHint": "Nembo hizi zinatumika kwenye kijachini pekee. Bila nembo ya hali ya giza, nembo ya kijachini huonyeshwa katika hali zote mbili; bila yoyote, nembo za duka lako hutumika.",
+        "matchHeaderSize": "Ukubwa sawa na nembo ya Kichwa",
+        "matchHeaderSizeHint": "Hufuata Kichwa: upana wa {desktop}px kwenye skrini kubwa, {mobile}px kwenye simu.",
+        "logoThemeAuto": "Otomatiki (inalingana na mandharinyuma ya kijachini)"
       },
       "colors": {
         "dark": "Rangi za hali ya giza",
@@ -3380,6 +3450,9 @@
         "email": "Barua pepe",
         "footerBackgroundColor": "Rangi ya mandharinyuma ya kijachini",
         "footerLogo": "Nembo ya kijachini",
+        "footerDarkLogo": "Nembo ya kijachini (hali ya giza)",
+        "logoWidth": "Upana wa nembo",
+        "logoTheme": "Nembo ya kuonyesha",
         "footerTextColor": "Rangi ya maandishi ya kijachini",
         "fullWidthFooter": "Kijachini cha upana kamili",
         "imageAlt": "Maandishi mbadala ya picha",
@@ -3837,6 +3910,7 @@
       "publishPageTitle": "Chapisha ukurasa huu?",
       "publishTitle": "Chapisha ukurasa wa nyumbani?",
       "published": "Ukurasa wa nyumbani umechapishwa",
+      "duplicateSection": "Nakili sehemu",
       "removeSection": "Ondoa sehemu",
       "requiredSection": "Inahitajika",
       "restore": "Rejesha",
@@ -4142,7 +4216,9 @@
     "earnings": "Earnings",
     "totalRevenue": "Total Revenue",
     "netEarnings": "Net Earnings",
+    "awaitingPayment": "{amount} zinasubiri malipo",
     "totalOrders": "Total Orders",
+    "openOrdersCount": "{count} zilizo wazi",
     "activeProducts": "Active Products",
     "totalProducts": "Total Products",
     "commission": "Commission Paid",
@@ -4223,7 +4299,6 @@
     "active": "Active",
     "byStatus": "By Status",
     "unableToLoadData": "Unable to load analytics data. Make sure you are a registered vendor.",
-    "pending": "pending",
     "productsPage": {
       "subtitle": "Manage your products",
       "description": "View and manage your store products"
@@ -4322,6 +4397,7 @@
       "partially_refunded": "Partially refunded"
     },
     "fulfillmentStatus": {
+      "preordered": "Oda ya awali",
       "pending": "Unfulfilled",
       "processing": "Processing",
       "shipped": "In transit",
@@ -5211,6 +5287,7 @@
     },
     "chatWithVendor": "Piga gumzo na muuzaji",
     "chatWithStore": "Piga gumzo na duka",
+    "chatWithSeller": "Piga gumzo na muuzaji",
     "startConversation": "Anzisha mazungumzo",
     "startDescription": "Uliza kuhusu upatikanaji, uwasilishaji, aina au jambo lolote lingine.",
     "writeMessage": "Andika ujumbe…",
@@ -5530,7 +5607,6 @@
       "canceled": "Malipo yameghairiwa. Tafadhali jaribu tena.",
       "failed": "Imeshindwa kuanzisha malipo",
       "loadFailed": "Imeshindwa kupakia ngazi ya nafasi",
-      "verifyFailed": "Malipo hayakuweza kuthibitishwa",
       "pollTimeout": "Bado hatujaweza kuthibitisha malipo. Yatathibitishwa na tangazo litaanza kiotomatiki.",
       "stepSlot": "Nafasi na tarehe",
       "pickSlot": "Chagua nafasi na tarehe",
@@ -5643,7 +5719,6 @@
     "adminPassword": "Nenosiri",
     "adminTitle": "Unda akaunti yako ya msimamizi",
     "appUrl": "URL ya programu",
-    "appUrlHint": "Weka NEXT_PUBLIC_APP_URL kwenye .env kuwa URL ya duka lako",
     "blockedHint": "Rekebisha vipengele hapo juu, kisha uangalie tena — usakinishaji hauwezi kuendelea hadi vifaulu.",
     "retry": "Angalia tena",
     "authSecret": "Siri ya uthibitishaji",
@@ -5682,7 +5757,7 @@
       "secretAccessKey": "Ufunguo wa siri",
       "publicUrl": "URL ya umma"
     },
-    "nodeTooOld": "Node.js 22 au mpya zaidi inahitajika",
+    "nodeTooOld": "Node.js 22.12 au mpya zaidi inahitajika",
     "storeName": "Jina la duka",
     "storeTitle": "Misingi ya duka",
     "subtitle": "Hatua chache tu, unaanza kuuza",

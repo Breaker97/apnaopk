@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/config/i18n.config";
 import { getStoreMoneyFormatter } from "@/lib/intl/server-currency";
+import { BackgroundVideo } from "@/components/store/background-video";
 import { backgroundCss, type SlideBackground } from "@/lib/sliders/types";
 import {
   describeCouponCondition,
@@ -113,6 +114,7 @@ export async function CouponBanner({
           {/* Copy on this strip is white, so artwork needs a scrim under it.
               A colour or a gradient the merchant chose does not — dimming
               their pick would make the control lie about the result. */}
+          <BackgroundVideo background={background} />
           {background.type === "image" && background.image ? (
             <div className="absolute inset-0 bg-black/60" aria-hidden />
           ) : null}

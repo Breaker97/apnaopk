@@ -18,7 +18,7 @@ import { FreeShippingProgress } from "@/components/cart/free-shipping-progress";
 import { CartShippingEstimator } from "@/components/cart/cart-shipping-estimator";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import { WishlistButton } from "@/components/products/wishlist-button";
-import { ChevronDown, Clock3, Loader2, ShoppingBag } from "lucide-react";
+import { ChevronDown, Clock3, Loader2, ShoppingBag, Truck } from "lucide-react";
 import {
   formatPreorderDate,
   getPreorderPaymentLabel,
@@ -85,6 +85,9 @@ export function CartPageContent() {
     taxNotApplicableLabel,
     calculateTaxLabel,
     setEstimatedShipping,
+    setEstimatedDeliveryDays,
+    unitCount,
+    deliveryEstimateText,
     summaryShippingCost,
     cartViewSignature,
     couponCartItems,
@@ -289,12 +292,19 @@ export function CartPageContent() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,837px)_minmax(320px,378px)] lg:justify-between lg:gap-12">
         <section aria-labelledby="shopping-bag-heading" className="min-w-0">
-          <h1
-            id="shopping-bag-heading"
-            className="mb-4 text-[20px] font-semibold leading-6 text-foreground sm:mb-[26px]"
-          >
-            Shopping bag
-          </h1>
+          <div className="mb-4 flex items-baseline gap-3 sm:mb-[26px]">
+            <h1
+              id="shopping-bag-heading"
+              className="text-[20px] font-semibold leading-6 text-foreground"
+            >
+              {t.has("cart.shoppingBag") ? t("cart.shoppingBag") : "Shopping bag"}
+            </h1>
+            <span className="text-[13.5px] font-medium leading-5 text-muted-foreground">
+              {t.has("cart.itemCount")
+                ? t("cart.itemCount", { count: unitCount })
+                : `${unitCount} items`}
+            </span>
+          </div>
 
           {/* Stated where the shopper can still act on it — moving an item to
               a wishlist here is cheap, discovering the same fact after filling
@@ -349,6 +359,7 @@ export function CartPageContent() {
               cartSignature={cartViewSignature}
               formatPrice={formatCartPrice}
               onEstimate={setEstimatedShipping}
+              onDeliveryDays={setEstimatedDeliveryDays}
               renderRow={(value) => (
                 <SummaryRow label={t("common.shipping")}>{value}</SummaryRow>
               )}
@@ -444,6 +455,18 @@ export function CartPageContent() {
               </span>
             </div>
           </div>
+
+          {deliveryEstimateText ? (
+            <div className="mt-4 flex items-start gap-3 rounded-lg bg-primary/[0.07] p-3">
+              <Truck
+                className="mt-0.5 h-[18px] w-[18px] shrink-0 text-primary"
+                aria-hidden
+              />
+              <p className="text-[12.5px] leading-5 text-muted-foreground">
+                {deliveryEstimateText}
+              </p>
+            </div>
+          ) : null}
 
           {/* data-slot="button": the Theme-settings Button-style hook, so
               these raw CTAs reshape with the merchant's choice too. */}

@@ -10,6 +10,7 @@ import { resolveStoredProductCardConfig } from "@/lib/storefront/themes/product-
 import { getCredentialEnvSources, maskSecretHint } from "@/lib/settings/credentials";
 import { DEMO_MODE_MESSAGE, isDemoModeEnabled } from "@/lib/demo-mode";
 import { resolveAuthBaseUrl } from "@/lib/auth/oauth-callback";
+import { resolveCheckoutGatewayReadiness } from "@/lib/payments/checkout-gateways";
 import {
   CREDENTIAL_FIELD_PATHS,
   deleteCredentialPath,
@@ -38,11 +39,13 @@ export function sanitizeSettings(settings: unknown): Record<string, unknown> {
   const revealHints = !isDemoModeEnabled();
   const secretHint = (value: unknown): string | undefined =>
     revealHints ? maskSecretHint(value as string) : undefined;
-  const doc = settings as { toObject?: () => Record<string, unknown> } & Record<
-    string,
-    unknown
-  >;
-  const safe = doc.toObject ? doc.toObject() : { ...doc };
+  const doc = settings as {
+    toObject?: (options?: { flattenMaps?: boolean }) => Record<string, unknown>;
+  } & Record<string, unknown>;
+  // Maps flattened to plain objects: a Mongoose Map serialises to `{}`, so a
+  // map setting (minimum payout by currency) came back empty, and the next
+  // save of the form wrote that emptiness over what was stored.
+  const safe = doc.toObject ? doc.toObject({ flattenMaps: true }) : { ...doc };
   // Every section the admin can write is an object on the wire; the
   // registry is the one list of them.
   const objectSections = SETTINGS_SECTION_KEYS;
@@ -79,6 +82,11 @@ export function sanitizeSettings(settings: unknown): Record<string, unknown> {
     razorpay: detectKeyMode(readCredentialPath(safe, "payment.razorpay.keyId")),
     paystack: detectKeyMode(readCredentialPath(safe, "payment.paystack.publicKey")),
   };
+  // Read before the secrets go, for the same reason: the payment screen can
+  // then say exactly what keeps a switched-on gateway off the checkout.
+  const checkoutGateways = resolveCheckoutGatewayReadiness(
+    safe as Parameters<typeof resolveCheckoutGatewayReadiness>[0],
+  );
 
   for (const path of CREDENTIAL_FIELD_PATHS) {
     deleteCredentialPath(safe, path);
@@ -92,6 +100,7 @@ export function sanitizeSettings(settings: unknown): Record<string, unknown> {
   safe._meta = {
     credentials,
     keyModes,
+    checkoutGateways,
     // What the form will hand back on save so a stale copy is refused
     // (lib/settings/section-versions.ts). Computed after the secrets are
     // stripped, so the fingerprint is of exactly what the browser sees.

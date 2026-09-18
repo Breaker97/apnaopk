@@ -3,17 +3,11 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  Banknote,
-  CreditCard,
-  PackageCheck,
-  Smartphone,
-  User,
-  Wallet,
-} from "lucide-react";
+import { PackageCheck, User } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { cn, truncateByWords } from "@/lib/utils";
 import { useCurrency } from "@/providers/currency-provider";
+import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import type { RecentOrder } from "@/lib/admin/dashboard-types";
 
 function getStatusPill(t: ReturnType<typeof useTranslations>, orderStatus: string) {
@@ -40,39 +34,6 @@ function getStatusPill(t: ReturnType<typeof useTranslations>, orderStatus: strin
     },
   };
   return config[orderStatus] || config.pending;
-}
-
-function getPaymentMethodMeta(
-  t: ReturnType<typeof useTranslations>,
-  paymentMethod?: string,
-) {
-  const key = (paymentMethod || "card").toLowerCase();
-  if (key.includes("card")) {
-    return { label: t("admin.dashboardPage.payment.creditCard"), Icon: CreditCard };
-  }
-  if (key.includes("paypal")) {
-    return { label: t("admin.dashboardPage.payment.paypal"), Icon: Wallet };
-  }
-  if (key.includes("razorpay")) return { label: "Razorpay", Icon: Wallet };
-  if (key.includes("paystack")) return { label: "Paystack", Icon: Wallet };
-  if (key.includes("pesapal")) return { label: "Pesapal", Icon: Wallet };
-  if (key.includes("iotec")) return { label: "ioTec Pay", Icon: Wallet };
-  if (key.includes("orange_money")) {
-    return { label: "Orange Money", Icon: Smartphone };
-  }
-  if (key.includes("mtn_momo")) {
-    return { label: "MTN MoMo", Icon: Smartphone };
-  }
-  if (key.includes("cod") || key.includes("cash")) {
-    return { label: t("admin.dashboardPage.payment.cashOnDelivery"), Icon: Banknote };
-  }
-  if (key.includes("upi")) {
-    return { label: t("admin.dashboardPage.payment.upi"), Icon: Smartphone };
-  }
-  return {
-    label: paymentMethod || t("admin.dashboardPage.payment.card"),
-    Icon: CreditCard,
-  };
 }
 
 /** The five newest orders, already flattened server-side to one line per order. */

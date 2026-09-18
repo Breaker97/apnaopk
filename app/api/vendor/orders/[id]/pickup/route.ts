@@ -2,7 +2,12 @@ import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
-import { AuthorizationError, NotFoundError, ValidationError } from "@/lib/api/errors";
+import {
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "@/lib/api/errors";
 import { assertVendorPermission } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -10,7 +15,12 @@ import { getSettings } from "@/models/settings.model";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { isValidObjectId, validateBody } from "@/lib/api/validate";
 import { resolvePickupLifecycleUpdate } from "@/lib/checkout/pickup-fulfillment";
-import { deriveOrderStatusFromSubOrders } from "@/lib/orders/order-status-apply";
+import { rollUpOrderStatus } from "@/lib/orders/order-status-apply";
+import {
+  getFulfillmentPaymentBlock,
+  isFulfillmentTransition,
+} from "@/lib/orders/fulfillment-payment-gate";
+import { toVendorOrderView } from "@/lib/vendors/vendor-order-view";
 import { auditUpdate, createAuditContext } from "@/lib/audit";
 import { notifyOrderStatus } from "@/lib/notifications/notifications";
 import { withApi } from "@/lib/api/handler";
@@ -84,6 +94,13 @@ export const POST = withApi<{ id: string }>(
       );
     }
 
+    // A counter handover is fulfilment like any other: the shopper does not
+    // walk out with goods their gateway payment never paid for.
+    if (isFulfillmentTransition(update.subOrderStatus)) {
+      const blocked = getFulfillmentPaymentBlock(order, subOrder);
+      if (blocked) throw new ValidationError(blocked);
+    }
+
     pickup.status = update.pickupStatus;
     if (update.readyAt) pickup.readyAt = update.readyAt;
     if (update.collectedAt) pickup.collectedAt = update.collectedAt;
@@ -93,18 +110,42 @@ export const POST = withApi<{ id: string }>(
     // Same roll-up the delivery route applies, from the same helper: a counter
     // collection is one consignment completing, and an order with a sibling
     // still packing has not completed.
-    const derivedStatus = deriveOrderStatusFromSubOrders(order.subOrders);
+    const derivedStatus = rollUpOrderStatus(order.status, order.subOrders);
     if (derivedStatus) order.status = derivedStatus;
 
-    await order.save();
+    // Only over the order as it was read — see the same guard on the delivery
+    // route: a counter handover saved over a cancellation that landed in the
+    // meantime would hand over goods the shopper was refunded for.
+    const readStatuses: Record<string, unknown> = {
+      status: (before as { status?: string }).status,
+    };
+    (
+      ((before as { subOrders?: Array<{ status?: string }> }).subOrders || [])
+    ).forEach((sub, index) => {
+      readStatuses[`subOrders.${index}.status`] = sub.status;
+    });
+    (order as unknown as { $where?: Record<string, unknown> }).$where =
+      readStatuses;
+    try {
+      await order.save();
+    } catch (err) {
+      if ((err as { name?: string })?.name === "DocumentNotFoundError") {
+        throw new ConflictError(
+          "This order changed while you were updating it. Refresh the page and try again.",
+        );
+      }
+      throw err;
+    }
 
-    if (order.customerId) {
-      await notifyOrderStatus(
-        String(order.customerId),
-        order.orderNumber,
-        update.subOrderStatus,
-        String(order._id),
-      ).catch((error) =>
+    // The shopper hears about the ORDER, and only when the order moved: one
+    // consignment collected at the counter is not "your order was delivered"
+    // while another seller's parcel is still coming.
+    const wasOrderStatus = String((before as { status?: string }).status || "");
+    if (String(order.status) !== wasOrderStatus) {
+      await notifyOrderStatus({
+        orderId: String(order._id),
+        status: String(order.status),
+      }).catch((error) =>
         console.error("Failed to notify customer about pickup update:", error),
       );
     }
@@ -117,6 +158,6 @@ export const POST = withApi<{ id: string }>(
       order.toObject() as unknown as Record<string, unknown>,
     );
 
-    return successResponse(order);
+    return successResponse(toVendorOrderView(order, vendor._id));
   },
 );

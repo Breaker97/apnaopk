@@ -11,6 +11,7 @@ import {
 import type { BarcodeFormat, BarcodeSource } from "@/lib/barcode/standards";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { escapeRegExp } from "@/lib/strings";
+import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
 
 /**
  * Inventory list query.
@@ -39,6 +40,8 @@ interface InventoryItem {
   committed: number;
   available: number;
   onHand: number;
+  /** Shipped on a transfer to this row's stock and not yet received. */
+  incoming: number;
   locationInventory: Array<{
     locationId: string;
     locationName: string;
@@ -66,7 +69,7 @@ function mapLocationInventory(
 }
 
 /** Row as it leaves the aggregation: location names are resolved afterwards. */
-type InventoryRow = Omit<InventoryItem, "locationInventory"> & {
+type InventoryRow = Omit<InventoryItem, "locationInventory" | "incoming"> & {
   locationInventory?: RawLocationInventoryEntry[];
 };
 
@@ -417,10 +420,13 @@ export async function fetchInventoryList(
   });
 
   // Location names are only resolved for the returned page.
-  const paginatedItems: InventoryItem[] = (facet?.rows ?? []).map((row) => ({
-    ...row,
-    locationInventory: mapLocationInventory(row.locationInventory, locationMap),
-  }));
+  const paginatedItems: InventoryItem[] = await attachIncomingStock(
+    (facet?.rows ?? []).map((row) => ({
+      ...row,
+      locationInventory: mapLocationInventory(row.locationInventory, locationMap),
+    })),
+    locationId || undefined,
+  );
   const total = facet?.total?.[0]?.count ?? 0;
   const totalPages = Math.ceil(total / limit);
 

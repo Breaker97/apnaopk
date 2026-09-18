@@ -7,7 +7,9 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getSettings } from "@/models/settings.model";
 import { buildProductFormOptions } from "@/lib/products/form-options";
+import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { resolveLocationScope } from "@/lib/inventory/inventory-location-scope";
+import { resolveVendorPreorderAccess } from "@/lib/orders/preorder-gating";
 
 /**
  * GET /api/vendor/products/form-options
@@ -44,6 +46,8 @@ export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
       includeInactiveCategories: false,
       vendorShipping: (vendor as unknown as { shipping?: unknown }).shipping,
       scope: await resolveLocationScope(session.user, "read"),
+      deferredBalanceSupported: storeCanCollectDeferredBalance(settings.payment),
+      preorderAccess: resolveVendorPreorderAccess(settings.preorder, vendor),
     }),
   );
 });

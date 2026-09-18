@@ -32,6 +32,7 @@
     "yes": "Beeni",
     "no": "Rii",
     "close": "Tiipa",
+    "scrollToTop": "Padà sí òkè",
     "back": "Leekan sii",
     "goBack": "Lo Pada",
     "backToHome": "Padanu si Ile",
@@ -592,7 +593,51 @@
     "writeReview": "Ko Asoye",
     "noReviews": "Ko si awon asoye lowo",
     "beFirst": "Di akọkọ lati se asoye oja yii",
-    "verified": "Ra ti O Jejrisi"
+    "verified": "Ra ti O Jejrisi",
+    "writeReviewCta": "Ko asoye!",
+    "rating": "Idiyele",
+    "all": "Gbogbo",
+    "highlyRecommended": "A gba a niyanju gidigidi",
+    "postedBy": "{name} lo fi ranṣẹ {time}",
+    "postedTime": "A fi ranṣẹ {time}",
+    "brandResponse": "Esi ami-idanimọ",
+    "showingRange": "Afihan {from} - {to} ninu awon asoye {total}",
+    "anonymous": "Alailorukọ",
+    "checkingEligibility": "A n ṣayẹwo awon asẹ rẹ to yẹ...",
+    "comment": "Asoye rẹ *",
+    "commentPlaceholder": "Pin iriri rẹ pẹlu ọja yii",
+    "commentTooShort": "Asoye gbọdọ ni o kere tan lẹta 10",
+    "dropzoneHint": "O n gba awon aworan to to 10MB ọkọọkan.",
+    "dropzonePrimary": "Fa awon faili wa sibi, tabi tẹ lati wa wọn",
+    "eligibleOrderRequired": "O le ṣe asoye ọja yii nikan lẹyin ti a ba ti fi jiṣẹ ninu ọkan lara awon asẹ rẹ.",
+    "imageTooLarge": "Aworan kọọkan gbọdọ kere si 10MB",
+    "imageUploadFailed": "Igbejade aworan kuna",
+    "invalidImage": "Faili aworan nikan ni a gba",
+    "loginToReview": "Jọwọ wọle lati ko asoye fun ọja yii.",
+    "maxImages": "O le gbe aworan to to 4 jade",
+    "noReviewsForRating": "Ko si asoye fun idiyele yii sibẹ",
+    "oldest": "Eyi to pẹ ju",
+    "photos": "Awon aworan",
+    "selectRating": "Jọwọ yan idiyele kan",
+    "submit": "Fi asoye ranṣẹ",
+    "submitFailed": "A ko le fi asoye ranṣẹ",
+    "submitted": "A ti fi asoye ranṣẹ ni aṣeyọri!",
+    "title": "Akọle",
+    "titlePlaceholder": "Ṣe akopọ asoye rẹ",
+    "writeReviewHint": "A ko ni ṣe atẹjade adirẹsi imeeli rẹ. A ti fi ami irawọ (*) samisi awon aye to pọn dandan.",
+    "yourRating": "Idiyele rẹ",
+    "pendingTitle": "Diyele awon ohun ti o ra",
+    "pendingDescription": "Awon asẹ rẹ ti de. Sọ fun awon olura miiran ohun ti o ro.",
+    "deliveredOn": "A fi jiṣẹ {date}",
+    "rateStar": "Fun un ni {count} ninu 5",
+    "showMore": "Fi {count} si i han",
+    "showFewer": "Fi diẹ han",
+    "fromOrder": "Asẹ #{orderNumber}",
+    "orderPromptTitle": "Bawo ni asẹ rẹ ṣe ri?",
+    "orderPromptOne": "Ko asoye kukuru nipa {name} — o n ran awon olura miiran lọwọ.",
+    "orderPromptMany": "Ọja {count} lati inu asẹ yii n duro de asoye rẹ.",
+    "youRated": "O ti diyele rẹ",
+    "alreadyReviewed": "O ti ṣe asoye ọja yii tẹlẹ. A dupẹ pe o pin iriri rẹ!"
   },
   "cart": {
     "title": "Kaadi Ra",
@@ -714,12 +759,13 @@
       "payOnDeliveryDescription": "Iwọ yoo san owo nigbati o gba asẹ re",
       "mtnMomoDetail": "Sanwó pẹ̀lú MTN Mobile Money. Ìbéèrè yóò dé sórí fóònù rẹ láti fọwọ́ sí i pẹ̀lú PIN MoMo rẹ.",
       "mtnMomoPhoneLabel": "Nọ́mbà owó alágbèéká",
-      "mtnMomoPhonePlaceholder": "b.a. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "b.a. {example}",
       "mtnMomoPhoneHint": "Tẹ nọ́mbà MTN tí a ó gbà owó. Ìbéèrè ìfọwọ́sí yóò dé sórí fóònù yẹn."
     },
     "billingSame": "Bakanna bi adirẹsi ibiakia",
     "billingDifferent": "Lo adirẹsi iyoku fun owo sanwo",
-    "switchToPickup": "Yipada si gbigba ni ile itaja"
+    "switchToPickup": "Yipada si gbigba ni ile itaja",
+    "enterAddressForShipping": "Tẹ adirẹsi ibiakia rẹ sii lati wo awọn ọna ibiakia to wa."
   },
   "orders": {
     "title": "Awon Asẹ Mi",
@@ -771,7 +817,8 @@
       "partially_paid": "A san ní apá kan",
       "refunded": "A ti dá owó padà",
       "partially_refunded": "A dá apá kan owó padà"
-    }
+    },
+    "importDuties": "Owó-orí ìkówọlé"
   },
   "adminProfile": {
     "title": "Aprofaịli",
@@ -1620,7 +1667,7 @@
       "ordersTitle": "Awọn aṣẹ",
       "addActivity": "Fi iṣẹ kun",
       "sales": "Awọn tita",
-      "ordersDescription": "Atọka gbogbo awọn aṣẹ pẹlu awọn alaye jinlẹ.",
+      "ordersDescription": "Àpapọ̀ fún àkókò tí o yàn, tí a pín gẹ́gẹ́ bí ọ̀nà títà.",
       "showHighlights": "Fi gbogbo awọn afihan han",
       "showSalesData": "Fi gbogbo data tita han",
       "viewAllOrders": "Wo gbogbo awọn aṣẹ",
@@ -1792,7 +1839,6 @@
         "live": "Ó ń ṣiṣẹ́",
         "unsaved": "Àwọn àyípadà tí a kò fipamọ́"
       },
-      "subtitle": "Ìsanwó máa ń pa ọ̀nà rẹ̀ tí a ti fìdí múlẹ̀ mọ́ — fi àmì rẹ sí i níbí. A kò lè tún àwọn ìgbésẹ̀ tò, nítorí náà ìsanwó kì í bàjẹ́ láé.",
       "themeLink": "Ètò àkòrí",
       "title": "Ìsanwó",
       "toast": {
@@ -1824,7 +1870,21 @@
       },
       "brand": {
         "description": "Ṣàkóso àmì ìsàlẹ̀ ojú-ìwé, àpèjúwe, ìbú àti àwọn àwọ̀.",
-        "title": "Àmì iṣẹ́ àti ìtòlẹ́sẹẹsẹ"
+        "title": "Àmì iṣẹ́ àti ìtòlẹ́sẹẹsẹ",
+        "logoSourceLabel": "Orísun àmì ìsàlẹ̀ ojú-ìwé",
+        "storeLogo": "Àmì ilé ìtajà (A gbà á nímọ̀ràn)",
+        "storeLogoDescription": "Ó ń lo àwọn àmì Àmì iṣẹ́ rẹ, ó sì ń yípadà láàrin ipò ìmọ́lẹ̀ àti òkùnkùn, bí Orí Ojú-ìwé.",
+        "customLogo": "Àmì pàtó fún ìsàlẹ̀ ojú-ìwé",
+        "customLogoDescription": "Gbé àwòrán mìíràn sókè fún ìsàlẹ̀ ojú-ìwé nìkan.",
+        "synced": "Ó bá Àmì iṣẹ́ mu",
+        "editBranding": "Ṣàtúnṣe ní Àmì iṣẹ́",
+        "lightLogo": "Àmì ipò ìmọ́lẹ̀",
+        "darkLogo": "Àmì ipò òkùnkùn",
+        "logoNotSet": "A kò tíì gbé e sókè",
+        "customLogoHint": "Àwọn àmì wọ̀nyí wà fún ìsàlẹ̀ ojú-ìwé nìkan. Tí kò bá sí àmì ipò òkùnkùn, àmì ìsàlẹ̀ ojú-ìwé yóò hàn ní ipò méjèèjì; tí kò bá sí èyíkéyìí, a ó lo àwọn àmì ilé ìtajà rẹ.",
+        "matchHeaderSize": "Ìwọ̀n kan náà pẹ̀lú àmì Orí Ojú-ìwé",
+        "matchHeaderSizeHint": "Ó ń tẹ̀lé Orí Ojú-ìwé: fífẹ̀ {desktop}px lórí ojú-iboju ńlá, {mobile}px lórí fóònù.",
+        "logoThemeAuto": "Aládàáṣe (bá ẹ̀yìn ìsàlẹ̀ ojú-ìwé mu)"
       },
       "colors": {
         "dark": "Àwọ̀ ipò òkùnkùn",
@@ -1859,6 +1919,9 @@
         "email": "Ímeèlì",
         "footerBackgroundColor": "Àwọ̀ ẹ̀yìn ìsàlẹ̀ ojú-ìwé",
         "footerLogo": "Àmì ìsàlẹ̀ ojú-ìwé",
+        "footerDarkLogo": "Àmì ìsàlẹ̀ ojú-ìwé (ipò òkùnkùn)",
+        "logoWidth": "Fífẹ̀ àmì",
+        "logoTheme": "Àmì tí a ó fihàn",
         "footerTextColor": "Àwọ̀ ọ̀rọ̀ ìsàlẹ̀ ojú-ìwé",
         "fullWidthFooter": "Ìsàlẹ̀ ojú-ìwé alábùú kíkún",
         "imageAlt": "Ọ̀rọ̀ àfidípò àwòrán",
@@ -2170,6 +2233,11 @@
           "description": "Ìfihàn ojú bíi ìwé ìròyìn fún àwọn àmì ọjà aṣọ, ẹwà àti ìgbésí ayé gíga.",
           "name": "Fashion",
           "styleNote": "Ó dá lórí títà ojú-ìwò àti àwọn ìtàn àkójọpọ̀ dáradára."
+        },
+        "women-fashion": {
+          "description": "Ìfihàn aṣọ ní ọ̀nà ìwé ìròyìn: àwòrán ìpolongo tó gba gbogbo fífẹ̀, àwọn tailì lookbook àti àwọn àkójọpọ̀ àsìkò.",
+          "name": "Women Fashion",
+          "styleNote": "A kọ́ ọ fún aṣọ, bàtà àti ohun ọ̀ṣọ́ — àwòrán ló ń ṣáájú, àwọn yòókù ń sẹ́yìn."
         }
       },
       "title": "Àwọn Àkòrí"
@@ -2342,6 +2410,7 @@
       "publishPageTitle": "Tẹ ojú-ìwé yìí jáde?",
       "publishTitle": "Tẹ ojú-ìwé ilé jáde?",
       "published": "A ti tẹ ojú-ìwé ilé jáde",
+      "duplicateSection": "Ṣe àdàkọ abala",
       "removeSection": "Yọ abala kúrò",
       "requiredSection": "Ó pọn dandan",
       "restore": "Dá padà",
@@ -2738,7 +2807,12 @@
         "refunded": "A ti dá padà"
       }
     },
-    "boosts": "Ìgbéga"
+    "boosts": "Ìgbéga",
+    "awaitingPayment": "{amount} ń dúró de ìsanwó",
+    "openOrdersCount": "{count} tí ó ṣí sílẹ̀",
+    "fulfillmentStatus": {
+      "preordered": "Ìbéèrè ṣáájú"
+    }
   },
   "footer": {
     "aboutUs": "Nipa Wa",
@@ -3479,6 +3553,7 @@
     },
     "chatWithVendor": "Bá olùtajà sọ̀rọ̀",
     "chatWithStore": "Bá ilé-ìtajà sọ̀rọ̀",
+    "chatWithSeller": "Bá olùtajà sọ̀rọ̀",
     "startConversation": "Bẹ̀rẹ̀ ìjíròrò",
     "startDescription": "Béèrè nípa wíwà, ìfijíṣẹ́, oríṣiríṣi tàbí ohunkóhun mìíràn.",
     "writeMessage": "Kọ ìsọ̀rọ̀…",
@@ -3798,7 +3873,6 @@
       "canceled": "A fagilé ìsanwó. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kansi.",
       "failed": "A kò lè bẹ̀rẹ̀ ìsanwó",
       "loadFailed": "Kò lè ṣí àkàbà ipò náà",
-      "verifyFailed": "A kò lè jẹ́rìísí ìsanwó",
       "pollTimeout": "A kò tíì lè jẹ́rìísí ìsanwó. Yóò bẹ̀rẹ̀ fúnra rẹ̀ lẹ́yìn ìjẹ́rìísí.",
       "stepSlot": "Ààyè àti ọjọ́",
       "pickSlot": "Yan ipò àti ọjọ́",
@@ -3911,7 +3985,6 @@
     "adminPassword": "Ọ̀rọ̀ aṣínà",
     "adminTitle": "Ṣẹ̀dá àkáǹtì alábòójútó rẹ",
     "appUrl": "URL ìṣàmúlò",
-    "appUrlHint": "Ṣètò NEXT_PUBLIC_APP_URL nínú .env sí URL ilé ìtajà rẹ",
     "blockedHint": "Ṣàtúnṣe àwọn nǹkan tó wà lókè, kí o sì ṣàyẹ̀wò lẹ́ẹ̀kansí — fífi sórí kò lè tẹ̀síwájú títí wọn yóò fi kọjá.",
     "retry": "Ṣàyẹ̀wò lẹ́ẹ̀kansí",
     "authSecret": "Àṣírí ìfẹ̀rílàdí",
@@ -3950,7 +4023,7 @@
       "secretAccessKey": "Kọ́kọ́rọ́ ìkọ̀kọ̀",
       "publicUrl": "URL gbogbo ènìyàn"
     },
-    "nodeTooOld": "Node.js 22 tàbí tuntun jù ni a nílò",
+    "nodeTooOld": "Node.js 22.12 tàbí tuntun jù ni a nílò",
     "storeName": "Orúkọ ilé ìtajà",
     "storeTitle": "Àwọn ìpìlẹ̀ ilé ìtajà",
     "subtitle": "Ìgbésẹ̀ díẹ̀, o sì ń ta ọjà",

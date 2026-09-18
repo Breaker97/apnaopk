@@ -96,10 +96,10 @@ const PRESENTATION_SECTIONS = [
  */
 const BRAND_PATHS = [
   ["header", "brand", "logoUrl"],
-  ["header", "brand", "logoDarkUrl"],
+  ["header", "brand", "darkLogoUrl"],
   ["header", "brand", "logoAlt"],
   ["footer", "brand", "logoUrl"],
-  ["footer", "brand", "logoDarkUrl"],
+  ["footer", "brand", "darkLogoUrl"],
   ["footer", "brand", "logoAlt"],
 ] as const;
 

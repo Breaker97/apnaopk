@@ -21,6 +21,7 @@ type LeanOrder = {
   orderNumber: string;
   customerId?: LeanCustomer;
   guestEmail?: string;
+  contactPhone?: string;
   items: Array<{
     name: string;
     sku?: string;
@@ -429,7 +430,11 @@ export const POST = withApi(
     const knownEmails = [customer?.email, order.guestEmail]
       .filter(Boolean)
       .map((email) => email!.toLowerCase());
-    const knownPhones = [customer?.phone, order.shippingAddress?.phone]
+    const knownPhones = [
+      customer?.phone,
+      order.contactPhone,
+      order.shippingAddress?.phone,
+    ]
       .filter(Boolean)
       .map((phone) => normalizePhone(phone!));
 

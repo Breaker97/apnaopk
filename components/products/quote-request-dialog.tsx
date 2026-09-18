@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import {
@@ -25,10 +27,13 @@ import { getSession } from "@/lib/auth/auth-client";
  * shows in place of Add to cart.
  *
  * A lead-capture form, not a checkout: nothing here is priced, no stock is
- * held, and the shopper is not asked to sign in. Signing in is only used to
- * save them typing — the fields are prefilled from the session when the dialog
+ * held, and the shopper is not asked to sign in. Signing in is used to save
+ * them typing — the fields are prefilled from the session when the dialog
  * opens (in the open handler, so a page full of quote products subscribes to
- * nothing until someone actually asks).
+ * nothing until someone actually asks) — and to tell them where the answer
+ * will turn up. A signed-out request still reaches the merchant, and reaches
+ * its sender by email; it joins their account the first time they sign in with
+ * that address.
  */
 
 export type QuoteRequestTarget = {
@@ -78,11 +83,16 @@ export function QuoteRequestDialog({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  /** Whether the sender has an account the answer will show up in. */
+  const [hasAccount, setHasAccount] = useState(false);
 
   const set = <K extends keyof QuoteFormState>(
     key: K,
     value: QuoteFormState[K],
   ) => setForm((current) => ({ ...current, [key]: value }));
+
+  const params = useParams();
+  const locale = typeof params?.locale === "string" ? params.locale : "";
 
   const handleOpenChange = useCallback(
     async (next: boolean) => {
@@ -96,6 +106,7 @@ export function QuoteRequestDialog({
 
       const session = await getSession().catch(() => null);
       const user = session?.data?.user;
+      setHasAccount(Boolean(user));
       if (!user) return;
       setForm((current) => ({
         ...current,
@@ -153,7 +164,14 @@ export function QuoteRequestDialog({
         </DialogHeader>
 
         {isSent ? (
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            {hasAccount ? (
+              <Button asChild variant="outline">
+                <Link href={`/${locale}/account/quotes`}>
+                  {t("product.quoteTrackInAccount")}
+                </Link>
+              </Button>
+            ) : null}
             <Button type="button" onClick={() => handleOpenChange(false)}>
               {t("common.close")}
             </Button>

@@ -7,6 +7,9 @@ import {
   ESSENTIAL_PRODUCT_PRESET,
   LUXE_HOME_PRESET,
   LUXE_PRODUCT_PRESET,
+  WOMEN_FASHION_GROUP_PRESETS,
+  WOMEN_FASHION_HOME_PRESET,
+  WOMEN_FASHION_PRODUCT_PRESET,
 } from "./presets";
 import {
   legacySettingsView,
@@ -15,6 +18,7 @@ import {
   type ThemeTokenOverrides,
   type ThemeTokens,
 } from "./tokens";
+import { readCustomCss } from "./custom-css";
 import type { ThemeManifest } from "./types";
 
 /**
@@ -31,6 +35,38 @@ const ELECTRONICS_TOKENS: ThemeTokenOverrides = {
 
 const ESSENTIAL_TOKENS: ThemeTokenOverrides = {
   // The engine base IS Classic: contained hero, generous radius.
+};
+
+const WOMEN_FASHION_TOKENS: ThemeTokenOverrides = {
+  // Editorial apparel: a high-contrast display serif over a soft geometric
+  // body, frames pared back so the photography carries the page, and the
+  // wide-tracked uppercase button a fashion storefront wears.
+  type: {
+    headingFont: "playfair-display",
+    bodyFont: "plus-jakarta-sans",
+    headingWeight: "500",
+    headingTracking: 0,
+    buttonWeight: "500",
+    buttonTransform: "uppercase",
+    buttonTracking: 0.1,
+  },
+  // Near-square cards, no border, no shadow: a lookbook rather than a grid
+  // of panels. The button stays the one rounded element.
+  shape: {
+    cardRadius: 2,
+    buttonRadius: 999,
+    badgeRadius: 0,
+    cardBorder: 0,
+    cardShadow: "none",
+    overlayShadow: "soft",
+  },
+  // A wider page and a full-bleed campaign hero.
+  layout: {
+    pageWidth: "1440",
+    sliderWidth: "full",
+    sliderHeight: "threeQuarters",
+  },
+  buttons: { height: 44 },
 };
 
 const LUXE_TOKENS: ThemeTokenOverrides = {
@@ -85,6 +121,8 @@ const electronicsTheme: ThemeManifest = {
   },
   extends: "essential",
   tokens: ELECTRONICS_TOKENS,
+  headingStyle: "two-tone",
+  categoriesPage: "tiles",
   // The listing card (Figma 540:1890) is a configurator template, seeded on
   // activation so the merchant can tune it rather than fight a fixed layout.
   productCard: "electronics",
@@ -101,6 +139,15 @@ const electronicsTheme: ThemeManifest = {
     // a variant, and the section picker's setup wizard asks for it directly.
     // No entry for "heading": its two designs became explicit `accent`,
     // `align` and `size` settings, which the preset above fills in.
+    // The pages below follow the template live (`designFollowsTheme`): the
+    // listing, category and cart pages and the perks strip wear these designs
+    // wherever their stored design is "theme", which is every page nobody
+    // pinned. Every feature exists in both designs; only the drawing differs.
+    "products-main": "electronics",
+    "category-header": "electronics",
+    "category-main": "electronics",
+    "cart-main": "electronics",
+    "service-benefits": "electronics",
   },
   presets: {
     templates: {
@@ -135,6 +182,9 @@ const luxeTheme: ThemeManifest = {
   accent: "from-amber-600 to-rose-600",
   extends: "essential",
   tokens: LUXE_TOKENS,
+  preferredVariants: {
+    testimonials: "luxe",
+  },
   presets: {
     // Plain product page for the same reason as the plain bars below:
     // switching to Luxe must undo another theme's product layout too.
@@ -144,12 +194,88 @@ const luxeTheme: ThemeManifest = {
   },
 };
 
+/**
+ * Women's Fashion — the apparel template. Editorial by design: the
+ * photography carries the page and the chrome gets out of its way.
+ *
+ * A sibling of Luxe, not a replacement for it. Luxe stays parked at
+ * `coming-soon` with the two declarations and the one override it already
+ * has; this ships as a template in its own right, with its own token set, a
+ * starter for every surface the other stable themes state, and the minimal
+ * product card its listings are drawn around.
+ */
+const womenFashionTheme: ThemeManifest = {
+  id: "women-fashion",
+  // Bumped with every re-capture of its preview screenshots: the version is
+  // the cache stamp on those URLs (themes/preview.ts).
+  version: "1.0.1",
+  status: "stable",
+  name: "Women Fashion",
+  description:
+    "Editorial apparel merchandising: full-bleed campaign imagery, lookbook tiles, and seasonal edits.",
+  accent: "from-rose-500 to-fuchsia-600",
+  preview: {
+    card: "/templates/women-fashion/preview-card.jpg",
+    mobile: "/templates/women-fashion/preview-mobile.jpg",
+  },
+  extends: "essential",
+  tokens: WOMEN_FASHION_TOKENS,
+  // Stated rather than left to the shipped default, so switching here FROM
+  // Electronics actually undoes its configurator card.
+  productCard: "minimal",
+  preferredVariants: {
+    // A block added after activation arrives in the template's look: the
+    // centered tab row, and the plain logo strip an editorial page wears
+    // instead of boxed logo cards.
+    "product-group": "centered",
+    "brand-list": "strip",
+    "category-list": "overlay",
+    "countdown-offer": "deals-panel",
+  },
+  presets: {
+    templates: {
+      home: WOMEN_FASHION_HOME_PRESET,
+      product: WOMEN_FASHION_PRODUCT_PRESET,
+    },
+    groups: WOMEN_FASHION_GROUP_PRESETS,
+  },
+};
+
 /** Gallery order — the default template leads. */
 export const THEME_MANIFESTS: ThemeManifest[] = [
   electronicsTheme,
+  womenFashionTheme,
   essentialTheme,
   luxeTheme,
 ];
+
+/**
+ * The designs a template names for its sections, by section type — looked up
+ * by the id as given (an already-resolved active theme), without the stable
+ * fallback, so a parked template's own data can still be read and tested.
+ */
+export function getThemePreferredVariants(
+  themeId: string,
+): Readonly<Record<string, string>> | undefined {
+  return THEME_MANIFESTS.find((manifest) => manifest.id === themeId)
+    ?.preferredVariants;
+}
+
+/** Whether a template draws page titles two-tone (see `headingStyle`). */
+export function themeUsesTwoToneHeadings(themeId: string): boolean {
+  return (
+    THEME_MANIFESTS.find((manifest) => manifest.id === themeId)?.headingStyle ===
+    "two-tone"
+  );
+}
+
+/** The all-categories page's tiles under a template (see `categoriesPage`). */
+export function themeCategoriesPageTiles(themeId: string): "cards" | "tiles" {
+  return (
+    THEME_MANIFESTS.find((manifest) => manifest.id === themeId)?.categoriesPage ??
+    "cards"
+  );
+}
 
 /**
  * Unknown, unset, or coming-soon ids resolve to ELECTRONICS — the product's
@@ -176,6 +302,8 @@ interface ResolvedTheme {
    * `tokens`, never stored.
    */
   settings: Record<string, unknown>;
+  /** The merchant's own sheet for this theme, neutralized; "" when none. */
+  customCss: string;
 }
 
 /** A manifest's complete token set (base ← manifest overrides). */
@@ -211,5 +339,6 @@ export function resolveActiveTheme(onlineStore: unknown): ResolvedTheme {
     defaults,
     tokens,
     settings: legacySettingsView(tokens),
+    customCss: readCustomCss(onlineStore, manifest.id),
   };
 }

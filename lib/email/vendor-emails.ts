@@ -2,6 +2,7 @@ import { sendEmail } from "@/lib/email/email";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import type { ISettings } from "@/models/settings.model";
 import { appBaseUrl } from "@/lib/app-url";
+import { escapeHtml } from "@/lib/email/escape-html";
 
 type VendorApplicationEmailData = {
   vendorEmail: string;
@@ -25,15 +26,6 @@ type VendorPaymentEmailData = VendorApplicationEmailData & {
   billingInterval: string;
   paymentDueAt: Date;
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function getStoreName(settings?: ISettings) {
   return settings?.general?.storeName || DEFAULT_STORE_NAME;
@@ -303,6 +295,119 @@ export async function sendVendorPaymentExpiredEmail(
         <p style="margin:0 0 16px;">The seven-day setup access for <strong>${escapeHtml(data.storeName)}</strong> has ended because subscription payment was not completed.</p>
         <p style="margin:0;">Your vendor dashboard remains locked, but you can still sign in and complete payment to reactivate it.</p>
       `,
+    }),
+  });
+}
+
+/**
+ * Where an admin answers a pre-order access request: the queue at the bottom of
+ * Marketplace settings, which scrolls itself into view for this anchor.
+ */
+export const PREORDER_ACCESS_REVIEW_PATH =
+  "/admin/settings/marketplace#preorder-access";
+
+type PreorderLimits = { maxLeadDays: number; maxDepositPercent: number };
+
+export async function sendAdminPreorderAccessRequestEmail({
+  adminEmails,
+  vendorEmail,
+  vendorName,
+  storeName,
+  limits,
+  settings,
+}: AdminVendorApplicationEmailData & { limits: PreorderLimits }) {
+  const recipients = uniqueEmails(adminEmails);
+  if (recipients.length === 0) return false;
+
+  const reviewUrl = buildAppLink(PREORDER_ACCESS_REVIEW_PATH);
+  const safeStoreName = escapeHtml(storeName);
+  const safeVendorName = vendorName ? escapeHtml(vendorName) : "Unknown";
+  const safeVendorEmail = vendorEmail ? escapeHtml(vendorEmail) : "No email";
+
+  const results = await Promise.all(
+    recipients.map((to) =>
+      sendEmail({
+        to,
+        subject: `Pre-order access request - ${storeName}`,
+        settings,
+        html: buildEmailShell({
+          title: "Pre-order access request",
+          intro: "A vendor is asking to sell pre-orders on your store.",
+          settings,
+          cta: { label: "Review request", href: reviewUrl },
+          body: `
+            <p style="margin:0 0 8px;"><strong>Store:</strong> ${safeStoreName}</p>
+            <p style="margin:0 0 8px;"><strong>Owner:</strong> ${safeVendorName}</p>
+            <p style="margin:0 0 16px;"><strong>Email:</strong> ${safeVendorEmail}</p>
+            <p style="margin:0;">If you approve, they can open pre-orders with release dates up to ${limits.maxLeadDays} days out and deposits up to ${limits.maxDepositPercent}% of the price.</p>
+          `,
+        }),
+      }),
+    ),
+  );
+
+  return results.some(Boolean);
+}
+
+export async function sendVendorPreorderAccessDecisionEmail({
+  vendorEmail,
+  vendorName,
+  storeName,
+  decision,
+  note,
+  limits,
+  settings,
+}: VendorApplicationEmailData & {
+  decision: "approved" | "declined" | "revoked";
+  note?: string | null;
+  limits: PreorderLimits;
+}) {
+  const safeStoreName = escapeHtml(storeName);
+  const greeting = vendorName ? `Hi ${escapeHtml(vendorName)},` : "Hi,";
+  const safeReason = note?.trim() ? escapeHtml(note.trim()) : "";
+  const reasonBlock = safeReason
+    ? `<p style="margin:0 0 16px;"><strong>Reason:</strong> ${safeReason}</p>`
+    : "";
+
+  const content = {
+    approved: {
+      subject: "Pre-order access approved",
+      cta: { label: "Open your products", href: buildAppLink("/vendor/products") },
+      body: `
+        <p style="margin:0 0 16px;">You can now open pre-orders for <strong>${safeStoreName}</strong>.</p>
+        <p style="margin:0;">Release dates can be up to ${limits.maxLeadDays} days out, and deposits up to ${limits.maxDepositPercent}% of the price.</p>
+      `,
+    },
+    declined: {
+      subject: "Pre-order access request declined",
+      cta: { label: "Open pre-orders", href: buildAppLink("/vendor/preorders") },
+      body: `
+        <p style="margin:0 0 16px;">Your request to sell pre-orders for <strong>${safeStoreName}</strong> was not approved.</p>
+        ${reasonBlock}
+        <p style="margin:0;">You can send a new request from the Pre-orders page in your dashboard.</p>
+      `,
+    },
+    revoked: {
+      subject: "Pre-order access withdrawn",
+      cta: { label: "Open pre-orders", href: buildAppLink("/vendor/preorders") },
+      body: `
+        <p style="margin:0 0 16px;">You can no longer open new pre-orders for <strong>${safeStoreName}</strong>.</p>
+        ${reasonBlock}
+        <p style="margin:0;">Pre-orders that are already selling keep running, and what you owe the shoppers who paid for them is unchanged.</p>
+      `,
+    },
+  }[decision];
+
+  return sendEmail({
+    to: vendorEmail,
+    subject: `${content.subject} - ${getStoreName(settings)}`,
+    settings,
+    html: buildEmailShell({
+      title: content.subject,
+      intro: greeting,
+      settings,
+      cta: content.cta,
+      body: content.body,
     }),
   });
 }

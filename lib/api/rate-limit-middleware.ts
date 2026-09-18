@@ -22,8 +22,14 @@ function shouldBypassRateLimiting(role?: UserRole | string | null): boolean {
 /**
  * Extract client IP address from request headers
  * Handles various proxy configurations
+ *
+ * Takes anything carrying headers, so a server component can pass
+ * `{ headers: await headers() }` instead of keeping its own copy of the
+ * proxy-header order.
  */
-export function getClientIP(request: NextRequest): string {
+export function getClientIP(request: {
+  headers: Pick<NextRequest["headers"], "get">;
+}): string {
   // Check various headers set by proxies/load balancers
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {

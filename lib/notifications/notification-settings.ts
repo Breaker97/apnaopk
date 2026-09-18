@@ -3,6 +3,8 @@ export interface NotificationChannelSettings {
   inApp: boolean;
   email: boolean;
   browserPush: boolean;
+  /** A text message through the SMS provider (Settings → SMS). */
+  sms: boolean;
 }
 
 export interface NotificationSettings {
@@ -12,6 +14,7 @@ export interface NotificationSettings {
     newVendors: NotificationChannelSettings;
     returns: NotificationChannelSettings;
     payments: NotificationChannelSettings;
+    preorderAccessRequests: NotificationChannelSettings;
   };
   staff: {
     newOrders: NotificationChannelSettings;
@@ -24,6 +27,7 @@ export interface NotificationSettings {
     applicationStatus: NotificationChannelSettings;
     newOrders: NotificationChannelSettings;
     returns: NotificationChannelSettings;
+    preorderAccess: NotificationChannelSettings;
   };
   customer: {
     orderUpdates: NotificationChannelSettings;
@@ -31,29 +35,36 @@ export interface NotificationSettings {
   };
 }
 
+/**
+ * SMS starts off for every event: each text is billed by the provider, so a
+ * store opts into exactly the ones worth paying for — and an upgraded store
+ * sends nothing new until someone decides it should.
+ */
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   admin: {
-    newOrders: { inApp: true, email: false, browserPush: true },
-    newCustomers: { inApp: true, email: false, browserPush: true },
-    newVendors: { inApp: true, email: true, browserPush: true },
-    returns: { inApp: true, email: true, browserPush: true },
-    payments: { inApp: true, email: false, browserPush: true },
+    newOrders: { inApp: true, email: false, browserPush: true, sms: false },
+    newCustomers: { inApp: true, email: false, browserPush: true, sms: false },
+    newVendors: { inApp: true, email: true, browserPush: true, sms: false },
+    returns: { inApp: true, email: true, browserPush: true, sms: false },
+    payments: { inApp: true, email: false, browserPush: true, sms: false },
+    preorderAccessRequests: { inApp: true, email: true, browserPush: true, sms: false },
   },
   staff: {
-    newOrders: { inApp: true, email: false, browserPush: true },
-    newCustomers: { inApp: true, email: false, browserPush: true },
-    returns: { inApp: true, email: false, browserPush: true },
-    payments: { inApp: true, email: false, browserPush: true },
-    lowStock: { inApp: true, email: false, browserPush: true },
+    newOrders: { inApp: true, email: false, browserPush: true, sms: false },
+    newCustomers: { inApp: true, email: false, browserPush: true, sms: false },
+    returns: { inApp: true, email: false, browserPush: true, sms: false },
+    payments: { inApp: true, email: false, browserPush: true, sms: false },
+    lowStock: { inApp: true, email: false, browserPush: true, sms: false },
   },
   vendor: {
-    applicationStatus: { inApp: true, email: true, browserPush: true },
-    newOrders: { inApp: true, email: true, browserPush: true },
-    returns: { inApp: true, email: true, browserPush: true },
+    applicationStatus: { inApp: true, email: true, browserPush: true, sms: false },
+    newOrders: { inApp: true, email: true, browserPush: true, sms: false },
+    returns: { inApp: true, email: true, browserPush: true, sms: false },
+    preorderAccess: { inApp: true, email: true, browserPush: true, sms: false },
   },
   customer: {
-    orderUpdates: { inApp: true, email: true, browserPush: true },
-    returnUpdates: { inApp: true, email: true, browserPush: true },
+    orderUpdates: { inApp: true, email: true, browserPush: true, sms: false },
+    returnUpdates: { inApp: true, email: true, browserPush: true, sms: false },
   },
 };
 
@@ -62,101 +73,58 @@ function normalizeChannelSettings(
   fallback: NotificationChannelSettings,
 ): NotificationChannelSettings {
   if (!isRecord(value)) return { ...fallback };
+  const pickBoolean = (key: keyof NotificationChannelSettings) =>
+    typeof value[key] === "boolean" ? (value[key] as boolean) : fallback[key];
   return {
-    inApp:
-      typeof value.inApp === "boolean" ? value.inApp : fallback.inApp,
-    email:
-      typeof value.email === "boolean" ? value.email : fallback.email,
-    browserPush:
-      typeof value.browserPush === "boolean"
-        ? value.browserPush
-        : fallback.browserPush,
+    inApp: pickBoolean("inApp"),
+    email: pickBoolean("email"),
+    browserPush: pickBoolean("browserPush"),
+    sms: pickBoolean("sms"),
   };
+}
+
+/** One audience's events, each read over its default. */
+function normalizeGroup<Group extends Record<string, NotificationChannelSettings>>(
+  value: unknown,
+  defaults: Group,
+): Group {
+  const input = isRecord(value) ? value : {};
+  return Object.fromEntries(
+    Object.entries(defaults).map(([event, fallback]) => [
+      event,
+      normalizeChannelSettings(input[event], fallback),
+    ]),
+  ) as Group;
 }
 
 export function normalizeNotificationSettings(
   value: unknown,
 ): NotificationSettings {
   const input = isRecord(value) ? value : {};
-  const admin = isRecord(input.admin) ? input.admin : {};
-  const staff = isRecord(input.staff) ? input.staff : {};
-  const vendor = isRecord(input.vendor) ? input.vendor : {};
-  const customer = isRecord(input.customer) ? input.customer : {};
-
   return {
-    admin: {
-      newOrders: normalizeChannelSettings(
-        admin.newOrders,
-        DEFAULT_NOTIFICATION_SETTINGS.admin.newOrders,
-      ),
-      newCustomers: normalizeChannelSettings(
-        admin.newCustomers,
-        DEFAULT_NOTIFICATION_SETTINGS.admin.newCustomers,
-      ),
-      newVendors: normalizeChannelSettings(
-        admin.newVendors,
-        DEFAULT_NOTIFICATION_SETTINGS.admin.newVendors,
-      ),
-      returns: normalizeChannelSettings(
-        admin.returns,
-        DEFAULT_NOTIFICATION_SETTINGS.admin.returns,
-      ),
-      payments: normalizeChannelSettings(
-        admin.payments,
-        DEFAULT_NOTIFICATION_SETTINGS.admin.payments,
-      ),
-    },
-    staff: {
-      newOrders: normalizeChannelSettings(
-        staff.newOrders,
-        DEFAULT_NOTIFICATION_SETTINGS.staff.newOrders,
-      ),
-      newCustomers: normalizeChannelSettings(
-        staff.newCustomers,
-        DEFAULT_NOTIFICATION_SETTINGS.staff.newCustomers,
-      ),
-      returns: normalizeChannelSettings(
-        staff.returns,
-        DEFAULT_NOTIFICATION_SETTINGS.staff.returns,
-      ),
-      payments: normalizeChannelSettings(
-        staff.payments,
-        DEFAULT_NOTIFICATION_SETTINGS.staff.payments,
-      ),
-      lowStock: normalizeChannelSettings(
-        staff.lowStock,
-        DEFAULT_NOTIFICATION_SETTINGS.staff.lowStock,
-      ),
-    },
-    vendor: {
-      applicationStatus: normalizeChannelSettings(
-        vendor.applicationStatus,
-        DEFAULT_NOTIFICATION_SETTINGS.vendor.applicationStatus,
-      ),
-      newOrders: normalizeChannelSettings(
-        vendor.newOrders,
-        DEFAULT_NOTIFICATION_SETTINGS.vendor.newOrders,
-      ),
-      returns: normalizeChannelSettings(
-        vendor.returns,
-        DEFAULT_NOTIFICATION_SETTINGS.vendor.returns,
-      ),
-    },
-    customer: {
-      orderUpdates: normalizeChannelSettings(
-        customer.orderUpdates,
-        DEFAULT_NOTIFICATION_SETTINGS.customer.orderUpdates,
-      ),
-      returnUpdates: normalizeChannelSettings(
-        customer.returnUpdates,
-        DEFAULT_NOTIFICATION_SETTINGS.customer.returnUpdates,
-      ),
-    },
+    admin: normalizeGroup(input.admin, DEFAULT_NOTIFICATION_SETTINGS.admin),
+    staff: normalizeGroup(input.staff, DEFAULT_NOTIFICATION_SETTINGS.staff),
+    vendor: normalizeGroup(input.vendor, DEFAULT_NOTIFICATION_SETTINGS.vendor),
+    customer: normalizeGroup(
+      input.customer,
+      DEFAULT_NOTIFICATION_SETTINGS.customer,
+    ),
   };
 }
 
 export function hasAnyNotificationChannel(
   channels: NotificationChannelSettings,
 ) {
-  return channels.inApp || channels.email || channels.browserPush;
+  return (
+    channels.inApp || channels.email || channels.browserPush || channels.sms
+  );
+}
+
+/** Whether any event, for any audience, is set to send a text. */
+export function hasAnySmsNotification(settings: NotificationSettings): boolean {
+  return Object.values(settings).some((group) =>
+    Object.values(group as Record<string, NotificationChannelSettings>).some(
+      (channels) => channels.sms,
+    ),
+  );
 }

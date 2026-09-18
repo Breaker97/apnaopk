@@ -10,6 +10,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ModernProductCard, type ModernProduct } from "@/components/products/modern-product-card";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { useTranslations } from "next-intl";
+import {
+  CARD_SHELF_GAP,
+  PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES,
+} from "@/components/store/product-grid-columns";
 
 // Loaded only when a shopper opens quick view, keeping the modal and its deps
 // out of the initial section bundle.
@@ -35,13 +39,7 @@ interface HomeNewArrivalsCarouselProps {
   themedHeading?: boolean;
 }
 
-const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
-  2: "lg:auto-cols-[calc((100%_-_1.25rem)_/_2)]",
-  3: "lg:auto-cols-[calc((100%_-_2.5rem)_/_3)]",
-  4: "lg:auto-cols-[calc((100%_-_3.75rem)_/_4)]",
-  5: "lg:auto-cols-[calc((100%_-_5rem)_/_5)]",
-  6: "lg:auto-cols-[calc((100%_-_6.25rem)_/_6)]",
-};
+const DESKTOP_COLUMN_CLASSES = PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES;
 
 export function HomeNewArrivalsCarousel({
   products,
@@ -112,7 +110,9 @@ export function HomeNewArrivalsCarousel({
   if (!products.length) return null;
 
   return (
-    <section className={cn("py-5 lg:py-8", className)}>
+    // With no title of its own the shelf drops its top padding: a Heading
+    // block above it is then its heading, with nothing between the two.
+    <section className={cn(title || subtitle ? "py-5 lg:py-8" : "pb-5 lg:pb-8", className)}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-6">
           <h2 className="text-[length:var(--sec-title,1.125rem)] font-bold tracking-tight sm:text-[length:var(--sec-title-lg,1.5rem)]">
@@ -174,7 +174,8 @@ export function HomeNewArrivalsCarousel({
         <div
           ref={scrollerRef}
           className={cn(
-            "mt-4 grid snap-x snap-mandatory auto-cols-[42%] grid-flow-col gap-3 overflow-x-auto pb-2 scroll-smooth sm:mt-8 sm:auto-cols-[48%] sm:gap-5 md:auto-cols-[32%] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            "mt-4 grid snap-x snap-mandatory auto-cols-[42%] grid-flow-col overflow-x-auto pb-2 scroll-smooth sm:mt-8 sm:auto-cols-[48%] md:auto-cols-[32%] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            CARD_SHELF_GAP,
             DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}
         >

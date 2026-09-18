@@ -26,6 +26,8 @@ interface PaymentTransactionListParams {
   status?: string;
   type?: string;
   provider?: string;
+  /** `pending` narrows to refunds someone still has to send by hand. */
+  settlement?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -35,6 +37,7 @@ function buildPaymentTransactionFilter({
   status,
   type,
   provider,
+  settlement,
 }: Omit<PaymentTransactionListParams, "page" | "limit" | "sortBy" | "sortOrder">) {
   const query: Record<string, unknown> = {};
 
@@ -42,6 +45,10 @@ function buildPaymentTransactionFilter({
   if (normalize(status) !== "all") query.status = normalize(status);
   if (normalize(type) !== "all") query.type = normalize(type);
   if (normalize(provider) !== "all") query.provider = normalize(provider);
+  if (normalize(settlement) === "pending") {
+    query["metadata.settlement.required"] = true;
+    query["metadata.settlement.settledAt"] = { $exists: false };
+  }
 
   if (search) {
     const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

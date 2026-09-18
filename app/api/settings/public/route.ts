@@ -4,26 +4,25 @@ import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import {
   resolveAnalyticsConfig,
-  resolveOAuthCredentials,
-  resolveIotecCredentials,
   resolveMtnMomoCredentials,
-  resolveOrangeMoneyCredentials,
+  resolveOAuthCredentials,
   resolvePayPalCredentials,
   resolvePaystackCredentials,
-  resolvePesapalCredentials,
   resolveRazorpayCredentials,
   resolveStripeCredentials,
 } from "@/lib/settings/credentials";
-import { isPesapalCurrency } from "@/lib/payments/pesapal";
-import { isOrangeMoneyCurrency } from "@/lib/payments/orange-money";
-import { isMtnMomoCurrency } from "@/lib/payments/mtn-momo";
+import { resolveCheckoutGatewayReadiness } from "@/lib/payments/checkout-gateways";
+import { mtnMomoPhoneExample } from "@/lib/payments/mtn-momo";
 import {
   getDefaultHomePageSettings,
   normalizeHomePageSettings,
 } from "@/lib/site-config/home-page-config";
 import { normalizeHeaderSettings } from "@/lib/site-config/header-config";
 import { normalizeFooterSettings } from "@/lib/site-config/footer-config";
-import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
+import {
+  normalizeCheckoutSettings,
+  toPublicCheckoutSettings,
+} from "@/lib/checkout/checkout-config";
 import { normalizeContentPagesSettings } from "@/lib/site-config/content-pages-config";
 import { resolveShareSettings } from "@/lib/site-config/share-config";
 import {
@@ -64,12 +63,7 @@ const getPublicSettingsPayload = unstable_cache(
     const paypalCreds = resolvePayPalCredentials(settings.payment?.paypal);
     const razorpayCreds = resolveRazorpayCredentials(settings.payment?.razorpay);
     const paystackCreds = resolvePaystackCredentials(settings.payment?.paystack);
-    const pesapalCreds = resolvePesapalCredentials(settings.payment?.pesapal);
-    const iotecCreds = resolveIotecCredentials(settings.payment?.iotec);
-    const orangeMoneyCreds = resolveOrangeMoneyCredentials(
-      settings.payment?.orange_money,
-    );
-    const mtnMomoCreds = resolveMtnMomoCredentials(settings.payment?.mtn_momo);
+    const gateways = resolveCheckoutGatewayReadiness(settings);
     const analytics = resolveAnalyticsConfig(settings.analytics);
 
     const googleOAuthConfigured = Boolean(
@@ -157,55 +151,34 @@ const getPublicSettingsPayload = unstable_cache(
           codInstructions: settings.payment?.cod?.instructions,
           codMinOrderAmount: settings.payment?.cod?.minOrderAmount,
           codMaxOrderAmount: settings.payment?.cod?.maxOrderAmount,
+          // Switched on AND able to take the payment — credentials resolve and,
+          // for the per-country wallets, the store currency is one they
+          // settle. Offering one that is not would fail at submit instead.
           stripeConfigured:
-            (settings.payment?.stripe?.enabled || false) &&
-            Boolean(stripeCreds.secretKey),
+            Boolean(settings.payment?.stripe?.enabled) && gateways.stripe.ready,
           paypalConfigured:
-            (settings.payment?.paypal?.enabled || false) &&
-            Boolean(paypalCreds.clientId && paypalCreds.clientSecret),
+            Boolean(settings.payment?.paypal?.enabled) && gateways.paypal.ready,
           razorpayConfigured:
-            (settings.payment?.razorpay?.enabled || false) &&
-            Boolean(razorpayCreds.keyId && razorpayCreds.keySecret),
+            Boolean(settings.payment?.razorpay?.enabled) &&
+            gateways.razorpay.ready,
           paystackConfigured:
-            (settings.payment?.paystack?.enabled || false) &&
-            Boolean(paystackCreds.secretKey),
+            Boolean(settings.payment?.paystack?.enabled) &&
+            gateways.paystack.ready,
           pesapalConfigured:
-            (settings.payment?.pesapal?.enabled || false) &&
-            // Credentials alone are not enough: Pesapal refuses a currency it
-            // cannot settle, so under one the storefront must not offer the
-            // option at all rather than fail at submit.
-            isPesapalCurrency(settings.general?.defaultCurrency) &&
-            Boolean(
-              pesapalCreds.consumerKey &&
-                pesapalCreds.consumerSecret &&
-                pesapalCreds.ipnId,
-            ),
+            Boolean(settings.payment?.pesapal?.enabled) && gateways.pesapal.ready,
           iotecConfigured:
-            (settings.payment?.iotec?.enabled || false) &&
-            Boolean(
-              iotecCreds.clientId &&
-                iotecCreds.clientSecret &&
-                iotecCreds.walletId,
-            ),
+            Boolean(settings.payment?.iotec?.enabled) && gateways.iotec.ready,
           orangeMoneyConfigured:
-            (settings.payment?.orange_money?.enabled || false) &&
-            // Same rule as Pesapal: Orange settles only its own operator's
-            // currency, so under any other the option must not appear at all.
-            isOrangeMoneyCurrency(settings.general?.defaultCurrency) &&
-            Boolean(
-              orangeMoneyCreds.clientId &&
-                orangeMoneyCreds.clientSecret &&
-                orangeMoneyCreds.merchantKey,
-            ),
+            Boolean(settings.payment?.orange_money?.enabled) &&
+            gateways.orange_money.ready,
           mtnMomoConfigured:
-            (settings.payment?.mtn_momo?.enabled || false) &&
-            // Same per-country wallet rule as Orange Money.
-            isMtnMomoCurrency(settings.general?.defaultCurrency) &&
-            Boolean(
-              mtnMomoCreds.subscriptionKey &&
-                mtnMomoCreds.apiUser &&
-                mtnMomoCreds.apiKey,
-            ),
+            Boolean(settings.payment?.mtn_momo?.enabled) &&
+            gateways.mtn_momo.ready,
+          // Placeholder for the wallet-number field, in the OpCo's own format.
+          mtnMomoPhoneExample: mtnMomoPhoneExample(
+            resolveMtnMomoCredentials(settings.payment?.mtn_momo)
+              .targetEnvironment,
+          ),
         },
 
         // POS
@@ -326,8 +299,9 @@ const getPublicSettingsPayload = unstable_cache(
         // Home page editor configuration
         header,
         footer,
-        // Checkout branding: trust copy + policy links, read by checkout-content
-        checkout,
+        // Checkout settings as the storefront may see them — the recovery
+        // email internals stay server-side.
+        checkout: toPublicCheckoutSettings(checkout),
         homePage: normalizeHomePageSettings(
           settings.homePage ?? getDefaultHomePageSettings(),
         ),

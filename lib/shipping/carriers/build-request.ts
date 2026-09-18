@@ -4,12 +4,14 @@ import { Product, Vendor } from "@/models";
 import { getSettings, type ISettings } from "@/models/settings.model";
 import { resolveShipFrom } from "@/lib/shipping/shipments";
 import {
+  isShippableLine,
   packSubOrder,
   type PackResult,
   type PackableItem,
 } from "@/lib/shipping/packing";
 import type { IOrder, IVendor, OrderItem, SubOrder } from "@/types";
 import { isSubOrderPaid } from "@/lib/orders/order-payment-status";
+import { consignmentCharge } from "@/lib/finance/postings";
 import {
   resolveItemDimensions,
   type ProductDimensions,
@@ -22,6 +24,7 @@ import {
   assertShipToReady,
   toCarrierAddress,
 } from "./address";
+import { withEffectiveCustoms } from "./physical-lines";
 import type { CarrierParcel, CarrierShipmentRequest } from "./types";
 
 /**
@@ -51,7 +54,8 @@ export function carrierReference(
 }
 
 /**
- * What this parcel's contents are worth, for customs and for cash on delivery.
+ * What this parcel's contents are worth, for customs — and for cash on delivery
+ * only when the order cannot be decomposed (see `cashOnDeliveryDue`).
  *
  * The sub-order's own subtotal, falling back to the order total only when there
  * is no sub-order figure at all. Exported and separate because `||` collapsed
@@ -80,6 +84,75 @@ export function declaredValueForSubOrder(
     if (Number.isFinite(parsed)) return parsed;
   }
   return Number(orderTotal) || 0;
+}
+
+type CodOrder = Pick<
+  IOrder,
+  | "paymentMethod"
+  | "paymentStatus"
+  | "currency"
+  | "total"
+  | "tax"
+  | "shippingCost"
+  | "discount"
+  | "coupon"
+  | "customs"
+  | "subOrders"
+>;
+
+/**
+ * The cash to collect at the door for ONE consignment, or undefined when there
+ * is none — a prepaid order, or a consignment whose money already arrived.
+ *
+ * Asked of this consignment, not the order: the order-level flag made one
+ * vendor collecting their cash disarm the collection on everybody else's
+ * parcel, so the courier handed the sibling's goods over for nothing.
+ *
+ * The amount is the consignment's slice of what the buyer was charged — goods
+ * after discounts, delivery, tax and duty — the same split the ledger posts as
+ * cash once it is collected. The carrier request and the printed label both
+ * read it from here, so the courier and the paperwork cannot disagree.
+ */
+export function cashOnDeliveryDue(
+  order: CodOrder,
+  subOrder: Pick<SubOrder, "_id" | "subtotal" | "shippingCost" | "paymentStatus">,
+  fallbackCurrency: string,
+): { amount: number; currency: string } | undefined {
+  if (String(order.paymentMethod || "").toLowerCase() !== "cod") return undefined;
+  if (isSubOrderPaid(order, subOrder)) return undefined;
+
+  const currency = String(order.currency || fallbackCurrency).toUpperCase();
+  const charge = consignmentCharge({ ...order, currency }, subOrder._id);
+  // A consignment charged nothing — a coupon covered all of it — has no cash
+  // to collect, and a courier asked for 0 is a courier who refuses the parcel.
+  if (charge) return charge.total > 0 ? { amount: charge.total, currency } : undefined;
+  // Nothing charged at all — a fully discounted order has no cash to collect.
+  if (!(Number(order.total) > 0)) return undefined;
+  // An order the decomposition cannot place this consignment on. Collecting
+  // its face value beats handing the parcel over for nothing.
+  return {
+    amount:
+      declaredValueForSubOrder(subOrder.subtotal, order.total) +
+      (Number(subOrder.shippingCost) || 0),
+    currency,
+  };
+}
+
+/**
+ * `cashOnDeliveryDue` for a printed label, where no settings are in hand yet.
+ * They are read only for an order written before the currency snapshot.
+ */
+export async function labelCashOnDelivery(
+  order: CodOrder,
+  subOrder:
+    | Pick<SubOrder, "_id" | "subtotal" | "shippingCost" | "paymentStatus">
+    | undefined,
+): Promise<{ amount: number; currency: string } | undefined> {
+  if (!subOrder) return undefined;
+  const fallbackCurrency = order.currency
+    ? order.currency
+    : (await getSettings()).general?.defaultCurrency || "USD";
+  return cashOnDeliveryDue(order, subOrder, fallbackCurrency);
 }
 
 /**
@@ -135,9 +208,7 @@ function toPackableItems(
 ): PackableItem[] {
   return (
     items
-      // The customs snapshot is absent for digital lines by construction, which
-      // is exactly what "not shippable" means here.
-      .filter((item) => item.customs?.weight !== undefined)
+      .filter(isShippableLine)
       .map((item) => {
         const productId = item.productId ? String(item.productId) : "";
         const variantKey = item.variantId
@@ -160,7 +231,7 @@ function toPackableItems(
 
 function customsItems(items: OrderItem[], currency: string) {
   return items
-    .filter((item) => item.customs?.weight !== undefined)
+    .filter(isShippableLine)
     .map((item) => ({
       description:
         item.customs?.description?.trim() || item.name || "Merchandise",
@@ -189,16 +260,7 @@ interface BuiltShipmentRequest {
  * guess, and the guess is only ever a starting point.
  */
 export async function buildCarrierShipmentRequest(params: {
-  order: Pick<
-    IOrder,
-    | "_id"
-    | "orderNumber"
-    | "shippingAddress"
-    | "currency"
-    | "paymentMethod"
-    | "paymentStatus"
-    | "total"
-  >;
+  order: Pick<IOrder, "_id" | "orderNumber" | "shippingAddress"> & CodOrder;
   /**
    * Carriers want a contact address on the consignee. An order stores only a
    * `customerId`, so the caller — which has already loaded the customer to
@@ -219,7 +281,11 @@ export async function buildCarrierShipmentRequest(params: {
   bookingSequence?: number;
 }): Promise<BuiltShipmentRequest> {
   const settings = params.settings ?? (await getSettings());
-  const items = params.subOrder.items || [];
+  // Every line read with the snapshot checkout would have written, so a
+  // bank-transfer or older order — whose physical lines carry none — is packed
+  // at its real weight, declared at customs and listed for the courier, rather
+  // than treated as a box of nothing. See `physical-lines.ts`.
+  const items = await withEffectiveCustoms(params.subOrder.items || []);
 
   const vendor = params.subOrder.vendorId
     ? await Vendor.findById(params.subOrder.vendorId)
@@ -272,17 +338,16 @@ export async function buildCarrierShipmentRequest(params: {
     params.subOrder.subtotal,
     params.order.total,
   );
-  const shippingAmount = Number(params.subOrder.shippingCost) || 0;
+  // What the shopper was charged for this parcel's delivery. The sub-order
+  // stores the RATED cost, before a free-shipping coupon waived it.
+  const shippingAmount =
+    consignmentCharge({ ...params.order, currency }, params.subOrder._id)
+      ?.shipping ??
+    (Number(params.subOrder.shippingCost) || 0);
 
   // COD is Shiprocket's first-class concept and absent from Shippo's; the
   // adapter that does not use it simply ignores it.
-  //
-  // Asked of THIS consignment. The order-level flag made one vendor collecting
-  // their cash disarm the collection on everybody else's parcel: the courier
-  // took the sibling's goods out as prepaid and handed them over for nothing.
-  const isCod =
-    String(params.order.paymentMethod || "").toLowerCase() === "cod" &&
-    !isSubOrderPaid(params.order, params.subOrder);
+  const cod = cashOnDeliveryDue(params.order, params.subOrder, currency);
 
   const request: CarrierShipmentRequest = {
     // Stable per sub-order: Shiprocket receives it as its own order id and
@@ -302,12 +367,15 @@ export async function buildCarrierShipmentRequest(params: {
     shipTo,
     parcels,
     customsItems: international ? customsItems(items, currency) : undefined,
-    cod: isCod
-      ? { amount: declaredValue + shippingAmount, currency }
-      : undefined,
+    cod,
     declaredValue: { amount: declaredValue, currency },
     shippingAmount,
-    items: items.map((item) => ({
+    // What is in the box, and only that. The carrier prints these on the
+    // invoice and manifest that travel with the parcel, so a download listed
+    // here is a line the courier is told to deliver and cannot. The money is
+    // unaffected: a COD collectable comes from `cod`, a declared value from the
+    // sub-order, never from summing these.
+    items: items.filter(isShippableLine).map((item) => ({
       name: item.name,
       sku: item.sku,
       quantity: item.quantity,

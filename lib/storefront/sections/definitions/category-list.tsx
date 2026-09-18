@@ -1,7 +1,10 @@
-import { HomeFeaturedCategories } from "@/components/store/home-featured-categories";
+import { CategoryListSection } from "@/components/store/sections/category-list-section";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
-import { ElectronicsCategoryStrip } from "@/components/store/sections/themes/electronics-category-strip";
 import { FeaturedCategoriesSkeleton } from "@/components/store/home-section-skeletons";
+import {
+  readCategoryListStyle,
+  type CategoryListVariant,
+} from "../category-list-style";
 import {
   FEATURED_CATEGORIES_LIMIT_MAX,
   FEATURED_CATEGORIES_LIMIT_MIN,
@@ -15,29 +18,37 @@ import type {
   SectionRenderProps,
 } from "../types";
 
-function props({ settings, ctx }: SectionRenderProps) {
-  return {
-    locale: ctx.locale,
-    title: lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage),
-    source: settings.source as FeaturedCategoriesSource,
-    limit: settings.limit as number,
-    categoryIds: settings.categoryIds as string[],
-    emptyState: sectionEmptyState(ctx, {
-      title: "Category row",
-      hint: "No categories to show yet — publish some, mark them featured, or pick them by hand in this section.",
-    }),
+/**
+ * Every template renders the same section: the template is the PRESET the
+ * block's style starts from (category-list-style.ts), and `style` holds
+ * what the merchant adjusted on top.
+ */
+const render = (variant: CategoryListVariant): SectionDefinition["Render"] =>
+  function CategoryListRender({ settings, ctx }: SectionRenderProps) {
+    return (
+      <CategoryListSection
+        locale={ctx.locale}
+        title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
+        source={settings.source as FeaturedCategoriesSource}
+        limit={settings.limit as number}
+        categoryIds={settings.categoryIds as string[]}
+        style={readCategoryListStyle(settings.style, variant)}
+        emptyState={sectionEmptyState(ctx, {
+          title: "Category row",
+          hint: "No categories to show yet — publish some, mark them featured, or pick them by hand in this section.",
+        })}
+      />
+    );
   };
-}
 
 /** The original image-card row — what every stored instance already renders. */
-const cards: SectionDefinition["Render"] = (renderProps) => (
-  <HomeFeaturedCategories {...props(renderProps)} />
-);
+const cards = render("cards");
 
 /** Circular department tiles under a centred heading. */
-const circles: SectionDefinition["Render"] = (renderProps) => (
-  <ElectronicsCategoryStrip {...props(renderProps)} />
-);
+const circles = render("circles");
+
+/** Tall picture tiles with the name on the picture — the fashion design. */
+const overlay = render("overlay");
 
 // Sources and limits are still imported from home-page-config while the
 // legacy settings path exists; they inline here when that file is deleted.
@@ -51,6 +62,7 @@ export const categoryList: SectionDefinition = {
   variants: [
     { key: "cards", name: "Image cards", Render: cards, Skeleton: FeaturedCategoriesSkeleton },
     { key: "circles", name: "Circular strip", Render: circles, Skeleton: FeaturedCategoriesSkeleton },
+    { key: "overlay", name: "Label on image", Render: overlay, Skeleton: FeaturedCategoriesSkeleton },
   ],
   fields: [
     { key: "title", type: "text", translatable: true, default: "Featured Categories" },
@@ -63,6 +75,11 @@ export const categoryList: SectionDefinition = {
       max: FEATURED_CATEGORIES_LIMIT_MAX,
     },
     { key: "categoryIds", type: "categoryList" },
+    // JSON — see category-list-style.ts. A text field so the style rides
+    // the section contract (draft, publish, history) like any setting;
+    // its own editor panel edits it, and the parser fills every knob from
+    // the template's preset. Empty: the template exactly as designed.
+    { key: "style", type: "text", default: "" },
   ],
   Render: cards,
   Skeleton: FeaturedCategoriesSkeleton,

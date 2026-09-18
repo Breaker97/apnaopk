@@ -89,6 +89,25 @@ export const LEDGER_ACCOUNT = {
   SHIPPING_COST: "shipping_cost",
   /** Cost of goods sold, from the line-level cost snapshot. */
   COST_OF_GOODS: "cost_of_goods",
+  /**
+   * Discounts the store paid for on sellers' goods — a store coupon it funds.
+   *
+   * The seller is paid as if the item sold at full price, so the gap between
+   * that and what the shopper paid is a cost of the store's own promotion.
+   * Not contra-revenue: none of that sale was ever the store's revenue, only
+   * its commission was, and the commission is still charged in full.
+   */
+  PROMOTIONS: "promotions",
+  /**
+   * Money a chargeback took beyond what was left of the sale to refund.
+   *
+   * Earlier refunds had already given that part back, so there is no sale left
+   * to reverse it against: it is simply gone from the gateway balance. It is
+   * not a refund — nothing more of the sale was undone — and it used to be left
+   * for an admin to enter as an expense, which kept it out of the books until
+   * someone did.
+   */
+  CHARGEBACK_LOSSES: "chargeback_losses",
   /** Everything entered by hand — rent, salaries, ads. Phase 3 fills this in. */
   OPERATING_EXPENSE: "operating_expense",
 } as const;
@@ -141,6 +160,8 @@ export const LEDGER_ACCOUNT_TYPES: Record<LedgerAccount, LedgerAccountType> = {
   [LEDGER_ACCOUNT.PROCESSING_FEES]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.SHIPPING_COST]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.COST_OF_GOODS]: LEDGER_ACCOUNT_TYPE.EXPENSE,
+  [LEDGER_ACCOUNT.PROMOTIONS]: LEDGER_ACCOUNT_TYPE.EXPENSE,
+  [LEDGER_ACCOUNT.CHARGEBACK_LOSSES]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.OPERATING_EXPENSE]: LEDGER_ACCOUNT_TYPE.EXPENSE,
 };
 

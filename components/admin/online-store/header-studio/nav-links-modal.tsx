@@ -56,6 +56,7 @@ import {
 } from "@/components/admin/online-store/header-studio/link-source";
 import { StudioModal } from "@/components/admin/online-store/header-studio/studio-modal";
 import { cn } from "@/lib/utils";
+import { MenuSelect } from "@/components/admin/online-store/header-studio/menu-select";
 
 /**
  * The Figma "Links" modal: the nav item's links, one level of nesting.
@@ -181,6 +182,7 @@ function newLink(): HeaderNavLink {
     icon: "",
     description: "",
     menu: "list",
+    megaMenu: "",
     children: [],
   };
 }
@@ -254,6 +256,38 @@ function SortableLinkCard({
           </>
         }
       />
+
+      {/* A whole navigation menu as this link's dropdown: the full-width
+          panel of headed columns and a picture. It wins over the sub-links
+          below, which stay stored — unlinking it brings their dropdown back. */}
+      <div className="space-y-1.5 border-t px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <FieldCaption>
+            {tSafe("admin.headerStudio.links.megaMenu", "Mega menu")}
+          </FieldCaption>
+          <div className="w-52">
+            <MenuSelect
+              value={link.megaMenu}
+              onChange={(megaMenu) => onChange({ megaMenu })}
+              noneLabel={tSafe("admin.headerStudio.links.megaMenuNone", "None")}
+              inactiveLabel={tSafe("admin.headerStudio.menus.inactive", "inactive")}
+              manageLabel={tSafe("admin.headerStudio.menus.manage", "Manage menus")}
+              ariaLabel={tSafe("admin.headerStudio.links.megaMenu", "Mega menu")}
+            />
+          </div>
+        </div>
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          {link.megaMenu && link.children.length
+            ? tSafe(
+                "admin.headerStudio.links.megaMenuWins",
+                "The mega menu is shown instead of the sub-links below. They are kept, so unlinking the menu brings them back.",
+              )
+            : tSafe(
+                "admin.headerStudio.links.megaMenuHint",
+                "In the menu, each top-level item with children becomes a column; a top-level item with an image and no children becomes a picture.",
+              )}
+        </p>
+      </div>
 
       {/* The dropdown this link opens, one level deep — deeper renders
           nowhere, so the normalizer drops it. */}

@@ -1,5 +1,12 @@
 import { connectDB, mongoose } from "@/lib/db";
-import { CustomerProfile, Order, Review, User, Wishlist } from "@/models";
+import {
+  CustomerProfile,
+  Order,
+  QuoteRequest,
+  Review,
+  User,
+  Wishlist,
+} from "@/models";
 import type { CustomerStats } from "@/types";
 import {
   LOYALTY_TIER_SWITCH,
@@ -473,12 +480,13 @@ export async function upsertGuestCustomerProfile(params: {
 /**
  * Fold a shopper's guest history into their account, keyed by email — the
  * Shopify "account activation" moment. Orders placed as a guest under this
- * email are relinked to the User, and the guest customer row either becomes
- * the account's profile (userId attached, guest identity cleared) or, when a
- * profile already exists, donates its loyalty balance and is retired.
+ * email are relinked to the User, quote requests sent while signed out are
+ * attached to it, and the guest customer row either becomes the account's
+ * profile (userId attached, guest identity cleared) or, when a profile already
+ * exists, donates its loyalty balance and is retired.
  *
  * Runs on session creation, so it must be cheap when there is nothing to
- * claim: one indexed profile read and one indexed no-op updateMany.
+ * claim: one indexed profile read and two indexed no-op updateManys.
  */
 export async function claimGuestCustomerData(userId: string, email: string) {
   await connectDB();
@@ -487,15 +495,29 @@ export async function claimGuestCustomerData(userId: string, email: string) {
   if (!guestEmail || !Types.ObjectId.isValid(userId)) return;
   const userObjectId = new Types.ObjectId(userId);
 
-  const [guestProfile, linkedOrders] = await Promise.all([
+  // Quote requests are claimed here rather than resolved by email at read
+  // time: lib/quotes/quote-offer.ts hands out a price only to a userId, and
+  // that is what keeps a merchant's negotiated number off any account that
+  // merely typed the same address into a contact form.
+  const [guestProfile, linkedOrders, linkedQuotes] = await Promise.all([
     CustomerProfile.findOne({ isGuest: true, email: guestEmail }).lean(),
     Order.updateMany(
       { guestEmail, customerId: { $ne: userObjectId } },
       { $set: { customerId: userObjectId } },
     ),
+    QuoteRequest.updateMany(
+      { email: guestEmail, userId: { $exists: false } },
+      { $set: { userId: userObjectId } },
+    ),
   ]);
 
-  if (!guestProfile && linkedOrders.modifiedCount === 0) return;
+  if (
+    !guestProfile &&
+    linkedOrders.modifiedCount === 0 &&
+    linkedQuotes.modifiedCount === 0
+  ) {
+    return;
+  }
 
   if (guestProfile) {
     const existing = await CustomerProfile.findOne({ userId: userObjectId })

@@ -190,6 +190,13 @@ ConversationSchema.index({ guestKeyHash: 1, lastMessageAt: -1, _id: -1 });
 ConversationSchema.index({ ownerType: 1, status: 1, lastMessageAt: -1, _id: -1 });
 ConversationSchema.index({ status: 1, escalationNotifiedAt: 1, lastInboundAt: 1 });
 ConversationSchema.index({ contactId: 1, channel: 1, lastMessageAt: -1 });
+// The sidebar's unread tally (`countUnreadConversationMessages`), polled from
+// every open dashboard tab. Partial, so it holds only the threads with
+// something unread and an admin's count never scans the whole collection.
+ConversationSchema.index(
+  { unreadForStore: 1 },
+  { partialFilterExpression: { unreadForStore: { $gt: 0 } } },
+);
 ConversationSchema.index(
   { channelConnectionId: 1, externalThreadId: 1 },
   {

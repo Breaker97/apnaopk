@@ -1,6 +1,7 @@
 import { sendEmail } from "@/lib/email/email";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import type { ISettings } from "@/models/settings.model";
+import { escapeHtml } from "@/lib/email/escape-html";
 
 type ReturnRequestEmailItem = {
   name: string;
@@ -30,18 +31,11 @@ function formatMoney(amount: number, currency: string) {
   }).format(amount);
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 export async function sendReturnRequestOwnerEmail(
   data: ReturnRequestOwnerEmailData,
   settings?: ISettings,
+  /** See `sendEmail`. */
+  dedupeKey?: string,
 ) {
   const storeName = settings?.general?.storeName || DEFAULT_STORE_NAME;
   const itemsHtml = data.items
@@ -131,5 +125,6 @@ export async function sendReturnRequestOwnerEmail(
     subject: `New return request - ${data.returnNumber}`,
     html,
     settings,
+    dedupeKey,
   });
 }

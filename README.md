@@ -210,11 +210,11 @@ Open <http://localhost:3000> — an unconfigured store redirects to
 
 | Step | What it does |
 | --- | --- |
-| **System check** | Node version, `BETTER_AUTH_SECRET` strength, app URL, database. Node, the auth secret and the database **block** the install (they are what the finish step needs); the app URL is a warning you can fix later. "Check again" re-runs them after you edit `.env` |
+| **System check** | Node version (22.12.0 or newer), `BETTER_AUTH_SECRET` strength, app URL, database. Node, the auth secret and the database **block** the install (they are what the finish step needs); the app URL is a warning you can fix later — `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` must be the address you open the installer on, or signing in there fails. "Check again" re-runs them; restart the app after editing `.env`, and rebuild after changing `NEXT_PUBLIC_APP_URL` |
 | **Admin account** | Your super-admin — name, email, password (checked against the active password policy) |
 | **Store basics** | Store name, default language, currency, single- or multi-vendor, point of sale |
 | **Media storage** | The bucket product images, videos and downloads are uploaded to — Cloudflare R2, AWS S3, DigitalOcean Spaces or MinIO — with a "Test connection" that also proves the files come back over the public URL. Skippable ("Set storage up later"), and pre-skipped when `.env` already carries `STORAGE_*` credentials |
-| **Template** | Electronics (default) or Classic Marketplace, plus an optional 50-product sample catalog |
+| **Template** | Electronics (default), Women Fashion or Classic Marketplace, plus an optional sample store — that template's own demo catalog, collections and storefront |
 
 Finishing publishes the chosen template across the storefront — home, product
 page, header and footer — and hands you a link to sign in.

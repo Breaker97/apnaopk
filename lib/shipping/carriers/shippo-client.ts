@@ -323,7 +323,7 @@ export async function shippoCreateTransaction(params: {
  * `rate` comes back as a bare object id on a list response and as an expanded
  * object when it was created inline, so both shapes have to be read.
  */
-function transactionRateId(
+export function transactionRateId(
   transaction: ShippoTransaction,
 ): string | undefined {
   const rate = transaction.rate;
@@ -373,6 +373,26 @@ export async function shippoGetTransaction(params: {
     token: params.token,
     method: "GET",
     path: `/transactions/${encodeURIComponent(params.transactionId)}`,
+  });
+}
+
+/**
+ * A rate as Shippo quoted it.
+ *
+ * Read when a purchase resumes an already-bought transaction: the transaction
+ * names its rate only by id, and the quote the retry arrived with may be a
+ * different service entirely — the merchant can re-quote and pick again while
+ * a checkpointed label sits on the parcel. What was bought is this rate, not
+ * that quote.
+ */
+export async function shippoGetRate(params: {
+  token: string;
+  rateId: string;
+}): Promise<ShippoRate> {
+  return shippoRequest<ShippoRate>({
+    token: params.token,
+    method: "GET",
+    path: `/rates/${encodeURIComponent(params.rateId)}`,
   });
 }
 

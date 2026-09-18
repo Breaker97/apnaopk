@@ -32,6 +32,7 @@
     "yes": "Yes",
     "no": "No",
     "close": "Close",
+    "scrollToTop": "Koma sama",
     "back": "Back",
     "goBack": "Go Back",
     "backToHome": "Back to Home",
@@ -588,11 +589,55 @@
     "quoteMessagePlaceholder": "Yawa, ranar isarwa, ƙayyadaddun bayanai…"
   },
   "reviews": {
-    "basedOn": "Based on {count} reviews",
-    "writeReview": "Write a Review",
-    "noReviews": "No reviews yet",
-    "beFirst": "Be the first to review this product",
-    "verified": "Verified Purchase"
+    "basedOn": "Bisa ga sharhi {count}",
+    "writeReview": "Rubuta Sharhi",
+    "noReviews": "Babu sharhi tukuna",
+    "beFirst": "Ka zama na farko da zai yi sharhi kan wannan kaya",
+    "verified": "Sayayya da aka Tabbatar",
+    "writeReviewCta": "Rubuta sharhi!",
+    "rating": "Kimantawa",
+    "all": "Duka",
+    "highlyRecommended": "Ana ba da shawara sosai",
+    "postedBy": "{name} ya wallafa {time}",
+    "postedTime": "An wallafa {time}",
+    "brandResponse": "Amsar alama",
+    "showingRange": "Ana nuna {from} - {to} daga cikin sharhi {total}",
+    "anonymous": "Ba a san suna ba",
+    "checkingEligibility": "Ana duba odar ka da suka cancanta...",
+    "comment": "Sharhinka *",
+    "commentPlaceholder": "Raba abin da ka gani game da wannan kaya",
+    "commentTooShort": "Sharhi dole ya kasance aƙalla haruffa 10",
+    "dropzoneHint": "Ana karɓar hotuna har zuwa 10MB kowanne.",
+    "dropzonePrimary": "Ja ka sauke fayiloli a nan, ko danna don bincike",
+    "eligibleOrderRequired": "Za ka iya yin sharhi kan wannan kaya ne kawai bayan an kawo shi a cikin ɗaya daga cikin odar ka.",
+    "imageTooLarge": "Kowane hoto dole ya kasance ƙasa da 10MB",
+    "imageUploadFailed": "Loda hoto ya gaza",
+    "invalidImage": "Fayilolin hoto kawai aka yarda da su",
+    "loginToReview": "Da fatan za ka shiga don rubuta sharhi kan wannan kaya.",
+    "maxImages": "Za ka iya loda hotuna har guda 4",
+    "noReviewsForRating": "Babu sharhi don wannan kimantawa tukuna",
+    "oldest": "Mafi tsufa",
+    "photos": "Hotuna",
+    "selectRating": "Da fatan za ka zaɓi kimantawa",
+    "submit": "Aika sharhi",
+    "submitFailed": "Aika sharhi ya gaza",
+    "submitted": "An aika sharhi cikin nasara!",
+    "title": "Take",
+    "titlePlaceholder": "Taƙaita sharhinka",
+    "writeReviewHint": "Ba za a wallafa adireshin imel ɗinka ba. An yi wa filayen da ake buƙata alama da tauraro (*).",
+    "yourRating": "Kimantawarka",
+    "pendingTitle": "Kimanta abubuwan da ka saya",
+    "pendingDescription": "Odar ka sun iso. Faɗa wa sauran masu siyayya ra'ayinka.",
+    "deliveredOn": "An kawo {date}",
+    "rateStar": "Ba da {count} cikin 5",
+    "showMore": "Nuna ƙarin {count}",
+    "showFewer": "Nuna kaɗan",
+    "fromOrder": "Oda #{orderNumber}",
+    "orderPromptTitle": "Yaya odar ka ta kasance?",
+    "orderPromptOne": "Rubuta gajeren sharhi kan {name} — yana taimaka wa sauran masu siyayya.",
+    "orderPromptMany": "Kaya {count} daga wannan oda suna jiran sharhinka.",
+    "youRated": "Ka kimanta wannan",
+    "alreadyReviewed": "Ka riga ka yi sharhi kan wannan kaya. Mun gode da raba abin da ka gani!"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -726,12 +771,13 @@
       "iotecPhoneHint": "Shigar da lambar MTN ko Airtel da za a cire kuɗi daga gareta. Za ka sami saƙo a wannan wayar don amincewa da biyan.",
       "mtnMomoDetail": "Biya da MTN Mobile Money. Za ka sami sako a wayarka don amincewa da PIN ɗin MoMo.",
       "mtnMomoPhoneLabel": "Lambar mobile money",
-      "mtnMomoPhonePlaceholder": "misali 0772 123 456",
+      "mtnMomoPhonePlaceholder": "misali {example}",
       "mtnMomoPhoneHint": "Shigar da lambar MTN da za a caja. Za a aika buƙatar amincewa zuwa wannan wayar."
     },
     "billingSame": "Same as shipping address",
     "billingDifferent": "Use a different billing address",
-    "switchToPickup": "Canza zuwa karɓa daga shago"
+    "switchToPickup": "Canza zuwa karɓa daga shago",
+    "enterAddressForShipping": "Shigar da adireshin jigilar kaya don ganin hanyoyin jigilar kaya da ake da su."
   },
   "orders": {
     "title": "My Orders",
@@ -782,7 +828,8 @@
       "partially_paid": "An biya wani ɓangare",
       "refunded": "An mayar da kuɗi",
       "partially_refunded": "An mayar da wani ɓangare"
-    }
+    },
+    "importDuties": "Harajin shigo da kaya"
   },
   "adminProfile": {
     "title": "Profile",
@@ -927,6 +974,7 @@
       "subtotal": "Subtotal",
       "shipping": "Shipping",
       "tax": "Tax",
+      "importDuties": "Harajin shigo da kaya",
       "discount": "Discount",
       "totalLabel": "Total",
       "timeline": "Timeline",
@@ -1045,7 +1093,7 @@
       "dateRange": "25 Jul - 25 Aug",
       "addActivity": "Ƙara aiki",
       "sales": "Tallace-tallace",
-      "ordersDescription": "Rarrabuwar jimillar oda tare da cikakkun bayanai.",
+      "ordersDescription": "Jimillar lokacin da aka zaɓa, an raba su bisa hanyar sayarwa.",
       "showHighlights": "Nuna dukkan bayanai masu muhimmanci",
       "showSalesData": "Nuna dukkan bayanan tallace-tallace",
       "viewAllOrders": "Duba dukkan oda",
@@ -2850,6 +2898,11 @@
           "name": "Fashion",
           "description": "Editorial-style visual treatment for premium fashion, beauty, and lifestyle brands.",
           "styleNote": "Focuses on imagery-first merchandising and refined collection narratives."
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "Nuna tufafi a salon mujalla: hotunan kamfen masu faɗin shafi, tayal ɗin lookbook da zaɓin yanayi.",
+          "styleNote": "An gina shi don tufafi, takalma da kayan ado — hotuna ne gaba, sauran suna baya."
         }
       },
       "activate": "Yi amfani da wannan jigo"
@@ -3313,7 +3366,6 @@
         "live": "A kai tsaye",
         "unsaved": "Canje-canje da ba a ajiye ba"
       },
-      "subtitle": "Shafin biya yana riƙe da tsarinsa da aka tabbatar — sa masa alamarka a nan. Ba za a iya sake tsara matakan ba, don haka biya ba ya taɓa lalacewa.",
       "themeLink": "Saitunan jigo",
       "title": "Biya",
       "toast": {
@@ -3345,7 +3397,21 @@
       },
       "brand": {
         "description": "Sarrafa tambarin ƙasan shafi, bayani, faɗi da launuka.",
-        "title": "Alama da tsari"
+        "title": "Alama da tsari",
+        "logoSourceLabel": "Tushen tambarin ƙasan shafi",
+        "storeLogo": "Tambarin shago (An ba da shawara)",
+        "storeLogoDescription": "Yana amfani da tambaran Alamar kasuwanci kuma yana canzawa tsakanin yanayin haske da na duhu, kamar Kan Shafi.",
+        "customLogo": "Tambari na musamman na ƙasan shafi",
+        "customLogoDescription": "Ɗora wani zane daban don ƙasan shafi kawai.",
+        "synced": "An daidaita da Alamar kasuwanci",
+        "editBranding": "Gyara a Alamar kasuwanci",
+        "lightLogo": "Tambarin yanayin haske",
+        "darkLogo": "Tambarin yanayin duhu",
+        "logoNotSet": "Ba a ɗora ba",
+        "customLogoHint": "Waɗannan tambaran na ƙasan shafi ne kawai. Idan babu tambarin yanayin duhu, tambarin ƙasan shafi zai bayyana a yanayi biyu; idan babu ko ɗaya, za a yi amfani da tambaran shagonka.",
+        "matchHeaderSize": "Girma ɗaya da tambarin Kan Shafi",
+        "matchHeaderSizeHint": "Yana bin Kan Shafi: faɗin {desktop}px a manyan allo, {mobile}px a wayoyi.",
+        "logoThemeAuto": "Kai tsaye (ya dace da bangon ƙasan shafi)"
       },
       "colors": {
         "dark": "Launukan yanayin duhu",
@@ -3380,6 +3446,9 @@
         "email": "Imel",
         "footerBackgroundColor": "Launin bayan ƙasan shafi",
         "footerLogo": "Tambarin ƙasan shafi",
+        "footerDarkLogo": "Tambarin ƙasan shafi (yanayin duhu)",
+        "logoWidth": "Faɗin tambari",
+        "logoTheme": "Tambarin da za a nuna",
         "footerTextColor": "Launin rubutun ƙasan shafi",
         "fullWidthFooter": "Ƙasan shafi cikakken faɗi",
         "imageAlt": "Madadin rubutun hoto",
@@ -3837,6 +3906,7 @@
       "publishPageTitle": "Wallafa wannan shafi?",
       "publishTitle": "Wallafa shafin gida?",
       "published": "An wallafa shafin gida",
+      "duplicateSection": "Kwafi sashe",
       "removeSection": "Cire sashe",
       "requiredSection": "Ana buƙata",
       "restore": "Maido",
@@ -4142,7 +4212,9 @@
     "earnings": "Earnings",
     "totalRevenue": "Total Revenue",
     "netEarnings": "Net Earnings",
+    "awaitingPayment": "{amount} na jiran biya",
     "totalOrders": "Total Orders",
+    "openOrdersCount": "{count} a buɗe",
     "activeProducts": "Active Products",
     "totalProducts": "Total Products",
     "commission": "Commission Paid",
@@ -4223,7 +4295,6 @@
     "active": "Active",
     "byStatus": "By Status",
     "unableToLoadData": "Unable to load analytics data. Make sure you are a registered vendor.",
-    "pending": "pending",
     "productsPage": {
       "subtitle": "Manage your products",
       "description": "View and manage your store products"
@@ -4322,6 +4393,7 @@
       "partially_refunded": "Partially refunded"
     },
     "fulfillmentStatus": {
+      "preordered": "Oda kafin lokaci",
       "pending": "Unfulfilled",
       "processing": "Processing",
       "shipped": "In transit",
@@ -5211,6 +5283,7 @@
     },
     "chatWithVendor": "Yi hira da mai sayarwa",
     "chatWithStore": "Yi hira da shago",
+    "chatWithSeller": "Yi hira da mai sayarwa",
     "startConversation": "Fara tattaunawa",
     "startDescription": "Tambaya game da samuwa, isarwa, nau'uka ko duk wani abu.",
     "writeMessage": "Rubuta saƙo…",
@@ -5530,7 +5603,6 @@
       "canceled": "An soke biyan. Da fatan za a sake gwadawa.",
       "failed": "An kasa fara biyan",
       "loadFailed": "An kasa loda tsanin matsayi",
-      "verifyFailed": "An kasa tabbatar da biyan",
       "pollTimeout": "Ba mu tabbatar da biyan ba tukuna. Zai fara ta atomatik bayan an tabbatar.",
       "stepSlot": "Wuri da kwanaki",
       "pickSlot": "Zaɓi matsayi da kwanaki",
@@ -5643,7 +5715,6 @@
     "adminPassword": "Kalmar sirri",
     "adminTitle": "Ƙirƙiri asusun admin ɗinka",
     "appUrl": "URL na app",
-    "appUrlHint": "Saita NEXT_PUBLIC_APP_URL a .env zuwa URL ɗin shagonka",
     "blockedHint": "Gyara abubuwan da ke sama, sannan ka sake dubawa — ba za a ci gaba da shigarwa ba sai sun yi daidai.",
     "retry": "Sake dubawa",
     "authSecret": "Sirrin tantancewa",
@@ -5682,7 +5753,7 @@
       "secretAccessKey": "Sirrin maɓallin shiga",
       "publicUrl": "URL na jama'a"
     },
-    "nodeTooOld": "Ana buƙatar Node.js 22 ko sabo",
+    "nodeTooOld": "Ana buƙatar Node.js 22.12 ko sabo",
     "storeName": "Sunan shago",
     "storeTitle": "Tushen shago",
     "subtitle": "Matakai kaɗan kana fara sayarwa",

@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  buildStockBaseline,
+  type StockBaseline,
+} from "@/lib/products/stock-baseline-client";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -83,7 +87,10 @@ import {
   type ShippingFormContext,
 } from "@/components/admin/product-form/schema";
 import { PricingCard } from "@/components/admin/product-form/pricing-card";
-import { PreorderCard } from "@/components/admin/product-form/preorder-card";
+import {
+  PreorderCard,
+  preorderLockMessage,
+} from "@/components/admin/product-form/preorder-card";
 import { ShippingCard } from "@/components/admin/product-form/shipping-card";
 import { ProductFormatCard } from "@/components/admin/product-form/product-format-card";
 import { InventoryCard } from "@/components/admin/product-form/inventory-card";
@@ -95,8 +102,11 @@ import {
   type DigitalPreviewItem,
 } from "@/components/admin/product-form/digital-files-card";
 import { ProductFormSkeleton } from "@/components/admin/product-form/product-form-skeleton";
-import { apiClient } from "@/lib/api/client";
-import type { ProductFormOptions } from "@/lib/products/form-options-types";
+import { apiClient, describeApiError } from "@/lib/api/client";
+import type {
+  ProductFormOptions,
+  VendorPreorderAccess,
+} from "@/lib/products/form-options-types";
 
 interface ProductFormProps {
   productId?: string;
@@ -118,6 +128,7 @@ type ProductFormMediaItem = {
   thumbnailUrl?: string;
   provider?: "youtube" | "vimeo";
   embedId?: string;
+  fit?: "auto" | "contain" | "cover";
 };
 
 // Character bounds for AI-generated copy. These mirror the server-side product
@@ -191,6 +202,9 @@ export function ProductForm({
   // options for, and the ids of the options we injected — so switching category
   // swaps its template out without disturbing the user's own options.
   const appliedCategoryRef = useRef<string | null>(null);
+  // The stock numbers as loaded. Sent back on save so the server can tell what
+  // this form changed from what sales and transfers moved while it was open.
+  const stockBaselineRef = useRef<StockBaseline | null>(null);
   const injectedCategoryOptionIdsRef = useRef<Set<string>>(new Set());
   const [activeLocations, setActiveLocations] = useState<
     {
@@ -202,6 +216,14 @@ export function ProductForm({
   // Whether this account may create a location, not just stock existing ones.
   // Staff pinned to a fixed set cannot, and the API refuses their create.
   const [canManageLocations, setCanManageLocations] = useState(true);
+  // Optimistic until the options land: a vendor who opens the editor before
+  // the fetch resolves should see the modes they normally have, not a form
+  // that briefly claims deposits are unavailable and then changes its mind.
+  const [deferredBalanceSupported, setDeferredBalanceSupported] = useState(true);
+  // Vendor editor only. Optimistic for the same reason as above; the server
+  // still refuses a pre-order this vendor may not open.
+  const [preorderAccess, setPreorderAccess] =
+    useState<VendorPreorderAccess | null>(null);
   const [productLocationInventory, setProductLocationInventory] = useState<
     LocationInventory[]
   >([]);
@@ -319,6 +341,10 @@ export function ProductForm({
         setAvailableCollections(data.collections || []);
         setActiveLocations(data.locations || []);
         setCanManageLocations(data.canManageLocations !== false);
+        setDeferredBalanceSupported(
+          data.preorder?.deferredBalanceSupported !== false,
+        );
+        setPreorderAccess(data.preorder?.access ?? null);
 
         if (data.shipping) {
           setShippingContext(data.shipping);
@@ -415,6 +441,7 @@ export function ProductForm({
         const data = await apiClient.get<any>(`${apiPath}/${productId}`);
         if (data) {
           const product = data;
+          stockBaselineRef.current = buildStockBaseline(product);
 
           const loadedMedia = Array.isArray(product.media)
             ? product.media
@@ -447,6 +474,10 @@ export function ProductForm({
                         ? media.provider
                         : undefined,
                     embedId: media.embedId ? String(media.embedId) : undefined,
+                    fit:
+                      media.fit === "contain" || media.fit === "cover"
+                        ? media.fit
+                        : undefined,
                   };
                 })
                 .filter((m: { url: string }) => m.url)
@@ -1051,6 +1082,9 @@ export function ProductForm({
           thumbnailUrl: m.thumbnailUrl,
           provider: m.provider,
           embedId: m.embedId,
+          // Every field here is picked by hand; without this the fit chosen
+          // in the media dialog would never reach the save.
+          fit: !m.type || m.type === "image" ? m.fit : undefined,
         }))
         .filter((m) => m.url);
 
@@ -1270,6 +1304,9 @@ export function ProductForm({
         variants: normalizedVariants,
         preorder: preorderPayload,
         shipping: normalizeProductShippingData(data.shipping),
+        ...(method === "PUT" && stockBaselineRef.current
+          ? { stockBaseline: stockBaselineRef.current }
+          : {}),
       };
 
       if (method === "PUT") {
@@ -1284,11 +1321,7 @@ export function ProductForm({
       );
       router.push(basePath);
     } catch (error) {
-      toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "Failed to save product",
-      );
+      toast.error(describeApiError(error, "Failed to save product"));
     } finally {
       setIsLoading(false);
     }
@@ -1839,6 +1872,11 @@ export function ProductForm({
           <div className="min-w-0 space-y-4 lg:col-span-2">
             <DetailsCard
               form={form}
+              attributeSuggestionsEndpoint={
+                isVendor
+                  ? "/api/vendor/products/attribute-suggestions"
+                  : "/api/admin/products/attribute-suggestions"
+              }
               summaryAiAction={
                 <AiGenerateMenu
                   label="Generate"
@@ -1883,7 +1921,12 @@ export function ProductForm({
             <ProductFormatCard form={form} locked={!!productId} />
 
             {watchedIsPhysicalProduct && (
-              <PreorderCard form={form} setVariants={setVariants} />
+              <PreorderCard
+                form={form}
+                setVariants={setVariants}
+                deferredBalanceSupported={deferredBalanceSupported}
+                access={preorderAccess}
+              />
             )}
 
             <Card className="gap-2">
@@ -1905,7 +1948,9 @@ export function ProductForm({
                     thumbnailUrl: m.thumbnailUrl,
                     provider: m.provider,
                     embedId: m.embedId,
+                    fit: m.fit,
                   }))}
+                  allowImageFit
                   onChange={(newMedia) => {
                     updateMediaItems(
                       newMedia.map((m, idx) => ({
@@ -1922,6 +1967,7 @@ export function ProductForm({
                         thumbnailUrl: m.thumbnailUrl,
                         provider: m.provider,
                         embedId: m.embedId,
+                        fit: m.fit,
                       })),
                     );
                     // Update variants to clear invalid media IDs
@@ -2018,6 +2064,7 @@ export function ProductForm({
                   locations={activeLocations}
                   defaultRequiresShipping={watchedIsPhysicalProduct}
                   defaultWeightUnit={watchedWeightUnit}
+                  preorderLockedReason={preorderLockMessage(preorderAccess)}
                 />
               </CardContent>
             </Card>

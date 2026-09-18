@@ -1,3 +1,9 @@
+import { colorTone } from "@/lib/site-config/appearance-colors";
+import type { LogoWidths } from "@/lib/site-config/header-config";
+import {
+  MAX_HEADER_LOGO_SIZE,
+  MIN_HEADER_LOGO_SIZE,
+} from "@/lib/site-config/header-layout";
 import { isRecord } from "@/lib/utils";
 export interface FooterColorScheme {
   backgroundColor: string;
@@ -42,7 +48,20 @@ interface FooterSocialLinks {
   tiktokUrl: string;
 }
 
-export type FooterContactSource = "store" | "custom";
+/**
+ * Whether a footer block follows the store's own settings ("store") or uses
+ * values entered only in the footer ("custom"). Contact details and the logo
+ * both offer the choice.
+ */
+export type FooterSource = "store" | "custom";
+
+/**
+ * Which logo artwork the footer shows — the header logo item's Theme choice.
+ * "auto" reads the footer's own paint in the active theme, so a dark footer
+ * gets the dark artwork even on a light storefront.
+ */
+export const FOOTER_LOGO_THEMES = ["auto", "light", "dark"] as const;
+export type FooterLogoTheme = (typeof FOOTER_LOGO_THEMES)[number];
 
 export interface FooterContactDetails {
   phone: string;
@@ -55,7 +74,20 @@ export interface FooterSettings {
     fullWidth: boolean;
   };
   brand: {
+    /**
+     * "store" shows the store's light/dark logo pair from Branding, switching
+     * with the theme exactly as the header does. The two URLs below are read
+     * only under "custom" — see resolveFooterLogoUrl.
+     */
+    logoSource: FooterSource;
     logoUrl: string;
+    darkLogoUrl: string;
+    /**
+     * Logo width in px — the axis the header's Size field sets. 0 draws it at
+     * the header's own logo size on every screen (resolveFooterLogoWidths).
+     */
+    logoSize: number;
+    logoTheme: FooterLogoTheme;
     logoAlt: string;
     description: string;
   };
@@ -73,7 +105,7 @@ export interface FooterSettings {
     showPaymentMethods: boolean;
   };
   contact: {
-    source: FooterContactSource;
+    source: FooterSource;
     title: string;
     phone: string;
     email: string;
@@ -100,7 +132,11 @@ const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
     fullWidth: false,
   },
   brand: {
+    logoSource: "store",
     logoUrl: "",
+    darkLogoUrl: "",
+    logoSize: 0,
+    logoTheme: "auto",
     logoAlt: "",
     description: "",
   },
@@ -237,8 +273,22 @@ function normalizeTarget(value: unknown): "_self" | "_blank" {
   return value === "_blank" ? "_blank" : "_self";
 }
 
-function normalizeContactSource(value: unknown): FooterContactSource {
+function normalizeSource(value: unknown): FooterSource {
   return value === "custom" ? "custom" : "store";
+}
+
+/** 0 (the header's size) or a width inside the header's Size range. */
+function normalizeLogoSize(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  return Math.round(
+    Math.min(MAX_HEADER_LOGO_SIZE, Math.max(MIN_HEADER_LOGO_SIZE, value)),
+  );
+}
+
+function normalizeLogoTheme(value: unknown): FooterLogoTheme {
+  return FOOTER_LOGO_THEMES.find((theme) => theme === value) ?? "auto";
 }
 
 function normalizeColorScheme(
@@ -362,6 +412,68 @@ export function resolveFooterContactDetails(
   };
 }
 
+/**
+ * Which logo the footer paints, resolved ONCE for the storefront footer and
+ * the builder's preview so the two cannot disagree.
+ *
+ * The pair: "store" follows the store's light/dark logos — the artwork the
+ * header switches between. "custom" uses the footer's own: an empty custom
+ * dark logo falls back to the custom light one, so a single uploaded footer
+ * logo keeps showing in both themes, and a side with no custom artwork at
+ * all falls back to the store's.
+ *
+ * The side: `logoTheme` names it, and "auto" reads the surface BEHIND the
+ * logo — the footer's paint in the active theme, as the header's logo item
+ * reads its row — falling back to the theme when the footer has no opaque
+ * paint of its own. A missing side falls back to the other: a missing logo
+ * reads as a broken store where a slightly low-contrast one merely reads as
+ * plain.
+ */
+export function resolveFooterLogoUrl({
+  brand,
+  storeLogoUrl,
+  storeDarkLogoUrl,
+  isDark,
+  backgroundColor,
+}: {
+  brand: Pick<
+    FooterSettings["brand"],
+    "logoSource" | "logoUrl" | "darkLogoUrl" | "logoTheme"
+  >;
+  storeLogoUrl: string;
+  storeDarkLogoUrl: string;
+  /** The shopper's (or preview's) active theme. */
+  isDark: boolean;
+  /** The footer's background in that theme; "" when it paints none. */
+  backgroundColor: string;
+}): string {
+  const custom = brand.logoSource === "custom";
+  const customLight = custom ? brand.logoUrl.trim() : "";
+  const customDark = custom ? brand.darkLogoUrl.trim() || customLight : "";
+  const light = customLight || storeLogoUrl.trim();
+  const dark = customDark || storeDarkLogoUrl.trim();
+  const surface =
+    brand.logoTheme === "auto"
+      ? (colorTone(backgroundColor) ?? (isDark ? "dark" : "light"))
+      : brand.logoTheme;
+  return surface === "dark" ? dark || light : light || dark;
+}
+
+/**
+ * How wide the footer draws its logo on each side of the header's `lg`
+ * breakpoint. A `logoSize` of 0 copies the header (see headerLogoWidths), so
+ * the two logos stay the same size as either is edited; a set size applies
+ * on every screen.
+ */
+export function resolveFooterLogoWidths(
+  logoSize: number,
+  header: LogoWidths,
+): LogoWidths & { matchesHeader: boolean } {
+  return logoSize > 0
+    ? { desktop: logoSize, mobile: logoSize, matchesHeader: false }
+    : { ...header, matchesHeader: true };
+}
+
 export function normalizeFooterSettings(value: unknown): FooterSettings {
   const defaults = cloneDefaults();
   const source = isRecord(value) ? value : {};
@@ -386,7 +498,18 @@ export function normalizeFooterSettings(value: unknown): FooterSettings {
       fullWidth: normalizeBoolean(layout.fullWidth, defaults.layout.fullWidth),
     },
     brand: {
+      // Footers saved before this choice existed carry a one-time COPY of the
+      // store's light logo (the builder used to pre-fill the field), which
+      // pinned the light artwork in dark mode. Reading them as "store" heals
+      // them without deleting the value — the contact source's rule.
+      logoSource: normalizeSource(brand.logoSource),
       logoUrl: normalizeString(brand.logoUrl, defaults.brand.logoUrl),
+      darkLogoUrl: normalizeString(
+        brand.darkLogoUrl,
+        defaults.brand.darkLogoUrl,
+      ),
+      logoSize: normalizeLogoSize(brand.logoSize),
+      logoTheme: normalizeLogoTheme(brand.logoTheme),
       logoAlt: normalizeString(brand.logoAlt, defaults.brand.logoAlt),
       description: normalizeString(brand.description, defaults.brand.description),
     },
@@ -428,7 +551,7 @@ export function normalizeFooterSettings(value: unknown): FooterSettings {
       // Older footer documents did not record a source and often contained a
       // one-time copy of Store Information. Treating those documents as synced
       // fixes the stale-copy behaviour without deleting their custom values.
-      source: normalizeContactSource(contact.source),
+      source: normalizeSource(contact.source),
       title: normalizeString(contact.title, defaults.contact.title),
       phone: normalizeString(contact.phone, defaults.contact.phone),
       email: normalizeString(contact.email, defaults.contact.email),

@@ -48,7 +48,7 @@ export async function consumeAIUsage(
     const updated = await AIUsage.findOneAndUpdate(
       { userId, day, [field]: { $lt: limit } },
       { $inc: { [field]: 1 } },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: "after" },
     );
     if (!updated) throw new RateLimitError(capMessage(kind));
   } catch (error) {

@@ -7,15 +7,18 @@ import {
   type MenuItemPlain,
 } from "@/lib/site-config/menu-helpers";
 import { mapMegaMenuItem } from "@/lib/site-config/mega-menu-mapping";
+import { collectLinkedMenuHandles } from "@/lib/site-config/header-layout";
 import {
   CONTENT_PAGE_KEYS,
   CONTENT_PAGE_META,
   HEADER_APP_PAGE_OPTIONS,
 } from "@/lib/site-config/content-pages-config";
+import { headerLogoWidths } from "@/lib/site-config/header-config";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { getStorefrontCategories } from "@/lib/storefront/storefront-categories";
 import { getStorefrontCollections } from "@/lib/storefront/storefront-collections";
 import { readStoredShopperLocation } from "@/lib/locations/resolve-request-location";
+import { hasOpenPreorders } from "@/lib/products/storefront-products";
 
 /**
  * The main header bar and footer, as group-section bodies. All the menu
@@ -50,10 +53,12 @@ type HeaderMenuItemPayload = {
  * render the same utility links when the header places them there.
  */
 async function buildHeaderMenuItems(locale: Locale) {
-  const [{ contentPages, headerSettings }, headerMenus] = await Promise.all([
-    getStorefrontSettings(),
-    getMenusByLocation("header"),
-  ]);
+  const [{ contentPages, headerSettings }, headerMenus, preordersOpen] =
+    await Promise.all([
+      getStorefrontSettings(),
+      getMenusByLocation("header"),
+      hasOpenPreorders(),
+    ]);
 
   const resolveHref = (raw: string) => {
     if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
@@ -65,7 +70,13 @@ async function buildHeaderMenuItems(locale: Locale) {
   const controlledAppPagePaths = new Set(
     HEADER_APP_PAGE_OPTIONS.map((page) => page.publicPath),
   );
-  const selectedAppPagePaths = new Set(headerSettings.pagesMenu.appPagePaths);
+  // An empty pre-order shelf leaves the nav, whether a merchant picked the
+  // page in Header Studio or linked it from a menu by hand.
+  const selectedAppPagePaths = new Set(
+    headerSettings.pagesMenu.appPagePaths.filter(
+      (path) => preordersOpen || path !== "/pre-order",
+    ),
+  );
   const getControlledAppPath = (raw: string) => {
     if (raw.startsWith("http://") || raw.startsWith("https://")) return null;
 
@@ -126,7 +137,7 @@ async function buildHeaderMenuItems(locale: Locale) {
   );
   const appHeaderPageItems = new Map<string, HeaderMenuItemPayload>(
     HEADER_APP_PAGE_OPTIONS.filter((page) =>
-      headerSettings.pagesMenu.appPagePaths.includes(page.publicPath),
+      selectedAppPagePaths.has(page.publicPath),
     ).map((page) => [
       `app:${page.publicPath}`,
       {
@@ -230,7 +241,11 @@ export async function HeaderBar({ locale }: { locale: Locale }) {
   // Resolved together: the collection nav and the shopper's saved place are
   // independent reads, and the location is only worth a cookie parse when
   // the header actually renders the "Deliver to" control.
-  const [collectionsResult, initialLocation] = await Promise.all([
+  // The menus the Header Studio linked to items — the side drawer's lists
+  // and nav links' mega dropdowns. Each is the same cached, tag-busted read
+  // the header's own menus use.
+  const linkedHandles = collectLinkedMenuHandles(headerSettings.builder);
+  const [collectionsResult, initialLocation, linkedMenuDocs] = await Promise.all([
     headerSettings.collectionsMenu?.enabled
       ? getStorefrontCollections({
           page: 1,
@@ -240,6 +255,7 @@ export async function HeaderBar({ locale }: { locale: Locale }) {
     headerSettings.widgets?.showLocationPicker
       ? readStoredShopperLocation()
       : Promise.resolve(null),
+    Promise.all(linkedHandles.map((handle) => getMenuByHandle(handle))),
   ]);
 
   const resolveHref = (raw: string) => {
@@ -257,11 +273,22 @@ export async function HeaderBar({ locale }: { locale: Locale }) {
     menu.items.map((item) => mapMegaMenuItem(item, resolveHref)),
   );
 
+  // Through the mega mapper for the same reason as above: a drawer entry or
+  // a dropdown picture needs `image` kept apart from `icon`.
+  const linkedMenus = Object.fromEntries(
+    linkedMenuDocs.flatMap((menu) =>
+      menu
+        ? [[menu.handle, menu.items.map((item) => mapMegaMenuItem(item, resolveHref))]]
+        : [],
+    ),
+  );
+
   return (
     <StoreHeader
       locale={locale}
       menuItems={combinedHeaderMenuItems}
       megaMenuItems={headerMegaMenuItems}
+      linkedMenus={linkedMenus}
       headerSettings={headerSettings}
       initialCategories={categoriesResult.categories}
       initialCollections={collectionsResult.data}
@@ -271,7 +298,7 @@ export async function HeaderBar({ locale }: { locale: Locale }) {
 }
 
 export async function FooterBar({ locale }: { locale: Locale }) {
-  const { footerSettings, isMultiVendorEnabled } =
+  const { footerSettings, headerSettings, isMultiVendorEnabled } =
     await getStorefrontSettings();
   const resolved = await resolveFooterMenuColumns(footerSettings);
   return (
@@ -280,6 +307,7 @@ export async function FooterBar({ locale }: { locale: Locale }) {
       footerSettings={
         isMultiVendorEnabled ? resolved : dropMarketplaceLinks(resolved)
       }
+      headerLogoWidths={headerLogoWidths(headerSettings)}
     />
   );
 }

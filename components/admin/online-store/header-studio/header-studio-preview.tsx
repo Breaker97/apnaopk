@@ -417,9 +417,13 @@ function PreviewItem({
 
     case "searchIcon": {
       const pill = item.style === "pill";
+      const labelled = item.showLabel && !pill && Boolean(item.label);
       const button = (
         <span
-          className="grid shrink-0 place-items-center"
+          className={cn(
+            "shrink-0",
+            labelled ? "flex items-center" : "grid place-items-center",
+          )}
           style={{
             borderRadius: item.roundness,
             padding: pill ? "8px 14px" : 8,
@@ -428,6 +432,9 @@ function PreviewItem({
           }}
         >
           <Search style={{ width: item.size, height: item.size }} />
+          {labelled ? (
+            <span className="ms-2 text-sm font-semibold">{item.label}</span>
+          ) : null}
         </span>
       );
       const control = (
@@ -727,11 +734,13 @@ function PreviewIcons({
               key={key}
               className={cn(shell, "gap-2 text-left leading-none")}
             >
-              <FlagIcon
-                countryCode={localeConfig[locale].countryCode}
-                size={item.size}
-                aria-hidden="true"
-              />
+              {item.showIcons ? (
+                <FlagIcon
+                  countryCode={localeConfig[locale].countryCode}
+                  size={item.size}
+                  aria-hidden="true"
+                />
+              ) : null}
               <span className="text-[12px] font-medium">
                 {locale.toUpperCase()}
               </span>
@@ -752,9 +761,14 @@ function PreviewIcons({
         const Icon = meta.icon;
         return (
           <span key={key} className={shell}>
-            <Icon style={size} />
+            {item.showIcons ? <Icon style={size} /> : null}
             {item.showLabels ? (
-              <span className="text-[10px] font-medium leading-none">
+              <span
+                className={cn(
+                  "font-medium leading-none",
+                  item.showIcons ? "text-[10px]" : "text-sm",
+                )}
+              >
                 {t.has(meta.labelKey) ? t(meta.labelKey) : meta.label}
               </span>
             ) : null}

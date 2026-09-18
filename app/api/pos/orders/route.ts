@@ -29,6 +29,7 @@ import {
 import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
 import { resolvePOSLocationId } from "@/lib/pos/resolve-location";
 import { canAccessPOS } from "@/lib/access/rbac";
+import { assertPosDiscountAllowed } from "@/lib/pos/pos-discount-guard";
 import { findOversoldLines } from "@/lib/pos/oversold";
 import { notifyPOSOversold } from "@/lib/pos/notify-oversold";
 import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
@@ -41,7 +42,6 @@ import {
   resolveOrderVendorContextForItems,
 } from "@/lib/orders/order-vendors";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { validatePOSPaymentInput } from "@/lib/pos/payment";
 import {
   calculatePOSOrderTotals,
@@ -217,6 +217,7 @@ export async function POST(request: NextRequest) {
     if (discount && (typeof discount.value !== "number" || discount.value < 0)) {
       throw new ValidationError("Discount must not be negative");
     }
+    await assertPosDiscountAllowed(session.user, { items, discount });
 
     const productIds = Array.from(
       new Set(
@@ -486,6 +487,7 @@ export async function POST(request: NextRequest) {
       billingAddress: posAddress,
       paymentMethod: payment.method,
       paymentStatus: "paid",
+      paidAt: new Date(),
       paymentId:
         verifiedStripePaymentIntentId ||
         (payment.method === "card" && payment.reference
@@ -534,14 +536,6 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
-    revalidateProductContent({
-      slugs: affectedProducts
-        .map((p) => p.slug)
-        .filter(
-          (slug): slug is string =>
-            typeof slug === "string" && slug.length > 0,
-        ),
-    });
 
     let order;
     try {

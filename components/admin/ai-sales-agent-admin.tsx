@@ -93,10 +93,19 @@ type ConversationSummary = {
   updatedAt: string;
 };
 
+type TokenUsage = {
+  month: string;
+  requests: number;
+  totalTokens: number;
+  budget: number;
+  exhausted: boolean;
+};
+
 type AdminPayload = {
   settings: IAISalesAgentSettings;
   configured: boolean;
   faviconUrl?: string;
+  usage?: TokenUsage;
   stats: {
     totalConversations: number;
     totalMessages: number;
@@ -204,6 +213,7 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
     DEFAULT_AI_SALES_AGENT_SETTINGS,
   );
   const [configured, setConfigured] = React.useState(false);
+  const [usage, setUsage] = React.useState<TokenUsage | null>(null);
   const [faviconUrl, setFaviconUrl] = React.useState("");
   const [recentConversations, setRecentConversations] = React.useState<
     ConversationSummary[]
@@ -259,6 +269,7 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
       const data = json.data as AdminPayload;
       setSettings(normalizeSettings(data.settings));
       setConfigured(Boolean(data.configured));
+      setUsage(data.usage ?? null);
       setFaviconUrl(data.faviconUrl || "");
       setRecentConversations(data.conversations || []);
       setStats(
@@ -947,6 +958,41 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                     "configuration.modelRuntime.maxRecommendationsDescription",
                   )}
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("configuration.modelRuntime.monthlyTokenBudget")}</Label>
+                <NumberInput
+                  min={0}
+                  step={10000}
+                  value={settings.monthlyTokenBudget}
+                  whenEmpty="keep"
+                  normalize={Math.trunc}
+                  onValueChange={(next) => {
+                    if (next !== undefined) update("monthlyTokenBudget", next);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("configuration.modelRuntime.monthlyTokenBudgetDescription")}
+                </p>
+                {usage && (
+                  <p
+                    className={cn(
+                      "text-xs",
+                      usage.exhausted
+                        ? "font-medium text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {t("configuration.modelRuntime.monthlyTokenUsage", {
+                      month: usage.month,
+                      tokens: usage.totalTokens.toLocaleString(),
+                      requests: usage.requests.toLocaleString(),
+                    })}
+                    {usage.exhausted &&
+                      ` ${t("configuration.modelRuntime.monthlyTokenBudgetReached")}`}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

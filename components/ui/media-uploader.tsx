@@ -76,6 +76,8 @@ export type UploadedMedia = {
   /** external_video only. */
   provider?: "youtube" | "vimeo";
   embedId?: string;
+  /** Images only; offered when the host passes `allowImageFit`. */
+  fit?: "auto" | "contain" | "cover";
 };
 
 interface MediaUploaderProps {
@@ -104,6 +106,12 @@ interface MediaUploaderProps {
   onGenerateAlt?: (media: UploadedMedia) => Promise<string | null>;
   /** Offer "Add from URL" for YouTube/Vimeo videos (Shopify's ExternalVideo). */
   allowExternalVideo?: boolean;
+  /**
+   * Offer a per-image fit in the detail modal (Fill / Fit with padding). Off
+   * by default: only the product gallery reads it, and a collection or
+   * slider upload offering a setting nothing renders would be a lie.
+   */
+  allowImageFit?: boolean;
   hideUploadZoneWhenFull?: boolean;
   showFileCount?: boolean;
   // Soft client-side limits (server still enforces). Defaults match Shopify:
@@ -195,6 +203,7 @@ export function MediaUploader({
   onEditWithAi,
   onGenerateAlt,
   allowExternalVideo = false,
+  allowImageFit = false,
   hideUploadZoneWhenFull = true,
   showFileCount,
   maxImageSizeMB = 20,
@@ -500,6 +509,18 @@ export function MediaUploader({
     [commitValue, currentOrder],
   );
 
+  const handleUpdateFit = useCallback(
+    (id: string, fit: NonNullable<UploadedMedia["fit"]>) => {
+      commitValue(
+        currentOrder().map((m) => (m._id === id ? { ...m, fit } : m)),
+      );
+      setActiveMedia((curr) =>
+        curr && curr._id === id ? { ...curr, fit } : curr,
+      );
+    },
+    [commitValue, currentOrder],
+  );
+
   const handleUpdateAlt = useCallback(
     (id: string, alt: string) => {
       commitValue(
@@ -783,6 +804,7 @@ export function MediaUploader({
         media={activeMedia}
         onClose={() => setActiveMedia(null)}
         onUpdateAlt={handleUpdateAlt}
+        onUpdateFit={allowImageFit ? handleUpdateFit : undefined}
         onDelete={(id) => {
           handleRemove(id);
           setActiveMedia(null);
@@ -1261,6 +1283,7 @@ function MediaDetailModal({
   media,
   onClose,
   onUpdateAlt,
+  onUpdateFit,
   onDelete,
   onSetCover,
   onEditWithAi,
@@ -1270,6 +1293,7 @@ function MediaDetailModal({
   media: UploadedMedia | null;
   onClose: () => void;
   onUpdateAlt: (id: string, alt: string) => void;
+  onUpdateFit?: (id: string, fit: NonNullable<UploadedMedia["fit"]>) => void;
   onDelete: (id: string) => void;
   onSetCover: (id: string) => void;
   onEditWithAi?: (media: UploadedMedia) => void;
@@ -1390,6 +1414,53 @@ function MediaDetailModal({
                 )}
               </div>
             )}
+
+            {onUpdateFit && media.type === "image" ? (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Fit on the product page
+                </p>
+                <div
+                  role="radiogroup"
+                  aria-label="Fit on the product page"
+                  className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1"
+                >
+                  {(
+                    [
+                      { value: "auto", label: "Auto" },
+                      { value: "contain", label: "Fit" },
+                      { value: "cover", label: "Fill" },
+                    ] as const
+                  ).map((option) => {
+                    const selected = (media.fit ?? "auto") === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => onUpdateFit(media._id, option.value)}
+                        className={cn(
+                          "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                          selected
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {media.fit === "cover"
+                    ? "Fills the frame edge to edge — for lifestyle and model shots."
+                    : media.fit === "contain"
+                      ? "Floats inside the frame with padding — for cut-outs on a transparent background."
+                      : "Follows the product page's Image fit setting."}
+                </p>
+              </div>
+            ) : null}
 
             <dl className="space-y-1.5 text-xs">
               <div className="flex justify-between">

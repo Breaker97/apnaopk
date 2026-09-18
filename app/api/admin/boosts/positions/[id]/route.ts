@@ -56,7 +56,7 @@ export const PUT = withApi<RouteParams>(
     const position = await BoostPosition.findByIdAndUpdate(
       id,
       { $set: update },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean();
     if (!position) return notFoundResponse("Position");
 

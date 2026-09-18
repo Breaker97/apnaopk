@@ -8,6 +8,7 @@ import {
 } from "@/config/app.config";
 import { RETURN_STATUS } from "@/lib/returns/returns";
 import { REFUND_DESTINATION_METHODS } from "@/lib/returns/refund-settlement";
+import { isPlatformCustodyMethod } from "@/lib/payments/payment-custody";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
@@ -282,6 +283,7 @@ export const CreateProductSchema = z.object({
           thumbnailUrl: MediaUrlSchema.optional(),
           provider: z.enum(["youtube", "vimeo"]).optional(),
           embedId: z.string().max(64).optional(),
+          fit: z.enum(["auto", "contain", "cover"]).optional(),
         })
         // external_video items must carry exactly what re-parsing their URL
         // yields — the storefront builds iframe src from provider/embedId, so
@@ -480,7 +482,21 @@ export const AdminCreateOrderSchema = z.object({
     .min(1, "Add at least one product"),
   shippingAddress: AddressSchema,
   billingAddress: AddressSchema.optional(),
-  paymentMethod: z.string().min(1).max(50).default("manual"),
+  // A label for money the store collected itself — "manual", cash, a bank
+  // transfer. Never a gateway's name, nor cash on delivery: the payout engine
+  // reads those as money the PLATFORM holds, so an order made here "paid by
+  // card" was paid out to its vendor for money no gateway ever took. Gateway
+  // payments come in through checkout, which verifies them.
+  paymentMethod: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .refine((method) => !isPlatformCustodyMethod(method), {
+      message:
+        "A manual order can only record a payment the store collected itself, such as cash or a bank transfer. Card, wallet and cash-on-delivery payments are taken through checkout.",
+    })
+    .default("manual"),
   paymentStatus: z
     .enum([PAYMENT_STATUS.PENDING, PAYMENT_STATUS.PAID])
     .default(PAYMENT_STATUS.PENDING),
@@ -531,6 +547,21 @@ export const AdminUpdateOrderSchema = z
     refundAmount: z.number().min(0).optional(),
     refundReason: z.string().max(500).optional(),
     manualRefund: z.boolean().optional(),
+    /**
+     * What the money that already went back WAS. A refund sent from the
+     * gateway's dashboard is matched to that refund when the gateway reports
+     * it; a chargeback the shopper's bank took is matched to its dispute, and
+     * never to a refund — pairing it with one would count that refund as sent.
+     * A chargeback is always recorded without calling the gateway.
+     */
+    manualRefundKind: z.enum(["refund", "chargeback"]).optional(),
+    /** The gateway's id for the dispute behind a chargeback, when the admin has it. */
+    chargebackDisputeId: z
+      .string()
+      .trim()
+      .max(100)
+      .regex(/^[A-Za-z0-9_:.-]*$/, "Dispute ID can only contain letters, numbers, - _ : .")
+      .optional(),
     /**
      * What the refund is FOR, when the admin says so.
      *
@@ -783,6 +814,8 @@ const CouponBaseSchema = z.object({
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date(),
   status: z.enum(["active", "inactive", "expired"]).default("active"),
+  /** Store coupons only — the vendor routes discard it. See the Coupon model. */
+  fundedBy: z.enum(["platform", "vendor"]).optional(),
 });
 
 export const CreateCouponSchema = CouponBaseSchema.superRefine((data, ctx) => {
@@ -953,6 +986,8 @@ export const ValidateCouponSchema = z.object({
   code: z.string().min(3).max(20),
   subtotal: z.coerce.number().min(0),
   shippingCost: z.coerce.number().min(0).optional(),
+  /** Each seller's delivery, when the cart is rated per seller. */
+  shippingByVendor: z.record(z.string(), z.coerce.number().min(0)).optional(),
   cartItems: z
     .array(
       z.object({
@@ -978,6 +1013,7 @@ export const CartAddItemSchema = z.object({
   variantId: OptionalObjectIdSchema,
   quantity: z.coerce
     .number()
+    .int("Quantity must be a whole number")
     .min(1, "Quantity must be at least 1")
     .max(100)
     .default(1),
@@ -989,7 +1025,7 @@ export const CartAddItemSchema = z.object({
 export const CartUpdateItemSchema = z.object({
   productId: ObjectIdSchema,
   variantId: OptionalObjectIdSchema,
-  quantity: z.coerce.number().min(0).max(100),
+  quantity: z.coerce.number().int().min(0).max(100),
 });
 
 export const CartAddByIdSchema = z.object({
@@ -1013,10 +1049,10 @@ export const CheckoutAddressSchema = z.object({
   apartment: addressTextSchema(100).optional(),
   city: addressTextSchema(100, { value: 2, message: "City is required" }),
   state: addressTextSchema(100).optional().default(""),
-  postalCode: addressTextSchema(20, {
-    value: 3,
-    message: "Postal code is required",
-  }),
+  // Optional here: the checkout settings decide whether a postcode is
+  // required (lib/checkout/checkout-form-policy.ts), and plenty of countries
+  // have none to give.
+  postalCode: addressTextSchema(20).optional().default(""),
   country: addressTextSchema(100, {
     value: 2,
     message: "Country is required",
@@ -1041,10 +1077,30 @@ export const CheckoutSchema = z.object({
     "mtn_momo",
   ]),
   email: z.string().email().optional(),
+  // Contact phone, for stores that reach shoppers by phone (checkout
+  // settings `contact.mode`). Doubles as the delivery phone when the address
+  // carries none.
+  phone: z.string().trim().max(30).optional(),
+  // The shopper's order note and the store's own checkout fields. Which of
+  // them are required, and what a valid answer is, comes from the checkout
+  // settings — see evaluateCheckoutSubmission.
+  customerNote: z.string().max(2000).optional(),
+  customFields: z
+    .record(
+      z.string().max(50),
+      z.union([z.string().max(2000), z.boolean(), z.number()]),
+    )
+    .optional(),
   couponCode: z.string().min(3).max(20).optional(),
   locale: z.string().length(2).optional(),
-  notes: z.string().max(500).optional(),
   preorderAcknowledged: z.boolean().optional(),
+  /** Card-on-file authorisation — see `lib/payments/preorder-mandate.ts`. */
+  preorderMandateAccepted: z.boolean().optional(),
+  /**
+   * The SetupIntent that collected a card for a pre-order with nothing to pay
+   * today. Verified against Stripe before it is believed.
+   */
+  setupIntentId: z.string().max(255).optional(),
   // ioTec Pay: which collection channel to use (defaults to mobile money).
   iotecChannel: z.enum(["mobile_money", "card"]).optional(),
   // ioTec Pay: mobile-money number to charge (may differ from billing phone).
@@ -1147,6 +1203,7 @@ export const CreateCollectionSchema = z.object({
   descriptionHtml: z.string().max(10000).optional(),
   image: CollectionImageSchema.optional(),
   collectionType: z.enum(["manual", "automated"]),
+  kind: z.enum(["collection", "look"]).default("collection"),
   products: z.array(ObjectIdSchema).default([]),
   conditions: z.array(CollectionConditionSchema).default([]),
   conditionMatch: z.enum(["all", "any"]).default("all"),
@@ -1183,6 +1240,7 @@ export const UpdateCollectionSchema = CreateCollectionSchema.partial();
 
 export const CollectionListQuerySchema = AdminListQuerySchema.extend({
   type: z.enum(["manual", "automated"]).optional(),
+  kind: z.enum(["collection", "look"]).optional(),
   channel: z.enum(["onlineStore", "pointOfSale"]).optional(),
 });
 
@@ -1206,6 +1264,7 @@ export const UpdateCustomerProfileSchema = z.object({
   sizePreferences: z.record(z.string(), z.string().max(20)).optional(),
   marketingOptIn: z.boolean().optional(),
   emailNotifications: EmailNotificationsSchema.optional(),
+  smsNotifications: z.object({ orderUpdates: z.boolean().optional() }).optional(),
 });
 
 export const AdminUpdateCustomerProfileSchema = z.object({
@@ -1399,6 +1458,13 @@ export const CreateSliderSchema = z.object({
     .max(MAX_AUTOPLAY_SECONDS)
     .default(DEFAULT_AUTOPLAY_SECONDS),
   slides: z.array(z.record(z.string(), z.unknown())).max(30).default([]),
+  /** The carousel's arrows, indicators and pause control; normalized server-side. */
+  controls: z.record(z.string(), z.unknown()).optional(),
+  /**
+   * Unpublished work: the same content shape, kept beside what is live
+   * until Publish copies it over. Normalized server-side.
+   */
+  draft: z.record(z.string(), z.unknown()).optional(),
 });
 export const UpdateSliderSchema = CreateSliderSchema.partial();
 

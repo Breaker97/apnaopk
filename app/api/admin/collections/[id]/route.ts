@@ -108,7 +108,7 @@ export const PUT = withApi<{ id: string }>(
     const collection = await Collection.findByIdAndUpdate(
       id,
       { $set: updateSet },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     )
       .populate("products", "name title slug price images status")
       .lean();

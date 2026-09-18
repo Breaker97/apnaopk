@@ -49,12 +49,30 @@ import {
   ensureChargeTransaction,
 } from "@/lib/payments/payment-transactions";
 import { refundOrderPayment } from "@/lib/orders/order-refund";
+import { assertManualPaymentStatusChange } from "@/lib/orders/manual-payment-status";
+import { getPreorderCollectedAmount } from "@/lib/orders/order-payment-status";
+import { refundOrderCancellation } from "@/lib/orders/preorder-cancel-refund";
+import {
+  logRefundInFlightReleaseError,
+  releaseRefundInFlightWrite,
+} from "@/lib/orders/refund-in-flight";
+import { refundReconciledByWebhook } from "@/lib/orders/order-refund-sync";
+import {
+  getFulfillmentPaymentBlock,
+  isFulfillmentTransition,
+} from "@/lib/orders/fulfillment-payment-gate";
+import {
+  DISPUTE_GATEWAY_LABEL,
+  disputeGatewayForMethod,
+  disputeKey,
+} from "@/lib/payments/dispute-gateways";
 import {
   applyCouponUsageForOrder,
   reverseCouponUsageForOrder,
 } from "@/lib/catalog/coupons";
 import { PaymentTransaction } from "@/models/payment-transaction.model";
 import {
+  DISPATCHED_ORDER_STATUSES,
   getOrderStatusActionByTarget,
   shouldRestoreInventoryForStatusTransition,
 } from "@/lib/orders/order-status-workflow";
@@ -217,8 +235,34 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (isCancelTransition && !canCancelOrder) {
       throw new AuthorizationError("You do not have permission to cancel orders");
     }
+    // Cancelling a paid order now sends the money back, so it is a refund as
+    // well as a status change — the rule the pre-order screen already keeps.
+    if (
+      isCancelTransition &&
+      getPreorderCollectedAmount(before) > 0 &&
+      !canIssueRefunds(session.user)
+    ) {
+      throw new AuthorizationError(
+        "Only an admin can cancel an order that has been paid, because the money has to be refunded",
+      );
+    }
     if ((hasNonCancelStatusUpdate || hasNonStatusUpdate) && !canEditOrder) {
       throw new AuthorizationError("You do not have permission to edit orders");
+    }
+
+    // A payment status written by hand is a statement that money arrived, and
+    // everything downstream believes it: the ledger posts the sale, loyalty is
+    // awarded, the vendor becomes payable. It used to accept any value from
+    // anyone holding EDIT_ORDERS, so an uncaptured card order could be marked
+    // paid and paid out, a pre-order could be marked paid with its balance
+    // never collected, and a paid order moved back to pending was settled a
+    // second time the next time its gateway's verify URL was loaded.
+    if (body.paymentStatus && !isRefundRequest) {
+      assertManualPaymentStatusChange({
+        order: before,
+        next: body.paymentStatus,
+        isAdmin: session.user.role === USER_ROLES.ADMIN,
+      });
     }
 
     // The escape hatch from a deliberately one-way workflow. It stays narrow:
@@ -259,6 +303,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         throw new ValidationError(
           `Cannot transition order from "${currentStatus}" to "${body.status}". An admin can override this.`,
         );
+      }
+
+      // The same payment gate a vendor meets. An order whose card payment never
+      // arrived — or that a chargeback has since refunded in full — could still
+      // be packed and shipped from here, because only the vendor route asked.
+      // An admin who knows better says so with an override.
+      if (isFulfillmentTransition(body.status)) {
+        const liveSubOrders = (before.subOrders || []).filter(
+          (sub: { status?: string }) => sub?.status !== ORDER_STATUS.CANCELLED,
+        );
+        const blocked = (liveSubOrders.length > 0 ? liveSubOrders : [null])
+          .map((sub: unknown) =>
+            getFulfillmentPaymentBlock(
+              before as Parameters<typeof getFulfillmentPaymentBlock>[0],
+              sub as Parameters<typeof getFulfillmentPaymentBlock>[1],
+            ),
+          )
+          .find(Boolean);
+        if (blocked) {
+          throw new ValidationError(`${blocked} An admin can override this.`);
+        }
       }
     }
 
@@ -315,6 +380,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     let refundAmount = 0;
     let refundIsFull = false;
+    // Marks the reservation below as a refund still being recorded, so the
+    // gateway's own refund webhook waits for this row instead of writing one.
+    const refundStamp = new Date();
     let refundGatewayResult:
       | Awaited<ReturnType<typeof refundOrderPayment>>
       | null = null;
@@ -324,6 +392,51 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       body.refundAmount === undefined
     ) {
       throw new ValidationError("Refund amount is required to refund an order");
+    }
+
+    // A chargeback recorded by hand: the shopper's bank already took the money,
+    // so nothing is sent and the row waits for the gateway's dispute instead of
+    // for a refund. Refused where no gateway can raise a dispute, and refused
+    // twice for one dispute — the second would be the same money again.
+    const chargebackGateway =
+      body.manualRefundKind === "chargeback"
+        ? disputeGatewayForMethod(before.paymentMethod)
+        : null;
+    const chargebackDisputeId = String(body.chargebackDisputeId || "").trim();
+    const recordsMoneyAlreadyGone =
+      Boolean(body.manualRefund) || body.manualRefundKind === "chargeback";
+    if (body.refundAmount !== undefined && body.manualRefundKind === "chargeback") {
+      if (!chargebackGateway) {
+        throw new ValidationError(
+          "A chargeback can only be recorded on a card, PayPal, Razorpay or Paystack payment",
+        );
+      }
+      const alreadyRecorded = await PaymentTransaction.exists({
+        orderId: before._id,
+        type: "refund",
+        status: "succeeded",
+        ...(chargebackDisputeId
+          ? {
+              $or: [
+                { "metadata.dispute.key": disputeKey(chargebackGateway, chargebackDisputeId) },
+                { externalId: disputeKey(chargebackGateway, chargebackDisputeId) },
+              ],
+            }
+          : {
+              $or: [
+                { "metadata.dispute.gateway": chargebackGateway },
+                { "metadata.chargebackByHand.gateway": chargebackGateway },
+                { "metadata.chargebackReport.gateway": chargebackGateway },
+              ],
+            }),
+      });
+      if (alreadyRecorded) {
+        throw new ValidationError(
+          chargebackDisputeId
+            ? "This dispute's chargeback is already recorded on the order"
+            : `A ${DISPUTE_GATEWAY_LABEL[chargebackGateway]} chargeback is already recorded on this order. If this is a different one, enter its dispute ID.`,
+        );
+      }
     }
 
     if (body.refundAmount !== undefined) {
@@ -423,10 +536,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                   parsedRefundAmount,
                 ],
               },
+              refundInFlightAt: refundStamp,
             },
           },
         ],
-        { new: true },
+        { returnDocument: "after" },
       ).lean();
       if (!refundClaim) {
         throw new ValidationError("Refund amount exceeds order total");
@@ -449,7 +563,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             paymentId: before.paymentId,
             stripePaymentIntentId: before.stripePaymentIntentId,
             preorderBalancePaymentIntentId: before.preorderBalancePaymentIntentId,
+            preorderBalancePaypalOrderId: before.preorderBalancePaypalOrderId,
             paypalCaptureId: before.paypalCaptureId,
+            paypalOrderId: before.paypalOrderId,
             razorpayPaymentId: before.razorpayPaymentId,
             paystackTransactionId: before.paystackTransactionId,
             pesapalConfirmationCode: before.pesapalConfirmationCode,
@@ -459,7 +575,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           },
           amount: parsedRefundAmount,
           reason: body.refundReason,
-          manual: Boolean(body.manualRefund),
+          manual: recordsMoneyAlreadyGone,
           actor: session.user.email || session.user.id,
         });
       } catch (gatewayError) {
@@ -471,6 +587,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ).catch((rollbackErr) =>
           console.error("Failed to roll back refund reservation:", rollbackErr),
         );
+        await Order.updateOne(...releaseRefundInFlightWrite(before._id, refundStamp)).catch(
+        logRefundInFlightReleaseError,
+      );
         const message =
           gatewayError instanceof Error
             ? gatewayError.message
@@ -518,9 +637,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       {
         $set: updates,
         ...(Object.keys(unsets).length > 0 ? { $unset: unsets } : {}),
+        // Marked paid here: the first money on the order, unless an earlier
+        // collection already dated it. The ledger dates the sale by it.
+        ...(body.paymentStatus === PAYMENT_STATUS.PAID && !isRefundRequest
+          ? { $min: { paidAt: new Date() } }
+          : {}),
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
         ...writeOptions,
       }
@@ -710,13 +834,52 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           createdAt: order.createdAt,
         },
         amount: refundAmount,
-        reason: body.refundReason,
+        reason:
+          body.refundReason ||
+          (chargebackGateway
+            ? `Chargeback recorded by hand — the shopper's bank took the payment back through ${DISPUTE_GATEWAY_LABEL[chargebackGateway]}`
+            : undefined),
         createdBy: session.user.id,
         externalRefundId: refundGatewayResult?.externalRefundId,
         externalRefundIds: refundGatewayResult?.externalRefundIds,
         gatewayCalled: refundGatewayResult?.gatewayCalled,
         allocation: describedAllocation,
+        // A refund recorded by hand for money sent from the gateway's own
+        // dashboard: the gateway will report it, and that report is matched
+        // to this row instead of becoming a second one.
+        awaitingGatewayRefund:
+          Boolean(body.manualRefund) &&
+          !chargebackGateway &&
+          refundReconciledByWebhook(order.paymentMethod),
+        // A chargeback waits for its dispute instead — or, named, is that
+        // dispute's money from the start. See `applyGatewayDispute`.
+        ...(chargebackGateway
+          ? {
+              metadata: {
+                chargebackByHand: { gateway: chargebackGateway },
+                ...(chargebackDisputeId
+                  ? {
+                      dispute: {
+                        gateway: chargebackGateway,
+                        id: chargebackDisputeId,
+                        key: disputeKey(chargebackGateway, chargebackDisputeId),
+                      },
+                    }
+                  : {}),
+              },
+              awaitingGatewayDispute: !chargebackDisputeId,
+              source: "admin-chargeback-manual",
+            }
+          : {}),
+        // `manualRefund` says the money already went back outside Storify; any
+        // other refund no gateway carried is still to be sent. The admin who
+        // issued it is the one reading this, so it is listed, not announced.
+        ...(recordsMoneyAlreadyGone ? { settlement: "not_required" as const } : {}),
+        notifySettlement: false,
       });
+      await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
+        logRefundInFlightReleaseError,
+      );
 
       const { reverseOrderLoyaltyPoints } = await import("@/lib/customers/customer");
       await reverseOrderLoyaltyPoints(String(order._id)).catch((err) =>
@@ -732,12 +895,74 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       body.status &&
       shouldRestoreInventoryForStatusTransition(before.status as string, body.status)
     ) {
-      await restoreOrderInventory(id).catch((err) =>
+      // An override reaches consignments that had already shipped or been
+      // delivered, and by now they read `cancelled` — so the restore can no
+      // longer tell them from goods still on the shelf. Named from the order as
+      // it stood before the write: those goods are with a courier or a
+      // customer, and only a return puts them back in stock.
+      const dispatchedBefore = (
+        (before.subOrders || []) as Array<{ _id?: unknown; status?: string }>
+      )
+        .filter((sub) =>
+          DISPATCHED_ORDER_STATUSES.includes(String(sub.status || "")),
+        )
+        .map((sub) => sub._id);
+      await restoreOrderInventory(id, {
+        excludeSubOrderIds: dispatchedBefore,
+      }).catch((err) =>
         console.error("Failed to restore inventory on admin cancel:", err),
       );
       await releaseOrderPreorders(id).catch((err) =>
         console.error("Failed to release preorder quota on admin cancel:", err),
       );
+      // Labels bought for goods that are staying put. Only ones never handed
+      // to the carrier; a parcel already on its way is beyond voiding.
+      const { voidLabelsForCancellation } = await import(
+        "@/lib/shipping/cancel-labels"
+      );
+      await voidLabelsForCancellation({ orderId: order._id }).catch((err) =>
+        console.error("Failed to void labels on admin cancel:", err),
+      );
+    }
+
+    // Cancel means refund. An admin cancelling a paid order restocked it and
+    // kept the money; only the pre-order screen ever sent anything back. The
+    // consignments this write actually cancelled are the ones owed their
+    // share — a shipped sibling survives the cascade and keeps its sale.
+    //
+    // An override included. It is the admin stating that the order did not
+    // happen the way the record says — a parcel marked delivered that never
+    // arrived — and skipping the refund there left the shopper with neither
+    // the goods nor the money.
+    let cancellationRefund:
+      | Awaited<ReturnType<typeof refundOrderCancellation>>
+      | { refunded: false; reason: string }
+      | undefined;
+    if (isCancelTransition) {
+      const wasCancelled = new Set(
+        ((before.subOrders || []) as Array<{ _id?: unknown; status?: string }>)
+          .filter((sub) => sub.status === ORDER_STATUS.CANCELLED)
+          .map((sub) => String(sub._id)),
+      );
+      cancellationRefund = await refundOrderCancellation({
+        orderId: id,
+        cancelledSubOrderIds: (
+          (order.subOrders || []) as Array<{ _id?: unknown; status?: string }>
+        )
+          .filter(
+            (sub) =>
+              sub.status === ORDER_STATUS.CANCELLED &&
+              !wasCancelled.has(String(sub._id)),
+          )
+          .map((sub) => sub._id),
+        reason: body.cancelReason?.trim() || "Order cancelled by the store",
+        actor: session.user.email || session.user.id,
+        createdBy: session.user.id,
+        auditContext: createAuditContext(request, session),
+      }).catch((err: unknown) => {
+        console.error("Failed to refund cancelled order:", err);
+        return { refunded: false as const, reason: "The refund could not be issued" };
+      });
     }
 
     // Reverse coupon usage on cancellation or full refund. Read from the
@@ -756,21 +981,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Send customer notification and matching email if status changed.
-    if (body.status && order.customerId) {
-      const rawCustomerId = (order.customerId as { _id?: unknown })?._id;
-      const customerId = rawCustomerId ? String(rawCustomerId) : "";
-
-      if (customerId) {
-        await notifyOrderStatus(
-          customerId,
-          order.orderNumber,
-          body.status,
-          String(order._id),
-        ).catch((err) =>
-          console.error("Failed to create order status notification:", err),
-        );
-      }
+    // Send customer notification and matching email if status changed. Keyed
+    // by the order rather than its populated customer, which is null on a
+    // guest order — the reason guests used to hear nothing from here at all.
+    if (body.status) {
+      await notifyOrderStatus({
+        orderId: String(order._id),
+        status: body.status,
+      }).catch((err) =>
+        console.error("Failed to create order status notification:", err),
+      );
     }
 
     // Kick auto-shipping the moment a merchant moves an order to processing,
@@ -818,6 +1038,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         reason: body.refundReason,
         gatewayCalled: refundGatewayResult?.gatewayCalled,
         full: refundIsFull,
+        ...(chargebackGateway
+          ? {
+              chargeback: {
+                gatewayLabel: DISPUTE_GATEWAY_LABEL[chargebackGateway],
+                disputeId: chargebackDisputeId || undefined,
+              },
+            }
+          : {}),
       });
     }
 
@@ -835,7 +1063,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    return successResponse(order);
+    return successResponse(
+      cancellationRefund ? { ...order, refund: cancellationRefund } : order,
+    );
   } catch (error) {
     return handleApiError(error);
   }
@@ -885,6 +1115,17 @@ export const DELETE = withApi<{ id: string }>(
     );
     const before = await Order.findOne(scopedFilter).lean();
     if (!before) return notFoundResponse("Order");
+
+    // An order that took money is a financial record, whatever happened to it
+    // since. Deleting one that was paid and not yet shipped kept the shopper's
+    // money with no order left to refund it from, and deleting any of them left
+    // its charge and refund rows, and the ledger entries behind them, pointing
+    // at nothing. Such an order is cancelled — which refunds it — and kept.
+    if (getPreorderCollectedAmount(before) > 0) {
+      throw new ValidationError(
+        "This order has taken payment, so it is kept as a financial record. Cancel it instead — cancelling refunds whatever is still held.",
+      );
+    }
 
     // Compensation must run while the order document still exists: the
     // coupon reversal claims its idempotency flag on the order itself, and

@@ -1,7 +1,7 @@
 /**
  * Two-Source Credential Resolution
  *
- * Integration credentials (payments, OAuth, SMTP, storage, analytics) can be
+ * Integration credentials (payments, OAuth, SMTP, SMS, storage, analytics) can be
  * supplied from two sources: the admin Settings page (persisted in the DB) and
  * the `.env` file. This module owns the single, consistent merge rule:
  *
@@ -30,6 +30,7 @@ import type {
   IAnalyticsSettings,
   IShippoCarrierSettings,
   IShiprocketCarrierSettings,
+  ISmsSettings,
   ISettings,
 } from "@/models/settings.model";
 import type { PayPalMode } from "@/lib/payments/paypal";
@@ -88,6 +89,11 @@ const ENV = {
   smtpUser: ["SMTP_USER"],
   smtpPass: ["SMTP_PASS"],
   smtpFrom: ["SMTP_FROM"],
+
+  twilioAccountSid: ["TWILIO_ACCOUNT_SID"],
+  twilioAuthToken: ["TWILIO_AUTH_TOKEN"],
+  twilioMessagingServiceSid: ["TWILIO_MESSAGING_SERVICE_SID"],
+  twilioFromNumber: ["TWILIO_FROM_NUMBER"],
 
   storageAccessKeyId: ["STORAGE_ACCESS_KEY_ID"],
   storageSecretAccessKey: ["STORAGE_SECRET_ACCESS_KEY"],
@@ -460,6 +466,56 @@ export function resolveSmtpFromEmail(
 }
 
 // ============================================
+// SMS (Twilio)
+// ============================================
+
+export interface ResolvedTwilioConfig {
+  accountSid: string;
+  authToken: string;
+  /** Preferred sender: Twilio picks the number from the service's pool. */
+  messagingServiceSid?: string;
+  /** A Twilio number in E.164, or an alphanumeric sender ID. */
+  fromNumber?: string;
+}
+
+/**
+ * The Twilio credentials as stored, whether or not SMS is switched on — the
+ * delivery-receipt webhook still has to verify signatures for messages sent
+ * before an admin turned SMS off.
+ */
+export function resolveTwilioCredentials(
+  sms?: Pick<ISmsSettings, "twilio"> | null,
+): Partial<ResolvedTwilioConfig> {
+  return {
+    accountSid: pick(sms?.twilio?.accountSid, ENV.twilioAccountSid)?.trim(),
+    authToken: pick(sms?.twilio?.authToken, ENV.twilioAuthToken),
+    messagingServiceSid: pick(
+      sms?.twilio?.messagingServiceSid,
+      ENV.twilioMessagingServiceSid,
+    )?.trim(),
+    fromNumber: pick(sms?.twilio?.fromNumber, ENV.twilioFromNumber)?.trim(),
+  };
+}
+
+/**
+ * Everything a send needs, or null when SMS cannot go out.
+ *
+ * Unlike SMTP, `.env` alone never switches SMS on: a text is billed per
+ * message, so it goes out only once an admin has turned SMS on in Settings.
+ * The environment only supplies credentials.
+ */
+export function resolveTwilioConfig(
+  settings?: Pick<ISettings, "sms"> | null,
+): ResolvedTwilioConfig | null {
+  if (!settings?.sms?.enabled) return null;
+  const { accountSid, authToken, messagingServiceSid, fromNumber } =
+    resolveTwilioCredentials(settings.sms);
+  if (!accountSid || !authToken) return null;
+  if (!messagingServiceSid && !fromNumber) return null;
+  return { accountSid, authToken, messagingServiceSid, fromNumber };
+}
+
+// ============================================
 // Storage
 // ============================================
 
@@ -647,6 +703,12 @@ export interface CredentialEnvSources {
     facebookAppSecret: boolean;
   };
   email: { host: boolean; user: boolean; password: boolean };
+  sms: {
+    accountSid: boolean;
+    authToken: boolean;
+    messagingServiceSid: boolean;
+    fromNumber: boolean;
+  };
   storage: {
     accountId: boolean;
     endpoint: boolean;
@@ -745,6 +807,12 @@ export function getCredentialEnvSources(): CredentialEnvSources {
       host: envSet(ENV.smtpHost),
       user: envSet(ENV.smtpUser),
       password: envSet(ENV.smtpPass),
+    },
+    sms: {
+      accountSid: envSet(ENV.twilioAccountSid),
+      authToken: envSet(ENV.twilioAuthToken),
+      messagingServiceSid: envSet(ENV.twilioMessagingServiceSid),
+      fromNumber: envSet(ENV.twilioFromNumber),
     },
     storage: {
       accountId: envSet(ENV.storageAccountId),

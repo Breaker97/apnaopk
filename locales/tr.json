@@ -1399,6 +1399,7 @@
       "subtotal": "Ara toplam",
       "shipping": "Kargo",
       "tax": "Vergi",
+      "importDuties": "İthalat vergileri",
       "discount": "İndirim",
       "totalLabel": "Toplam",
       "timeline": "Zaman çizelgesi",
@@ -1644,7 +1645,7 @@
       "addCollection": "Koleksiyon ekle",
       "addCustomer": "Müşteri ekle",
       "sales": "Satışlar",
-      "ordersDescription": "Toplam siparişlerin proje bazında ayrıntılı içgörülerle desteklenen dökümü.",
+      "ordersDescription": "Seçilen dönemin toplamları, satış kanalına göre ayrılmış.",
       "showHighlights": "Tüm öne çıkanları göster",
       "highlightsDescription": "Seçilen tarih aralığı için özet öne çıkanlar.",
       "showSalesData": "Tüm satış verilerini göster",
@@ -2262,7 +2263,9 @@
       "expenses": "Giderler",
       "receivables": "Alacaklar",
       "financeReports": "Raporlar",
-      "quotes": "Teklifler"
+      "quotes": "Teklifler",
+      "traffic": "Trafik",
+      "searchInsights": "Arama analizleri"
     },
     "pos": "Satış Noktası",
     "posLocations": "POS Konumları",
@@ -2600,6 +2603,11 @@
           "name": "Fashion",
           "description": "Premium moda, güzellik ve yaşam tarzı markaları için editöryel tarzda görsel işleme.",
           "styleNote": "Görsel öncelikli ürün sunumuna ve rafine koleksiyon anlatılarına odaklanır."
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "Editoryal giyim sunumu: tam genişlikte kampanya görselleri, lookbook kutucukları ve sezon seçkileri.",
+          "styleNote": "Giyim, ayakkabı ve aksesuar için tasarlandı — görseller önde, arayüz arka planda."
         }
       },
       "activate": "Bu temayı kullan"
@@ -2865,7 +2873,6 @@
         "live": "Yayında",
         "unsaved": "Kaydedilmemiş değişiklikler"
       },
-      "subtitle": "Ödeme, kanıtlanmış akışını korur — burada yalnızca markalayın. Adımların sırası değiştirilemez; ödemeler asla bozulmaz.",
       "themeLink": "Tema ayarları",
       "title": "Ödeme",
       "toast": {
@@ -2897,7 +2904,21 @@
       },
       "brand": {
         "description": "Alt bilgi logosunu, açıklamayı, genişliği ve renkleri yönetin.",
-        "title": "Marka ve Düzen"
+        "title": "Marka ve Düzen",
+        "logoSourceLabel": "Alt bilgi logosu kaynağı",
+        "storeLogo": "Mağaza logosu (Önerilen)",
+        "storeLogoDescription": "Marka logolarınızı kullanır ve Üst Bilgi gibi açık ve koyu mod arasında geçiş yapar.",
+        "customLogo": "Alt bilgiye özel logo",
+        "customLogoDescription": "Yalnızca alt bilgi için farklı bir görsel yükleyin.",
+        "synced": "Marka ile eşitlenir",
+        "editBranding": "Marka'da düzenle",
+        "lightLogo": "Açık mod logosu",
+        "darkLogo": "Koyu mod logosu",
+        "logoNotSet": "Yüklenmedi",
+        "customLogoHint": "Bu logolar yalnızca alt bilgide kullanılır. Koyu mod logosu yoksa alt bilgi logosu iki modda da gösterilir; hiçbiri yoksa mağaza logolarınız kullanılır.",
+        "matchHeaderSize": "Üst Bilgi logosuyla aynı boyut",
+        "matchHeaderSizeHint": "Üst Bilgiyi izler: büyük ekranlarda {desktop}px, telefonlarda {mobile}px genişlik.",
+        "logoThemeAuto": "Otomatik (alt bilgi arka planına göre)"
       },
       "colors": {
         "dark": "Koyu mod renkleri",
@@ -2932,6 +2953,9 @@
         "email": "E-posta",
         "footerBackgroundColor": "Alt bilgi arka plan rengi",
         "footerLogo": "Alt bilgi logosu",
+        "footerDarkLogo": "Alt bilgi logosu (koyu mod)",
+        "logoWidth": "Logo genişliği",
+        "logoTheme": "Gösterilecek logo",
         "footerTextColor": "Alt bilgi metin rengi",
         "fullWidthFooter": "Tam genişlik alt bilgi",
         "imageAlt": "Görsel alternatif metni",
@@ -3389,6 +3413,7 @@
       "publishPageTitle": "Bu sayfa yayınlansın mı?",
       "publishTitle": "Ana sayfa yayınlansın mı?",
       "published": "Ana sayfa yayınlandı",
+      "duplicateSection": "Bölümü çoğalt",
       "removeSection": "Bölümü kaldır",
       "requiredSection": "Zorunlu",
       "restore": "Geri yükle",
@@ -3694,7 +3719,9 @@
     "earnings": "Kazançlar",
     "totalRevenue": "Toplam Gelir",
     "netEarnings": "Net Kazanç",
+    "awaitingPayment": "{amount} ödeme bekliyor",
     "totalOrders": "Toplam Sipariş",
+    "openOrdersCount": "{count} açık",
     "activeProducts": "Aktif Ürünler",
     "totalProducts": "Toplam Ürün",
     "commission": "Ödenen Komisyon",
@@ -3778,7 +3805,6 @@
     "active": "Aktif",
     "byStatus": "Duruma Göre",
     "unableToLoadData": "Analiz verileri yüklenemedi. Kayıtlı bir satıcı olduğunuzdan emin olun.",
-    "pending": "beklemede",
     "productsPage": {
       "subtitle": "Ürünlerinizi yönetin",
       "description": "Mağaza ürünlerinizi görüntüleyin ve yönetin"
@@ -3906,6 +3932,7 @@
       "partially_refunded": "Kısmen iade edildi"
     },
     "fulfillmentStatus": {
+      "preordered": "Ön sipariş",
       "pending": "Karşılanmadı",
       "processing": "İşleniyor",
       "shipped": "Yolda",
@@ -4438,6 +4465,7 @@
     "yes": "Evet",
     "no": "Hayır",
     "close": "Kapat",
+    "scrollToTop": "Başa dön",
     "back": "Geri",
     "goBack": "Geri Dön",
     "backToHome": "Ana Sayfaya Dön",
@@ -4477,7 +4505,6 @@
     "allRightsReserved": "Tüm hakları saklıdır",
     "dashboard": "Panel",
     "actions": "İşlemler",
-    "attention": "Dikkat",
     "view": "Görüntüle",
     "viewDetails": "Detayları Gör",
     "item": "ürün",
@@ -4546,7 +4573,8 @@
     "decreaseQuantity": "Adedi azalt",
     "increaseQuantity": "Adedi artır",
     "name": "Ad",
-    "email": "E-posta"
+    "email": "E-posta",
+    "showingResultsFor": "<q>{query}</q> için sonuçlar gösteriliyor"
   },
   "checkout": {
     "checkout": "Ödeme",
@@ -4598,6 +4626,7 @@
     "noShippingRates": "Bu adres için uygun kargo seçeneği bulunmuyor",
     "shippingUnavailable": "Bu adrese kargo gönderimi yapılamıyor.",
     "switchToPickup": "Mağazadan teslim alıma geç",
+    "enterAddressForShipping": "Kullanılabilir kargo yöntemlerini görmek için teslimat adresinizi girin.",
     "days": "gün",
     "securePayment": "Ödeme bilgileriniz güvenli ve şifrelidir",
     "orderSuccess": "Siparişiniz için teşekkür ederiz!",
@@ -4637,7 +4666,7 @@
       "iotecPhoneHint": "Tahsilatın yapılacağı MTN veya Airtel numarasını girin. Ödemeyi onaylamanız için o telefona bir bildirim gelecek.",
       "mtnMomoDetail": "MTN Mobile Money ile ödeyin. Telefonunuza gelen isteği MoMo PIN'inizle onaylayın.",
       "mtnMomoPhoneLabel": "Mobil para numarası",
-      "mtnMomoPhonePlaceholder": "örn. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "örn. {example}",
       "mtnMomoPhoneHint": "Tahsil edilecek MTN numarasını girin. Onay isteği o telefona gönderilecek."
     },
     "billingSame": "Teslimat adresiyle aynı",
@@ -4966,7 +4995,8 @@
       "partially_paid": "Kısmen ödendi",
       "refunded": "İade edildi",
       "partially_refunded": "Kısmen iade edildi"
-    }
+    },
+    "importDuties": "İthalat vergileri"
   },
   "locations": {
     "title": "Konumlar",
@@ -5268,7 +5298,8 @@
         "bestRating": "En Yüksek Puan",
         "newest": "En Yeni",
         "priceLowHigh": "Fiyat Düşükten Yükseğe",
-        "priceHighLow": "Fiyat Yüksekten Düşüğe"
+        "priceHighLow": "Fiyat Yüksekten Düşüğe",
+        "bestMatch": "En alakalı"
       }
     }
   },
@@ -5396,7 +5427,51 @@
     "writeReview": "Değerlendirme Yaz",
     "noReviews": "Henüz değerlendirme yok",
     "beFirst": "Bu ürünü ilk değerlendiren siz olun",
-    "verified": "Onaylı Satın Alma"
+    "verified": "Onaylı Satın Alma",
+    "writeReviewCta": "Değerlendirme yazın!",
+    "rating": "Puan",
+    "all": "Tümü",
+    "highlyRecommended": "Kesinlikle tavsiye edilir",
+    "postedBy": "{name} tarafından {time} gönderildi",
+    "postedTime": "{time} gönderildi",
+    "brandResponse": "Marka yanıtı",
+    "showingRange": "{total} değerlendirmeden {from} - {to} arası gösteriliyor",
+    "anonymous": "Anonim",
+    "checkingEligibility": "Uygun siparişleriniz kontrol ediliyor...",
+    "comment": "Değerlendirmeniz *",
+    "commentPlaceholder": "Bu ürünle ilgili deneyiminizi paylaşın",
+    "commentTooShort": "Yorum en az 10 karakter olmalıdır",
+    "dropzoneHint": "Her biri en fazla 10 MB olan görseller desteklenir.",
+    "dropzonePrimary": "Dosyaları buraya sürükleyip bırakın veya göz atmak için tıklayın",
+    "eligibleOrderRequired": "Bu ürünü yalnızca siparişlerinizden birinde teslim edildikten sonra değerlendirebilirsiniz.",
+    "imageTooLarge": "Her görsel 10 MB'tan küçük olmalıdır",
+    "imageUploadFailed": "Görsel yüklenemedi",
+    "invalidImage": "Yalnızca görsel dosyalarına izin verilir",
+    "loginToReview": "Bu ürünü değerlendirmek için lütfen giriş yapın.",
+    "maxImages": "En fazla 4 görsel yükleyebilirsiniz",
+    "noReviewsForRating": "Bu puan için henüz değerlendirme yok",
+    "oldest": "En eski",
+    "photos": "Görseller",
+    "selectRating": "Lütfen bir puan seçin",
+    "submit": "Değerlendirmeyi gönder",
+    "submitFailed": "Değerlendirme gönderilemedi",
+    "submitted": "Değerlendirme başarıyla gönderildi!",
+    "title": "Başlık",
+    "titlePlaceholder": "Değerlendirmenizi özetleyin",
+    "writeReviewHint": "E-posta adresiniz yayınlanmayacaktır. Zorunlu alanlar yıldız (*) ile işaretlenmiştir.",
+    "yourRating": "Puanınız",
+    "pendingTitle": "Satın aldıklarınızı değerlendirin",
+    "pendingDescription": "Siparişleriniz ulaştı. Diğer alışverişçilere ne düşündüğünüzü anlatın.",
+    "deliveredOn": "{date} tarihinde teslim edildi",
+    "rateStar": "5 üzerinden {count} puan ver",
+    "showMore": "{count} tane daha göster",
+    "showFewer": "Daha az göster",
+    "fromOrder": "Sipariş #{orderNumber}",
+    "orderPromptTitle": "Siparişiniz nasıldı?",
+    "orderPromptOne": "{name} için kısa bir değerlendirme yazın — diğer alışverişçilere yardımcı olur.",
+    "orderPromptMany": "Bu siparişteki {count} ürün değerlendirmenizi bekliyor.",
+    "youRated": "Puanınız",
+    "alreadyReviewed": "Bu ürünü zaten değerlendirdiniz. Deneyiminizi paylaştığınız için teşekkürler!"
   },
   "coupon": {
     "enterCode": "Lütfen bir kupon kodu girin",
@@ -5718,6 +5793,7 @@
     },
     "chatWithVendor": "Satıcıyla sohbet et",
     "chatWithStore": "Mağazayla sohbet et",
+    "chatWithSeller": "Satıcıyla sohbet et",
     "startConversation": "Sohbet başlat",
     "startDescription": "Stok durumu, teslimat, seçenekler veya aklınıza gelen her şeyi sorun.",
     "writeMessage": "Bir mesaj yazın…",
@@ -6037,7 +6113,6 @@
       "canceled": "Ödeme iptal edildi. Lütfen tekrar deneyin.",
       "failed": "Ödeme başlatılamadı",
       "loadFailed": "Konum merdiveni yüklenemedi",
-      "verifyFailed": "Ödeme doğrulanamadı",
       "pollTimeout": "Ödemeyi henüz doğrulayamadık. Onaylandığında otomatik olarak etkinleşecek.",
       "stepSlot": "Konum ve tarihler",
       "pickSlot": "Bir konum ve tarih seçin",
@@ -6150,7 +6225,6 @@
     "adminPassword": "Parola",
     "adminTitle": "Yönetici hesabınızı oluşturun",
     "appUrl": "Uygulama URL'si",
-    "appUrlHint": ".env dosyasında NEXT_PUBLIC_APP_URL değerini mağazanızın URL'sine ayarlayın",
     "blockedHint": "Yukarıdaki maddeleri düzeltip yeniden kontrol edin — bunlar geçmeden kurulum devam edemez.",
     "retry": "Yeniden kontrol et",
     "authSecret": "Kimlik doğrulama gizli anahtarı",
@@ -6189,7 +6263,7 @@
       "secretAccessKey": "Gizli erişim anahtarı",
       "publicUrl": "Herkese açık URL"
     },
-    "nodeTooOld": "Node.js 22 veya daha yenisi gerekli",
+    "nodeTooOld": "Node.js 22.12 veya daha yenisi gerekli",
     "storeName": "Mağaza adı",
     "storeTitle": "Mağaza temelleri",
     "subtitle": "Birkaç adım, satışa başlıyorsunuz",

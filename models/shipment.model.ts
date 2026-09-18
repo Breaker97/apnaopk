@@ -136,6 +136,13 @@ export interface IShipment {
      * labels already bought. Absent means the platform.
      */
     billedTo?: "platform" | "vendor";
+    /**
+     * Whether this label moved the parcel's delivery charge from the vendor to
+     * the store — see `lib/shipping/store-label-shipping.ts`. Set only on a
+     * store-billed label for a parcel the vendor would otherwise have earned
+     * delivery on, so a void knows whether there is anything to hand back.
+     */
+    shippingToStore?: boolean;
   };
   /**
    * How many labels this parcel has been through, incremented on every void.
@@ -315,6 +322,7 @@ const ShipmentSchema = new Schema<IShipment>(
           lastErrorCode: String,
           idempotencyKey: String,
           billedTo: { type: String, enum: ["platform", "vendor"] },
+          shippingToStore: { type: Boolean },
         },
         { _id: false },
       ),

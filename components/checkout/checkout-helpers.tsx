@@ -12,6 +12,14 @@ export type CheckoutFormData = {
   firstName: string;
   lastName: string;
   email: string;
+  /** Contact phone (checkout settings `contact.mode`); `phone` is the delivery address's. */
+  contactPhone: string;
+  /** Guest ticked "create an account" (or the store requires one). */
+  createAccount: boolean;
+  accountPassword: string;
+  customerNote: string;
+  /** The store's own checkout fields, keyed by field id; absent until answered. */
+  customFields: Record<string, string | boolean | undefined>;
   phone: string;
   address: string;
   apartment?: string;
@@ -195,11 +203,40 @@ export function savedAddressIndexForLocation(
   return matches.length === 1 ? matches[0].index : null;
 }
 
-/** Map a saved account address into delivery fields without touching payment. */
-export function savedAddressFormValues(address: SavedCheckoutAddress) {
+/**
+ * The recipient name an account name implies: the last word is the surname,
+ * the rest the given name, so a one-word name lands in the required surname.
+ */
+export function accountRecipientName(name: string | null | undefined): {
+  firstName: string;
+  lastName: string;
+} {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
   return {
-    firstName: address.firstName || "",
-    lastName: address.lastName || "",
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts[parts.length - 1] || "",
+  };
+}
+
+/**
+ * Map a saved account address into delivery fields without touching payment.
+ *
+ * Names are optional on a saved address, but checkout requires a surname — in
+ * a field the collapsed saved-address view does not render. An address saved
+ * without any name is therefore addressed to the account holder
+ * (`accountName`), rather than blanking the surname and leaving "Complete
+ * order" to fail on an error the shopper cannot see.
+ */
+export function savedAddressFormValues(
+  address: SavedCheckoutAddress,
+  accountName?: string | null,
+) {
+  const recipient =
+    address.firstName?.trim() || address.lastName?.trim()
+      ? { firstName: address.firstName || "", lastName: address.lastName || "" }
+      : accountRecipientName(accountName);
+  return {
+    ...recipient,
     address: address.street,
     apartment: address.apartment || "",
     city: address.city,
@@ -266,6 +303,27 @@ export function requiresFreshShippingQuote(input: {
   return input.hasDestination && (input.loading || input.resolution === null);
 }
 
+/**
+ * The fields that say where a delivery is going. The checkout form requires
+ * them of every delivery address, and shipping is not quoted until they are
+ * filled — one list for both, so any address the form accepts has been quoted.
+ */
+export const DELIVERY_DESTINATION_FIELDS = ["address", "city", "country"] as const;
+
+/**
+ * Whether the shopper has said where the order is going. The country alone
+ * never counts: checkout pre-fills it with the store default, and quoting that
+ * answered for a place nobody chose — where the store does not ship there,
+ * with a "not available" before a single field was typed.
+ */
+export function hasDeliveryDestination(
+  address: Pick<CheckoutFormData, (typeof DELIVERY_DESTINATION_FIELDS)[number]>,
+): boolean {
+  return DELIVERY_DESTINATION_FIELDS.every((field) =>
+    Boolean(address[field]?.trim()),
+  );
+}
+
 /** Show fulfillment only when pickup is selectable or its unavailability needs explanation. */
 export function shouldShowFulfillmentSelector(input: {
   pickupAvailable: boolean;
@@ -298,6 +356,7 @@ export const MANUAL_DELIVERY_ADDRESS_FIELDS = [
   "city",
   "postalCode",
   "state",
+  "phone",
 ] as const;
 
 /** Saved delivery addresses collapse the form until the shopper chooses manual entry. */
@@ -329,6 +388,10 @@ export type AppliedCoupon = {
   type: string;
   discountTarget?: "subtotal" | "shipping";
   maxDiscount?: number;
+  /** A scoped coupon's goods discount by seller. */
+  vendorShares?: Record<string, number>;
+  /** The seller whose delivery a seller's own free-shipping coupon covers. */
+  shippingVendorId?: string;
 };
 
 export type CheckoutVendorRateGroup = {
@@ -352,19 +415,6 @@ export type CheckoutShippingResolution = {
   customs?: { dutyAmount?: number; collectedAtCheckout?: boolean };
 };
 
-export type RazorpayCheckoutResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
-
-type RazorpayPaymentFailedResponse = {
-  error?: {
-    description?: string;
-    reason?: string;
-  };
-};
-
 type RazorpayCheckoutOptions = {
   key: string;
   amount: number;
@@ -378,25 +428,16 @@ type RazorpayCheckoutOptions = {
     contact?: string;
   };
   notes?: Record<string, string>;
-  handler: (response: RazorpayCheckoutResponse) => void;
-  modal?: {
-    ondismiss?: () => void;
+  callback_url: string;
+  redirect: true;
+  modal: {
+    ondismiss: () => void;
   };
-};
-
-type RazorpayCheckoutInstance = {
-  open: () => void;
-  on: (
-    event: "payment.failed",
-    handler: (response: RazorpayPaymentFailedResponse) => void,
-  ) => void;
 };
 
 declare global {
   interface Window {
-    Razorpay?: new (
-      options: RazorpayCheckoutOptions,
-    ) => RazorpayCheckoutInstance;
+    Razorpay?: new (options: RazorpayCheckoutOptions) => { open: () => void };
   }
 }
 
@@ -422,7 +463,7 @@ export function createStripeElementStyle(isDark: boolean): StripeElementStyle {
   };
 }
 
-export function loadRazorpayCheckoutScript() {
+function loadRazorpayCheckoutScript() {
   return new Promise<void>((resolve, reject) => {
     if (typeof window === "undefined") {
       reject(new Error("Razorpay checkout is unavailable"));
@@ -454,6 +495,67 @@ export function loadRazorpayCheckoutScript() {
     script.onerror = () =>
       reject(new Error("Failed to load Razorpay checkout"));
     document.body.appendChild(script);
+  });
+}
+
+/**
+ * Opens Razorpay Checkout in redirect mode, for the storefront and for every
+ * vendor→platform payment alike.
+ *
+ * Razorpay returns the payer through `callbackUrl` with a full-page POST
+ * whichever method they pay with. FPX (Malaysian online banking) cannot finish
+ * any other way, and the method is only chosen inside Razorpay's window, so
+ * every payment takes that road; see lib/payments/razorpay-callback.ts.
+ *
+ * The promise therefore never resolves — a payment leaves the page. It rejects
+ * with `canceledMessage` when the payer closes the window without paying, and
+ * the caller's error handling takes over from there.
+ */
+export async function openRazorpayCheckout(options: {
+  keyId: string;
+  razorpayOrderId: string;
+  /** In subunits, as Razorpay's order reported it. */
+  amount: number;
+  currency: string;
+  name: string;
+  description?: string;
+  callbackUrl: string;
+  prefill?: RazorpayCheckoutOptions["prefill"];
+  notes?: Record<string, string>;
+  canceledMessage: string;
+}): Promise<void> {
+  // A callback-less Checkout would strand an FPX payer at the bank again.
+  if (
+    !options.keyId ||
+    !options.razorpayOrderId ||
+    !options.amount ||
+    !options.callbackUrl
+  ) {
+    throw new Error("Failed to initialize Razorpay payment");
+  }
+
+  await loadRazorpayCheckoutScript();
+  const Razorpay = window.Razorpay;
+  if (!Razorpay) {
+    throw new Error("Razorpay checkout is unavailable");
+  }
+
+  return new Promise<void>((_resolve, reject) => {
+    new Razorpay({
+      key: options.keyId,
+      amount: options.amount,
+      currency: options.currency,
+      name: options.name,
+      description: options.description,
+      order_id: options.razorpayOrderId,
+      prefill: options.prefill,
+      notes: options.notes,
+      callback_url: options.callbackUrl,
+      redirect: true,
+      modal: {
+        ondismiss: () => reject(new Error(options.canceledMessage)),
+      },
+    }).open();
   });
 }
 

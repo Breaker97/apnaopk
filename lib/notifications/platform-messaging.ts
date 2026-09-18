@@ -151,7 +151,7 @@ export async function updatePlatformMessagingConfiguration(params: {
         updatedByUserId: new Types.ObjectId(params.userId),
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
   return {
     liveChatEnabled: config.liveChatEnabled,

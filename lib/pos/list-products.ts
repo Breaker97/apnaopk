@@ -1,5 +1,6 @@
 import { Product, Category } from "@/models";
 import { PRODUCT_STATUS } from "@/config/app.config";
+import { expandCategoryIdsWithDescendants } from "@/lib/catalog/categories";
 import { resolveLocationScope } from "@/lib/inventory/inventory-location-scope";
 import { isValidObjectId, sanitizeSearchString } from "@/lib/api/validate";
 import {
@@ -156,7 +157,12 @@ export async function listPOSProducts(
   }
 
   if (categoryId && !lookupIds) {
-    query.category = categoryId;
+    // The pill strip lists every category, parents included, but products sit
+    // on the leaves — so a department pill has to carry its whole branch or it
+    // shows the cashier an empty grid.
+    query.category = isValidObjectId(categoryId)
+      ? { $in: await expandCategoryIdsWithDescendants([categoryId]) }
+      : categoryId;
   }
 
   if (search && !lookupIds) {

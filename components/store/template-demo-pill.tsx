@@ -49,24 +49,27 @@ export function TemplateDemoPill({
         aria-expanded={open}
         aria-label={open ? "Close store demos" : "Explore store demos"}
         className={cn(
-          "group flex items-center gap-2 rounded-r-xl bg-linear-to-br from-sky-500 via-blue-600 to-indigo-600 py-2.5 pl-2.5 pr-2.5 text-white shadow-lg shadow-blue-600/40 transition-all hover:brightness-110 sm:pr-3.5",
+          "group relative flex w-[76px] flex-col items-center gap-2 rounded-r-2xl bg-linear-to-br from-fuchsia-500 via-violet-600 to-indigo-700 px-2 pb-3.5 pt-4 text-center text-white shadow-[0_12px_32px_-10px_rgba(124,58,237,0.7)] ring-1 ring-inset ring-white/20 transition-all hover:brightness-110",
           open && "translate-x-[300px]",
         )}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/30 transition-transform group-hover:scale-105">
           {open ? (
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           ) : (
-            <LayoutGrid className="h-4 w-4" />
+            <LayoutGrid className="h-5 w-5" />
           )}
         </span>
-        <span className="hidden text-left sm:block">
-          <span className="block text-[13px] font-bold leading-tight">
-            Store Demos
-          </span>
-          <span className="mt-0.5 block text-[10px] font-medium leading-tight text-white/85">
-            {templates.length} designs to explore
-          </span>
+        <span className="-mb-1 block text-[26px] font-extrabold leading-none text-amber-300">
+          {templates.length}
+        </span>
+        <span className="block text-[12px] font-bold leading-[1.15]">
+          Store
+          <br />
+          Demos
+        </span>
+        <span className="block text-[9px] font-medium uppercase leading-tight tracking-wider text-white/75">
+          Explore
         </span>
       </button>
 
@@ -96,10 +99,15 @@ export function TemplateDemoPill({
               <>
                 {template.preview ? (
                   <span className="relative block aspect-[4/3]">
+                    {/* `unoptimized`: the src carries the template's version
+                        stamp (themes/preview.ts), which the optimizer refuses —
+                        and the optimizer's year-long cache is exactly what kept
+                        an old screenshot on screen after a re-capture. */}
                     <Image
                       src={template.preview}
                       alt={template.name}
                       fill
+                      unoptimized
                       sizes="280px"
                       className="object-cover object-top"
                     />

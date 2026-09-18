@@ -1,4 +1,6 @@
 import { Product, Category } from "@/models";
+import { mongoose } from "@/lib/db";
+import { ValidationError } from "@/lib/api/errors";
 import { MAX_MEGA_MENU_DEPTH } from "@/lib/site-config/menu-depth";
 
 /**
@@ -128,4 +130,43 @@ export async function expandCategoryIdsWithDescendants(
   }
 
   return [...collected];
+}
+
+/**
+ * Products belong on the leaves, and this is where that rule is enforced.
+ *
+ * The product picker has always offered leaf categories only, but it was the
+ * single place that knew: an import or a direct API call could still file a
+ * product on a parent, where the merchant can then never see it again — the
+ * picker won't show that category, so re-opening the product silently offers
+ * to move it somewhere else.
+ *
+ * Called only where a product's category is SET or CHANGED. A category that
+ * grew children after products were filed on it keeps those products editable,
+ * and they still appear on its page: the storefront rolls the branch up with
+ * `expandCategoryIdsWithDescendants`, which includes the parent itself.
+ */
+export async function assertCategoryAcceptsProducts(
+  categoryId: string | null | undefined,
+): Promise<void> {
+  if (!categoryId) return;
+  const id = String(categoryId);
+  // A malformed id is the schema's business, not this rule's.
+  if (!mongoose.Types.ObjectId.isValid(id)) return;
+
+  // One query for the category and its children: the message needs both names.
+  const rows = await Category.find({ $or: [{ _id: id }, { parentId: id }] })
+    .select("_id name")
+    .lean<{ _id: unknown; name: string }[]>();
+
+  const children = rows.filter((row) => String(row._id) !== id);
+  if (children.length === 0) return;
+
+  const name = rows.find((row) => String(row._id) === id)?.name;
+  throw new ValidationError(
+    `${name ? `"${name}"` : "That category"} has sub-categories, and products belong on the deepest level. File this product under ${children
+      .slice(0, 3)
+      .map((child) => `"${child.name}"`)
+      .join(", ")}${children.length > 3 ? " or another sub-category" : ""} instead.`,
+  );
 }

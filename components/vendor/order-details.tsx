@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -24,6 +25,8 @@ import { AppImage } from "@/components/ui/app-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OrderCheckoutAnswers } from "@/components/common/order-checkout-answers";
+import type { OrderCheckoutField } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -57,8 +60,8 @@ import {
   printPdfBlobWithQz,
 } from "@/lib/printing/qz-client";
 import { formatPickupWindow } from "@/lib/checkout/pickup-fulfillment-shared";
-import { isPlatformSettled } from "@/lib/payments/payment-custody";
 import { OrderShipmentsCard } from "@/components/shipping/order-shipments-card";
+import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 
 interface VendorOrderItem {
   name: string;
@@ -70,13 +73,7 @@ interface VendorOrderItem {
 
 interface VendorSubOrder {
   status: string;
-  /** This consignment's own collection state; absent on pre-split rows. */
-  paymentStatus?: string;
-  /** Who takes the COD cash for this consignment; absent means the vendor. */
-  codCollectedBy?: string;
   subtotal: number;
-  commission: number;
-  vendorEarnings: number;
   trackingNumber?: string;
   shippedAt?: string;
   deliveredAt?: string;
@@ -98,22 +95,40 @@ interface VendorSubOrder {
   items: VendorOrderItem[];
 }
 
+/** Worked out by GET /api/vendor/orders/[id] — see the route for each figure. */
+interface VendorOrderFinance {
+  currency: string;
+  /** What the shopper is charged for this consignment; null if nothing was. */
+  charge: {
+    merchandise: number;
+    shipping: number;
+    tax: number;
+    duty: number;
+    total: number;
+  } | null;
+  /** Goods after the order's discounts and refunds. */
+  grossSales: number;
+  commission: number;
+  earnings: number;
+  /** The vendor, not the store, takes this consignment's money. */
+  vendorCollects: boolean;
+  /** What the store bills a vendor who keeps the cash. */
+  billedToVendor: number;
+  /** The store's own promotion on a sale the vendor collected — netted off the bill. */
+  storePromotion?: number;
+}
+
 interface VendorOrder {
   _id: string;
   orderNumber: string;
+  /** This vendor's own payment state, resolved by the API — not the order's. */
   paymentStatus: string;
   paymentMethod?: string;
-  /**
-   * Both read by `isPlatformSettled`. Without them a POS sale on the
-   * merchant's OWN card terminal — normalised to a bare "card" — would look
-   * like a platform-gateway charge and the vendor would lose a button they are
-   * entitled to.
-   */
-  channel?: string;
-  stripePaymentIntentId?: string;
   createdAt: string;
   shippingAddress?: {
+    fullName?: string;
     street?: string;
+    apartment?: string;
     city?: string;
     state?: string;
     postalCode?: string;
@@ -123,9 +138,12 @@ interface VendorOrder {
   customerId?: {
     name?: string;
     email?: string;
-    phone?: string;
   };
+  /** The shopper's note and checkout-field answers — they may be instructions for this shipment. */
+  customerNote?: string;
+  checkoutFields?: OrderCheckoutField[];
   subOrders: VendorSubOrder[];
+  finance: VendorOrderFinance;
 }
 
 interface VendorReturnRequest {
@@ -228,6 +246,7 @@ export function VendorOrderDetails({
   canEditOrder = false,
   canDeleteOrder = false,
 }: VendorOrderDetailsProps) {
+  const t = useTranslations();
   const { formatPrice } = useCurrency();
   const { confirm } = useConfirmation();
 
@@ -484,6 +503,14 @@ export function VendorOrderDetails({
     );
   }
 
+  const { finance } = order;
+  const consignmentPaid = !["pending", "partially_paid"].includes(
+    order.paymentStatus,
+  );
+  const isCod = String(order.paymentMethod || "").toLowerCase() === "cod";
+  // Coupons and refunds, which the payout takes off before paying out.
+  const saleAdjustments = Math.max(0, subOrder.subtotal - finance.grossSales);
+  const address = order.shippingAddress;
   const requestedReturns = returnRequests.filter(
     (request) => request.status === "requested",
   );
@@ -497,10 +524,8 @@ export function VendorOrderDetails({
     // not a COD delivery the store's own courier collects. The API refuses
     // both either way — this just keeps the button from offering something
     // that can only fail.
-    !isPlatformSettled(order, subOrder) &&
-    ["pending", "partially_paid"].includes(
-      subOrder.paymentStatus || order.paymentStatus,
-    );
+    order.finance.vendorCollects &&
+    !consignmentPaid;
   const pickup = subOrder.fulfillment?.method === "pickup"
     ? subOrder.fulfillment.pickup
     : undefined;
@@ -801,14 +826,20 @@ export function VendorOrderDetails({
                   <span className="text-muted-foreground">Shipment subtotal</span>
                   <span>{formatPrice(subOrder.subtotal)}</span>
                 </div>
+                {saleAdjustments >= 0.01 ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Discounts & refunds</span>
+                    <span>-{formatPrice(saleAdjustments)}</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Commission</span>
-                  <span>-{formatPrice(subOrder.commission)}</span>
+                  <span>-{formatPrice(finance.commission)}</span>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between text-base font-semibold">
                   <span>Your earnings</span>
-                  <span>{formatPrice(subOrder.vendorEarnings)}</span>
+                  <span>{formatPrice(finance.earnings)}</span>
                 </div>
               </div>
             </CardContent>
@@ -941,20 +972,30 @@ export function VendorOrderDetails({
               <div className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
                 <div className="space-y-0.5">
-                  <p>{order.shippingAddress?.street || "-"}</p>
+                  {address?.fullName ? (
+                    <p className="font-medium">{address.fullName}</p>
+                  ) : null}
+                  <p>{address?.street || "-"}</p>
+                  {address?.apartment ? <p>{address.apartment}</p> : null}
                   <p>
-                    {order.shippingAddress?.city || ""}
-                    {order.shippingAddress?.city ? ", " : ""}
-                    {order.shippingAddress?.state || ""} {order.shippingAddress?.postalCode || ""}
+                    {address?.city || ""}
+                    {address?.city ? ", " : ""}
+                    {address?.state || ""} {address?.postalCode || ""}
                   </p>
-                  <p>{order.shippingAddress?.country || ""}</p>
-                  {order.shippingAddress?.phone ? (
-                    <p className="text-muted-foreground">{order.shippingAddress.phone}</p>
+                  <p>{address?.country || ""}</p>
+                  {address?.phone ? (
+                    <p className="text-muted-foreground">{address.phone}</p>
                   ) : null}
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <OrderCheckoutAnswers
+            className=""
+            customerNote={order.customerNote}
+            checkoutFields={order.checkoutFields}
+          />
 
           <Card>
             <CardHeader>
@@ -967,8 +1008,97 @@ export function VendorOrderDetails({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Method</span>
-                <span className="capitalize">{order.paymentMethod || "-"}</span>
+                <span>
+                  {order.paymentMethod
+                    ? getPaymentMethodMeta(t, order.paymentMethod).label
+                    : "-"}
+                </span>
               </div>
+
+              {finance.charge ? (
+                <>
+                  <Separator className="my-3" />
+                  <p className="font-medium">Customer pays</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Items</span>
+                    <span>{formatPrice(finance.charge.merchandise)}</span>
+                  </div>
+                  {!isPickup ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Shipping</span>
+                      <span>
+                        {finance.charge.shipping > 0
+                          ? formatPrice(finance.charge.shipping)
+                          : "Free"}
+                      </span>
+                    </div>
+                  ) : null}
+                  {finance.charge.tax > 0 ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tax</span>
+                      <span>{formatPrice(finance.charge.tax)}</span>
+                    </div>
+                  ) : null}
+                  {finance.charge.duty > 0 ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Import duty</span>
+                      <span>{formatPrice(finance.charge.duty)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{formatPrice(finance.charge.total)}</span>
+                  </div>
+                </>
+              ) : null}
+
+              <Separator className="my-3" />
+              {finance.vendorCollects ? (
+                <div className="space-y-2">
+                  {isCod && !consignmentPaid && finance.charge ? (
+                    // The one number a vendor delivering their own parcel has
+                    // to know, and it is not their earnings: the shopper
+                    // owes the tax and delivery as well.
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Collect on delivery
+                      </p>
+                      <p className="text-lg font-semibold">
+                        {formatPrice(finance.charge.total)}
+                      </p>
+                    </div>
+                  ) : null}
+                  {finance.storePromotion ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        Store promotion, paid by the store
+                      </span>
+                      <span>{formatPrice(finance.storePromotion)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Billed to you by the store</span>
+                    <span>{formatPrice(finance.billedToVendor)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    You take this payment yourself, so nothing is paid out to
+                    you for it. The store bills you its{" "}
+                    {finance.billedToVendor > finance.commission + 0.005
+                      ? "commission and the delivery charge"
+                      : "commission"}{" "}
+                    instead
+                    {finance.storePromotion
+                      ? ", less the discount it paid for on this sale"
+                      : ""}
+                    .
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  The store collects this payment and pays your earnings out to
+                  you.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

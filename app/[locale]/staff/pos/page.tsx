@@ -13,7 +13,7 @@ import { Vendor } from "@/models";
 import type { Address } from "@/types";
 import type { VendorStoreVisibility } from "@/lib/vendors/vendor-address";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { canAccessPOS } from "@/lib/access/rbac";
+import { canAccessPOS, canApplyPosDiscount } from "@/lib/access/rbac";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -58,7 +58,10 @@ export default async function StaffPosPage({ params }: PageProps) {
   // page never waits on the catalogue query before painting.
   return (
     <POSPageShell
-      settings={buildPOSSettings(settings, identity)}
+      settings={{
+        ...buildPOSSettings(settings, identity),
+        canApplyDiscounts: await canApplyPosDiscount(session.user),
+      }}
       user={session.user}
     />
   );

@@ -16,6 +16,7 @@ import {
   Settings,
   BarChart,
   BarChart3,
+  SearchX,
   ChevronRight,
   Home,
   ClipboardList,
@@ -82,6 +83,8 @@ import { USER_ROLES } from "@/config/app.config";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
+import { useInboxUnreadCount } from "@/hooks/use-inbox-unread-count";
+import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
 
 // Icon mapping
 const iconMap: Record<string, LucideIcon> = {
@@ -97,6 +100,7 @@ const iconMap: Record<string, LucideIcon> = {
   Settings,
   BarChart,
   BarChart3,
+  SearchX,
   Home,
   ClipboardList,
   Layers,
@@ -190,11 +194,15 @@ function buildPosNavItems(area: DashboardArea): NavItem[] {
   ];
 }
 
+/** Live counts a nav entry can carry as a badge. Only top-level leaf entries render one. */
+type NavCountKey = "inboxUnread";
+
 interface NavItem {
   label: string;
   href: string;
   icon: string;
   items?: NavItem[];
+  countKey?: NavCountKey;
 }
 
 interface DashboardSidebarProps {
@@ -227,6 +235,20 @@ const adminNavGroups: {
         label: "admin.sidebar.analytics",
         href: "/admin/analytics",
         icon: "BarChart3",
+        // An index child plus a deeper sibling, the same shape as Vendors:
+        // the sibling's longer href wins, so only one entry lights up.
+        items: [
+          {
+            label: "admin.sidebar.traffic",
+            href: "/admin/analytics",
+            icon: "BarChart3",
+          },
+          {
+            label: "admin.sidebar.searchInsights",
+            href: "/admin/analytics/search",
+            icon: "SearchX",
+          },
+        ],
       },
       // ── Sell (daily operations) ───────────────
       {
@@ -474,6 +496,7 @@ const adminNavGroups: {
         label: "admin.sidebar.inbox",
         href: "/admin/inbox",
         icon: "MessageSquare",
+        countKey: "inboxUnread",
       },
       // {
       //   label: "admin.sidebar.markets",
@@ -589,6 +612,12 @@ function buildVendorNavGroups(
             href: "/vendor/locations",
             icon: "MapPin",
           },
+          // Moving stock between those locations, as the admin nav places it.
+          {
+            label: "admin.sidebar.transfers",
+            href: "/vendor/transfers",
+            icon: "ArrowLeftRight",
+          },
         );
       }
 
@@ -701,6 +730,7 @@ function buildVendorNavGroups(
       label: "admin.sidebar.inbox",
       href: "/vendor/inbox",
       icon: "MessageSquare",
+      countKey: "inboxUnread",
     });
   }
 
@@ -1072,6 +1102,14 @@ export function DashboardSidebar({
     vendorPlansEnabled,
     vendorPermissions,
   ]);
+
+  // Polled only when Inbox is actually in the nav: a vendor without inbox
+  // access would be answered 403 on every tick.
+  const hasInboxEntry = navGroups.some((group) =>
+    group.items.some((item) => item.countKey === "inboxUnread"),
+  );
+  const inboxUnread = useInboxUnreadCount(hasInboxEntry && !isPosPage);
+  const navCounts: Record<NavCountKey, number> = { inboxUnread };
 
   // RTL detection based on locale OR manual setting
   const isRTL = locale === "ar" || rtl; // Arabic locale or manual RTL toggle
@@ -1756,6 +1794,8 @@ export function DashboardSidebar({
                     );
                   }
 
+                  const count = item.countKey ? navCounts[item.countKey] : 0;
+
                   return (
                     <SidebarMenuItem
                       key={item.href}
@@ -1778,10 +1818,21 @@ export function DashboardSidebar({
                       >
                         <Link prefetch={false} href={item.href} className="relative w-full">
                           <div className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center">
-                            <Icon className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-5" />
+                            <span className="relative inline-flex shrink-0">
+                              <Icon className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-5" />
+                              <SidebarCountBadge
+                                count={count}
+                                isApparent={isApparent}
+                                rail
+                              />
+                            </span>
                             <span className="group-data-[collapsible=icon]:hidden">
                               {tLabel(item.label)}
                             </span>
+                            <SidebarCountBadge
+                              count={count}
+                              isApparent={isApparent}
+                            />
                           </div>
                           <span
                             className={cn(

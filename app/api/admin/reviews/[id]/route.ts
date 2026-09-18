@@ -98,7 +98,7 @@ export const PATCH = withApi<{ id: string }>(
     if (Object.keys(unset).length > 0) update.$unset = unset;
 
     const review = await Review.findByIdAndUpdate(id, update, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     })
       .populate("userId", "name email image")

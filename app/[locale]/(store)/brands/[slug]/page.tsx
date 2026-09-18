@@ -25,6 +25,9 @@ import {
   resolveRequestLocation,
   type RequestLocation,
 } from "@/lib/locations/resolve-request-location";
+import {
+  CARD_GRID_GAP,
+} from "@/components/store/product-grid-columns";
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -352,7 +355,7 @@ function SortSelect({
 
 function ProductsGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
       {Array.from({ length: 12 }).map((_, i) => (
         <ModernProductCardSkeleton key={i} />
       ))}

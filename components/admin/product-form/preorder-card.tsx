@@ -24,14 +24,49 @@ import { Switch } from "@/components/ui/switch";
 import type { Dispatch, SetStateAction } from "react";
 import type { ProductVariant as VariantData } from "@/components/admin/variants-manager";
 import type { ProductFormData } from "@/components/admin/product-form/schema";
+import { VendorPreorderAccessNotice } from "@/components/vendor/preorder-access-notice";
+import type { VendorPreorderAccess } from "@/lib/products/form-options-types";
+
+/**
+ * Why this vendor cannot switch a pre-order on, in one line — or null when
+ * they can. The variant editor shows it next to its own pre-order switch.
+ */
+export function preorderLockMessage(
+  access?: VendorPreorderAccess | null,
+): string | null {
+  if (!access || access.allowed) return null;
+  return access.blockedBy === "store"
+    ? "Pre-orders are switched off for this store."
+    : "Your store has to approve you for pre-orders first. Request access in the Pre-orders section.";
+}
 
 interface PreorderCardProps {
   form: UseFormReturn<ProductFormData>;
   setVariants: Dispatch<SetStateAction<VariantData[]>>;
+  /**
+   * Whether any gateway on this store could take the rest of a pre-order
+   * later. When false the deferred modes are unsellable, and offering them
+   * would let a vendor build a listing whose failure the SHOPPER discovers at
+   * checkout, weeks after the mistake was made.
+   */
+  deferredBalanceSupported?: boolean;
+  /**
+   * Vendor editor only: whether this vendor may open a pre-order. When not,
+   * the switch stays off and the card says why — and offers the request — up
+   * front, instead of letting the vendor fill in a pre-order the save will
+   * refuse. A pre-order that is already on can still be switched off.
+   */
+  access?: VendorPreorderAccess | null;
 }
 
-export function PreorderCard({ form, setVariants }: PreorderCardProps) {
+export function PreorderCard({
+  form,
+  setVariants,
+  deferredBalanceSupported = true,
+  access,
+}: PreorderCardProps) {
   const t = useTranslations();
+  const locked = Boolean(access && !access.allowed);
   const watchedPreorderEnabled =
     useWatch({ control: form.control, name: "preorder.enabled" }) ?? false;
   const watchedPreorderPaymentMode =
@@ -57,6 +92,7 @@ export function PreorderCard({ form, setVariants }: PreorderCardProps) {
               <FormControl>
                 <Switch
                   checked={field.value}
+                  disabled={locked && !field.value}
                   onCheckedChange={(checked) => {
                     field.onChange(checked);
                     form.clearErrors("shipping.weight");
@@ -74,6 +110,20 @@ export function PreorderCard({ form, setVariants }: PreorderCardProps) {
             </FormItem>
           )}
         />
+
+        {access && !access.allowed ? (
+          access.blockedBy === "approval" ? (
+            <VendorPreorderAccessNotice
+              requestedAt={access.requestedAt}
+              maxLeadDays={access.maxLeadDays}
+              maxDepositPercent={access.maxDepositPercent}
+            />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {preorderLockMessage(access)}
+            </p>
+          )
+        ) : null}
 
         {watchedPreorderEnabled && (
           <>
@@ -144,10 +194,27 @@ export function PreorderCard({ form, setVariants }: PreorderCardProps) {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="full">Full payment</SelectItem>
-                        <SelectItem value="deposit">Deposit</SelectItem>
-                        <SelectItem value="pay_later">Pay later</SelectItem>
+                        <SelectItem
+                          value="deposit"
+                          disabled={!deferredBalanceSupported}
+                        >
+                          Deposit
+                        </SelectItem>
+                        <SelectItem
+                          value="pay_later"
+                          disabled={!deferredBalanceSupported}
+                        >
+                          Pay later
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+                    {!deferredBalanceSupported ? (
+                      <p className="text-muted-foreground text-xs leading-4">
+                        Only full payment is available: no payment method on
+                        this store can charge the rest later. Turn on card
+                        payments to offer a deposit.
+                      </p>
+                    ) : null}
                     <FormMessage className="text-xs leading-4" />
                   </FormItem>
                 )}

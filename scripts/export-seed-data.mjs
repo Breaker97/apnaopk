@@ -52,6 +52,7 @@ const SENSITIVE_KEY_PATTERN =
 const SENSITIVE_KEY_ALLOWLIST = new Set([
   "serviceTokenAllowList", // Shippo service-level identifiers, not credentials
   "courierIdAllowList",
+  "monthlyTokenBudget", // AI sales agent usage cap — a number, not a credential
 ]);
 
 function stripKeys(doc, keys) {
@@ -169,6 +170,11 @@ async function exportSeedData() {
     .find({ status: "active" })
     .sort({ createdAt: 1 })
     .toArray();
+  for (const product of products) {
+    // Derived again on seed through the app's own builder; a snapshot must
+    // never carry a search index computed by an older rule.
+    stripKeys(product, ["search"]);
+  }
   const collections = await db
     .collection("collections")
     .find({})

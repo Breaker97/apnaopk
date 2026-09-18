@@ -1,6 +1,6 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Cart, Product, Order, User, Vendor } from "@/models";
+import { Cart, Product, Order, User } from "@/models";
 import {
   getStripeForSecretKey,
   isStripeSecretKeyConfigured,
@@ -20,6 +20,7 @@ import {
   createRazorpayOrder,
   getRazorpayCredentials,
 } from "@/lib/payments/razorpay";
+import { buildRazorpayCallbackUrl } from "@/lib/payments/razorpay-callback";
 import {
   getPaystackCredentials,
   initializePaystackTransaction,
@@ -35,6 +36,7 @@ import {
   getIotecCredentials,
   IOTEC_CURRENCY,
   IOTEC_MIN_AMOUNT,
+  IotecApiError,
   normalizeUgandaMsisdn,
   submitIotecCardCollection,
   submitIotecCollection,
@@ -85,7 +87,11 @@ import {
   DEFAULT_ORDER_TAX_RATE,
 } from "@/lib/orders/order-settings";
 import {
-  applyCouponUsageForOrder,
+  couponHoldKey,
+  holdCouponUse,
+  releaseCouponUse,
+  takeCouponUse,
+  splitCouponDiscount,
   validateAndCalculateCoupon,
 } from "@/lib/catalog/coupons";
 import {
@@ -98,14 +104,30 @@ import {
   allocateSubOrderShipping,
   buildShippingMetadata,
 } from "@/lib/checkout/checkout-shipping";
-import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
+import { checkoutCartFingerprint } from "@/lib/checkout/checkout-cart-fingerprint";
 import {
+  calculateCheckoutTotals,
+  isFreeShippingCouponType,
+} from "@/lib/catalog/discounts";
+import {
+  preorderOutstandingAfterCoupon,
+  sumPreorderOutstandingAfterCoupon,
+  type PreorderSplitLine,
+} from "@/lib/orders/preorder-coupon-split";
+import {
+  ConflictError,
   handleApiError,
   ValidationError,
 } from "@/lib/api/errors";
+import {
+  CART_PRICES_CHANGED_MESSAGE,
+  CART_PRICES_CHANGED_REASON,
+  cartLinePriceChanged,
+  type CartPriceChange,
+} from "@/lib/checkout/cart-price-change";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import { ORDER_STATUS, PAYMENT_STATUS, VENDOR_STATUS } from "@/config/app.config";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import {
   rateLimitByIP,
   rateLimitBySession,
@@ -113,7 +135,18 @@ import {
 } from "@/lib/api/rate-limit-middleware";
 import { validateBody } from "@/lib/api/validate";
 import { CheckoutSchema } from "@/lib/validations";
+import { enforceCheckoutSubmission } from "@/lib/checkout/checkout-submission";
+import type { OrderCheckoutField } from "@/types";
+import { assertCashOnDeliveryAllowed } from "@/lib/checkout/cod-eligibility";
+import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
 import { isStorefrontProductSourceAllowed } from "@/lib/catalog/product-visibility";
+import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
+import {
+  bindOffersToOrder,
+  loadShopperOffers,
+  matchOffersToLines,
+  quoteOfferLineKey,
+} from "@/lib/quotes/quote-offer";
 import {
   buildVendorSubOrders,
   getOrderItemVendorId,
@@ -121,6 +154,19 @@ import {
   resolveOrderVendorContext,
 } from "@/lib/orders/order-vendors";
 import { ensurePendingChargeTransaction } from "@/lib/payments/payment-transactions";
+import {
+  assertDeferredBalanceCollectable,
+  assertPreorderMandateAccepted,
+} from "@/lib/payments/deferred-balance";
+import {
+  resolveGuestStripeCustomerId,
+  resolveStripeCustomerId,
+} from "@/lib/payments/stripe-customer";
+import {
+  PREORDER_CARD_SETUP_KIND,
+  buildPreorderMandateText,
+  preorderMandateRequired,
+} from "@/lib/payments/preorder-mandate";
 import {
   markCheckoutRecovered,
   updateCheckoutSnapshot,
@@ -134,7 +180,6 @@ import {
   type ProductShippingData,
   type VariantShippingData,
 } from "@/lib/catalog/product-shipping";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
 import {
   pickupCheckoutCharges,
   resolvePickupCheckoutFulfillment,
@@ -157,6 +202,11 @@ interface CartItem {
   variantId?: string;
   quantity: number;
   price: number;
+  /**
+   * The quote offer this line is priced by, re-resolved from the shopper's
+   * account on every checkout rather than trusted off the cart document.
+   */
+  quoteId?: string;
   purchaseType?: string;
   preorderReleaseDate?: Date;
   preorderMessage?: string;
@@ -165,6 +215,20 @@ interface CartItem {
   preorderOutstandingAmount?: number;
   preorderSupplierEta?: Date;
   preorderBatchName?: string;
+}
+
+/** A cart line, as the coupon split over a pre-order balance reads it. */
+function preorderSplitLines(items: CartItem[]): PreorderSplitLine[] {
+  return items.map((item) => {
+    const vendor = item.productId.vendorId;
+    return {
+      price: item.price,
+      quantity: item.quantity,
+      purchaseType: item.purchaseType,
+      preorderOutstandingAmount: item.preorderOutstandingAmount,
+      vendorId: vendor ? String(typeof vendor === "object" ? vendor._id : vendor) : null,
+    };
+  });
 }
 
 type StockCheckVariant = {
@@ -181,6 +245,7 @@ type StockCheckProduct = {
   stock?: number;
   sku?: string;
   status?: string;
+  priceOnRequest?: boolean;
   productSource?: unknown;
   category?: string | { toString: () => string };
   variants?: StockCheckVariant[];
@@ -239,6 +304,8 @@ export async function POST(request: NextRequest) {
       email,
       couponCode,
       preorderAcknowledged,
+      preorderMandateAccepted,
+      setupIntentId,
       selectedShippingOptionId,
       vendorShippingSelections,
       fulfillmentMethod,
@@ -246,20 +313,20 @@ export async function POST(request: NextRequest) {
       iotecChannel,
       iotecPhone,
       mtnMomoPhone,
+      phone,
+      customerNote,
+      customFields,
     } = await validateBody(
       request,
       CheckoutSchema,
     );
+    // May be absent: a store that reaches shoppers by phone does not collect
+    // an email. Whether this request needed one is the checkout settings'
+    // call, enforced below once the cart is known.
     const customerEmail =
       typeof email === "string" && email.trim().length > 0
         ? email.trim()
         : session?.user?.email;
-
-    if (!session?.user?.id && !customerEmail) {
-      throw new ValidationError({
-        email: ["Email is required for guest checkout"],
-      });
-    }
 
     // shippingAddress is optional at the schema level: digital-only carts
     // send billing only. Whether it is actually required is decided below,
@@ -384,19 +451,7 @@ export async function POST(request: NextRequest) {
             .filter(Boolean),
         ),
       );
-      // Every vendor in the cart must be approved AND have an active store.
-      // A deactivated store (lapsed paid plan) takes no new orders, so its
-      // products fail this count and the checkout is rejected.
-      const sellableVendorCount = await Vendor.countDocuments({
-        _id: { $in: vendorIds },
-        status: VENDOR_STATUS.APPROVED,
-        storeActive: { $ne: false },
-      });
-      if (sellableVendorCount !== vendorIds.length) {
-        throw new ValidationError({
-          cart: ["One or more products are no longer available"],
-        });
-      }
+      await assertCartVendorsSellable(vendorIds);
     }
 
     const couponCartItems: Array<{
@@ -405,6 +460,8 @@ export async function POST(request: NextRequest) {
       quantity: number;
       categoryId?: string;
     }> = [];
+    // Lines whose live price differs from the one the shopper was shown.
+    const priceChanges: CartPriceChange[] = [];
 
     // Accumulate shippable weight (in the store's weight unit) overall and per
     // vendor, so the rate engine can price weight-based and per-vendor shipping.
@@ -435,6 +492,24 @@ export async function POST(request: NextRequest) {
     const stockCheckProductById = new Map(
       stockCheckProducts.map((product) => [product._id.toString(), product]),
     );
+
+    // Quoted lines are priced by the merchant's offer, not by the catalogue —
+    // a "price on request" product carries price 0, so the re-pricing below
+    // would hand the shopper the whole order for nothing. Offers belong to an
+    // account, so a guest checkout resolves none and any quoted line in it is
+    // refused (a shopper who was quoted signs in; that is how the price found
+    // them in the first place).
+    const quoteOffers = matchOffersToLines(
+      items.map((item) => ({
+        productId: item.productId._id,
+        variantId: item.variantId,
+        quantity: item.quantity,
+      })),
+      await loadShopperOffers(session?.user?.id, {
+        productIds: items.map((item) => String(item.productId._id)),
+      }),
+    );
+
     for (const item of items) {
       const product = stockCheckProductById.get(String(item.productId._id));
       if (!product) {
@@ -464,6 +539,23 @@ export async function POST(request: NextRequest) {
           ],
         });
       }
+
+      // The offer that makes this line buyable at all, when the product is
+      // sold by quote. Recorded on the line so the order carries it and the
+      // quote can be closed out; cleared when there is none, so a line whose
+      // product has since been given a real price cannot drag a spent quote
+      // onto the order.
+      const lineOffer = quoteOffers.get(
+        quoteOfferLineKey(item.productId._id, item.variantId),
+      );
+      if (isQuoteOnlyProduct(product) && !lineOffer) {
+        throw new ValidationError({
+          stock: [
+            `The quoted price for ${item.productId.name} is no longer available. Request a new quote to continue.`,
+          ],
+        });
+      }
+      item.quoteId = lineOffer?.quoteId;
 
       const purchase = resolvePurchaseType({
         product,
@@ -495,7 +587,13 @@ export async function POST(request: NextRequest) {
       // Variant-aware: product.price is only the cheapest-variant mirror.
       // Pre-order lines are left untouched — their deposit/outstanding amounts
       // were computed against the price quoted at reservation time.
-      if ((item.purchaseType || PURCHASE_TYPE.STANDARD) !== PURCHASE_TYPE.PREORDER) {
+      if (lineOffer) {
+        // Not a price change: GET /api/cart already shows the shopper the
+        // offer, so this is the figure on their screen.
+        item.price = lineOffer.unitPrice;
+      } else if (
+        (item.purchaseType || PURCHASE_TYPE.STANDARD) !== PURCHASE_TYPE.PREORDER
+      ) {
         const liveVariant = item.variantId
           ? (
               product.variants as
@@ -509,7 +607,18 @@ export async function POST(request: NextRequest) {
             : typeof (product as { price?: number }).price === "number"
               ? (product as { price?: number }).price
               : item.price;
-        if (typeof livePrice === "number") item.price = livePrice;
+        if (typeof livePrice === "number") {
+          if (cartLinePriceChanged(item.price, livePrice)) {
+            priceChanges.push({
+              productId: String(item.productId._id),
+              variantId: item.variantId ? String(item.variantId) : undefined,
+              name: item.productId.name,
+              previousPrice: item.price,
+              price: livePrice,
+            });
+          }
+          item.price = livePrice;
+        }
       }
 
       couponCartItems.push({
@@ -571,6 +680,40 @@ export async function POST(request: NextRequest) {
       billingAddressInput ?? normalizedShippingAddress;
     const digitalOnly = !hasShippableItems;
 
+    // The form the admin configured — contact method, required fields, the
+    // store's own questions — held to on the server too.
+    const submission = enforceCheckoutSubmission({
+      settings,
+      user: session?.user
+        ? {
+            email: session.user.email,
+            phone: (session.user as { phone?: string | null }).phone,
+          }
+        : null,
+      digitalOnly,
+      body: {
+        email,
+        phone,
+        paymentMethod,
+        iotecChannel,
+        customerNote,
+        customFields,
+      },
+      shippingAddress: shippingAddressInput,
+      billingAddress: billingAddressInput,
+    });
+    // A phone-first store's contact number is the one couriers, SMS updates
+    // and phone order-tracking read, and they all read it off the address.
+    if (submission.contactPhone) {
+      normalizedShippingAddress.phone ||= submission.contactPhone;
+      normalizedBillingAddress.phone ||= submission.contactPhone;
+    }
+    const checkoutDetails = {
+      customerNote: submission.customerNote,
+      checkoutFields: submission.checkoutFields,
+      contactPhone: submission.contactPhone,
+    };
+
     // Persist any re-priced values back to the cart so consumers that re-read
     // the cart (notably the Stripe Checkout Session finalizer) charge and
     // record the same price, and the cart-tampering guard doesn't reject a
@@ -586,6 +729,17 @@ export async function POST(request: NextRequest) {
           ],
         },
       }));
+    // A price that moved since the shopper's summary was drawn is not charged
+    // or ordered unseen: stop before any gateway is asked for anything. The
+    // new prices are written first — and awaited, since the page re-reads the
+    // cart to show them and the next attempt must find them there.
+    if (priceChanges.length > 0) {
+      await Cart.bulkWrite(repriceOps);
+      throw new ConflictError(CART_PRICES_CHANGED_MESSAGE, {
+        reason: CART_PRICES_CHANGED_REASON,
+        items: priceChanges,
+      });
+    }
     if (repriceOps.length > 0) {
       await Cart.bulkWrite(repriceOps).catch((err) =>
         console.error("Failed to persist re-priced cart items:", err),
@@ -612,6 +766,10 @@ export async function POST(request: NextRequest) {
           value: number;
           discount: number;
           maxDiscount?: number;
+          vendorShares?: Record<string, number>;
+          shippingShares?: Record<string, number>;
+          shippingVendorId?: string;
+          fundedBy: "platform" | "vendor";
         }
       | undefined;
     const destination = {
@@ -674,13 +832,19 @@ export async function POST(request: NextRequest) {
       : shippingResolution!.customs;
     const dutyAmount = pickupCharges?.dutyAmount ?? customsEstimate.dutyAmount;
 
+    // What each seller's delivery costs, for a seller's own free-shipping coupon.
+    const shippingByVendor = Object.fromEntries(
+      [...vendorShippingCosts].map(([vendorId, entry]) => [vendorId, entry.cost]),
+    );
     if (couponCode) {
       appliedCoupon = await validateAndCalculateCoupon({
         code: couponCode,
         subtotal,
         shippingCost,
+        shippingByVendor,
         cartItems: couponCartItems,
-        userId: session?.user?.id,
+        userId: session?.user?.id || (guestAccount ? String(guestAccount._id) : undefined),
+        email: customerEmail,
       });
     }
 
@@ -689,14 +853,36 @@ export async function POST(request: NextRequest) {
       shippingCost,
       taxRate,
       coupon: appliedCoupon,
+      shippingByVendor,
       currency: settings.general?.defaultCurrency,
     });
     const discount = totals.discount;
     const tax = totals.tax;
     const total = totals.total + dutyAmount;
-    const preorderOutstandingAmount = items.reduce(
-      (sum, item) => sum + Number(item.preorderOutstandingAmount || 0),
-      0,
+    // A scoped coupon's discount, by the vendor whose items earned it, rescaled
+    // if the totals capped the discount below what the coupon offered.
+    const couponVendorShares = appliedCoupon?.vendorShares
+      ? discount === appliedCoupon.discount
+        ? appliedCoupon.vendorShares
+        : splitCouponDiscount(discount, appliedCoupon.vendorShares)
+      : undefined;
+    // The same for a free-shipping coupon: whose delivery it actually paid
+    // for — see `shippingDiscount` on the sub-order.
+    const couponShippingShares = appliedCoupon?.shippingShares
+      ? discount === appliedCoupon.discount
+        ? appliedCoupon.shippingShares
+        : splitCouponDiscount(discount, appliedCoupon.shippingShares)
+      : undefined;
+    // What is owed later, after the coupon — which comes off the deposit and
+    // the balance in proportion rather than all off the deposit. See
+    // `preorderOutstandingAfterCoupon`.
+    const preorderOutstandingAmount = sumPreorderOutstandingAfterCoupon(
+      preorderSplitLines(items),
+      {
+        goodsDiscount: totals.subtotalDiscount,
+        vendorShares: couponVendorShares,
+      },
+      settings.general?.defaultCurrency || "USD",
     );
     const paymentDueNow = Math.max(0, total - preorderOutstandingAmount);
 
@@ -705,6 +891,36 @@ export async function POST(request: NextRequest) {
         paymentMethod: ["Payment method is required"],
       });
     }
+
+    // Refuse to take a deposit the store has no way of topping up later. This
+    // sits here rather than inside a gateway branch because `paymentDueNow`
+    // above already split the money in two, and every branch below charges the
+    // smaller half without knowing the larger half is uncollectable.
+    assertDeferredBalanceCollectable({
+      paymentMethod,
+      outstandingAmount: preorderOutstandingAmount,
+    });
+
+    // The permission to keep the shopper's card, for the same reason and in
+    // the same place: every card branch below either saves a card or hands the
+    // balance to a page that will, and none of them may do it unasked. Only a
+    // card checkout keeps one — guest or not, now that a guest's card has a
+    // Customer to live on — so only a card checkout is asked. The wording is
+    // composed here, never accepted from the request.
+    const isCardCheckout = paymentMethod === "card";
+    assertPreorderMandateAccepted({
+      outstandingAmount: preorderOutstandingAmount,
+      accepted: preorderMandateAccepted,
+      savesCard: isCardCheckout,
+    });
+    const preorderMandateText =
+      preorderMandateRequired(preorderOutstandingAmount) && isCardCheckout
+      ? buildPreorderMandateText({
+          outstandingAmount: preorderOutstandingAmount,
+          currency: settings.general?.defaultCurrency || "USD",
+          releaseDate: getPreorderReleaseDateForOrder(items),
+        })
+      : "";
 
     // Collection takes every configured payment method, exactly as delivery
     // does. It was restricted to COD because a pickup booking used to consume a
@@ -727,7 +943,11 @@ export async function POST(request: NextRequest) {
 
     const cartDoc = await Cart.findById(cart._id);
     if (cartDoc) {
+      // Stripe's hosted page creates the order later, from the webhook, and
+      // only the cart survives until then.
+      cartDoc.checkoutDetails = checkoutDetails;
       await updateCheckoutSnapshot(cartDoc, {
+        trackAbandoned: submission.checkout.abandonedCheckouts.enabled,
         origin,
         locale: activeLocale,
         email: customerEmail,
@@ -751,50 +971,40 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // One use of a limited coupon, kept for this shopper while they pay. Every
+    // branch below either takes a payment or commits the order, and each is
+    // refused here, before any of that, when the coupon has no use to spare.
+    const checkoutCouponHoldKey = couponHoldKey(customerId);
+    if (appliedCoupon) {
+      await holdCouponUse({
+        couponId: appliedCoupon.couponId,
+        holdKey: checkoutCouponHoldKey,
+      });
+    }
+
     // Handle COD (Cash on Delivery)
     if (paymentMethod === "cod") {
-      if (codSettings?.enabled === false) {
-        throw new ValidationError("Cash on Delivery is disabled");
+      assertCashOnDeliveryAllowed({
+        settings: codSettings,
+        total,
+        hasDigitalItems,
+        hasPreorder,
+      });
+
+      // The order is the commitment, so the coupon's use is taken now — and
+      // refused now if it has none — rather than counted once the order exists.
+      if (appliedCoupon) {
+        await takeCouponUse({
+          couponId: appliedCoupon.couponId,
+          holdKey: checkoutCouponHoldKey,
+        });
       }
-      // Digital deliverables release off the order itself, not off a courier
-      // hand-over, so any digital line on a COD order would be handed over
-      // before a single unit of cash changes hands — on a downloads-only order
-      // the money never has a moment to be collected at all, and on a mixed
-      // order the shopper can keep the files and refuse the parcel. Checkout
-      // keeps COD off the screen for these carts; this is the backstop.
-      if (hasDigitalItems) {
-        throw new ValidationError(
-          "Cash on Delivery is not available for orders that include digital items",
-        );
-      }
-      // A pre-order commits the seller's stock at reservation time, and its
-      // deposit/pay-later maths assume money moves NOW — COD collects only at
-      // a door weeks away, so a deposit pre-order on COD would reserve units
-      // having collected nothing. Checkout hides COD for these carts; this is
-      // the backstop. (Pay-later pre-orders have their own dedicated unpaid
-      // path below — that one is deliberate, this one would be an accident.)
-      if (hasPreorder) {
-        throw new ValidationError(
-          "Cash on Delivery is not available for pre-order items",
-        );
-      }
-      if (
-        typeof codSettings?.minOrderAmount === "number" &&
-        total < codSettings.minOrderAmount
-      ) {
-        throw new ValidationError(
-          `Minimum order amount for Cash on Delivery is ${codSettings.minOrderAmount}`,
-        );
-      }
-      if (
-        typeof codSettings?.maxOrderAmount === "number" &&
-        codSettings.maxOrderAmount > 0 &&
-        total > codSettings.maxOrderAmount
-      ) {
-        throw new ValidationError(
-          `Maximum order amount for Cash on Delivery is ${codSettings.maxOrderAmount}`,
-        );
-      }
+      const giveBackCouponUse = () =>
+        appliedCoupon
+          ? releaseCouponUse(appliedCoupon.couponId).catch((err) =>
+              console.error("Failed to give back a COD coupon use:", err),
+            )
+          : Promise.resolve();
 
       // Every line is a standard purchase here — the pre-order guard above
       // keeps reservation-type lines off the COD path entirely.
@@ -816,6 +1026,7 @@ export async function POST(request: NextRequest) {
             : {},
         );
       } catch (err) {
+        await giveBackCouponUse();
         if (err instanceof InsufficientStockError) {
           const failedItem = items.find(
             (item) => String(item.productId._id) === String(err.line.productId),
@@ -829,18 +1040,11 @@ export async function POST(request: NextRequest) {
         }
         throw err;
       }
-      revalidateProductContent({
-        slugs: items
-          .map((item) => item.productId?.slug)
-          .filter(
-            (slug): slug is string =>
-              typeof slug === "string" && slug.length > 0,
-          ),
-      });
 
       let order: Awaited<ReturnType<typeof createOrder>>;
       try {
         order = await createOrder({
+          ...checkoutDetails,
           customerId,
           guestEmail,
           items,
@@ -848,6 +1052,7 @@ export async function POST(request: NextRequest) {
         digitalOnly,
           billingAddress: normalizedBillingAddress,
           paymentMethod: "cod",
+          couponUseTaken: Boolean(appliedCoupon),
           shippingMethod: selectedShippingMethod,
           customs: customsEstimate,
           vendorShippingCosts,
@@ -864,6 +1069,9 @@ export async function POST(request: NextRequest) {
                 type: appliedCoupon.type,
                 value: appliedCoupon.value,
                 couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+                fundedBy: appliedCoupon.fundedBy,
               }
             : undefined,
           isMultiVendorEnabled,
@@ -880,6 +1088,7 @@ export async function POST(request: NextRequest) {
             ? { locationId: pickupFulfillment.pickup.pickupLocationId }
             : {},
         ).catch(() => undefined);
+        await giveBackCouponUse();
         throw err;
       }
 
@@ -961,7 +1170,9 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        await notifyOrderCreatedParticipants(order).catch((err) =>
+        await notifyOrderCreatedParticipants(order, {
+          customerEmailSent: Boolean(customerEmail),
+        }).catch((err) =>
           console.error("Failed to create COD order notifications:", err),
         );
       });
@@ -978,11 +1189,75 @@ export async function POST(request: NextRequest) {
     }
 
     if (hasPreorder && paymentDueNow <= 0) {
+      // Nothing was charged, so nothing proves a card was collected except the
+      // SetupIntent the client just confirmed — and its id arrives in the
+      // request, where anyone could put any id on the account. Read it back
+      // from Stripe and believe only what Stripe says: our own metadata names
+      // the shopper it was set up for, and it has to name this one.
+      let preorderSavedPaymentMethodId: string | undefined;
+      let preorderStripeCustomerId: string | undefined;
+      if (setupIntentId) {
+        const setupSecretKey = resolveStripeCredentials(stripeSettings).secretKey;
+        if (!isStripeSecretKeyConfigured(setupSecretKey)) {
+          throw new ValidationError("Card payments are not configured");
+        }
+        const setupIntent = await getStripeForSecretKey(
+          setupSecretKey,
+        ).setupIntents.retrieve(setupIntentId);
+        const setupMetadata = setupIntent.metadata || {};
+        if (
+          setupMetadata.kind !== PREORDER_CARD_SETUP_KIND ||
+          String(setupMetadata.userId || "") !== String(customerId) ||
+          setupIntent.status !== "succeeded"
+        ) {
+          throw new ValidationError({
+            setupIntentId: ["This card setup does not belong to this order"],
+          });
+        }
+        const method = setupIntent.payment_method;
+        preorderSavedPaymentMethodId =
+          typeof method === "string" ? method : method?.id;
+        // The Customer the card was saved against, read off the setup rather
+        // than recomputed. For a guest it exists nowhere else: it was minted
+        // for this cart, and the order is the only thing that will remember it.
+        const setupCustomer = setupIntent.customer;
+        preorderStripeCustomerId =
+          typeof setupCustomer === "string" ? setupCustomer : setupCustomer?.id;
+      }
+      if (preorderMandateText && !preorderSavedPaymentMethodId) {
+        // The shopper authorised a card being kept and none was: the order is
+        // still good — they will be asked for the balance the way they always
+        // were — but the authorisation bought nothing, which is worth saying.
+        console.error(
+          "Pay-later pre-order accepted the card mandate without a saved card",
+        );
+      }
       const preorderLines = getOrderPreorderLines(items);
-      await reservePreorderQuantity(preorderLines);
+      // Nothing is captured later that would count the coupon, so its use is
+      // taken with the order, as cash on delivery's is; cancelling or expiring
+      // the pre-order gives it back.
+      if (appliedCoupon) {
+        await takeCouponUse({
+          couponId: appliedCoupon.couponId,
+          holdKey: checkoutCouponHoldKey,
+        });
+      }
+      const giveBackCouponUse = () =>
+        appliedCoupon
+          ? releaseCouponUse(appliedCoupon.couponId).catch((err) =>
+              console.error("Failed to give back a pay-later coupon use:", err),
+            )
+          : Promise.resolve();
+      try {
+        await reservePreorderQuantity(preorderLines);
+      } catch (err) {
+        await giveBackCouponUse();
+        throw err;
+      }
       let order: Awaited<ReturnType<typeof createOrder>>;
       try {
         order = await createOrder({
+          ...checkoutDetails,
           customerId,
           guestEmail,
           items,
@@ -990,6 +1265,10 @@ export async function POST(request: NextRequest) {
         digitalOnly,
           billingAddress: normalizedBillingAddress,
           paymentMethod: "pay_later",
+          couponUseTaken: Boolean(appliedCoupon),
+          preorderMandateText: preorderMandateText || undefined,
+          preorderSavedPaymentMethodId,
+          stripeCustomerId: preorderStripeCustomerId,
           shippingMethod: selectedShippingMethod,
           customs: customsEstimate,
           vendorShippingCosts,
@@ -1006,6 +1285,9 @@ export async function POST(request: NextRequest) {
                 type: appliedCoupon.type,
                 value: appliedCoupon.value,
                 couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+                fundedBy: appliedCoupon.fundedBy,
               }
             : undefined,
           isMultiVendorEnabled,
@@ -1014,6 +1296,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (err) {
         await releasePreorderQuantity(preorderLines).catch(() => undefined);
+        await giveBackCouponUse();
         throw err;
       }
       await markOrderPreorderReserved(String(order._id)).catch((err) =>
@@ -1061,6 +1344,7 @@ export async function POST(request: NextRequest) {
       });
 
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1084,6 +1368,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         paypalOrderId,
@@ -1128,6 +1415,7 @@ export async function POST(request: NextRequest) {
       });
 
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1151,6 +1439,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         razorpayOrderId: razorpayOrder.id,
@@ -1171,6 +1462,12 @@ export async function POST(request: NextRequest) {
           currency: razorpayOrder.currency,
           name: settings.general?.storeName || "Store",
           description: `Order ${order.orderNumber}`,
+          // A failed payment lands on the same page, which shows the failure
+          // instead of verifying.
+          callbackUrl: buildRazorpayCallbackUrl({
+            successUrl: `${origin}/${activeLocale}/checkout/success`,
+            failureUrl: `${origin}/${activeLocale}/checkout/success`,
+          }),
         },
       });
     }
@@ -1208,6 +1505,7 @@ export async function POST(request: NextRequest) {
       });
 
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1231,6 +1529,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         paystackReference,
@@ -1327,6 +1628,7 @@ export async function POST(request: NextRequest) {
       }
 
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1350,6 +1652,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         pesapalOrderTrackingId: pesapalOrder.order_tracking_id,
@@ -1430,6 +1735,7 @@ export async function POST(request: NextRequest) {
       // order is persisted first and cancelled if the collection never starts —
       // the reverse order could take a payment with no order behind it.
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1453,6 +1759,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         iotecExternalId: externalId,
@@ -1492,15 +1801,33 @@ export async function POST(request: NextRequest) {
           );
         }
       } catch (err) {
-        await Order.updateOne(
-          { _id: order._id },
-          { $set: { status: ORDER_STATUS.CANCELLED } },
-        ).catch((cancelErr) =>
+        // Retire the order only when ioTec definitively refused the request —
+        // the rule MTN MoMo below already keeps. A 4xx means nothing was queued
+        // and no phone was prompted. A timeout, a dropped connection, a 5xx or
+        // an unreadable 2xx may all be a collection ioTec accepted: the payer
+        // approves the PIN, and a cancelled order would be refunded rather than
+        // fulfilled. Left pending it is an abandoned checkout, and the callback
+        // (which carries the external id) settles it if the payer did pay.
+        const definitivelyRejected =
+          err instanceof IotecApiError &&
+          err.httpStatus >= 400 &&
+          err.httpStatus < 500;
+        if (definitivelyRejected) {
+          await Order.updateOne(
+            { _id: order._id },
+            { $set: { status: ORDER_STATUS.CANCELLED } },
+          ).catch((cancelErr) =>
+            console.error(
+              "Failed to cancel order after ioTec collection failure:",
+              cancelErr,
+            ),
+          );
+        } else {
           console.error(
-            "Failed to cancel order after ioTec collection failure:",
-            cancelErr,
-          ),
-        );
+            `ioTec collection outcome unknown for order ${order._id}; left pending for its callback:`,
+            err,
+          );
+        }
         throw err;
       }
 
@@ -1584,6 +1911,7 @@ export async function POST(request: NextRequest) {
       // unpaid order early is safe here because /webpayment only mints a hosted
       // URL: it moves no money and prompts nobody.
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1607,6 +1935,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         orangeMoneyOrderId,
@@ -1730,6 +2061,7 @@ export async function POST(request: NextRequest) {
       // on the payer's phone straight away, and a prompt whose reference we
       // failed to store is money that could move with no order behind it.
       const order = await createOrder({
+        ...checkoutDetails,
         customerId,
         guestEmail,
         items,
@@ -1753,6 +2085,9 @@ export async function POST(request: NextRequest) {
               type: appliedCoupon.type,
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
+                vendorShares: couponVendorShares,
+                shippingShares: couponShippingShares,
+              fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         mtnMomoReferenceId,
@@ -1922,6 +2257,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Same reason as the PaymentIntent path: a pre-order that will be asked for
+    // its balance later needs the deposit to have belonged to a Customer — a
+    // guest's minted for this cart, since they have no account to keep one on.
+    const stripeCustomerId =
+      (await resolveStripeCustomerId({
+        secretKey: stripeSecretKey,
+        userId: customerId,
+        email: customerEmail,
+        name: session?.user?.name,
+      })) ||
+      (guestEmail && preorderMandateText
+        ? await resolveGuestStripeCustomerId({
+            secretKey: stripeSecretKey,
+            cartId: String(cart._id),
+            email: customerEmail,
+          })
+        : undefined);
+
     // Create Stripe checkout session
     const checkoutSession = await getStripeForSecretKey(
       stripeSecretKey,
@@ -1929,7 +2282,20 @@ export async function POST(request: NextRequest) {
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
+      // Keep the card for the balance, on the same terms as the embedded card
+      // flow: only where the shopper authorised it and there is a Customer for
+      // Stripe to attach it to.
+      ...(preorderMandateText && stripeCustomerId
+        ? {
+            payment_intent_data: {
+              setup_future_usage: "off_session" as const,
+            },
+          }
+        : {}),
       metadata: {
+        // Carried on the session because that is what the order builder reads
+        // when the hosted page is the one that took the money.
+        preorderMandate: preorderMandateText,
         userId: customerId,
         cartId: String(cart._id),
         shippingAddress: JSON.stringify(normalizedShippingAddress),
@@ -1939,10 +2305,20 @@ export async function POST(request: NextRequest) {
         tax: String(tax),
         discount: String(discount),
         total: String(total),
+        // Taken after the re-priced lines were written back to the cart, which
+        // is what the order builder will read and compare this against.
+        cartFingerprint: checkoutCartFingerprint(items),
         couponCode: appliedCoupon?.code || "",
         couponType: appliedCoupon?.type || "",
         couponValue: appliedCoupon ? String(appliedCoupon.value) : "",
         couponId: appliedCoupon?.couponId || "",
+        couponFundedBy: appliedCoupon?.fundedBy || "",
+        couponVendorShares: couponVendorShares
+          ? JSON.stringify(couponVendorShares)
+          : "",
+        couponShippingShares: couponShippingShares
+          ? JSON.stringify(couponShippingShares)
+          : "",
         ...(shippingResolution
           ? buildShippingMetadata(shippingResolution)
           : {
@@ -1956,7 +2332,13 @@ export async function POST(request: NextRequest) {
           ? JSON.stringify(pickupFulfillment)
           : "",
       },
-      customer_email: customerEmail,
+      // A Session takes one or the other, never both. The Customer is the more
+      // useful of the two when we have it: the hosted page still prefills the
+      // address from it, and the payment lands on a person the later balance
+      // charge can be made against.
+      ...(stripeCustomerId
+        ? { customer: stripeCustomerId }
+        : { customer_email: customerEmail }),
       success_url: `${origin}/${activeLocale}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/${activeLocale}/checkout?canceled=true`,
     });
@@ -2007,12 +2389,26 @@ async function createOrder(params: {
     type: string;
     value: number;
     couponId: string;
+    /** A scoped coupon's discount by vendor, recorded on each consignment. */
+    vendorShares?: Record<string, number>;
+    /** A free-shipping coupon's discount by the vendor whose delivery it paid. */
+    shippingShares?: Record<string, number>;
+    /** Who pays for the goods discount, frozen onto the order. */
+    fundedBy?: "platform" | "vendor";
   };
+  /** The coupon's use was already taken for this order (`takeCouponUse`). */
+  couponUseTaken?: boolean;
   isMultiVendorEnabled: boolean;
   orderPrefix?: string;
   currency?: string;
   /** True when no item on the order needs physical shipping. */
   digitalOnly?: boolean;
+  /** The card-on-file agreement, when this order leaves a balance owing. */
+  preorderMandateText?: string;
+  /** The Stripe PaymentMethod kept for that balance, if one was collected. */
+  preorderSavedPaymentMethodId?: string;
+  /** The Stripe Customer that card was saved against. */
+  stripeCustomerId?: string;
   shippingMethod?: {
     name?: string;
     optionId?: string;
@@ -2033,6 +2429,12 @@ async function createOrder(params: {
     }
   >;
   fulfillment?: PickupFulfillmentSnapshot;
+  /** The shopper's order note, when the store asks for one. */
+  customerNote?: string;
+  /** Answers to the store's own checkout fields. */
+  checkoutFields?: OrderCheckoutField[];
+  /** The phone the shopper asked to be reached on. */
+  contactPhone?: string;
 }) {
   const {
     customerId,
@@ -2060,6 +2462,7 @@ async function createOrder(params: {
     mtnMomoReferenceId,
     mtnMomoPhone,
     coupon,
+    couponUseTaken,
     isMultiVendorEnabled,
     orderPrefix,
     currency,
@@ -2068,7 +2471,28 @@ async function createOrder(params: {
     customs,
     vendorShippingCosts,
     fulfillment,
+    customerNote,
+    checkoutFields,
+    contactPhone,
   } = params;
+
+  // Each line's balance after the coupon — see `preorderOutstandingAfterCoupon`.
+  // A free-shipping coupon discounts delivery, never goods.
+  const adjustedOutstanding = preorderOutstandingAfterCoupon(
+    preorderSplitLines(items),
+    {
+      goodsDiscount: isFreeShippingCouponType(coupon?.type) ? 0 : discount,
+      vendorShares: coupon?.vendorShares,
+    },
+    currency || "USD",
+  );
+  const outstandingByLine = new Map<CartItem, number>(
+    items.map((item, index) => [item, adjustedOutstanding[index] ?? 0]),
+  );
+  const outstandingOf = (item: CartItem) =>
+    item.purchaseType === PURCHASE_TYPE.PREORDER
+      ? outstandingByLine.get(item) ?? item.preorderOutstandingAmount
+      : item.preorderOutstandingAmount;
 
   // Generate order number atomically (seeds from max(existing) on first call)
   const orderNumber = await getNextOnlineOrderNumber(orderPrefix);
@@ -2092,6 +2516,7 @@ async function createOrder(params: {
   const orderSettings = await getSettings();
   const subOrders = await buildVendorSubOrders(vendorGroups, {
     codCollectedByDefault: orderSettings.shipping?.codCollectedBy,
+    couponDiscountByVendor: params.coupon?.vendorShares,
     getProductId: (item) => item.productId._id,
     getVariantId: (item) => item.variantId,
     getName: (item) => item.productId.name,
@@ -2113,7 +2538,7 @@ async function createOrder(params: {
         : undefined,
     getPreorderPaymentMode: (item) => item.preorderPaymentMode,
     getPreorderDepositAmount: (item) => item.preorderDepositAmount,
-    getPreorderOutstandingAmount: (item) => item.preorderOutstandingAmount,
+    getPreorderOutstandingAmount: (item) => outstandingOf(item),
     getPreorderSupplierEta: (item) => item.preorderSupplierEta,
     getPreorderBatchName: (item) => item.preorderBatchName,
     getCustoms: (item) => {
@@ -2137,12 +2562,14 @@ async function createOrder(params: {
     subOrders as Array<{
       vendorId: { toString: () => string };
       shippingCost?: number;
+      shippingDiscount?: number;
       shippingMethod?: unknown;
     }>,
     {
       vendorShippingCosts: vendorShippingCosts ?? new Map(),
       orderShippingCost: shippingCost,
       orderShippingMethod: shippingMethod,
+      shippingDiscountByVendor: params.coupon?.shippingShares,
     },
   );
   if (fulfillment?.method === "pickup") {
@@ -2170,16 +2597,18 @@ async function createOrder(params: {
     (sum, item) => sum + Number(item.preorderDepositAmount || 0),
     0,
   );
+  // The same split the charge was worked out from, written onto every line,
+  // consignment and the order, so the balance asked for later is the one the
+  // shopper agreed to at checkout.
   const preorderOutstandingAmount = preorderItems.reduce(
-    (sum, item) => sum + Number(item.preorderOutstandingAmount || 0),
+    (sum, item) => sum + Number(outstandingOf(item) || 0),
     0,
   );
 
-  // Create order. The coupon's usedCount is intentionally NOT incremented
-  // here — that is deferred to the capture/verify path so an abandoned
-  // payment doesn't burn a coupon use. The exception is COD, where the order
-  // itself is the commitment and there is no separate capture step; that
-  // increment happens just below.
+  // Create order. A gateway order's coupon use is counted on the capture/verify
+  // path, so an abandoned payment doesn't burn one — the checkout holds it
+  // meanwhile. Cash on delivery and pay-later took theirs before calling here,
+  // the order itself being the commitment.
   const order = await Order.create({
     customerId,
     guestEmail,
@@ -2193,6 +2622,7 @@ async function createOrder(params: {
       sku: item.productId.sku || "",
       quantity: item.quantity,
       price: item.price,
+        quoteId: item.quoteId,
         cost: resolveOrderItemCost({
           product: item.productId,
           variantId: item.variantId,
@@ -2207,7 +2637,7 @@ async function createOrder(params: {
             : undefined,
         preorderPaymentMode: item.preorderPaymentMode,
         preorderDepositAmount: item.preorderDepositAmount,
-        preorderOutstandingAmount: item.preorderOutstandingAmount,
+        preorderOutstandingAmount: outstandingOf(item),
         preorderSupplierEta: item.preorderSupplierEta,
         preorderBatchName: item.preorderBatchName,
         customs: buildOrderItemCustomsSnapshot({
@@ -2258,7 +2688,8 @@ async function createOrder(params: {
           type: coupon.type,
           value: coupon.value,
           couponId: coupon.couponId,
-          usageIncremented: false,
+          fundedBy: coupon.fundedBy,
+          usageIncremented: Boolean(couponUseTaken),
         }
       : undefined,
     total,
@@ -2266,6 +2697,21 @@ async function createOrder(params: {
     preorderStatus: hasPreorder ? PREORDER_ITEM_STATUS.RESERVED : undefined,
     preorderReleaseDate,
     preorderAcknowledgedAt: hasPreorder ? new Date() : undefined,
+    ...(params.preorderMandateText
+      ? {
+          preorderMandateAcceptedAt: new Date(),
+          preorderMandateText: params.preorderMandateText,
+          ...(params.preorderSavedPaymentMethodId
+            ? {
+                preorderSavedPaymentMethodId:
+                  params.preorderSavedPaymentMethodId,
+                ...(params.stripeCustomerId
+                  ? { stripeCustomerId: params.stripeCustomerId }
+                  : {}),
+              }
+            : {}),
+        }
+      : {}),
     preorderPaymentMode,
     preorderDepositAmount,
     preorderOutstandingAmount,
@@ -2275,7 +2721,26 @@ async function createOrder(params: {
     // finalizer refuses to touch a CANCELLED order, so a failed activation
     // stranded a paid-for order permanently.
     status: initialOrderStatus,
+    customerNote,
+    contactPhone,
+    checkoutFields: checkoutFields?.length ? checkoutFields : undefined,
   });
+
+  // Spend the quote offers this order was placed against, so the same
+  // negotiated price cannot be taken twice. Bound at placement rather than at
+  // capture — an unbound offer is a live one, and a shopper sitting on a
+  // gateway page could otherwise start a second checkout at the same price.
+  // The quote is only marked *won* where there is no capture step to wait for;
+  // for every prepaid gateway settleCapturedOrder does that once the money is
+  // actually in. A cancelled order releases the offer again, at no cost:
+  // lib/quotes/quote-offer.ts derives that from the order's own status.
+  await bindOffersToOrder(
+    items
+      .map((item) => (item.quoteId ? String(item.quoteId) : ""))
+      .filter(Boolean),
+    String(order._id),
+    { won: paymentMethod === "cod" },
+  ).catch((err) => console.error("Failed to close quote offers on order:", err));
 
   // Every checkout leaves a customer record behind, the Shopify way: a guest
   // order upserts an email-keyed guest row in the customers collection at the
@@ -2289,12 +2754,6 @@ async function createOrder(params: {
       name: shippingAddress.fullName,
     }).catch((err) =>
       console.error("Failed to upsert guest customer profile:", err),
-    );
-  }
-
-  if (coupon?.couponId && paymentMethod === "cod") {
-    await applyCouponUsageForOrder(String(order._id)).catch((err) =>
-      console.error("Failed to apply coupon usage for COD order:", err),
     );
   }
 

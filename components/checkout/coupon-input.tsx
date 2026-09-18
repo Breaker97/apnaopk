@@ -21,12 +21,16 @@ interface CouponInputProps {
   cartItems: CartItem[];
   subtotal: number;
   shippingCost: number;
+  /** Each seller's delivery, when the cart is rated per seller. */
+  shippingByVendor?: Record<string, number>;
   onApply: (couponData: {
     code: string;
     discount: number;
     type: string;
     discountTarget?: "subtotal" | "shipping";
     maxDiscount?: number;
+    vendorShares?: Record<string, number>;
+    shippingVendorId?: string;
   }) => void;
   onRemove: () => void;
   appliedCoupon?: {
@@ -66,6 +70,7 @@ export function CouponInput({
   cartItems,
   subtotal,
   shippingCost,
+  shippingByVendor,
   onApply,
   onRemove,
   appliedCoupon,
@@ -98,6 +103,7 @@ export function CouponInput({
           cartItems,
           subtotal,
           shippingCost,
+          ...(shippingByVendor ? { shippingByVendor } : {}),
         }),
       });
 
@@ -118,7 +124,10 @@ export function CouponInput({
         type: data.data.type,
         discountTarget: data.data.discountTarget,
         maxDiscount: data.data.maxDiscount,
+        vendorShares: data.data.vendorShares,
+        shippingVendorId: data.data.shippingVendorId,
       });
+
       toast.success(
         data.data.discountTarget === "shipping"
           ? t("coupon.freeShippingApplied")

@@ -1,0 +1,106 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "isDefault": true,
+    "storeName": "Storify",
+    "slug": "main-store",
+    "description": "Default store for Storify",
+    "logo": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789282968322-qnsk8e/logo_dark.webp",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 0,
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-09-13T07:04:25.523Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T19:45:43.764Z"
+    },
+    "__v": 0,
+    "permissionOverrides": []
+  }
+]

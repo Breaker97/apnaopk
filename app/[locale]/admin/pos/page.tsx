@@ -1,5 +1,5 @@
 import { connectDB } from "@/lib/db";
-import { canAccessPOS } from "@/lib/access/rbac";
+import { canAccessPOS, canApplyPosDiscount } from "@/lib/access/rbac";
 import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { getSettings } from "@/models/settings.model";
@@ -33,6 +33,12 @@ export default async function AdminPosPage({ params }: PageProps) {
   // The shell streams a skeleton while it resolves the product list, so the
   // page never waits on the catalogue query before painting.
   return (
-    <POSPageShell settings={buildPOSSettings(settings)} user={session.user} />
+    <POSPageShell
+      settings={{
+        ...buildPOSSettings(settings),
+        canApplyDiscounts: await canApplyPosDiscount(session.user),
+      }}
+      user={session.user}
+    />
   );
 }

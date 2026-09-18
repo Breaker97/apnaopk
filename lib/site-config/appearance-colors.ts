@@ -165,11 +165,14 @@ export function buildCustomColorVars(colors: {
   primary?: string;
   secondary?: string;
   accent?: string;
+  /** Loading placeholders; unset keeps the stylesheet's neutral grey. */
+  skeleton?: string;
 }): Record<string, string> {
   const vars: Record<string, string> = {};
   const primary = colors.primary?.trim();
   const secondary = colors.secondary?.trim();
   const accent = colors.accent?.trim();
+  const skeleton = colors.skeleton?.trim();
 
   if (isValidCssColor(primary)) {
     // Primary drives the brand color plus the variables derived from it, mirroring
@@ -204,6 +207,13 @@ export function buildCustomColorVars(colors: {
     vars["--accent"] = tint;
     vars["--sidebar-accent"] = tint;
     vars["--accent-color"] = accent;
+  }
+
+  // Skeletons used to borrow the accent tint, which on a coloured brand made
+  // every loading screen pulse in the brand hue. They read `--skeleton`
+  // (globals.css), a neutral grey unless the merchant picks a colour.
+  if (isValidCssColor(skeleton)) {
+    vars["--skeleton"] = skeleton;
   }
 
   return vars;

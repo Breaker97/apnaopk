@@ -32,6 +32,14 @@ interface DirectUploadResult {
 interface UploadFileOptions {
   /** Sub-path within the storage prefix, e.g. "avatars/". */
   customPath?: string;
+  /**
+   * Keep a vector source (SVG) as it was uploaded instead of rasterizing it
+   * to WebP. The brand logo's exception — everything else is re-encoded, so
+   * an SVG cannot become a script-bearing document served from the store's
+   * own media host. The server grants it only to a caller who manages store
+   * media, so asking here is a request, not a decision.
+   */
+  keepVector?: boolean;
   /** Report 0–100 progress; only fires on the direct-upload path. */
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
@@ -130,6 +138,7 @@ async function uploadViaServer(
 ): Promise<DirectUploadResult> {
   const formData = new FormData();
   formData.append("files", file);
+  if (options.keepVector) formData.append("keepVector", "1");
   // customPath is intentionally not forwarded: /api/upload does not read it,
   // so the file lands under the default date-partitioned prefix. Only the
   // direct path honours customPath today.
@@ -163,9 +172,10 @@ async function uploadViaServer(
 /**
  * Upload one file, preferring the direct-to-storage path.
  *
- * Images are re-encoded to WebP in the browser first, matching what the server
- * pipeline does with sharp, so both paths produce the same stored format and
- * carry width/height.
+ * Images go through prepareImageForUpload first, which mirrors whatever the
+ * server pipeline does with sharp — re-encoding to WebP when that is switched
+ * on, and either way reporting the width/height a direct upload has no other
+ * way to learn.
  */
 export async function uploadFile(
   original: File,
@@ -181,26 +191,39 @@ export async function uploadFile(
   const file = prepared?.file ?? original;
   const contentType = resolveContentType(file);
 
+  // A vector the caller has NOT asked to keep has to be rasterized, and only
+  // the server can do that — a canvas cannot decode an SVG safely, so the
+  // browser pipeline always hands it back untouched. Not presigning is what
+  // sends it down /api/upload, where sharp re-encodes it like any other
+  // image; the direct path would store the original bytes by default.
+  const mustRasterize =
+    contentType.toLowerCase() === "image/svg+xml" && !options.keepVector;
+
   let presigned: PresignResponse | null = null;
   try {
-    const response = await fetch("/api/upload/presigned", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType,
-        fileSize: file.size,
-        customPath: options.customPath,
-      }),
-      signal: options.signal,
-    });
-    presigned = (await response.json()) as PresignResponse;
+    const response = mustRasterize
+      ? null
+      : await fetch("/api/upload/presigned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType,
+            fileSize: file.size,
+            customPath: options.customPath,
+          }),
+          signal: options.signal,
+        });
 
-    // A rejection here is a real validation failure (too large, wrong type)
-    // that the server path would report identically — surface it rather than
-    // retrying through a route that will refuse it too.
-    if (!response.ok && presigned?.message) {
-      throw new Error(presigned.message);
+    if (response) {
+      presigned = (await response.json()) as PresignResponse;
+
+      // A rejection here is a real validation failure (too large, wrong type)
+      // that the server path would report identically — surface it rather
+      // than retrying through a route that will refuse it too.
+      if (!response.ok && presigned?.message) {
+        throw new Error(presigned.message);
+      }
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;

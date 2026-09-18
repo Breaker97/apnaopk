@@ -321,3 +321,44 @@ export function allocateOrderRefund(params: {
     duty: parts[index * 4 + 3] ?? 0,
   }));
 }
+
+/**
+ * The same split, for a different amount.
+ *
+ * A refund row replaced by a smaller one — the part of a chargeback the
+ * gateway still holds after giving some back — must fall on the same sellers,
+ * in the same proportions, as the row it replaces. Prorating it again from the
+ * order would move money between sellers that nothing moved. Every part is
+ * scaled together and the rounding lands on the largest, so the shares always
+ * add back up to `amount` exactly.
+ */
+export function scaleRefundAllocation(
+  allocation: ReadonlyArray<RefundAllocationShare> | null | undefined,
+  amount: number,
+  currency: string,
+): RefundAllocationShare[] | null {
+  if (!allocation || allocation.length === 0) return null;
+  const weights = allocation.flatMap((share) => [
+    Math.max(0, Number(share.merchandise) || 0),
+    Math.max(0, Number(share.shipping) || 0),
+    Math.max(0, Number(share.tax) || 0),
+    Math.max(0, Number(share.duty) || 0),
+  ]);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (total <= 0 || !(amount > 0)) return null;
+  const parts = allocate(amount, weights, currency);
+  const ratio = amount / total;
+  return allocation.map((share, index) => {
+    const retained = Number(share.commissionRetained || 0) * ratio;
+    return {
+      vendorId: share.vendorId ?? null,
+      merchandise: parts[index * 4] ?? 0,
+      shipping: parts[index * 4 + 1] ?? 0,
+      tax: parts[index * 4 + 2] ?? 0,
+      duty: parts[index * 4 + 3] ?? 0,
+      ...(retained > 0
+        ? { commissionRetained: quantizeToCurrency(retained, currency) }
+        : {}),
+    };
+  });
+}

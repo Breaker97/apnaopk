@@ -221,6 +221,7 @@ export function VariantEditModal({
   onRemove,
   defaultRequiresShipping,
   defaultWeightUnit,
+  preorderLockedReason = null,
 }: {
   variant: ProductVariant | null;
   variants: ProductVariant[];
@@ -230,6 +231,7 @@ export function VariantEditModal({
   onRemove: (variantId: string) => void;
   defaultRequiresShipping: boolean;
   defaultWeightUnit: "g" | "kg" | "lb" | "oz";
+  preorderLockedReason?: string | null;
 }) {
   const { currency } = useCurrency();
   const currencySymbol = currency?.symbol || currency?.code || "USD";
@@ -608,12 +610,19 @@ export function VariantEditModal({
                 <input
                   type="checkbox"
                   checked={preorderEnabled}
+                  disabled={Boolean(preorderLockedReason) && !preorderEnabled}
                   onChange={(event) => setPreorderEnabled(event.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 accent-foreground"
                 />
                 Enable
               </Label>
             </div>
+
+            {preorderLockedReason ? (
+              <p className="text-muted-foreground text-xs">
+                {preorderLockedReason}
+              </p>
+            ) : null}
 
             {preorderEnabled && (
               <div className="space-y-3">

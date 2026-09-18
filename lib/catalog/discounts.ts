@@ -6,6 +6,11 @@ type DiscountableCoupon = {
   type?: string | null;
   discount?: number | null;
   maxDiscount?: number | null;
+  /**
+   * A free-shipping coupon a seller offered on their own parcel: it pays that
+   * seller's delivery and nobody else's.
+   */
+  shippingVendorId?: string | null;
 };
 
 type CheckoutTotals = {
@@ -50,6 +55,11 @@ export function calculateCheckoutTotals(params: {
   taxRate: number;
   coupon?: DiscountableCoupon | null;
   /**
+   * What each seller's delivery costs, when the cart was rated per seller —
+   * how a seller's own free-shipping coupon finds the delivery it pays for.
+   */
+  shippingByVendor?: Record<string, number> | null;
+  /**
    * The store currency the cart is priced in. Decides how many decimals a
    * figure may carry; defaults to a 2-decimal currency so existing callers
    * keep their exact behaviour.
@@ -68,9 +78,21 @@ export function calculateCheckoutTotals(params: {
 
   if (coupon) {
     if (isFreeShippingCouponType(coupon.type)) {
+      // A seller's own coupon pays their delivery, not the whole order's:
+      // taking the order's shipping handed every other seller's delivery away
+      // too. Read live from the current rates where they are known, so a
+      // changed address re-prices it; otherwise what it was validated at.
+      const vendorId = coupon.shippingVendorId ? String(coupon.shippingVendorId) : "";
+      const covered = vendorId
+        ? positiveMoney(
+            params.shippingByVendor && vendorId in params.shippingByVendor
+              ? params.shippingByVendor[vendorId]
+              : coupon.discount,
+          )
+        : shippingCost;
       const maxDiscount = positiveMoney(coupon.maxDiscount);
       const cap = maxDiscount > 0 ? maxDiscount : shippingCost;
-      shippingDiscount = round(Math.min(shippingCost, cap));
+      shippingDiscount = round(Math.min(shippingCost, cap, covered));
     } else {
       subtotalDiscount = round(
         Math.min(subtotal, positiveMoney(coupon.discount)),

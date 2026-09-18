@@ -24,6 +24,9 @@ export const PRODUCT_CARD_ELEMENTS = [
   "preview",
   "swatch",
   "brand",
+  // The seller's store name. It used to BE the "brand" element, which read
+  // the vendor all along; see PRODUCT_CARD_CONFIG_VERSION for the split.
+  "seller",
   "name",
   "category",
   "price",
@@ -40,6 +43,7 @@ export const PRODUCT_CARD_ELEMENT_LABELS: Record<ProductCardElement, string> = {
   preview: "Preview Image",
   swatch: "Swatch",
   brand: "Brand",
+  seller: "Seller",
   name: "Product Name",
   category: "Category",
   price: "Price",
@@ -120,12 +124,36 @@ interface ProductCardTypography {
 
 export type ProductCardTypographyKey =
   | "brand"
+  | "seller"
   | "product"
   | "category"
   | "price"
   | "discounted"
   | "cart"
   | "stock";
+
+/**
+ * What the Brand element draws: the brand's uploaded logo, or its name. A
+ * brand with no logo falls back to its name either way, so a mixed catalogue
+ * never shows a gap where the logo would be.
+ */
+export const PRODUCT_CARD_BRAND_DISPLAYS = ["logo", "name"] as const;
+export type ProductCardBrandDisplay = (typeof PRODUCT_CARD_BRAND_DISPLAYS)[number];
+
+/**
+ * v2: the "brand" element means the PRODUCT'S brand, and the store name it
+ * used to print moved to its own "seller" element. Configs saved before that
+ * (no version) are read with their "brand" element renamed to "seller", so
+ * every existing storefront keeps printing exactly what it printed.
+ */
+export const PRODUCT_CARD_CONFIG_VERSION = 2;
+
+/** A product's brand as the card draws it. */
+export interface CardBrand {
+  name: string;
+  slug: string;
+  logo: string;
+}
 
 const PRODUCT_CARD_HOVER_EFFECTS = [
   "zoom",
@@ -197,6 +225,16 @@ export interface ProductCardStyle {
   /** Vertical space between groups / between elements inside a group (px). */
   groupGap: number;
   itemGap: number;
+  /**
+   * The space BETWEEN cards, in every product grid and shelf. Off, each grid
+   * keeps the spacing it shipped with (tighter on phones); on, the two
+   * values below apply at every width.
+   */
+  gridGapCustom: boolean;
+  /** px between cards side by side. */
+  gridColumnGap: number;
+  /** px between one row of cards and the next (grids only; a shelf is one row). */
+  gridRowGap: number;
   typography: Partial<Record<ProductCardTypographyKey, ProductCardTypography>>;
   /** Bordered accent pill around a marked-down price (vs plain bold text). */
   pricePill: boolean;
@@ -211,6 +249,9 @@ export interface ProductCardStyle {
   cartRadius: number;
   /** Star fill; empty = the amber default. */
   ratingColor: string;
+  /** The Brand element: logo or name, and the logo's height in px. */
+  brandDisplay: ProductCardBrandDisplay;
+  brandLogoHeight: number;
   /** The Out of stock badge; empty colors = the red status default. */
   stockBackground: string;
   stockBorder: string;
@@ -219,6 +260,8 @@ export interface ProductCardStyle {
 }
 
 export interface ProductCardConfig {
+  /** See PRODUCT_CARD_CONFIG_VERSION. */
+  version: number;
   /** The template the config was last seeded from (display only). */
   template: ProductCardTemplateId;
   groups: ProductCardGroup[];
@@ -286,6 +329,11 @@ const DEFAULT_PRODUCT_CARD_STYLE: ProductCardStyle = {
   // The card as shipped: space-y-3 image→body, space-y-1.5 inside the body.
   groupGap: 12,
   itemGap: 6,
+  // The browser grid's desktop rhythm (sm:gap-x-5 sm:gap-y-11), so switching
+  // custom spacing on starts from what the storefront already shows.
+  gridGapCustom: false,
+  gridColumnGap: 20,
+  gridRowGap: 44,
   typography: {},
   pricePill: true,
   discountChipBackground: "",
@@ -296,6 +344,8 @@ const DEFAULT_PRODUCT_CARD_STYLE: ProductCardStyle = {
   cartBorderWidth: 0,
   cartRadius: 6,
   ratingColor: "",
+  brandDisplay: "logo",
+  brandLogoHeight: 20,
   stockBackground: "",
   stockBorder: "",
   stockBorderWidth: 0,
@@ -304,6 +354,7 @@ const DEFAULT_PRODUCT_CARD_STYLE: ProductCardStyle = {
 };
 
 export const DEFAULT_PRODUCT_CARD_CONFIG: ProductCardConfig = {
+  version: PRODUCT_CARD_CONFIG_VERSION,
   template: "minimal",
   groups: DEFAULT_PRODUCT_CARD_GROUPS,
   visibility: DEFAULT_PRODUCT_CARD_VISIBILITY,
@@ -352,6 +403,7 @@ export function productCardTypographyDefaults(
 ): Record<ProductCardTypographyKey, ProductCardTypographyDefaults> {
   return {
     brand: { weight: "600", style: "normal", size: 12, color: "#09090b" },
+    seller: { weight: "600", style: "normal", size: 12, color: "#09090b" },
     product: { weight: "600", style: "normal", size: 14, color: "#09090b" },
     category: { weight: "400", style: "normal", size: 12, color: "#71717a" },
     price: {
@@ -429,6 +481,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
   ProductCardConfig
 > = {
   minimal: {
+    version: PRODUCT_CARD_CONFIG_VERSION,
     template: "minimal",
     groups: [
       group("g1", "preview", "swatch"),
@@ -446,6 +499,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     },
   },
   full: {
+    version: PRODUCT_CARD_CONFIG_VERSION,
     template: "full",
     groups: [
       group("g1", "name", "category"),
@@ -467,6 +521,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     },
   },
   "drop-shadow": {
+    version: PRODUCT_CARD_CONFIG_VERSION,
     template: "drop-shadow",
     groups: [
       group("g1", "preview", "swatch"),
@@ -489,6 +544,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     },
   },
   "sharp-border": {
+    version: PRODUCT_CARD_CONFIG_VERSION,
     template: "sharp-border",
     groups: [
       group("g1", "name", "category"),
@@ -517,6 +573,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
   // primary-colored price (no rating), and a full-width outlined "View"
   // affordance pinned to the bottom edge.
   electronics: {
+    version: PRODUCT_CARD_CONFIG_VERSION,
     template: "electronics",
     groups: [
       group("g1", "preview"),
@@ -596,6 +653,13 @@ const oneOf = <T extends string>(
     ? (value as T)
     : fallback;
 
+/** Wider than this and a two-up phone grid has no room left for the cards. */
+export const MAX_CARD_GRID_COLUMN_GAP = 80;
+export const MAX_CARD_GRID_ROW_GAP = 120;
+
+const clampGap = (value: unknown, fallback: number, max: number) =>
+  Math.min(max, Math.max(0, Math.round(num(value, fallback))));
+
 const ELEMENT_SET = new Set<string>(PRODUCT_CARD_ELEMENTS);
 
 /**
@@ -603,7 +667,10 @@ const ELEMENT_SET = new Set<string>(PRODUCT_CARD_ELEMENTS);
  * dropped; an arrangement with no elements at all is a corrupt document,
  * not a choice, and falls back to the default.
  */
-function normalizeProductCardGroups(raw: unknown): ProductCardGroup[] {
+function normalizeProductCardGroups(
+  raw: unknown,
+  legacy = false,
+): ProductCardGroup[] {
   if (!Array.isArray(raw)) return DEFAULT_PRODUCT_CARD_GROUPS;
 
   const seen = new Set<string>();
@@ -615,7 +682,9 @@ function normalizeProductCardGroups(raw: unknown): ProductCardGroup[] {
     const items: ProductCardItem[] = [];
     for (const item of rawItems) {
       if (typeof item !== "object" || item === null) continue;
-      const key = (item as { key?: unknown }).key;
+      const storedKey = (item as { key?: unknown }).key;
+      // A pre-v2 "brand" printed the seller's store name; it keeps doing so.
+      const key = legacy && storedKey === "brand" ? "seller" : storedKey;
       if (typeof key !== "string" || !ELEMENT_SET.has(key) || seen.has(key)) {
         continue;
       }
@@ -652,6 +721,7 @@ function parseTypography(raw: unknown): ProductCardTypography | undefined {
 
 const TYPOGRAPHY_KEYS: ProductCardTypographyKey[] = [
   "brand",
+  "seller",
   "product",
   "category",
   "price",
@@ -659,6 +729,36 @@ const TYPOGRAPHY_KEYS: ProductCardTypographyKey[] = [
   "cart",
   "stock",
 ];
+
+/**
+ * Whether a stored card predates v2, when "brand" printed the seller.
+ *
+ * The version is the signal, but the settings API used to strip it on
+ * save, so a card saved by the v2 builder can arrive without one. Such a
+ * card still gives itself away: the v2 builder always writes the Brand
+ * element's `style.brandDisplay`, and only v2 knows a "seller" element —
+ * neither can appear in a card from before the split.
+ */
+function isLegacyProductCardConfig(source: Record<string, unknown>): boolean {
+  if (num(source.version, 1) >= PRODUCT_CARD_CONFIG_VERSION) return false;
+  const style = source.style;
+  if (typeof style === "object" && style !== null && "brandDisplay" in style) {
+    return false;
+  }
+  const groups = Array.isArray(source.groups) ? source.groups : [];
+  return !groups.some(
+    (entry) =>
+      typeof entry === "object" &&
+      entry !== null &&
+      Array.isArray((entry as { items?: unknown }).items) &&
+      ((entry as { items: unknown[] }).items).some(
+        (item) =>
+          typeof item === "object" &&
+          item !== null &&
+          (item as { key?: unknown }).key === "seller",
+      ),
+  );
+}
 
 /** Stored value → validated config; anything malformed falls back per-field. */
 export function normalizeProductCardConfig(raw: unknown): ProductCardConfig {
@@ -689,15 +789,20 @@ export function normalizeProductCardConfig(raw: unknown): ProductCardConfig {
     typeof s.typography === "object" && s.typography !== null
       ? (s.typography as Record<string, unknown>)
       : {};
+  const legacy = isLegacyProductCardConfig(source);
   const typography: ProductCardStyle["typography"] = {};
   for (const key of TYPOGRAPHY_KEYS) {
-    const value = parseTypography(typographyRaw[key]);
+    // The seller text was styled as "brand" before the split.
+    const storedKey = legacy && key === "seller" ? "brand" : key;
+    if (legacy && key === "brand") continue;
+    const value = parseTypography(typographyRaw[storedKey]);
     if (value) typography[key] = value;
   }
 
   return {
+    version: PRODUCT_CARD_CONFIG_VERSION,
     template: oneOf(PRODUCT_CARD_TEMPLATE_IDS, source.template, "minimal"),
-    groups: normalizeProductCardGroups(source.groups),
+    groups: normalizeProductCardGroups(source.groups, legacy),
     visibility: {
       cartButtonAlways: bool(v.cartButtonAlways, dv.cartButtonAlways),
       discountChip: bool(v.discountChip, dv.discountChip),
@@ -735,6 +840,9 @@ export function normalizeProductCardConfig(raw: unknown): ProductCardConfig {
       ),
       groupGap: num(s.groupGap, ds.groupGap),
       itemGap: num(s.itemGap, ds.itemGap),
+      gridGapCustom: bool(s.gridGapCustom, ds.gridGapCustom),
+      gridColumnGap: clampGap(s.gridColumnGap, ds.gridColumnGap, MAX_CARD_GRID_COLUMN_GAP),
+      gridRowGap: clampGap(s.gridRowGap, ds.gridRowGap, MAX_CARD_GRID_ROW_GAP),
       typography,
       pricePill: bool(s.pricePill, ds.pricePill),
       discountChipBackground: str(
@@ -748,6 +856,8 @@ export function normalizeProductCardConfig(raw: unknown): ProductCardConfig {
       cartBorderWidth: num(s.cartBorderWidth, ds.cartBorderWidth),
       cartRadius: num(s.cartRadius, ds.cartRadius),
       ratingColor: str(s.ratingColor, ds.ratingColor),
+      brandDisplay: oneOf(PRODUCT_CARD_BRAND_DISPLAYS, s.brandDisplay, ds.brandDisplay),
+      brandLogoHeight: Math.min(80, Math.max(8, num(s.brandLogoHeight, ds.brandLogoHeight))),
       stockBackground: str(s.stockBackground, ds.stockBackground),
       stockBorder: str(s.stockBorder, ds.stockBorder),
       stockBorderWidth: num(s.stockBorderWidth, ds.stockBorderWidth),
@@ -769,6 +879,20 @@ export function cardTypographyCss(
   if (value.size > 0) css.fontSize = `${value.size}px`;
   if (value.color) css.color = value.color;
   return css;
+}
+
+/**
+ * The custom properties every product grid and shelf reads its gaps from
+ * (`CARD_GRID_GAP` and friends in components/store/product-grid-columns.ts).
+ * Set on the store surface only when the merchant switched custom spacing
+ * on: unset, each grid's own fallback — the gap it shipped with — applies.
+ */
+export function cardGridGapVars(style: ProductCardStyle): Record<string, string> {
+  if (!style.gridGapCustom) return {};
+  return {
+    "--card-grid-gap-x": `${style.gridColumnGap}px`,
+    "--card-grid-gap-y": `${style.gridRowGap}px`,
+  };
 }
 
 /** True when the wrapper draws any chrome of its own. */
@@ -846,6 +970,83 @@ export function visibleProductCardGroups(
 }
 
 /** Whether an element is present AND switched on anywhere in the groups. */
+/**
+ * A card's brand from whatever the loader handed over: the bare id every
+ * card query carries (resolved through the store's brand directory), or an
+ * already-populated brand. Null when the product has none — the element
+ * then renders nothing rather than an empty line.
+ */
+export function resolveCardBrand(
+  value: unknown,
+  directory: Record<string, CardBrand>,
+): CardBrand | null {
+  if (typeof value === "string") return directory[value] ?? null;
+  if (value && typeof value === "object") {
+    const source = value as Record<string, unknown>;
+    if (typeof source.name === "string" && source.name) {
+      return {
+        name: source.name,
+        slug: typeof source.slug === "string" ? source.slug : "",
+        logo: typeof source.logo === "string" ? source.logo : "",
+      };
+    }
+    if (typeof source._id === "string") return directory[source._id] ?? null;
+  }
+  return null;
+}
+
+/**
+ * Put the product's Brand on a card, for the builder's one-click fix.
+ *
+ * A card saved before Brand and Seller were separate had its "brand" element
+ * read as Seller (the store name it always printed), so on those cards the
+ * Brand settings change nothing until a Brand element exists. This puts one
+ * where the merchant expects it: in the Seller's place when the card has one
+ * — the line they were looking at — else just before the product name, else
+ * at the end of the last group. A card that has a Brand already only has it
+ * switched on.
+ */
+export function showBrandOnCard(groups: ProductCardGroup[]): ProductCardGroup[] {
+  const has = (key: ProductCardElement) =>
+    groups.some((entry) => entry.items.some((item) => item.key === key));
+
+  if (has("brand")) {
+    return groups.map((entry) => ({
+      ...entry,
+      items: entry.items.map((item) =>
+        item.key === "brand" ? { ...item, on: true } : item,
+      ),
+    }));
+  }
+
+  if (has("seller")) {
+    return groups.map((entry) => ({
+      ...entry,
+      items: entry.items.map((item) =>
+        item.key === "seller" ? { key: "brand" as const, on: true } : item,
+      ),
+    }));
+  }
+
+  const brand = { key: "brand" as const, on: true };
+  if (has("name")) {
+    return groups.map((entry) => {
+      const at = entry.items.findIndex((item) => item.key === "name");
+      if (at < 0) return entry;
+      const items = [...entry.items];
+      items.splice(at, 0, brand);
+      return { ...entry, items };
+    });
+  }
+
+  if (groups.length === 0) return [{ id: "g1", items: [brand] }];
+  return groups.map((entry, index) =>
+    index === groups.length - 1
+      ? { ...entry, items: [...entry.items, brand] }
+      : entry,
+  );
+}
+
 export function productCardElementOn(
   groups: ProductCardGroup[],
   key: ProductCardElement,

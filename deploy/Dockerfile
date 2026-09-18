@@ -10,7 +10,7 @@
 # auto-prefer a root Dockerfile over their source build, and this one is only
 # valid when CI has already built the app. For on-server deploys keep using
 # Nixpacks — docs/UPGRADE.md -> "Build requirements". Full pipeline docs:
-# docs/DEPLOYMENT_COOLIFY.md
+# docs/DEPLOYMENT_PREBUILT_IMAGE.md
 FROM node:24-bookworm-slim
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -34,13 +34,10 @@ COPY . .
 RUN test -f .next/BUILD_ID || { \
       echo "ERROR: no prebuilt .next/ in the build context." ; \
       echo "This Dockerfile packages an app that CI already built; it never compiles." ; \
-      echo "Run the deploy-image workflow (docs/DEPLOYMENT_COOLIFY.md) or use Nixpacks for on-server builds." ; \
+      echo "Run the deploy-image workflow (docs/DEPLOYMENT_PREBUILT_IMAGE.md) or use Nixpacks for on-server builds." ; \
       exit 1 ; \
     }
 
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=8s --start-period=30s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
 CMD ["pnpm", "start"]

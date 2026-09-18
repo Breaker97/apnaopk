@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { Order, Product } from "@/models";
+import { ORDER_STATUS } from "@/config/app.config";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { getPurchasableQuantity } from "@/lib/products/stock-policy";
 
@@ -174,6 +175,43 @@ function getPreorderRemaining(settings?: PreorderSettingsShape) {
   if (!Number.isFinite(limit) || limit <= 0) return Number.POSITIVE_INFINITY;
   const reserved = Number(settings.reservedQuantity || 0);
   return Math.max(0, limit - reserved);
+}
+
+/**
+ * Whether a product (or one of its variants) can take a pre-order right now,
+ * and how many more — built from the same private rules reservation applies,
+ * so the waitlist can never disagree with checkout about whether a spot exists.
+ *
+ * `remaining` is `Infinity` for a pre-order with no limit.
+ */
+export function getPreorderAvailability(
+  product: PreorderProductShape,
+  variantId?: string,
+): { enabled: boolean; windowOpen: boolean; remaining: number } {
+  const settings = getPreorderSettings(product, variantId);
+  return {
+    enabled: Boolean(settings?.enabled),
+    windowOpen: isPreorderWindowOpen(settings),
+    remaining: getPreorderRemaining(settings),
+  };
+}
+
+/**
+ * Which variant a pre-order's quota is counted on, or undefined when it is
+ * counted on the product.
+ *
+ * A variant with its own pre-order settings has its own counter; one without
+ * shares the product's. Anything keyed by quota — the waitlist, above all —
+ * has to use the same answer reservation does, or a release on the product's
+ * counter would look for shoppers waiting on a variant that has none.
+ */
+export function preorderQuotaVariantId(
+  product: PreorderProductShape,
+  variantId?: string,
+): string | undefined {
+  return variantId && shouldReserveVariantPreorder(product, variantId)
+    ? variantId
+    : undefined;
 }
 
 function getAvailableStock(
@@ -560,6 +598,19 @@ export async function releasePreorderQuantity(lines: PreorderReservationLine[]) 
       { updatePipeline: true },
     );
   }
+
+  // A freed place is somebody's turn. Invited after the response, so a cancel
+  // or an expiry is never slowed by the list, and best-effort, because an
+  // invitation missed here is picked up by the daily sweep rather than by a
+  // failed cancellation. Dynamic imports: the waitlist module reads this one.
+  if (lines.length > 0) {
+    const [{ afterResponse }, { notifyPreorderWaitlistsForLines }] =
+      await Promise.all([
+        import("@/lib/after-response"),
+        import("@/lib/orders/preorder-waitlist"),
+      ]);
+    afterResponse(() => notifyPreorderWaitlistsForLines(lines));
+  }
 }
 
 /**
@@ -606,7 +657,7 @@ export async function consumePreorderStockOnReady(
     },
     { $set: { "subOrders.$[sub].preorderReserved": false } },
     {
-      new: false,
+      returnDocument: "before",
       arrayFilters: [
         {
           "sub.preorderReserved": true,
@@ -687,14 +738,17 @@ export async function consumePreorderStockOnReady(
 
 export async function markOrderPreorderReserved(orderId: string) {
   if (!Types.ObjectId.isValid(orderId)) return;
+  // Not a consignment called off before its quota was taken: flagged anyway,
+  // releasing it later handed back quota it never held.
   await Order.updateOne(
     { _id: orderId },
     {
       $set: {
         preorderReserved: true,
-        "subOrders.$[].preorderReserved": true,
+        "subOrders.$[live].preorderReserved": true,
       },
     },
+    { arrayFilters: [{ "live.status": { $ne: ORDER_STATUS.CANCELLED } }] },
   );
 }
 
@@ -714,7 +768,7 @@ export async function releaseOrderPreorders(orderId: string) {
       },
     },
     {
-      new: false,
+      returnDocument: "before",
       arrayFilters: [
         { "sub.preorderReserved": true },
         { "item.purchaseType": PURCHASE_TYPE.PREORDER },
@@ -725,7 +779,7 @@ export async function releaseOrderPreorders(orderId: string) {
 
   if (!order) return false;
   // Build release lines from the pre-image's STILL-RESERVED sub-orders only
-  // (new: false returns the doc before the update). Using top-level
+  // (returnDocument: "before" returns the pre-update doc). Using top-level
   // order.items here would re-release lines belonging to sub-orders that a
   // vendor cancel already released, double-decrementing the shared
   // preorder.reservedQuantity counter and overselling the preorder limit.
@@ -770,7 +824,7 @@ export async function releaseSubOrderPreorders(params: {
       },
     },
     {
-      new: false,
+      returnDocument: "before",
       arrayFilters: [
         {
           "sub.vendorId": new Types.ObjectId(params.vendorId),
@@ -818,3 +872,30 @@ export async function releaseSubOrderPreorders(params: {
 
   return lines.length > 0;
 }
+
+/**
+ * The order in which reserved pre-orders are entitled to arriving stock.
+ *
+ * FIFO on when the shopper actually committed: whoever paid first is served
+ * first. That is a fairness rule, not a display preference, which is the whole
+ * reason it is a named export rather than an inline `.sort()` at each call
+ * site. The list an operator works down IS the queue — they select rows from
+ * the top and mark them ready — so if the screen and the allocation logic ever
+ * disagree about who is next, the screen wins and nobody notices.
+ *
+ * It was `createdAt: -1` (newest first), which meant an operator working down
+ * the page allocated a short intake in LIFO order: the customer who committed
+ * first was served last. Nothing errored, and the only symptom would have been
+ * a dispute nobody could defend.
+ *
+ * `preorderReleaseDate` leads because the list is grouped by drop; the
+ * ascending `createdAt` is the half that carries the fairness, and it also
+ * breaks ties deterministically so a row cannot straddle two pages.
+ *
+ * Every reader of "who is next" — the admin list, the CSV export, and any
+ * future partial-allocation job — must sort by this and nothing else.
+ */
+export const PREORDER_ALLOCATION_SORT = {
+  preorderReleaseDate: 1,
+  createdAt: 1,
+} as const;

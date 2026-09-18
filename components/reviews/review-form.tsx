@@ -15,13 +15,16 @@ import { cn } from "@/lib/utils";
 interface ReviewFormProps {
   productId: string;
   orderId: string;
-  onSuccess?: () => void;
+  /** Preselected, for a form opened by tapping a star. */
+  initialRating?: number;
+  onSuccess?: (review: { rating: number }) => void;
   onCancel?: () => void;
 }
 
 export function ReviewForm({
   productId,
   orderId,
+  initialRating = 0,
   onSuccess,
   onCancel,
 }: ReviewFormProps) {
@@ -45,7 +48,7 @@ export function ReviewForm({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialRating);
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
   const [images, setImages] = useState<string[]>([]);
@@ -156,7 +159,7 @@ export function ReviewForm({
       }
 
       toast.success(tf("reviews.submitted", "Review submitted successfully!"));
-      onSuccess?.();
+      onSuccess?.({ rating });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : tf("common.error", "Something went wrong");
       toast.error(message);
@@ -170,7 +173,14 @@ export function ReviewForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label>{tf("reviews.yourRating", "Your Rating")}</Label>
-        <InteractiveStarRating value={rating} onChange={setRating} size="md" />
+        <InteractiveStarRating
+          value={rating}
+          onChange={setRating}
+          size="md"
+          labelFor={(star) =>
+            tf("reviews.rateStar", "Rate {count} out of 5", { count: star })
+          }
+        />
       </div>
 
       <div className="space-y-2">
@@ -200,7 +210,7 @@ export function ReviewForm({
       </div>
 
       <div className="space-y-2 rounded-md border border-border/80 px-4 py-3">
-        <Label htmlFor="comment">
+        <Label>
           {tf("reviews.photos", "Images")} ({tf("common.optional", "optional")})
         </Label>
 

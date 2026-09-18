@@ -39,6 +39,7 @@
     "yes": "はい",
     "no": "いいえ",
     "close": "閉じる",
+    "scrollToTop": "トップへ戻る",
     "back": "戻る",
     "next": "次へ",
     "previous": "前へ",
@@ -123,7 +124,8 @@
     "decreaseQuantity": "数量を減らす",
     "increaseQuantity": "数量を増やす",
     "name": "お名前",
-    "email": "メールアドレス"
+    "email": "メールアドレス",
+    "showingResultsFor": "<q>{query}</q> の検索結果"
   },
   "wishlist": {
     "title": "ほしい物リスト",
@@ -307,7 +309,8 @@
         "bestRating": "評価の高い順",
         "newest": "新着順",
         "priceLowHigh": "価格が安い順",
-        "priceHighLow": "価格が高い順"
+        "priceHighLow": "価格が高い順",
+        "bestMatch": "関連度順"
       }
     }
   },
@@ -471,6 +474,57 @@
     "quoteMessageOptional": "メッセージ（任意）",
     "quoteMessagePlaceholder": "数量、納期、仕様など…"
   },
+  "reviews": {
+    "basedOn": "{count}件のレビューに基づく",
+    "writeReview": "レビューを書く",
+    "writeReviewCta": "レビューを書く！",
+    "noReviews": "まだレビューはありません",
+    "beFirst": "この商品の最初のレビューを書きましょう",
+    "verified": "購入確認済み",
+    "rating": "評価",
+    "all": "すべて",
+    "highlyRecommended": "とてもおすすめ",
+    "postedBy": "{name}さんが投稿（{time}）",
+    "postedTime": "投稿: {time}",
+    "brandResponse": "ブランドからの返信",
+    "showingRange": "{total}件中 {from} - {to}件のレビューを表示",
+    "anonymous": "匿名",
+    "checkingEligibility": "対象の注文を確認しています...",
+    "comment": "レビュー本文 *",
+    "commentPlaceholder": "この商品を使った感想を共有してください",
+    "commentTooShort": "コメントは10文字以上で入力してください",
+    "dropzoneHint": "画像は1枚あたり10MBまで対応しています。",
+    "dropzonePrimary": "ここにファイルをドラッグ＆ドロップするか、クリックして選択してください",
+    "eligibleOrderRequired": "この商品は、ご注文のいずれかで配達された後にレビューできます。",
+    "imageTooLarge": "各画像は10MB未満にしてください",
+    "imageUploadFailed": "画像のアップロードに失敗しました",
+    "invalidImage": "画像ファイルのみアップロードできます",
+    "loginToReview": "この商品のレビューを書くにはサインインしてください。",
+    "maxImages": "画像は最大4枚までアップロードできます",
+    "noReviewsForRating": "この評価のレビューはまだありません",
+    "oldest": "古い順",
+    "photos": "画像",
+    "selectRating": "評価を選択してください",
+    "submit": "レビューを送信",
+    "submitFailed": "レビューを送信できませんでした",
+    "submitted": "レビューを送信しました！",
+    "title": "タイトル",
+    "titlePlaceholder": "レビューを一言でまとめてください",
+    "writeReviewHint": "メールアドレスが公開されることはありません。必須項目にはアスタリスク（*）が付いています。",
+    "yourRating": "あなたの評価",
+    "pendingTitle": "購入した商品を評価しましょう",
+    "pendingDescription": "ご注文の商品が届きました。感想をほかのお客様に伝えましょう。",
+    "deliveredOn": "{date}に配達済み",
+    "rateStar": "5段階中{count}で評価",
+    "showMore": "さらに{count}件を表示",
+    "showFewer": "表示を減らす",
+    "fromOrder": "注文 #{orderNumber}",
+    "orderPromptTitle": "ご注文はいかがでしたか？",
+    "orderPromptOne": "{name}の簡単なレビューをお寄せください。ほかのお客様の参考になります。",
+    "orderPromptMany": "この注文の{count}点の商品がレビューを待っています。",
+    "youRated": "あなたの評価",
+    "alreadyReviewed": "この商品はすでにレビュー済みです。ご感想をお寄せいただきありがとうございます！"
+  },
   "cart": {
     "yourCart": "あなたのカート",
     "shoppingCart": "ショッピングカート",
@@ -571,10 +625,11 @@
       "iotecPhoneHint": "請求先の MTN または Airtel の番号を入力してください。その端末に承認の確認が届きます。",
       "mtnMomoDetail": "MTN Mobile Moneyで支払います。お使いの電話に承認リクエストが届き、MoMo PINで承認します。",
       "mtnMomoPhoneLabel": "モバイルマネー番号",
-      "mtnMomoPhonePlaceholder": "例: 0772 123 456",
+      "mtnMomoPhonePlaceholder": "例: {example}",
       "mtnMomoPhoneHint": "請求するMTN番号を入力してください。その電話に支払い承認のリクエストが届きます。"
     },
-    "switchToPickup": "店舗受け取りに切り替える"
+    "switchToPickup": "店舗受け取りに切り替える",
+    "enterAddressForShipping": "配送先住所を入力すると、利用可能な配送方法が表示されます。"
   },
   "orders": {
     "myOrders": "注文履歴",
@@ -625,7 +680,8 @@
       "partially_paid": "一部支払い済み",
       "refunded": "返金済み",
       "partially_refunded": "一部返金済み"
-    }
+    },
+    "importDuties": "輸入関税"
   },
   "vendor": {
     "vendorDashboard": "出品者ダッシュボード",
@@ -662,10 +718,11 @@
     "commission": "支払済み手数料",
     "activeProducts": "有効な商品",
     "netEarnings": "純利益",
-    "pending": "保留中",
+    "awaitingPayment": "{amount} 支払い待ち",
     "recentOrders": "最近の注文",
     "topProducts": "人気商品",
     "totalOrders": "総注文数",
+    "openOrdersCount": "進行中 {count} 件",
     "totalProducts": "商品数",
     "totalRevenue": "総売上",
     "pendingOrders": "Pending Orders",
@@ -820,6 +877,7 @@
       "partially_refunded": "一部返金済み"
     },
     "fulfillmentStatus": {
+      "preordered": "予約注文",
       "pending": "未対応",
       "processing": "処理中",
       "shipped": "配送中",
@@ -1125,6 +1183,7 @@
       "subtotal": "小計",
       "shipping": "送料",
       "tax": "税金",
+      "importDuties": "輸入関税",
       "discount": "割引",
       "totalLabel": "合計",
       "timeline": "タイムライン",
@@ -1244,7 +1303,7 @@
       "dateRange": "7月25日 - 8月25日",
       "addActivity": "アクティビティを追加",
       "sales": "売上",
-      "ordersDescription": "注文総数の内訳を詳細なインサイトとともに表示します。",
+      "ordersDescription": "選択した期間の合計を販売チャネル別に表示します。",
       "showHighlights": "すべてのハイライトを表示",
       "showSalesData": "すべての売上データを表示",
       "viewAllOrders": "すべての注文を見る",
@@ -1336,7 +1395,9 @@
       "expenses": "経費",
       "receivables": "売掛金",
       "financeReports": "レポート",
-      "quotes": "見積もり"
+      "quotes": "見積もり",
+      "traffic": "トラフィック",
+      "searchInsights": "検索インサイト"
     },
     "home": "ホーム",
     "collections": "コレクション",
@@ -2808,6 +2869,11 @@
           "name": "Fashion",
           "description": "プレミアムなファッション・ビューティー・ライフスタイルブランド向けのエディトリアル調ビジュアル。",
           "styleNote": "画像中心のマーチャンダイジングと洗練されたコレクション訴求に注力。"
+        },
+        "women-fashion": {
+          "name": "Women Fashion",
+          "description": "エディトリアルなアパレル演出：全幅のキャンペーンビジュアル、ルックブックタイル、シーズンごとの特集。",
+          "styleNote": "衣料品・シューズ・アクセサリー向け。ビジュアルが主役で、UIは控えめに。"
         }
       },
       "activate": "このテーマを使用"
@@ -3245,7 +3311,6 @@
         "live": "公開中",
         "unsaved": "未保存の変更"
       },
-      "subtitle": "チェックアウトは実績あるフローを保ったまま、ここでブランドを整えられます。手順の並べ替えはできないため、決済が壊れることはありません。",
       "themeLink": "テーマ設定",
       "title": "チェックアウト",
       "toast": {
@@ -3277,7 +3342,21 @@
       },
       "brand": {
         "description": "フッターのロゴ・説明文・幅・カラーを管理します。",
-        "title": "ブランドとレイアウト"
+        "title": "ブランドとレイアウト",
+        "logoSourceLabel": "フッターロゴの参照元",
+        "storeLogo": "ストアのロゴ（推奨）",
+        "storeLogoDescription": "ブランディングのロゴを使用し、ヘッダーと同様にライトモードとダークモードで切り替わります。",
+        "customLogo": "フッター専用のロゴ",
+        "customLogoDescription": "フッターだけに別のロゴ画像をアップロードします。",
+        "synced": "ブランディングと同期",
+        "editBranding": "ブランディングで編集",
+        "lightLogo": "ライトモードのロゴ",
+        "darkLogo": "ダークモードのロゴ",
+        "logoNotSet": "未アップロード",
+        "customLogoHint": "これらのロゴはフッターにのみ適用されます。ダークモード用のロゴがない場合はフッターロゴを両方のモードで表示し、どちらもない場合はストアのロゴを使用します。",
+        "matchHeaderSize": "ヘッダーロゴと同じサイズ",
+        "matchHeaderSizeHint": "ヘッダーに合わせます：大きな画面では幅{desktop}px、スマートフォンでは{mobile}px。",
+        "logoThemeAuto": "自動（フッターの背景に合わせる）"
       },
       "colors": {
         "dark": "ダークモードの配色",
@@ -3312,6 +3391,9 @@
         "email": "メール",
         "footerBackgroundColor": "フッターの背景色",
         "footerLogo": "フッターロゴ",
+        "footerDarkLogo": "フッターロゴ（ダークモード）",
+        "logoWidth": "ロゴの幅",
+        "logoTheme": "表示するロゴ",
         "footerTextColor": "フッターの文字色",
         "fullWidthFooter": "全幅フッター",
         "imageAlt": "画像の代替テキスト",
@@ -3769,6 +3851,7 @@
       "publishPageTitle": "このページを公開しますか？",
       "publishTitle": "ホームページを公開しますか？",
       "published": "ホームページを公開しました",
+      "duplicateSection": "セクションを複製",
       "removeSection": "セクションを削除",
       "requiredSection": "必須",
       "restore": "復元",
@@ -4437,6 +4520,7 @@
     },
     "chatWithVendor": "出品者とチャット",
     "chatWithStore": "ストアとチャット",
+    "chatWithSeller": "出品者とチャット",
     "startConversation": "会話を始める",
     "startDescription": "在庫、配送、バリエーションなど、何でもお尋ねください。",
     "writeMessage": "メッセージを入力…",
@@ -4756,7 +4840,6 @@
       "canceled": "支払いがキャンセルされました。もう一度お試しください。",
       "failed": "支払いを開始できませんでした",
       "loadFailed": "掲載位置ラダーを読み込めませんでした",
-      "verifyFailed": "支払いを確認できませんでした",
       "pollTimeout": "まだ支払いを確認できていません。確認され次第、自動的に有効になります。",
       "stepSlot": "枠と期間",
       "pickSlot": "掲載位置と期間を選択",
@@ -4869,7 +4952,6 @@
     "adminPassword": "パスワード",
     "adminTitle": "管理者アカウントを作成",
     "appUrl": "アプリURL",
-    "appUrlHint": ".env の NEXT_PUBLIC_APP_URL をストアのURLに設定してください",
     "blockedHint": "上記の項目を修正してから再度チェックしてください。解決するまでインストールは続行できません。",
     "retry": "再チェック",
     "authSecret": "認証シークレット",
@@ -4908,7 +4990,7 @@
       "secretAccessKey": "シークレットアクセスキー",
       "publicUrl": "公開URL"
     },
-    "nodeTooOld": "Node.js 22以降が必要です",
+    "nodeTooOld": "Node.js 22.12以降が必要です",
     "storeName": "ストア名",
     "storeTitle": "ストアの基本情報",
     "subtitle": "数ステップで販売開始",

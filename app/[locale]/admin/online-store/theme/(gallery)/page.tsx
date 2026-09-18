@@ -62,6 +62,7 @@ export default async function OnlineStoreThemePage({
             ),
           }))}
           activeThemeId={theme.id}
+          customCss={theme.customCss}
           initialTab={isThemePageTab(requestedTab) ? requestedTab : "theme"}
         />
       </AdminSettingsProvider>

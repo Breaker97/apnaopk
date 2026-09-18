@@ -24,6 +24,7 @@ import type {
   ProductFormLocation,
   ProductFormOptions,
   ProductFormShippingContext,
+  VendorPreorderAccess,
 } from "@/lib/products/form-options-types";
 
 export type * from "@/lib/products/form-options-types";
@@ -218,12 +219,21 @@ interface BuildProductFormOptionsInput {
    * cannot silently fall back to the whole platform's list.
    */
   scope: InventoryLocationScope;
+  /**
+   * Whether the store can collect a pre-order balance later. Passed in rather
+   * than read here so the builder stays free of settings.
+   */
+  deferredBalanceSupported: boolean;
+  /** Vendor editor only: whether this vendor may open a pre-order at all. */
+  preorderAccess?: VendorPreorderAccess;
 }
 
 export async function buildProductFormOptions({
   includeInactiveCategories,
   vendorShipping,
   scope,
+  deferredBalanceSupported,
+  preorderAccess,
 }: BuildProductFormOptionsInput): Promise<ProductFormOptions> {
   const [catalog, locations, shipping] = await Promise.all([
     getCachedCatalogOptions(includeInactiveCategories),
@@ -239,5 +249,9 @@ export async function buildProductFormOptions({
     // create new ones, so the editor hides its inline "add location" control
     // rather than offering a button that answers 403.
     canManageLocations: scope.locationIds.length === 0,
+    preorder: {
+      deferredBalanceSupported,
+      ...(preorderAccess ? { access: preorderAccess } : {}),
+    },
   };
 }

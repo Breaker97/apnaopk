@@ -60,10 +60,20 @@ export function createSmtpTransport(
 }
 
 /**
- * Check if email is configured (via .env, with no DB settings loaded)
+ * Whether an email can actually go out, by the transport's own rule: SMTP
+ * switched on in Settings, OR SMTP credentials in `.env`.
+ *
+ * The one question every "should I bother sending?" gate must ask. They used
+ * to answer it three ways: six call sites (password reset, both staff
+ * invites, the contact form, both quote emails) checked only the Settings
+ * switch, so an `.env`-configured store silently never sent a password reset;
+ * boost emails checked only `.env`, so a Settings-configured store never sent
+ * those.
  */
-export function isEmailConfigured(): boolean {
-  return !!resolveSmtpConfig();
+export function isEmailDeliveryConfigured(
+  settings?: Pick<ISettingsData, "email"> | null,
+): boolean {
+  return Boolean(resolveSmtpConfig(settings));
 }
 
 /**
@@ -96,6 +106,22 @@ function sanitizeEmailError(error: unknown): string {
     .slice(0, 1000);
 }
 
+/**
+ * Attachment bytes as nodemailer needs them. The outbox keeps attachments in a
+ * Mixed path, and a Buffer written there comes back from MongoDB as a BSON
+ * `Binary`, which nodemailer refuses ('The "chunk" argument must be of type
+ * string or an instance of Buffer…') — so every order confirmation carrying
+ * its invoice PDF failed on every attempt and was finally marked failed.
+ */
+function toAttachmentContent(content: unknown): Buffer | string {
+  if (typeof content === "string" || Buffer.isBuffer(content)) return content;
+  if (content instanceof Uint8Array) return Buffer.from(content);
+  const binary = content as { buffer?: unknown; data?: unknown } | null;
+  if (binary?.buffer instanceof Uint8Array) return Buffer.from(binary.buffer);
+  if (Array.isArray(binary?.data)) return Buffer.from(binary.data as number[]);
+  throw new Error("Queued email attachment content is unreadable");
+}
+
 function retryDelayMs(attempts: number) {
   const minutes = [1, 5, 30, 120];
   return minutes[Math.min(Math.max(attempts - 1, 0), minutes.length - 1)] * 60_000;
@@ -118,7 +144,7 @@ async function deliverEmailJob(
       $set: { status: "sending", lastAttemptAt: new Date() },
       $inc: { attempts: 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!job) {
     const existing = await EmailDelivery.findById(jobId).select("status").lean();
@@ -139,7 +165,11 @@ async function deliverEmailJob(
       replyTo: job.replyTo,
       html: job.html,
       text: job.text || job.html.replace(/<[^>]*>/g, ""),
-      attachments: job.attachments,
+      attachments: job.attachments?.map((attachment) => ({
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+        content: toAttachmentContent(attachment.content),
+      })),
     });
 
     job.status = "sent";
@@ -220,7 +250,7 @@ export async function retryEmailDelivery(jobId: string) {
       $set: { status: "queued", attempts: 0, nextAttemptAt: new Date() },
       $unset: { lastError: 1 },
     },
-    { new: true },
+    { returnDocument: "after" },
   );
   if (!job) return false;
   return deliverEmailJob(String(job._id));
@@ -238,10 +268,27 @@ export async function sendEmail(options: {
   settings?: ISettingsData;
   attachments?: EmailAttachment[];
   category?: string;
+  /**
+   * The event this email announces, for this recipient. A second call with
+   * the same key queues nothing and reports the first as sent: an event that
+   * fires twice — a courier webhook racing a merchant's "mark shipped" — must
+   * not mail the customer twice, and a guest has no in-app row to remember
+   * that it already did. Checked before the insert as well as enforced by the
+   * unique index, so a store whose index was never built still holds.
+   */
+  dedupeKey?: string;
 }): Promise<boolean> {
   try {
     await connectDB();
     const settings = options.settings;
+    // A store that never set up SMTP has opted out of email: queueing would
+    // only log a failure per event and leave rows for the retry cron to chew.
+    if (!isEmailDeliveryConfigured(settings ?? (await getSettings()))) {
+      return false;
+    }
+    if (options.dedupeKey && (await EmailDelivery.exists({ dedupeKey: options.dedupeKey }))) {
+      return true;
+    }
     const job = await EmailDelivery.create({
       to: options.to,
       subject: options.subject,
@@ -255,11 +302,13 @@ export async function sendEmail(options: {
         contentType: att.contentType || "application/pdf",
       })),
       category: options.category || "transactional",
+      ...(options.dedupeKey ? { dedupeKey: options.dedupeKey } : {}),
       status: "queued",
       nextAttemptAt: new Date(),
     });
     return deliverEmailJob(String(job._id), settings);
   } catch (error) {
+    if ((error as { code?: number } | null)?.code === 11000) return true;
     console.error("Failed to queue email:", sanitizeEmailError(error));
     return false;
   }

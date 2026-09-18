@@ -27,7 +27,10 @@ import {
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/intl/money";
-import { isPurchaseClaimStale } from "@/lib/shipping/carrier-config";
+import {
+  openConsignments,
+  type BookableConsignment,
+} from "./consignment-booking";
 import {
   downloadBlob,
   fetchLabelBlob,
@@ -45,6 +48,8 @@ import {
 
 interface ShipmentRow {
   _id: string;
+  /** Which consignment this parcel belongs to; absent on legacy manual rows. */
+  subOrderId?: string;
   carrier: string;
   service?: string;
   trackingNumber?: string;
@@ -75,7 +80,11 @@ interface ShipmentRow {
 
 interface ShipmentsResponse {
   shipments: ShipmentRow[];
+  /** One entry per seller's part of the order, as the server describes them. */
+  consignments?: BookableConsignment[];
   carriersEnabled: boolean;
+  /** Whether a provider is actually configured, not just the master switch. */
+  carriersConnected?: boolean;
   packages: CourierPackagePreset[];
   storeCurrency?: string;
   courierTrackingLinks?: CourierTrackingLink[];
@@ -220,21 +229,19 @@ export function OrderShipmentsCard(props: {
   if (props.hidden) return null;
 
   const shipments = data?.shipments || [];
-  // One label per parcel. Offering the button once a label exists would only
-  // lead to a refusal at the rates step — and a voided one puts it back, which
-  // is the whole point of voiding.
-  //
-  // A `purchasing` claim counts only while it is fresh. An abandoned one is not
-  // a purchase in progress, and hiding the button for it took away the only
-  // manual way out of a parcel whose worker had died.
-  const alreadyBooked = shipments.some(
-    (shipment) =>
-      shipment.purchase?.state === "purchased" ||
-      (shipment.purchase?.state === "purchasing" &&
-        !isPurchaseClaimStale(shipment.purchase)),
-  );
+  const sendable = openConsignments({
+    consignments: data?.consignments || [],
+    shipments,
+  });
+
   const canSendToCourier =
-    Boolean(data?.carriersEnabled) && !props.readOnly && !alreadyBooked;
+    Boolean(data?.carriersEnabled) &&
+    // The master switch is not a connected carrier. Without this the button sat
+    // on every order of a store that had turned carriers on and configured
+    // neither provider, and said so only after the parcel form was filled in.
+    data?.carriersConnected !== false &&
+    !props.readOnly &&
+    sendable.length > 0;
 
   // Nothing to show and nothing to do — stay out of the way rather than
   // rendering an empty card on every order.
@@ -421,6 +428,7 @@ export function OrderShipmentsCard(props: {
         orderId={props.orderId}
         orderNumber={props.orderNumber}
         subOrderId={props.subOrderId}
+        consignments={sendable}
         packages={data?.packages || []}
         storeCurrency={data?.storeCurrency}
         onPurchased={() => void refresh()}

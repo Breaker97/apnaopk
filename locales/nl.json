@@ -38,6 +38,7 @@
     "yes": "Ja",
     "no": "Nee",
     "close": "Sluiten",
+    "scrollToTop": "Naar boven scrollen",
     "back": "Terug",
     "next": "Volgende",
     "previous": "Vorige",
@@ -121,7 +122,8 @@
     "decreaseQuantity": "Aantal verlagen",
     "increaseQuantity": "Aantal verhogen",
     "name": "Naam",
-    "email": "E-mail"
+    "email": "E-mail",
+    "showingResultsFor": "Resultaten voor <q>{query}</q>"
   },
   "nav": {
     "home": "Startpagina",
@@ -217,6 +219,57 @@
     "quoteMessageOptional": "Bericht (optioneel)",
     "quoteMessagePlaceholder": "Aantallen, leverdatum, specificatie…"
   },
+  "reviews": {
+    "basedOn": "Gebaseerd op {count} beoordelingen",
+    "writeReview": "Schrijf een beoordeling",
+    "writeReviewCta": "Schrijf een beoordeling!",
+    "noReviews": "Nog geen beoordelingen",
+    "beFirst": "Beoordeel dit product als eerste",
+    "verified": "Geverifieerde aankoop",
+    "rating": "Score",
+    "all": "Alle",
+    "highlyRecommended": "Sterk aanbevolen",
+    "postedBy": "Geplaatst {time} door {name}",
+    "postedTime": "Geplaatst {time}",
+    "brandResponse": "Reactie van het merk",
+    "showingRange": "{from} - {to} van {total} beoordelingen",
+    "anonymous": "Anoniem",
+    "checkingEligibility": "Je bestellingen worden gecontroleerd...",
+    "comment": "Je beoordeling *",
+    "commentPlaceholder": "Deel je ervaring met dit product",
+    "commentTooShort": "De opmerking moet minstens 10 tekens lang zijn",
+    "dropzoneHint": "Afbeeldingen tot 10 MB per stuk.",
+    "dropzonePrimary": "Sleep bestanden hierheen of klik om te bladeren",
+    "eligibleOrderRequired": "Je kunt dit product pas beoordelen nadat het in een van je bestellingen is bezorgd.",
+    "imageTooLarge": "Elke afbeelding moet kleiner zijn dan 10 MB",
+    "imageUploadFailed": "Uploaden van afbeelding mislukt",
+    "invalidImage": "Alleen afbeeldingsbestanden zijn toegestaan",
+    "loginToReview": "Log in om een beoordeling voor dit product te schrijven.",
+    "maxImages": "Je kunt maximaal 4 afbeeldingen uploaden",
+    "noReviewsForRating": "Nog geen beoordelingen met deze score",
+    "oldest": "Oudste",
+    "photos": "Afbeeldingen",
+    "selectRating": "Kies een score",
+    "submit": "Beoordeling plaatsen",
+    "submitFailed": "Beoordeling plaatsen mislukt",
+    "submitted": "Beoordeling geplaatst!",
+    "title": "Titel",
+    "titlePlaceholder": "Vat je beoordeling samen",
+    "writeReviewHint": "Je e-mailadres wordt niet gepubliceerd. Verplichte velden zijn gemarkeerd met een sterretje (*).",
+    "yourRating": "Je score",
+    "pendingTitle": "Beoordeel je aankopen",
+    "pendingDescription": "Je bestellingen zijn aangekomen. Laat andere shoppers weten wat je ervan vindt.",
+    "deliveredOn": "Bezorgd op {date}",
+    "rateStar": "Geef {count} van de 5",
+    "showMore": "Toon nog {count}",
+    "showFewer": "Toon minder",
+    "fromOrder": "Bestelling #{orderNumber}",
+    "orderPromptTitle": "Hoe was je bestelling?",
+    "orderPromptOne": "Schrijf een korte beoordeling van {name} — dat helpt andere shoppers.",
+    "orderPromptMany": "{count} artikelen uit deze bestelling wachten op je beoordeling.",
+    "youRated": "Jouw score",
+    "alreadyReviewed": "Je hebt dit product al beoordeeld. Bedankt voor het delen van je ervaring!"
+  },
   "cart": {
     "yourCart": "Jouw winkelwagen",
     "shoppingCart": "Winkelwagen",
@@ -277,10 +330,11 @@
       "payWhenReceive": "Betaal bij ontvangst",
       "mtnMomoDetail": "Betaal met MTN Mobile Money. Je ontvangt een verzoek op je telefoon dat je goedkeurt met je MoMo-pincode.",
       "mtnMomoPhoneLabel": "Mobile-money-nummer",
-      "mtnMomoPhonePlaceholder": "bijv. 0772 123 456",
+      "mtnMomoPhonePlaceholder": "bijv. {example}",
       "mtnMomoPhoneHint": "Voer het MTN-nummer in dat wordt belast. Op die telefoon verschijnt een goedkeuringsverzoek."
     },
-    "switchToPickup": "Overschakelen naar afhalen"
+    "switchToPickup": "Overschakelen naar afhalen",
+    "enterAddressForShipping": "Vul je verzendadres in om de beschikbare verzendmethoden te zien."
   },
   "orders": {
     "myOrders": "Mijn bestellingen",
@@ -315,7 +369,8 @@
       "partially_paid": "Deels betaald",
       "refunded": "Terugbetaald",
       "partially_refunded": "Deels terugbetaald"
-    }
+    },
+    "importDuties": "Invoerrechten"
   },
   "auth": {
     "welcomeBack": "Welkom terug",
@@ -1595,7 +1650,9 @@
       "payments": "Betalingen",
       "transactions": "Transacties",
       "financeReports": "Rapporten",
-      "quotes": "Offertes"
+      "quotes": "Offertes",
+      "traffic": "Verkeer",
+      "searchInsights": "Zoekinzichten"
     },
     "seoChecklist": {
       "title": "SEO-checklist",
@@ -1686,7 +1743,6 @@
         "live": "Live",
         "unsaved": "Niet-opgeslagen wijzigingen"
       },
-      "subtitle": "De checkout behoudt zijn bewezen flow — geef hem hier je merk. Stappen kunnen niet worden herschikt, zodat betalingen nooit breken.",
       "themeLink": "Thema-instellingen",
       "title": "Checkout",
       "toast": {
@@ -1718,7 +1774,21 @@
       },
       "brand": {
         "description": "Beheer het footerlogo, de beschrijving, de breedte en de kleuren.",
-        "title": "Merk en indeling"
+        "title": "Merk en indeling",
+        "logoSourceLabel": "Bron van het footerlogo",
+        "storeLogo": "Winkellogo (aanbevolen)",
+        "storeLogoDescription": "Gebruikt je Huisstijl-logo's en wisselt net als de header tussen lichte en donkere modus.",
+        "customLogo": "Eigen footerlogo",
+        "customLogoDescription": "Upload alleen voor de footer een ander ontwerp.",
+        "synced": "Gesynchroniseerd met Huisstijl",
+        "editBranding": "Bewerken in Huisstijl",
+        "lightLogo": "Logo lichte modus",
+        "darkLogo": "Logo donkere modus",
+        "logoNotSet": "Niet geüpload",
+        "customLogoHint": "Deze logo's gelden alleen voor de footer. Zonder logo voor de donkere modus verschijnt het footerlogo in beide modi; zonder beide worden je winkellogo's gebruikt.",
+        "matchHeaderSize": "Zelfde grootte als het headerlogo",
+        "matchHeaderSizeHint": "Volgt de header: {desktop}px breed op grote schermen, {mobile}px op telefoons.",
+        "logoThemeAuto": "Automatisch (past bij de footerachtergrond)"
       },
       "colors": {
         "dark": "Kleuren donkere modus",
@@ -1753,6 +1823,9 @@
         "email": "E-mail",
         "footerBackgroundColor": "Achtergrondkleur footer",
         "footerLogo": "Footerlogo",
+        "footerDarkLogo": "Footerlogo (donkere modus)",
+        "logoWidth": "Logobreedte",
+        "logoTheme": "Getoond logo",
         "footerTextColor": "Tekstkleur footer",
         "fullWidthFooter": "Footer op volledige breedte",
         "imageAlt": "Alt-tekst afbeelding",
@@ -2064,6 +2137,11 @@
           "description": "Redactionele beeldtaal voor premium mode-, beauty- en lifestylemerken.",
           "name": "Fashion",
           "styleNote": "Gericht op visuele merchandising en verfijnde collectieverhalen."
+        },
+        "women-fashion": {
+          "description": "Redactionele modepresentatie: campagnebeelden over de volle breedte, lookbooktegels en seizoensselecties.",
+          "name": "Women Fashion",
+          "styleNote": "Gemaakt voor kleding, schoenen en accessoires — beeld voorop, de interface op de achtergrond."
         }
       },
       "title": "Thema's"
@@ -2236,6 +2314,7 @@
       "publishPageTitle": "Deze pagina publiceren?",
       "publishTitle": "Homepage publiceren?",
       "published": "Homepage gepubliceerd",
+      "duplicateSection": "Sectie dupliceren",
       "removeSection": "Sectie verwijderen",
       "requiredSection": "Vereist",
       "restore": "Herstellen",
@@ -2532,6 +2611,9 @@
       "guest": "Gast",
       "guest_customers_have_no_account_status": "Gastklanten hebben geen accountstatus",
       "last_order": "Laatste bestelling"
+    },
+    "dashboardPage": {
+      "ordersDescription": "Totalen voor de gekozen periode, verdeeld per verkoopkanaal."
     }
   },
   "aiStudioHub": {
@@ -2772,6 +2854,7 @@
     },
     "chatWithVendor": "Chat met verkoper",
     "chatWithStore": "Chat met winkel",
+    "chatWithSeller": "Chat met verkoper",
     "startConversation": "Een gesprek starten",
     "startDescription": "Vraag naar beschikbaarheid, levering, varianten of iets anders.",
     "writeMessage": "Schrijf een bericht…",
@@ -3091,7 +3174,6 @@
       "canceled": "De betaling is geannuleerd. Probeer het opnieuw.",
       "failed": "Kon de betaling niet starten",
       "loadFailed": "Positieladder kon niet worden geladen",
-      "verifyFailed": "De betaling kon niet worden geverifieerd",
       "pollTimeout": "We konden de betaling nog niet bevestigen. De boost wordt automatisch geactiveerd zodra dat lukt.",
       "stepSlot": "Plek & data",
       "pickSlot": "Kies een positie en data",
@@ -3277,7 +3359,12 @@
         "refunded": "Terugbetaald"
       }
     },
-    "boosts": "Boosts"
+    "boosts": "Boosts",
+    "awaitingPayment": "{amount} wacht op betaling",
+    "openOrdersCount": "{count} open",
+    "fulfillmentStatus": {
+      "preordered": "Voorbesteld"
+    }
   },
   "install": {
     "adminEmail": "E-mail",
@@ -3285,7 +3372,6 @@
     "adminPassword": "Wachtwoord",
     "adminTitle": "Maak je beheerdersaccount",
     "appUrl": "App-URL",
-    "appUrlHint": "Stel NEXT_PUBLIC_APP_URL in .env in op de URL van je winkel",
     "blockedHint": "Los de bovenstaande punten op en controleer opnieuw — de installatie kan pas doorgaan als ze slagen.",
     "retry": "Opnieuw controleren",
     "authSecret": "Auth-geheim",
@@ -3324,7 +3410,7 @@
       "secretAccessKey": "Secret access key",
       "publicUrl": "Publieke URL"
     },
-    "nodeTooOld": "Node.js 22 of nieuwer is vereist",
+    "nodeTooOld": "Node.js 22.12 of nieuwer is vereist",
     "storeName": "Winkelnaam",
     "storeTitle": "Winkelbasis",
     "subtitle": "Een paar stappen en je verkoopt",
@@ -3348,5 +3434,12 @@
     "short": "Vergelijken",
     "bar": "{count} vergelijken",
     "clear": "Wissen"
+  },
+  "productsPage": {
+    "filters": {
+      "sortOptions": {
+        "bestMatch": "Relevantie"
+      }
+    }
   }
 }

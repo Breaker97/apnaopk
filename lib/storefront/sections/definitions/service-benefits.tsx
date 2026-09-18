@@ -1,14 +1,52 @@
 import {
   SERVICE_BENEFIT_ICONS,
   ServiceBenefits,
+  type ServiceBenefitItem,
 } from "@/components/store/sections/service-benefits";
+import { ElectronicsServiceBenefits } from "@/components/store/sections/themes/electronics-service-benefits";
 import { lt } from "../localized";
-import type { LocalizedText, SectionDefinition } from "../types";
+import type {
+  BlockInstance,
+  LocalizedText,
+  SectionDefinition,
+  SectionRenderContext,
+} from "../types";
+
+/** The visible perks, resolved once for whichever design draws them. */
+function benefitItems(
+  blocks: BlockInstance[],
+  ctx: SectionRenderContext,
+): ServiceBenefitItem[] {
+  return blocks
+    .filter((block) => block.visible)
+    .map((block) => ({
+      id: block.id,
+      icon: block.settings.icon as string,
+      title: lt(block.settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage),
+      text: lt(block.settings.text as LocalizedText, ctx.locale, ctx.defaultLanguage),
+    }));
+}
 
 export const serviceBenefits: SectionDefinition = {
   type: "service-benefits",
   version: 1,
   category: "content",
+  // Two drawings of the same perks; the active template picks one.
+  designFollowsTheme: true,
+  variants: [
+    {
+      key: "classic",
+      name: "Classic",
+      Render: ({ blocks, ctx }) => <ServiceBenefits items={benefitItems(blocks, ctx)} />,
+    },
+    {
+      key: "electronics",
+      name: "Spec bar",
+      Render: ({ blocks, ctx }) => (
+        <ElectronicsServiceBenefits items={benefitItems(blocks, ctx)} />
+      ),
+    },
+  ],
   fields: [],
   blocks: [
     {
@@ -63,17 +101,6 @@ export const serviceBenefits: SectionDefinition = {
     ],
   },
   Render({ blocks, ctx }) {
-    return (
-      <ServiceBenefits
-        items={blocks
-          .filter((block) => block.visible)
-          .map((block) => ({
-            id: block.id,
-            icon: block.settings.icon as string,
-            title: lt(block.settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage),
-            text: lt(block.settings.text as LocalizedText, ctx.locale, ctx.defaultLanguage),
-          }))}
-      />
-    );
+    return <ServiceBenefits items={benefitItems(blocks, ctx)} />;
   },
 };

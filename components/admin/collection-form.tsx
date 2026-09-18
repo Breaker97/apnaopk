@@ -50,6 +50,7 @@ const collectionSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
   description: z.string().max(5000).optional(),
   collectionType: z.enum(["manual", "automated"]),
+  kind: z.enum(["collection", "look"]),
   status: z.enum(["active", "draft"]),
   sortOrder: z.enum([
     "manual",
@@ -106,6 +107,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
       title: "",
       description: "",
       collectionType: "manual",
+      kind: "collection",
       status: "draft",
       sortOrder: "manual",
       position: 0,
@@ -152,6 +154,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
             title: collection.title,
             description: collection.description || "",
             collectionType: collection.collectionType,
+            kind: collection.kind === "look" ? "look" : "collection",
             status: collection.status,
             sortOrder: collection.sortOrder,
             position: collection.position || 0,
@@ -208,6 +211,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
         title: data.title,
         description: data.description,
         collectionType: data.collectionType,
+        kind: data.kind,
         status: data.status,
         sortOrder: data.sortOrder,
         position: data.position,
@@ -493,6 +497,76 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
             </Card>
 
             {/* Collection Type */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Kind</CardTitle>
+                <CardDescription>
+                  A Look is a styled outfit — its image and the pieces in it.
+                  The storefront&apos;s Get the Look and Looks sections draw
+                  from Looks; everything else works like any collection.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="kind"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="grid grid-cols-2 gap-4">
+                          {(
+                            [
+                              {
+                                value: "collection",
+                                title: "Collection",
+                                hint: "A shelf of products",
+                              },
+                              {
+                                value: "look",
+                                title: "Look",
+                                hint: "An outfit: image + pieces",
+                              },
+                            ] as const
+                          ).map((option) => (
+                            <div
+                              key={option.value}
+                              className={`rounded-md border-2 p-4 hover:bg-accent ${
+                                field.value === option.value
+                                  ? "border-primary"
+                                  : "border-muted"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                id={`kind-${option.value}`}
+                                value={option.value}
+                                name="kind"
+                                checked={field.value === option.value}
+                                onChange={() => field.onChange(option.value)}
+                                className="sr-only"
+                              />
+                              <Label
+                                htmlFor={`kind-${option.value}`}
+                                className="flex flex-col items-center justify-center cursor-pointer gap-1 w-full"
+                              >
+                                <span className="text-lg font-semibold">
+                                  {option.title}
+                                </span>
+                                <span className="text-sm text-muted-foreground text-center">
+                                  {option.hint}
+                                </span>
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Collection Type</CardTitle>

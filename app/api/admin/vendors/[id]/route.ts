@@ -902,7 +902,7 @@ export const PUT = withApi<{ id: string }>(
         $set: updates,
         ...(Object.keys(unsetFields).length ? { $unset: unsetFields } : {}),
       },
-      { new: true },
+      { returnDocument: "after" },
     ).populate("user", "name email status emailVerified");
 
     if (!vendor) {

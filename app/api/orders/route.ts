@@ -39,7 +39,6 @@ import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
 import { PURCHASE_TYPE } from "@/lib/orders/preorders";
 import { isStorefrontProductSourceAllowed } from "@/lib/catalog/product-visibility";
 import { productAllowsOversell } from "@/lib/products/stock-policy";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
 import {
   buildVendorSubOrders,
   getOrderItemVendorId,
@@ -57,10 +56,19 @@ import {
   type VariantShippingData,
 } from "@/lib/catalog/product-shipping";
 import { withApi } from "@/lib/api/handler";
+import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
+import {
+  bindOffersToOrder,
+  loadShopperOffers,
+  matchOffersToLines,
+  quoteOfferLineKey,
+} from "@/lib/quotes/quote-offer";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { sanitizeOrdersForCustomer } from "@/lib/orders/order-customer-view";
-import { roundMoney } from "@/lib/intl/money";
+import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
+import { assertCashOnDeliveryAllowed } from "@/lib/checkout/cod-eligibility";
+import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
 import { z } from "zod";
 import { validateBody } from "@/lib/api/validate";
 
@@ -140,7 +148,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await validateBody(request, DirectOrderBodySchema);
-    const { billingAddress, paymentMethod, notes } = body;
+    const { billingAddress, notes } = body;
     let { shippingAddress } = body;
     // The shopper's chosen rate(s). Only ids are accepted — they are looked up
     // in the options the server itself just computed, so an unknown or tampered
@@ -162,21 +170,23 @@ export async function POST(request: NextRequest) {
     // Digital-only carts don't need a shipping address — enforced below once
     // the cart items are inspected for shippability.
 
-    // This route only creates orders that are settled outside a gateway.
-    // paymentMethod is stored verbatim and later drives refund routing, so an
-    // arbitrary string would create an order no refund path can handle.
-    const allowedPaymentMethods = new Set(["cod", "manual"]);
-    if (!allowedPaymentMethods.has(String(paymentMethod || "").toLowerCase())) {
+    // This route only creates cash-on-delivery orders. "manual" used to be
+    // accepted too, but it records money the store collected itself — a
+    // shopper choosing it placed an unpaid order that held stock and read as
+    // settled by hand. The method is stored in its canonical casing, because
+    // refund routing and the COD bookkeeping below compare it exactly.
+    if (String(body.paymentMethod || "").trim().toLowerCase() !== "cod") {
       throw new ValidationError(
         "Unsupported payment method for direct order placement",
       );
     }
+    const paymentMethod = "cod";
 
     // Get user's cart with product details for validation
     const cart = await Cart.findOne({ userId: session.user.id })
       .populate(
         "items.productId",
-        "name price images vendorId sku status stock inventory slug productSource shipping variants",
+        "name price images vendorId sku status stock inventory slug productSource shipping variants priceOnRequest",
       )
       .lean();
 
@@ -193,6 +203,7 @@ export async function POST(request: NextRequest) {
         stock?: number;
         inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
         vendorId?: unknown;
+        priceOnRequest?: boolean;
         productSource?: unknown;
         shipping?: ProductShippingData;
         variants?: Array<
@@ -227,6 +238,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Which lines this shopper holds a live quote price for. A "price on
+    // request" product carries price 0 on its document, so the resolver below
+    // would price it free; the offer is the only number it may ever be sold
+    // at, and the validation loop refuses such a line without one.
+    const cartLineIdentities = cartItems.map((item) => ({
+      productId: item.productId?._id || item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+    }));
+    const quoteOffers = matchOffersToLines(
+      cartLineIdentities,
+      await loadShopperOffers(session.user.id, {
+        productIds: cartLineIdentities
+          .map((line) => String(line.productId ?? ""))
+          .filter(Boolean),
+      }),
+    );
+    const offerForItem = (item: (typeof cartItems)[number]) =>
+      quoteOffers.get(
+        quoteOfferLineKey(item.productId?._id || item.productId, item.variantId),
+      );
+
     // Resolve the authoritative, variant-aware unit price from the live product
     // document. product.price is only the MIN variant price (a "from $X" display
     // mirror), so it must never be used for a specific variant line. Using one
@@ -235,6 +268,9 @@ export async function POST(request: NextRequest) {
     const resolveCurrentItemPrice = (item: (typeof cartItems)[number]): number => {
       const product = item.productId;
       if (!product) return item.price ?? 0;
+      // A quoted line is priced by the merchant's offer, not by the catalogue.
+      const offer = offerForItem(item);
+      if (offer) return offer.unitPrice;
       if (item.variantId && Array.isArray(product.variants)) {
         const variant = product.variants.find(
           (candidate) => candidate._id.toString() === String(item.variantId),
@@ -295,6 +331,16 @@ export async function POST(request: NextRequest) {
         );
         continue;
       }
+      // Sold by quote and the offer is gone — withdrawn, expired, re-quoted at
+      // a different quantity, or already spent on another order. Refusing here
+      // is what stops the price resolver falling back to the product's 0 and
+      // placing the order for nothing.
+      if (isQuoteOnlyProduct(item.productId) && !offerForItem(item)) {
+        invalidItems.push(
+          `The quoted price for "${item.productId.name || "Unknown"}" is no longer available`
+        );
+        continue;
+      }
       // Only products whose stock is a real limit can run out — a digital
       // download or a product with tracking off would otherwise be rejected
       // here at 0 despite its buy box and the cart both allowing it.
@@ -312,6 +358,15 @@ export async function POST(request: NextRequest) {
     if (invalidItems.length > 0) {
       throw new ValidationError(
         `Cart validation failed: ${invalidItems.join("; ")}`
+      );
+    }
+    // A suspended vendor or a lapsed store takes no new orders — the storefront
+    // checkout refuses them, and so does this route.
+    if (isMultiVendorEnabled) {
+      await assertCartVendorsSellable(
+        cartItems.map((item) =>
+          item.productId?.vendorId ? String(item.productId.vendorId) : null,
+        ),
       );
     }
 
@@ -396,17 +451,6 @@ export async function POST(request: NextRequest) {
     }
     const digitalOnly = !hasShippableItems;
 
-    // Digital deliverables release off the order itself, not off a courier
-    // hand-over, so any digital line on a COD order would be handed over before
-    // the cash is collected — and on a mixed order the shopper could keep the
-    // files and refuse the parcel. Compared case-insensitively because the
-    // allow-list above accepts any casing and stores it verbatim.
-    if (hasDigitalItems && String(paymentMethod).toLowerCase() === "cod") {
-      throw new ValidationError(
-        "Cash on Delivery is not available for orders that include digital items",
-      );
-    }
-
     // The same resolver every gateway checkout path uses, so a COD order is
     // priced, rated per vendor, and charged duty exactly like a card order.
     const shippingResolution = hasShippableItems
@@ -431,8 +475,23 @@ export async function POST(request: NextRequest) {
     const shippingCost = shippingResolution?.shippingCost ?? 0;
     const customsEstimate = shippingResolution?.customs;
     const dutyAmount = customsEstimate?.dutyAmount ?? 0;
-    const tax = roundMoney(subtotal * taxRate);
-    const total = subtotal + shippingCost + tax + dutyAmount;
+    // Tax and total are worked out by the same function, and rounded in the
+    // store currency the same way, as the storefront checkout.
+    const totals = calculateCheckoutTotals({
+      subtotal,
+      shippingCost,
+      taxRate,
+      currency: settings.general?.defaultCurrency,
+    });
+    const tax = totals.tax;
+    const total = totals.total + dutyAmount;
+    // The store's own cash-on-delivery rules: switched off, a minimum, a
+    // maximum a courier may carry, and no digital lines.
+    assertCashOnDeliveryAllowed({
+      settings: settings.payment?.cod,
+      total,
+      hasDigitalItems,
+    });
 
     // Generate order number (with retry for uniqueness)
 
@@ -496,6 +555,9 @@ export async function POST(request: NextRequest) {
         }),
         quantity: item.quantity,
         image: item.image,
+        // Ties the sale back to the negotiation that produced it, and is what
+        // settling the payment reads to close the quote out.
+        quoteId: offerForItem(item)?.quoteId,
         customs: item.productId
           ? buildOrderItemCustomsSnapshot({
               productShipping: item.productId.shipping,
@@ -580,14 +642,6 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
-    revalidateProductContent({
-      slugs: cartItems
-        .map((item) => (item.productId as { slug?: string } | null)?.slug)
-        .filter(
-          (slug): slug is string =>
-            typeof slug === "string" && slug.length > 0,
-        ),
-    });
 
     let order;
     try {
@@ -624,27 +678,36 @@ export async function POST(request: NextRequest) {
       console.error("Failed to mark inventory reserved on order:", err),
     );
 
-    if (paymentMethod === "cod") {
-      await ensurePendingChargeTransaction({
-        _id: String(order._id),
-        orderNumber: order.orderNumber,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
-        paymentId: order.paymentId,
-        stripePaymentIntentId: order.stripePaymentIntentId,
-        paypalCaptureId: order.paypalCaptureId,
-        subtotal: order.subtotal,
-        shippingCost: order.shippingCost,
-        tax: order.tax,
-        discount: order.discount,
-        total: order.total,
-        currency: settings.general?.defaultCurrency,
-        channel: order.channel || "online",
-        createdAt: order.createdAt,
-      }).catch((err) => {
-        console.error("Failed to sync pending COD payment transaction:", err);
-      });
-    }
+    // Spend the quoted prices this order was placed on. Marked won here rather
+    // than at capture because nothing captures on this route — cash on
+    // delivery is an obligation from the moment the order exists.
+    await bindOffersToOrder(
+      Array.from(quoteOffers.values()).map((offer) => offer.quoteId),
+      String(order._id),
+      { won: true },
+    ).catch((err) =>
+      console.error("Failed to close quote offers on order:", err),
+    );
+
+    await ensurePendingChargeTransaction({
+      _id: String(order._id),
+      orderNumber: order.orderNumber,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      paymentId: order.paymentId,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      paypalCaptureId: order.paypalCaptureId,
+      subtotal: order.subtotal,
+      shippingCost: order.shippingCost,
+      tax: order.tax,
+      discount: order.discount,
+      total: order.total,
+      currency: settings.general?.defaultCurrency,
+      channel: order.channel || "online",
+      createdAt: order.createdAt,
+    }).catch((err) => {
+      console.error("Failed to sync pending COD payment transaction:", err);
+    });
 
     await Cart.deleteOne({ userId: session.user.id });
 

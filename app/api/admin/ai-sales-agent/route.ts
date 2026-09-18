@@ -9,6 +9,10 @@ import {
   normalizeAISalesAgentSettings,
 } from "@/lib/ai-sales-agent/settings";
 import {
+  getAISalesUsage,
+  isTokenBudgetExhausted,
+} from "@/lib/ai-sales-agent/usage";
+import {
   AI_SALES_AGENT_MODEL_IDS,
   AI_SALES_AGENT_REASONING_EFFORTS,
   AI_SALES_AGENT_TONES,
@@ -59,6 +63,13 @@ function sanitizeUpdate(data: unknown) {
       throw new ValidationError("Invalid recommendation limit");
     }
     next.maxRecommendations = Math.round(value);
+  }
+  if (data.monthlyTokenBudget !== undefined) {
+    const value = Number(data.monthlyTokenBudget);
+    if (!Number.isFinite(value) || value < 0 || value > 1e12) {
+      throw new ValidationError("Invalid monthly token budget");
+    }
+    next.monthlyTokenBudget = Math.floor(value);
   }
   if (data.tone !== undefined) {
     if (typeof data.tone !== "string" || !ALLOWED_TONES.has(data.tone)) {
@@ -173,6 +184,7 @@ export const GET = withApi(
       recent7Count,
       recent30Count,
       activeCount,
+      usage,
     ] = await Promise.all([
       AISalesConversation.find({})
         .sort({ updatedAt: -1 })
@@ -198,7 +210,9 @@ export const GET = withApi(
         lastMessageAt: { $gte: last30Days },
       }),
       AISalesConversation.countDocuments({ status: "active" }),
+      getAISalesUsage(),
     ]);
+    const aiSettings = normalizeAISalesAgentSettings(settings.aiSalesAgent);
 
     const stats = (totals[0] as
       | { totalConversations: number; totalMessages: number; totalActions: number }
@@ -209,9 +223,19 @@ export const GET = withApi(
     };
 
     return successResponse({
-      settings: normalizeAISalesAgentSettings(settings.aiSalesAgent),
+      settings: aiSettings,
       configured: isOpenAIConfigured(settings.aiAuthoring),
       faviconUrl: settings.general?.faviconUrl || "",
+      // This month's spend against the budget, so the page can say where the
+      // store stands before the widget goes quiet.
+      usage: {
+        ...usage,
+        budget: aiSettings.monthlyTokenBudget,
+        exhausted: isTokenBudgetExhausted(
+          aiSettings.monthlyTokenBudget,
+          usage.totalTokens,
+        ),
+      },
       stats: {
         totalConversations: stats.totalConversations,
         totalMessages: stats.totalMessages,

@@ -41,6 +41,12 @@ const CartItemSchema = new Schema<CartItem>({
     enum: ["standard", "preorder"],
     default: "standard",
   },
+  // Quote-priced line: see lib/quotes/quote-offer.ts. Stored so the cart can
+  // point back at the offer; the amount is always re-read from it.
+  quoteId: {
+    type: Schema.Types.ObjectId,
+    ref: "QuoteRequest",
+  },
   preorderReleaseDate: {
     type: Date,
   },
@@ -256,6 +262,11 @@ const CartSchema = new Schema<ICart>(
     emailSentAt: {
       type: Date,
     },
+    // Claimed by the recovery-email sweep before it sends, so two overlapping
+    // runs cannot mail the same shopper twice.
+    recoveryEmailClaimedAt: {
+      type: Date,
+    },
     recoveredAt: {
       type: Date,
     },
@@ -273,6 +284,12 @@ const CartSchema = new Schema<ICart>(
     // payment ship goods.
     rejectedPaymentIntentIds: {
       type: [String],
+      default: undefined,
+    },
+    // The order note and checkout-field answers a Stripe checkout was quoted
+    // with; the Stripe finalizer copies them onto the order it creates.
+    checkoutDetails: {
+      type: Schema.Types.Mixed,
       default: undefined,
     },
   },

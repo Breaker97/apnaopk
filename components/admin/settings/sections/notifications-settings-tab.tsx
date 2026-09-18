@@ -1,12 +1,23 @@
 "use client";
 
-import { Bell, Mail, MonitorSmartphone } from "lucide-react";
+import Link from "next/link";
+import { useLocale } from "next-intl";
+import {
+  AlertTriangle,
+  Bell,
+  Mail,
+  MessageSquareText,
+  MonitorSmartphone,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import type {
   NotificationChannelSettings,
   Settings,
 } from "@/components/admin/settings/types";
+import { isSmsConfigured } from "@/components/admin/settings/settings-sections";
+import { hasAnySmsNotification } from "@/lib/notifications/notification-settings";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
 
@@ -27,12 +38,21 @@ const channels: Array<{
   { key: "inApp", label: "In-app", icon: Bell },
   { key: "email", label: "Email", icon: Mail },
   { key: "browserPush", label: "Push", icon: MonitorSmartphone },
+  { key: "sms", label: "SMS", icon: MessageSquareText },
 ];
+
+/**
+ * Four switch columns do not fit beside an event name on a phone, so below
+ * `sm` each row stacks: the event, then its switches with their own labels.
+ */
+const ROW_GRID =
+  "sm:grid sm:grid-cols-[minmax(0,1fr)_repeat(4,64px)] sm:items-center sm:gap-3";
 
 function NotificationGroup(props: {
   title: string;
   description: string;
   rows: NotificationRow[];
+  smsReady: boolean;
   updateNestedField: (path: string, value: unknown) => void;
 }) {
   return (
@@ -43,7 +63,12 @@ function NotificationGroup(props: {
       </div>
 
       <div className="overflow-hidden rounded-lg border">
-        <div className="grid grid-cols-[minmax(0,1fr)_72px_72px_72px] items-center gap-3 border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
+        <div
+          className={cn(
+            "hidden border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground",
+            ROW_GRID,
+          )}
+        >
           <span>Event</span>
           {channels.map((channel) => {
             const Icon = channel.icon;
@@ -62,7 +87,10 @@ function NotificationGroup(props: {
         {props.rows.map((row, index) => (
           <div
             key={row.path}
-            className="grid grid-cols-[minmax(0,1fr)_72px_72px_72px] items-center gap-3 px-4 py-3 text-sm data-[border=true]:border-t"
+            className={cn(
+              "space-y-3 px-4 py-3 text-sm data-[border=true]:border-t sm:space-y-0",
+              ROW_GRID,
+            )}
             data-border={index > 0}
           >
             <div className="min-w-0">
@@ -71,20 +99,34 @@ function NotificationGroup(props: {
                 {row.description}
               </p>
             </div>
-            {channels.map((channel) => (
-              <div key={channel.key} className="flex justify-center">
-                <Switch
-                  aria-label={`${row.title} ${channel.label}`}
-                  checked={row.settings[channel.key]}
-                  onCheckedChange={(checked) =>
-                    props.updateNestedField(
-                      `${row.path}.${channel.key}`,
-                      checked,
-                    )
-                  }
-                />
-              </div>
-            ))}
+            <div className="grid grid-cols-4 gap-2 sm:contents">
+              {channels.map((channel) => {
+                const Icon = channel.icon;
+                const disabled = channel.key === "sms" && !props.smsReady;
+                return (
+                  <label
+                    key={channel.key}
+                    className="flex flex-col items-center gap-1 text-[11px] text-muted-foreground sm:block sm:text-center"
+                  >
+                    <span className="inline-flex items-center gap-1 sm:hidden">
+                      <Icon className="h-3 w-3" />
+                      {channel.label}
+                    </span>
+                    <Switch
+                      aria-label={`${row.title} ${channel.label}`}
+                      checked={row.settings[channel.key]}
+                      disabled={disabled}
+                      onCheckedChange={(checked) =>
+                        props.updateNestedField(
+                          `${row.path}.${channel.key}`,
+                          checked,
+                        )
+                      }
+                    />
+                  </label>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
@@ -100,7 +142,10 @@ export function NotificationsSettingsTab(props: {
   onSave: () => void | Promise<unknown>;
 }) {
   const { settings, isSaving, isDirty, updateNestedField, onSave } = props;
+  const locale = useLocale();
   const notifications = settings.notifications;
+  const smsReady = isSmsConfigured(settings);
+  const smsSelected = hasAnySmsNotification(notifications);
 
   const adminRows: NotificationRow[] = [
     {
@@ -133,6 +178,12 @@ export function NotificationsSettingsTab(props: {
       path: "notifications.admin.payments",
       settings: notifications.admin.payments,
     },
+    {
+      title: "Pre-order access requests",
+      description: "Notify admins when a vendor asks to sell pre-orders.",
+      path: "notifications.admin.preorderAccessRequests",
+      settings: notifications.admin.preorderAccessRequests,
+    },
   ];
 
   const vendorRows: NotificationRow[] = [
@@ -153,6 +204,13 @@ export function NotificationsSettingsTab(props: {
       description: "Notify vendors when a return request belongs to them.",
       path: "notifications.vendor.returns",
       settings: notifications.vendor.returns,
+    },
+    {
+      title: "Vendor pre-order access",
+      description:
+        "Notify vendors when their pre-order access is approved, declined or withdrawn.",
+      path: "notifications.vendor.preorderAccess",
+      settings: notifications.vendor.preorderAccess,
     },
   ];
 
@@ -212,33 +270,64 @@ export function NotificationsSettingsTab(props: {
     <div className="space-y-4">
       <SettingsTabHeader
         title="Notification Settings"
-        description="Choose which events create dashboard notifications, emails, and browser push alerts."
+        description="Choose which events create dashboard notifications, emails, push alerts and text messages."
       />
 
       <Card>
         <CardContent className="space-y-6">
+          {!smsReady && (
+            <div
+              className={cn(
+                "flex items-start gap-2 rounded-lg border p-3 text-sm",
+                smsSelected
+                  ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100"
+                  : "bg-muted/40 text-muted-foreground",
+              )}
+            >
+              {smsSelected ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <p>
+                {smsSelected
+                  ? "Some events are set to send a text, but SMS is switched off or not fully set up, so none will go out. "
+                  : "To send text messages, set up Twilio first. "}
+                <Link
+                  href={`/${locale}/admin/settings/sms`}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  SMS settings
+                </Link>
+              </p>
+            </div>
+          )}
           <NotificationGroup
             title="Admin notifications"
             description="Events that should alert the store admin team."
             rows={adminRows}
+            smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
           <NotificationGroup
             title="Vendor notifications"
             description="Events sent to vendor accounts."
             rows={vendorRows}
+            smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
           <NotificationGroup
             title="Staff notifications"
             description="Events sent to active staff based on their module permissions."
             rows={staffRows}
+            smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
           <NotificationGroup
             title="Customer notifications"
             description="Events sent to customer accounts."
             rows={customerRows}
+            smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
 

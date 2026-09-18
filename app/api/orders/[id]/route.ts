@@ -1,19 +1,19 @@
 import { Order } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { AuthorizationError } from "@/lib/api/errors";
-import { restoreOrderInventory } from "@/lib/orders/order-inventory";
-import { releaseOrderPreorders } from "@/lib/orders/preorders";
-import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
-import { auditOrderCancelled, customerActor } from "@/lib/orders/audit-order";
+import { customerActor } from "@/lib/orders/audit-order";
+import { cancelOrderForCustomer } from "@/lib/orders/customer-cancel";
 import { withApi } from "@/lib/api/handler";
-import { ORDER_STATUS } from "@/config/app.config";
-import {
-  buildOrderStatusUpdates,
-  subOrderUpdateOptions,
-} from "@/lib/orders/order-status-apply";
-import { reconcileOrderStatus } from "@/lib/orders/order-status-reconcile";
 import { sanitizeOrderForCustomer } from "@/lib/orders/order-customer-view";
 import { loadOrderShipmentTracking } from "@/lib/orders/order-shipment-view";
+import { getOrderReviewStates } from "@/lib/catalog/review-eligibility";
+import {
+  getPreorderBalanceDeadline,
+  getPreorderBalanceDue,
+  getPreorderPaidSoFar,
+} from "@/lib/orders/order-payment-status";
+import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
+import { getSettings } from "@/models/settings.model";
 import { z } from "zod";
 import { validateBody } from "@/lib/api/validate";
 
@@ -44,15 +44,39 @@ export const GET = withApi<{ id: string }>(
     // it printed nothing at all: the signed-in customer saw strictly less
     // about their own parcel than someone typing the order number into the
     // public form.
-    const sanitized = await sanitizeOrderForCustomer(order);
-    const tracking = await loadOrderShipmentTracking({
-      orderId: order._id,
-      trackingNumber: order.trackingNumber,
-      carrier: order.carrier,
-    });
+    const [sanitized, tracking, reviewStates] = await Promise.all([
+      sanitizeOrderForCustomer(order),
+      loadOrderShipmentTracking({
+        orderId: order._id,
+        trackingNumber: order.trackingNumber,
+        carrier: order.carrier,
+      }),
+      getOrderReviewStates(session.user.id, order),
+    ]);
+
+    // These are computed here rather than in the browser because the
+    // sanitizer deliberately strips sub-order items — the very lines that say
+    // which part of the balance belongs to a cancelled consignment — and the
+    // grace period lives in store settings the shopper never sees.
+    const preorderBalance = order.hasPreorder
+      ? await (async () => {
+          const settings = await getSettings();
+          const deadline = getPreorderBalanceDeadline(
+            order,
+            resolvePreorderPolicy(settings.preorder).expiryGraceDays,
+          );
+          return {
+            preorderBalanceDue: getPreorderBalanceDue(order),
+            preorderPaidSoFar: getPreorderPaidSoFar(order),
+            preorderBalanceDeadline: deadline ? deadline.toISOString() : undefined,
+          };
+        })()
+      : null;
 
     return successResponse({
       ...sanitized,
+      ...(preorderBalance ?? {}),
+      reviewStates,
       trackingUrl: tracking.primary.trackingUrl,
       trackingEvents: tracking.primary.events,
       trackingException: tracking.primary.exception,
@@ -83,88 +107,28 @@ export const PUT = withApi<{ id: string }>(
     const { id } = params;
     const body = await validateBody(request, CustomerOrderUpdateSchema);
 
-    // Selects `status` rather than using `exists`, so the audit entry below can
-    // name the status the order was cancelled FROM. Same query, same cost.
-    const existing = await Order.findOne({
-      _id: id,
-      customerId: session.user.id,
-    })
-      .select("status")
-      .lean();
-
-    if (!existing) {
-      return notFoundResponse("Order");
-    }
-
-    // Customers can only cancel pending orders
+    // Customers can only cancel pending orders. The whole cascade — status,
+    // stock, quota, coupon, audit, refund — lives in `cancelOrderForCustomer`,
+    // shared with the guest cancel a pre-order's manage link offers, so the two
+    // can never disagree about what a cancellation does.
     if (body.status === "cancelled") {
-      // Built from the shared cascade so a customer cancelling writes exactly
-      // what an admin cancelling writes. It previously used a bare `$[]`,
-      // which addresses EVERY sub-order unconditionally — on a split order
-      // where one vendor had already handed the goods over, that erased the
-      // delivery and, until the same change fixed it, restocked the units.
-      const updates = {
-        ...buildOrderStatusUpdates({ status: ORDER_STATUS.CANCELLED }),
-        cancelReason: "Cancelled by customer",
-      };
-
-      // Atomic status guard: the cancellable status is part of the filter, so a
-      // concurrent admin transition (e.g. pending -> shipped) makes this write
-      // match nothing instead of regressing a shipped order to cancelled.
-      const order = await Order.findOneAndUpdate(
-        {
-          _id: id,
-          customerId: session.user.id,
-          status: { $in: [ORDER_STATUS.PENDING, ORDER_STATUS.PREORDERED] },
-        },
-        { $set: updates },
-        { new: true, ...subOrderUpdateOptions(updates) },
-      );
-
-      if (!order) {
-        throw new AuthorizationError("You can only cancel pending orders");
-      }
-
-      // A split order whose other vendor had already shipped is not cancelled
-      // just because this half is — see `reconcileOrderStatus`.
-      const reconciled = await reconcileOrderStatus(order).catch((err) => {
-        console.error("Failed to reconcile status on customer cancel:", err);
-        return null;
+      const result = await cancelOrderForCustomer({
+        orderFilter: { _id: id, customerId: session.user.id },
+        auditContext: customerActor(request, session),
+        createdBy: session.user.id,
       });
-      if (reconciled) order.status = reconciled;
+      if (!result) return notFoundResponse("Order");
 
-      // Restore inventory only for sub-orders that actually had a reservation.
-      // For abandoned PayPal/Razorpay/Paystack pending orders no decrement
-      // ever happened, so this safely no-ops.
-      await restoreOrderInventory(String(order._id)).catch((err) =>
-        console.error("Failed to restore inventory on customer cancel:", err),
-      );
-      await releaseOrderPreorders(String(order._id)).catch((err) =>
-        console.error("Failed to release preorder quota on customer cancel:", err),
-      );
-
-      // Only when the whole order actually went. If a co-vendor's parcel
-      // survived the cancellation, the customer is still receiving goods they
-      // bought with that discount — same rule as the admin route.
-      if (order.status === ORDER_STATUS.CANCELLED) {
-        await reverseCouponUsageForOrder(String(order._id)).catch((err) =>
-          console.error(
-            "Failed to reverse coupon usage on customer cancel:",
-            err,
-          ),
-        );
-      }
-
-      // A customer cancelling their own order restocked inventory, released
-      // preorder quota and reversed a coupon — and left no trace on the order.
-      await auditOrderCancelled(customerActor(request, session), order, {
-        from: String(existing.status),
-        by: "customer",
+      return successResponse({
+        ...(await sanitizeOrderForCustomer(result.order.toObject())),
+        ...(result.refund ? { refund: result.refund } : {}),
       });
-
-      return successResponse(await sanitizeOrderForCustomer(order.toObject()));
     }
 
+    // Anything but a cancel is refused — but only for an order this shopper
+    // actually owns, so the answer never confirms that someone else's exists.
+    const owned = await Order.exists({ _id: id, customerId: session.user.id });
+    if (!owned) return notFoundResponse("Order");
     throw new AuthorizationError("You can only cancel pending orders");
   },
 );

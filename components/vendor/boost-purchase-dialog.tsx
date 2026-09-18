@@ -20,7 +20,7 @@ import { toast } from "@/components/ui/toast-notification";
 import { ApiClientError, apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useCurrencyFormatter } from "@/providers/currency-provider";
-import { loadRazorpayCheckoutScript } from "@/components/checkout/checkout-helpers";
+import { openRazorpayCheckout } from "@/components/checkout/checkout-helpers";
 import {
   PaymentMethodPicker,
   type PlatformGateway,
@@ -79,16 +79,6 @@ interface AvailabilityPayload {
 
 type Step = "product" | "slot" | "payment";
 
-interface RazorpayInitiation {
-  keyId: string;
-  razorpayOrderId: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  prefill: { email?: string; name?: string; contact?: string };
-}
-
 interface CheckoutResponse {
   paymentId: string;
   campaignId: string;
@@ -101,7 +91,8 @@ interface CheckoutResponse {
   currency?: string;
   name?: string;
   description?: string;
-  prefill?: RazorpayInitiation["prefill"];
+  prefill?: { email?: string; name?: string; contact?: string };
+  callbackUrl?: string;
 }
 
 const POLL_INTERVAL_MS = 4000;
@@ -194,8 +185,9 @@ function formatDayRange(startDay: string, endDay: string, locale: string) {
 /**
  * The vendor's boost purchase flow: pick product → pick a ladder rung and a
  * date range → pick payment → gateway hand-off. Redirect gateways leave the
- * page and return to /vendor/boosts?boost_payment=…; Razorpay opens its modal
- * here; ioTec mobile money stays on a "check your phone" polling state.
+ * page and return to /vendor/boosts?boost_payment=… — Razorpay too, from its own
+ * window, carrying the signed payment; ioTec mobile money stays on a "check
+ * your phone" polling state.
  *
  * What the vendor buys is a VISUAL SLOT for a set of UTC days, not an
  * impression budget. Three things follow, and all three are visible in the UI
@@ -596,93 +588,22 @@ export function BoostPurchaseDialog(props: {
       }
 
       if (response.type === "razorpay" && response.razorpayOrderId) {
-        await loadRazorpayCheckoutScript();
-        const Razorpay = (
-          window as unknown as {
-            Razorpay?: new (options: Record<string, unknown>) => {
-              open: () => void;
-              on: (event: string, cb: (r: unknown) => void) => void;
-            };
-          }
-        ).Razorpay;
-        if (!Razorpay) {
-          throw new Error("Razorpay checkout is unavailable");
-        }
-        const payload = await new Promise<{
-          razorpay_payment_id: string;
-          razorpay_signature: string;
-        }>((resolve, reject) => {
-          let settled = false;
-          const razorpay = new Razorpay({
-            key: response.keyId,
-            amount: response.amount,
-            currency: response.currency,
-            name: response.name,
-            description: response.description,
-            order_id: response.razorpayOrderId,
-            prefill: response.prefill,
-            handler: (result: unknown) => {
-              settled = true;
-              resolve(
-                result as {
-                  razorpay_payment_id: string;
-                  razorpay_signature: string;
-                },
-              );
-            },
-            modal: {
-              ondismiss: () => {
-                if (!settled) {
-                  reject(
-                    new Error(
-                      label(
-                        "boosts.purchase.canceled",
-                        "Payment was canceled. Please try again.",
-                      ),
-                    ),
-                  );
-                }
-              },
-            },
-          });
-          razorpay.on("payment.failed", (result: unknown) => {
-            settled = true;
-            const failure = result as {
-              error?: { description?: string; reason?: string };
-            };
-            reject(
-              new Error(
-                failure.error?.description ||
-                  failure.error?.reason ||
-                  "Razorpay payment failed",
-              ),
-            );
-          });
-          razorpay.open();
+        // Never resolves: Razorpay returns the vendor to /vendor/boosts, which
+        // verifies the payment with the signature the return carries.
+        await openRazorpayCheckout({
+          keyId: response.keyId ?? "",
+          razorpayOrderId: response.razorpayOrderId,
+          amount: response.amount ?? 0,
+          currency: response.currency ?? "",
+          name: response.name ?? "",
+          description: response.description,
+          callbackUrl: response.callbackUrl ?? "",
+          prefill: response.prefill,
+          canceledMessage: label(
+            "boosts.purchase.canceled",
+            "Payment was canceled. Please try again.",
+          ),
         });
-
-        const verify = await apiClient.post<{ paid: boolean }>(
-          "/api/vendor/boosts/checkout/verify",
-          {
-            paymentId: response.paymentId,
-            razorpayPaymentId: payload.razorpay_payment_id,
-            razorpaySignature: payload.razorpay_signature,
-          },
-        );
-        if (verify.paid) {
-          toast.success(
-            label("boosts.purchase.booked", "Your booking is confirmed."),
-          );
-          props.onOpenChange(false);
-          router.refresh();
-        } else {
-          throw new Error(
-            label(
-              "boosts.purchase.verifyFailed",
-              "Payment could not be verified",
-            ),
-          );
-        }
         return;
       }
 

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { NumberInput } from "@/components/ui/number-input";
@@ -32,6 +34,101 @@ function ToggleRow(props: {
         disabled={props.disabled}
         onCheckedChange={props.onChange}
       />
+    </div>
+  );
+}
+
+/**
+ * A minimum payout for each other currency a store pays sellers in.
+ *
+ * The one minimum above is in the store's own currency. It used to be applied
+ * as it stood to a payout in any currency — fifty meaning fifty shillings or
+ * fifty dinars — so another currency now has no minimum until one is set here.
+ */
+function MinWithdrawalByCurrency(props: {
+  value: Record<string, number>;
+  storeCurrency: string;
+  disabled: boolean;
+  onChange: (next: Record<string, number>) => void;
+}) {
+  const t = useTranslations("admin.settings.vendorConfig.commission");
+  const [code, setCode] = useState("");
+  const entries = Object.entries(props.value).sort(([a], [b]) => a.localeCompare(b));
+  const normalized = code.trim().toUpperCase();
+  const canAdd =
+    /^[A-Z]{3}$/.test(normalized) &&
+    normalized !== props.storeCurrency.toUpperCase() &&
+    !(normalized in props.value);
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <div>
+        <p className="text-sm font-medium">{t("byCurrencyLabel")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("byCurrencyDescription", { currency: props.storeCurrency })}
+        </p>
+      </div>
+      {entries.length > 0 ? (
+        <ul className="space-y-2">
+          {entries.map(([currency, amount]) => (
+            <li key={currency} className="flex items-center justify-between gap-3">
+              <span className="font-mono text-sm">{currency}</span>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  min={0}
+                  className="h-9 w-28"
+                  value={Number(amount ?? 0)}
+                  disabled={props.disabled}
+                  whenEmpty={0}
+                  aria-label={t("byCurrencyAmount", { currency })}
+                  onValueChange={(next) =>
+                    props.onChange({ ...props.value, [currency]: next ?? 0 })
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={props.disabled}
+                  aria-label={t("byCurrencyRemove", { currency })}
+                  onClick={() => {
+                    const next = { ...props.value };
+                    delete next[currency];
+                    props.onChange(next);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Input
+          value={code}
+          maxLength={3}
+          placeholder="UGX"
+          className="h-9 w-24 font-mono uppercase"
+          disabled={props.disabled}
+          aria-label={t("byCurrencyCode")}
+          onChange={(event) => setCode(event.target.value)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={props.disabled || !canAdd}
+          onClick={() => {
+            props.onChange({ ...props.value, [normalized]: 0 });
+            setCode("");
+          }}
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          {t("byCurrencyAdd")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -271,6 +368,17 @@ export function VendorConfigSettingsTab(props: {
                 }
               />
             </div>
+            <MinWithdrawalByCurrency
+              value={commission.minWithdrawalByCurrency || {}}
+              storeCurrency={String(props.settings.general.defaultCurrency || "USD")}
+              disabled={disabled}
+              onChange={(next) =>
+                props.updateCommissionField(
+                  "orders.commission.minWithdrawalByCurrency",
+                  next,
+                )
+              }
+            />
           </CardContent>
         </Card>
       </div>

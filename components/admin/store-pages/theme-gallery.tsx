@@ -8,6 +8,7 @@ import {
   Fingerprint,
   Palette,
   SlidersHorizontal,
+  Braces,
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -34,6 +35,7 @@ import {
   isThemePageTab,
   type ThemePageTab,
 } from "@/lib/storefront/themes/page-tabs";
+import { ThemeCustomCss } from "@/components/admin/store-pages/theme-custom-css";
 import { themePreviewSrc } from "@/lib/storefront/themes/preview";
 import type { ThemeManifest } from "@/lib/storefront/themes/types";
 
@@ -58,11 +60,14 @@ export function ThemeGallery({
   manifests,
   activeThemeId,
   initialTab = "theme",
+  customCss = "",
 }: {
   locale: string;
   manifests: (ThemeManifest & { hasStarter?: boolean })[];
   activeThemeId: string;
   initialTab?: ThemePageTab;
+  /** The active theme's sheet, seeded server-side like the tab itself. */
+  customCss?: string;
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
@@ -145,6 +150,9 @@ export function ThemeGallery({
           </UnderlineTabsTrigger>
           <UnderlineTabsTrigger value="settings" icon={SlidersHorizontal}>
             {tSafe("admin.themeSettings.tabs.settings", "Theme settings")}
+          </UnderlineTabsTrigger>
+          <UnderlineTabsTrigger value="css" icon={Braces}>
+            {tSafe("admin.themeSettings.tabs.css", "Custom CSS")}
           </UnderlineTabsTrigger>
         </UnderlineTabsList>
 
@@ -298,6 +306,25 @@ export function ThemeGallery({
                 </Button>
               </CardContent>
             </Card>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="css">
+          {active ? (
+            <ThemeCustomCss
+              // Keyed by theme so a switch on the first tab swaps in that
+              // theme's sheet instead of leaving the last one on screen.
+              key={active.id}
+              themeId={active.id}
+              themeName={tSafe(
+                `admin.onlineStoreThemePage.themes.${active.id}.name`,
+                active.name,
+              )}
+              // The seed is the active theme's sheet at load; after a switch
+              // the box starts empty until the merchant writes that theme's.
+              initialCss={active.id === activeThemeId ? customCss : ""}
+              tSafe={tSafe}
+            />
           ) : null}
         </TabsContent>
       </Tabs>
