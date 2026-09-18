@@ -6,6 +6,7 @@ name: Deploy image
 on:
   push:
     branches:
+      - main
       - version-2.0-qa # every branch your panel deploys from belongs here
   workflow_dispatch:
 
@@ -49,10 +50,13 @@ jobs:
       # that is exactly what a build on the server uses today. See
       # docs/DEPLOYMENT_PREBUILT_IMAGE.md.
       - name: Require BUILD_MONGODB_URI
-        if: ${{ secrets.BUILD_MONGODB_URI == '' }}
+        env:
+          BUILD_MONGODB_URI: ${{ secrets.BUILD_MONGODB_URI }}
         run: |
-          echo "::error::Set the BUILD_MONGODB_URI secret to the store's MongoDB connection string (reachable from GitHub runners)."
-          exit 1
+          if [ -z "$BUILD_MONGODB_URI" ]; then
+            echo "::error::Set the BUILD_MONGODB_URI secret to the store's MongoDB connection string (reachable from GitHub runners)."
+            exit 1
+          fi
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -96,6 +100,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
+            # Stable tag consumed by the Coolify Docker Image resource.
+            type=raw,value=coolify
             type=ref,event=branch
             type=sha,prefix=
 
@@ -112,11 +118,32 @@ jobs:
           cache-to: type=gha,mode=max
 
       # Optional: tells Dokploy to pull the fresh tag and restart. Without
-      # the three secrets this step is skipped and you press Deploy by hand.
+      # the three secrets this step exits successfully without doing anything.
       - name: Trigger Dokploy redeploy
-        if: ${{ secrets.DOKPLOY_URL != '' && secrets.DOKPLOY_API_KEY != '' && secrets.DOKPLOY_APPLICATION_ID != '' }}
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
         run: |
-          curl --fail-with-body -sS -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
-            -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
+          if [ -z "$DOKPLOY_URL" ] || [ -z "$DOKPLOY_API_KEY" ] || [ -z "$DOKPLOY_APPLICATION_ID" ]; then
+            echo "Dokploy secrets are not configured; skipping redeploy."
+            exit 0
+          fi
+          curl --fail-with-body -sS -X POST "$DOKPLOY_URL/api/application.deploy" \
+            -H "x-api-key: $DOKPLOY_API_KEY" \
             -H "Content-Type: application/json" \
-            -d '{"applicationId": "${{ secrets.DOKPLOY_APPLICATION_ID }}"}'
+            -d "{\"applicationId\": \"$DOKPLOY_APPLICATION_ID\"}"
+
+      # Optional: asks Coolify to pull the fresh `coolify` tag and restart.
+      - name: Trigger Coolify redeploy
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "Coolify secrets are not configured; skipping redeploy."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error \
+            --request GET "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"
