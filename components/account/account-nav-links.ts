@@ -2,6 +2,7 @@ import {
   Bell,
   FileText,
   Heart,
+  Wallet,
   LayoutDashboard,
   MapPin,
   MessageSquare,
@@ -66,6 +67,13 @@ export const dashboardLinks: AccountNavLink[] = [
     href: "/account/wishlist",
     icon: Heart,
     countKey: "wishlistCount",
+  },
+  {
+    // Credit from refunds and from the store, spent at checkout (R8).
+    labelKey: "account.storeCredit",
+    labelFallback: "Store credit",
+    href: "/account/store-credit",
+    icon: Wallet,
   },
 ];
 

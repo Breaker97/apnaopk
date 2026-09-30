@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, Loader2, Plug, TriangleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -28,16 +29,23 @@ import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 type AiAuthoringSettings = NonNullable<Settings["aiAuthoring"]>;
 
-const TEXT_MODELS: Array<{ value: string; label: string }> = [
-  { value: "gpt-4.1-mini", label: "GPT-4.1 mini — fast, low cost" },
-  { value: "gpt-4.1", label: "GPT-4.1 — higher quality" },
-  { value: "gpt-5-mini", label: "GPT-5 mini" },
-  { value: "gpt-5", label: "GPT-5 — best quality" },
+/** A model's name, and what sets it apart (`admin.settings.ai.modelNotes`). */
+type ModelOption = {
+  value: string;
+  name: string;
+  note?: "fastLowCost" | "higherQuality" | "bestQuality" | "lowerCost";
+};
+
+const TEXT_MODELS: ModelOption[] = [
+  { value: "gpt-4.1-mini", name: "GPT-4.1 mini", note: "fastLowCost" },
+  { value: "gpt-4.1", name: "GPT-4.1", note: "higherQuality" },
+  { value: "gpt-5-mini", name: "GPT-5 mini" },
+  { value: "gpt-5", name: "GPT-5", note: "bestQuality" },
 ];
 
-const IMAGE_MODELS: Array<{ value: string; label: string }> = [
-  { value: "gpt-image-1", label: "GPT Image 1 — best quality" },
-  { value: "gpt-image-1-mini", label: "GPT Image 1 mini — lower cost" },
+const IMAGE_MODELS: ModelOption[] = [
+  { value: "gpt-image-1", name: "GPT Image 1", note: "bestQuality" },
+  { value: "gpt-image-1-mini", name: "GPT Image 1 mini", note: "lowerCost" },
 ];
 
 /** Sentinel for "inherit env/default" since Select can't hold "". */
@@ -77,6 +85,11 @@ export function AiSettingsTab(props: {
   } | null>(null);
 
   const tSafe = useFallbackTranslator(t);
+
+  const modelLabel = (model: ModelOption) =>
+    model.note
+      ? `${model.name} — ${t(`admin.settings.ai.modelNotes.${model.note}`)}`
+      : model.name;
 
   const surfaceLabel = (key: (typeof SURFACE_KEYS)[number]) =>
     tSafe(
@@ -151,12 +164,12 @@ export function AiSettingsTab(props: {
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label htmlFor="ai-enabled" className="text-sm font-medium">
-                {tSafe("admin.settings.ai.enabled", "Enable AI features")}
+                {tSafe("admin.settings.ai.enabled", "Enable AI Studio")}
               </Label>
               <p className="mt-1 text-xs text-muted-foreground">
                 {tSafe(
                   "admin.settings.ai.enabledHint",
-                  "Turns the AI Studio and every AI button on or off across the dashboard.",
+                  "Turns the AI Studio and every AI button on or off across the dashboard. The AI Sales Agent has its own switch on its own page.",
                 )}
               </p>
             </div>
@@ -255,7 +268,7 @@ export function AiSettingsTab(props: {
                 </SelectItem>
                 {TEXT_MODELS.map((model) => (
                   <SelectItem key={model.value} value={model.value}>
-                    {model.label}
+                    {modelLabel(model)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -284,7 +297,7 @@ export function AiSettingsTab(props: {
                 </SelectItem>
                 {IMAGE_MODELS.map((model) => (
                   <SelectItem key={model.value} value={model.value}>
-                    {model.label}
+                    {modelLabel(model)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -502,17 +515,13 @@ export function AiSettingsTab(props: {
               <div key={field} className="space-y-2">
                 <Label htmlFor={`ai-brand-${field}`}>{tSafe(key, fallback)}</Label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    aria-label={tSafe(key, fallback)}
+                  <ColorSwatchPicker
+                    ariaLabel={tSafe(key, fallback)}
                     value={ai.brandKit?.[field] || "#000000"}
-                    onChange={(event) =>
-                      updateNestedField(
-                        `aiAuthoring.brandKit.${field}`,
-                        event.target.value,
-                      )
+                    onChange={(hex) =>
+                      updateNestedField(`aiAuthoring.brandKit.${field}`, hex)
                     }
-                    className="h-9 w-12 shrink-0 cursor-pointer rounded border bg-transparent p-1"
+                    alpha={false}
                   />
                   <Input
                     id={`ai-brand-${field}`}

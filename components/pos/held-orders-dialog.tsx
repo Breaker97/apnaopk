@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { X, Trash2, Clock, Loader2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { HeldOrder } from "@/lib/pos/held-orders";
@@ -58,7 +57,12 @@ export function POSHeldOrdersDialog({
         if (e.target === e.currentTarget) onOpenChange(false);
       }}
     >
-      <div className="bg-background w-full max-w-lg rounded-2xl border shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Held orders"
+        className="bg-background w-full max-w-lg rounded-2xl border shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+      >
         {/* Header */}
         <div className="flex items-start justify-between px-5 pt-5 pb-2">
           <div>

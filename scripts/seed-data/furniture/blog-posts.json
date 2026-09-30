@@ -1,0 +1,116 @@
+[
+  {
+    "_id": {
+      "$oid": "6aba82d0e96aa484bf224e14"
+    },
+    "title": "Furniture That Transforms Your Living Space",
+    "slug": "furniture-that-transforms-your-living-space",
+    "excerpt": "Discover how thoughtfully selected furniture can transform your living space. Explore timeless designs, modern styles, and creative ideas to make every room feel extraordinary.",
+    "content": "<p>Your home is more than just a place to live. It's a reflection of your personality, lifestyle, and sense of style. Choosing the right furniture can transform an ordinary room into a welcoming and sophisticated space.</p><p>Start with statement pieces such as an elegant sofa, a handcrafted coffee table, or a beautifully designed accent chair. These pieces establish the character of your room while offering everyday comfort.</p><p>Consider combining natural materials, warm colors, and different textures to create visual interest. Wooden furniture introduces warmth, while upholstered pieces soften the overall atmosphere.</p><p>Remember that beautiful interiors are not necessarily filled with expensive furniture. Thoughtful arrangements, quality craftsmanship, and carefully selected pieces make the biggest difference.</p>",
+    "featuredImage": {
+      "url": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790607985668-y4v1k3/Rectangle_189.png",
+      "alt": ""
+    },
+    "categoryIds": [],
+    "tags": [],
+    "status": "published",
+    "visibility": "public",
+    "publishedAt": {
+      "$date": "2026-09-22T15:07:00Z"
+    },
+    "allowComments": true,
+    "isFeatured": true,
+    "viewCount": 0,
+    "likeCount": 0,
+    "commentCount": 0,
+    "readingTime": 1,
+    "seo": {
+      "pageTitle": "",
+      "metaDescription": "",
+      "noIndex": false
+    },
+    "createdAt": {
+      "$date": "2026-09-28T15:08:00.933Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T15:08:00.933Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aba8324e96aa484bf224e15"
+    },
+    "title": "How to Choose the Perfect Sofa for Your Home",
+    "slug": "how-to-choose-the-perfect-sofa-for-your-home",
+    "excerpt": "Find the perfect balance of comfort, style, and functionality. Discover essential tips for choosing a sofa that complements your space and enhances everyday living.",
+    "content": "<p>The sofa is often the centerpiece of a living room. It's where families gather, guests relax, and countless everyday moments unfold. Finding the right sofa requires balancing comfort, durability, and visual appeal.</p><p>Begin by measuring your living space. Consider the room's layout, walking areas, and existing furniture before deciding on the sofa's dimensions.</p><p>Next, explore different materials. Linen and cotton upholstery offer a relaxed, natural appearance, while leather creates a sophisticated look. Performance fabrics can be particularly useful for households with children or pets.</p><p>Color also plays an important role. Neutral shades provide versatility, allowing you to refresh your interior with colorful cushions, throws, and decorative accessories.</p><p>Finally, prioritize construction quality. A durable frame, supportive cushions, and carefully finished upholstery help ensure your sofa remains comfortable and attractive for years.</p>",
+    "featuredImage": {
+      "url": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790608157878-nfxnse/Rectangle_190.png",
+      "alt": ""
+    },
+    "categoryIds": [],
+    "tags": [],
+    "status": "published",
+    "visibility": "public",
+    "publishedAt": {
+      "$date": "2026-09-04T15:09:00Z"
+    },
+    "allowComments": true,
+    "isFeatured": true,
+    "viewCount": 0,
+    "likeCount": 0,
+    "commentCount": 0,
+    "readingTime": 1,
+    "seo": {
+      "pageTitle": "",
+      "metaDescription": "",
+      "noIndex": false
+    },
+    "createdAt": {
+      "$date": "2026-09-28T15:09:24.625Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T15:09:24.625Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aba8366e96aa484bf224e16"
+    },
+    "title": "Small Spaces, Beautiful Furniture Solutions",
+    "slug": "small-spaces-beautiful-furniture-solutions",
+    "excerpt": "Make the most of every corner with smart furniture solutions. Explore space-saving designs and stylish ideas that bring comfort and elegance to smaller homes.",
+    "content": "<p>Limited space doesn't have to limit your creativity. With the right furniture and thoughtful planning, even the smallest rooms can feel spacious, organized, and inviting.</p><p>Multifunctional furniture is particularly valuable in compact homes. Consider storage ottomans, extendable dining tables, sofa beds, and wall-mounted desks that provide functionality without occupying unnecessary space.</p><p>Choose furniture with clean lines and balanced proportions. Pieces with exposed legs can create a sense of openness, while lighter colors help make interiors feel brighter.</p><p>Vertical storage is another effective solution. Tall bookshelves, floating shelves, and thoughtfully designed cabinets maximize available space without overcrowding the room.</p><p>Finally, avoid filling every available corner. Leaving breathing room between furniture pieces creates a more comfortable environment and allows your favorite designs to stand out.</p>",
+    "featuredImage": {
+      "url": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790608190934-z184j5/image.png",
+      "alt": ""
+    },
+    "categoryIds": [],
+    "tags": [],
+    "status": "published",
+    "visibility": "public",
+    "publishedAt": {
+      "$date": "2026-09-19T15:10:00Z"
+    },
+    "allowComments": true,
+    "isFeatured": true,
+    "viewCount": 1,
+    "likeCount": 0,
+    "commentCount": 0,
+    "readingTime": 1,
+    "seo": {
+      "pageTitle": "",
+      "metaDescription": "",
+      "noIndex": false
+    },
+    "createdAt": {
+      "$date": "2026-09-28T15:10:30.134Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T15:24:29.626Z"
+    },
+    "__v": 0
+  }
+]

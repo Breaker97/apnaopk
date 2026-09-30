@@ -99,6 +99,8 @@ export const getTheLook: SectionDefinition = {
       showWhen: { key: "corners", values: ["custom"] },
     },
   ],
+  // No Look picked: GetTheLook has nothing to fetch and draws nothing.
+  isEmpty: ({ settings }) => !settings.collection,
   Render({ settings, ctx }) {
     return (
       <GetTheLook

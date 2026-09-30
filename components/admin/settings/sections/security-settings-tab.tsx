@@ -63,18 +63,30 @@ function UnlockAccountRow({
     if (!address) return;
     try {
       setIsUnlocking(true);
-      const result = await apiClient.request<{ cleared: number }>(
-        "POST",
-        "/api/admin/security/unlock",
-        { email: address },
+      const result = await apiClient.request<{
+        cleared: number;
+        wasLocked: boolean;
+      }>("POST", "/api/admin/security/unlock", { email: address });
+      toast.success(
+        result.data?.wasLocked === false
+          ? tSafe(
+              "admin.settings.security.unlock.notLocked",
+              "That address was not locked. Nothing to clear.",
+            )
+          : tSafe(
+              "admin.settings.security.unlock.done",
+              "Account unlocked. They can sign in again now.",
+            ),
       );
-      toast.success(result.message || "Account unlocked");
       setEmail("");
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Could not unlock that account",
+          : tSafe(
+              "admin.settings.security.unlock.failed",
+              "Could not unlock that account",
+            ),
       );
     } finally {
       setIsUnlocking(false);
@@ -147,10 +159,31 @@ export function SecuritySettingsTab(props: {
   };
 
   const presetOptions: Array<{ value: string; label: string }> = [
-    { value: "default", label: "Default" },
-    { value: "lenient", label: "Lenient (100/15m)" },
-    { value: "moderate", label: "Moderate (20/15m)" },
-    { value: "strict", label: "Strict (5/15m)" },
+    {
+      value: "default",
+      label: tSafe("admin.settings.security.rateLimiting.presets.default", "Default"),
+    },
+    {
+      value: "lenient",
+      label: tSafe(
+        "admin.settings.security.rateLimiting.presets.lenient",
+        "Lenient (100/15m)",
+      ),
+    },
+    {
+      value: "moderate",
+      label: tSafe(
+        "admin.settings.security.rateLimiting.presets.moderate",
+        "Moderate (20/15m)",
+      ),
+    },
+    {
+      value: "strict",
+      label: tSafe(
+        "admin.settings.security.rateLimiting.presets.strict",
+        "Strict (5/15m)",
+      ),
+    },
   ];
 
   return (

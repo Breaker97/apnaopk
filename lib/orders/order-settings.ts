@@ -50,6 +50,62 @@ export function resolveMinWithdrawal(
   return 0;
 }
 
+/** The order and shipping settings the bag prices itself with. */
+export type CartOrderConfig = {
+  taxRate: number;
+  /**
+   * `orders.freeShippingThreshold` (0 when the store has none), plus the flag
+   * that decides whether it means anything. The threshold only reaches the
+   * bill on the legacy flat-rate path; see `FreeShippingProgress`.
+   */
+  freeShippingThreshold: number;
+  /** `shipping.enabled` — the store rates by zone instead. */
+  zoneShippingEnabled: boolean;
+  /** `shipping.delivery.showEstimatedDelivery` — gates the delivery strip. */
+  showEstimatedDelivery: boolean;
+};
+
+/** What a cart provider holds when no layout handed it the store's. */
+export const EMPTY_CART_ORDER_CONFIG: CartOrderConfig = {
+  taxRate: 0,
+  freeShippingThreshold: 0,
+  zoneShippingEnabled: false,
+  showEstimatedDelivery: false,
+};
+
+type CartOrderSettingsLike = {
+  orders?: {
+    taxRate?: number | null;
+    freeShippingThreshold?: number | null;
+  } | null;
+  shipping?: {
+    enabled?: boolean | null;
+    delivery?: { showEstimatedDelivery?: boolean | null } | null;
+  } | null;
+} | null | undefined;
+
+/**
+ * The one reading of these settings: `/api/settings/public` serves it, and
+ * the store layouts hand it to the cart provider so the cart page and the
+ * drawer price the bag on first render instead of fetching the whole public
+ * settings payload for four values.
+ */
+export function resolveCartOrderConfig(
+  settings: CartOrderSettingsLike,
+): CartOrderConfig {
+  return {
+    taxRate: Number(settings?.orders?.taxRate ?? DEFAULT_ORDER_TAX_RATE) || 0,
+    freeShippingThreshold:
+      Number(
+        settings?.orders?.freeShippingThreshold ??
+          DEFAULT_FREE_SHIPPING_THRESHOLD,
+      ) || 0,
+    zoneShippingEnabled: Boolean(settings?.shipping?.enabled),
+    showEstimatedDelivery:
+      settings?.shipping?.delivery?.showEstimatedDelivery ?? true,
+  };
+}
+
 export const ORDER_PREFIX_PATTERN = /^[A-Z0-9]{2,10}$/;
 
 export function normalizeOrderPrefix(value: unknown): string {

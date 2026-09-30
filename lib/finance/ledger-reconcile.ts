@@ -6,6 +6,14 @@ import { Payout } from "@/models/payout.model";
 import { PaymentTransaction } from "@/models/payment-transaction.model";
 import { PlatformPayment } from "@/models/platformPayment.model";
 import { Shipment } from "@/models/shipment.model";
+import { Expense } from "@/models/expense.model";
+import {
+  healExpenseLedger,
+  type ExpenseLedgerRow,
+} from "@/lib/finance/expense-ledger";
+import { ReturnRequest } from "@/models/return-request.model";
+import { heldRestockReplays } from "@/lib/returns/held-units";
+import { returnRestockEventKey } from "@/lib/returns/returns";
 import { VendorSubscriptionPayment } from "@/models/vendorSubscriptionPayment.model";
 import { LedgerEntry } from "@/models/ledger-entry.model";
 import {
@@ -15,8 +23,12 @@ import {
   postPayoutReversed,
   postPlatformPayment,
   postRefund,
+  postRestockedCost,
   postRefundReversal,
+  postExpense,
+  postStoreCreditEvent,
   postShipmentLabel,
+  postShipmentLabelVoid,
   postShippingToStore,
   postStoreFundedCancellation,
   postSubscriptionInvoice,
@@ -72,7 +84,7 @@ export function deepSweepWindow(now: Date = new Date()): {
   };
 }
 
-export interface LedgerReconcileResult {
+interface LedgerReconcileResult {
   /** Entries written — zero means the ledger already had everything. */
   written: number;
   /** True when the time budget ran out before every scan had run. */
@@ -88,6 +100,12 @@ export interface LedgerReconcileResult {
     platformPayments: number;
     subscriptions: number;
     labels: number;
+    labelVoids: number;
+    expenses: number;
+    returnRestocks: number;
+    heldRestocks: number;
+    cancelRestocks: number;
+    storeCredit: number;
   };
 }
 
@@ -127,6 +145,12 @@ export async function reconcileRecentLedger(params: {
     platformPayments: 0,
     subscriptions: 0,
     labels: 0,
+    labelVoids: 0,
+    expenses: 0,
+    returnRestocks: 0,
+    heldRestocks: 0,
+    cancelRestocks: 0,
+    storeCredit: 0,
   };
 
   /**
@@ -235,7 +259,10 @@ export async function reconcileRecentLedger(params: {
         status: "paid",
         ...within("paidAt"),
       })
-        .select("_id kind reference vendorId amount currency paidAt")
+        // `provider` decides the cash account — without it every healed
+        // payment would re-post into the gateway, including the ones an admin
+        // collected by hand.
+        .select("_id kind reference vendorId amount currency paidAt provider")
         .limit(limit)
         .lean<Array<Parameters<typeof postPlatformPayment>[0]>>();
       scanned.platformPayments = rows.length;
@@ -291,7 +318,9 @@ export async function reconcileRecentLedger(params: {
         ...within("updatedAt"),
       })
         .select(
-          "_id vendorId orderId subOrderId rate bookingSequence purchase.purchasedAt purchase.billedTo purchase.shippingToStore createdAt",
+          // `providerMode` is what tells a free test label from a real one;
+          // without it every test label a merchant tried was booked as a cost.
+          "_id vendorId orderId subOrderId rate bookingSequence providerMode purchase.purchasedAt purchase.billedTo purchase.shippingToStore createdAt",
         )
         .limit(limit)
         .lean<
@@ -302,6 +331,7 @@ export async function reconcileRecentLedger(params: {
             subOrderId?: unknown;
             rate?: { amount?: number; currency?: string } | null;
             bookingSequence?: number | null;
+            providerMode?: string | null;
             createdAt?: Date;
             purchase?: {
               purchasedAt?: Date | null;
@@ -320,8 +350,21 @@ export async function reconcileRecentLedger(params: {
           purchasedAt: shipment.purchase?.purchasedAt || shipment.createdAt,
           bookingSequence: shipment.bookingSequence,
           billedTo: shipment.purchase?.billedTo,
+          providerMode: shipment.providerMode,
         });
-        if (shipment.purchase?.shippingToStore && shipment.subOrderId) {
+        // `shippingToStore` records only THAT the charge moved, never which
+        // way — so the direction is re-derived from the order inside
+        // `postShippingToStore`, where both live paths read it from too. A
+        // scan that decided it here would be a third copy of the rule, and
+        // the one it got wrong posted a second entry under a key the unique
+        // index had never seen.
+        // A test label never moves a delivery charge — the purchase path skips
+        // it for the same reason it books no cost.
+        if (
+          shipment.purchase?.shippingToStore &&
+          shipment.subOrderId &&
+          shipment.providerMode !== "test"
+        ) {
           count += await postShippingToStore({
             orderId: shipment.orderId,
             subOrderId: shipment.subOrderId,
@@ -332,6 +375,251 @@ export async function reconcileRecentLedger(params: {
         }
         return count;
       });
+    }],
+    /*
+     * And the labels a carrier gave the money back for.
+     *
+     * The scan above re-posts what a label COST; nothing re-posted the
+     * reversal, so a void whose live write failed left the store carrying a
+     * cost it had been refunded, for good. It is a separate scan because it
+     * is a separate document: `refunds[]` records each void's own booking,
+     * rate and direction, which is exactly what the reversal needs and what
+     * the shipment's current `purchase` no longer says once it has been
+     * re-shipped.
+     *
+     * Only the settled ones. A refund the carrier is still considering, or
+     * refused, is money that has not come back — `postShipmentLabelVoid`
+     * refuses to reverse a cost that was never booked, and this refuses to
+     * ask about one that was never refunded.
+     */
+    ["labelVoids", async () => {
+      const rows = await Shipment.find({
+        "refunds.state": "refunded",
+        ...within("updatedAt"),
+      })
+        .select("_id vendorId orderId subOrderId providerMode refunds")
+        .limit(limit)
+        .lean<
+          Array<{
+            _id: unknown;
+            vendorId?: unknown;
+            orderId?: unknown;
+            subOrderId?: unknown;
+            providerMode?: string | null;
+            refunds?: Array<{
+              state?: string;
+              settledAt?: Date | null;
+              bookingSequence?: number | null;
+              rate?: { amount?: number; currency?: string } | null;
+              billedTo?: string | null;
+              shippingToStore?: boolean | null;
+            }> | null;
+          }>
+        >();
+      scanned.labelVoids = rows.length;
+      await each(rows, async (shipment) => {
+        let count = 0;
+        for (const refund of shipment.refunds || []) {
+          if (refund?.state !== "refunded") continue;
+          count += await postShipmentLabelVoid({
+            _id: shipment._id,
+            vendorId: shipment.vendorId,
+            orderId: shipment.orderId,
+            rate: refund.rate as never,
+            bookingSequence: refund.bookingSequence,
+            billedTo: refund.billedTo,
+            voidedAt: refund.settledAt,
+            providerMode: shipment.providerMode,
+          });
+          // The delivery charge the label had moved to the store goes back to
+          // the vendor with it. Which way that is, is the order's to say.
+          if (refund.shippingToStore && shipment.subOrderId) {
+            count += await postShippingToStore({
+              orderId: shipment.orderId,
+              subOrderId: shipment.subOrderId,
+              shipmentId: shipment._id,
+              bookingSequence: refund.bookingSequence,
+              date: refund.settledAt ?? undefined,
+              reversal: true,
+            });
+          }
+        }
+        return count;
+      });
+    }],
+    /*
+     * Hand-entered expenses.
+     *
+     * The thinnest of the scans, and worth having for the one case the others
+     * cannot cover: the expense route awaits its posting, so a failure is
+     * visible — but only to whoever was at the screen, and the row is saved
+     * either way. Without this, an expense saved while the database hiccuped
+     * stays out of the profit and loss until somebody notices the total is
+     * wrong.
+     *
+     * Only the revision the row currently carries. Earlier revisions were
+     * reversed at the moment they were corrected and their values are gone;
+     * a deleted expense is gone too, along with any chance of replaying it.
+     *
+     * Only the platform's own costs. A vendor's expense — rent on THEIR shop —
+     * is recorded for their reporting and never posted; replaying it here put
+     * a seller's costs into the platform's profit and bank balance.
+     */
+    // Store credit given as goodwill, or expired unspent (R8) — see
+    // `storeCreditPostings`. Refund credit and spends post with their refund
+    // and their sale.
+    ["storeCredit", async () => {
+      const { StoreCreditTransaction } = await import("@/models/store-credit.model");
+      const rows = await StoreCreditTransaction.find({
+        $or: [{ type: "issue", source: "goodwill" }, { type: "expire" }],
+        ...within("createdAt"),
+      })
+        .select("_id type source amount currency createdAt")
+        .limit(limit)
+        .lean<Array<Parameters<typeof postStoreCreditEvent>[0]>>();
+      scanned.storeCredit = rows.length;
+      await each(rows, (row) => postStoreCreditEvent(row));
+    }],
+    ["expenses", async () => {
+      const rows = await Expense.find({
+        scope: { $ne: "vendor" },
+        ...within("updatedAt"),
+      })
+        .select(
+          "_id date book category amount currency description paidFrom vendorId revision debitAccount settlement",
+        )
+        .limit(limit)
+        .lean<
+          Array<Parameters<typeof postExpense>[0] & ExpenseLedgerRow>
+        >();
+      scanned.expenses = rows.length;
+      await each(rows, (expense) => postExpense(expense));
+      // And what the row cannot replay: a payment, and the reversal of a
+      // revision that was corrected while the database was failing.
+      if (!outOfTime()) written += await healExpenseLedger(rows);
+    }],
+    /*
+     * Goods back on the shelf, taken back out of cost of goods — see
+     * `restockCostPostings`. A return records exactly which units it put back,
+     * step by step, so the replay reverses what the live path did, each step
+     * under its own key (`returnRestockEventKey`).
+     */
+    ["returnRestocks", async () => {
+      const rows = await ReturnRequest.find({
+        "restockedLines.0": { $exists: true },
+        ...within("updatedAt"),
+      })
+        .select("_id orderId restockedLines")
+        .limit(limit)
+        .lean<
+          Array<{
+            _id: unknown;
+            orderId?: unknown;
+            restockedLines?: Array<{
+              productId?: unknown;
+              variantId?: unknown;
+              quantity?: number;
+              step?: string;
+            }>;
+          }>
+        >();
+      scanned.returnRestocks = rows.length;
+      await each(rows, async (request) => {
+        const steps = new Map<string, NonNullable<typeof request.restockedLines>>();
+        for (const line of request.restockedLines || []) {
+          const eventKey = returnRestockEventKey(request._id, line.step);
+          if (!steps.has(eventKey)) steps.set(eventKey, []);
+          steps.get(eventKey)!.push(line);
+        }
+        let posted = 0;
+        for (const [eventKey, restocked] of steps) {
+          posted += await postRestockedCost({
+            orderId: request.orderId,
+            restocked,
+            eventKey,
+          });
+        }
+        return posted;
+      });
+    }],
+    /*
+     * And the units a return's count found unsellable that the merchant later
+     * put back on sale — one event each, under the key the live path used.
+     */
+    ["heldRestocks", async () => {
+      const rows = await ReturnRequest.find({
+        "unsellableDispositions.action": "restocked",
+        ...within("updatedAt"),
+      })
+        .select("_id orderId unsellableDispositions")
+        .limit(limit)
+        .lean<
+          Array<Parameters<typeof heldRestockReplays>[0] & { orderId?: unknown }>
+        >();
+      scanned.heldRestocks = rows.length;
+      await each(rows, async (request) => {
+        let written = 0;
+        for (const replay of heldRestockReplays(request)) {
+          written += await postRestockedCost({ orderId: request.orderId, ...replay });
+        }
+        return written;
+      });
+    }],
+    /*
+     * And the consignments a cancellation put back. A cancelled consignment
+     * that no longer holds its stock has had every one of its units restored —
+     * the restore claims a consignment whole — so all of them are what came
+     * back. The cap on what the books still carry keeps a return that already
+     * reversed some of them from being counted twice.
+     */
+    ["cancelRestocks", async () => {
+      const rows = await Order.find({
+        subOrders: {
+          $elemMatch: { status: "cancelled", inventoryReserved: false },
+        },
+        // Only orders that costed anything have a cost of goods to give back.
+        "subOrders.items.cost": { $exists: true },
+        ...within("updatedAt"),
+      })
+        .select(
+          "_id subOrders._id subOrders.status subOrders.inventoryReserved subOrders.items.productId subOrders.items.variantId subOrders.items.quantity",
+        )
+        .limit(limit)
+        .lean<
+          Array<{
+            _id: unknown;
+            subOrders?: Array<{
+              _id?: unknown;
+              status?: string;
+              inventoryReserved?: boolean;
+              items?: Array<{
+                productId?: unknown;
+                variantId?: unknown;
+                quantity?: number;
+              }>;
+            }>;
+          }>
+        >();
+      scanned.cancelRestocks = rows.length;
+      await each(rows, (order) =>
+        postRestockedCost({
+          orderId: order._id,
+          restocked: (order.subOrders || [])
+            .filter(
+              (sub) =>
+                sub.status === "cancelled" && sub.inventoryReserved === false,
+            )
+            .flatMap((sub) =>
+              (sub.items || []).map((item) => ({
+                subOrderId: sub._id,
+                productId: item.productId,
+                variantId: item.variantId,
+                quantity: item.quantity,
+              })),
+            ),
+          eventKey: "restock",
+        }),
+      );
     }],
   ];
 

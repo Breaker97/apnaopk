@@ -11,15 +11,6 @@
     "supportedLanguages": [
       "en"
     ],
-    "supportedCurrencies": [
-      "USD",
-      "EUR",
-      "GBP",
-      "BDT",
-      "INR",
-      "UGX"
-    ],
-    "timezone": "UTC",
     "appIconUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789566198771-iswjk3/favicon.webp",
     "darkModeLogoUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789282968475-qhz2gf/logo_light.svg",
     "faviconUrl": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789566192008-z11jnu/favicon.webp",
@@ -31,11 +22,6 @@
     "secondaryColor": "#7a7a7a",
     "accentColor": "#a8714d",
     "theme": "light",
-    "contrast": false,
-    "rtl": false,
-    "collapsedSidebar": false,
-    "navLayout": "mini",
-    "navColor": "integrate",
     "presetColor": "default",
     "skeletonColor": ""
   },
@@ -165,8 +151,7 @@
     "enabled": true,
     "allowAdminSales": true,
     "allowVendorSales": true,
-    "allowSellerSales": true,
-    "language": "en"
+    "allowSellerSales": true
   },
   "multiVendorMode": {
     "enabled": true,
@@ -1316,8 +1301,6 @@
     },
     "plansEnabled": false,
     "allowRegistration": true,
-    "autoApprove": false,
-    "freeTrialDays": 0,
     "requirePlanSelection": false,
     "requiredDocuments": []
   },

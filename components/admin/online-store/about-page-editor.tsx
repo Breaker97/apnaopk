@@ -2,7 +2,7 @@
 
 import { nanoid } from "nanoid";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,
@@ -277,7 +277,9 @@ export function AboutPageEditor({ locale }: { locale: string }) {
         Write <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{storeName}"}</code>{" "}
         anywhere to insert the store name, and{" "}
         <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{returnWindow}"}</code>{" "}
-        to insert the return window from the Return Policy page. Sections with
+        to insert the return window from the Return Policy page, or{" "}
+        <code className="rounded bg-muted px-1 py-0.5 text-xs">{"{windowDays}"}</code>{" "}
+        for just its number of days from Settings → Orders. Sections with
         nothing to show hide themselves on the storefront.
       </p>
 

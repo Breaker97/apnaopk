@@ -22,7 +22,7 @@ const COLLECTION_ID = /^[A-Za-z0-9_-]{1,64}$/;
  * and costs nothing extra when a section on the page already asked.
  */
 export const GET = withApi({}, async ({ request }) => {
-  await rateLimitByIP(request, "lenient");
+  await rateLimitByIP(request, "browse");
 
   const ids = [
     ...new Set(

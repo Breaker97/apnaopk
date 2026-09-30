@@ -18,7 +18,7 @@ import { apiClient } from "@/lib/api/client";
  * would cost far more than it is worth.
  */
 
-export interface ShopperQuoteOffer {
+interface ShopperQuoteOffer {
   quoteId: string;
   productId: string;
   variantId?: string;

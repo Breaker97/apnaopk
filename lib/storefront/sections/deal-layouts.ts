@@ -20,6 +20,14 @@ export interface DealLayout {
   /** Index of the featured (large) slot, or null when every card is compact. */
   hero: number | null;
   /**
+   * Compact cards always put the photo on top of the copy. Unset, each card
+   * picks by the width it got — photo beside copy when there is room for
+   * both. A row of three or more reads as a shelf of products, and a shelf
+   * whose cards change shape with the column count does not; four abreast
+   * also left too little width beside the photo for the name.
+   */
+  stacked?: boolean;
+  /**
    * Desktop grid: one named area per slot, in slot order. Rows are `1fr`
    * tracks, not `auto`: in a content-height grid they size to the cards
    * exactly as auto would, and when the panel is given more height than
@@ -88,6 +96,7 @@ export const DEAL_LAYOUTS: DealLayout[] = [
     label: "Three deals",
     slots: 3,
     hero: null,
+    stacked: true,
     columns: "repeat(3, minmax(0,1fr))",
     rows: "minmax(0,1fr)",
     areas: '"a b c"',
@@ -98,6 +107,7 @@ export const DEAL_LAYOUTS: DealLayout[] = [
     label: "Four deals",
     slots: 4,
     hero: null,
+    stacked: true,
     columns: "repeat(4, minmax(0,1fr))",
     rows: "minmax(0,1fr)",
     areas: '"a b c d"',
@@ -108,6 +118,7 @@ export const DEAL_LAYOUTS: DealLayout[] = [
     label: "Five deals",
     slots: 5,
     hero: null,
+    stacked: true,
     columns: "repeat(5, minmax(0,1fr))",
     rows: "minmax(0,1fr)",
     areas: '"a b c d e"',

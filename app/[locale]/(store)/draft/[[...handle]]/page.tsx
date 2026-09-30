@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { auth } from "@/lib/auth/auth";
 import { USER_ROLES } from "@/config/app.config";
 import { type Locale } from "@/config/i18n.config";
+import { RouteMessages } from "@/components/language/route-messages";
 import { DraftPreviewPill } from "@/components/store/draft-preview-pill";
 import { SectionPreviewBridge } from "@/components/store/section-preview-bridge";
 import { StoreSections } from "@/components/store/store-sections";
@@ -97,7 +98,10 @@ export default async function DraftPreviewPage({
 
   return (
     <>
-      <StoreSections sections={page.sections} ctx={page.ctx} editable />
+      {/* A draft of the cart template draws the bag, which reads `checkout`. */}
+      <RouteMessages namespaces={["checkout"]}>
+        <StoreSections sections={page.sections} ctx={page.ctx} editable />
+      </RouteMessages>
       <DraftPreviewPill
         locale={locale as Locale}
         livePath={page.livePath === "/" ? `/${locale}` : `/${locale}${page.livePath}`}

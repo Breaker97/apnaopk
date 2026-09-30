@@ -16,8 +16,11 @@
 type ProductDeliveryWindow = { min: number; max: number };
 
 type ProductReturnsNote = {
-  /** Days after delivery within which a return may be requested. */
-  windowDays: number;
+  /**
+   * Days after delivery within which a return may be requested — the
+   * product's own window when it has one — or null for no time limit.
+   */
+  windowDays: number | null;
   /** 0–100; 0 means the goods are refunded in full. */
   restockingFeePercent: number;
   /** Flat return-shipping charge deducted from the refund; 0 when none. */
@@ -63,15 +66,19 @@ export function deliveryWindowFromShipping(params: {
 export function returnsNoteFromPolicy(params: {
   requiresShipping: boolean;
   policy: {
-    windowDays: number;
+    windowDays: number | null;
     restockingFeePercent: number;
     returnShippingFee: number;
   };
   policyPage: boolean;
 }): ProductReturnsNote | null {
   if (!params.requiresShipping) return null;
-  const windowDays = Number(params.policy.windowDays);
-  if (!Number.isFinite(windowDays) || windowDays <= 0) return null;
+  // No time limit is a promise too: "return any time".
+  const windowDays =
+    params.policy.windowDays === null ? null : Number(params.policy.windowDays);
+  if (windowDays !== null && (!Number.isFinite(windowDays) || windowDays <= 0)) {
+    return null;
+  }
   return {
     windowDays,
     restockingFeePercent: Math.max(0, params.policy.restockingFeePercent || 0),

@@ -1,9 +1,9 @@
 import { Types } from "mongoose";
-import { z } from "zod";
+import * as z from "zod";
 import { Expense } from "@/models/expense.model";
 import { getSettings } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";
-import { ValidationError } from "@/lib/api/errors";
+import { ApiError, ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { validateBody, validateQuery } from "@/lib/api/validate";
 import { CreateExpenseSchema, SafeSearchSchema } from "@/lib/validations";
@@ -12,9 +12,14 @@ import { currencyMinimumPrice, quantizeToCurrency, roundMoney } from "@/lib/intl
 import { postExpense } from "@/lib/finance/post-events";
 import {
   EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORY,
   EXPENSE_CATEGORY_DEBIT_ACCOUNT,
 } from "@/lib/finance/expense-categories";
 import { LEDGER_BOOK } from "@/lib/finance/accounts";
+import {
+  firstOccurrenceOnOrAfter,
+  startOfUtcDay,
+} from "@/lib/finance/recurring-schedule";
 
 const ExpenseListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -29,6 +34,9 @@ const ExpenseListQuerySchema = z.object({
   to: z.coerce.date().optional(),
 });
 
+/** A bill recorded as not yet paid that nobody has recorded paying. */
+const STILL_OWED = { paidFrom: "unpaid", settlement: null } as const;
+
 /**
  * GET /api/admin/finance/expenses
  *
@@ -36,6 +44,10 @@ const ExpenseListQuerySchema = z.object({
  * server-side over the WHOLE filtered set rather than the current page — a
  * "total spent" that only adds up the twenty rows on screen is the kind of
  * figure someone puts in a tax return.
+ *
+ * Plus what is still owed across ALL time. The unpaid figure inside the totals
+ * follows the period, so a bill from before it dropped out of sight while it
+ * was still waiting to be paid.
  */
 export const GET = withApi(
   {
@@ -45,25 +57,44 @@ export const GET = withApi(
   async ({ request }) => {
     const query = validateQuery(request, ExpenseListQuerySchema);
 
-    const filter: Record<string, unknown> = { scope: { $ne: "vendor" } };
-    if (query.category) filter.category = query.category;
-    if (query.book) filter.book = query.book;
-    if (query.paidFrom) filter.paidFrom = query.paidFrom;
+    const scope = { scope: { $ne: "vendor" } };
+    const conditions: Array<Record<string, unknown>> = [scope];
+    if (query.category) conditions.push({ category: query.category });
+    if (query.book) conditions.push({ book: query.book });
+    if (query.paidFrom === "unpaid") {
+      // Owed, not "entered as unpaid": a bill paid since is no longer
+      // anything anybody has to do.
+      conditions.push(STILL_OWED);
+    } else if (query.paidFrom) {
+      // Money that left this account, whether the bill was paid on the spot
+      // or recorded unpaid and paid from here later.
+      conditions.push({
+        $or: [
+          { paidFrom: query.paidFrom },
+          { "settlement.paidFrom": query.paidFrom },
+        ],
+      });
+    }
     if (query.from || query.to) {
-      filter.date = {
-        ...(query.from ? { $gte: query.from } : {}),
-        ...(query.to ? { $lte: query.to } : {}),
-      };
+      conditions.push({
+        date: {
+          ...(query.from ? { $gte: query.from } : {}),
+          ...(query.to ? { $lte: query.to } : {}),
+        },
+      });
     }
     if (query.search) {
       // Already regex-escaped by SafeSearchSchema.
-      filter.$or = [
-        { description: { $regex: query.search, $options: "i" } },
-        { payee: { $regex: query.search, $options: "i" } },
-      ];
+      conditions.push({
+        $or: [
+          { description: { $regex: query.search, $options: "i" } },
+          { payee: { $regex: query.search, $options: "i" } },
+        ],
+      });
     }
+    const filter = { $and: conditions };
 
-    const [items, total, totals] = await Promise.all([
+    const [items, total, totals, outstanding] = await Promise.all([
       Expense.find(filter)
         .sort({ date: -1, _id: -1 })
         .skip((query.page - 1) * query.limit)
@@ -75,6 +106,7 @@ export const GET = withApi(
         amount: number;
         count: number;
         unpaid: number;
+        stock: number;
       }>([
         { $match: filter },
         {
@@ -90,9 +122,48 @@ export const GET = withApi(
             // about it reads as money already gone.
             unpaid: {
               $sum: {
-                $cond: [{ $eq: ["$paidFrom", "unpaid"] }, "$amount", 0],
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ["$paidFrom", "unpaid"] },
+                      { $eq: [{ $ifNull: ["$settlement", null] }, null] },
+                    ],
+                  },
+                  "$amount",
+                  0,
+                ],
               },
             },
+            // Stock bought is an asset until it sells, not a cost, so the
+            // profit and loss leaves it out. Named here so the total can say
+            // how much of it is stock.
+            stock: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: ["$category", EXPENSE_CATEGORY.INVENTORY_PURCHASE],
+                  },
+                  "$amount",
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+      Expense.aggregate<{ _id: string; amount: number; count: number }>([
+        {
+          $match: {
+            ...scope,
+            ...STILL_OWED,
+            ...(query.book ? { book: query.book } : {}),
+          },
+        },
+        {
+          $group: {
+            _id: "$currency",
+            amount: { $sum: "$amount" },
+            count: { $sum: 1 },
           },
         },
       ]),
@@ -118,6 +189,12 @@ export const GET = withApi(
         amount: roundMoney(row.amount),
         count: row.count,
         unpaid: roundMoney(row.unpaid),
+        stock: roundMoney(row.stock),
+      })),
+      outstanding: outstanding.map((row) => ({
+        currency: row._id,
+        amount: roundMoney(row.amount),
+        count: row.count,
       })),
     });
   },
@@ -129,7 +206,9 @@ export const GET = withApi(
  * Records the cost and posts it to the ledger in the same request — unlike the
  * order paths, where posting is fire-and-forget because an order must survive a
  * ledger failure. Here the ledger entry IS the point of the record, so a
- * failure to post is a failure to record, and the admin should hear about it.
+ * failure to post is a failure to record: the row is taken back out and the
+ * admin hears about it, rather than seeing "recorded" over a cost the profit
+ * and loss never received.
  */
 export const POST = withApi(
   {
@@ -142,7 +221,13 @@ export const POST = withApi(
   async ({ request, session }) => {
     const body = await validateBody(request, CreateExpenseSchema);
     const settings = await getSettings();
-    const currency = (settings.general?.defaultCurrency || "USD").toUpperCase();
+    // The currency the bill was paid in; the store's own unless it says
+    // otherwise. A store selling in taka still pays its hosting in dollars.
+    const currency = (
+      body.currency ||
+      settings.general?.defaultCurrency ||
+      "USD"
+    ).toUpperCase();
 
     // Store only what the currency can express, then refuse anything that
     // rounds away to nothing — a zero-decimal currency (JPY, UGX) turns 0.4
@@ -165,6 +250,10 @@ export const POST = withApi(
         ? LEDGER_BOOK.MARKETPLACE
         : LEDGER_BOOK.OWN;
 
+    const recurring = body.recurring?.enabled
+      ? repeatingFrom(body.date, body.recurring)
+      : null;
+
     const expense = await Expense.create({
       date: body.date,
       book,
@@ -180,14 +269,7 @@ export const POST = withApi(
         multiVendor && body.vendorId
           ? new Types.ObjectId(body.vendorId)
           : null,
-      recurring: body.recurring?.enabled
-        ? {
-            enabled: true,
-            interval: body.recurring.interval,
-            nextDueAt: null,
-            templateId: null,
-          }
-        : null,
+      recurring,
       note: body.note?.trim() || null,
       // Resolved once, at creation, and stored — see the field's own note on
       // why the reversal cannot re-derive it.
@@ -196,19 +278,33 @@ export const POST = withApi(
       createdBy: session.user.id,
     });
 
-    await postExpense({
-      _id: expense._id,
-      date: expense.date,
-      book: expense.book,
-      category: expense.category,
-      amount: expense.amount,
-      currency: expense.currency,
-      description: expense.description,
-      paidFrom: expense.paidFrom,
-      vendorId: expense.vendorId,
-      revision: 0,
-      debitAccount: expense.debitAccount,
-    });
+    try {
+      await postExpense(
+        {
+          _id: expense._id,
+          date: expense.date,
+          book: expense.book,
+          category: expense.category,
+          amount: expense.amount,
+          currency: expense.currency,
+          description: expense.description,
+          paidFrom: expense.paidFrom,
+          vendorId: expense.vendorId,
+          revision: 0,
+          debitAccount: expense.debitAccount,
+        },
+        null,
+        { strict: true },
+      );
+    } catch (error) {
+      await Expense.deleteOne({ _id: expense._id }).catch(() => undefined);
+      console.error("Expense not recorded — the ledger write failed:", error);
+      throw new ApiError(
+        "The expense could not be written to the books, so it was not saved. Try again.",
+        503,
+        "LEDGER_WRITE_FAILED",
+      );
+    }
 
     const auditContext = createAuditContext(request, session);
     await auditCreate(
@@ -221,3 +317,40 @@ export const POST = withApi(
     return successResponse(expense, "Expense recorded", 201);
   },
 );
+
+/**
+ * A new repeating expense's schedule.
+ *
+ * Dated in the past, a template owes copies for the dates already gone by.
+ * Whether it should create them is the admin's call, made in the form: with
+ * `backfill` the daily job walks from the template's own date, without it the
+ * schedule starts from today.
+ */
+function repeatingFrom(
+  date: Date,
+  recurring: {
+    interval: "weekly" | "monthly" | "quarterly" | "yearly";
+    endsAt?: Date | null;
+    backfill?: boolean;
+  },
+) {
+  const endsAt = recurring.endsAt ? startOfUtcDay(recurring.endsAt) : null;
+  if (endsAt && endsAt < startOfUtcDay(date)) {
+    throw new ValidationError({
+      "recurring.endsAt": ["The last copy cannot be before the first"],
+    });
+  }
+  return {
+    enabled: true,
+    interval: recurring.interval,
+    nextDueAt: recurring.backfill
+      ? null
+      : firstOccurrenceOnOrAfter(
+          date,
+          recurring.interval,
+          startOfUtcDay(new Date()),
+        ),
+    endsAt,
+    templateId: null,
+  };
+}

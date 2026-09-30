@@ -13,7 +13,7 @@
  */
 
 import { useEffect, type RefObject } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 
 import { utcDay } from "@/lib/boosts/boost-days";
 

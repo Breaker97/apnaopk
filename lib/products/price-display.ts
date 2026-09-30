@@ -127,11 +127,25 @@ export function getProductCompareAtRange(
   return null;
 }
 
+/**
+ * The compare-at price that belongs with the displayed price — the one struck
+ * through beside it. For a product shown at its cheapest variant (a card, or a
+ * product page before the shopper has picked), that is the compare-at of the
+ * variants sold at that price, never the top of the compare-at range: pairing
+ * the highest compare-at with the lowest price advertises a discount no single
+ * variant offers. `null` when there is no genuine saving to show.
+ */
+export function getProductCompareAtPrice(
+  product: ProductPriceSummary,
+): number | null {
+  return displayedCompareAtPrice(product);
+}
+
 export function formatProductCompareAtPrice(
   product: ProductPriceSummary,
   formatPrice: (price: number) => string,
 ): string | null {
-  const comparePrice = displayedCompareAtPrice(product);
+  const comparePrice = getProductCompareAtPrice(product);
   return comparePrice === null ? null : formatPrice(comparePrice);
 }
 
@@ -156,12 +170,6 @@ export function getProductSavings(product: ProductPriceSummary): number {
   const price = getProductPriceRange(product).min;
   const comparePrice = displayedCompareAtPrice(product);
   return comparePrice !== null && comparePrice > price ? comparePrice - price : 0;
-}
-
-export function productRequiresVariantSelection(
-  product: ProductPriceSummary,
-): boolean {
-  return Array.isArray(product.variants) && product.variants.length > 1;
 }
 
 export function productMatchesPriceFilter(

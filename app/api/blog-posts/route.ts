@@ -12,6 +12,10 @@ import { parsePageLimit } from "@/lib/api/list-query";
 import { CreateBlogPostSchema } from "@/lib/validations";
 import { withApi } from "@/lib/api/handler";
 import { slugify } from "@/lib/strings";
+import {
+  PUBLIC_BLOG_FILTER,
+  publishedBlogDateCondition,
+} from "@/lib/blog/storefront-blog-posts";
 
 function calcReadingTime(html: string) {
   const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -43,12 +47,8 @@ export async function GET(request: NextRequest) {
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
 
     if (!isAdmin) {
-      query.status = "published";
-      query.visibility = { $ne: "private" };
-      query.$or = [
-        { publishedAt: { $lte: new Date() } },
-        { publishedAt: null },
-      ];
+      // What the blog itself shows, and nothing more.
+      Object.assign(query, PUBLIC_BLOG_FILTER, publishedBlogDateCondition());
     } else if (status && status !== "all") {
       query.status = status;
     }
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     const [posts, total] = await Promise.all([
       BlogPost.find(query)
-        .populate("author", "name image email")
+        .populate("author", "name image")
         .populate("categories", "name slug")
         .sort(sort)
         .skip(skip)

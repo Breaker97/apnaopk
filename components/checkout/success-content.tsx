@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import Link from "@/components/language/link";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   ArrowRight,
@@ -16,8 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { OrderDownloads } from "@/components/account/order-downloads";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/providers/currency-provider";
 import { readGuestCheckoutEmail } from "@/lib/checkout/checkout-guest-contact";
@@ -130,10 +131,8 @@ function isFailedCheckoutSessionStatus(status: string) {
 
 export function CheckoutSuccessContent() {
   const t = useTranslations();
-  const params = useParams();
   const searchParams = useSearchParams();
-  const locale = params.locale as string;
-  const { refreshCart } = useCart();
+  const { refreshCart } = useCartActions();
   const { isAuthenticated } = useAuth();
   const { formatPrice } = useCurrency();
 
@@ -936,12 +935,12 @@ export function CheckoutSuccessContent() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild>
-                <Link href={`/${locale}/account/orders`}>
+                <Link href="/account/orders">
                   {t("orders.viewOrders")}
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={`/${locale}/products`}>
+                <Link href="/products">
                   {t("cart.continueShopping")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -968,12 +967,12 @@ export function CheckoutSuccessContent() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild>
-                <Link href={`/${locale}/checkout`}>
+                <Link href="/checkout">
                   {t("common.tryAgain")}
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={`/${locale}/products`}>
+                <Link href="/products">
                   {t("cart.continueShopping")}
                 </Link>
               </Button>
@@ -1025,16 +1024,16 @@ export function CheckoutSuccessContent() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild>
-                <Link href={`/${locale}/products`}>
+                <Link href="/products">
                   {t("cart.continueShopping")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
               <Button variant="outline" asChild>
                 {isReturned ? (
-                  <Link href={`/${locale}/cart`}>{t("cart.viewCart")}</Link>
+                  <Link href="/cart">{t("cart.viewCart")}</Link>
                 ) : (
-                  <Link href={`/${locale}/account/orders`}>
+                  <Link href="/account/orders">
                     {t("orders.viewOrders")}
                   </Link>
                 )}
@@ -1062,11 +1061,11 @@ export function CheckoutSuccessContent() {
           </p>
 
           {refundDetails && refundDetails.refundedAmount > 0 && (
-            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <WarningBanner className="mb-6 text-start">
               {t("checkout.itemsDroppedRefunded", {
                 amount: formatPrice(refundDetails.refundedAmount),
               })}
-            </div>
+            </WarningBanner>
           )}
 
           {verifiedOrder && (
@@ -1099,12 +1098,12 @@ export function CheckoutSuccessContent() {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild>
-              <Link href={`/${locale}/account/orders`}>
+              <Link href="/account/orders">
                 {t("orders.viewOrders")}
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href={`/${locale}/products`}>
+              <Link href="/products">
                 {t("cart.continueShopping")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

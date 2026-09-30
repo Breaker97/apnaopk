@@ -49,6 +49,8 @@ export const LEDGER_SOURCE_KIND = {
   ADJUSTMENT: "adjustment",
   /** Units written off when a stock transfer was received short or damaged. */
   TRANSFER: "transfer",
+  /** Store credit given with no sale behind it, or expired unspent (R8). */
+  STORE_CREDIT: "store_credit",
 } as const;
 
 export type LedgerSourceKind =

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { ExternalLink, Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";

@@ -18,9 +18,10 @@ import { TemplateDemoPill } from "@/components/store/template-demo-pill";
 import { THEME_MANIFESTS } from "@/lib/storefront/themes/registry";
 import { getDemoTemplateUrls } from "@/lib/storefront/demo-links";
 import { themePreviewSrc } from "@/lib/storefront/themes/preview";
-import { AISalesAgentWidget } from "@/components/ai-sales-agent/ai-sales-agent-widget";
+import { AISalesAgentWidgetLazy } from "@/components/ai-sales-agent/ai-sales-agent-widget-lazy";
 import { StorefrontAnalytics } from "@/components/analytics/storefront-analytics";
 import { StorefrontRefresh } from "@/components/store/storefront-refresh";
+import { RenderClockProvider } from "@/components/store/render-clock";
 import { StoreThemeBodySync } from "@/components/store/store-theme-body-sync";
 import { ThemePreviewBridge } from "@/components/store/theme-preview-bridge";
 import { ScrollResetOnNavigate } from "@/components/store/scroll-reset-on-navigate";
@@ -34,12 +35,23 @@ import { getGroupSections } from "@/lib/storefront/pages/get-template";
 import type { SectionRenderContext } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { compileTheme } from "@/lib/storefront/themes/compile";
-import { getEnabledLocales } from "@/lib/storefront/storefront-metadata";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import { storeScrollbarCss } from "@/lib/storefront/themes/scrollbar-css";
 import { getAuthPageSettings } from "@/lib/auth/auth-page-settings";
+import { demoLoginCredentials } from "@/lib/auth/demo-login";
 
 interface LayoutProps {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
+}
+
+/**
+ * This render's time. A function rather than `Date.now()` in the render body:
+ * the `react-hooks/purity` lint rule forbids reading the clock there, and a
+ * server render runs once in any case.
+ */
+function renderedAt(): number {
+  return Date.now();
 }
 
 export default async function StoreLayout({ children, params }: LayoutProps) {
@@ -65,16 +77,18 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
       isMultiVendorEnabled,
       checkoutSettings,
       productCardConfig,
+      aiSalesAgent,
+      cartOrderConfig,
     },
     headerGroup,
     footerGroup,
-    { enabled: enabledLocales },
+    { enabled: enabledLocales, storeDefault },
     authSettings,
   ] = await Promise.all([
     getStorefrontSettings(),
     getGroupSections("header"),
     getGroupSections("footer"),
-    getEnabledLocales(),
+    getLocaleRouting(),
     // The bottom nav's guest account drawer renders the real sign-in/sign-up
     // forms, so it needs the same server-resolved flags /login and /register
     // get. `getSettings` is request-deduped, so this rides along with the
@@ -86,6 +100,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
   // the surface below — the only place a token turns into CSS is
   // compileTheme, which the editor's live preview runs too.
   const themeSurface = compileTheme(theme.tokens, brand.colors);
+  const scrollbarCss = storeScrollbarCss(theme.tokens.layout);
 
   // The card's Brand element resolves brand ids through this directory; a
   // card that shows no Brand element costs no brand read at all.
@@ -121,6 +136,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
             // place when a template is re-shot, and a bare path kept serving
             // the old one out of the image cache.
             preview: themePreviewSrc(manifest, "card"),
+            mobilePreview: themePreviewSrc(manifest, "mobile"),
             url: demoUrls[manifest.id],
           }));
         })()
@@ -158,7 +174,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
       />
       <JsonLd
         id="website-jsonld"
-        data={generateWebsiteJsonLd({ storeName, locale })}
+        data={generateWebsiteJsonLd({ storeName, locale, storeDefault })}
       />
       <StorefrontRefresh />
       {/* Portaled overlays (sheets, dropdowns) mount on <body>, outside the
@@ -173,10 +189,14 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
           tokens it posts, so the preview beside the controls is live. */}
       <ThemePreviewBridge brand={brand.colors} defaults={theme.defaults} />
       <ScrollResetOnNavigate />
+      {/* The render's own time, which what the page draws from the clock
+          (a pre-order's window, a countdown, the footer's year) hydrates
+          against: a cached page is hydrated long after it was rendered. */}
+      <RenderClockProvider at={renderedAt()}>
       {/* Every storefront card renders the ONE configurator card; a theme
           seeds its own template into the config on activation. */}
       <ProductCardConfigProvider config={productCardConfig} brands={cardBrands}>
-      <CartProvider>
+      <CartProvider orderConfig={cartOrderConfig}>
       {/* One quick-view modal for the whole storefront; cards without a
           surface-level handler fall back to it. Inside CartProvider — the
           modal's add-to-cart needs it. */}
@@ -210,6 +230,12 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
         {checkoutSettings.layout.chrome === "focused" ? (
           <style>{`.store-surface:has([data-checkout-segment]) [data-store-chrome]{display:none}`}</style>
         ) : null}
+        {/* The shop's own scrollbar, from Themes → Layout. It is built
+            server-side and rendered here because the document scrollbar
+            belongs to html, which the admin shares — and .store-surface is
+            not a marker for "this is the shop", since the admin mounts one
+            to render its previews. This layout is. */}
+        {scrollbarCss ? <style>{scrollbarCss}</style> : null}
         <div
           className="store-surface min-h-screen flex flex-col bg-background"
           data-store-theme={theme.id}
@@ -268,14 +294,21 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
             />
             <CompareBar locale={locale as Locale} />
             <ScrollToTop />
-            <AISalesAgentWidget locale={locale as Locale} />
+            {/* Mounted only when the assistant is on: an idle widget still
+                subscribes to the cart, currency and route for nothing. */}
+            {aiSalesAgent.enabled ? (
+              <AISalesAgentWidgetLazy
+                locale={locale as Locale}
+                config={aiSalesAgent}
+              />
+            ) : null}
             <StoreBottomNav
               locale={locale as Locale}
               oauthEnabled={{
                 google: authSettings.googleOAuthEnabled,
                 facebook: authSettings.facebookOAuthEnabled,
               }}
-              demoModeEnabled={authSettings.demoMode}
+              demoCredentials={demoLoginCredentials()}
               emailVerificationRequired={authSettings.emailVerificationRequired}
             />
           </div>
@@ -283,6 +316,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
       </QuickViewProvider>
       </CartProvider>
       </ProductCardConfigProvider>
+      </RenderClockProvider>
     </>
   );
 }

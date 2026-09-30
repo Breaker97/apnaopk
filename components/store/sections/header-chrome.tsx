@@ -17,7 +17,6 @@ import { headerLogoWidths } from "@/lib/site-config/header-config";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { getStorefrontCategories } from "@/lib/storefront/storefront-categories";
 import { getStorefrontCollections } from "@/lib/storefront/storefront-collections";
-import { readStoredShopperLocation } from "@/lib/locations/resolve-request-location";
 import { hasOpenPreorders } from "@/lib/products/storefront-products";
 
 /**
@@ -238,23 +237,21 @@ export async function HeaderBar({ locale }: { locale: Locale }) {
   // Collection nav count is configurable via header settings, so this
   // depends on the resolved settings above. The header renders no
   // collection nav at all when the menu is disabled, so skip the query.
-  // Resolved together: the collection nav and the shopper's saved place are
-  // independent reads, and the location is only worth a cookie parse when
-  // the header actually renders the "Deliver to" control.
   // The menus the Header Studio linked to items — the side drawer's lists
   // and nav links' mega dropdowns. Each is the same cached, tag-busted read
   // the header's own menus use.
+  //
+  // Nothing here reads the request: the header is part of pages every
+  // visitor is served from the cache (the home page), so the shopper's saved
+  // "Deliver to" place is restored by the control itself, in the browser.
   const linkedHandles = collectLinkedMenuHandles(headerSettings.builder);
-  const [collectionsResult, initialLocation, linkedMenuDocs] = await Promise.all([
+  const [collectionsResult, linkedMenuDocs] = await Promise.all([
     headerSettings.collectionsMenu?.enabled
       ? getStorefrontCollections({
           page: 1,
           limit: headerSettings.collectionsMenu?.limit ?? 12,
         })
       : Promise.resolve({ data: [] }),
-    headerSettings.widgets?.showLocationPicker
-      ? readStoredShopperLocation()
-      : Promise.resolve(null),
     Promise.all(linkedHandles.map((handle) => getMenuByHandle(handle))),
   ]);
 
@@ -292,7 +289,6 @@ export async function HeaderBar({ locale }: { locale: Locale }) {
       headerSettings={headerSettings}
       initialCategories={categoriesResult.categories}
       initialCollections={collectionsResult.data}
-      initialLocation={initialLocation}
     />
   );
 }

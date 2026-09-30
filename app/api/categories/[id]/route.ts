@@ -9,7 +9,7 @@ import {
   getResultingCategoryDepth,
 } from "@/lib/catalog/categories";
 import { slugify } from "@/lib/strings";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 function isPlaceholderCategorySlug(value: string) {

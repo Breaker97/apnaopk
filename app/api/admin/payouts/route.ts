@@ -3,14 +3,18 @@ import { getSettings, Order, Payout, Vendor } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
 import { paginatedResponse, successResponse } from "@/lib/api/response";
 import { getExternalVendorFilter, isDefaultVendorRecord } from "@/lib/vendors/multi-vendor";
+import { SETTLED_SUB_ORDER_PAYMENT_MATCH } from "@/lib/orders/order-payment-status";
 import { withApi } from "@/lib/api/handler";
 import { fetchPayoutList } from "@/lib/finance/payout-list";
 import {
   PAYABLE_ORDER_PROJECTION,
   buildPayableOrderFilter,
-  payoutHoldCutoff,
+  loadOrderIdsHeldForReturns,
+  earliestPayoutHoldCutoff,
   fetchRefundTotalsByOrder,
-  fetchVendorOverpayment,
+  isPastPayoutHold,
+  orderPayoutHoldCutoff,
+  fetchVendorOverpaymentBalance,
   payableInCurrency,
   sumVendorPayable,
 } from "@/lib/vendors/vendor-earnings";
@@ -27,9 +31,10 @@ import {
 } from "@/lib/finance/commission-invoices";
 import { roundMoney } from "@/lib/intl/money";
 import { parsePageLimit } from "@/lib/api/list-query";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 import { resolveMinWithdrawal } from "@/lib/orders/order-settings";
+import type { ReturnTermsLike } from "@/lib/returns/return-policy";
 
 /** How long a vendor's payout-creation claim holds before it is presumed dead. */
 const PAYOUT_LOCK_TTL_MS = 2 * 60 * 1000;
@@ -149,30 +154,71 @@ export const POST = withApi(
 
     try {
       const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
-      // A sale is paid out once the store's return window has closed on it — see
-      // `payoutHoldCutoff`. Fixed once, so the read and the claim below agree.
-      const deliveredBefore = payoutHoldCutoff(settings);
-      const eligibleOrders = await Order.find(
+      // A sale is paid out once the return window it was sold with has closed
+      // on it — see `orderPayoutHoldCutoff`. Orders keep the window they were
+      // sold under, so there is no one cutoff for all of them: the read casts
+      // the widest net any window allows, and each order is then held to its
+      // own. `now` is fixed once, so the read and the claim below agree.
+      const now = new Date();
+      // Nor a sale a return is still open on — see `loadOrderIdsHeldForReturns`.
+      // Read once, so the read and the claim below agree on it too.
+      const heldForReturns = await loadOrderIdsHeldForReturns(vendorObjectId);
+      const candidates = await Order.find(
         buildPayableOrderFilter(
           vendorObjectId,
           { periodStart, periodEnd },
-          deliveredBefore,
+          earliestPayoutHoldCutoff(now),
         ),
       )
-        .select("_id currency")
-        .lean();
+        // The lines' sellers and own windows, and every parcel's delivery:
+        // each seller waits out their own lines' window (R6).
+        .select(
+          "_id currency returnTerms items.vendorId items.returnWindowDays subOrders.vendorId subOrders.status subOrders.deliveredAt",
+        )
+        .lean<
+          Array<{
+            _id: mongoose.Types.ObjectId;
+            currency?: string;
+            returnTerms?: ReturnTermsLike | null;
+            items?: Array<{ vendorId?: unknown; returnWindowDays?: number | null }> | null;
+            subOrders?: Array<{
+              vendorId?: unknown;
+              status?: string;
+              deliveredAt?: Date | null;
+            }> | null;
+          }>
+        >();
+      const pastWindow = candidates.flatMap((order) => {
+        const cutoff = orderPayoutHoldCutoff(order, settings, now, vendorObjectId);
+        const past = (order.subOrders || []).some(
+          (sub) =>
+            String(sub.vendorId || "") === String(vendorObjectId) &&
+            isPastPayoutHold(sub, cutoff),
+        );
+        return past ? [{ order, cutoff }] : [];
+      });
+      const heldOrderIds = new Set(heldForReturns.map(String));
+      const eligible = pastWindow.filter(
+        ({ order }) => !heldOrderIds.has(String(order._id)),
+      );
+      const eligibleOrders = eligible.map(({ order }) => order);
 
       const eligibleOrderIds = eligibleOrders.map((order) => String(order._id));
       if (!eligibleOrderIds.length) {
         // Say why when the sales exist but are still inside the return window,
         // rather than leave the admin guessing at a period that has none.
-        const held = await Order.countDocuments(
-          buildPayableOrderFilter(vendorObjectId, { periodStart, periodEnd }),
-        );
+        const held =
+          pastWindow.length > 0
+            ? 0
+            : await Order.countDocuments(
+                buildPayableOrderFilter(vendorObjectId, { periodStart, periodEnd }),
+              );
         throw new ValidationError(
-          held > 0
-            ? `This vendor's delivered sales in this period are still inside the store's return window, so they cannot be paid out yet.`
-            : "No eligible orders found for payout",
+          pastWindow.length > 0
+            ? `This vendor's sales in this period are waiting on returns that are still open, so they cannot be paid out until those are settled.`
+            : held > 0
+              ? `This vendor's delivered sales in this period are still inside the store's return window, so they cannot be paid out yet.`
+              : "No eligible orders found for payout",
         );
       }
 
@@ -219,39 +265,67 @@ export const POST = withApi(
         createdBy: session.user.id,
       });
 
-      const claimResult = await Order.updateMany(
-        { _id: { $in: eligibleOrderIds } },
-        {
-          $set: {
-            "subOrders.$[sub].payoutStatus": "scheduled",
-            "subOrders.$[sub].payoutId": payout._id,
-            // The moment the amount was FROZEN, which is what a later refund has
-            // to be measured against. `payoutDate` is stamped when the money
-            // actually leaves, and a refund landing in the gap between the two
-            // was deducted from neither: not from this payout, whose figure was
-            // already fixed, and not by the clawback, which read it as having
-            // arrived before the settlement.
-            "subOrders.$[sub].payoutClaimedAt": new Date(),
-          },
-        },
-        {
-          arrayFilters: [
-            {
-              "sub.vendorId": vendorObjectId,
-              "sub.status": "delivered",
-              "sub.payoutStatus": { $nin: ["scheduled", "paid"] },
-              // The same hold the read above applied: an order with one
-              // consignment past the window and one still inside it pays only
-              // the first.
-              $or: [
-                { "sub.deliveredAt": { $lte: deliveredBefore } },
-                { "sub.deliveredAt": { $exists: false } },
-                { "sub.deliveredAt": null },
+      // The moment the amount was FROZEN, which is what a later refund has to
+      // be measured against. `payoutDate` is stamped when the money actually
+      // leaves, and a refund landing in the gap between the two was deducted
+      // from neither: not from this payout, whose figure was already fixed, and
+      // not by the clawback, which read it as having arrived before the
+      // settlement.
+      const claimedAt = new Date();
+      // One claim per order, each held to that order's own cutoff: one
+      // `updateMany` could only carry a single cutoff for all of them.
+      const claimResult = await Order.bulkWrite(
+        eligible.map(({ order, cutoff }) => ({
+          updateOne: {
+            // The payable filter again, at write time. Payment state,
+            // cancellation and a pre-order balance were only read above, so a
+            // chargeback or a cancel landing between that read and this write
+            // was still paid out.
+            filter: {
+              $and: [
+                { _id: order._id },
+                buildPayableOrderFilter(
+                  vendorObjectId,
+                  { periodStart, periodEnd },
+                  cutoff,
+                  heldForReturns,
+                ),
               ],
             },
-          ],
-        },
-      );
+            update: {
+              $set: {
+                "subOrders.$[sub].payoutStatus": "scheduled",
+                "subOrders.$[sub].payoutId": payout._id,
+                "subOrders.$[sub].payoutClaimedAt": claimedAt,
+              },
+            },
+            arrayFilters: [
+              {
+                "sub.vendorId": vendorObjectId,
+                "sub.status": "delivered",
+                "sub.payoutStatus": { $nin: ["scheduled", "paid"] },
+                // This consignment's own money, as the payable filter asks.
+                "sub.paymentStatus": SETTLED_SUB_ORDER_PAYMENT_MATCH,
+                // The same hold the read above applied: an order with one
+                // consignment past the window and one still inside it pays only
+                // the first. Delivered before the cutoff, or never stamped —
+                // written as "not after" rather than an `$or` of the three:
+                // mongoose casts each `$or` arm of an array filter as a whole
+                // new sub-order, defaults and all, and every payout failed on
+                // "Expected a single top-level field name".
+                "sub.deliveredAt": { $not: { $gt: cutoff } },
+              },
+            ],
+          },
+        })),
+      ).catch(async (claimError: unknown) => {
+        // Never leave the placeholder behind: it listed as a pending payout of
+        // nothing, owed to the vendor.
+        await Payout.deleteOne({ _id: payout._id }).catch((err) =>
+          console.error("Failed to remove an abandoned payout:", err),
+        );
+        throw claimError;
+      });
 
       if ((claimResult.modifiedCount ?? 0) === 0) {
         await Payout.deleteOne({ _id: payout._id });
@@ -298,6 +372,10 @@ export const POST = withApi(
             String(sub.payoutId) === String(payout._id) &&
             sub.status === "delivered",
           storeCurrency,
+          // Signed: sales a refund fee left below zero net against the rest of
+          // this payout instead of being floored away. A payout that comes to
+          // less than the minimum is refused below either way.
+          { unfloored: true },
         ),
         payoutCurrency,
       );
@@ -329,12 +407,21 @@ export const POST = withApi(
       // stays outstanding and comes off the one after. `overpaid` is already net
       // of what earlier payouts took back, which is why this payout has to record
       // what it takes.
-      const overpaid = await fetchVendorOverpayment({
+      //
+      // Negative the other way: an earlier payout recovered a refund that was
+      // later undone (a chargeback won, a refund the gateway failed), so this
+      // payout hands it back. Recorded negative, which is what stops the one
+      // after from handing it back again.
+      const overpaymentBalance = await fetchVendorOverpaymentBalance({
         vendorId,
         currency: payoutCurrency,
       });
+      const overpaid = Math.max(0, overpaymentBalance);
       const claimedEarnings = roundMoney(netAmount);
-      const overpaymentRecovered = roundMoney(Math.min(overpaid, claimedEarnings));
+      const overpaymentRecovered =
+        overpaymentBalance < 0
+          ? overpaymentBalance
+          : roundMoney(Math.min(overpaid, Math.max(0, claimedEarnings)));
 
       // Rolling reserve. A pre-order's dispute window is counted from its
       // expected delivery, so a drop sold months ahead can be charged back long
@@ -459,9 +546,11 @@ export const POST = withApi(
       }
 
       payout.orderIds = claimedOrderIds;
-      payout.grossSales = roundMoney(grossSales);
-      payout.commissionAmount = roundMoney(commissionAmount);
-      payout.shippingAmount = roundMoney(shippingAmount);
+      // The summary columns stay non-negative; only `netAmount` has to carry
+      // the signed figure, and it already does through `claimedEarnings`.
+      payout.grossSales = Math.max(0, roundMoney(grossSales));
+      payout.commissionAmount = Math.max(0, roundMoney(commissionAmount));
+      payout.shippingAmount = Math.max(0, roundMoney(shippingAmount));
       payout.adjustments = adjustments;
       payout.overpaymentRecovered = overpaymentRecovered;
       payout.commissionOffset = commissionOffset;
@@ -485,7 +574,9 @@ export const POST = withApi(
           adjustments,
           // The recovery alone, not the whole adjustment: the reserve moves in
           // and out of the same number and has nothing to do with overpayment.
-          overpaymentRemaining: roundMoney(overpaid - overpaymentRecovered),
+          overpaymentRemaining: Math.max(0, roundMoney(overpaid - overpaymentRecovered)),
+          // Recoveries handed back because the refund behind them was undone.
+          overpaymentReturned: Math.max(0, -overpaymentRecovered),
           preorderReserveHeld: reserveHeld,
           preorderReserveReleased: reserveReleased,
           commissionOffset,

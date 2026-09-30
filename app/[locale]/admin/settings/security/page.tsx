@@ -41,6 +41,7 @@ export default function Page() {
               lockoutDurationMinutes:
                 loadedSettings.security?.lockoutDurationMinutes ??
                 DEFAULT_LOCKOUT_MINUTES,
+              rateLimiting: loadedSettings.security?.rateLimiting,
               minPasswordLength:
                 loadedSettings.security?.minPasswordLength ??
                 MIN_ALLOWED_PASSWORD_LENGTH,

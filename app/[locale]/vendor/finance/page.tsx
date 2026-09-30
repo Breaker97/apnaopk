@@ -1,5 +1,6 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { messageTemplate } from "@/lib/i18n/message-template";
 import {
   ArrowDownRight,
   Banknote,
@@ -62,9 +63,10 @@ export default async function VendorFinancePage({
   const label = (key: string, fallback: string) =>
     t.has(key) ? t(key) : fallback;
   // The balance card fills its own placeholders — `{count}`, `{days}` — so the
-  // message is wanted unformatted; `t(key)` would refuse it for missing values.
+  // message is wanted as a template; `t(key)` would refuse it for missing
+  // values.
   const rawLabel = (key: string, fallback: string) =>
-    t.has(key) ? (t.raw(key) as string) : fallback;
+    messageTemplate(t, key, fallback);
 
   return (
     <div className="space-y-6">
@@ -188,9 +190,13 @@ export default async function VendorFinancePage({
                       icon: <Banknote className="h-4 w-4" />,
                       label: label("finance.statement.closing", "Held for you"),
                       value: money(statement.closing),
+                      // The balance card above is the payout figure; this is
+                      // the ledger's, which credits a sale the moment its
+                      // money arrives. Two different questions, and they read
+                      // as the same one when both say "waiting for a payout".
                       subLabel: label(
                         "finance.statement.closingHint",
-                        "Waiting for the next payout",
+                        "Your balance on the books — the card above shows what a payout can send",
                       ),
                     },
                     {
@@ -225,7 +231,7 @@ export default async function VendorFinancePage({
                   />
                   <div className="px-4 pb-4">
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/${locale}/vendor/finance/statements`}>
+                      <Link href="/vendor/finance/statements">
                         {label(
                           "finance.statement.seeAll",
                           "See the full statement",

@@ -552,6 +552,71 @@ export const MIGRATIONS = [
       "Create the notification outbox indexes: one email and one text per event (emaildeliveries + smsdeliveries dedupeKey), Twilio receipt lookup, SMS retry sweep and log retention. Purely additive.",
   },
   {
+    name: "marketing-consent",
+    script: "migrate-marketing-consent.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "2.3",
+    need: "required",
+    auto: true,
+    summary:
+      "Turn the marketingOptIn boolean into a per-channel consent record (state, opt-in level, date, source) and mint the unsubscribe tokens. Subscribers keep their subscription; unwritten rows are read as the boolean until it runs, so nothing is lost by waiting.",
+  },
+  {
+    name: "order-address-indexes",
+    script: "migrate-order-address-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "2.3",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Create the indexes the schemas gained in 2.2 and 2.3 (the customer-profile ones come with marketing-consent): the address-hold sweep, pending carrier refunds, gateway-retry order reuse, the PayPal balance and pay-link lookups, one order per checkout attempt, the checkout-attempt collection, the recovery-ladder sweep and the 90-day purges, the card-testing counters, recurring expenses, collection kinds, the pre-order waitlist and the slider counters. Purely additive.",
+  },
+  {
+    name: "return-refund-payer",
+    script: "backfill-return-refund-payer.ts",
+    runner: "tsx",
+    envFiles: ENV_STRICT,
+    since: "2.3",
+    need: "conditional",
+    when: "vendors collect cash on delivery themselves",
+    auto: true,
+    summary:
+      "Record whose money each existing return's refund comes out of. A seller who took cash on delivery at their own door refunds it themselves; returns from before 2.3 carry no answer and were read as the store's. Writes only the missing field and moves no money.",
+  },
+
+  // ---------------------------------------------------------------- 2.3 → 2.4
+  {
+    name: "private-storage",
+    script: "migrate-private-storage.ts",
+    runner: "tsx",
+    envFiles: ENV_STRICT,
+    since: "2.4",
+    need: "conditional",
+    when: "a private bucket",
+    // Moves files between buckets, and only after the store has created the
+    // private bucket and saved its name — never part of an unattended --all.
+    auto: false,
+    autoReason:
+      "it moves files, and needs the private bucket you create and name first",
+    summary:
+      "Move the vendor identity documents, digital products and expense receipts already stored into the private bucket (same keys), and delete them from the public one. Until it runs they are still served from the public bucket.",
+  },
+  {
+    name: "store-credit-indexes",
+    script: "migrate-store-credit-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "2.4",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Create the indexes the schemas gained in 2.4: store credit's two collections (one balance per shopper and currency, one transaction per idempotency key, the spend, history and upkeep reads), an order's credit hold and exchange links, one marketing suppression per address, and a signed-out shopper's AI conversations. Purely additive.",
+  },
+  {
     name: "product-search",
     script: "backfill-product-search.ts",
     runner: "tsx",
@@ -615,7 +680,7 @@ export const MIGRATIONS = [
 ];
 
 /** Release sections, in upgrade order, for grouping `--list` output. */
-export const RELEASES = ["1.4", "1.5", "2.0", "2.1"];
+export const RELEASES = ["1.4", "1.5", "2.0", "2.1", "2.3", "2.4"];
 
 const BY_NAME = new Map(MIGRATIONS.map((m) => [m.name, m]));
 

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { canAccessPOS } from "@/lib/access/rbac";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -24,10 +25,10 @@ export default async function AdminPosStaffPage({ params }: PageProps) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.pos?.enabled) {
-    redirect(`/${locale}/admin`);
+    redirect(await localeHref(locale, "/admin"));
   }
   if (!(await canAccessPOS(session.user))) {
-    redirect(`/${locale}/admin`);
+    redirect(await localeHref(locale, "/admin"));
   }
 
   return (

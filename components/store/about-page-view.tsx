@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { type Locale } from "@/config/i18n.config";
+import Link from "@/components/language/link";
 import {
   ArrowRight,
   BadgeCheck,
@@ -56,6 +57,8 @@ interface AboutContactData {
 
 interface AboutPageViewProps {
   locale: string;
+  /** The language served without a URL prefix — see `StoreBreadcrumb`. */
+  storeDefault: Locale;
   page: AboutPageData;
   placeholders: ContentPlaceholders;
   isMultiVendorEnabled: boolean;
@@ -91,6 +94,7 @@ function initials(name: string): string {
  */
 export function AboutPageView({
   locale,
+  storeDefault,
   page,
   placeholders,
   isMultiVendorEnabled,
@@ -151,7 +155,10 @@ export function AboutPageView({
           )}
         >
           <div className="max-w-3xl">
-            <StoreBreadcrumb locale={locale} items={[{ label: page.title }]} />
+            <StoreBreadcrumb
+              locale={locale}
+              storeDefault={storeDefault}
+              items={[{ label: page.title }]} />
 
             {page.eyebrow ? (
               <Badge variant="outline" className="mb-4 gap-2 rounded-md">
@@ -170,7 +177,7 @@ export function AboutPageView({
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               {page.primaryCtaLabel ? (
                 <Button asChild size="lg">
-                  <Link href={`/${locale}/products`}>
+                  <Link href="/products">
                     {fill(page.primaryCtaLabel)}
                     <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
                   </Link>
@@ -286,7 +293,7 @@ export function AboutPageView({
                   footer={
                     page.sellerCtaLabel ? (
                       <Link
-                        href={`/${locale}/become-vendor`}
+                        href="/become-vendor"
                         className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                       >
                         {fill(page.sellerCtaLabel)}
@@ -580,7 +587,7 @@ export function AboutPageView({
               </div>
               <div className="flex flex-col gap-4 lg:items-end">
                 <Button asChild variant="outline">
-                  <Link href={`/${locale}/contact`}>
+                  <Link href="/contact">
                     {contactCtaLabel}
                     <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
                   </Link>
@@ -608,7 +615,7 @@ export function AboutPageView({
                 size="lg"
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
               >
-                <Link href={`/${locale}/products`}>
+                <Link href="/products">
                   {fill(page.ctaPrimaryLabel)}
                   <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden />
                 </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Eye } from "lucide-react";

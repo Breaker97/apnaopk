@@ -37,8 +37,28 @@ interface IExpense extends Document {
   /** Who was paid. Free text: a supplier list is a different feature. */
   payee?: string | null;
   paidFrom: ExpensePaidFrom;
-  /** Uploaded receipt or invoice, through the existing media pipeline. */
+  /**
+   * The receipt or invoice. A private storage key for uploads made from the
+   * admin form (served only through the admin receipt route — see
+   * `expense-receipts`), or a public URL on rows saved before that.
+   */
   receiptUrl?: string | null;
+  /**
+   * How a bill recorded as not yet paid was paid, once it was.
+   *
+   * Separate from `paidFrom`, which stays "unpaid": the expense was a cost on
+   * the day of the bill and a payable until it was settled, and the payment is
+   * its own dated event (payable down, bank down) — not a rewrite of the bill.
+   */
+  settlement?: {
+    paidAt: Date;
+    paidFrom: Exclude<ExpensePaidFrom, "unpaid">;
+    /** Rides in the ledger key, so a payment undone and redone is new. */
+    sequence: number;
+    settledBy?: string | null;
+  } | null;
+  /** How many payments this bill has had recorded, undone ones included. */
+  settlementSequence: number;
   /**
    * The vendor this cost belongs to, when a marketplace tracks costs per
    * seller. Absent means it is the platform's own.
@@ -64,6 +84,8 @@ interface IExpense extends Document {
     interval: "weekly" | "monthly" | "quarterly" | "yearly";
     /** The next date a copy should be created for. */
     nextDueAt?: Date | null;
+    /** No copy is created for a date after this; the series then switches off. */
+    endsAt?: Date | null;
     /** The template that produced this row, when it was produced. */
     templateId?: Types.ObjectId | null;
   } | null;
@@ -126,6 +148,27 @@ const ExpenseSchema = new Schema<IExpense>(
       required: true,
     },
     receiptUrl: { type: String, trim: true, default: null },
+    settlement: {
+      type: new Schema(
+        {
+          paidAt: { type: Date, required: true },
+          paidFrom: {
+            type: String,
+            enum: [
+              EXPENSE_PAID_FROM.BANK,
+              EXPENSE_PAID_FROM.CASH,
+              EXPENSE_PAID_FROM.GATEWAY,
+            ],
+            required: true,
+          },
+          sequence: { type: Number, required: true, min: 1 },
+          settledBy: { type: String, default: null },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
+    settlementSequence: { type: Number, default: 0, min: 0 },
     vendorId: { type: Schema.Types.ObjectId, ref: "Vendor", default: null },
     scope: {
       type: String,
@@ -143,6 +186,7 @@ const ExpenseSchema = new Schema<IExpense>(
             default: "monthly",
           },
           nextDueAt: { type: Date, default: null },
+          endsAt: { type: Date, default: null },
           templateId: { type: Schema.Types.ObjectId, default: null },
         },
         { _id: false },
@@ -166,6 +210,17 @@ ExpenseSchema.index({ category: 1, date: -1 });
 ExpenseSchema.index({ vendorId: 1, scope: 1, date: -1 });
 // The recurring sweep: templates whose next copy is due.
 ExpenseSchema.index({ "recurring.enabled": 1, "recurring.nextDueAt": 1 });
+// One copy per template per due date, held by the database: the sweep checks
+// before it inserts, but two overlapping runs both pass the check.
+ExpenseSchema.index(
+  { "recurring.templateId": 1, date: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      "recurring.templateId": { $type: "objectId" },
+    },
+  },
+);
 
 export const Expense: Model<IExpense> =
   mongoose.models.Expense || mongoose.model<IExpense>("Expense", ExpenseSchema);

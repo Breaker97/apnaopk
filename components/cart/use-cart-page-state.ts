@@ -13,8 +13,10 @@ import { useCart } from "@/hooks/use-cart";
 import { groupCartItemsBySeller } from "@/lib/cart/cart-sellers";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { toast } from "@/components/ui/toast-notification";
+import { refusalMessage } from "@/lib/api/client";
 import { useCurrency } from "@/providers/currency-provider";
 import {
   calculateCheckoutTotals,
@@ -24,6 +26,7 @@ import {
   analyticsItemsFromCart,
   trackCartView,
 } from "@/lib/analytics/events";
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
 
 type VariantDetails = {
   color: string | null;
@@ -45,19 +48,6 @@ type AppliedCoupon = {
   maxDiscount?: number;
 };
 
-type OrderConfig = {
-  taxRate: number;
-  /**
-   * `orders.freeShippingThreshold`, plus the flag that decides whether it means
-   * anything. The threshold only reaches the bill on the legacy flat-rate path;
-   * see `FreeShippingProgress`.
-   */
-  freeShippingThreshold: number;
-  zoneShippingEnabled: boolean;
-  /** `shipping.delivery.showEstimatedDelivery` — gates the delivery strip. */
-  showEstimatedDelivery: boolean;
-};
-
 type DeliveryDays = { min: number; max: number };
 
 const CART_SUMMARY_SHIPPING_COST = 0;
@@ -67,14 +57,7 @@ function stripZeroDecimals(price: string) {
 }
 
 export function formatPreorderDate(value?: unknown) {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return formatPreorderReleaseDate(value);
 }
 
 export function getPreorderPaymentLabel(item: {
@@ -147,6 +130,7 @@ export function useCartPageState() {
     sellerCount,
     anySellerOffersPickup,
     hasShippableItems,
+    orderConfig,
     updateItem,
     removeItem,
   } = useCart();
@@ -176,12 +160,6 @@ export function useCartPageState() {
   const soldByLabel = (name: string) =>
     t.has("cart.soldBy") ? t("cart.soldBy", { seller: name }) : `Sold by ${name}`;
 
-  const [orderConfig, setOrderConfig] = useState<OrderConfig>({
-    taxRate: 0,
-    freeShippingThreshold: 0,
-    zoneShippingEnabled: false,
-    showEstimatedDelivery: false,
-  });
   const [isCouponOpen, setIsCouponOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(
     null,
@@ -212,46 +190,6 @@ export function useCartPageState() {
     [items],
   );
 
-  useEffect(() => {
-    let active = true;
-
-    (async () => {
-      try {
-        const res = await fetch("/api/settings/public");
-        const json = await res.json().catch(() => null);
-        if (!active) return;
-
-        if (res.ok && json?.success) {
-          setOrderConfig({
-            taxRate: Number(json.data?.orders?.taxRate || 0),
-            freeShippingThreshold: Number(
-              json.data?.orders?.freeShippingThreshold || 0,
-            ),
-            zoneShippingEnabled: Boolean(json.data?.shipping?.enabled),
-            showEstimatedDelivery: Boolean(
-              json.data?.shipping?.delivery?.showEstimatedDelivery,
-            ),
-          });
-        }
-      } catch {
-        if (active) {
-          // Falling back to a zero threshold hides the free-shipping nudge
-          // rather than showing one built from a subtotal we cannot price.
-          setOrderConfig({
-            taxRate: 0,
-            freeShippingThreshold: 0,
-            zoneShippingEnabled: false,
-            showEstimatedDelivery: false,
-          });
-        }
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const formatCartPrice = (amount: number) =>
     stripZeroDecimals(formatPrice(amount));
 
@@ -265,8 +203,8 @@ export function useCartPageState() {
 
     try {
       await updateItem(productId, quantity, variantId);
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(refusalMessage(error) ?? t("common.error"));
     } finally {
       setUpdatingItems((prev) => {
         const next = new Set(prev);
@@ -280,8 +218,8 @@ export function useCartPageState() {
     try {
       await removeItem(productId, variantId);
       toast.success(t("cart.itemRemoved"));
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(refusalMessage(error) ?? t("common.error"));
     }
   };
 
@@ -289,7 +227,7 @@ export function useCartPageState() {
     const couponQuery = appliedCoupon?.code
       ? `?coupon=${encodeURIComponent(appliedCoupon.code)}`
       : "";
-    router.push(`/${locale}/checkout${couponQuery}`);
+    router.push(`/checkout${couponQuery}`);
   };
 
   const saleSavings = items.reduce((sum, item) => {
@@ -313,6 +251,7 @@ export function useCartPageState() {
           categoryId: metadata.categoryId
             ? String(metadata.categoryId)
             : undefined,
+          quoted: Boolean(item.quoteId),
         };
       }),
     [items],

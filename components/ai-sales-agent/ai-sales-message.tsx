@@ -1,7 +1,6 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ImagePlus, Loader2, ShoppingBag, Sparkles } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { cn } from "@/lib/utils";

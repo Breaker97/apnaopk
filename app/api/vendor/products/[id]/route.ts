@@ -10,12 +10,17 @@ import {
 import { USER_ROLES } from "@/config/app.config";
 import { getSettings } from "@/models/settings.model";
 import { assertProductPreorderAllowed } from "@/lib/orders/preorder-gating";
+import {
+  assertProductFeaturesAllowed,
+  resolveProductFeatures,
+} from "@/lib/products/product-features";
 import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import {
   applyStockBaseline,
   ProductUpdateWithBaselineSchema,
 } from "@/lib/products/stock-baseline";
+import { carryPreorderCounters } from "@/lib/products/preorder-counters";
 import { isValidObjectId, validatePartialBody } from "@/lib/api/validate";
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
 import { syncProductCollections, removeProductFromAllCollections, updateAllCollectionProductCounts } from "@/lib/catalog/collections";
@@ -48,6 +53,7 @@ import {
 } from "@/lib/products/barcode-validation";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { notifyPreorderWaitlistsForProduct } from "@/lib/orders/preorder-waitlist";
+import { propagateProductReleaseDate } from "@/lib/orders/preorder-release-date-sync";
 import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
 import {
@@ -57,10 +63,6 @@ import {
 } from "@/lib/products/barcode-registry";
 import { cleanupDeletedProductReferences } from "@/lib/products/product-cleanup";
 import { releaseBoostInventoryIfProductWentDark } from "@/lib/boosts/boosts";
-import {
-  areCountryValuesEquivalent,
-  isCountryAllowed,
-} from "@/lib/intl/country-availability";
 import {
   allowedLocationIds,
   vendorLocationScope,
@@ -171,7 +173,10 @@ export const PUT = withApi<{ id: string }>(
       ProductUpdateWithBaselineSchema,
     );
 
+    // Not the vendor's to set: `featured` is the platform's to grant, and a
+    // `vendorId` in the body would hand the product to another store.
     delete (body as Record<string, unknown>).featured;
+    delete (body as Record<string, unknown>).vendorId;
 
     // Digital files must come from this vendor's own private-storage scope.
     assertOwnDigitalAssetKeys(
@@ -180,28 +185,14 @@ export const PUT = withApi<{ id: string }>(
     );
 
     const existing = await Product.findOne({ _id: id, vendorId: vendor._id })
-      .select("slug price preorder collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets")
+      .select("slug price preorder priceOnRequest collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets")
       .lean();
     if (!existing) {
       return notFoundResponse("Product");
     }
 
-    const submittedCountryOfOrigin = body.shipping?.countryOfOrigin?.trim();
-    if (
-      submittedCountryOfOrigin &&
-      !areCountryValuesEquivalent(
-        submittedCountryOfOrigin,
-        existing.shipping?.countryOfOrigin,
-      ) &&
-      !isCountryAllowed(
-        submittedCountryOfOrigin,
-        settings.general?.countryAvailability,
-      )
-    ) {
-      throw new ValidationError({
-        "shipping.countryOfOrigin": ["Selected country is not available"],
-      });
-    }
+    // `shipping.countryOfOrigin` is deliberately unrestricted — see the
+    // create route: where a product was made is not where the store sells.
 
     if (isProductFormatChange(existing.shipping, body.shipping)) {
       throw new ValidationError({
@@ -245,6 +236,18 @@ export const PUT = withApi<{ id: string }>(
       if (cleaned === undefined) delete updateSet.preorder;
       else updateSet.preorder = cleaned;
     }
+
+    // Settings → Products: only what this save switches ON is judged, so a
+    // quote or pre-order already running can still be edited or switched off.
+    assertProductFeaturesAllowed({
+      features: resolveProductFeatures(settings),
+      product: {
+        priceOnRequest: updateSet.priceOnRequest as boolean | undefined,
+        preorder: updateSet.preorder as never,
+        variants: updateSet.variants as never,
+      },
+      stored: existing as never,
+    });
 
     // Only what this request is actually changing is judged. An untouched
     // pre-order on a product being renamed is left alone: a tightened limit
@@ -386,12 +389,20 @@ export const PUT = withApi<{ id: string }>(
           | undefined,
       };
       for (let attempt = 0; attempt < 3; attempt++) {
-        const pin = await applyStockBaseline({
+        const stockPin = await applyStockBaseline({
           filter: productFilter,
           updateSet,
           submitted: submittedStock,
           baseline: stockBaseline,
         });
+        // Reservation counters come from the database, never the form — see
+        // `carryPreorderCounters`. Pinned to the earlier of the two reads, so
+        // anything that moved after it makes the write miss and read again.
+        const counterPin = await carryPreorderCounters({
+          filter: productFilter,
+          updateSet,
+        });
+        const pin = stockPin ?? counterPin;
         product = await Product.findOneAndUpdate(
           { ...productFilter, ...(pin ? { updatedAt: pin.updatedAt } : {}) },
           {
@@ -490,6 +501,16 @@ export const PUT = withApi<{ id: string }>(
     // released, so nothing else would tell the shoppers waiting for them.
     // After the response and best-effort: the daily sweep catches a miss.
     afterResponse(() => notifyPreorderWaitlistsForProduct(String(id)));
+    // A pushed-back date reaches the orders already waiting on the old one.
+    afterResponse(() =>
+      propagateProductReleaseDate({
+        productId: String(id),
+        before: existing as never,
+        after: product as never,
+      }).catch((err) =>
+        console.error("Failed to move pre-orders to the new release date:", err),
+      ),
+    );
 
     return successResponse({
       ...(product as unknown as Record<string, unknown>),

@@ -2,11 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { resolveFaviconUrl } from "@/config/branding.config";
 import { connectDB } from "@/lib/db";
-import { defaultLocale, locales } from "@/config/i18n.config";
+import { defaultLocale, locales, type Locale } from "@/config/i18n.config";
+import {
+  buildLocalePath,
+  LOCALE_COOKIE_NAME,
+  resolveLocaleRouting,
+  splitLocalePath,
+  type LocaleRouting,
+} from "@/lib/i18n/locale-prefix";
 import { USER_ROLES } from "@/config/app.config";
 import { isInstallLocked } from "@/lib/install/payload";
 import { User } from "@/models/user.model";
 import { REQUEST_PATH_HEADER } from "@/lib/auth/return-path";
+import {
+  UNCACHED_SEGMENT,
+  hasVisitorQuery,
+  isCachedPagePath,
+} from "@/lib/storefront/cached-pages";
+import { CLIENT_IP_HEADER, stampClientIp } from "@/lib/api/client-ip";
 import {
   buildMaintenanceHtml,
   isAllowedMaintenanceIp,
@@ -14,11 +27,56 @@ import {
 } from "@/lib/maintenance";
 import { getSettings, Settings } from "@/models/settings.model";
 
-const intlProxy = createMiddleware({
-  locales,
-  defaultLocale,
-  localePrefix: "always",
-});
+/**
+ * The store's default language owns the unprefixed URLs (`/products`), every
+ * other enabled language keeps its prefix (`/bn/products`) — next-intl's
+ * `as-needed` mode. A store with one language therefore serves no locale
+ * prefix at all, and `localePrefix: "always"`, which used to stamp `/en/` onto
+ * every URL of every single-language store, is gone.
+ *
+ * `locales` is the ENABLED set rather than the build's 18, so language
+ * detection can only ever resolve to a language the store actually serves, and
+ * a disabled language's prefix is recognised as the stale link it is (handled
+ * in `routeLocalizedPage` below).
+ *
+ * Instances are memoised because the middleware is built from settings that
+ * change once in a blue moon, and building one per request would re-parse the
+ * routing config on every page view.
+ */
+const intlProxies = new Map<string, ReturnType<typeof createMiddleware>>();
+
+function getIntlProxy(routing: LocaleRouting, localeDetection: boolean) {
+  const key = `${routing.storeDefault}|${routing.enabled.join(",")}|${localeDetection}`;
+  let intlProxy = intlProxies.get(key);
+
+  if (!intlProxy) {
+    // A running store uses two or three variants; anything beyond that is a
+    // settings change, so the old entries are dead weight.
+    if (intlProxies.size > 8) intlProxies.clear();
+
+    intlProxy = createMiddleware({
+      locales: routing.enabled,
+      defaultLocale: routing.storeDefault,
+      localePrefix: "as-needed",
+      localeDetection,
+      localeCookie: { name: LOCALE_COOKIE_NAME },
+    });
+    intlProxies.set(key, intlProxy);
+  }
+
+  return intlProxy;
+}
+
+/**
+ * How requests are routed when settings cannot be read (a cold process with an
+ * unreachable database). Every build locale stays servable: guessing a
+ * narrower set here would redirect a store's real languages away while its
+ * database is down.
+ */
+const FALLBACK_PROXY_ROUTING: LocaleRouting = {
+  enabled: [...locales],
+  storeDefault: defaultLocale,
+};
 
 const STATIC_FILE_PATTERN = /\.[^/]+$/;
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -57,7 +115,7 @@ type MaintenanceSnapshot = {
   storeEmail?: string;
   logoUrl?: string;
   faviconUrl?: string;
-  defaultLanguage?: string;
+  routing: LocaleRouting;
 };
 
 let maintenanceSnapshotCache:
@@ -69,51 +127,133 @@ let maintenanceSnapshotCache:
 let maintenanceSnapshotRefresh: Promise<MaintenanceSnapshot> | undefined;
 
 function stripLocalePrefix(pathname: string) {
-  const segments = pathname.split("/");
-  const maybeLocale = segments[1];
-
-  if (maybeLocale && locales.includes(maybeLocale as (typeof locales)[number])) {
-    const stripped = `/${segments.slice(2).join("/")}`;
-    return stripped === "/" ? "/" : stripped.replace(/\/+$/, "") || "/";
-  }
-
-  return pathname === "/" ? "/" : pathname.replace(/\/+$/, "") || "/";
-}
-
-function getLocaleFromPathname(pathname: string) {
-  const candidate = pathname.split("/")[1];
-  return candidate && locales.includes(candidate as (typeof locales)[number])
-    ? candidate
-    : defaultLocale;
+  const { rest } = splitLocalePath(pathname);
+  return rest === "/" ? "/" : rest.replace(/\/+$/, "") || "/";
 }
 
 /**
- * Routes a page request through the next-intl proxy, first honoring the
- * admin-configured default language (settings.general.defaultLanguage) for
- * first-time visitors: a locale-less URL with no NEXT_LOCALE cookie redirects
- * to the configured locale instead of the hardcoded build default. Returning
- * visitors keep their own choice — next-intl persists it in NEXT_LOCALE when
- * they navigate to another locale.
+ * The locale a request is being served in. An unprefixed URL is the store
+ * default's — which is the admin's choice, not the build's `en`, so the caller
+ * passes it in.
  */
-function routeLocalizedPage(request: NextRequest, defaultLanguage?: string) {
-  const { pathname } = request.nextUrl;
-  const hasLocalePrefix = locales.includes(
-    pathname.split("/")[1] as (typeof locales)[number],
-  );
+function getLocaleFromPathname(pathname: string, storeDefault: Locale) {
+  return splitLocalePath(pathname).locale ?? storeDefault;
+}
 
-  if (!hasLocalePrefix && !request.cookies.get("NEXT_LOCALE")) {
-    const configured = String(defaultLanguage || "").toLowerCase();
-    if (
-      configured !== defaultLocale &&
-      locales.includes(configured as (typeof locales)[number])
-    ) {
-      const url = request.nextUrl.clone();
-      url.pathname = pathname === "/" ? `/${configured}` : `/${configured}${pathname}`;
-      return NextResponse.redirect(url);
-    }
+/**
+ * Routes a page request through the next-intl proxy.
+ *
+ * Two things happen here that next-intl cannot decide on its own:
+ *
+ * 1. A prefix that this store no longer serves — the store default's own
+ *    (its pages live at the bare path now) or a language the admin turned
+ *    off — is a stale link, not a 404. It is redirected PERMANENTLY to the
+ *    bare path, which is how a store retires the `/en/…` URLs it indexed
+ *    before this mode existed. next-intl redirects the default locale's
+ *    prefix too, but only with a 307, which leaves the old URL in the index.
+ * 2. First-time visitors honour the admin-configured default language: a
+ *    locale-less URL with no locale cookie resolves to it rather than to
+ *    `Accept-Language`. Returning visitors keep their own choice, which the
+ *    locale cookie carries — written by the app before every page it
+ *    requests (`rememberLocale`, hooks/use-locale-navigation.ts) and by
+ *    next-intl on a direct page load.
+ *
+ * And one thing next-intl knows nothing about: a page served from the cache,
+ * asked for with a query string, is rendered by its uncached twin instead
+ * (lib/storefront/cached-pages.ts).
+ */
+function routeLocalizedPage(request: NextRequest, routing: LocaleRouting) {
+  const { pathname } = request.nextUrl;
+  const { locale: pathLocale, rest } = splitLocalePath(pathname);
+
+  // The twins are reached through the rewrite below, never by their own URL:
+  // a path no route claims, which the store's catch-all answers with a 404.
+  if (rest === `/${UNCACHED_SEGMENT}` || rest.startsWith(`/${UNCACHED_SEGMENT}/`)) {
+    const locale =
+      pathLocale && routing.enabled.includes(pathLocale)
+        ? pathLocale
+        : routing.storeDefault;
+    return NextResponse.rewrite(new URL(`/${locale}/404`, request.url), {
+      request: { headers: request.headers },
+    });
   }
 
-  return intlProxy(request);
+  const staleLocalePrefix =
+    pathLocale !== null &&
+    (pathLocale === routing.storeDefault ||
+      !routing.enabled.includes(pathLocale));
+
+  if (staleLocalePrefix) {
+    const url = request.nextUrl.clone();
+    // Always the bare path: the store default is the one language that has
+    // no prefix, so it is also the one a retired prefix falls back to.
+    url.pathname = buildLocalePath(
+      routing.storeDefault,
+      rest,
+      routing.storeDefault,
+    );
+    const response = NextResponse.redirect(url, 308);
+
+    // The store default's own prefix still names a language — every link the
+    // store printed before this mode, and the emailed links that keep the
+    // prefix, ask for it. The bare path is served in the cookie's language,
+    // so it is recorded here, as next-intl records it on its own redirect of
+    // this prefix; otherwise a cookie naming another language sends the
+    // visitor straight on to that one.
+    if (pathLocale === routing.storeDefault) {
+      response.cookies.set(LOCALE_COOKIE_NAME, routing.storeDefault, {
+        path: "/",
+        sameSite: "lax",
+      });
+    }
+    return response;
+  }
+
+  // Detection covers the locale cookie AND `Accept-Language`, and it is
+  // all-or-nothing in next-intl — so it is turned off in the one case where
+  // the admin's choice has to win over the browser's: a first visit, to a URL
+  // that names no language, at a store whose default is not the build's. That
+  // is exactly the case this branch has always covered; a store that runs on
+  // `en` keeps honouring `Accept-Language` as it did before. With a locale in
+  // the path, or a cookie naming a language this store serves, the visitor
+  // has already chosen. A cookie naming one the store has since turned off is
+  // no choice: next-intl ignores its value, and counting it would hand the
+  // visitor to `Accept-Language` instead of the store's default.
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
+  const hasChosen =
+    pathLocale !== null ||
+    routing.enabled.some((locale) => locale === cookieLocale);
+  const firstVisitToStoreDefault =
+    !hasChosen && routing.storeDefault !== defaultLocale;
+
+  const response = getIntlProxy(routing, !firstVisitToStoreDefault)(request);
+  return isCachedPagePath(rest) && hasVisitorQuery(request.nextUrl.searchParams)
+    ? toUncachedTwin(response, request)
+    : response;
+}
+
+/**
+ * A cached page asked for with a query string, pointed at its uncached twin
+ * (lib/storefront/cached-pages.ts), one segment under the locale. next-intl
+ * has already decided the language: a redirect stands as it is, and its
+ * rewrite — or pass-through, for a prefixed URL — goes to the twin, query
+ * string and request headers as next-intl left them.
+ */
+function toUncachedTwin(response: NextResponse, request: NextRequest) {
+  if (response.headers.has("location")) return response;
+
+  const target = new URL(
+    response.headers.get("x-middleware-rewrite") ?? request.url,
+  );
+  const { locale, rest } = splitLocalePath(target.pathname);
+  // next-intl's internal path always names the language; without one this is
+  // not a page it routed, so it is left alone.
+  if (!locale) return response;
+
+  target.pathname = `/${locale}/${UNCACHED_SEGMENT}${rest === "/" ? "" : rest}`;
+  response.headers.delete("x-middleware-next");
+  response.headers.set("x-middleware-rewrite", target.toString());
+  return response;
 }
 
 /**
@@ -174,19 +314,19 @@ async function routeUninstalled(request: NextRequest) {
     return null;
   }
 
+  // No settings to read yet, so the locale can only come from the URL: a
+  // visitor already on a prefixed path keeps it, everyone else gets the
+  // unprefixed installer and next-intl resolves the language for it.
+  const { locale: pathLocale } = splitLocalePath(pathname);
   const url = request.nextUrl.clone();
-  url.pathname = `/${getLocaleFromPathname(pathname)}/install`;
+  url.pathname = pathLocale ? `/${pathLocale}/install` : "/install";
   url.search = "";
   return NextResponse.redirect(url);
 }
 
+/** The address stampClientIp recorded at the top of the proxy. */
 function getClientIp(request: NextRequest) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip")?.trim() ||
-    request.headers.get("cf-connecting-ip")?.trim() ||
-    null
-  );
+  return request.headers.get(CLIENT_IP_HEADER);
 }
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
@@ -231,7 +371,7 @@ async function loadMaintenanceSnapshot(): Promise<MaintenanceSnapshot> {
     storeEmail: settings.general?.storeEmail,
     logoUrl: settings.general?.logoUrl,
     faviconUrl: resolveFaviconUrl(settings.general?.faviconUrl),
-    defaultLanguage: settings.general?.defaultLanguage,
+    routing: resolveLocaleRouting(settings.general),
   };
 }
 
@@ -299,6 +439,10 @@ export async function proxy(request: NextRequest) {
     REQUEST_PATH_HEADER,
     `${pathname}${request.nextUrl.search}`,
   );
+  // The client's address, read from the right of the proxy chain. Better Auth
+  // takes it from this header (its sign-in limit keys on it), and the
+  // maintenance allow-list below checks it; a client-sent value is replaced.
+  stampClientIp(request.headers);
 
   if (
     pathname.startsWith("/_next/") ||
@@ -334,13 +478,13 @@ export async function proxy(request: NextRequest) {
     if (!maintenance.enabled) {
       return pathname.startsWith("/api/")
         ? passThrough(request)
-        : routeLocalizedPage(request, snapshot.defaultLanguage);
+        : routeLocalizedPage(request, snapshot.routing);
     }
 
     if (isAllowedMaintenanceIp(getClientIp(request), maintenance.allowedIPs)) {
       return pathname.startsWith("/api/")
         ? passThrough(request)
-        : routeLocalizedPage(request, snapshot.defaultLanguage);
+        : routeLocalizedPage(request, snapshot.routing);
     }
 
     if (pathname.startsWith("/api/")) {
@@ -366,11 +510,11 @@ export async function proxy(request: NextRequest) {
 
     const normalizedPath = stripLocalePrefix(pathname);
     if (matchesPrefix(normalizedPath, PAGE_BYPASS_PREFIXES)) {
-      return intlProxy(request);
+      return routeLocalizedPage(request, snapshot.routing);
     }
 
     const html = buildMaintenanceHtml({
-      lang: getLocaleFromPathname(pathname),
+      lang: getLocaleFromPathname(pathname, snapshot.routing.storeDefault),
       storeName: snapshot.storeName,
       storeEmail: snapshot.storeEmail,
       logoUrl: snapshot.logoUrl,
@@ -393,7 +537,7 @@ export async function proxy(request: NextRequest) {
   } catch {
     return pathname.startsWith("/api/")
       ? passThrough(request)
-      : intlProxy(request);
+      : routeLocalizedPage(request, FALLBACK_PROXY_ROUTING);
   }
 }
 
@@ -402,5 +546,13 @@ export const config = {
   // maintenance check), but requests matched here get their body capped at
   // Next's proxyClientMaxBodySize default of 10MB — which truncated larger
   // uploads and surfaced as "Failed to parse body as FormData".
-  matcher: ["/((?!_next|_vercel|api/upload|.*\\..*).*)", "/"],
+  //
+  // /api/auth is listed on its own because the first pattern skips any path
+  // with a dot in it, and Better Auth believes CLIENT_IP_HEADER only because
+  // every auth request comes through here to have a client-sent one replaced.
+  matcher: [
+    "/((?!_next|_vercel|api/upload|.*\\..*).*)",
+    "/",
+    "/api/auth/:path*",
+  ],
 };

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Expense } from "@/models/expense.model";
 import { getSettings } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";
@@ -10,6 +10,7 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { hasVendorPermission, isAdmin } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { currencyMinimumPrice, quantizeToCurrency, roundMoney } from "@/lib/intl/money";
+import { isExpenseReceiptKey } from "@/lib/finance/expense-receipts";
 
 const ListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -88,6 +89,11 @@ export const POST = withApi(
     }
     const vendor = await requireApprovedVendorByUserId(session.user.id);
     const body = await validateBody(request, CreateExpenseSchema);
+    // A private receipt key names a file in the platform's own receipt store,
+    // which only an admin can open. A vendor's receipts are their uploads.
+    if (isExpenseReceiptKey(body.receiptUrl)) {
+      throw new ValidationError({ receiptUrl: ["Upload the receipt here"] });
+    }
     const settings = await getSettings();
     const currency = (settings.general?.defaultCurrency || "USD").toUpperCase();
 

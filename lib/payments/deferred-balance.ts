@@ -1,4 +1,7 @@
 import { ValidationError } from "@/lib/api/errors";
+import { canCollectDeferredBalance } from "@/lib/payments/balance-methods";
+
+export { canCollectDeferredBalance };
 import {
   PREORDER_MANDATE_REQUIRED_MESSAGE,
   preorderMandateRequired,
@@ -29,23 +32,8 @@ import {
  * path can reach the balance it collects (`preorderRefundLegs` in
  * `lib/orders/order-refund.ts`); the set is the claim, not the intention.
  */
-const METHODS_THAT_CAN_COLLECT_A_BALANCE: ReadonlySet<string> = new Set([
-  // Stripe is called `card` on an order — that is the name checkout's own enum
-  // uses (`lib/validations/index.ts`) and the one `payment-custody.ts` reads.
-  // Listing only "stripe" here blocked every deposit pre-order at checkout,
-  // including the one gateway that can actually collect the balance, because
-  // no order has ever carried that string.
-  "card",
-  // The Stripe intent route names the gateway rather than the order field, so
-  // both spellings resolve to the same capability.
-  "stripe",
-  // PayPal can hand its shopper a working payment page for the balance
-  // (`lib/payments/preorder-balance-paypal.ts`): an order raised for exactly
-  // what is owed, approved at PayPal, captured on return. It cannot take the
-  // balance off-session — that needs PayPal's Vault, a separate merchant
-  // approval — so a PayPal shopper is always asked, never charged unprompted.
-  "paypal",
-]);
+// The set itself lives in `balance-methods.ts`, free of server imports, so
+// the checkout page offers exactly the methods this guard accepts.
 
 /**
  * The name each gateway's settings block goes by, against the name an order
@@ -97,13 +85,6 @@ export function storeCanCollectDeferredBalance(
   );
 }
 
-export function canCollectDeferredBalance(paymentMethod?: string | null) {
-  return METHODS_THAT_CAN_COLLECT_A_BALANCE.has(
-    String(paymentMethod || "")
-      .trim()
-      .toLowerCase(),
-  );
-}
 
 /**
  * Refuse a checkout that would leave money owing nobody can collect.

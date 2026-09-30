@@ -52,6 +52,9 @@ export const CREDENTIAL_FIELD_PATHS: readonly string[] = [
   "payment.mtn_momo.subscriptionKey",
   "payment.mtn_momo.apiUser",
   "payment.mtn_momo.apiKey",
+  // Cloudflare Turnstile's server-side key (`lib/checkout/turnstile.ts`). The
+  // site key stays visible: every checkout that asks for the check prints it.
+  "payment.turnstile.secretKey",
   // OAuth / social login
   "security.googleClientId",
   "security.googleClientSecret",
@@ -90,6 +93,8 @@ export const CREDENTIAL_FIELD_PATHS: readonly string[] = [
   "storage.secretAccessKey",
   // Email delivery
   "email.smtp.password",
+  // Legacy: not a setting any more (no provider ever used it), listed so a
+  // key an older version stored never reaches the browser or an audit row.
   "email.apiKey",
   // SMS (Twilio). The Messaging Service SID and the From number stay visible:
   // they are routing config, and the number is printed on every text anyway.

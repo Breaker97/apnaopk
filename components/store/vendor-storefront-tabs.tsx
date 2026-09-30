@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { cn } from "@/lib/utils";
 
 const VENDOR_TABS = ["products", "about", "shipping", "reviews"] as const;

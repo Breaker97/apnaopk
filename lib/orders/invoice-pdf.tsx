@@ -3,8 +3,8 @@
  * Generates a professional invoice PDF using @react-pdf/renderer
  */
 
+import { fetchStoredFile, readCappedBody } from "@/lib/storage/fetch-stored-file";
 import path from "node:path";
-import React from "react";
 import {
   Document,
   Page,
@@ -53,6 +53,8 @@ export interface InvoiceData {
   shipping: number;
   discount: number;
   tax: number;
+  /** Import duties collected at checkout (DDP); part of `total`. */
+  duty?: number;
   total: number;
   /**
    * What has been paid and what is still owed, for an order that is not
@@ -480,6 +482,14 @@ function InvoiceDocument({
               <Text style={styles.summaryValue}>{fmt(data.tax)}</Text>
             </View>
           )}
+          {/* Part of the total, so without its own row the lines above did
+              not add up to it. */}
+          {(data.duty ?? 0) > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Import duties</Text>
+              <Text style={styles.summaryValue}>{fmt(data.duty ?? 0)}</Text>
+            </View>
+          )}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>{fmt(data.total)}</Text>
@@ -535,30 +545,58 @@ function InvoiceDocument({
 // PDF Generation Helper
 // ============================================
 
-async function fetchLogoBuffer(
-  url?: string
+/** A logo far past this is not a logo. */
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Formats @react-pdf cannot draw. A logo in one of them was fetched for every
+ * invoice — every order confirmation email — and then left out; known by its
+ * extension, it is not fetched at all.
+ */
+const UNDRAWABLE_LOGO = /\.(svg|webp|avif|gif)(?:$|[?#])/i;
+
+/** A store's logo, kept a few minutes: every confirmation email draws it. */
+const LOGO_TTL_MS = 5 * 60 * 1000;
+const logoCache = new Map<
+  string,
+  { expires: number; logo: Promise<{ data: Buffer; type: string } | undefined> }
+>();
+
+function fetchLogoBuffer(
+  url?: string,
 ): Promise<{ data: Buffer; type: string } | undefined> {
-  if (!url) return undefined;
+  if (!url || UNDRAWABLE_LOGO.test(url)) return Promise.resolve(undefined);
+  const cached = logoCache.get(url);
+  if (cached && cached.expires > Date.now()) return cached.logo;
+  const logo = readLogoBuffer(url);
+  logoCache.set(url, { expires: Date.now() + LOGO_TTL_MS, logo });
+  return logo;
+}
+
+async function readLogoBuffer(
+  url: string,
+): Promise<{ data: Buffer; type: string } | undefined> {
   try {
     const absoluteUrl =
       url.startsWith("http://") || url.startsWith("https://")
         ? url
         : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${url.startsWith("/") ? "" : "/"}${url}`;
 
-    const res = await fetch(absoluteUrl);
+    // No redirect followed, a deadline and a size cap — the logo address is
+    // a setting, and this runs on the server (lib/storage/fetch-stored-file.ts).
+    const res = await fetchStoredFile(absoluteUrl, {
+      signal: AbortSignal.timeout(15_000),
+    });
     if (!res.ok) {
       console.error(
         `[invoice-pdf] Logo fetch failed: ${res.status} for ${absoluteUrl}`
       );
+      await res.body?.cancel().catch(() => undefined);
       return undefined;
     }
 
     const contentType = res.headers.get("content-type") || "image/png";
-    const buffer = Buffer.from(await res.arrayBuffer());
-
-    console.log(
-      `[invoice-pdf] Logo fetched: ${contentType}, ${buffer.length} bytes`
-    );
+    const buffer = await readCappedBody(res, MAX_LOGO_BYTES);
 
     return { data: buffer, type: contentType };
   } catch (err) {

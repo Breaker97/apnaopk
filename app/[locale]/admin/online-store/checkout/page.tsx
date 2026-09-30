@@ -22,5 +22,5 @@ export default async function OnlineStoreCheckoutPage({ params }: PageProps) {
     settings.general?.defaultLanguage || "en",
   );
 
-  return <CheckoutBuilder locale={locale} switcher={switcher} />;
+  return <CheckoutBuilder switcher={switcher} />;
 }

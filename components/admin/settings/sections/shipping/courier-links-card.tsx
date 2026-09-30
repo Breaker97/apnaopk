@@ -11,7 +11,11 @@ import type { Settings } from "@/components/admin/settings/types";
 type CourierLink = NonNullable<
   Settings["shipping"]["courierTrackingLinks"]
 >[number];
-type TSafe = (key: string, fallback: string) => string;
+type TSafe = (
+  key: string,
+  fallback: string,
+  values?: Record<string, string | number>,
+) => string;
 
 /**
  * Where a hand-entered AWB points.
@@ -49,6 +53,10 @@ export function CourierLinksCard(props: {
           {tSafe(
             "admin.settings.shipping.courierLinks.description",
             "For parcels you enter by hand. Use {tracking} where the tracking number goes; a link with no placeholder gets it appended.",
+            // The sentence names the placeholder itself, and to the message
+            // format `{tracking}` is an argument: unfilled, the page showed
+            // the message key instead of the sentence.
+            { tracking: "{tracking}" },
           )}
         </p>
       </CardHeader>

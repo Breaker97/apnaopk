@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ChevronLeft, ChevronRight, MoveRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
 import {
   BlogArticleCard,
@@ -16,7 +15,6 @@ export type TopArticle = BlogArticleCardData;
 
 interface Props {
   articles: TopArticle[];
-  locale: Locale;
   title: string;
   desktopColumns?: number;
   /** Electronics wears its two-tone heading treatment; other themes keep
@@ -33,7 +31,6 @@ const DESKTOP_COLUMN_CLASSES: Record<number, string> = {
 
 export function TopArticlesCarousel({
   articles,
-  locale,
   title,
   desktopColumns = 4,
   themedHeading = false,
@@ -93,7 +90,7 @@ export function TopArticlesCarousel({
         )}
         <div className="flex items-center gap-3 sm:gap-4">
           <Link
-            href={`/${locale}/blog`}
+            href="/blog"
             className="group inline-flex items-center gap-1.5 text-xs font-semibold text-foreground transition-colors hover:text-primary sm:gap-3 sm:text-sm"
           >
             All Articles
@@ -141,7 +138,7 @@ export function TopArticlesCarousel({
               DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
             )}
           >
-            <BlogArticleCard article={a} locale={locale} />
+            <BlogArticleCard article={a} />
           </div>
         ))}
       </div>

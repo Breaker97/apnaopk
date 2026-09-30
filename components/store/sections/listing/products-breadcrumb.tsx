@@ -1,7 +1,8 @@
+import { type Locale } from "@/config/i18n.config";
 import { useTranslations } from "next-intl";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 
-export type ProductsBreadcrumbCrumb = { label: string; href?: string };
+type ProductsBreadcrumbCrumb = { label: string; href?: string };
 
 /**
  * The products listing's trail. Rendered by the page route above the
@@ -16,12 +17,15 @@ export type ProductsBreadcrumbCrumb = { label: string; href?: string };
  */
 export function ProductsBreadcrumb({
   locale,
+  storeDefault,
   searchQuery,
   trail = [],
   className,
   jsonLd = true,
 }: {
   locale: string;
+  /** The language served without a URL prefix — see `StoreBreadcrumb`. */
+  storeDefault: Locale;
   searchQuery?: string;
   /** The category the listing is opened on, with its ancestors before it. */
   trail?: ProductsBreadcrumbCrumb[];
@@ -34,6 +38,7 @@ export function ProductsBreadcrumb({
     <StoreBreadcrumb
       className={className}
       locale={locale}
+      storeDefault={storeDefault}
       jsonLd={jsonLd}
       items={[
         narrowed

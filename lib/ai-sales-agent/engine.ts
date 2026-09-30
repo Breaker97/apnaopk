@@ -1,11 +1,12 @@
 import OpenAI from "openai";
-import { Cart, AISalesConversation } from "@/models";
+import { Cart } from "@/models";
 import type { IAISalesAgentSettings, ISettings } from "@/models/settings.model";
 import { getSettings } from "@/models/settings.model";
 import { resolveOpenAICredentials } from "@/lib/settings/credentials";
 import { isReasoningModel } from "./models";
 import { getAgentCategoryDirectory } from "./store-context";
 import { aiSalesToolHandlers } from "./tools";
+import { resolveConversation } from "./conversation-owner";
 import { getTranslations } from "next-intl/server";
 import enMessages from "@/locales/en.json";
 import {
@@ -605,16 +606,8 @@ export async function runAISalesAgent({
    */
   onEvent?: (event: AISalesStreamEvent) => void;
 }): Promise<AISalesChatResponse & { cartSessionId?: string }> {
-  const sessionId = conversationId || ctx.sessionId || crypto.randomUUID();
-  const conversation =
-    (await AISalesConversation.findOne({ sessionId })) ||
-    new AISalesConversation({
-      sessionId,
-      userId: ctx.userId,
-      locale: ctx.locale,
-      messages: [],
-      actions: [],
-    });
+  const conversation = await resolveConversation(conversationId, ctx);
+  const sessionId = conversation.sessionId as string;
 
   conversation.userId = ctx.userId || conversation.userId;
   conversation.locale = ctx.locale;

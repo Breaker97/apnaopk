@@ -1,6 +1,8 @@
 "use client";
 
-import { toast as sonnerToast, Toaster as SonnerToaster } from "sonner";
+import dynamic from "next/dynamic";
+import { useSyncExternalStore, type ReactNode } from "react";
+import type { ExternalToast } from "sonner";
 import {
   CheckCircle2,
   XCircle,
@@ -9,7 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useTheme } from "@/providers/theme-provider";
-import { type ReactNode } from "react";
+import { useWhenIdle } from "@/hooks/use-idle-preload";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,6 +62,55 @@ const ToastIcons: Record<ToastType, ReactNode> = {
 };
 
 // ---------------------------------------------------------------------------
+// Sonner, on demand
+// ---------------------------------------------------------------------------
+
+// Sonner and its toaster were 35 KB of every page's first-load JavaScript, for
+// a message most page views never show. The toaster mounts once the page is
+// idle, or at the first toast if that comes sooner; a toast asked for before
+// it listens waits for it.
+type Sonner = typeof import("sonner");
+
+const ToastHost = dynamic(
+  () => import("./toast-host").then((module) => module.ToastHost),
+  { ssr: false },
+);
+
+let sonner: Sonner | null = null;
+let waiting: Array<(module: Sonner) => void> = [];
+
+// Whether the toaster should be mounted: an external store the provider reads.
+let toasterWanted = false;
+const toasterListeners = new Set<() => void>();
+function wantToaster() {
+  if (toasterWanted) return;
+  toasterWanted = true;
+  for (const listener of toasterListeners) listener();
+}
+function subscribeToToaster(listener: () => void) {
+  toasterListeners.add(listener);
+  return () => {
+    toasterListeners.delete(listener);
+  };
+}
+
+function show(message: string, options: ExternalToast) {
+  if (sonner) {
+    sonner.toast(message, options);
+    return;
+  }
+  waiting.push((module) => module.toast(message, options));
+  wantToaster();
+}
+
+function toasterReady(module: Sonner) {
+  sonner = module;
+  const queued = waiting;
+  waiting = [];
+  for (const send of queued) send(module);
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -87,7 +138,7 @@ export const toast = {
   // ── Base methods (backward-compatible) ──────────────────────────────────
 
   success: (message: string, options?: ToastOptions) => {
-    return sonnerToast(message, {
+    show(message, {
       duration: options?.duration ?? 4000,
       icon: ToastIcons.success,
       description: options?.description,
@@ -98,7 +149,7 @@ export const toast = {
   },
 
   error: (message: string, options?: ToastOptions) => {
-    return sonnerToast(message, {
+    show(message, {
       duration: options?.duration ?? 5000,
       icon: ToastIcons.error,
       description: options?.description,
@@ -109,7 +160,7 @@ export const toast = {
   },
 
   warning: (message: string, options?: ToastOptions) => {
-    return sonnerToast(message, {
+    show(message, {
       duration: options?.duration ?? 4000,
       icon: ToastIcons.warning,
       description: options?.description,
@@ -120,7 +171,7 @@ export const toast = {
   },
 
   info: (message: string, options?: ToastOptions) => {
-    return sonnerToast(message, {
+    show(message, {
       duration: options?.duration ?? 4000,
       icon: ToastIcons.info,
       description: options?.description,
@@ -131,7 +182,7 @@ export const toast = {
   },
 
   loading: (message: string, options?: Omit<ToastOptions, "duration">) => {
-    return sonnerToast(message, {
+    show(message, {
       duration: Infinity,
       icon: ToastIcons.loading,
       description: options?.description,
@@ -140,37 +191,10 @@ export const toast = {
     });
   },
 
-  // ── Async helpers ───────────────────────────────────────────────────────
-
-  promise: <T,>(
-    promise: Promise<T>,
-    messages: {
-      loading: string;
-      success: string | ((data: T) => string);
-      error: string | ((error: unknown) => string);
-    },
-  ) => {
-    return sonnerToast.promise(promise, {
-      loading: messages.loading,
-      success: messages.success,
-      error: messages.error,
-    });
-  },
-
-  dismiss: (toastId?: string | number) => {
-    sonnerToast.dismiss(toastId);
-  },
-
-  custom: (content: React.ReactElement, options?: { duration?: number }) => {
-    return sonnerToast.custom(() => content, {
-      duration: options?.duration ?? 4000,
-    });
-  },
-
   // ── CRUD helpers ────────────────────────────────────────────────────────
 
   created: (resource: string, options?: CrudToastOptions) => {
-    return sonnerToast(`${resource} created successfully`, {
+    show(`${resource} created successfully`, {
       duration: options?.duration ?? 4000,
       icon: ToastIcons.success,
       description: options?.description,
@@ -180,7 +204,7 @@ export const toast = {
   },
 
   updated: (resource: string, options?: CrudToastOptions) => {
-    return sonnerToast(`${resource} updated successfully`, {
+    show(`${resource} updated successfully`, {
       duration: options?.duration ?? 4000,
       icon: ToastIcons.success,
       description: options?.description,
@@ -190,7 +214,7 @@ export const toast = {
   },
 
   deleted: (resource: string, options?: CrudToastOptions) => {
-    return sonnerToast(`${resource} deleted`, {
+    show(`${resource} deleted`, {
       duration: options?.undo ? 6000 : (options?.duration ?? 4000),
       icon: ToastIcons.success,
       description: options?.description,
@@ -201,7 +225,7 @@ export const toast = {
 
   saved: (resource?: string, options?: CrudToastOptions) => {
     const message = resource ? `${resource} saved` : "Changes saved";
-    return sonnerToast(message, {
+    show(message, {
       duration: options?.duration ?? 3000,
       icon: ToastIcons.success,
       description: options?.description,
@@ -219,14 +243,14 @@ export const toast = {
     if (response.success) {
       const message =
         options?.successMessage || response.message || "Operation completed";
-      return toast.success(message);
+      toast.success(message);
     } else {
       const message =
         options?.errorMessage ||
         response.error ||
         response.message ||
         "Something went wrong";
-      return toast.error(message);
+      toast.error(message);
     }
   },
 };
@@ -240,9 +264,18 @@ export function ToastProvider() {
   // its own `prefers-color-scheme` listener, which would render dark toasts on
   // a light page for anyone whose OS is set to dark.
   const { resolvedTheme } = useTheme();
+  const wanted = useSyncExternalStore(
+    subscribeToToaster,
+    () => toasterWanted,
+    () => false,
+  );
+  useWhenIdle(wanted ? null : wantToaster);
+
+  if (!wanted) return null;
 
   return (
-    <SonnerToaster
+    <ToastHost
+      onReady={toasterReady}
       theme={resolvedTheme}
       position="bottom-right"
       expand={false}
@@ -262,5 +295,3 @@ export function ToastProvider() {
     />
   );
 }
-
-// Re-export for convenience

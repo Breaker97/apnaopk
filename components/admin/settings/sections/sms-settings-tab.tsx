@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "@/components/language/link";
+import { useTranslations } from "next-intl";
 import { Info, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,7 +32,6 @@ export function SmsSettingsTab(props: {
 }) {
   const t = useTranslations();
   const tSafe = useFallbackTranslator(t);
-  const locale = useLocale();
   const {
     settings,
     isSaving,
@@ -101,7 +100,6 @@ export function SmsSettingsTab(props: {
                     }
                     secretSet={credential("sms.twilio.accountSid").set}
                     maskedHint={credential("sms.twilio.accountSid").hint}
-                    placeholderWhenSet="Saved (leave blank to keep)"
                     placeholderWhenUnset="AC…"
                     revealTyped
                   />
@@ -118,9 +116,14 @@ export function SmsSettingsTab(props: {
                     onClear={() => updateNestedField("sms.twilio.authToken", null)}
                     secretSet={credential("sms.twilio.authToken").set}
                     maskedHint={credential("sms.twilio.authToken").hint}
-                    placeholderWhenSet="Saved (leave blank to keep)"
-                    placeholderWhenUnset="Enter Auth Token"
-                    helperText="Also verifies Twilio's delivery receipts. Saved tokens are not shown again."
+                    placeholderWhenUnset={tSafe(
+                      "admin.settings.sms.authTokenPlaceholder",
+                      "Enter Auth Token",
+                    )}
+                    helperText={tSafe(
+                      "admin.settings.sms.authTokenHint",
+                      "Also verifies Twilio's delivery receipts. Saved tokens are not shown again.",
+                    )}
                   />
                   <EnvSourceHint show={Boolean(env?.authToken)} />
                 </div>
@@ -145,8 +148,10 @@ export function SmsSettingsTab(props: {
                     spellCheck={false}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Recommended. Twilio picks the right sender for each
-                    destination and handles STOP replies.
+                    {tSafe(
+                      "admin.settings.sms.messagingServiceSidHint",
+                      "Recommended. Twilio picks the right sender for each destination and handles STOP replies.",
+                    )}
                   </p>
                   <EnvSourceHint show={Boolean(env?.messagingServiceSid)} />
                 </div>
@@ -165,8 +170,10 @@ export function SmsSettingsTab(props: {
                     spellCheck={false}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Used when no Messaging Service is set: a Twilio number, or
-                    an alphanumeric sender ID where your destinations allow one.
+                    {tSafe(
+                      "admin.settings.sms.fromNumberHint",
+                      "Used when no Messaging Service is set: a Twilio number, or an alphanumeric sender ID where your destinations allow one.",
+                    )}
                   </p>
                   <EnvSourceHint show={Boolean(env?.fromNumber)} />
                 </div>
@@ -186,11 +193,16 @@ export function SmsSettingsTab(props: {
                     valueFormat="code"
                     restrictToAvailableCountries={false}
                     clearable
-                    placeholder="Use the shipping origin country"
+                    placeholder={tSafe(
+                      "admin.settings.sms.defaultCountryPlaceholder",
+                      "Use the shipping origin country",
+                    )}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Reads profile numbers saved without a country code. An
-                    order&apos;s phone is always read against its shipping country.
+                    {tSafe(
+                      "admin.settings.sms.defaultCountryHint",
+                      "Reads profile numbers saved without a country code. An order's phone is always read against its shipping country.",
+                    )}
                   </p>
                 </div>
                 <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
@@ -199,8 +211,10 @@ export function SmsSettingsTab(props: {
                       {tSafe("admin.settings.sms.includeLinks", "Include a link")}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Adds the order or tracking page. A link often pushes a
-                      message into a second segment, billed as a second text.
+                      {tSafe(
+                        "admin.settings.sms.includeLinksHint",
+                        "Adds the order or tracking page. A link often pushes a message into a second segment, billed as a second text.",
+                      )}
                     </p>
                   </div>
                   <Switch
@@ -216,17 +230,16 @@ export function SmsSettingsTab(props: {
               <div className="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                  Customers are texted at the phone on their order and can opt
-                  out under Account → Preferences or by replying STOP. Admins,
-                  staff and vendors are texted at the phone on their profile or
-                  store. Choose the events in{" "}
-                  <Link
-                    href={`/${locale}/admin/settings/notifications`}
-                    className="font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    Notification settings
-                  </Link>
-                  . Only text people who agreed to hear from you.
+                  {t.rich("admin.settings.sms.consentNote", {
+                    link: (chunks) => (
+                      <Link
+                        href="/admin/settings/notifications"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                  })}
                 </p>
               </div>
 

@@ -2,6 +2,7 @@ import { Order } from "@/models";
 import { connectDB } from "@/lib/db";
 import type { StaffAccessScope } from "@/lib/access/staff-scope";
 import { buildStaffOrderScopeFilter, mergeScopeFilter } from "@/lib/access/staff-scope";
+import { placedOrderMatch } from "@/lib/orders/order-payment-status";
 
 /**
  * Admin order list query.
@@ -54,8 +55,10 @@ interface AdminOrderListItem {
  * full line items; shipping all of that for a 10-row page is most of the
  * response weight and none of the value.
  */
+// The payment fields are what `getFulfillmentPaymentBlock` reads, so the row
+// menu can grey out a fulfilment move the server would refuse.
 const LIST_PROJECTION =
-  "orderNumber total status paymentStatus channel createdAt customerId items.name items.quantity items.productId";
+  "orderNumber total status paymentStatus paymentMethod channel hasPreorder preorderOutstandingAmount preorderBalancePaidAt createdAt customerId items.name items.quantity items.productId subOrders.status subOrders.paymentStatus subOrders.items.preorderOutstandingAmount";
 
 const ALLOWED_SORT_FIELDS = new Set([
   "createdAt",
@@ -141,6 +144,24 @@ interface AdminOrderStats {
 }
 
 /**
+ * The staff scope as an aggregation `$match` over orders.
+ *
+ * Mongoose casts `find()` filters against the schema but does NOT cast
+ * aggregation stages. `buildStaffOrderScopeFilter` emits vendor ids as strings
+ * while `items.vendorId` and `subOrders.vendorId` are ObjectIds, so handed
+ * straight to `$match` it matched nothing: a staff member scoped to a vendor
+ * read 0 on every order counter. Cast through a query, as the inventory list
+ * does for products.
+ */
+export function staffOrderScopeMatch(
+  staffScope?: StaffAccessScope | null,
+): Record<string, unknown> {
+  const filter = buildStaffOrderScopeFilter(staffScope);
+  if (Object.keys(filter).length === 0) return filter;
+  return Order.find(filter).cast(Order) as Record<string, unknown>;
+}
+
+/**
  * Counters for the orders stats strip, scoped the same way the list is.
  *
  * One pass with conditional accumulators. The `$facet` shape this replaced ran
@@ -152,8 +173,12 @@ export async function fetchAdminOrderStats(
 ): Promise<AdminOrderStats> {
   await connectDB();
 
-  const scopeFilter = buildStaffOrderScopeFilter(staffScope);
+  const scopeFilter = staffOrderScopeMatch(staffScope);
   const [result] = await Order.aggregate([
+    // Orders somebody placed. The strip used to count the whole collection, so
+    // "Total orders" and "Open orders" both read mostly as abandoned gateway
+    // checkouts; the revenue and paid counts below were already honest.
+    { $match: placedOrderMatch() },
     ...(Object.keys(scopeFilter).length > 0 ? [{ $match: scopeFilter }] : []),
     {
       $group: {

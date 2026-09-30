@@ -13,6 +13,7 @@ import {
   plansInForce,
 } from "@/lib/vendors/vendor-permissions";
 import { VendorAccessGate } from "@/components/vendor/vendor-access-gate";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -53,7 +54,7 @@ export default async function VendorLockedPage({
 
   // A bare /vendor/locked with no pack has nothing to explain.
   if (!pack) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
 
   await connectDB();

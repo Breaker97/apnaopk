@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   Card,
   CardContent,
@@ -7,6 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ClientSuspense } from "@/components/common/client-suspense";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { CustomerOrdersList } from "@/components/account/orders-list";
 
@@ -43,14 +43,13 @@ export default async function PreOrdersPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<OrdersListSkeleton />}>
+          <ClientSuspense fallback={<OrdersListSkeleton />}>
             <CustomerOrdersList
-              locale={locale}
               filter="preorders"
               emptyTitle={t("orders.noPreOrders")}
               emptyDescription={t("orders.preOrdersStartShopping")}
             />
-          </Suspense>
+          </ClientSuspense>
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import Link from "@/components/language/link";
+import { useRenderNow } from "@/components/store/render-clock";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
 import { CountdownTimer } from "./countdown-timer";
@@ -19,10 +19,11 @@ interface CountdownOfferViewProps {
 }
 
 /**
- * Client half of the countdown offer. Owns the expiry decision — captured
- * once per mount (the react-hooks/purity pattern used elsewhere): an offer
- * that expired before the visit renders nothing; one expiring mid-visit
- * clamps at zero until the next navigation.
+ * Client half of the countdown offer. Owns the expiry decision, against the
+ * render's clock (useRenderNow): while hydrating it is the time the cached
+ * HTML was drawn, so the first pass matches it, and from then on the time
+ * this mounted — an offer that expired before the visit renders nothing; one
+ * expiring mid-visit clamps at zero until the next navigation.
  */
 export function CountdownOfferView({
   heading,
@@ -34,8 +35,8 @@ export function CountdownOfferView({
   imageSrc,
   labels,
 }: CountdownOfferViewProps) {
-  const [expiredAtMount] = useState(() => Date.parse(endsAt) <= Date.now());
-  if (expiredAtMount) return null;
+  const now = useRenderNow();
+  if (Date.parse(endsAt) <= now) return null;
 
   return (
     <section className="py-5 lg:py-8">

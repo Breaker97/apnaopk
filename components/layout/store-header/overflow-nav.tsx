@@ -25,26 +25,34 @@ export function OverflowNav({
   useEffect(() => {
     const nav = ref.current;
     if (!nav) return;
+    const items = Array.from(nav.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement,
+    );
 
+    // Only ever run by the observer, which reports after layout — and on its
+    // first pass reports every box it watches — so these reads come free.
+    // Measured straight from the effect, the first read forced a layout of
+    // the whole page in the middle of hydration, and a write between two
+    // reads made the next read lay out again: every read comes first.
     const update = () => {
       const bounds = nav.getBoundingClientRect();
-      for (const child of Array.from(nav.children)) {
-        if (!(child instanceof HTMLElement)) continue;
-        const rect = child.getBoundingClientRect();
+      const overflowing = items.map((item) => {
+        const rect = item.getBoundingClientRect();
         // A 1px tolerance so sub-pixel rounding never hides a fitting item.
         // Checked on both edges so RTL rows behave the same way.
-        const overflows =
-          rect.right > bounds.right + 1 || rect.left < bounds.left - 1;
-        child.style.visibility = overflows ? "hidden" : "";
-      }
+        return rect.right > bounds.right + 1 || rect.left < bounds.left - 1;
+      });
+      items.forEach((item, index) => {
+        const visibility = overflowing[index] ? "hidden" : "";
+        if (item.style.visibility !== visibility) {
+          item.style.visibility = visibility;
+        }
+      });
     };
 
-    update();
     const observer = new ResizeObserver(update);
     observer.observe(nav);
-    for (const child of Array.from(nav.children)) {
-      if (child instanceof HTMLElement) observer.observe(child);
-    }
+    for (const item of items) observer.observe(item);
     return () => observer.disconnect();
   }, [children]);
 

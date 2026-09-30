@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { z } from "zod";
+import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { Transfer } from "@/models";
 import { AuthorizationError, ValidationError } from "@/lib/api/errors";

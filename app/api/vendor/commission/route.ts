@@ -1,4 +1,6 @@
-import { z } from "zod";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import * as z from "zod";
 
 import { ObjectIdSchema } from "@/lib/validations";
 import {
@@ -143,9 +145,13 @@ export const POST = withApi(
       currency: invoice.currency,
     });
 
-    const locale = body.locale || "en";
+    const { storeDefault } = await getLocaleRouting();
+    const locale = body.locale || storeDefault;
     const origin = appUrlForRequest(request);
-    const returnBase = `${origin}/${locale}/vendor/payouts?commission_payment=${String(payment._id)}`;
+    // `buildLocalePath`, not a bare prefix: the store's default language is
+    // served unprefixed, and a gateway return URL must land on the page
+    // itself rather than on a redirect to it.
+    const returnBase = `${origin}${buildLocalePath(locale, "/vendor/payouts", storeDefault)}?commission_payment=${String(payment._id)}`;
 
     try {
       const initiation = await initiatePlatformPayment({

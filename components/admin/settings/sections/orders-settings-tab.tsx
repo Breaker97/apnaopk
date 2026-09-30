@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -13,13 +14,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SettingSwitchRow } from "@/components/admin/settings/fields/setting-switch-row";
+import { FinalSaleCollectionsField } from "@/components/admin/settings/fields/final-sale-collections-field";
+import { ReturnWindowOverridesField } from "@/components/admin/settings/fields/return-window-overrides-field";
 import {
+  DEFAULT_PAYOUT_HOLD_MAX_DAYS,
   DEFAULT_RETURN_WINDOW_DAYS,
   MAX_RETURN_WINDOW_DAYS,
   MIN_RETURN_WINDOW_DAYS,
 } from "@/lib/returns/return-policy";
+import {
+  DEFAULT_LOYALTY_SPEND_PER_POINT,
+  LOYALTY_THRESHOLDS,
+  MAX_LOYALTY_SPEND_PER_POINT,
+  MIN_LOYALTY_SPEND_PER_POINT,
+} from "@/lib/customers/loyalty";
 import type { Settings } from "@/components/admin/settings/types";
+import {
+  DEFAULT_RETURN_INSTRUCTIONS,
+  RETURN_INSTRUCTIONS_MAX_LENGTH,
+} from "@/lib/returns/return-shipping";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
 
@@ -158,6 +173,44 @@ export function OrdersSettingsTab(props: {
         <Separator />
         <div className="space-y-1">
           <h3 className="font-medium">
+            {t("admin.settings.orders.loyaltyHeading")}
+          </h3>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="loyaltySpendPerPoint">
+              {withCurrency(t("admin.settings.orders.loyaltySpendPerPoint"))}
+            </Label>
+            <NumberInput
+              id="loyaltySpendPerPoint"
+              min={MIN_LOYALTY_SPEND_PER_POINT}
+              max={MAX_LOYALTY_SPEND_PER_POINT}
+              step={0.01}
+              value={
+                settings.orders.loyaltySpendPerPoint ??
+                DEFAULT_LOYALTY_SPEND_PER_POINT
+              }
+              whenEmpty={DEFAULT_LOYALTY_SPEND_PER_POINT}
+              onValueChange={(next) =>
+                updateNestedField(
+                  "orders.loyaltySpendPerPoint",
+                  next ?? DEFAULT_LOYALTY_SPEND_PER_POINT,
+                )
+              }
+            />
+            <p className="text-sm text-muted-foreground">
+              {t("admin.settings.orders.loyaltySpendPerPointHint", {
+                silver: LOYALTY_THRESHOLDS.silver,
+                gold: LOYALTY_THRESHOLDS.gold,
+                platinum: LOYALTY_THRESHOLDS.platinum,
+              })}
+            </p>
+          </div>
+        </div>
+
+        <Separator />
+        <div className="space-y-1">
+          <h3 className="font-medium">
             {t("admin.settings.orders.returnsHeading")}
           </h3>
           <p className="text-sm text-muted-foreground">
@@ -174,6 +227,7 @@ export function OrdersSettingsTab(props: {
               min={MIN_RETURN_WINDOW_DAYS}
               max={MAX_RETURN_WINDOW_DAYS}
               step={1}
+              disabled={returns.windowUnlimited === true}
               value={returns.windowDays ?? DEFAULT_RETURN_WINDOW_DAYS}
               whenEmpty={DEFAULT_RETURN_WINDOW_DAYS}
               onValueChange={(next) =>
@@ -183,10 +237,73 @@ export function OrdersSettingsTab(props: {
                 )
               }
             />
+            {/* The number is kept while this is on, for when it is off again. */}
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                id="returnWindowUnlimited"
+                checked={returns.windowUnlimited === true}
+                onCheckedChange={(checked) =>
+                  updateNestedField("orders.returns.windowUnlimited", checked === true)
+                }
+              />
+              {t("admin.settings.orders.windowUnlimited")}
+            </label>
             <p className="text-sm text-muted-foreground">
               {t("admin.settings.orders.returnWindowDaysHint")}
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="returnWindowStart">
+              {t("admin.settings.orders.windowStart")}
+            </Label>
+            <Select
+              value={returns.windowStart ?? "parcel_delivery"}
+              onValueChange={(value) =>
+                updateNestedField("orders.returns.windowStart", value)
+              }
+            >
+              <SelectTrigger id="returnWindowStart">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="parcel_delivery">
+                  {t("admin.settings.orders.windowStartParcel")}
+                </SelectItem>
+                <SelectItem value="last_delivery">
+                  {t("admin.settings.orders.windowStartLast")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              {t("admin.settings.orders.windowStartHint")}
+            </p>
+          </div>
+
+          {returns.windowUnlimited === true ? (
+            <div className="space-y-2">
+              <Label htmlFor="payoutHoldMaxDays">
+                {t("admin.settings.orders.payoutHoldMaxDays")}
+              </Label>
+              <NumberInput
+                id="payoutHoldMaxDays"
+                min={MIN_RETURN_WINDOW_DAYS}
+                max={MAX_RETURN_WINDOW_DAYS}
+                step={1}
+                value={returns.payoutHoldMaxDays ?? DEFAULT_PAYOUT_HOLD_MAX_DAYS}
+                whenEmpty={DEFAULT_PAYOUT_HOLD_MAX_DAYS}
+                onValueChange={(next) =>
+                  updateNestedField(
+                    "orders.returns.payoutHoldMaxDays",
+                    next ?? DEFAULT_PAYOUT_HOLD_MAX_DAYS,
+                  )
+                }
+              />
+              <p className="text-sm text-muted-foreground">
+                {t("admin.settings.orders.payoutHoldMaxDaysHint")}
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="returnShippingRefund">
@@ -292,6 +409,51 @@ export function OrdersSettingsTab(props: {
             </p>
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="returnInstructions">
+            {t("admin.settings.orders.returnInstructions")}
+          </Label>
+          <Textarea
+            id="returnInstructions"
+            rows={4}
+            maxLength={RETURN_INSTRUCTIONS_MAX_LENGTH}
+            value={returns.instructions ?? ""}
+            placeholder={DEFAULT_RETURN_INSTRUCTIONS}
+            onChange={(event) =>
+              updateNestedField("orders.returns.instructions", event.target.value)
+            }
+          />
+          <p className="text-sm text-muted-foreground">
+            {/* The placeholder is shown as itself, for the admin to copy. */}
+            {t("admin.settings.orders.returnInstructionsHint", {
+              returnNumber: "{returnNumber}",
+            })}
+          </p>
+        </div>
+
+        <FinalSaleCollectionsField
+          value={returns.finalSaleCollectionIds ?? []}
+          onChange={(next) =>
+            updateNestedField("orders.returns.finalSaleCollectionIds", next)
+          }
+        />
+
+        <ReturnWindowOverridesField
+          value={returns.windowOverrides ?? []}
+          defaultDays={returns.windowDays ?? DEFAULT_RETURN_WINDOW_DAYS}
+          onChange={(next) => updateNestedField("orders.returns.windowOverrides", next)}
+        />
+
+        <SettingSwitchRow
+          id="returnsSelfServe"
+          title={t("admin.settings.orders.selfServe")}
+          description={t("admin.settings.orders.selfServeHint")}
+          checked={returns.selfServe !== false}
+          onCheckedChange={(checked) =>
+            updateNestedField("orders.returns.selfServe", checked)
+          }
+        />
 
         <SettingSwitchRow
           id="billVendorCodShipping"

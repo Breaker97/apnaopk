@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
+import Link from "@/components/language/link";
 import {
-  AlertTriangle,
   Bell,
   Mail,
   MessageSquareText,
   MonitorSmartphone,
 } from "lucide-react";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -32,13 +32,12 @@ type NotificationRow = {
 
 const channels: Array<{
   key: ChannelKey;
-  label: string;
   icon: typeof Bell;
 }> = [
-  { key: "inApp", label: "In-app", icon: Bell },
-  { key: "email", label: "Email", icon: Mail },
-  { key: "browserPush", label: "Push", icon: MonitorSmartphone },
-  { key: "sms", label: "SMS", icon: MessageSquareText },
+  { key: "inApp", icon: Bell },
+  { key: "email", icon: Mail },
+  { key: "browserPush", icon: MonitorSmartphone },
+  { key: "sms", icon: MessageSquareText },
 ];
 
 /**
@@ -55,6 +54,7 @@ function NotificationGroup(props: {
   smsReady: boolean;
   updateNestedField: (path: string, value: unknown) => void;
 }) {
+  const t = useTranslations("admin.settings.notifications");
   return (
     <section className="space-y-3">
       <div>
@@ -69,7 +69,7 @@ function NotificationGroup(props: {
             ROW_GRID,
           )}
         >
-          <span>Event</span>
+          <span>{t("event")}</span>
           {channels.map((channel) => {
             const Icon = channel.icon;
             return (
@@ -78,7 +78,7 @@ function NotificationGroup(props: {
                 className="inline-flex items-center justify-center gap-1"
               >
                 <Icon className="h-3.5 w-3.5" />
-                {channel.label}
+                {t(`channels.${channel.key}`)}
               </span>
             );
           })}
@@ -110,10 +110,10 @@ function NotificationGroup(props: {
                   >
                     <span className="inline-flex items-center gap-1 sm:hidden">
                       <Icon className="h-3 w-3" />
-                      {channel.label}
+                      {t(`channels.${channel.key}`)}
                     </span>
                     <Switch
-                      aria-label={`${row.title} ${channel.label}`}
+                      aria-label={`${row.title} ${t(`channels.${channel.key}`)}`}
                       checked={row.settings[channel.key]}
                       disabled={disabled}
                       onCheckedChange={(checked) =>
@@ -142,45 +142,45 @@ export function NotificationsSettingsTab(props: {
   onSave: () => void | Promise<unknown>;
 }) {
   const { settings, isSaving, isDirty, updateNestedField, onSave } = props;
-  const locale = useLocale();
+  const t = useTranslations("admin.settings");
   const notifications = settings.notifications;
   const smsReady = isSmsConfigured(settings);
   const smsSelected = hasAnySmsNotification(notifications);
 
   const adminRows: NotificationRow[] = [
     {
-      title: "New orders",
-      description: "Notify admins when an order is placed.",
+      title: t("notifications.events.admin.newOrders.title"),
+      description: t("notifications.events.admin.newOrders.description"),
       path: "notifications.admin.newOrders",
       settings: notifications.admin.newOrders,
     },
     {
-      title: "New customers",
-      description: "Notify admins when a customer profile is created.",
+      title: t("notifications.events.admin.newCustomers.title"),
+      description: t("notifications.events.admin.newCustomers.description"),
       path: "notifications.admin.newCustomers",
       settings: notifications.admin.newCustomers,
     },
     {
-      title: "New vendor applications",
-      description: "Notify admins when a vendor application is pending.",
+      title: t("notifications.events.admin.newVendors.title"),
+      description: t("notifications.events.admin.newVendors.description"),
       path: "notifications.admin.newVendors",
       settings: notifications.admin.newVendors,
     },
     {
-      title: "Return requests",
-      description: "Notify admins when a return request needs review.",
+      title: t("notifications.events.admin.returns.title"),
+      description: t("notifications.events.admin.returns.description"),
       path: "notifications.admin.returns",
       settings: notifications.admin.returns,
     },
     {
-      title: "Payments",
-      description: "Notify admins when payment activity is recorded.",
+      title: t("notifications.events.admin.payments.title"),
+      description: t("notifications.events.admin.payments.description"),
       path: "notifications.admin.payments",
       settings: notifications.admin.payments,
     },
     {
-      title: "Pre-order access requests",
-      description: "Notify admins when a vendor asks to sell pre-orders.",
+      title: t("notifications.events.admin.preorderAccessRequests.title"),
+      description: t("notifications.events.admin.preorderAccessRequests.description"),
       path: "notifications.admin.preorderAccessRequests",
       settings: notifications.admin.preorderAccessRequests,
     },
@@ -188,27 +188,26 @@ export function NotificationsSettingsTab(props: {
 
   const vendorRows: NotificationRow[] = [
     {
-      title: "Vendor application status",
-      description: "Notify vendors when their account is approved or rejected.",
+      title: t("notifications.events.vendor.applicationStatus.title"),
+      description: t("notifications.events.vendor.applicationStatus.description"),
       path: "notifications.vendor.applicationStatus",
       settings: notifications.vendor.applicationStatus,
     },
     {
-      title: "Vendor new orders",
-      description: "Notify vendors when they receive a new order.",
+      title: t("notifications.events.vendor.newOrders.title"),
+      description: t("notifications.events.vendor.newOrders.description"),
       path: "notifications.vendor.newOrders",
       settings: notifications.vendor.newOrders,
     },
     {
-      title: "Vendor return requests",
-      description: "Notify vendors when a return request belongs to them.",
+      title: t("notifications.events.vendor.returns.title"),
+      description: t("notifications.events.vendor.returns.description"),
       path: "notifications.vendor.returns",
       settings: notifications.vendor.returns,
     },
     {
-      title: "Vendor pre-order access",
-      description:
-        "Notify vendors when their pre-order access is approved, declined or withdrawn.",
+      title: t("notifications.events.vendor.preorderAccess.title"),
+      description: t("notifications.events.vendor.preorderAccess.description"),
       path: "notifications.vendor.preorderAccess",
       settings: notifications.vendor.preorderAccess,
     },
@@ -216,36 +215,32 @@ export function NotificationsSettingsTab(props: {
 
   const staffRows: NotificationRow[] = [
     {
-      title: "Staff new orders",
-      description: "Notify staff with order access when an order is placed.",
+      title: t("notifications.events.staff.newOrders.title"),
+      description: t("notifications.events.staff.newOrders.description"),
       path: "notifications.staff.newOrders",
       settings: notifications.staff.newOrders,
     },
     {
-      title: "Staff new customers",
-      description:
-        "Notify staff with customer access when a customer profile is created.",
+      title: t("notifications.events.staff.newCustomers.title"),
+      description: t("notifications.events.staff.newCustomers.description"),
       path: "notifications.staff.newCustomers",
       settings: notifications.staff.newCustomers,
     },
     {
-      title: "Staff return requests",
-      description:
-        "Notify staff with order access when return requests need review.",
+      title: t("notifications.events.staff.returns.title"),
+      description: t("notifications.events.staff.returns.description"),
       path: "notifications.staff.returns",
       settings: notifications.staff.returns,
     },
     {
-      title: "Staff payments",
-      description:
-        "Notify POS and order staff when payment activity is recorded.",
+      title: t("notifications.events.staff.payments.title"),
+      description: t("notifications.events.staff.payments.description"),
       path: "notifications.staff.payments",
       settings: notifications.staff.payments,
     },
     {
-      title: "Staff low stock",
-      description:
-        "Notify inventory staff when products need replenishment attention.",
+      title: t("notifications.events.staff.lowStock.title"),
+      description: t("notifications.events.staff.lowStock.description"),
       path: "notifications.staff.lowStock",
       settings: notifications.staff.lowStock,
     },
@@ -253,86 +248,81 @@ export function NotificationsSettingsTab(props: {
 
   const customerRows: NotificationRow[] = [
     {
-      title: "Customer order updates",
-      description: "Notify customers when order status changes.",
+      title: t("notifications.events.customer.orderUpdates.title"),
+      description: t("notifications.events.customer.orderUpdates.description"),
       path: "notifications.customer.orderUpdates",
       settings: notifications.customer.orderUpdates,
     },
     {
-      title: "Customer return updates",
-      description: "Notify customers when return status changes.",
+      title: t("notifications.events.customer.returnUpdates.title"),
+      description: t("notifications.events.customer.returnUpdates.description"),
       path: "notifications.customer.returnUpdates",
       settings: notifications.customer.returnUpdates,
     },
   ];
 
+  const smsSettingsLink = (
+    <Link
+      href="/admin/settings/sms"
+      className="font-medium underline-offset-4 hover:underline"
+    >
+      {t("notifications.smsSettingsLink")}
+    </Link>
+  );
+
   return (
     <div className="space-y-4">
       <SettingsTabHeader
-        title="Notification Settings"
-        description="Choose which events create dashboard notifications, emails, push alerts and text messages."
+        title={t("notifications.title")}
+        description={t("notifications.description")}
       />
 
       <Card>
         <CardContent className="space-y-6">
-          {!smsReady && (
-            <div
-              className={cn(
-                "flex items-start gap-2 rounded-lg border p-3 text-sm",
-                smsSelected
-                  ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100"
-                  : "bg-muted/40 text-muted-foreground",
-              )}
-            >
-              {smsSelected ? (
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              ) : (
+          {!smsReady &&
+            (smsSelected ? (
+              <WarningBanner>
+                {t("notifications.smsOffWarning")} {smsSettingsLink}
+              </WarningBanner>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
                 <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0" />
-              )}
-              <p>
-                {smsSelected
-                  ? "Some events are set to send a text, but SMS is switched off or not fully set up, so none will go out. "
-                  : "To send text messages, set up Twilio first. "}
-                <Link
-                  href={`/${locale}/admin/settings/sms`}
-                  className="font-medium underline-offset-4 hover:underline"
-                >
-                  SMS settings
-                </Link>
-              </p>
-            </div>
-          )}
+                <p>
+                  {t("notifications.smsSetupHint")} {smsSettingsLink}
+                </p>
+              </div>
+            ))}
           <NotificationGroup
-            title="Admin notifications"
-            description="Events that should alert the store admin team."
+            title={t("notifications.groups.admin.title")}
+            description={t("notifications.groups.admin.description")}
             rows={adminRows}
             smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
           <NotificationGroup
-            title="Vendor notifications"
-            description="Events sent to vendor accounts."
+            title={t("notifications.groups.vendor.title")}
+            description={t("notifications.groups.vendor.description")}
             rows={vendorRows}
             smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
           <NotificationGroup
-            title="Staff notifications"
-            description="Events sent to active staff based on their module permissions."
+            title={t("notifications.groups.staff.title")}
+            description={t("notifications.groups.staff.description")}
             rows={staffRows}
             smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
           <NotificationGroup
-            title="Customer notifications"
-            description="Events sent to customer accounts."
+            title={t("notifications.groups.customer.title")}
+            description={t("notifications.groups.customer.description")}
             rows={customerRows}
             smsReady={smsReady}
             updateNestedField={updateNestedField}
           />
 
           <StickySaveFooter
-            label="Save Changes"
+            label={t("saveChanges")}
             isSaving={isSaving}
             isDirty={isDirty}
             onSave={onSave}

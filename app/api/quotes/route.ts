@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { validateBody } from "@/lib/api/validate";
 import { createdResponse } from "@/lib/api/response";
@@ -82,6 +82,12 @@ export const POST = withApi(
       ? product.variants?.find((v) => v._id.toString() === body.variantId)
       : undefined;
     if (body.variantId && !variant) throw new NotFoundError("Variant");
+    // A price is quoted for one variant, the way the cart sells one: a request
+    // with none named on a product that has variants came back as a price
+    // nothing could ever buy.
+    if (!variant && (product.variants?.length ?? 0) > 0) {
+      throw new ValidationError("Choose the options you want a price for");
+    }
 
     const quote = await QuoteRequest.create({
       productId: product._id,

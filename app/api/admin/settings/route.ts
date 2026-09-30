@@ -53,7 +53,14 @@ import {
   MAX_RETURN_WINDOW_DAYS,
   MIN_RETURN_WINDOW_DAYS,
   RETURN_SHIPPING_REFUND_MODES,
+  RETURN_WINDOW_STARTS,
 } from "@/lib/returns/return-policy";
+import { RETURN_INSTRUCTIONS_MAX_LENGTH } from "@/lib/returns/return-shipping";
+import { MAX_FINAL_SALE_COLLECTIONS } from "@/lib/returns/final-sale";
+import {
+  MAX_RETURN_WINDOW_OVERRIDES,
+  validWindowDays,
+} from "@/lib/returns/return-window";
 import { MAX_PLACEMENT_DEPTH } from "@/lib/boosts/boost-placement-depths";
 import {
   BOOST_HOLD_MAX_MINUTES,
@@ -64,6 +71,8 @@ import {
   VENDOR_DOCUMENT_KEYS,
 } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";
+import { defaultLocale, isValidLocale } from "@/config/i18n.config";
+import { assertCatalogKeepsAFormat } from "@/lib/products/product-features";
 import {
   COUNTRY_AVAILABILITY_MODES,
   areCountryValuesEquivalent,
@@ -74,11 +83,10 @@ import {
 import {
   isValidCurrencyCode,
   normalizeCurrencyCode,
-  sanitizeCurrencyCodes,
 } from "@/lib/intl/currency-codes";
-import { z } from "zod";
+import * as z from "zod";
 import { isPlainObject } from "@/lib/utils";
-import { validateBody } from "@/lib/api/validate";
+import { isValidObjectId, validateBody } from "@/lib/api/validate";
 import { normalizeHeaderSettings } from "@/lib/site-config/header-config";
 import { normalizeHomePageSettings } from "@/lib/site-config/home-page-config";
 import {
@@ -86,6 +94,11 @@ import {
   applySectionAllowList,
 } from "@/lib/settings/section-registry";
 import { assertSectionVersions } from "@/lib/settings/section-versions";
+import { findGatewaysSwitchedOnWithoutKeys } from "@/lib/payments/checkout-gateways";
+import {
+  MAX_LOYALTY_SPEND_PER_POINT,
+  MIN_LOYALTY_SPEND_PER_POINT,
+} from "@/lib/customers/loyalty";
 import { validateSmsSettings } from "@/lib/sms/sms-settings";
 
 
@@ -268,49 +281,16 @@ function validateStorageSettings(data: Record<string, unknown>) {
  * code from the settings UI — so codes are validated by shape, normalized to
  * uppercase and de-duplicated here before they reach the store.
  */
+/** The store sells in one currency: any well-formed ISO 4217 code. */
 function validateCurrencySettings(data: Record<string, unknown>) {
-  const hasSupported = Object.prototype.hasOwnProperty.call(
-    data,
-    "supportedCurrencies",
-  );
-  const hasDefault = Object.prototype.hasOwnProperty.call(
-    data,
-    "defaultCurrency",
-  );
-  if (!hasSupported && !hasDefault) return;
-
-  let supported: string[] | undefined;
-
-  if (hasSupported) {
-    if (!Array.isArray(data.supportedCurrencies)) {
-      throw new ValidationError("Supported currencies must be a list");
-    }
-    for (const code of data.supportedCurrencies) {
-      if (!isValidCurrencyCode(code)) {
-        throw new ValidationError(`Invalid currency code: ${String(code)}`);
-      }
-    }
-    supported = sanitizeCurrencyCodes(data.supportedCurrencies);
-    if (supported.length === 0) {
-      throw new ValidationError("Select at least one supported currency");
-    }
-    data.supportedCurrencies = supported;
+  if (!Object.prototype.hasOwnProperty.call(data, "defaultCurrency")) return;
+  const code = normalizeCurrencyCode(data.defaultCurrency);
+  if (!isValidCurrencyCode(code)) {
+    throw new ValidationError(
+      `Invalid currency: ${String(data.defaultCurrency)}`,
+    );
   }
-
-  if (hasDefault) {
-    const code = normalizeCurrencyCode(data.defaultCurrency);
-    if (!isValidCurrencyCode(code)) {
-      throw new ValidationError(
-        `Invalid default currency: ${String(data.defaultCurrency)}`,
-      );
-    }
-    // A default outside the supported list would leave the store rendering a
-    // currency it doesn't officially support, so keep the two in sync.
-    if (supported && !supported.includes(code)) {
-      data.supportedCurrencies = [...supported, code];
-    }
-    data.defaultCurrency = code;
-  }
+  data.defaultCurrency = code;
 }
 
 /**
@@ -490,6 +470,41 @@ function validateGeneralSettings(data: Record<string, unknown>) {
     if (phone.length > 40) errors.storePhone = ["Phone number is too long"];
     else data.storePhone = phone;
   }
+  // Languages are the ones the app is translated into. A code without a
+  // translation is dropped from the list rather than refused: older pickers
+  // offered one (Korean), and a store holding it must still be able to save.
+  let supportedLanguages: string[] | undefined;
+  if (Object.prototype.hasOwnProperty.call(data, "supportedLanguages")) {
+    if (!Array.isArray(data.supportedLanguages)) {
+      errors.supportedLanguages = ["Supported languages must be a list"];
+    } else {
+      supportedLanguages = [
+        ...new Set(
+          data.supportedLanguages
+            .map((code) => String(code).trim().toLowerCase())
+            .filter(isValidLocale),
+        ),
+      ];
+      if (supportedLanguages.length === 0) {
+        errors.supportedLanguages = ["Select at least one supported language"];
+      } else {
+        data.supportedLanguages = supportedLanguages;
+      }
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "defaultLanguage")) {
+    // An untranslated default is replaced, not refused: routing already
+    // serves the fallback in its place, and the Branding panel saves this key
+    // too without offering a way to change it.
+    const requested = String(data.defaultLanguage ?? "").trim().toLowerCase();
+    const code = isValidLocale(requested)
+      ? requested
+      : (supportedLanguages?.[0] ?? defaultLocale);
+    data.defaultLanguage = code;
+    if (supportedLanguages && !supportedLanguages.includes(code)) {
+      data.supportedLanguages = [...supportedLanguages, code];
+    }
+  }
   if (Object.keys(errors).length > 0) throw new ValidationError(errors);
 
   if (!Object.prototype.hasOwnProperty.call(data, "countryAvailability")) {
@@ -555,20 +570,14 @@ function validateShippingCountrySettings(
     toPlainRecord(currentSettings).shipping,
   );
 
+  // The origin is where parcels ship *from*, so it is not held to the
+  // countries the store sells *to* — a warehouse or dropshipper may sit
+  // outside all of them. Only its type is checked here; the zones below are
+  // the ship-to side and stay restricted.
   if (isPlainObject(data.origin)) {
     const nextCountry = data.origin.country;
     if (nextCountry !== undefined && typeof nextCountry !== "string") {
       errors["shipping.origin.country"] = ["Country must be text"];
-    } else if (typeof nextCountry === "string" && nextCountry.trim()) {
-      const previousCountry = toPlainRecord(currentShipping.origin).country;
-      if (
-        !areCountryValuesEquivalent(nextCountry, previousCountry) &&
-        !isCountryAllowed(nextCountry, availability)
-      ) {
-        errors["shipping.origin.country"] = [
-          "Selected country is not available",
-        ];
-      }
     }
   }
 
@@ -741,6 +750,47 @@ function validateCarrierSettings(data: Record<string, unknown>) {
     }
   }
 
+  if (Object.prototype.hasOwnProperty.call(data, "addressHold")) {
+    const hold = toPlainRecord(data.addressHold);
+    const deadline = Number(hold.deadlineDays);
+    if (
+      hold.deadlineDays !== undefined &&
+      (!Number.isInteger(deadline) || deadline < 1 || deadline > 60)
+    ) {
+      errors["shipping.addressHold.deadlineDays"] = [
+        "Enter a whole number of days between 1 and 60",
+      ];
+    }
+    if (hold.reminderDays !== undefined) {
+      const days = Array.isArray(hold.reminderDays) ? hold.reminderDays : [];
+      const bad = days.some((day) => {
+        const value = Number(day);
+        return !Number.isInteger(value) || value < 1;
+      });
+      if (!Array.isArray(hold.reminderDays) || bad) {
+        errors["shipping.addressHold.reminderDays"] = [
+          "Reminders are whole days after the first request",
+        ];
+      } else if (
+        Number.isInteger(deadline) &&
+        days.some((day) => Number(day) >= deadline)
+      ) {
+        // Sent on or after the deadline, a reminder asks for something the
+        // store has already given up waiting for.
+        errors["shipping.addressHold.reminderDays"] = [
+          "Every reminder must come before the deadline",
+        ];
+      }
+    }
+    if (
+      hold.onDeadline !== undefined &&
+      hold.onDeadline !== "notify" &&
+      hold.onDeadline !== "cancel"
+    ) {
+      errors["shipping.addressHold.onDeadline"] = ["Choose what happens at the deadline"];
+    }
+  }
+
   if (Object.prototype.hasOwnProperty.call(data, "automation")) {
     const automation = toPlainRecord(data.automation);
 
@@ -813,6 +863,14 @@ function validateOrderSettings(data: Record<string, unknown>) {
   if (Object.prototype.hasOwnProperty.call(data, "freeShippingThreshold")) {
     requireFiniteNumber(data.freeShippingThreshold, "Free shipping threshold", 0);
   }
+  if (Object.prototype.hasOwnProperty.call(data, "loyaltySpendPerPoint")) {
+    requireFiniteNumber(
+      data.loyaltySpendPerPoint,
+      "Spend per loyalty point",
+      MIN_LOYALTY_SPEND_PER_POINT,
+      MAX_LOYALTY_SPEND_PER_POINT,
+    );
+  }
 
   if (Object.prototype.hasOwnProperty.call(data, "returns")) {
     if (!isPlainObject(data.returns)) {
@@ -826,6 +884,13 @@ function validateOrderSettings(data: Record<string, unknown>) {
       "refundAdminFeePercent",
       "refundAdminFeeCap",
       "billVendorCodShipping",
+      "instructions",
+      "finalSaleCollectionIds",
+      "windowUnlimited",
+      "windowStart",
+      "selfServe",
+      "payoutHoldMaxDays",
+      "windowOverrides",
     ]);
     for (const key of Object.keys(data.returns)) {
       if (!allowedReturnKeys.has(key)) {
@@ -899,6 +964,85 @@ function validateOrderSettings(data: Record<string, unknown>) {
         );
       }
     }
+    if (Object.prototype.hasOwnProperty.call(data.returns, "instructions")) {
+      if (
+        typeof data.returns.instructions !== "string" ||
+        data.returns.instructions.length > RETURN_INSTRUCTIONS_MAX_LENGTH
+      ) {
+        throw new ValidationError(
+          `Return instructions must be text of at most ${RETURN_INSTRUCTIONS_MAX_LENGTH} characters`,
+        );
+      }
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data.returns, "finalSaleCollectionIds")
+    ) {
+      const ids = data.returns.finalSaleCollectionIds;
+      if (
+        !Array.isArray(ids) ||
+        ids.length > MAX_FINAL_SALE_COLLECTIONS ||
+        !ids.every((id) => typeof id === "string" && isValidObjectId(id))
+      ) {
+        throw new ValidationError(
+          `Final sale collections must be a list of at most ${MAX_FINAL_SALE_COLLECTIONS} collections`,
+        );
+      }
+      data.returns.finalSaleCollectionIds = Array.from(new Set(ids as string[]));
+    }
+    for (const key of ["windowUnlimited", "selfServe"] as const) {
+      if (
+        Object.prototype.hasOwnProperty.call(data.returns, key) &&
+        typeof data.returns[key] !== "boolean"
+      ) {
+        throw new ValidationError(`${key} must be true or false`);
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(data.returns, "windowStart")) {
+      if (
+        !(RETURN_WINDOW_STARTS as readonly string[]).includes(
+          String(data.returns.windowStart),
+        )
+      ) {
+        throw new ValidationError(
+          `Return window start must be one of: ${RETURN_WINDOW_STARTS.join(", ")}`,
+        );
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(data.returns, "payoutHoldMaxDays")) {
+      requireFiniteNumber(
+        data.returns.payoutHoldMaxDays,
+        "Longest payout hold",
+        MIN_RETURN_WINDOW_DAYS,
+        MAX_RETURN_WINDOW_DAYS,
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(data.returns, "windowOverrides")) {
+      const overrides = data.returns.windowOverrides;
+      if (
+        !Array.isArray(overrides) ||
+        overrides.length > MAX_RETURN_WINDOW_OVERRIDES ||
+        !overrides.every(
+          (entry) =>
+            isPlainObject(entry) &&
+            typeof entry.collectionId === "string" &&
+            isValidObjectId(entry.collectionId) &&
+            validWindowDays(entry.windowDays) !== null,
+        )
+      ) {
+        throw new ValidationError(
+          `Return windows by collection must be at most ${MAX_RETURN_WINDOW_OVERRIDES} collections, each with ${MIN_RETURN_WINDOW_DAYS}–${MAX_RETURN_WINDOW_DAYS} days`,
+        );
+      }
+      // One window per collection, whole days.
+      const byCollection = new Map<string, number>();
+      for (const entry of overrides as Array<{ collectionId: string; windowDays: number }>) {
+        byCollection.set(entry.collectionId, validWindowDays(entry.windowDays)!);
+      }
+      data.returns.windowOverrides = Array.from(byCollection, ([collectionId, windowDays]) => ({
+        collectionId,
+        windowDays,
+      }));
+    }
   }
 
   if (Object.prototype.hasOwnProperty.call(data, "commission")) {
@@ -950,7 +1094,6 @@ function validateVendorConfigSettings(data: Record<string, unknown>) {
   const booleanKeys = [
     "plansEnabled",
     "allowRegistration",
-    "autoApprove",
     "requirePlanSelection",
   ] as const;
   for (const key of booleanKeys) {
@@ -960,10 +1103,6 @@ function validateVendorConfigSettings(data: Record<string, unknown>) {
     ) {
       throw new ValidationError(`${key} must be true or false`);
     }
-  }
-
-  if (Object.prototype.hasOwnProperty.call(data, "freeTrialDays")) {
-    requireFiniteNumber(data.freeTrialDays, "Free trial days", 0, 365);
   }
 
   if (Object.prototype.hasOwnProperty.call(data, "requiredDocuments")) {
@@ -1031,6 +1170,34 @@ function validateEmailSettings(data: Record<string, unknown>) {
   smtp.secure = port === 465;
   data.smtp = smtp;
   if (fromEmail) data.fromEmail = fromEmail;
+}
+
+/**
+ * A gateway switched on without its keys takes no payment: checkout leaves it
+ * out, so the switch only ever reads "active" on this screen. Refuse the save
+ * rather than store a configuration the storefront will not honour — the admin
+ * either fills the keys in or switches the gateway back off.
+ *
+ * `.env` counts as a source, and so does a value already stored: the form
+ * posts a saved credential back as a blank (the field renders empty by
+ * design), which is why this runs after `applyCredentialUpdateMarkers` has
+ * dropped those blanks.
+ */
+function validatePaymentSettings(
+  data: Record<string, unknown>,
+  stored: unknown,
+) {
+  const switchedOn = findGatewaysSwitchedOnWithoutKeys(
+    data,
+    isPlainObject(stored) ? stored : undefined,
+  );
+  if (switchedOn.length === 0) return;
+
+  throw new ValidationError(
+    `A payment gateway cannot be switched on without its keys — ${switchedOn
+      .map((gateway) => `${gateway.label} needs ${gateway.fields.join(", ")}`)
+      .join("; ")}. Fill them in, or switch the gateway off.`,
+  );
 }
 
 function mergeContentPagesSettings(
@@ -1138,11 +1305,17 @@ export const PUT = withApi(
       if (section === "email") validateEmailSettings(sectionData);
       if (section === "sms") validateSmsSettings(sectionData);
       if (section === "vendorConfig") validateVendorConfigSettings(sectionData);
+      if (section === "catalog") {
+        assertCatalogKeepsAFormat(sectionData, beforeSettings.catalog);
+      }
       if (section === "storage") {
         normalizeStorageSettings(sectionData);
         validateStorageSettings(sectionData);
       }
       applyCredentialUpdateMarkers(section, sectionData);
+      if (section === "payment") {
+        validatePaymentSettings(sectionData, beforeSettings.payment);
+      }
       if (section === "contentPages") {
         // The /pages/<handle> namespace is shared with theme-engine landing
         // pages, and a landing page always wins the route — refuse to save a
@@ -1250,12 +1423,18 @@ export const PUT = withApi(
         if (key === "vendorConfig" && isPlainObject(value)) {
           validateVendorConfigSettings(value);
         }
+        if (key === "catalog" && isPlainObject(value)) {
+          assertCatalogKeepsAFormat(value, beforeSettings.catalog);
+        }
         if (key === "storage" && isPlainObject(value)) {
           normalizeStorageSettings(value);
           validateStorageSettings(value);
         }
         if (isPlainObject(value)) {
           applyCredentialUpdateMarkers(key, value);
+          if (key === "payment") {
+            validatePaymentSettings(value, beforeSettings.payment);
+          }
         }
         if (key === "contentPages" && isPlainObject(value)) {
           settings.set(
@@ -1310,7 +1489,6 @@ export const PUT = withApi(
     if (
       emailWasUpdated &&
       settings.email?.enabled &&
-      settings.email?.provider === "smtp" &&
       !resolveSmtpConfig(settings)
     ) {
       throw new ValidationError(
@@ -1388,6 +1566,28 @@ export const PUT = withApi(
       !settings.security?.emailVerificationForVendors
     ) {
       settings.set("security.emailVerificationForVendorsSince", undefined);
+    }
+
+    // Orders placed before return terms were stored keep the rules they were
+    // sold under: the first change after upgrading writes the old rules onto
+    // them, before the new ones are saved (see `freezeLegacyReturnTerms`).
+    // Refused rather than saved without it, or those orders would be answered
+    // by rules their shoppers were never shown.
+    if (ordersWasUpdated) {
+      const { freezeLegacyReturnTerms } = await import(
+        "@/lib/returns/return-terms"
+      );
+      await freezeLegacyReturnTerms({
+        before: beforeSettings as Parameters<
+          typeof freezeLegacyReturnTerms
+        >[0]["before"],
+        after: settings,
+      }).catch((error) => {
+        console.error("Failed to keep existing orders on their return rules:", error);
+        throw new ValidationError(
+          "The return rules could not be kept on existing orders, so nothing was saved. Try again.",
+        );
+      });
     }
     await settings.save();
 

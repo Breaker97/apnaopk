@@ -18,6 +18,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { AiStudioMenu } from "@/components/ai-authoring/ai-studio-menu";
+import { useAiEntityAllowed } from "@/components/ai-authoring/ai-availability-provider";
 import {
   useAiStudio,
   type AiStudioScope,
@@ -99,7 +100,19 @@ type AiStudioImageFieldProps = {
   children?: (open: () => void) => ReactNode;
 };
 
-export function AiStudioImageField({
+/**
+ * Settings → AI decides whether this field has a studio at all. The gate sits
+ * in front of the field so the single-image surfaces — a brand logo, a category
+ * icon, a blog cover, a mega-menu promo — all follow the switch without each
+ * form repeating the check.
+ */
+export function AiStudioImageField(props: AiStudioImageFieldProps) {
+  const allowed = useAiEntityAllowed(props.entity);
+  if (!allowed) return null;
+  return <AiStudioImageFieldControl {...props} />;
+}
+
+function AiStudioImageFieldControl({
   entity,
   scope,
   locale,

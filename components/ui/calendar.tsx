@@ -3,7 +3,7 @@
 import * as React from "react";
 import { DayPicker } from "react-day-picker";
 import type { DayProps } from "react-day-picker";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -55,19 +55,29 @@ function Calendar({
   classNames,
   components,
   showOutsideDays = true,
+  captionLayout = "label",
   ...props
 }: CalendarProps) {
+  // Month and year pickers in the caption, for a date that may be years back —
+  // stepping there one arrow click per month is the alternative.
+  const dropdowns = captionLayout !== "label";
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      captionLayout={captionLayout}
       className={cn("p-0", className)}
       classNames={{
         root: "w-full",
         months: "flex flex-col gap-8 md:flex-row md:gap-8",
         month: "w-[282px] space-y-4",
         month_caption: "relative flex h-8 items-center justify-center px-10",
-        caption_label:
-          "text-base font-semibold text-[#172033] dark:text-foreground",
+        caption_label: dropdowns
+          ? "flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm font-medium text-[#172033] dark:text-foreground [&>svg]:size-3.5 [&>svg]:text-muted-foreground"
+          : "text-base font-semibold text-[#172033] dark:text-foreground",
+        dropdowns: "flex items-center justify-center gap-1.5",
+        dropdown_root:
+          "relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
+        dropdown: "absolute inset-0 cursor-pointer opacity-0",
         nav: "contents",
         button_previous:
           "absolute left-0 top-0 z-10 flex size-8 items-center justify-center rounded-md text-[#172033] transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40 dark:text-foreground",
@@ -99,6 +109,8 @@ function Calendar({
         Chevron: ({ orientation, className: chevronClassName }) =>
           orientation === "left" ? (
             <ChevronLeft className={cn("size-4", chevronClassName)} />
+          ) : orientation === "down" ? (
+            <ChevronDown className={cn("size-4", chevronClassName)} />
           ) : (
             <ChevronRight className={cn("size-4", chevronClassName)} />
           ),

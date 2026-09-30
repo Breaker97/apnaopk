@@ -1,4 +1,8 @@
-import { z } from "zod";
+import { afterResponse } from "@/lib/after-response";
+import { notifyAdminsPaymentAnomaly } from "@/lib/notifications/notifications";
+import { assertRecentSignIn } from "@/lib/auth/recent-sign-in";
+import { maskAccountNumber } from "@/lib/returns/refund-settlement";
+import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { Vendor, User } from "@/models";
 import { getSettings } from "@/models/settings.model";
@@ -410,7 +414,12 @@ function buildSettingsPayload(vendor: {
     })(),
     bankDetails: {
       accountName: vendor.bankDetails?.accountName || "",
-      accountNumber: vendor.bankDetails?.accountNumber || "",
+      // The last four only, like every other screen that shows an account:
+      // the form sends this back untouched when the number is not being
+      // changed (see the payment section below).
+      accountNumber: vendor.bankDetails?.accountNumber
+        ? maskAccountNumber(vendor.bankDetails.accountNumber)
+        : "",
       bankName: vendor.bankDetails?.bankName || "",
       routingNumber: vendor.bankDetails?.routingNumber || "",
       swiftCode: vendor.bankDetails?.swiftCode || "",
@@ -703,11 +712,20 @@ export const PUT = withApi(
     }
 
     if (body.section === "payment") {
+      const stored = (vendor.bankDetails ?? {}) as Record<string, string | undefined>;
+      const submittedNumber = normalizeOptionalString(
+        body.data.bankDetails?.accountNumber,
+      );
       const cleanBankDetails = {
         accountName: normalizeOptionalString(body.data.bankDetails?.accountName),
-        accountNumber: normalizeOptionalString(
-          body.data.bankDetails?.accountNumber,
-        ),
+        // The masked number the form was given, sent back as it was: the
+        // number is not being changed.
+        accountNumber:
+          submittedNumber &&
+          stored.accountNumber &&
+          submittedNumber === maskAccountNumber(stored.accountNumber)
+            ? stored.accountNumber
+            : submittedNumber,
         bankName: normalizeOptionalString(body.data.bankDetails?.bankName),
         routingNumber: normalizeOptionalString(
           body.data.bankDetails?.routingNumber,
@@ -715,6 +733,14 @@ export const PUT = withApi(
         swiftCode: normalizeOptionalString(body.data.bankDetails?.swiftCode),
       };
       const hasBankDetails = Object.values(cleanBankDetails).some(Boolean);
+
+      // Where the store sends this seller's money. A change needs a recent
+      // sign-in — it is what a stolen session would do first — and the
+      // store's admins hear about it before they next pay out.
+      const payoutChanged = (
+        Object.keys(cleanBankDetails) as Array<keyof typeof cleanBankDetails>
+      ).some((key) => (cleanBankDetails[key] || "") !== (stored[key] || ""));
+      if (payoutChanged) assertRecentSignIn(session);
 
       await Vendor.findByIdAndUpdate(vendor._id, {
         $set: {
@@ -725,6 +751,16 @@ export const PUT = withApi(
           },
         },
       });
+      if (payoutChanged) {
+        afterResponse(() =>
+          notifyAdminsPaymentAnomaly({
+            title: "A seller changed their payout details",
+            message: `${vendor.storeName || "A seller"} changed the bank account their payouts go to. Check it with them before the next payout.`,
+            dedupeKey: `vendor-payout-details:${String(vendor._id)}:${Date.now()}`,
+            link: `/admin/vendors/${String(vendor._id)}`,
+          }),
+        );
+      }
     }
 
     if (body.section === "notifications") {
@@ -849,18 +885,30 @@ export const PUT = withApi(
         vendor.shipping?.carriers,
       );
 
+      const shipping: Record<string, unknown> = {
+        ...body.data.shipping,
+        carriers,
+        zoneRates,
+        // The editor prices the store's zones now, so a save retires
+        // whatever geography this vendor used to carry — leaving it would
+        // keep the old model rating them (see resolveVendorShippingProfile).
+        zones: zoneRates.length > 0 ? [] : body.data.shipping.zones,
+      };
+      // Field by field, never the whole object: `shipping` also holds what
+      // this form does not own — above all `codCollectedBy`, the admin's
+      // decision about who takes this vendor's cash on delivery. Replacing
+      // the object reset it to "inherit" on every save, which could turn the
+      // store's courier collection back into the vendor's own.
       await Vendor.findByIdAndUpdate(vendor._id, {
-        $set: {
-          shipping: {
-            ...body.data.shipping,
-            carriers,
-            zoneRates,
-            // The editor prices the store's zones now, so a save retires
-            // whatever geography this vendor used to carry — leaving it would
-            // keep the old model rating them (see resolveVendorShippingProfile).
-            zones: zoneRates.length > 0 ? [] : body.data.shipping.zones,
-          },
-        },
+        // A stored `null` cannot take a dotted path, and holds nothing to keep.
+        $set:
+          vendor.shipping === null
+            ? { shipping }
+            : Object.fromEntries(
+                Object.entries(shipping)
+                  .filter(([, value]) => value !== undefined)
+                  .map(([key, value]) => [`shipping.${key}`, value]),
+              ),
       });
     }
 

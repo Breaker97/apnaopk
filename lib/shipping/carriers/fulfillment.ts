@@ -7,8 +7,10 @@ import {
   CARRIER_RATE_TTL_MS,
   CARRIER_PROVIDER_LABELS,
   CARRIER_PURCHASE_CLAIM_TTL_MS,
+  CARRIER_REFUND_SETTLE_WINDOW_MS,
   carrierRouteRefusal,
   isPurchaseClaimStale,
+  isTestLabel,
   type CarrierProvider,
 } from "@/lib/shipping/carrier-config";
 import { ORDER_STATUS } from "@/config/app.config";
@@ -20,6 +22,11 @@ import type { IOrder, IVendor, SubOrder } from "@/types";
 import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 import { buildCarrierShipmentRequest } from "./build-request";
 import { consignmentHasPhysicalItems } from "./physical-lines";
+import { holdOnUndeliverableAddress } from "@/lib/orders/address-hold";
+import {
+  ADDRESS_HOLD_SHIPPING_BLOCK,
+  isAddressHoldOpen,
+} from "@/lib/orders/address-hold-policy";
 import { resolveCarrierContext, enabledCarrierProviders } from "./credentials";
 import { CARRIER_ERROR_CODES, CarrierError } from "./errors";
 import { carrierAdapter } from "./registry";
@@ -66,6 +73,7 @@ type OrderForShipment = Pick<
       | "preorderOutstandingAmount"
       | "preorderBalancePaidAt"
       | "digitalOnly"
+      | "addressHold"
     >
   >;
 
@@ -397,6 +405,15 @@ export function assertShippable(
       permanent: true,
     });
   }
+  // A courier already could not deliver to this address. Buying another label,
+  // by hand or by automation, would fail the same way until it is corrected.
+  if (isAddressHoldOpen(order)) {
+    throw new CarrierError({
+      code: CARRIER_ERROR_CODES.ADDRESS_NOT_CARRIER_READY,
+      message: ADDRESS_HOLD_SHIPPING_BLOCK,
+      permanent: true,
+    });
+  }
   // A label is money spent on sending the goods, and the courier takes them
   // away the moment it exists — so it is refused for a consignment the
   // shopper has not paid for, exactly as the status change is.
@@ -522,6 +539,11 @@ export async function rateShopSubOrder(params: {
     packageId: params.packageId,
     parcelOverride: params.parcelOverride,
     bookingSequence,
+  }).catch(async (error: unknown) => {
+    // A delivery address missing what a courier needs holds the order, the
+    // same as one a carrier refused.
+    await holdOnUndeliverableAddress(params.order._id, error);
+    throw error;
   });
 
   // Loaded before the provider is chosen, not after: a vendor on its own
@@ -830,7 +852,7 @@ export async function purchaseShipmentLabel(params: {
         provider: existing.provider,
         code: CARRIER_ERROR_CODES.RATE_EXPIRED,
         message:
-          "This label was voided. Refresh the rates and choose a service to ship it again.",
+          "This label was cancelled. Refresh the rates and choose a service to ship it again.",
         permanent: true,
       });
     }
@@ -965,7 +987,9 @@ export async function purchaseShipmentLabel(params: {
     // The first real cost of sale the product records. Posted in the carrier's
     // own currency — no rate exists to convert it, and inventing one would be
     // worse than a report that names the currency it is in.
-    if (updated?.rate?.amount) {
+    //
+    // Not for a test label, which cost nothing: see `isTestLabel`.
+    if (updated?.rate?.amount && !isTestLabel(updated)) {
       const { postShipmentLabelSafely } = await import(
         "@/lib/finance/post-events"
       );
@@ -986,7 +1010,7 @@ export async function purchaseShipmentLabel(params: {
     // delivery on: the store is paying to deliver it, so the delivery charge
     // becomes the store's. Never fails the purchase — the label exists either
     // way, and a charge left with the vendor is a reconcilable gap.
-    if (updated) {
+    if (updated && !isTestLabel(updated)) {
       const { moveShippingToStoreForLabel } = await import(
         "@/lib/shipping/store-label-shipping"
       );
@@ -998,6 +1022,8 @@ export async function purchaseShipmentLabel(params: {
     return { shipment: updated! };
   } catch (error) {
     const carrierError = error instanceof CarrierError ? error : undefined;
+    // The carrier refused the delivery address: shipping waits on the customer.
+    await holdOnUndeliverableAddress(params.order._id, error);
     await markPurchaseFailed(
       params.shipmentId,
       error instanceof Error ? error.message : String(error),
@@ -1184,10 +1210,71 @@ async function markPurchaseFailed(
 }
 
 /** Void a bought label and mark the parcel cancelled. */
+/** What reversing a voided label's books needs, however long ago it was voided. */
+type VoidedLabel = {
+  _id: IShipment["_id"];
+  orderId?: IShipment["orderId"];
+  subOrderId?: IShipment["subOrderId"];
+  vendorId?: IShipment["vendorId"];
+  rate?: { amount: number; currency: string; baseCurrency?: string } | null;
+  bookingSequence?: number;
+  billedTo?: "platform" | "vendor";
+  shippingToStore?: boolean;
+  voidedAt: Date;
+};
+
+/**
+ * Take a refunded label back off the books.
+ *
+ * The cost comes back off only if the money does — a carrier that refuses the
+ * refund kept what the label cost, and reversing it would credit the store
+ * money nobody returned. So this runs on a refund the carrier confirmed: at
+ * void time for a carrier that answers at once, or when the tracking sweep
+ * settles one it left pending.
+ */
+async function reverseRefundedLabel(label: VoidedLabel) {
+  if (!label.rate?.amount) return;
+
+  const { postShipmentLabelVoidSafely } = await import(
+    "@/lib/finance/post-events"
+  );
+  postShipmentLabelVoidSafely({
+    _id: label._id,
+    vendorId: label.vendorId,
+    rate: label.rate,
+    // The booking the label belonged to, not the document's current one: a
+    // void increments it, and a re-ship may have moved it again since.
+    bookingSequence: label.bookingSequence,
+    billedTo: label.billedTo,
+    voidedAt: label.voidedAt,
+  });
+
+  // The store stopped paying for this delivery, so the vendor earns its
+  // charge again — for the same reason as the cost, only once refunded.
+  const { returnShippingForVoidedLabel } = await import(
+    "@/lib/shipping/store-label-shipping"
+  );
+  await returnShippingForVoidedLabel({
+    _id: label._id,
+    orderId: label.orderId,
+    subOrderId: label.subOrderId,
+    bookingSequence: label.bookingSequence,
+    purchase: { billedTo: label.billedTo, shippingToStore: label.shippingToStore },
+  }).catch((err) =>
+    console.error("Failed to hand a delivery charge back to the vendor:", err),
+  );
+}
+
 export async function voidShipmentLabel(params: {
   shipmentId: string;
   settings?: ISettings;
-}): Promise<{ shipment: IShipment; refunded: boolean; state: string }> {
+}): Promise<{
+  shipment: IShipment;
+  refunded: boolean;
+  /** The carrier has not decided the refund yet; the sweep will settle it. */
+  refundPending?: boolean;
+  state: string;
+}> {
   const settings = params.settings ?? (await getSettings());
   const shipment = await Shipment.findById(params.shipmentId).lean<IShipment>();
   if (!shipment?.provider) {
@@ -1200,7 +1287,19 @@ export async function voidShipmentLabel(params: {
   if (shipment.status === "delivered") {
     throw new CarrierError({
       code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
-      message: "A delivered parcel cannot be voided",
+      message: "A delivered parcel's label cannot be cancelled",
+      permanent: true,
+    });
+  }
+  // Voiding twice is not a no-op. The reversal is keyed on the booking number,
+  // which this call increments, so a second void of the same label posted a
+  // second refund of its cost under a key the unique index had never seen —
+  // and moved the booking number on again for nothing.
+  if (shipment.purchase?.state === "voided") {
+    throw new CarrierError({
+      provider: shipment.provider,
+      code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
+      message: "This label has already been cancelled",
       permanent: true,
     });
   }
@@ -1221,52 +1320,80 @@ export async function voidShipmentLabel(params: {
     pickedUp: shipment.status === "shipped" || shipment.status === "in_transit",
   });
 
-  const updated = await Shipment.findByIdAndUpdate(
-    params.shipmentId,
+  // Compare-and-set: the check above cannot see a void running beside this one
+  // — a cancellation's `voidLabelsForCancellation` racing an admin's click, or
+  // a retried request. Both reach the carrier; only the one that lands this
+  // write owns the void, and only it touches the books below.
+  const voidedAt = new Date();
+  // The label as it stood BEFORE this void. The update below increments the
+  // booking number, and a re-ship may overwrite the rate and billing while a
+  // refund is still pending — so what the books need is copied now.
+  const label: VoidedLabel = {
+    _id: shipment._id,
+    orderId: shipment.orderId,
+    subOrderId: shipment.subOrderId,
+    vendorId: shipment.vendorId,
+    rate: shipment.rate
+      ? {
+          amount: shipment.rate.amount,
+          currency: shipment.rate.currency,
+          baseCurrency: shipment.rate.baseCurrency,
+        }
+      : undefined,
+    bookingSequence: shipment.bookingSequence ?? 0,
+    billedTo: shipment.purchase?.billedTo,
+    shippingToStore: shipment.purchase?.shippingToStore,
+    voidedAt,
+  };
+
+  const updated = await Shipment.findOneAndUpdate(
+    { _id: params.shipmentId, "purchase.state": { $ne: "voided" } },
     {
       $set: {
         status: "cancelled",
         "purchase.state": "voided",
-        "purchase.voidedAt": new Date(),
+        "purchase.voidedAt": voidedAt,
       },
       // The next booking of this parcel needs a reference of its own: Shiprocket
       // rejects a repeat order id, and its duplicate-recovery path would
       // otherwise resume the consignment this call just cancelled.
       $inc: { bookingSequence: 1 },
+      // A refund the carrier has not decided is remembered, with the label as
+      // it was, for `settlePendingRefunds` to reverse once it is confirmed.
+      ...(result.refundPending
+        ? {
+            $push: {
+              refunds: {
+                id: result.refundPending.refundId,
+                provider: shipment.provider,
+                state: "pending",
+                requestedAt: voidedAt,
+                carrierState: result.state.slice(0, 60),
+                bookingSequence: label.bookingSequence,
+                rate: label.rate ?? undefined,
+                billedTo: label.billedTo,
+                shippingToStore: label.shippingToStore,
+              },
+            },
+          }
+        : {}),
     },
     { returnDocument: "after" },
   ).lean<IShipment>();
 
-  // The cost comes back off the books only if the money does. A carrier that
-  // refuses the refund kept what the label cost, and reversing it would credit
-  // the store money nobody returned — which is why `refunded` decides this and
-  // the void itself does not.
-  if (result.refunded && shipment.rate?.amount) {
-    const { postShipmentLabelVoidSafely } = await import(
-      "@/lib/finance/post-events"
-    );
-    postShipmentLabelVoidSafely({
-      _id: shipment._id,
-      vendorId: shipment.vendorId,
-      rate: shipment.rate,
-      // Read off the shipment as it was BEFORE this call: the update above
-      // increments the booking number, and the entry being reversed belongs to
-      // the booking that was just cancelled.
-      bookingSequence: shipment.bookingSequence,
-      billedTo: shipment.purchase?.billedTo,
-      voidedAt: updated?.purchase?.voidedAt ?? new Date(),
-    });
-
-    // The store stopped paying for this delivery, so the vendor earns its
-    // charge again. Only on a refunded void, for the same reason as the cost:
-    // a label the carrier kept the money for is still the store's delivery.
-    const { returnShippingForVoidedLabel } = await import(
-      "@/lib/shipping/store-label-shipping"
-    );
-    await returnShippingForVoidedLabel(shipment).catch((err) =>
-      console.error("Failed to hand a delivery charge back to the vendor:", err),
-    );
+  if (!updated) {
+    const current = await Shipment.findById(params.shipmentId).lean<IShipment>();
+    return {
+      shipment: current ?? shipment,
+      refunded: result.refunded,
+      refundPending: Boolean(result.refundPending),
+      state: result.state,
+    };
   }
+
+  // Only a refund the carrier already confirmed. A pending one waits for the
+  // sweep, and one the carrier refused leaves the cost where it is.
+  if (result.refunded) await reverseRefundedLabel(label);
 
   // The AWB just voided is on the sub-order and, on a single-vendor order, on
   // the order itself. Leaving it there shows the customer a dead tracking number
@@ -1280,7 +1407,120 @@ export async function voidShipmentLabel(params: {
     }).catch(console.error);
   }
 
-  return { shipment: updated!, refunded: result.refunded, state: result.state };
+  return {
+    shipment: updated,
+    refunded: result.refunded,
+    refundPending: Boolean(result.refundPending),
+    state: result.state,
+  };
+}
+
+/**
+ * Settle refunds a carrier left undecided when their labels were voided.
+ *
+ * Asks the carrier where each stands. A confirmed refund takes the label back
+ * off the books exactly once — the state moves by compare-and-set, so two
+ * sweeps settling the same refund cannot both reverse it. A refused one closes
+ * with the cost kept, and one still undecided past the settle window closes as
+ * expired, for the same reason. Called from the carrier-tracking cron.
+ */
+export async function settlePendingRefunds(
+  params: { limit?: number; settings?: ISettings } = {},
+): Promise<{
+  refunded: number;
+  rejected: number;
+  expired: number;
+  pending: number;
+  failed: number;
+}> {
+  const settings = params.settings ?? (await getSettings());
+  const counts = { refunded: 0, rejected: 0, expired: 0, pending: 0, failed: 0 };
+
+  const shipments = await Shipment.find({ "refunds.state": "pending" })
+    .select("_id orderId subOrderId vendorId refunds")
+    .limit(params.limit ?? 25)
+    .lean<IShipment[]>();
+
+  for (const shipment of shipments) {
+    for (const refund of shipment.refunds || []) {
+      if (refund.state !== "pending") continue;
+
+      const close = (state: "refunded" | "rejected" | "expired", carrierState?: string) =>
+        Shipment.updateOne(
+          {
+            _id: shipment._id,
+            refunds: { $elemMatch: { id: refund.id, state: "pending" } },
+          },
+          {
+            $set: {
+              "refunds.$.state": state,
+              "refunds.$.settledAt": new Date(),
+              ...(carrierState
+                ? { "refunds.$.carrierState": carrierState.slice(0, 60) }
+                : {}),
+            },
+          },
+        );
+
+      if (
+        Date.now() - new Date(refund.requestedAt).getTime() >
+        CARRIER_REFUND_SETTLE_WINDOW_MS
+      ) {
+        if ((await close("expired")).modifiedCount) counts.expired += 1;
+        continue;
+      }
+
+      const adapter = carrierAdapter(refund.provider);
+      if (!adapter.refundStatus) {
+        counts.pending += 1;
+        continue;
+      }
+
+      let answer: Awaited<ReturnType<NonNullable<typeof adapter.refundStatus>>>;
+      try {
+        const context = await resolveCarrierContext({
+          provider: refund.provider,
+          settings,
+          vendor: await loadCarrierVendor(shipment.vendorId),
+        });
+        answer = await adapter.refundStatus(context, { refundId: refund.id });
+      } catch (error) {
+        // Asked again on the next sweep; a carrier that is down, or switched
+        // off, has not refused anything.
+        console.error("Failed to check a carrier refund:", refund.id, error);
+        counts.failed += 1;
+        continue;
+      }
+
+      if (answer.status === "pending") {
+        counts.pending += 1;
+        continue;
+      }
+
+      const won = await close(answer.status, answer.state);
+      if (!won.modifiedCount) continue;
+
+      if (answer.status === "rejected") {
+        counts.rejected += 1;
+        continue;
+      }
+
+      await reverseRefundedLabel({
+        _id: shipment._id,
+        orderId: shipment.orderId,
+        subOrderId: shipment.subOrderId,
+        vendorId: shipment.vendorId,
+        rate: refund.rate,
+        bookingSequence: refund.bookingSequence,
+        billedTo: refund.billedTo,
+        shippingToStore: refund.shippingToStore,
+        voidedAt: new Date(refund.requestedAt),
+      });
+      counts.refunded += 1;
+    }
+  }
+
+  return counts;
 }
 
 interface TrackingSyncResult {
@@ -1364,8 +1604,11 @@ export async function refreshShipmentTracking(params: {
   //
   // Carrier movement only moves the order when the merchant asked for it: the
   // same switch that governs the automatic purchase.
+  // Nor does a test label's: its scans are the carrier's sandbox, and moving a
+  // real order to delivered on them tells a customer a fiction.
   if (
     statusChanged &&
+    !isTestLabel(shipment) &&
     settings.shipping?.automation?.markOrderShipped !== false
   ) {
     await applyShipmentTrackingToOrder({

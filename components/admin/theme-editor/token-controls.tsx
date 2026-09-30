@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Input } from "@/components/ui/input";
 import { UnitField } from "@/components/admin/unit-field";
 import { Label } from "@/components/ui/label";
@@ -28,8 +29,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   PageWidthDiagram,
-  SliderHeightDiagram,
-  SliderWidthDiagram,
 } from "./layout-diagrams";
 
 /**
@@ -112,18 +111,19 @@ export function ColorControl({
   return (
     <FieldRow label={field.label} hint={field.hint} htmlFor={id}>
       <div className="flex items-center gap-1.5">
-        <label
-          className="relative h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-md border border-border"
-          style={{ backgroundColor: swatch || "transparent" }}
-          aria-label={`${field.label} picker`}
+        <ColorSwatchPicker
+          ariaLabel={`${field.label} picker`}
+          value={toColorInputValue(swatch, "#888888")}
+          onChange={onChange}
+          alpha={false}
         >
-          <input
-            type="color"
-            value={toColorInputValue(swatch, "#888888")}
-            onChange={(event) => onChange(event.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          <button
+            type="button"
+            aria-label={`${field.label} picker`}
+            className="relative h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-md border border-border"
+            style={{ backgroundColor: swatch || "transparent" }}
           />
-        </label>
+        </ColorSwatchPicker>
         {inherited || isRef ? (
           <button
             type="button"
@@ -405,12 +405,6 @@ export function PictureControl({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const Diagram =
-    field.key === "pageWidth"
-      ? PageWidthDiagram
-      : field.key === "sliderWidth"
-        ? SliderWidthDiagram
-        : SliderHeightDiagram;
   return (
     <OptionCardGroup
       label={field.label}
@@ -421,7 +415,7 @@ export function PictureControl({
       options={(field.options ?? []).map((option) => ({
         key: option.key,
         label: option.label,
-        diagram: <Diagram kind={option.key} />,
+        diagram: <PageWidthDiagram kind={option.key} />,
       }))}
     />
   );

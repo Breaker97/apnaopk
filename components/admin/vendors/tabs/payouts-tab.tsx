@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { AlertTriangle, Landmark, Wallet } from "lucide-react";
 import {
   DataTable,
@@ -420,7 +420,7 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
           <MoneyStat
             label="Commission"
             value={format(finance?.platformRevenue.commission ?? 0)}
-            hint="on gross sales"
+            hint="on delivered, paid sales, net of refunds"
             loading={financeLoading}
           />
           <MoneyStat

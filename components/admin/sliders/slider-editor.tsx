@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -26,24 +26,19 @@ import {
   ClipboardCopy,
   ClipboardPaste,
   Copy,
-  Eye,
   FolderOpen,
   ImagePlus,
-  Languages,
   LayoutTemplate,
   Loader2,
   Package,
   PanelBottom,
   Plus,
   Play,
-  RectangleHorizontal,
-  RectangleVertical,
   Redo2,
   Rocket,
   Settings2,
   SlidersHorizontal,
   Sparkles,
-  Square,
   Timer,
   Trash2,
   Undo2,
@@ -80,9 +75,14 @@ import {
   MIN_AUTOPLAY_SECONDS,
   resolveImageLayout,
   resolveSlideLayout,
+  ownTextStyle,
   resolveTextStyle,
   MAX_COPY_PADDING,
   MAX_SLIDES_PER_SLIDER,
+  SLIDE_BAND_CHAIN,
+  shapeForFrame,
+  SLIDE_FRAMES,
+  SLIDE_SHAPES,
   SLIDE_REVEALS,
   SLIDE_REVEAL_EASINGS,
   type SlideShape,
@@ -103,16 +103,18 @@ import {
   type SlideTemplatePreset,
 } from "@/lib/sliders/types";
 import {
+  DEFAULT_TRACKING_PCT,
   SlideCanvas,
   type SlideCanvasLabels,
   type SlideSelection,
 } from "./slide-canvas";
+import { TextStyleFields } from "./text-style-fields";
 import { AlignControls, SegmentedCell, SegmentedGroup } from "./align-controls";
 import { BackgroundPicker } from "./background-picker";
 import {
-  CtaSettingsPopover,
+  CtaSettingsFields,
   type CtaSettingsLabels,
-} from "./cta-settings-popover";
+} from "./cta-settings-fields";
 import { historyChord, useSliderHistory } from "./use-slider-history";
 import {
   AnimationFields,
@@ -122,7 +124,13 @@ import {
   scheduleState,
 } from "./slide-popovers";
 import { useSlideClipboard } from "./slide-clipboard";
-import { SlidePreviewStrip } from "./slide-preview-strip";
+import {
+  SlideFramePicker,
+  UNPLACED_FRAMES,
+  type BoardFrame,
+  type FrameGroup,
+} from "./slide-frame-picker";
+import type { SliderPlacement } from "@/lib/sliders/placements";
 import { TemplatesFields } from "./templates-popover";
 import { SlideWarningsStrip, type SlideWarningLabels } from "./slide-warnings";
 import { SliderHistoryDialog } from "./slider-history-dialog";
@@ -193,7 +201,6 @@ export function SliderEditor({
   dirty = false,
   hasDraft = false,
   stats,
-  languages = [],
   defaultLanguage = "en",
 }: {
   slider: SliderDocument;
@@ -246,7 +253,39 @@ export function SliderEditor({
 }) {
   const isBanner = mode === "banner";
   const [activeIndex, setActiveIndex] = useState(0);
-  const [shape, setShape] = useState<SlideShape>("landscape");
+  /**
+   * THE BOARD: the frame being designed on, in storefront pixels. The band
+   * is read off it (`shapeForFrame`) and never picked beside it, so the
+   * board and the design can no longer be about different things — which is
+   * what let a headline be tuned on a 1248x450 hero while the shop drew that
+   * slider in a 639x450 cell. A slider that is placed somewhere opens on the
+   * frame it is placed in; one that is not opens on the widest band.
+   */
+  const [board, setBoard] = useState<BoardFrame>({
+    key: "landscape",
+    ...SLIDE_FRAMES.landscape,
+    label: "",
+  });
+  const shape = shapeForFrame(board.width, board.height);
+  /**
+   * Where this slider is bound on the shop, and the frame each placement
+   * renders at. Nothing could answer this before, which is why the editor
+   * offered fixed artboards; with it, the board can open on the merchant's
+   * own cell and the three viewport widths stop being a guess.
+   */
+  const [placements, setPlacements] = useState<SliderPlacement[] | null>(null);
+  /** The frame row is a reference, not the work — it starts folded. */
+  const [framesOpen, setFramesOpen] = useState(false);
+  /** Set once the merchant picks a frame, so the scan never overrides them. */
+  const boardPicked = useRef(false);
+  const chooseBoard = useCallback((frame: BoardFrame) => {
+    boardPicked.current = true;
+    setBoard(frame);
+  }, []);
+  const setShape = useCallback((band: SlideShape) => {
+    boardPicked.current = true;
+    setBoard({ key: band, ...SLIDE_FRAMES[band], label: "" });
+  }, []);
   const [products, setProducts] = useState<Record<string, ProductInfo>>({});
   const [uploadingArt, setUploadingArt] = useState(false);
   // Which layer the alignment / scale / rotation controls drive.
@@ -261,14 +300,19 @@ export function SliderEditor({
   const [matchStyles, setMatchStyles] = useState(false);
   // Every edit goes through the history, so Ctrl+Z takes it back.
   const history = useSliderHistory(slider, onChange);
-  /** The language whose copy the fields show and write. */
-  const [lang, setLang] = useState(defaultLanguage);
-  const multilingual = languages.length > 1;
-  const editingLang = multilingual ? lang : defaultLanguage;
+  /**
+   * The language the fields show and write: the store's default, always.
+   *
+   * The per-language pills are gone from the toolbar — the same call the
+   * page builder made for its own text fields. Stored translations are
+   * untouched by this and the storefront still renders them for shoppers in
+   * each language; they simply cannot be edited here. The write path below
+   * stays intact, so restoring the switcher is a UI change, not a rewrite.
+   */
+  const editingLang = defaultLanguage;
   const [artLibrary, setArtLibrary] = useState(false);
   const [cutting, setCutting] = useState<number | null>(null);
   // The shop's frames under the canvas, shown on request.
-  const [showPreview, setShowPreview] = useState(false);
   // The one inspector group that is unfolded — opening another folds it,
   // so the panel never runs longer than one group's fields.
   const [openSection, setOpenSection] = useState<InspectorSectionKey | null>("content");
@@ -279,6 +323,34 @@ export function SliderEditor({
    * canvas or runs off the bottom of the window.
    */
   const [panel, setPanel] = useState<InspectorPanelKey | null>(null);
+  /**
+   * The element whose type the inspector is styling.
+   *
+   * Styling used to live in a panel floating over the artboard, which
+   * covered the copy being styled. It lives in the sidebar now, so the
+   * canvas only has to say which element is meant — clicking the "T" beside
+   * a box, or the box itself, brings its properties up here.
+   */
+  const [styleTarget, setStyleTarget] = useState<SlideTextElement | null>(null);
+  /**
+   * What is selected on the canvas is what the inspector shows. A text
+   * element brings up its own properties; `null` — the artwork, or the
+   * slide itself — closes back to the main inspector, whose Content group
+   * then describes whichever layer is selected.
+   */
+  const openTextStyle = (element: SlideTextElement | null) => {
+    if (!element) {
+      setPanel(null);
+      return;
+    }
+    setStyleTarget(element);
+    setPanel("text");
+  };
+  /** Selecting a layer always brings its settings into view. */
+  const selectLayer = (next: SlideSelection) => {
+    setSelection(next);
+    setOpenSection("content");
+  };
   // Slides and looks copied here paste into any slider, on any tab.
   const clipboard = useSlideClipboard();
   const sensors = useSensors(
@@ -413,13 +485,6 @@ export function SliderEditor({
     });
   };
 
-  /** The CTA's style as stored for the current band (what the gear edits). */
-  const ctaOwnStyle: SlideTextStyle =
-    (active
-      ? shape === "landscape"
-        ? active.styles.landscape.cta
-        : active.styles[shape]?.cta
-      : undefined) ?? {};
   /** Alignment drives whichever layer is selected. */
   const setAlign = (patch: { h?: SlideHAlign; v?: SlideVAlign }) =>
     imageSelected ? patchImage(patch) : patchLayout(patch);
@@ -720,14 +785,88 @@ export function SliderEditor({
     [tSafe],
   );
 
-  const previewLabels = useMemo(
-    () => ({
-      title: tSafe("admin.sliders.preview.title", "On the shop"),
-      desktop: tSafe("admin.sliders.preview.desktop", "Desktop hero"),
-      tablet: tSafe("admin.sliders.preview.tablet", "Tablet"),
-      phone: tSafe("admin.sliders.preview.phone", "Phone"),
-      tile: tSafe("admin.sliders.preview.tile", "Square tile"),
-    }),
+  const handle = slider.handle;
+  useEffect(() => {
+    if (!handle) return;
+    let live = true;
+    fetch(`/api/admin/sliders/${encodeURIComponent(handle)}/placements`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (!live) return;
+        const found: SliderPlacement[] = Array.isArray(body?.data?.placements)
+          ? body.data.placements
+          : [];
+        setPlacements(found);
+        // Open on the frame this slider really lands in, widest placement
+        // first — unless the merchant has already chosen one.
+        const first = found[0]?.frames[0];
+        if (!first || boardPicked.current) return;
+        setBoard({
+          key: `${found[0].sectionId}-${first.viewport}`,
+          width: first.width,
+          height: first.height,
+          label: first.label,
+          assumption: first.exact ? undefined : first.assumption,
+        });
+      })
+      .catch(() => {
+        // An unplaced slider and an unreachable scan look the same to the
+        // merchant, so the picker simply falls back to the band frames.
+        if (live) setPlacements([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [handle]);
+
+  /**
+   * The frames to offer, grouped by where they are. A placed slider shows
+   * ITS cell at each viewport width — the same cell is often a different
+   * band on a desktop than on a phone, and that is the thing a merchant
+   * cannot see any other way.
+   */
+  const frameGroups = useMemo<FrameGroup[]>(() => {
+    if (!placements || placements.length === 0) {
+      const names: Record<string, string> = {
+        desktop: tSafe("admin.sliders.preview.desktop", "Desktop hero"),
+        tablet: tSafe("admin.sliders.preview.tablet", "Tablet hero"),
+        tile: tSafe("admin.sliders.preview.tile", "Half-width cell"),
+        phone: tSafe("admin.sliders.preview.phone", "Phone hero"),
+        tall: tSafe("admin.sliders.preview.tall", "Tall panel"),
+      };
+      return [
+        {
+          key: "unplaced",
+          frames: UNPLACED_FRAMES.map((frame) => ({
+            ...frame,
+            label: names[frame.key] ?? frame.key,
+          })),
+        },
+      ];
+    }
+    return placements.map((placement, index) => ({
+      key: `${placement.pageKey}:${placement.sectionId}:${placement.slotIndex ?? index}`,
+      title: `${placement.pageTitle} · ${placement.label}`,
+      note:
+        placement.state === "draft"
+          ? tSafe("admin.sliders.placement.draft", "draft only")
+          : undefined,
+      frames: placement.frames.map((frame) => ({
+        key: `${placement.sectionId}-${placement.slotIndex ?? 0}-${frame.viewport}`,
+        width: frame.width,
+        height: frame.height,
+        label: frame.label,
+        assumption: frame.exact ? undefined : frame.assumption,
+      })),
+    }));
+  }, [placements, tSafe]);
+
+  /** What each band is called — a frame's shape and size, never a device. */
+  const bandLabels = useMemo(
+    () =>
+      Object.fromEntries(
+        SLIDE_SHAPES.map((band) => [band, tSafe(`admin.sliders.shapes.${band}`, band)]),
+      ) as Record<SlideShape, string>,
     [tSafe],
   );
 
@@ -1034,7 +1173,13 @@ export function SliderEditor({
     </Button>
   );
 
+  const styleElement = styleTarget ?? "heading";
+  const isCtaTarget = styleElement === "cta" || styleElement === "cta2";
   const panelTitles: Record<InspectorPanelKey, string> = {
+    text: `${tSafe(
+      `admin.sliders.elements.${styleElement}`,
+      ELEMENT_LABELS[styleElement],
+    )} — ${tSafe("admin.sliders.style", "Style")}`,
     background: tSafe("admin.sliders.background", "Background"),
     product: isBanner
       ? tSafe("admin.sliders.image", "Image")
@@ -1050,6 +1195,67 @@ export function SliderEditor({
   /** The open panel's fields. */
   const panelBody = (key: InspectorPanelKey): ReactNode => {
     switch (key) {
+      case "text":
+        return (
+          <div className="space-y-4">
+            {/* Which element is being styled: switching here is quicker than
+                going back to the canvas for the next box. */}
+            <div className="flex flex-wrap items-center gap-1">
+              {active.order
+                .filter((element) => element !== "countdown" && bandElements?.[element])
+                .map((element) => (
+                  <button
+                    key={element}
+                    type="button"
+                    onClick={() => setStyleTarget(element as SlideTextElement)}
+                    aria-pressed={styleElement === element}
+                    className={cn(
+                      "rounded-[6px] px-2 py-1 text-[11px] font-semibold transition",
+                      styleElement === element
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    )}
+                  >
+                    {tSafe(`admin.sliders.elements.${element}`, ELEMENT_LABELS[element])}
+                  </button>
+                ))}
+              <span className="ml-auto">{renderAiAction(styleElement)}</span>
+            </div>
+            <TextStyleFields
+              value={ownTextStyle(active, styleElement, shape)}
+              inherited={resolveTextStyle(active, styleElement, shape)}
+              defaults={{ letterSpacing: DEFAULT_TRACKING_PCT[styleElement] }}
+              onChange={(style) => patchStyle(styleElement, style)}
+              labels={canvasLabels}
+            />
+            {/* A button carries more than type: where it goes, its plate,
+                its box. Same panel, under the type it shares with the rest. */}
+            {isCtaTarget ? (
+              <div className="space-y-2 border-t border-border pt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {ctaSettingsLabels.title}
+                </p>
+                <CtaSettingsFields
+                  link={styleElement === "cta2" ? active.link2 : active.link}
+                  variant={styleElement === "cta2" ? active.cta2Variant : active.ctaVariant}
+                  ownStyle={ownTextStyle(active, styleElement, shape)}
+                  labels={ctaSettingsLabels}
+                  onLinkChange={(link) =>
+                    updateSlide(styleElement === "cta2" ? { link2: link } : { link })
+                  }
+                  onVariantChange={(variant) =>
+                    updateSlide(
+                      styleElement === "cta2"
+                        ? { cta2Variant: variant }
+                        : { ctaVariant: variant },
+                    )
+                  }
+                  onStyleChange={(style) => patchStyle(styleElement, style)}
+                />
+              </div>
+            ) : null}
+          </div>
+        );
       case "background":
         return (
           <div className="space-y-3">
@@ -1095,6 +1301,7 @@ export function SliderEditor({
                       overlayKinds: {
                         flat: tSafe("admin.sliders.bg.overlayKinds.flat", "Whole picture"),
                         gradient: tSafe("admin.sliders.bg.overlayKinds.gradient", "From an edge"),
+                        custom: tSafe("admin.sliders.bg.overlayKinds.custom", "Own gradient"),
                       },
                       overlayFrom: tSafe("admin.sliders.bg.overlayFrom", "From"),
                       overlayEdges: {
@@ -1367,11 +1574,12 @@ export function SliderEditor({
     }
   };
 
-  const bands: [SlideShape, typeof Square][] = [
-    ["landscape", RectangleHorizontal],
-    ["square", Square],
-    ["portrait", RectangleVertical],
-  ];
+  // Every band, widest first. A band is a FRAME — a shape at a size — not a
+  // device: the same square-ish proportions arrive as a 640px cell on a
+  // desktop and a 358px hero on a phone, and those want different type. So
+  // each button wears a glyph drawn at the band's real proportions, scaled
+  // against the widest, and states the frame it is authored at.
+  const bandGlyphScale = 24 / SLIDE_FRAMES.landscape.width;
   const scheduleNow = scheduleState(active.schedule, new Date());
   const toggleSection = (key: InspectorSectionKey) =>
     setOpenSection((current) => (current === key ? null : key));
@@ -1513,79 +1721,57 @@ export function SliderEditor({
                 role="group"
                 aria-label={tSafe("admin.sliders.designFor", "Design for")}
               >
-                {bands.map(([band, Icon]) => (
-                  <button
-                    key={band}
-                    type="button"
-                    onClick={() => setShape(band)}
-                    aria-pressed={shape === band}
-                    className={cn(
-                      "flex h-8 items-center gap-1.5 border-r border-border px-2.5 text-xs font-medium transition last:border-r-0",
-                      shape === band
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {tSafe(`admin.sliders.shapes.${band}`, band)}
-                  </button>
-                ))}
+                {SLIDE_SHAPES.map((band) => {
+                  const frame = SLIDE_FRAMES[band];
+                  const on = shape === band;
+                  return (
+                    <button
+                      key={band}
+                      type="button"
+                      onClick={() => setShape(band)}
+                      aria-pressed={on}
+                      title={`${frame.width} × ${frame.height}`}
+                      className={cn(
+                        "flex h-8 items-center gap-1.5 border-r border-border px-2.5 text-xs font-medium transition last:border-r-0",
+                        on
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "block shrink-0 rounded-[2px] border",
+                          on ? "border-primary-foreground/70" : "border-current",
+                        )}
+                        style={{
+                          width: Math.round(frame.width * bandGlyphScale),
+                          height: Math.round(frame.height * bandGlyphScale),
+                        }}
+                      />
+                      {bandLabels[band]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            {shape !== "landscape" ? (
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                {tSafe(
-                  "admin.sliders.bandHint",
-                  "Starts from the desktop design. What you change here applies to this size only.",
-                )}
-              </p>
-            ) : null}
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {shape === "landscape"
+                ? tSafe(
+                    "admin.sliders.bandBase",
+                    "The design every other size starts from. {w} × {h}.",
+                  )
+                    .replace("{w}", String(SLIDE_FRAMES.landscape.width))
+                    .replace("{h}", String(SLIDE_FRAMES.landscape.height))
+                : tSafe("admin.sliders.bandHint", "{size} · follows {from}; what you change here applies to this size only.")
+                    .replace(
+                      "{size}",
+                      `${SLIDE_FRAMES[shape].width} × ${SLIDE_FRAMES[shape].height}`,
+                    )
+                    .replace("{from}", bandLabels[SLIDE_BAND_CHAIN[shape].at(-2) ?? "landscape"])}
+            </p>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               {chrome === "inline" ? undoRedo : null}
-              {multilingual ? (
-                <div
-                  className="flex items-center gap-0.5 rounded-[8px] border border-border bg-background p-0.5"
-                  role="group"
-                  aria-label={tSafe("admin.sliders.language", "Language")}
-                >
-                  <Languages className="mx-1 h-3.5 w-3.5 text-muted-foreground" />
-                  {languages.map((code) => {
-                    const translated =
-                      code !== defaultLanguage &&
-                      Boolean(active.translations?.[code] && Object.keys(active.translations[code]).length > 0);
-                    return (
-                      <button
-                        key={code}
-                        type="button"
-                        onClick={() => setLang(code)}
-                        aria-pressed={editingLang === code}
-                        className={cn(
-                          "relative rounded-[6px] px-2 py-1 text-[11px] font-semibold uppercase transition",
-                          editingLang === code
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                        )}
-                      >
-                        {code}
-                        {translated ? (
-                          <span aria-hidden className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-              <Button
-                type="button"
-                variant={showPreview ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 gap-1.5 rounded-[8px] text-xs"
-                onClick={() => setShowPreview((open) => !open)}
-                aria-pressed={showPreview}
-              >
-                <Eye className="h-3.5 w-3.5" />
-                {tSafe("admin.sliders.preview.toggle", "Preview on the shop")}
-              </Button>
             </div>
           </div>
 
@@ -1600,23 +1786,15 @@ export function SliderEditor({
             <SlideCanvas
               slide={displaySlide ?? active}
               shape={shape}
+              frame={board}
               productPrice={
                 active.productId ? (products[active.productId]?.price ?? null) : null
               }
               selection={imageSelected ? "image" : "content"}
-              onSelectionChange={setSelection}
+              onSelectionChange={selectLayer}
               onTextChange={setText}
-              onStyleChange={(element, style) =>
-                patchStyle(element, style)
-              }
-              onCtaVariantChange={(element, variant) =>
-                updateSlide(element === "cta2" ? { cta2Variant: variant } : { ctaVariant: variant })
-              }
-              onLinkChange={(element, link) =>
-                updateSlide(element === "cta2" ? { link2: link } : { link })
-              }
+              onStyleTarget={openTextStyle}
               onImageNudge={patchImage}
-              renderAiAction={renderAiAction}
               labels={canvasLabels}
             />
           </div>
@@ -1631,23 +1809,55 @@ export function SliderEditor({
 
           {/* The slide at the frames it lands in on the shop, live — shown
               on request, so the canvas stays the one picture to read. */}
-          {showPreview ? (
-            <div className="space-y-2 rounded-[10px] border border-border bg-muted/30 p-3">
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                {tSafe(
-                  "admin.sliders.preview.hint",
-                  "How this slide lands in each frame on the shop, as you edit. Click a frame to design for its size.",
+          {/* The frames the shop really uses, live. Folded away by default —
+              it is a row of pictures and the board below it is the thing
+              being worked on — but its header still says which frame that
+              board is, so closing it costs no information. */}
+          <div className="rounded-[10px] border border-border bg-muted/30">
+            <button
+              type="button"
+              onClick={() => setFramesOpen((open) => !open)}
+              aria-expanded={framesOpen}
+              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left transition hover:bg-accent/40"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+                  framesOpen && "rotate-180",
                 )}
-              </p>
-              <SlidePreviewStrip
-                slide={displaySlide ?? active}
-                labels={{ startingAt: canvasLabels.startingAt, countdown: canvasLabels.countdown }}
-                frameLabels={previewLabels}
-                active={shape}
-                onPick={setShape}
               />
-            </div>
-          ) : null}
+              <span className="text-[11px] font-semibold text-foreground">
+                {tSafe("admin.sliders.preview.title", "On the shop")}
+              </span>
+              <span className="ml-auto truncate text-[10px] text-muted-foreground">
+                {board.label ? `${board.label} · ` : ""}
+                {board.width} × {board.height} · {bandLabels[shape]}
+              </span>
+            </button>
+            {framesOpen ? (
+              <div className="space-y-2 border-t border-border p-3">
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {placements && placements.length > 0
+                    ? tSafe(
+                        "admin.sliders.preview.placedHint",
+                        "Where this slide is on the shop, and the frame it gets at each screen width. Pick one to design on it — frames marked alike take the same design.",
+                      )
+                    : tSafe(
+                        "admin.sliders.preview.hint",
+                        "This slider is not on a page yet, so these are the usual frames. Pick one to design on it — frames marked alike take the same design.",
+                      )}
+                </p>
+                <SlideFramePicker
+                  slide={displaySlide ?? active}
+                  labels={{ startingAt: canvasLabels.startingAt, countdown: canvasLabels.countdown }}
+                  bandLabels={bandLabels}
+                  groups={frameGroups}
+                  active={board}
+                  onPick={chooseBoard}
+                />
+              </div>
+            ) : null}
+          </div>
 
           {/* The slides — nothing to pick between when there is one. */}
           {singleSlide ? null : (
@@ -1821,27 +2031,18 @@ export function SliderEditor({
                             onToggle={() => toggleElement(key)}
                           />
                         ))}
-                      {/* Also reachable from the button itself on the canvas. */}
+                      {/* The button's own settings, in the sidebar with
+                          everything else. */}
                       {bandElements?.cta ? (
-                        <CtaSettingsPopover
-                          trigger={
-                            <button
-                              type="button"
-                              aria-label={ctaSettingsLabels.title}
-                              title={ctaSettingsLabels.title}
-                              className="grid h-7 w-7 place-items-center rounded-[6px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
-                            >
-                              <Settings2 className="h-3.5 w-3.5" />
-                            </button>
-                          }
-                          link={active.link}
-                          variant={active.ctaVariant}
-                          ownStyle={ctaOwnStyle}
-                          labels={ctaSettingsLabels}
-                          onLinkChange={(link) => updateSlide({ link })}
-                          onVariantChange={(ctaVariant) => updateSlide({ ctaVariant })}
-                          onStyleChange={(style) => patchStyle("cta", style)}
-                        />
+                        <button
+                          type="button"
+                          onClick={() => openTextStyle("cta")}
+                          aria-label={ctaSettingsLabels.title}
+                          title={ctaSettingsLabels.title}
+                          className="grid h-7 w-7 place-items-center rounded-[6px] text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                        >
+                          <Settings2 className="h-3.5 w-3.5" />
+                        </button>
                       ) : null}
                     </div>
                   </SortableContext>
@@ -2108,6 +2309,7 @@ type InspectorSectionKey = "content" | "media" | "look" | "timing" | "carousel";
 
 /** The settings that open as a panel of their own inside the inspector. */
 type InspectorPanelKey =
+  | "text"
   | "background"
   | "product"
   | "plate"

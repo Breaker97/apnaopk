@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   Bell,
@@ -22,7 +22,10 @@ import { useLiveResource } from "@/hooks/use-live-resource";
 import { buildLoginUrl } from "@/lib/auth/return-path";
 import { getRoleDashboardPath } from "@/lib/access/role-dashboard";
 import { AccountDrawer } from "@/components/layout/account-drawer";
-import type { OAuthEnabled } from "@/components/auth/login-form";
+import type {
+  DemoCredential,
+  OAuthEnabled,
+} from "@/components/auth/login-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMobileMenu } from "@/stores/mobile-menu";
@@ -37,7 +40,8 @@ interface StoreBottomNavProps {
    * the demo card are in the initial HTML rather than popping in later.
    */
   oauthEnabled: OAuthEnabled;
-  demoModeEnabled: boolean;
+  /** Empty unless the deployment runs with DEMO_MODE — see `demoLoginCredentials`. */
+  demoCredentials: DemoCredential[];
   emailVerificationRequired: boolean;
 }
 
@@ -93,7 +97,7 @@ function getInitials(name: string) {
 export function StoreBottomNav({
   locale,
   oauthEnabled,
-  demoModeEnabled,
+  demoCredentials,
   emailVerificationRequired,
 }: StoreBottomNavProps) {
   const t = useTranslations();
@@ -124,13 +128,14 @@ export function StoreBottomNav({
 
   // The wishlist store hydrates lazily; same pattern as WishlistHeaderIcon so
   // the badge shows the real count instead of the persisted stale one. Waits
-  // for the session to resolve: staff-side roles have no wishlist tab to hang
-  // a badge on, so their fetch would be wasted.
+  // for the session to resolve: a guest has no server wishlist (the request
+  // would only 401, on every page) and staff-side roles have no wishlist tab
+  // to hang a badge on.
   useEffect(() => {
-    if (!isLoading && !isSynced && !dashboardHref) {
+    if (!isLoading && isAuthenticated && !isSynced && !dashboardHref) {
       fetchWishlist();
     }
-  }, [isLoading, isSynced, fetchWishlist, dashboardHref]);
+  }, [isLoading, isAuthenticated, isSynced, fetchWishlist, dashboardHref]);
 
   // Only the unread count is shown, so one row is enough — `counts` comes back
   // whatever the limit. Held idle for guests and staff-side roles: neither has
@@ -422,7 +427,7 @@ export function StoreBottomNav({
           isOpen={isAccountOpen}
           setIsOpen={setIsAccountOpen}
           oauthEnabled={oauthEnabled}
-          demoModeEnabled={demoModeEnabled}
+          demoCredentials={demoCredentials}
           emailVerificationRequired={emailVerificationRequired}
         />
       )}

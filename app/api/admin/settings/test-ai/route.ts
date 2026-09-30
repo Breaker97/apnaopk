@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getSettings } from "@/models/settings.model";
 import { resolveOpenAICredentials } from "@/lib/settings/credentials";
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 
 const TestAiSchema = z.object({ apiKey: z.string().max(500).optional() });

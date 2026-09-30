@@ -1,40 +1,43 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { Settings } from "@/components/admin/settings/types";
 import { BrandAssetCard } from "./brand-asset-card";
 
 /**
- * The four brand assets, rendered identically wherever they are edited — the
- * Branding tab (Settings → Branding) and the Brand assets drill page both mount
- * this. Keeping one copy is what stops their size/format rules from drifting
- * apart, since those rules are now enforced rather than only printed.
+ * The four brand assets, as the Branding tab (Online Store → Themes →
+ * Branding) edits them. Their size and format rules are enforced here, not
+ * only printed.
  */
 export function BrandAssetFields(props: {
   general: Settings["general"] | undefined;
   updateNestedField: (path: string, value: unknown) => void;
 }) {
+  const t = useTranslations("admin.settings.brandAssets");
   const general = props.general;
 
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <BrandAssetCard
-          label="Light Theme Logo"
+          label={t("lightLogo.label")}
           value={general?.logoUrl ?? ""}
           onChange={(v) => props.updateNestedField("general.logoUrl", v)}
-          alt="Light theme logo"
-          replaceText="Replace light logo"
+          alt={t("lightLogo.alt")}
+          uploadText={t("lightLogo.upload")}
+          replaceText={t("lightLogo.replace")}
           maxSizeMB={5}
           formats={["png", "jpg", "jpeg", "svg", "webp"]}
           recommended="400x120px"
           keepVector
         />
         <BrandAssetCard
-          label="Dark Theme Logo"
+          label={t("darkLogo.label")}
           value={general?.darkModeLogoUrl ?? ""}
           onChange={(v) => props.updateNestedField("general.darkModeLogoUrl", v)}
-          alt="Dark theme logo"
-          replaceText="Replace dark logo"
+          alt={t("darkLogo.alt")}
+          uploadText={t("darkLogo.upload")}
+          replaceText={t("darkLogo.replace")}
           maxSizeMB={5}
           formats={["png", "jpg", "jpeg", "svg", "webp"]}
           recommended="400x120px"
@@ -42,32 +45,31 @@ export function BrandAssetFields(props: {
           darkPreview
         />
         <BrandAssetCard
-          label="Favicon"
+          label={t("favicon.label")}
           value={general?.faviconUrl ?? ""}
           onChange={(v) => props.updateNestedField("general.faviconUrl", v)}
-          alt="Store favicon"
-          replaceText="Replace favicon"
+          alt={t("favicon.alt")}
+          uploadText={t("favicon.upload")}
+          replaceText={t("favicon.replace")}
           maxSizeMB={1}
           formats={["png", "ico", "svg", "jpg", "jpeg", "webp"]}
           recommended="32x32px"
         />
         <BrandAssetCard
-          label="App Icon"
+          label={t("appIcon.label")}
           value={general?.appIconUrl ?? ""}
           onChange={(v) => props.updateNestedField("general.appIconUrl", v)}
-          alt="Installed app icon"
-          replaceText="Replace app icon"
+          alt={t("appIcon.alt")}
+          uploadText={t("appIcon.upload")}
+          replaceText={t("appIcon.replace")}
           maxSizeMB={2}
           formats={["png", "svg", "webp"]}
-          recommended="512x512px square"
+          recommended={t("appIcon.recommended")}
           recommendedDimension={512}
         />
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        The app icon is what browsers show when someone installs your store to
-        their device. It is rendered at 512x512px, so a smaller image still
-        works — it just looks softer. Leave it empty and the favicon is used as
-        a fallback.
+        {t("appIcon.note")}
       </p>
     </>
   );

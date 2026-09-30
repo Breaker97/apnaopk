@@ -12,7 +12,7 @@
 import { useEffect, type RefObject } from "react";
 import { utcDay } from "@/lib/boosts/boost-days";
 
-export type SliderTrackEvent = { h: string; s: string; t: "imp" | "clk" };
+type SliderTrackEvent = { h: string; s: string; t: "imp" | "clk" };
 
 const ENDPOINT = "/api/track/slider";
 const FLUSH_INTERVAL_MS = 5000;

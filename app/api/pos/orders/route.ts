@@ -1,6 +1,8 @@
+import { isCustomerAccount } from "@/lib/access/customer-account";
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Order, Product } from "@/models";
+import { Order, Product, User } from "@/models";
+import { Types } from "mongoose";
 import { getNextPosOrderNumber } from "@/lib/orders/order-number";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { createdResponse } from "@/lib/api/response";
@@ -43,6 +45,7 @@ import {
 } from "@/lib/orders/order-vendors";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
 import { validatePOSPaymentInput } from "@/lib/pos/payment";
+import { posStripeIntentProblem } from "@/lib/pos/stripe-intent-check";
 import {
   calculatePOSOrderTotals,
   computePOSLineDiscountAmount,
@@ -51,7 +54,7 @@ import {
 } from "@/lib/pos/order-totals";
 import { resolveLocationScope } from "@/lib/inventory/inventory-location-scope";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const PosLineDiscountSchema = z.object({
@@ -80,6 +83,8 @@ const PosOrderSchema = z.object({
   notes: z.string().max(2000).optional(),
   posLocationId: z.string().max(64).optional(),
   customerId: z.string().max(64).optional(),
+  /** The counter's "they agreed to news and offers", for an attached customer. */
+  marketingOptIn: z.boolean().optional(),
   cashTendered: z.union([z.number(), z.string().max(40)]).optional(),
   paymentReference: z.string().max(200).optional(),
   paymentNote: z.string().max(1000).optional(),
@@ -132,6 +137,7 @@ export async function POST(request: NextRequest) {
     const {
       items,
       paymentMethod,
+      marketingOptIn: posMarketingOptIn,
       notes,
       posLocationId: requestedPosLocationId,
       customerId,
@@ -148,6 +154,7 @@ export async function POST(request: NextRequest) {
       notes?: string;
       posLocationId?: string;
       customerId?: string;
+      marketingOptIn?: boolean;
       cashTendered?: number | string;
       paymentReference?: string;
       paymentNote?: string;
@@ -162,6 +169,19 @@ export async function POST(request: NextRequest) {
     }
     if (!paymentMethod) {
       throw new ValidationError("Payment method is required");
+    }
+    // The sale, its loyalty points and a "yes" to news are filed under this
+    // account, so it has to be a shopper's. Unchecked, a terminal could put
+    // them on any account id it named — an admin's included.
+    if (customerId) {
+      const customer = Types.ObjectId.isValid(customerId)
+        ? await User.findById(customerId)
+            .select("role roles")
+            .lean<{ role?: string; roles?: string[] } | null>()
+        : null;
+      if (!isCustomerAccount(customer)) {
+        throw new ValidationError("Customer not found");
+      }
     }
 
     // Idempotency: a cashier retry after a network blip must return the order
@@ -181,9 +201,13 @@ export async function POST(request: NextRequest) {
         : undefined;
 
     if (normalizedClientRequestId) {
+      // By the key alone, which is what the unique index holds. Scoped to the
+      // signed-in cashier, a sale replayed from the outbox after a shift
+      // change missed its own committed order, hit the index, and failed on
+      // every sync.
       const existingSale = await Order.findOne({
         posClientRequestId: normalizedClientRequestId,
-        staffId: session.user.id,
+        channel: "pos",
       }).lean();
       if (existingSale) {
         return createdResponse(existingSale);
@@ -304,6 +328,7 @@ export async function POST(request: NextRequest) {
         items: normalizedItems,
         discount,
         taxRate,
+        currency: settings.general?.defaultCurrency || "USD",
       });
     const normalizedStripeIntentId =
       typeof stripePaymentIntentId === "string"
@@ -347,18 +372,18 @@ export async function POST(request: NextRequest) {
       const currency = (
         settings.general?.defaultCurrency || "USD"
       ).toLowerCase();
-      const expectedAmount = toStripeAmount(total, currency);
       const intent = await getStripeForSecretKey(
         stripeSecretKey,
-      ).paymentIntents.retrieve(normalizedStripeIntentId);
-      if (intent.status !== "succeeded" && intent.status !== "processing") {
-        throw new ValidationError("Stripe payment was not completed");
-      }
-      if (intent.amount !== expectedAmount || intent.currency !== currency) {
-        throw new ValidationError(
-          "Stripe payment amount does not match order total",
-        );
-      }
+      ).paymentIntents.retrieve(normalizedStripeIntentId, {
+        expand: ["latest_charge"],
+      });
+      const problem = posStripeIntentProblem(intent, {
+        amount: toStripeAmount(total, currency),
+        currency,
+        cashierId: session.user.id,
+        posLocationId: requestedPosLocationId,
+      });
+      if (problem) throw new ValidationError(problem);
       verifiedStripePaymentIntentId = intent.id;
     }
 
@@ -377,6 +402,7 @@ export async function POST(request: NextRequest) {
     );
     const subOrders = await buildVendorSubOrders(vendorItems, {
       codCollectedByDefault: settings.shipping?.codCollectedBy,
+      currency: settings.general?.defaultCurrency || "USD",
       getProductId: (item) => item.productId,
       getVariantId: (item) => item.variantId,
       getName: (item) => item.name,
@@ -455,7 +481,10 @@ export async function POST(request: NextRequest) {
       // signal that a shelf count needs correcting.
       posOversoldLines: oversoldLines.length > 0 ? oversoldLines : undefined,
       items: normalizedItems.map((item) => {
-        const lineDiscountAmount = computePOSLineDiscountAmount(item);
+        const lineDiscountAmount = computePOSLineDiscountAmount(
+          item,
+          settings.general?.defaultCurrency || "USD",
+        );
         return {
           productId: item.productId,
           name: item.name,
@@ -559,7 +588,7 @@ export async function POST(request: NextRequest) {
           ) {
             const committed = await Order.findOne({
               posClientRequestId: normalizedClientRequestId,
-              staffId: session.user.id,
+              channel: "pos",
             }).lean();
             if (committed) {
               await restoreInventory(inventoryLines, {
@@ -620,7 +649,7 @@ export async function POST(request: NextRequest) {
       paymentFee: order.paymentFee,
       paymentFeeCurrency: order.paymentFeeCurrency,
       paymentFeeRate: order.paymentFeeRate,
-      currency: settings.general?.defaultCurrency,
+      currency: order.currency || settings.general?.defaultCurrency,
       channel: order.channel,
       posLocationId: order.posLocationId ? String(order.posLocationId) : undefined,
       paymentMetadata: payment.metadata,
@@ -660,6 +689,28 @@ export async function POST(request: NextRequest) {
     // Refresh the buyer's denormalized stats (only when a real customer was
     // attached — walk-in sales fall back to the staff user, which isn't a
     // customer profile worth counting).
+    // Consent given at the counter, on the customer the sale was attached to.
+    // Only ever a subscribe: a shopper leaves the list from the link in the
+    // email, not by a cashier forgetting to tick a box.
+    if (customerId && posMarketingOptIn === true) {
+      const { setMarketingConsent } = await import(
+        "@/lib/customers/marketing-consent"
+      );
+      const { MARKETING_CONSENT_SOURCE, MARKETING_CONSENT_STATE, MARKETING_OPT_IN_LEVEL } =
+        await import("@/config/app.config");
+      await setMarketingConsent({
+        state: MARKETING_CONSENT_STATE.SUBSCRIBED,
+        // Nobody recorded how the shopper said yes at a counter, and claiming
+        // a single opt-in would say more than the till knows.
+        optInLevel: MARKETING_OPT_IN_LEVEL.UNKNOWN,
+        source: MARKETING_CONSENT_SOURCE.POS,
+        userId: String(customerId),
+        createIfMissing: true,
+      }).catch((err) =>
+        console.error("Failed to record POS marketing consent:", err),
+      );
+    }
+
     if (customerId) {
       const { awardOrderLoyaltyPoints, refreshCustomerStats } = await import(
         "@/lib/customers/customer"

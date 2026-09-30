@@ -1,17 +1,18 @@
 import { unstable_cache } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { BlogPost } from "@/models";
-import { type Locale } from "@/config/i18n.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import {
   TOP_ARTICLES_COLUMNS_MAX,
   TOP_ARTICLES_COLUMNS_MIN,
 } from "@/lib/site-config/home-page-config";
-import { TopArticlesCarousel, type TopArticle } from "./top-articles-carousel";
+import { TopArticlesCarouselLazy as TopArticlesCarousel } from "./top-articles-carousel-lazy";
+import type { TopArticle } from "./top-articles-carousel";
+import { withFallback } from "@/lib/storefront/cached-read";
 
-const fetchTopArticles = unstable_cache(
-  async (limit: number): Promise<TopArticle[]> => {
-    try {
+const fetchTopArticles = withFallback(
+  unstable_cache(
+    async (limit: number): Promise<TopArticle[]> => {
       await connectDB();
       const posts = await BlogPost.find({
         status: "published",
@@ -52,25 +53,22 @@ const fetchTopArticles = unstable_cache(
           publishedAt: publishedAt.toString(),
         };
       });
-    } catch {
-      return [];
-    }
-  },
-  ["home-top-articles"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.blogPosts],
-  },
+    },
+    ["home-top-articles"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.blogPosts],
+    },
+  ),
+  () => [],
 );
 
 export async function HomeTopArticles({
-  locale,
   title = "Top Articles",
   limit = 9,
   desktopColumns = 4,
   themedHeading = false,
 }: {
-  locale: Locale;
   title?: string;
   limit?: number;
   desktopColumns?: number;
@@ -92,7 +90,6 @@ export async function HomeTopArticles({
       <div className="container mx-auto px-4">
         <TopArticlesCarousel
           articles={articles}
-          locale={locale}
           title={title}
           desktopColumns={safeDesktopColumns}
           themedHeading={themedHeading}

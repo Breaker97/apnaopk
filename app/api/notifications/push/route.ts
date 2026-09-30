@@ -1,3 +1,4 @@
+import { isKnownPushEndpoint } from "@/lib/notifications/push-endpoint";
 import { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/auth";
@@ -12,7 +13,7 @@ import { PushSubscription } from "@/models";
 import { getWebPushStatus } from "@/lib/notifications/push-notifications";
 import { isExpoPushToken } from "@/lib/notifications/push-native";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 // Shape only: the web/native branches below validate their own fields and
@@ -92,6 +93,9 @@ function parseSubscription(body: PushRegistrationBody) {
     !authSecret
   ) {
     throw new ValidationError("Invalid push subscription");
+  }
+  if (!isKnownPushEndpoint(endpoint)) {
+    throw new ValidationError("Push subscription is not from a browser push service");
   }
 
   return {

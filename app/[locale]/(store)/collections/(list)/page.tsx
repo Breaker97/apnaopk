@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import Link from "@/components/language/link";
 import { Suspense } from "react";
 import { Layers } from "lucide-react";
 import { type Locale } from "@/config/i18n.config";
@@ -51,6 +52,7 @@ export default async function CollectionsPage({
 }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const t = await getTranslations({ locale });
   // A location saved on the listing pages applies here too, so the product
@@ -63,6 +65,7 @@ export default async function CollectionsPage({
       <StoreBreadcrumb
         className="mb-4"
         locale={locale}
+        storeDefault={storeDefault}
         items={[{ label: t("nav.collections") }]}
       />
 
@@ -115,7 +118,7 @@ async function CollectionsGrid({ locale }: { locale: Locale }) {
       {collections.map((collection) => (
         <Link
           key={collection._id}
-          href={`/${locale}/collections/${collection.slug}`}
+          href={`/collections/${collection.slug}`}
           className="group"
         >
           <div className="overflow-hidden rounded-sm border bg-background transition-all duration-300 hover:shadow-lg hover:-translate-y-1">

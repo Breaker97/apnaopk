@@ -1,3 +1,4 @@
+import { isKnownPushEndpoint } from "@/lib/notifications/push-endpoint";
 import * as webpush from "web-push";
 import type { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
@@ -105,6 +106,9 @@ function toWebPushSubscription(subscription: StoredPushSubscription) {
   // share the collection, so a web row missing either is unusable.
   if (!subscription.endpoint) return null;
   if (!subscription.keys?.p256dh || !subscription.keys?.auth) return null;
+  // Registered before endpoints were checked: one that is not a browser push
+  // service is never posted to (see lib/notifications/push-endpoint.ts).
+  if (!isKnownPushEndpoint(subscription.endpoint)) return null;
 
   return {
     endpoint: subscription.endpoint,
@@ -210,6 +214,7 @@ export async function sendPushToUser(
           {
             TTL: 60 * 60 * 24,
             urgency: "normal",
+            timeout: 10_000,
           },
         );
         sent += 1;

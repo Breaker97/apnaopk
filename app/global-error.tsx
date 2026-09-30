@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { ErrorFallback } from "@/components/errors/error-fallback";
 
 export default function GlobalError({

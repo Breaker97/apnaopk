@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { AppImage } from "@/components/ui/app-image";
 import { SavedSliderLazy as SavedSlider } from "@/components/store/saved-slider-lazy";
 import {
@@ -15,9 +15,13 @@ import {
 import {
   buildRenderSlides,
   collectSlideProductIds,
+  type RenderSliderSlide,
   type SlideProductInfo,
 } from "@/lib/sliders/render";
-import { getStorefrontSlider } from "@/lib/storefront/sliders";
+import {
+  getStorefrontSlider,
+  type ResolvedSlider,
+} from "@/lib/storefront/sliders";
 import {
   getProductCompareAtRange,
   getProductPriceRange,
@@ -38,10 +42,19 @@ import type { SliderCellContent, SliderGrid } from "./slider-grids";
  * link handling and the category rail are all decided once.
  */
 
+/**
+ * A cell as the grid will draw it: a linked image, or a slider with the
+ * slides that are live right now. `null` draws the quiet plate.
+ */
+type DrawnGridCell =
+  | { kind: "image"; image: string; link: string; alt: string }
+  | { kind: "slider"; slider: ResolvedSlider; slides: RenderSliderSlide[] }
+  | null;
+
 interface SectionGridProps {
   grid: SliderGrid;
-  /** Cell content in slot order; `null` for a slot with no block. */
-  cells: (SliderCellContent | null)[];
+  /** Cells in slot order, as `resolveGridCells` resolved them. */
+  cells: DrawnGridCell[];
   locale: Locale;
   /** Height utility for the grid box (the section owns the vocabulary). */
   heightClass?: string;
@@ -127,7 +140,32 @@ export async function resolveCellData(cells: (SliderCellContent | null)[]) {
   return { sliders, products };
 }
 
-export async function SectionGrid({
+/**
+ * Resolve a grid's cells to what they will draw. A slider that is switched
+ * off, deleted, or has no visible slide inside its schedule window draws
+ * nothing — exactly like a cell nobody assigned — so a section can tell,
+ * before it draws a frame, whether any cell has something to show.
+ */
+export async function resolveGridCells(
+  cells: (SliderCellContent | null)[],
+  locale: Locale,
+): Promise<DrawnGridCell[]> {
+  const { sliders, products } = await resolveCellData(cells);
+  return cells.map((cell): DrawnGridCell => {
+    if (!cell) return null;
+    if (cell.kind === "image") {
+      return cell.image
+        ? { kind: "image", image: cell.image, link: cell.link, alt: cell.alt }
+        : null;
+    }
+    const slider = cell.slider ? sliders.get(cell.slider) : undefined;
+    if (!slider) return null;
+    const slides = buildRenderSlides(slider.slides, products, { locale });
+    return slides.length > 0 ? { kind: "slider", slider, slides } : null;
+  });
+}
+
+export function SectionGrid({
   grid,
   cells,
   locale,
@@ -137,7 +175,6 @@ export async function SectionGrid({
   radius,
   className,
 }: SectionGridProps) {
-  const { sliders, products } = await resolveCellData(cells);
   const corners = radius === undefined ? roundedClass : "rounded-[var(--hs-radius)]";
 
   // The cell's SHAPE is the grid's business, not the frame's: `.hs-grid`
@@ -154,7 +191,7 @@ export async function SectionGrid({
         ? "(max-width: 767px) 100vw, 50vw"
         : "(max-width: 1023px) 50vw, 33vw";
 
-    if (cell && cell.kind === "image" && cell.image) {
+    if (cell?.kind === "image") {
       const body = (
         <AppImage
           src={cell.image}
@@ -190,15 +227,12 @@ export async function SectionGrid({
       );
     }
 
-    const slider =
-      cell && cell.kind === "slider" && cell.slider
-        ? sliders.get(cell.slider)
-        : undefined;
-    if (slider) {
+    if (cell?.kind === "slider") {
+      const { slider } = cell;
       return (
         <div key={area} data-hs-area={area} className={cellFrame}>
           <SavedSlider
-            slides={buildRenderSlides(slider.slides, products, { locale })}
+            slides={cell.slides}
             className={cn("h-full w-full aspect-auto", corners)}
             transition={slider.transition}
             controls={slider.controls}
@@ -209,8 +243,8 @@ export async function SectionGrid({
       );
     }
 
-    // Unassigned (or unresolvable) cell: a quiet plate, never a hole — the
-    // grid's proportions hold whatever is missing.
+    // Unassigned (or unresolvable, or out of live slides) cell: a quiet
+    // plate, never a hole — the grid's proportions hold whatever is missing.
     return (
       <div key={area} data-hs-area={area} className={cn(cellFrame, "bg-muted")} />
     );

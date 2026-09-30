@@ -41,6 +41,7 @@
     "close": "閉じる",
     "scrollToTop": "トップへ戻る",
     "back": "戻る",
+    "backToDashboard": "ダッシュボードに戻る",
     "next": "次へ",
     "previous": "前へ",
     "viewAll": "すべて見る",
@@ -125,7 +126,17 @@
     "increaseQuantity": "数量を増やす",
     "name": "お名前",
     "email": "メールアドレス",
-    "showingResultsFor": "<q>{query}</q> の検索結果"
+    "showingResultsFor": "<q>{query}</q> の検索結果",
+    "remove": "削除",
+    "countryPicker": {
+      "placeholder": "国を選択",
+      "search": "国を検索...",
+      "empty": "国が見つかりません。",
+      "clear": "国をクリア",
+      "selected": "{count, plural, other {# か国を選択中}}",
+      "remove": "{country} を削除"
+    },
+    "clear": "クリア"
   },
   "wishlist": {
     "title": "ほしい物リスト",
@@ -292,7 +303,7 @@
     "aboutUs": "私たちについて",
     "contactUs": "お問い合わせ",
     "help": "ヘルプ",
-    "faq": "FAQ",
+    "faq": "よくある質問",
     "allProducts": "全商品",
     "collections": "コレクション",
     "wishlist": "ほしい物リスト",
@@ -674,6 +685,9 @@
     "shipments": "配送",
     "shipmentsDescription": "出品者ごとに個別に発送・お支払いとなります。",
     "tracking": "追跡番号",
+    "trackingNumber": "追跡番号",
+    "latestFromCarrier": "{carrier}からの最新情報",
+    "latestUpdate": "最新情報",
     "payment": {
       "pending": "支払い待ち",
       "paid": "支払い済み",
@@ -1038,7 +1052,10 @@
         "refunded": "返金済み"
       }
     },
-    "boosts": "ブースト"
+    "boosts": "ブースト",
+    "finance": "財務",
+    "owedToPlatform": "プラットフォームへの未払い",
+    "statements": "明細書"
   },
   "adminProfile": {
     "title": "プロフィール",
@@ -1352,27 +1369,20 @@
       "collections": "コレクション",
       "categories": "カテゴリー",
       "inventory": "在庫",
-      "purchaseOrders": "発注",
       "transfers": "移動",
-      "giftCards": "ギフトカード",
       "customers": "顧客",
       "vendors": "出品者",
-      "marketing": "マーケティング",
       "discounts": "割引",
       "content": "コンテンツ",
       "markets": "マーケット",
       "analytics": "分析",
       "salesChannels": "販売チャネル",
       "onlineStore": "オンラインストア",
-      "homePage": "ホームページ",
-      "theme": "テーマ",
       "themes": "テーマ",
       "pages": "ページ",
       "pos": "POS",
       "posStaff": "スタッフ",
       "posLocations": "ロケーション",
-      "apps": "アプリ",
-      "addApp": "追加",
       "dashboard": "ダッシュボード",
       "navigation": "ナビゲーション",
       "checkout": "チェックアウト",
@@ -1382,14 +1392,11 @@
       "transactions": "取引",
       "reviews": "レビュー",
       "blogPosts": "ブログ投稿",
-      "blogCategories": "ブログカテゴリ",
-      "blogComments": "コメント",
-      "allPosts": "すべての投稿",
-      "aiStudio": "AI Studio",
+      "aiStudio": "AI スタジオ",
       "boosts": "ブースト",
       "boostCampaigns": "ブーストキャンペーン",
       "boostPositions": "ブーストポジション",
-      "customize": "Customize",
+      "customize": "カスタマイズ",
       "finance": "財務",
       "financeOverview": "概要",
       "expenses": "経費",
@@ -1397,7 +1404,28 @@
       "financeReports": "レポート",
       "quotes": "見積もり",
       "traffic": "トラフィック",
-      "searchInsights": "検索インサイト"
+      "searchInsights": "検索インサイト",
+      "abandonedCheckouts": "放棄されたチェックアウト",
+      "accessRequests": "アクセス申請",
+      "addPage": "ページを追加",
+      "aiSalesAgent": "セールスエージェント",
+      "allOrders": "すべての注文",
+      "allProducts": "すべての商品",
+      "brands": "ブランド",
+      "globalVariants": "共通バリエーション",
+      "inbox": "受信トレイ",
+      "landmark": "メインメニュー",
+      "mobileTitle": "メニュー",
+      "mobileDescription": "ダッシュボードの各ページへのリンク。",
+      "preorders": "予約注文",
+      "returns": "返品",
+      "shipping": "配送",
+      "sliders": "スライダー",
+      "staff": "チーム",
+      "toggle": "サイドバーの表示を切り替え",
+      "vendorConfiguration": "出品者の設定",
+      "vendorOnboarding": "オンボーディングフロー",
+      "vendorPlans": "出品者プラン"
     },
     "home": "ホーム",
     "collections": "コレクション",
@@ -1421,6 +1449,8 @@
         "sku": "SKU",
         "unavailable": "利用不可",
         "committed": "引当済み",
+        "unavailableHint": "破損・欠品・使用不可の状態で返品され、まだ在庫に戻すか除却していないもの",
+        "committedHint": "販売済みでまだ手元にあるもの（未発送・未受取・未キャンセル）",
         "available": "販売可能",
         "onHand": "在庫あり"
       },
@@ -1445,8 +1475,36 @@
         "product": "商品",
         "variant": "バリエーション",
         "sku": "SKU",
+        "unavailable": "利用不可",
+        "committed": "引当済み",
         "available": "販売可能",
         "onHand": "在庫あり"
+      },
+      "breakdown": {
+        "committed": "引当済み {count}",
+        "unavailable": "利用不可 {count}"
+      },
+      "unavailableDialog": {
+        "title": "利用不可のユニット",
+        "description": "返品で破損・欠品・使用不可の状態で戻ってきたユニットです。販売に戻すか除却するまで在庫から外れます。",
+        "fromReturn": "返品 {returnNumber} ・ 注文 {orderNumber}",
+        "countedOn": "{date} に検品",
+        "held": "保留中 {count} 点",
+        "quantity": "数量",
+        "restock": "販売可能に戻す",
+        "writeOff": "除却",
+        "cancel": "キャンセル",
+        "confirmWriteOff": "{count} 点を除却しますか？在庫から完全に外れます。",
+        "restocked": "{count} 点を販売に戻しました",
+        "writtenOff": "{count} 点を除却しました",
+        "actionError": "これらのユニットを更新できませんでした。",
+        "loadError": "これらのユニットを読み込めませんでした。閉じてからもう一度お試しください。",
+        "empty": "この商品で保留中のものはもうありません。",
+        "conditions": {
+          "damaged": "破損",
+          "missing_parts": "部品欠品",
+          "unusable": "使用不可"
+        }
       },
       "stats": {
         "trackedSkus": "追跡中のSKU",
@@ -1659,19 +1717,6 @@
     "orders": "注文",
     "settings": {
       "title": "設定",
-      "description": "ストアの設定を管理します",
-      "tabs": {
-        "general": "一般",
-        "security": "セキュリティ",
-        "appearance": "外観",
-        "payment": "支払い",
-        "email": "メール",
-        "orders": "注文",
-        "seo": "SEO",
-        "social": "ソーシャル",
-        "maintenance": "メンテナンス",
-        "storage": "ストレージ"
-      },
       "general": {
         "title": "一般設定",
         "description": "ストアの基本情報を設定します",
@@ -1682,70 +1727,161 @@
         "address": "住所",
         "storeDescription": "ストアの説明",
         "defaultLanguage": "デフォルトの言語",
-        "defaultCurrency": "デフォルトの通貨",
-        "logoUrl": "ロゴ URL",
-        "faviconUrl": "ファビコン URL",
-        "save": "変更を保存"
+        "defaultCurrency": "ストアの通貨",
+        "save": "変更を保存",
+        "storeInfoTitle": "ストア情報",
+        "storeInfoDescription": "ストアの基本情報",
+        "languageCurrencyTitle": "言語と通貨",
+        "languageCurrencyDescription": "ストアを開いたときの言語と、販売に使う唯一の通貨",
+        "searchLanguage": "言語を検索...",
+        "searchCurrency": "通貨を検索...",
+        "storeCurrencyHint": "すべての価格、注文、支払いはこの通貨で扱われます。変更すると価格の表示通貨が変わるだけで、換算はされません。",
+        "countries": {
+          "title": "利用可能な国",
+          "description": "チェックアウト、出品者登録、住所、配送、商品フォームで使う国リストを管理します。",
+          "all": "すべての国",
+          "allHint": "対応しているすべての国 ({count}) を国の選択リストに表示します。",
+          "specific": "特定の国",
+          "specificHint": "下で選択した国だけを表示します。",
+          "label": "国",
+          "placeholder": "国を選択",
+          "search": "国名または ISO コードで検索...",
+          "empty": "国が見つかりません。",
+          "required": "保存する前に国を 1 つ以上選択してください。",
+          "selected": "{count, plural, other {# か国を選択中。}}"
+        },
+        "defaultBadge": "デフォルト",
+        "countryRequired": "少なくとも 1 つの国を選ぶか、「すべての国」を選択してください。",
+        "supportedLanguages": "対応言語",
+        "supportedLanguagesDesc": "ストアフロントで利用できる言語。"
       },
       "appearance": {
-        "title": "外観",
-        "description": "ストアのデザインをカスタマイズします",
+        "title": "ブランディング",
         "primaryColor": "メインカラー",
         "secondaryColor": "サブカラー",
         "accentColor": "アクセントカラー",
-        "theme": "デフォルトテーマ",
         "themes": {
           "light": "ライト",
-          "dark": "ダーク",
-          "system": "システム"
+          "dark": "ダーク"
         },
-        "save": "変更を保存"
+        "presets": "プリセット",
+        "skeletonColor": "スケルトンの色",
+        "skeletonColorHint": "読み込み中のプレースホルダー。空欄の場合はニュートラルなグレーになります。"
       },
       "payment": {
         "stripe": {
           "title": "Stripe",
-          "description": "Stripe決済ゲートウェイを設定します",
-          "enable": "Stripe決済を有効にする",
-          "publishableKey": "公開可能キー",
+          "description": "世界中のクレジットカードとデビットカードを受け付ける",
           "secretKey": "秘密キー",
-          "webhookSecret": "Webhookシークレット",
           "webhookSecretHint": "支払いイベントの処理に必要です。Stripeダッシュボード → 開発者 → Webhookから取得してください"
         },
         "cod": {
           "title": "代金引換",
-          "description": "代金引換支払いオプションを設定します",
-          "enable": "代金引換を有効にする",
-          "instructions": "指示",
-          "placeholder": "顧客に表示される指示...",
-          "codMinOrder": "Min Order Amount",
-          "codMaxOrder": "Max Order Amount"
+          "description": "注文の到着時に顧客が支払えるようにする",
+          "placeholder": "例: 配達員の到着時にお釣りのないようご用意ください。",
+          "offline": "オフライン"
         },
-        "save": "支払い設定を保存",
         "title": "決済設定",
-        "description": "Configure payment gateways and options",
-        "enableStripe": "Enable Stripe",
-        "stripePublishableKey": "Publishable Key",
-        "stripeWebhookSecret": "Webhook Secret",
-        "enablePayPal": "Enable PayPal",
+        "description": "決済ゲートウェイとオプションを設定します",
+        "stripePublishableKey": "公開可能キー",
+        "stripeWebhookSecret": "Webhook シークレット",
         "paypalClientId": "Client ID",
-        "paypalMode": "Mode",
-        "paypalSandbox": "Sandbox",
-        "paypalLive": "Live",
+        "paypalMode": "モード",
+        "paypalSandbox": "サンドボックス",
+        "paypalLive": "本番",
         "paypalWebhookId": "Webhook ID",
-        "enableCOD": "Enable Cash on Delivery",
-        "codInstructions": "COD Instructions",
-        "codMinOrder": "Min Order Amount",
-        "codMaxOrder": "Max Order Amount",
+        "codInstructions": "代金引換の案内",
+        "codMinOrder": "最小注文額",
+        "codMaxOrder": "最大注文額",
         "paypal": {
           "title": "PayPal",
-          "description": "Configure PayPal payment gateway",
-          "enablePayPal": "Enable PayPal",
-          "paypalClientId": "Client ID",
+          "description": "世界中で信頼されるチェックアウトとウォレット",
           "clientSecret": "クライアントシークレット",
-          "paypalMode": "Mode",
-          "paypalSandbox": "Sandbox",
-          "paypalLive": "Live",
-          "paypalWebhookId": "Webhook ID"
+          "clientIdPlaceholder": "PayPal クライアント ID",
+          "webhookIdPlaceholder": "PayPal Webhook ID"
+        },
+        "pesapal": {
+          "ipnRegistered": "Pesapal IPN を登録しました",
+          "ipnFailed": "Pesapal IPN を登録できませんでした",
+          "description": "東アフリカ全域のモバイルマネーとカード決済",
+          "registerIpn": "IPN を登録",
+          "consumerKeyPlaceholder": "Pesapal の Consumer Key",
+          "consumerSecretPlaceholder": "Pesapal の Consumer Secret",
+          "ipnId": "IPN ID",
+          "ipnIdPlaceholder": "登録済みの Pesapal IPN ID",
+          "ipnHint": "<code>{path}</code> を POST の IPN URL として登録し、返された ID を入力してください。"
+        },
+        "testConnection": "接続テスト",
+        "activeCount": "{count} 件が有効",
+        "checkout": {
+          "currencyListed": "チェックアウトでは非表示: ストアの通貨 {currency} に対応していません。対応通貨は {currencies} のみです。表示するには一般設定で通貨を変更してください。",
+          "currency": "チェックアウトでは非表示: ストアの通貨 {currency} に対応していません。表示するには一般設定で通貨を変更してください。",
+          "keys": "キーが保存されるまでチェックアウトでは非表示です。"
+        },
+        "fields": {
+          "keyId": "Key ID",
+          "keySecret": "Key Secret",
+          "webhookSecret": "Webhook シークレット",
+          "webhookUrl": "Webhook URL",
+          "publicKey": "公開キー",
+          "secretKey": "秘密キー",
+          "consumerKey": "Consumer Key",
+          "consumerSecret": "Consumer Secret",
+          "clientId": "クライアント ID",
+          "clientSecret": "クライアントシークレット",
+          "walletId": "ウォレット ID",
+          "merchantKey": "マーチャントキー",
+          "countryCode": "国コード",
+          "subscriptionKey": "サブスクリプションキー",
+          "apiUser": "API ユーザー",
+          "apiKey": "API キー",
+          "targetEnvironment": "ターゲット環境",
+          "callbackHost": "コールバックホスト (任意)"
+        },
+        "razorpay": {
+          "description": "インド向けの決済、および Razorpay Curlec 経由のマレーシア向け決済",
+          "internationalNote": "Razorpay アカウントで International Payments が有効な場合にのみ {currency} を受け付けます。",
+          "keySecretPlaceholder": "Key secret",
+          "webhookSecretPlaceholder": "Webhook シークレット",
+          "webhookSecretHint": "その Webhook に設定したシークレットです。保存したシークレットはセキュリティのため再表示されません。",
+          "webhookUrlHint": "Razorpay Dashboard → Account & Settings → Webhooks で、イベント payment.captured、order.paid、refund.created、refund.processed、refund.failed を指定して追加してください。購入者がストアに戻ってこなくても支払いを確認できます。これは FPX などの銀行リダイレクトでよく起こります。"
+        },
+        "paystack": {
+          "description": "アフリカ向けのモダンな決済"
+        },
+        "iotec": {
+          "description": "MTN と Airtel のモバイルマネーおよびカード決済 (ウガンダ)",
+          "clientIdPlaceholder": "ioTec クライアント ID",
+          "clientSecretPlaceholder": "ioTec クライアントシークレット",
+          "walletIdPlaceholder": "ioTec Pay ウォレット UUID",
+          "walletIdHint": "ioTec Pay ポータルのウォレット設定で確認できます。",
+          "callbackHint": "任意: ステータスを即時に更新するには、ioTec Pay ポータルで集金コールバック URL を <code>{path}</code> に設定してください。設定しなくてもポーリングで支払いは確認されます。"
+        },
+        "orangeMoney": {
+          "description": "西アフリカ・中部アフリカ全域の Orange モバイルマネー",
+          "clientIdPlaceholder": "Orange 開発者クライアント ID",
+          "clientSecretPlaceholder": "Orange 開発者クライアントシークレット",
+          "merchantKeyPlaceholder": "Orange Money マーチャントキー",
+          "merchantKeyHint": "加盟店契約の締結後に現地の Orange 事業者が発行します — 開発者ポータルでは入手できません。",
+          "countryHint": "マーチャントキーを発行した Orange 事業者の国の 2 文字コード (ci、sn、cm、ml、mg…)。本番では必須、サンドボックスでは無視され、常に Orange の <code>{endpoint}</code> エンドポイントが使われます。",
+          "callbackHint": "Orange 開発者ポータルで通知 URL を <code>{path}</code> に設定してください。支払いはチェックアウト完了ページでのポーリングでも確認されます。"
+        },
+        "mtnMomo": {
+          "description": "アフリカ全域での MTN MoMo の PIN 入力型決済",
+          "subscriptionKeyHint": "Collections プロダクトのサブスクリプションのプライマリキーです。",
+          "apiUserPlaceholder": "API ユーザー UUID",
+          "apiKeyPlaceholder": "ユーザーに紐づく API キー",
+          "targetEnvironmentHint": "オンボーディング時に MTN OpCo から発行された X-Target-Environment (mtnuganda、mtnghana、…)。本番では必須、サンドボックスでは無視され、常に <code>{value}</code> が送信されます。",
+          "callbackHostHint": "MTN にプロバイダーのコールバックホストとして登録したドメインで、<code>{scheme}</code> とパスは含めません。コールバック URL が別のホストを指す支払いは MTN に拒否されるため、完全に一致しない限り空欄にしてください — どちらの場合も支払いはポーリングと 15 分ごとの照合で確認されます。",
+          "callbackHint": "設定すると、MTN に <code>{path}</code> への通知を依頼します — 1 回のみで再試行はないため、これが唯一の確認手段になることはありません。"
+        },
+        "turnstile": {
+          "description": "Cloudflare Turnstile。カードの拒否が続いたときだけ表示されます",
+          "explainer": "購入者のカードが 30 分以内に 3 回拒否されると、チェックアウトで人間であることの確認を求め、6 回で一時停止します。一時停止はこれがなくても機能しますが、確認にはご自身の Cloudflare Turnstile キーが必要です。ほとんどの購入者には表示されません。",
+          "missingKeys": "両方のキーがない状態でオンになっているため、確認は求められず、一時停止のみが適用されます。",
+          "secretKey": "シークレットキー",
+          "siteKey": "サイトキー",
+          "title": "カードテスト対策"
         }
       },
       "email": {
@@ -1758,7 +1894,6 @@
         "password": "SMTPパスワード",
         "fromEmail": "送信元メール",
         "fromName": "送信元名",
-        "secure": "SSL/TLSを使用 (ポート465用)",
         "test": {
           "label": "テストメール",
           "placeholder": "test@example.com",
@@ -1766,35 +1901,29 @@
           "success": "テストメールが正常に送信されました！",
           "error": "テストメールの送信に失敗しました"
         },
-        "save": "メール設定を保存"
+        "save": "メール設定を保存",
+        "passwordPlaceholder": "パスワードを入力",
+        "fromNamePlaceholder": "ストア名",
+        "encryptionNote": "暗号化は自動です。ポート 465 は暗黙的 TLS を使い、ポート 587 は STARTTLS が必要です。"
       },
       "security": {
         "title": "セキュリティとアクセス制御",
-        "description": "Configure multi-vendor mode, session security, and password policies",
-        "tabs": {
-          "general": "General",
-          "2fa": "Two-Factor Auth",
-          "oauth": "OAuth",
-          "pos": "POS Access",
-          "vendor": "Vendor Permissions"
-        },
+        "description": "マルチベンダーモード、セッションのセキュリティ、パスワードポリシーを設定します",
         "multiVendor": {
-          "title": "Store Mode",
           "label": "マルチベンダーモード",
-          "description": "Enable marketplace features: vendor registration, multiple stores, vendor dashboard"
+          "description": "マーケットプレイス機能を有効にします: 出品者登録、複数ストア、出品者ダッシュボード",
+          "manageLink": "出品者の登録、プラン、ポリシーを管理"
         },
         "emailVerification": {
-          "title": "Email Verification",
-          "required": "Require Email Verification",
-          "requiredDesc": "Users must verify email before accessing the store",
-          "vendorRequired": "Require for Vendors",
-          "vendorRequiredDesc": "Vendors must verify email before listing products"
+          "title": "メール認証",
+          "required": "メール認証を必須にする",
+          "requiredDesc": "ユーザーはストアにアクセスする前にメールアドレスを認証する必要があります",
+          "vendorRequired": "出品者にも必須にする"
         },
         "session": {
-          "title": "Session Security",
-          "duration": "Session Duration (days)",
-          "maxAttempts": "Max Login Attempts",
-          "lockout": "Lockout Duration (min)"
+          "duration": "セッションの有効期間（日）",
+          "maxAttempts": "ログイン試行回数の上限",
+          "lockout": "ロックアウト時間（分）"
         },
         "rateLimiting": {
           "enabled": "レート制限を有効にする",
@@ -1804,20 +1933,28 @@
           "cartPreset": "カート",
           "couponPreset": "クーポン",
           "authPreset": "認証 / ログイン",
-          "ipPreset": "ゲスト / 公開（IPベース）"
+          "ipPreset": "ゲスト / 公開（IPベース）",
+          "presets": {
+            "default": "デフォルト",
+            "lenient": "緩め (100/15分)",
+            "moderate": "標準 (20/15分)",
+            "strict": "厳しめ (5/15分)"
+          }
         },
         "passwordPolicy": {
-          "title": "Password Policy",
-          "minLength": "Minimum Password Length",
-          "uppercase": "Require Uppercase",
-          "numbers": "Require Numbers",
-          "specialChars": "Require Special Characters"
+          "minLength": "パスワードの最小文字数",
+          "uppercase": "大文字を必須にする",
+          "numbers": "数字を必須にする",
+          "specialChars": "記号を必須にする"
         },
-        "save": "Save Security Settings",
+        "save": "セキュリティ設定を保存",
         "unlock": {
           "label": "アカウントのロックを解除",
           "action": "ロック解除",
-          "hint": "このアドレスのログイン失敗回数を、ロックされたすべての端末で消去します。保存不要で即時に反映されます。"
+          "hint": "このアドレスのログイン失敗回数を、ロックされたすべての端末で消去します。保存不要で即時に反映されます。",
+          "done": "アカウントのロックを解除しました。今すぐ再びサインインできます。",
+          "notLocked": "このアドレスはロックされていませんでした。解除するものはありません。",
+          "failed": "このアカウントのロックを解除できませんでした"
         }
       },
       "seo": {
@@ -1835,12 +1972,12 @@
       },
       "social": {
         "title": "ソーシャルリンク",
-        "description": "Add your social media profiles",
+        "description": "ソーシャルメディアのプロフィールを追加します",
         "facebook": "Facebook",
         "twitter": "Twitter/X",
         "instagram": "Instagram",
         "youtube": "YouTube",
-        "save": "Save Social Links",
+        "save": "ソーシャルリンクを保存",
         "facebookPlaceholder": "https://facebook.com/yourpage",
         "twitterPlaceholder": "https://twitter.com/yourhandle",
         "instagramPlaceholder": "https://instagram.com/yourprofile",
@@ -1848,37 +1985,79 @@
         "tiktok": "TikTok",
         "tiktokPlaceholder": "https://tiktok.com/@yourhandle",
         "linkedin": "LinkedIn",
-        "linkedinPlaceholder": "https://linkedin.com/company/yourcompany"
+        "linkedinPlaceholder": "https://linkedin.com/company/yourcompany",
+        "share": {
+          "copyLink": "リンクをコピー",
+          "copyLinkDesc": "商品リンクをクリップボードにコピーするボタン。",
+          "customAdd": "プラットフォームを追加",
+          "customGroup": "カスタムプラットフォーム",
+          "customHint": "独自の共有リンクを持つ他のプラットフォームを追加します。",
+          "customIcon": "アイコン",
+          "customIconHint": "任意。正方形の画像をアップロードするか、画像の URL を貼り付けます。未設定の場合は一般的な共有アイコンになります。",
+          "customLabel": "ラベル",
+          "customLabelPlaceholder": "例: Reddit",
+          "customRemove": "プラットフォームを削除",
+          "customUntitled": "名前のないプラットフォーム",
+          "customUrl": "共有リンク",
+          "customUrlHint": "次のトークンで商品リンクとタイトルを挿入します:",
+          "description": "商品ページに表示する共有ボタンを選びます。",
+          "email": "メール",
+          "enable": "共有ボタンを有効にする",
+          "enableDesc": "商品詳細ページに共有ボタンを並べて表示します。",
+          "facebook": "Facebook",
+          "linkGroup": "リンク",
+          "linkedin": "LinkedIn",
+          "pinterest": "Pinterest",
+          "socialGroup": "ソーシャルネットワーク",
+          "telegram": "Telegram",
+          "title": "共有ボタン",
+          "twitter": "X / Twitter",
+          "whatsapp": "WhatsApp"
+        }
       },
       "maintenance": {
         "title": "メンテナンスモード",
-        "description": "Control store availability",
-        "enable": "Enable Maintenance Mode",
-        "enableDesc": "When enabled, visitors will see a maintenance message",
-        "message": "Maintenance Message",
-        "messagePlaceholder": "We're currently undergoing maintenance. Please check back soon!",
-        "save": "Save Maintenance Settings"
+        "description": "ストアの公開状態を管理します",
+        "enable": "メンテナンスモードを有効にする",
+        "enableDesc": "有効にすると、訪問者にメンテナンスのメッセージが表示されます",
+        "message": "メンテナンスメッセージ",
+        "save": "メンテナンス設定を保存",
+        "preview": {
+          "label": "ライブプレビュー",
+          "countdownEmpty": "カウントダウンを始めるには再開時刻を選択してください。",
+          "countdownHidden": "カウントダウンは非表示です。訪問者にはタイトルとメッセージだけが表示されます。",
+          "bypassTitle": "アクセス許可",
+          "bypassCount": "{count, plural, other {# 件の IP は引き続きストアにアクセスできます。}}"
+        },
+        "allowedIPs": "許可する IP アドレス",
+        "allowedIPsHint": "1 行に 1 つの IP。これらの訪問者はメンテナンスモード中もストアフロントにアクセスできます。",
+        "backgroundImage": "背景画像",
+        "backgroundImageHint": "画像を設定すると、訪問者にはカードなしで、メンテナンスの文章の背後に暗くした画像が表示されます。",
+        "backgroundImagePreviewAlt": "メンテナンス背景のプレビュー",
+        "countdown": "カウントダウンを表示",
+        "countdownDesc": "ストアの再開予定時刻までのカウントダウンを表示します。",
+        "countdownEndsAt": "再開予定",
+        "countdownEndsAtHint": "お客様がカウントダウンする現地の日時を設定します。",
+        "titleLabel": "見出し"
       },
       "twoFactor": {
         "title": "二要素認証",
-        "description": "Enable and configure 2FA requirements for different user roles",
-        "enable": "Enable Two-Factor Authentication",
-        "enableDesc": "Allow users to set up 2FA for their accounts",
-        "requirements": "2FA Requirements by Role",
-        "admin": "Required for Administrators",
-        "adminDesc": "Admin accounts must enable 2FA",
-        "vendor": "Required for Vendors",
-        "vendorDesc": "Vendor accounts must enable 2FA",
-        "save": "Save 2FA Settings"
+        "description": "二要素認証を有効にし、設定できるロールを選択します",
+        "enable": "二要素認証を有効にする",
+        "admin": "管理者に有効にする",
+        "vendor": "出品者に有効にする",
+        "save": "二要素認証の設定を保存",
+        "enableFirstHint": "管理者、出品者、スタッフに提供するには、二要素認証をオンにしてください。",
+        "staff": "スタッフに有効にする"
       },
       "oauth": {
         "title": "OAuth / ソーシャルログイン",
-        "description": "Configure social login providers (Google, Facebook)",
+        "description": "ソーシャルログインのプロバイダー（Google、Facebook）を設定します",
         "google": {
-          "label": "Google Sign-In",
-          "description": "Allow users to sign in with their Google account",
-          "clientId": "Google Client ID",
-          "clientSecret": "Google Client Secret",
+          "label": "Google でサインイン",
+          "description": "ユーザーが Google アカウントでサインインできるようにします",
+          "clientId": "Google クライアント ID",
+          "clientSecret": "Google クライアントシークレット",
           "openConsole": "Google Cloud Console を開く",
           "step1": "Google Cloud Console を開き、既存のプロジェクトを選ぶか、このストア用に新規作成します。",
           "step2": "APIs & Services → OAuth consent screen でアプリ名、サポートメール、承認済みドメインを入力し、アプリを公開します。Testing のままだと、登録したテストユーザーしかサインインできません。",
@@ -1888,10 +2067,10 @@
           "step6": "Client ID と Client secret を上の欄に貼り付けて保存し、「認証情報を検証」を押します。新しい Google クライアントは有効になるまで数分かかることがあります。"
         },
         "facebook": {
-          "label": "Facebook Sign-In",
-          "description": "Allow users to sign in with their Facebook account",
-          "appId": "Facebook App ID",
-          "appSecret": "Facebook App Secret",
+          "label": "Facebook でサインイン",
+          "description": "ユーザーが Facebook アカウントでサインインできるようにします",
+          "appId": "Facebook アプリ ID",
+          "appSecret": "Facebook アプリシークレット",
           "openConsole": "Meta for Developers を開く",
           "step1": "Meta for Developers → My Apps → Create app を開き、ユースケース「Authenticate and request data from users with Facebook Login」を選びます。",
           "step2": "アプリに Facebook Login プロダクトを追加し、Facebook Login → Settings を開きます。",
@@ -1900,9 +2079,10 @@
           "step4b": "さらに",
           "step4c": "を App domains に追加します。アプリを公開するにはプライバシーポリシーの URL も必要です。",
           "step5": "App ID と App Secret を上の欄に貼り付けて保存し、「認証情報を検証」を押します。",
-          "step6": "アプリを Development から Live に切り替えます。それまでは、アプリに役割を持つユーザーしか Facebook でサインインできません。"
+          "step6": "アプリを Development から Live に切り替えます。それまでは、アプリに役割を持つユーザーしか Facebook でサインインできません。",
+          "appIdPlaceholder": "Facebook アプリ ID"
         },
-        "save": "Save OAuth Settings",
+        "save": "OAuth 設定を保存",
         "activeCount": "{count} 件有効",
         "envCredentials": "このプロバイダーの認証情報は環境変数で設定されています。使用するにはオンにしてください。",
         "originMismatch": "現在 {browser} を表示していますが、サインインは {configured} で動作します。下に表示された URL を登録するか、BETTER_AUTH_URL / NEXT_PUBLIC_APP_URL を実際に使うドメインに設定してください。",
@@ -1915,34 +2095,34 @@
         "copyFailed": "URL をコピーできませんでした",
         "setupGuide": "設定手順（ステップごと）",
         "verify": "認証情報を検証",
-        "verifyHint": "検証では ID とシークレットをプロバイダーに問い合わせます。リダイレクト URI が登録済みかどうかは、実際のサインインでしか確認できません。"
+        "verifyHint": "検証では ID とシークレットをプロバイダーに問い合わせます。リダイレクト URI が登録済みかどうかは、実際のサインインでしか確認できません。",
+        "verified": "認証情報を確認しました",
+        "verifyFailed": "確認に失敗しました"
       },
       "pos": {
         "title": "POSアクセス",
-        "description": "Configure which roles can access the POS system",
-        "enable": "Enable POS System",
-        "enableDesc": "Allow in-store sales through the Point of Sale module",
-        "access": "POS Access by Role",
-        "admin": "Administrators",
-        "adminDesc": "Allow admins to make sales via POS",
-        "vendor": "Vendors",
-        "vendorDesc": "Allow vendors to make sales via POS for their products",
-        "save": "Save POS Settings",
-        "general": "General",
-        "language": "Language",
-        "defaultLocation": "Default POS Location ID",
-        "customize": "Customize",
-        "printedReceipts": "Printed receipts",
-        "checkout": "Checkout",
-        "offlinePayments": "Offline payments",
-        "orders": "Orders",
-        "orderNumberPrefix": "Order number prefix",
-        "orderNumberPrefixHint": "New POS orders use this prefix with a six-digit number, for example POS000017.",
+        "description": "POS システムにアクセスできるロールを設定します",
+        "enable": "POS システムを有効にする",
+        "enableDesc": "POS モジュールによる店頭販売を許可します",
+        "access": "ロール別の POS アクセス",
+        "admin": "管理者",
+        "adminDesc": "管理者が POS で販売できるようにします",
+        "vendor": "出品者",
+        "vendorDesc": "出品者が自分の商品を POS で販売できるようにします",
+        "save": "POS 設定を保存",
+        "general": "一般",
+        "defaultLocation": "デフォルトの POS ロケーション ID",
+        "customize": "カスタマイズ",
+        "printedReceipts": "印刷レシート",
+        "checkout": "会計",
+        "offlinePayments": "オフライン決済",
+        "orders": "注文",
+        "orderNumberPrefix": "注文番号のプレフィックス",
+        "orderNumberPrefixHint": "新しい POS 注文には、このプレフィックスと 6 桁の番号が付きます（例: POS000017）。",
         "enabled": "有効",
         "disabled": "無効",
         "accessDesc": "どのユーザーロールがPOSターミナルにアクセスできるかを制御",
         "generalDesc": "POSのデフォルト言語とロケーションを設定",
-        "languageHint": "POSターミナルインターフェースで使用される言語",
         "selectLocation": "ロケーションを選択",
         "noLocation": "デフォルトロケーションなし",
         "defaultBadge": "デフォルト",
@@ -1952,18 +2132,16 @@
         "paymentMethods": "利用可能な支払い方法",
         "paymentCash": "現金",
         "paymentCashDesc": "現金払いを受け付ける",
-        "paymentCard": "カード",
-        "paymentCardDesc": "クレジット/デビットカード払いを受け付ける",
+        "paymentCard": "カード（Stripe）",
+        "paymentCardDesc": "Stripe 経由でクレジット/デビットカード払いを受け付ける",
         "paymentManual": "手動",
         "paymentManualDesc": "カスタム支払い方法",
         "offlinePaymentsDesc": "デバイスがオフラインの時に支払いを処理",
         "customizeDesc": "POSターミナルの外観と動作をカスタマイズ",
         "printedReceiptsDesc": "各取引後にレシートを印刷",
-        "minutes": "分",
         "receiptPrinter": "レシートプリンター",
         "receiptPrinterPlaceholder": "例：Star TSP143",
         "ordersDesc": "POS注文の返品ポリシーを設定",
-        "days": "日",
         "sound": "サウンドエフェクト",
         "soundDesc": "POSターミナル操作のオーディオフィードバックを設定",
         "soundEnable": "サウンドエフェクトを有効化",
@@ -1976,35 +2154,85 @@
         "soundOrderComplete": "注文完了",
         "soundOrderCompleteDesc": "注文完了時のチャイム",
         "soundError": "エラーアラート",
-        "soundErrorDesc": "エラーや在庫警告のアラート音"
+        "soundErrorDesc": "エラーや在庫警告のアラート音",
+        "paymentBank": "銀行振込",
+        "paymentBankDesc": "参照番号付きの銀行振込を受け付けます",
+        "seller": "スタッフ",
+        "sellerDesc": "スタッフが POS で販売できるようにします"
       },
       "vendorPermissions": {
-        "title": "Vendor Permission Defaults",
-        "description": "Configure default permissions for new vendors",
-        "warning": "Enable Multi-Vendor Mode to configure vendor permissions.",
-        "manageProducts": "Manage Products",
-        "viewOrders": "View Orders",
-        "manageOrders": "Manage Orders",
-        "manageSettings": "Manage Store Settings",
-        "viewAnalytics": "View Analytics",
-        "manageDiscounts": "Manage Discounts",
-        "managePayouts": "Manage Payouts",
-        "accessPOS": "Access POS",
-        "save": "Save Vendor Permissions"
+        "title": "マーケットプレイスのポリシー",
+        "description": "機能ごとに 1 つのスイッチで、プラットフォーム全体に適用されます。新しい出品者向けの初期設定ではありません。各スイッチは既存のすべてのストアに即座に反映されます。",
+        "warning": "マーケットプレイスのポリシーを設定するには、マルチベンダーモードを有効にしてください。",
+        "liveWarning": "いずれかをオフにすると、新規だけでなく、このマーケットプレイスのすべての出品者からその機能が即座に取り除かれます。該当した出品者には、この設定が理由であることを示すページが表示されます。",
+        "packAiStudio": "出品情報とメディアの AI 作成",
+        "packAnalytics": "売上とアクセスのレポート",
+        "packBoosts": "スポンサー枠の購入",
+        "packCatalog": "商品とブランド",
+        "packDiscounts": "クーポンと割引キャンペーン",
+        "packInbox": "オムニチャネルメッセージとチャネル設定",
+        "packOrders": "注文一覧、フルフィルメント、返品",
+        "packPayouts": "残高とセルフサービスの出金申請",
+        "packPos": "対面販売",
+        "packStaff": "ストアのシートの招待と管理",
+        "packStorefront": "ストアページ、ブランディング、配送設定"
       },
       "orders": {
         "title": "注文設定",
-        "description": "Configure order and commission settings",
-        "prefix": "Order Number Prefix",
-        "taxRate": "Tax Rate (%)",
-        "shippingCost": "Default Shipping Cost ($)",
-        "freeShippingThreshold": "Free Shipping Threshold ($)",
-        "freeShippingPlaceholder": "Leave empty to disable",
+        "description": "注文と手数料の設定を行います",
+        "prefix": "注文番号の接頭辞",
+        "taxRate": "税率 (%)",
+        "shippingCost": "デフォルトの送料 ($)",
+        "freeShippingThreshold": "送料無料の基準額 ($)",
+        "freeShippingPlaceholder": "0 に設定すると無効になります",
         "shippingHandledByZones": "配送ゾーンが有効なため、この 2 つの値は使用されません。料金は配送と発送の設定から適用されます。",
-        "vendorCommission": "Vendor Commission",
-        "commissionRate": "Commission Rate (%)",
-        "minWithdrawal": "Min Withdrawal Amount ($)",
-        "save": "Save Order Settings"
+        "commissionRate": "手数料率 (%)",
+        "minWithdrawal": "最低出金額 ($)",
+        "returnInstructions": "返品の手順",
+        "returnInstructionsHint": "返品が承認されると、返送先住所とともに購入者に送信されます。返品番号には {returnNumber} を使用します。空欄のままにすると、表示されている文面が使われます。",
+        "finalSaleCollections": "返品不可のコレクション",
+        "finalSaleCollectionsSearch": "コレクションを検索",
+        "finalSaleCollectionsNone": "コレクションが見つかりません",
+        "finalSaleCollectionMissing": "削除されたコレクション",
+        "finalSaleCollectionUnnamed": "コレクション",
+        "finalSaleCollectionsHint": "これらのコレクションの商品は返品不可（最終セール）です。すでに確定した注文には、販売時のルールがそのまま適用されます。",
+        "billVendorCodShipping": "代金引換の配送料を出品者に請求する",
+        "billVendorCodShippingHint": "出品者が玄関で現金を受け取る場合、配送料も出品者の手元に残ります。自社の配送業者が運んだ荷物について、支払うべき手数料と合わせて出品者に請求するにはオンにします。",
+        "loyaltyHeading": "ロイヤルティポイント",
+        "loyaltySpendPerPoint": "1 ポイントあたりの購入額",
+        "loyaltySpendPerPointHint": "お客様はこの金額を使うごとに 1 ポイントを獲得します。ランクはシルバーが {silver, number} ポイント、ゴールドが {gold, number}、プラチナが {platinum, number} から始まります。新しいレートは次の支払い済み注文から適用され、付与済みのポイントは獲得時のレートのままです。",
+        "refundAdminFee": "返金事務手数料 (%)",
+        "refundAdminFeeCap": "返品 1 件あたりの手数料上限 ({currency})",
+        "refundAdminFeeCapHint": "上限を設けない場合は 0 にします。",
+        "refundAdminFeeHint": "販売が返品されたときに、手数料のうち保持する割合。購入者にはいずれの場合も全額返金され、その費用は出品者の負担になります。",
+        "restockingFee": "再入庫手数料 (%)",
+        "restockingFeeHint": "返品された商品の代金から差し引かれ、税金からは差し引かれません。",
+        "returnShippingFee": "返品送料 ({currency})",
+        "returnShippingFeeHint": "購入者が返送する出品者ごとに 1 回請求されます。",
+        "returnWindowDays": "返品受付期間（日）",
+        "returnWindowDaysHint": "配達後、購入者が注文の返品を申請できる期間。すべての商品ページに表示されます。",
+        "windowUnlimited": "期限なし",
+        "windowStart": "期間の開始",
+        "windowStartParcel": "各荷物の配達時",
+        "windowStartLast": "注文の最後の荷物の配達時",
+        "windowStartHint": "最後の荷物から数えると注文ごとに期間が1つになり、最後の荷物が届くまで各出品者への振込が保留されます。",
+        "payoutHoldMaxDays": "振込保留の上限（日）",
+        "payoutHoldMaxDaysHint": "期限なしの場合、出品者の売上は配達からこの日数後に振り込まれます。その後の返金は次回の振込から差し引かれます。",
+        "windowOverrides": "コレクション別の返品受付期間",
+        "windowOverrideDays": "日数",
+        "windowOverrideDaysUnit": "日",
+        "windowOverrideRemove": "削除",
+        "windowOverridesSearch": "コレクションを追加",
+        "windowOverridesHint": "これらのコレクションの商品は、代わりにこの日数のあいだ返品できます。商品ごとに独自の期間を設定することもでき、複数が該当する場合は最も短い期間が適用されます。",
+        "returnsHeading": "返品と返金",
+        "returnsHint": "これらは設定になる前の Storify の動作から始まるため、変更するまで何も変わりません。",
+        "selfServe": "顧客が返品を申請できる",
+        "selfServeHint": "オフの場合、顧客からの連絡を受けて、あなたが注文画面から返品を作成します。顧客は自分の返品を引き続き確認し、キャンセルできます。",
+        "shippingRefund": "返品時に配送料を返金する",
+        "shippingRefundAlways": "常に",
+        "shippingRefundHint": "当方の過失とは、破損・不良、説明と異なる、または誤った商品の発送を指します。",
+        "shippingRefundMerchantFault": "当方の過失による返品の場合のみ",
+        "shippingRefundNever": "返金しない — 購入者は配達を受けています"
       },
       "storage": {
         "title": "ストレージ設定",
@@ -2018,7 +2246,7 @@
         "cloudflareR2Desc": "S3 互換ストレージ、エグレス料金なし",
         "awsS3": "AWS S3",
         "awsS3Desc": "Amazon S3 オブジェクトストレージ",
-        "endpoint": "Endpoint URL",
+        "endpoint": "エンドポイント URL",
         "region": "AWS リージョン",
         "bucketName": "バケット名",
         "accessKeyId": "アクセスキー ID",
@@ -2043,23 +2271,25 @@
           "r2SecretKey": "R2 シークレットアクセスキー",
           "r2AccountId": "1234567890abcdef",
           "cdnUrl": "https://cdn.example.com",
-          "r2Url": "https://pub-xxxx.r2.dev"
+          "r2Url": "https://pub-xxxx.r2.dev",
+          "privateBucket": "my-store-private"
         },
         "help": {
           "cloudfront": "アップロードファイルを提供する CloudFront またはカスタムドメイン",
-          "r2Domain": "アップロードファイルを提供する R2.dev サブドメインまたはカスタムドメイン",
-          "r2FindOverview": "Cloudflare ダッシュボード → R2 → 概要で確認できます"
+          "r2Domain": "バケットの R2.dev サブドメイン、または接続したカスタムドメイン。アップロードしたファイルを公開配信するために必要です",
+          "r2FindOverview": "Cloudflare ダッシュボード → R2 → 概要で確認できます",
+          "privateBucket": "本人確認書類、デジタル商品、経費の領収書はここに保管され、署名付きリンクでしか開けません。同じアカウントで、公開アクセスをオフにし、ドメインを接続せずに作成してください。上のキーがこのバケットを使えるよう許可されている必要があります。"
         },
         "minio": "MinIO",
-        "minioDesc": "Self-hosted S3 on your own server — no cloud account needed",
+        "minioDesc": "自分のサーバーでセルフホストする S3 — クラウドアカウントは不要です",
         "digitalocean": "DigitalOcean Spaces",
-        "digitaloceanDesc": "Spaces object storage with a built-in CDN",
-        "providerConfig": "{provider} Configuration",
-        "minioEndpointHelp": "The MinIO API URL — port 9000 by default. Must be reachable from this server.",
-        "minioPublicUrlHelp": "Where browsers load the files from. Usually the same host; add a CDN or reverse-proxy URL here if you use one.",
-        "spacesPublicUrlHelp": "Leave blank to serve from the Space directly, or paste the CDN endpoint (…cdn.digitaloceanspaces.com) for edge caching.",
+        "digitaloceanDesc": "CDN 内蔵の Spaces オブジェクトストレージ",
+        "providerConfig": "{provider} の設定",
+        "minioEndpointHelp": "MinIO API の URL — デフォルトはポート 9000。このサーバーから到達できる必要があります。",
+        "minioPublicUrlHelp": "ブラウザーがファイルを読み込む場所。通常は同じホストです。CDN やリバースプロキシを使う場合はその URL を入力します。",
+        "spacesPublicUrlHelp": "Space から直接配信する場合は空欄のままにするか、エッジキャッシュ用に CDN エンドポイント（…cdn.digitaloceanspaces.com）を貼り付けます。",
         "localRetired": {
-          "title": "Local storage has been retired",
+          "title": "ローカルストレージは廃止されました",
           "body": "このサーバーにあるファイルはこれまでどおり表示されますが、新しいアップロードには下のいずれかのプロバイダーが必要です。1 つ選んで認証情報を入力し、「既存のファイルを移す」を開いてください。コマンドと、次のデプロイ前に取るべきバックアップが書かれています。"
         },
         "setup": {
@@ -2113,11 +2343,22 @@
           "step4": "ストアフロントとメディアライブラリを確認します。ディスク上のファイルが削除されることはないので、画像が表示されたら手動で削除してください。",
           "backup": "次のデプロイの前に: 更新方法がアプリのフォルダーを置き換える場合（cPanel でのアップロード、zip の上書き、ボリュームのないコンテナ）、先にメディアをサーバー外へコピーしてください。フォルダーを置き換えると失われます。",
           "note": "アップロードに失敗したファイルはローカルの URL を保持するため、途中で終わってもストアは壊れず動き続けます。再実行しても安全です。"
-        }
+        },
+        "testSucceeded": "ストレージへの接続に成功しました！",
+        "testRejected": "接続に失敗しました",
+        "testFailed": "接続をテストできませんでした",
+        "statusFailed": "ストレージの状態を確認できませんでした",
+        "maxImageSize": "画像の最大サイズ (MB)",
+        "maxVideoSize": "動画の最大サイズ (MB)",
+        "maxModelSize": "3D モデルの最大サイズ (MB)",
+        "privateBucketMissing": "非公開バケットがありません。本人確認書類、デジタル商品、経費の領収書が上の公開バケットに保管されており、ファイルのアドレスを知っている人なら誰でも開けます。非公開バケットを追加し、pnpm db:migrate private-storage を実行して保存済みのファイルを移動してください。",
+        "privateBucketName": "非公開バケット",
+        "publicUrlR2": "公開 URL / CDN（必須）",
+        "r2PublicUrlMissing": "公開 URL がないと、アップロードしたファイルをストアに表示できません。画像や動画の URL が非公開の R2 エンドポイントを指し、読み込みに失敗します。Cloudflare Dashboard → R2 → 対象のバケット → Settings → Public access で R2.dev サブドメインを有効にする（またはカスタムドメインを接続する）と、その URL をここに貼り付けてください。"
       },
       "analytics": {
         "title": "分析連携",
-        "description": "Connect external analytics services",
+        "description": "外部のアナリティクスサービスと連携します",
         "googleAnalyticsId": "Google Analytics ID",
         "googleAnalyticsIdPlaceholder": "G-XXXXXXXXXX",
         "googleTagManagerId": "Google Tag Manager ID",
@@ -2127,16 +2368,16 @@
         "tiktokPixelId": "TikTok Pixel ID",
         "tiktokPixelIdPlaceholder": "C1234567890ABCDEF",
         "plausibleTitle": "Plausible Analytics",
-        "plausibleDomain": "Site Domain",
+        "plausibleDomain": "サイトのドメイン",
         "plausibleDomainPlaceholder": "yourdomain.com",
-        "plausibleDomainHelp": "Enter just the domain, e.g. yourdomain.com (no https://)",
+        "plausibleDomainHelp": "ドメインのみを入力してください（例: yourdomain.com、https:// は不要）",
         "plausibleApiKey": "API Key",
-        "plausibleApiKeyPlaceholder": "Enter your Plausible API key",
-        "plausibleApiKeyHelp": "Found in Plausible → Settings → API Keys",
-        "plausibleSelfHosted": "Self-hosted instance",
-        "plausibleBaseUrl": "Custom Instance URL",
+        "plausibleApiKeyPlaceholder": "Plausible の API キーを入力",
+        "plausibleApiKeyHelp": "Plausible → Settings → API Keys で確認できます",
+        "plausibleSelfHosted": "セルフホストのインスタンス",
+        "plausibleBaseUrl": "カスタムインスタンスの URL",
         "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
-        "save": "Save Analytics Settings"
+        "save": "アナリティクス設定を保存"
       },
       "loadError": "設定の読み込みに失敗しました",
       "unsavedChanges": {
@@ -2146,15 +2387,7 @@
         "cancel": "とどまる"
       },
       "search": "設定を検索",
-      "close": "Close settings",
-      "openMenu": "Open settings menu",
-      "closeMenu": "Close settings menu",
-      "attention": "要対応",
-      "disabled": "無効",
       "unsaved": "未保存",
-      "locations": {
-        "title": "在庫ロケーション"
-      },
       "shipping": {
         "title": "配送と配達",
         "codCollectedBy": {
@@ -2162,6 +2395,232 @@
           "description": "出品者が自社便で配送する場合、現金は出品者が受け取り、手数料をあなたに支払います。あなたの配送業者が届ける場合は、あなたが現金を受け取り、出品者に売上を支払います。その注文は管理者のみが支払い済みにできます。新規注文に適用されます。",
           "vendor": "出品者",
           "platform": "ストア"
+        },
+        "carriers": {
+          "saveFirst": {
+            "test": "接続をテストする前に配送設定を保存してください",
+            "webhook": "Webhook URL を生成する前に配送設定を保存してください",
+            "disconnect": "配送業者の連携を解除する前に配送設定を保存してください",
+            "pickupLocations": "集荷場所を読み込む前に配送設定を保存してください"
+          },
+          "webhookGenerated": "Webhook URL を生成しました",
+          "webhookFailed": "Webhook URL を生成できませんでした",
+          "disconnected": "配送業者の連携を解除しました",
+          "disconnectFailed": "配送業者の連携を解除できませんでした",
+          "pickupLocationsFailed": "集荷場所を読み込めませんでした",
+          "shippo": {
+            "labelFormats": {
+              "pdf4x6": "PDF 4×6 (感熱)",
+              "pdf": "PDF (A4 / レター)"
+            },
+            "description": "USPS、UPS、FedEx、DHL をはじめ、世界の 40 社以上の配送業者。",
+            "labelFormat": "ラベル形式",
+            "liveToken": "本番 API トークン",
+            "modeHint": "Shippo には別のサンドボックスがありません。使うトークンによってラベルが本物かどうかが決まります。両方を保存し、ここで切り替えてください。",
+            "testToken": "テスト API トークン"
+          },
+          "shiprocket": {
+            "pickupPlaceholder": "集荷場所を選択",
+            "description": "インドの配送アグリゲーター — Delhivery、Bluedart、Ekart など。",
+            "email": "API ユーザーのメールアドレス",
+            "password": "API ユーザーのパスワード",
+            "pickupHint": "Shiprocket は、自由入力の住所ではなく、ダッシュボードで登録したニックネームから発送します。1 つ選択するまで何も発送できません。",
+            "webhookHint": "Shiprocket の Webhook 設定に同じ値を入力してください。この値を含まない追跡更新は拒否されます。",
+            "webhookToken": "Webhook トークン (x-api-key)"
+          },
+          "authFailed": "この配送業者は認証情報を拒否しています。この業者では何も出荷できません。",
+          "authFailedHint": "下の認証情報を更新し、「接続をテスト」を押してください。配送業者が受け入れると警告は自動で消えます。",
+          "description": "配送業者のアカウントを接続すると、実際のラベルを購入し、荷物を自動で追跡できます。チェックアウトでは引き続き独自の送料が使われます。",
+          "disconnect": "接続を解除",
+          "enable": "配送業者を有効にする",
+          "mode": "環境",
+          "modeLive": "本番",
+          "modeTest": "テスト",
+          "originNotSupported": "Shiprocket はインドからのみ発送します。有効にするには、出荷元の国をインドに設定してください。",
+          "pickupLocation": "集荷場所",
+          "refreshPickupLocations": "集荷場所を更新",
+          "registerWebhook": "Webhook URL を生成",
+          "testConnection": "接続をテスト",
+          "title": "配送業者",
+          "webhookUrl": "Webhook URL — 配送業者のダッシュボードに貼り付けてください"
+        },
+        "addressHold": {
+          "title": "配達できない住所",
+          "description": "配送業者が注文の住所に配達できない場合、発送を一時停止し、顧客に住所の修正を依頼します。",
+          "suggestAtCheckout": "チェックアウト時に住所を確認する",
+          "suggestAtCheckoutHint": "注文前に修正案を提示します。購入者は入力した内容をそのまま使うこともできます。Shippo アカウントの連携が必要です。",
+          "checkAfterOrder": "新規注文の住所を確認する",
+          "checkAfterOrderHint": "配送業者がラベルを拒否するのを待たずに、住所の確認に失敗した時点で注文を保留にします。",
+          "autoRequest": "顧客に自動で依頼する",
+          "autoRequestHint": "注文が保留になった時点で、住所を修正するためのリンクを顧客にメールで送ります。オフの場合はスタッフが対応します。",
+          "reminderDays": "リマインド (日後)",
+          "reminderDaysHint": "最初の依頼からの日数をカンマ区切りで入力します。リマインドしない場合は空欄にしてください。",
+          "deadlineDays": "期限 (日)",
+          "deadlineDaysHint": "最初の依頼から顧客が回答できる期間です。",
+          "onDeadline": "期限が過ぎたとき",
+          "onDeadlineNotify": "ストアに知らせて注文を保留のままにする",
+          "onDeadlineCancel": "注文をキャンセルして全額返金する",
+          "keepReturnShipping": "荷物が戻ってきたときに返送料を差し引く",
+          "keepReturnShippingHint": "住所不備で荷物が差出人に返送された場合、提示する返金額からラベル代を差し引きます。保留中の注文は発送されていないため、常に全額返金されます。"
+        },
+        "zone": {
+          "isFallback": "その他の地域",
+          "conditionalRatesWarning": "⚠️ このゾーンの料金はすべて条件付きです。どの条件にも当てはまらないカートにはこのゾーンから料金が付かず、フォールバック料金になるか、配送不可と表示されます。残りをカバーする一律料金を追加してください。",
+          "countries": "国",
+          "countriesPlaceholder": "国を選択",
+          "isFallbackHint": "他のゾーンがカバーしないすべての住所の料金を決めます。国と地域は無視され、下の単一のフォールバック料金に代わります。",
+          "name": "ゾーン名",
+          "namePlaceholder": "国内",
+          "noCountriesWarning": "国が選択されていません。このゾーンはどの住所にも一致しません。",
+          "noCountryMatches": "国が見つかりません。",
+          "noRegionMatches": "地域が見つかりません。",
+          "regions": "地域（任意）",
+          "regionsFreeTextPlaceholder": "CA, NY, TX",
+          "regionsPlaceholder": "すべての地域",
+          "remove": "削除",
+          "searchCountries": "国を検索...",
+          "searchRegions": "地域を検索..."
+        },
+        "automation": {
+          "buyLabel": "ラベルを自動で購入する",
+          "buyLabelHint": "オフの場合は料金を比較した下書きを作成して停止し、購入は担当者に任せます。",
+          "description": "注文が支払われて処理中になったらすぐに出荷を作成します。代わりに注文を手動で配送業者に送ることもいつでもできます。",
+          "enable": "自動出荷を有効にする",
+          "fixedServiceHint": "配送業者独自のサービス識別子。アカウントが返すトークンを確認するには、注文を 1 件手動で配送業者に送ってください。",
+          "fixedServiceToken": "サービストークン",
+          "includeCod": "代金引換の注文も含める",
+          "includeCodHint": "代金引換の注文は支払い済みにならないため、これがオンのときだけ自動で出荷されます。",
+          "markShipped": "ラベル購入後に注文を発送済みにする",
+          "markShippedHint": "お客様に追跡番号を送ります。",
+          "maxLabelCost": "ラベル費用がこの額を超えたら中止",
+          "maxLabelCostHint": "ストアの通貨ではなく、配送業者アカウントの通貨で指定します。",
+          "maxOrderValue": "注文額の上限",
+          "minOrderValue": "注文額の下限",
+          "noLimit": "制限なし",
+          "rateChoice": "購入する料金",
+          "rateChoiceCheapest": "最安",
+          "rateChoiceFastest": "最速",
+          "rateChoiceFixed": "特定のサービス",
+          "requiresCarrier": "先に配送業者を接続してください。接続がないと、自動化はラベルを購入できません。",
+          "restrictCountries": "次の配送先のみ自動化する",
+          "restrictCountriesHint": "すべての配送先を自動化するには空欄のままにします。",
+          "title": "自動出荷"
+        },
+        "courierLinks": {
+          "add": "配送業者を追加",
+          "builtIn": "設定なしですでに連携済み:",
+          "carrier": "配送業者名",
+          "description": "手動で入力する荷物用です。追跡番号を入れる位置に {tracking} を使います。プレースホルダーがないリンクには末尾に追跡番号が付きます。",
+          "remove": "配送業者のリンクを削除",
+          "title": "配送業者の追跡リンク",
+          "urlTemplate": "追跡 URL"
+        },
+        "customs": {
+          "ddp": "DDP — チェックアウトで関税を徴収",
+          "ddu": "DDU — お客様が配達時に支払い",
+          "deMinimis": "免税基準額（この額未満は非課税）",
+          "description": "越境注文の輸入関税を扱います。DDP はチェックアウトで関税の見積額を徴収し、DDU/DAP は配達時にお客様が関税を支払います。",
+          "dutyMode": "関税の扱い",
+          "dutyRatePercent": "関税率の見積もり (%)",
+          "title": "税関と関税"
+        },
+        "delivery": {
+          "description": "表示時に配送日数へ加算する処理日数を設定します。",
+          "processingMax": "処理日数（最大）",
+          "processingMin": "処理日数（最小）",
+          "showEstimated": "チェックアウトに見積もりを表示",
+          "title": "お届け予定"
+        },
+        "description": "Shopify のように配送ゾーン、料金、お届け予定を設定します。",
+        "enable": {
+          "help": "有効にすると、チェックアウトで配送ゾーンと料金が使われます。無効の場合は注文設定の一律送料になります。",
+          "label": "配送料金を有効にする"
+        },
+        "fallback": {
+          "description": "どのゾーンにも住所が一致しない場合に、デフォルトの料金を適用できます。",
+          "enable": "フォールバック料金を有効にする",
+          "maxDays": "最大日数",
+          "minDays": "最小日数",
+          "name": "名前",
+          "price": "料金",
+          "supersededByZone": "「{zone}」ゾーンが世界のその他の地域をカバーしているため、この単一料金は使われなくなりました。対象外の住所の料金を変えるには、そのゾーンを編集してください。",
+          "title": "フォールバック料金"
+        },
+        "origin": {
+          "address1": "住所 1",
+          "address1Placeholder": "123 Market St",
+          "address2": "住所 2",
+          "address2Placeholder": "Suite 100（任意）",
+          "city": "市区町村",
+          "cityPlaceholder": "San Francisco",
+          "country": "国",
+          "description": "業務上の参照と、今後の配送業者連携に使われます。",
+          "postalCode": "郵便番号",
+          "postalCodePlaceholder": "94105",
+          "state": "都道府県・州",
+          "statePlaceholder": "CA",
+          "title": "出荷元"
+        },
+        "packages": {
+          "active": "有効",
+          "add": "パッケージを追加",
+          "default": "デフォルトの箱",
+          "description": "配送業者の見積もりの基準にする箱。注文商品に独自の寸法がない場合はデフォルトの箱が使われます。",
+          "empty": "パッケージはまだありません。配送業者の料金には少なくとも 1 つの箱が必要です。",
+          "emptyWeight": "空の重量",
+          "height": "高さ",
+          "length": "長さ",
+          "maxWeight": "最大重量",
+          "name": "名前",
+          "newName": "新しい箱",
+          "noLimit": "制限なし",
+          "remove": "パッケージを削除",
+          "title": "保存済みのパッケージ",
+          "unit": "単位",
+          "width": "幅"
+        },
+        "rate": {
+          "active": "有効",
+          "freeOver": "無料になる金額",
+          "maxDays": "配送日数（最大）",
+          "maxSubtotal": "小計の上限",
+          "maxWeight": "最大重量",
+          "minDays": "配送日数（最小）",
+          "minSubtotal": "小計の下限",
+          "minWeight": "最小重量",
+          "name": "料金名",
+          "namePlaceholder": "通常配送",
+          "price": "料金",
+          "pricePerWeightUnit": "単価 /",
+          "type": {
+            "flat": "一律料金",
+            "freeOver": "小計が一定額以上で無料",
+            "subtotalRange": "小計の範囲",
+            "weightRange": "重量の範囲"
+          },
+          "typeLabel": "種類",
+          "typePlaceholder": "種類を選択"
+        },
+        "rates": {
+          "add": "料金を追加",
+          "empty": "このゾーンにはまだ料金がありません。料金（例: 通常配送、速達）を追加してください。",
+          "title": "料金"
+        },
+        "vendorShipping": {
+          "description": "有効にすると、マルチベンダーのカート内の各出品者の商品は、その出品者自身の配送プロファイル（なければこのプラットフォームのプロファイル）で料金が計算されます。送料は出品者ごとに請求・配分されます。",
+          "title": "出品者ごとの配送"
+        },
+        "weightUnit": {
+          "help": "商品の重量と重量ベースの送料に使う単位。",
+          "kg": "キログラム (kg)",
+          "label": "重量の単位",
+          "lb": "ポンド (lb)"
+        },
+        "zones": {
+          "add": "ゾーンを追加",
+          "description": "ゾーンを作成して料金を定義します。一覧から国を選び、必要に応じてゾーンを特定の地域に絞り込みます。地域を空欄にすると国全体が対象になります。",
+          "empty": "ゾーンはまだありません。ゾーンを追加して配送料金の設定を始めましょう。",
+          "title": "配送ゾーン"
         }
       },
       "ai": {
@@ -2169,8 +2628,8 @@
         "description": "AI Studio のコンテンツ、SEO、画像生成をまとめて設定できます。",
         "statusConfigured": "設定済み",
         "statusNotConfigured": "未設定",
-        "enabled": "AI 機能を有効にする",
-        "enabledHint": "ダッシュボード全体で AI Studio とすべての AI ボタンのオン/オフを切り替えます。",
+        "enabled": "AI Studio を有効にする",
+        "enabledHint": "ダッシュボード全体で AI Studio とすべての AI ボタンのオン/オフを切り替えます。AI セールスエージェントには専用ページに独自のスイッチがあります。",
         "apiKey": "OpenAI API キー",
         "apiKeySetPlaceholder": "••••••••　（保存済み — 変更する場合は新しいキーを入力）",
         "apiKeyHint": "AI Studio と AI セールスエージェントで使用されます。空欄のままにすると、環境変数の OPENAI_API_KEY が引き続き使用されます。",
@@ -2215,7 +2674,13 @@
         "primaryColor": "メインブランドカラー",
         "secondaryColor": "サブブランドカラー",
         "logoUrl": "ブランドロゴURL",
-        "logoUrlHint": "ストアにロゴをアップロードし、そのURLをここに貼り付けてください。ソーシャル用エクスポートで任意のロックアップとして使用されます。"
+        "logoUrlHint": "ストアにロゴをアップロードし、そのURLをここに貼り付けてください。ソーシャル用エクスポートで任意のロックアップとして使用されます。",
+        "modelNotes": {
+          "fastLowCost": "高速・低コスト",
+          "higherQuality": "高品質",
+          "bestQuality": "最高品質",
+          "lowerCost": "低コスト"
+        }
       },
       "saveChanges": "変更を保存",
       "boosting": {
@@ -2256,6 +2721,396 @@
         "authentication": "認証",
         "growth": "マーケティング",
         "advanced": "詳細設定"
+      },
+      "fields": {
+        "envSourceHint": "環境変数で設定されています。ここに保存した値が優先されます。",
+        "configured": "設定済み",
+        "notConfigured": "未設定",
+        "mode": {
+          "live": "本番",
+          "sandbox": "サンドボックス",
+          "test": "テスト"
+        },
+        "savedPlaceholder": "保存済み (変更しない場合は空欄のまま)",
+        "savedKeysHint": "保存したキーはセキュリティのため再表示されません。",
+        "savedSecretsHint": "保存したシークレットはセキュリティのため再表示されません。",
+        "savedPasswordsHint": "保存したパスワードはセキュリティのため再表示されません。",
+        "enableProvider": "{name} を有効にする"
+      },
+      "demoMode": "デモモード",
+      "vendorConfig": {
+        "paymentMethods": {
+          "description": "出品者がプランのサブスクリプション料金を支払える決済ゲートウェイ。Stripe は自動で更新され、その他のゲートウェイは更新リマインダー付きで 1 期間ずつ請求します。認証情報は決済設定で設定します。",
+          "title": "サブスクリプションの支払い方法"
+        },
+        "allowRegistration": {
+          "description": "ストアフロントから出品者として申請できるようにします。",
+          "label": "出品者登録を許可する"
+        },
+        "commission": {
+          "byCurrencyAdd": "通貨を追加",
+          "byCurrencyAmount": "{currency} での最低支払額",
+          "byCurrencyCode": "通貨コード",
+          "byCurrencyDescription": "{currency} 以外の通貨での支払いには、その通貨独自の最低額が適用されます。ここにない通貨には最低額はありません。",
+          "byCurrencyLabel": "他の通貨での最低額",
+          "byCurrencyRemove": "{currency} の最低額を削除",
+          "description": "プランのない出品者に適用されます。注文設定でも編集できます。",
+          "minWithdrawalDescription": "出品者が支払いとして申請できる最小の残高（ストアの通貨）。",
+          "minWithdrawalLabel": "最低出金額",
+          "rateDescription": "出品者の販売ごとにプラットフォームが受け取る割合。",
+          "rateLabel": "手数料率",
+          "title": "デフォルトの手数料"
+        },
+        "description": "出品者の登録、承認、サブスクリプションプランのポリシー。",
+        "documents": {
+          "manageLink": "オンボーディングフローを開く",
+          "movedDescription": "必要書類とすべてのオンボーディング項目は、オンボーディングフロービルダーで管理するようになりました。そこで項目を必須にしたり、非表示にしたり、手順を並べ替えたり、独自の項目を追加したりできます。",
+          "title": "必要書類と項目"
+        },
+        "marketplaceOff": "出品者ポリシーを設定するには、マルチベンダー管理を有効にしてください。",
+        "plans": {
+          "title": "プランとサブスクリプション"
+        },
+        "plansEnabled": {
+          "description": "オンボーディング中に出品者にプラン選択の手順を表示します。オフの場合、出品者はデフォルトの手数料を使います。",
+          "label": "サブスクリプションプランを有効にする"
+        },
+        "registration": {
+          "title": "登録と承認"
+        },
+        "requirePlanSelection": {
+          "description": "申請者は完了前にプランを選ぶ必要があります。選ばない場合はデフォルトのプランが使われます。",
+          "label": "登録時にプランを必須にする"
+        },
+        "title": "出品者の設定"
+      },
+      "sms": {
+        "authTokenPlaceholder": "Auth Token を入力",
+        "authTokenHint": "Twilio の配信レシートの検証にも使われます。保存したトークンは再表示されません。",
+        "messagingServiceSidHint": "推奨。Twilio が宛先ごとに適切な送信元を選び、STOP の返信も処理します。",
+        "fromNumberHint": "Messaging Service が未設定の場合に使用します。Twilio の電話番号、または宛先が許可する場合は英数字の送信者 ID です。",
+        "defaultCountryPlaceholder": "発送元の国を使用",
+        "defaultCountryHint": "国番号なしで保存されたプロフィールの電話番号をこの国として読み取ります。注文の電話番号は常にその配送先の国で読み取られます。",
+        "includeLinksHint": "注文ページまたは追跡ページへのリンクを追加します。リンクによりメッセージが 2 セグメント目にはみ出し、2 通分として課金されることがよくあります。",
+        "consentNote": "顧客には注文時の電話番号に SMS が送信され、アカウント → 設定 から、または STOP と返信することで停止できます。管理者、スタッフ、出品者にはプロフィールまたはストアの電話番号に送信されます。送信するイベントは<link>通知設定</link>で選択してください。受信に同意した人にだけ送信してください。",
+        "testSent": "テスト SMS を送信しました",
+        "testFailed": "テスト SMS を送信できませんでした",
+        "accountSid": "Account SID",
+        "authToken": "Auth Token",
+        "defaultCountry": "電話番号のデフォルトの国",
+        "description": "Twilio アカウントを使って、注文、返品、支払いの更新情報を SMS で送ります。",
+        "enable": "SMS 通知を有効にする",
+        "enableHint": "Twilio はメッセージごとに課金します。通知設定でイベントも選ぶまで、SMS は送信されません。",
+        "fromNumber": "送信元の番号または送信者 ID",
+        "includeLinks": "リンクを含める",
+        "messagingServiceSid": "Messaging Service SID",
+        "save": "SMS 設定を保存",
+        "testButton": "テスト SMS を送信",
+        "testLabel": "テストメッセージの送信先",
+        "title": "SMS (Twilio)"
+      },
+      "brandAssets": {
+        "wrongFormat": "{formats} ファイルである必要があります",
+        "tooLarge": "{max} MB 未満である必要があります — このファイルは {size} MB です",
+        "tooSmall": "{dimension}x{dimension}px より小さい画像です ({width}x{height}px) — 拡大されるため、ぼやけて見える場合があります",
+        "uploadingProgress": "アップロード中… {progress}%",
+        "dropHint": "ドラッグ＆ドロップ、またはクリックして選択",
+        "maxSize": "最大サイズ:",
+        "formats": "形式:",
+        "recommended": "推奨:",
+        "lightLogo": {
+          "label": "ライトテーマのロゴ",
+          "alt": "ライトテーマのロゴ",
+          "upload": "ライトテーマのロゴをアップロード",
+          "replace": "ライトロゴを置き換え"
+        },
+        "darkLogo": {
+          "label": "ダークテーマのロゴ",
+          "alt": "ダークテーマのロゴ",
+          "upload": "ダークテーマのロゴをアップロード",
+          "replace": "ダークロゴを置き換え"
+        },
+        "favicon": {
+          "label": "ファビコン",
+          "alt": "ストアのファビコン",
+          "upload": "ファビコンをアップロード",
+          "replace": "ファビコンを置き換え"
+        },
+        "appIcon": {
+          "label": "アプリアイコン",
+          "alt": "インストールされたアプリのアイコン",
+          "upload": "アプリアイコンをアップロード",
+          "replace": "アプリアイコンを置き換え",
+          "recommended": "512x512px の正方形",
+          "note": "アプリアイコンは、誰かがストアを端末にインストールしたときにブラウザが表示するアイコンです。512x512px で描画されるため、小さい画像でも使えます — ややぼやけて見えるだけです。空欄の場合はファビコンが代わりに使われます。"
+        }
+      },
+      "preorder": {
+        "title": "予約注文",
+        "description": "まだ存在しない商品を販売するとき出品者が何を約束できるか — そして誰がそれを許可されるか。",
+        "storeOff": "ストア全体で予約注文がオフになっています。出品者が約束できる内容を設定するには、<link>設定 → 商品</link> でオンにしてください。",
+        "requireApproval": {
+          "title": "予約注文の販売前に出品者を審査する",
+          "description": "オンにすると、出品者は最初の予約注文を開始する前にあなたの承認が必要になります。既存の出品はどちらの場合も販売が続きます。"
+        },
+        "maxLead": {
+          "label": "最も遅い発売日",
+          "unit": "日先まで",
+          "hint": "待ち期間が長いほど、購入者が請求に異議を申し立てられる期間も長くなります。"
+        },
+        "maxDeposit": {
+          "label": "手付金の上限",
+          "unit": "% (価格に対する割合)",
+          "hint": "固定額にも適用され、価格に対する割合で計算されます。"
+        },
+        "expiry": {
+          "label": "未払い残高をあきらめるまで",
+          "unit": "日 (発売日後)",
+          "hint": "注文はキャンセルされ、枠は解放され、手付金は全額返金されます。"
+        },
+        "autoRelease": {
+          "title": "残金を自動で請求する",
+          "description": "発売日に各予約注文の残金を請求し、支払い済みのものは出荷可能にします。発売日がずれる可能性がある場合はオフのままにしてください — 代金の請求は商品の準備ができたことを意味します。",
+          "unit": "日 (発売日後)",
+          "hint": "全額支払い済みの予約注文も、在庫が実際に記録されてはじめて出荷可能になります — カレンダーだけで何かが出荷されることはありません。"
+        },
+        "reserve": {
+          "label": "予約注文の支払いから留保する",
+          "percentUnit": "% を",
+          "daysUnit": "日間",
+          "hint": "カードの異議申し立ては配達予定日から数えられるため、出品者への支払い後かなり経ってからチャージバックされることがあります。0 にすると留保はオフになります。"
+        },
+        "access": {
+          "title": "出品者の権限",
+          "waiting": "{count} 件待ち",
+          "reviewOff": "審査がオフのため、すべての出品者がすでに予約注文を開始できます。上で審査をオンにするまで、ここで承認しても何も変わらず、出品者にも通知されません。",
+          "empty": "予約注文の権限を申請した出品者はまだいません。",
+          "revokeNote": "取り消すと次の予約注文から止まります。販売中の出品は約束どおりに扱われます — 購入者はすでに手付金を支払っています。"
+        }
+      },
+      "notifications": {
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "新規注文",
+              "description": "注文が入ったときに管理者へ通知します。"
+            },
+            "newCustomers": {
+              "title": "新規顧客",
+              "description": "顧客プロフィールが作成されたときに管理者へ通知します。"
+            },
+            "newVendors": {
+              "title": "新規出品者の申請",
+              "description": "出品者の申請が保留中のときに管理者へ通知します。"
+            },
+            "returns": {
+              "title": "返品リクエスト",
+              "description": "返品リクエストの確認が必要なときに管理者へ通知します。"
+            },
+            "payments": {
+              "title": "支払い",
+              "description": "支払いの動きが記録されたときに管理者へ通知します。"
+            },
+            "preorderAccessRequests": {
+              "title": "予約注文の権限申請",
+              "description": "出品者が予約注文の販売を申請したときに管理者へ通知します。"
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "出品者申請の状況",
+              "description": "アカウントが承認または却下されたときに出品者へ通知します。"
+            },
+            "newOrders": {
+              "title": "出品者の新規注文",
+              "description": "新しい注文を受けたときに出品者へ通知します。"
+            },
+            "returns": {
+              "title": "出品者の返品リクエスト",
+              "description": "返品リクエストが出品者に関係するときに通知します。"
+            },
+            "preorderAccess": {
+              "title": "出品者の予約注文の権限",
+              "description": "予約注文の権限が承認、却下、取り消しされたときに出品者へ通知します。"
+            }
+          },
+          "staff": {
+            "newOrders": {
+              "title": "スタッフ向け新規注文",
+              "description": "注文が入ったときに注文へのアクセス権があるスタッフへ通知します。"
+            },
+            "newCustomers": {
+              "title": "スタッフ向け新規顧客",
+              "description": "顧客プロフィールが作成されたときに顧客へのアクセス権があるスタッフへ通知します。"
+            },
+            "returns": {
+              "title": "スタッフ向け返品リクエスト",
+              "description": "返品リクエストの確認が必要なときに注文へのアクセス権があるスタッフへ通知します。"
+            },
+            "payments": {
+              "title": "スタッフ向け支払い",
+              "description": "支払いの動きが記録されたときに POS と注文担当のスタッフへ通知します。"
+            },
+            "lowStock": {
+              "title": "スタッフ向け在庫僅少",
+              "description": "商品の補充が必要なときに在庫担当のスタッフへ通知します。"
+            }
+          },
+          "customer": {
+            "orderUpdates": {
+              "title": "顧客への注文の更新",
+              "description": "注文のステータスが変わったときに顧客へ通知します。"
+            },
+            "returnUpdates": {
+              "title": "顧客への返品の更新",
+              "description": "返品のステータスが変わったときに顧客へ通知します。"
+            }
+          }
+        },
+        "event": "イベント",
+        "channels": {
+          "inApp": "アプリ内",
+          "email": "メール",
+          "browserPush": "プッシュ",
+          "sms": "SMS"
+        },
+        "smsSettingsLink": "SMS 設定",
+        "smsOffWarning": "一部のイベントで SMS の送信が設定されていますが、SMS がオフか設定が不完全なため、どれも送信されません。",
+        "smsSetupHint": "SMS を送信するには、まず Twilio を設定してください。",
+        "groups": {
+          "admin": {
+            "title": "管理者への通知",
+            "description": "ストアの管理チームに知らせるべきイベント。"
+          },
+          "vendor": {
+            "title": "出品者への通知",
+            "description": "出品者アカウントに送信されるイベント。"
+          },
+          "staff": {
+            "title": "スタッフへの通知",
+            "description": "モジュール権限に応じて有効なスタッフに送信されるイベント。"
+          },
+          "customer": {
+            "title": "顧客への通知",
+            "description": "顧客アカウントに送信されるイベント。"
+          }
+        },
+        "description": "ダッシュボード通知、メール、プッシュ通知、SMS を作成するイベントを選択します。",
+        "title": "通知設定"
+      },
+      "deliveryLogs": {
+        "email": {
+          "title": "メール配信ログ",
+          "description": "送信内容はすぐに削除され、配信のメタデータだけが保持されます。保持期間を変更したらメール設定を保存してください。",
+          "summaryLabel": "件名",
+          "searchPlaceholder": "宛先、件名、カテゴリ",
+          "clearTitle": "送信済みメールのログを消去しますか？",
+          "deleteTitle": "選択したメールのログを削除しますか？",
+          "clearDescription": "{count, plural, other {送信済みメールのログ # 件をすべて完全に削除します。この操作は元に戻せません。}}",
+          "deleteDescription": "{count, plural, other {選択した完了済みのログ # 件を完全に削除します。キュー内または送信中のメールは削除されません。}}",
+          "queuedForRetry": "{count, plural, other {失敗したメール # 件を再送キューに追加しました。}}"
+        },
+        "sms": {
+          "title": "SMS 配信ログ",
+          "description": "各 SMS は保持期間が終わるまで通信事業者の判定とともに保存されます。保持期間を変更したら SMS 設定を保存してください。",
+          "summaryLabel": "メッセージ",
+          "searchPlaceholder": "電話番号、メッセージ、カテゴリ",
+          "clearTitle": "送信済み SMS のログを消去しますか？",
+          "deleteTitle": "選択した SMS のログを削除しますか？",
+          "clearDescription": "{count, plural, other {送信済み SMS のログ # 件をすべて完全に削除します。この操作は元に戻せません。}}",
+          "deleteDescription": "{count, plural, other {選択した完了済みのログ # 件を完全に削除します。キュー内または送信中の SMS は削除されません。}}",
+          "queuedForRetry": "{count, plural, other {失敗した SMS # 件を再送キューに追加しました。}}"
+        },
+        "status": {
+          "sent": "送信済み",
+          "delivered": "配信済み",
+          "undelivered": "未配信",
+          "failed": "失敗",
+          "queued": "キュー内",
+          "retrying": "再試行中",
+          "sending": "送信中"
+        },
+        "keepSentLogs": "送信済みログの保持期間",
+        "retentionDays": "{count, plural, other {# 日}}",
+        "refresh": "更新",
+        "stats": {
+          "total": "合計",
+          "sent": "送信済み",
+          "failed": "失敗",
+          "pending": "保留中"
+        },
+        "allStatuses": "すべてのステータス",
+        "range": {
+          "today": "今日",
+          "last7": "過去 7 日間",
+          "last30": "過去 30 日間",
+          "last90": "過去 90 日間",
+          "all": "全期間"
+        },
+        "deleteSelected": "選択項目を削除",
+        "retrySelectedFailed": "選択した失敗分を再送",
+        "retryAllFailed": "失敗分をすべて再送",
+        "clearSent": "送信済みログを消去",
+        "deleteLogs": "ログを削除",
+        "selectPage": "このページの完了済みログを選択",
+        "selectRow": "{name} を選択",
+        "columns": {
+          "created": "作成日時",
+          "recipient": "宛先",
+          "status": "ステータス",
+          "tries": "試行回数",
+          "action": "操作"
+        },
+        "empty": "該当する配信はありません。",
+        "segments": "{count, plural, other {# セグメント}}",
+        "retryNow": "今すぐ再送",
+        "retryFailed": "再送に失敗しました",
+        "retrySent": "送信しました",
+        "actionFailed": "操作に失敗しました",
+        "updated": "配信ログを更新しました",
+        "deleted": "{count, plural, other {# 件のログを削除しました。}}"
+      },
+      "demoModeMessage": "デモモードが有効です。このデモサイトでは設定を変更できません。",
+      "toasts": {
+        "connected": "接続しました",
+        "connectionFailed": "接続に失敗しました",
+        "saveEmailFirst": "テストメールを送信する前にメール設定を保存してください",
+        "savePaymentBeforeTest": "接続をテストする前に決済設定を保存してください",
+        "deliveryLogsLoadFailed": "配信ログを読み込めませんでした",
+        "loadFailed": "設定を読み込めませんでした",
+        "saveFailed": "設定を保存できませんでした",
+        "saveOauthFirst": "認証情報を確認する前に OAuth 設定を保存してください",
+        "savePaymentFirst": "Pesapal IPN URL を登録する前に支払い設定を保存してください",
+        "saveSmsFirst": "テストメッセージを送る前に SMS 設定を保存してください",
+        "saved": "設定を保存しました"
+      },
+      "conflict": {
+        "description": "この設定は、あなたが開いた後に別の人によって変更されました。最新の内容を見るには再読み込みし、上書きするにはもう一度保存してください。",
+        "overwrite": "それでも保存",
+        "reload": "再読み込み",
+        "title": "設定が別の場所で変更されました"
+      },
+      "messaging": {
+        "description": "ライブチャットの受付時間、エスカレーション、マーケットプレイスが返信に使う WhatsApp、Messenger、Instagram、Telegram のアカウント",
+        "title": "オムニチャネルメッセージ"
+      },
+      "needsAttention": "対応が必要",
+      "noResults": "設定が見つかりません",
+      "products": {
+        "description": "商品エディターで提供する機能を選びます。オフにしたものはエディターから消え、商品ごとにオンにすることもできなくなります。",
+        "digital": "デジタル商品とサービス",
+        "digitalDesc": "電子書籍やライセンスキーなどのダウンロード、または配送するものがないサービス。",
+        "existingNote": "機能をオフにしても公開中の商品は変わりません。進行中の予約注文は販売を続け、見積もり専用の商品は見積もりボタンを保ち、デジタル商品はデジタルのままです。",
+        "physical": "物理的な商品",
+        "physicalDesc": "在庫、重量、税関情報とともにお客様へ配送されます。",
+        "preorders": "予約注文",
+        "preordersDesc": "在庫が届く前に、発売日と任意の手付金を設定して注文を受け付けます。出品者の承認と上限はマルチベンダー管理にあります。",
+        "priceOnRequest": "価格はお問い合わせ",
+        "priceOnRequestDesc": "商品の価格を隠し、代わりに「見積もりを依頼」ボタンを表示します。",
+        "sellingHeading": "販売オプション",
+        "title": "商品",
+        "typesHeading": "商品の種類",
+        "typesHint": "少なくとも 1 つの商品の種類は有効のままです。"
       }
     },
     "reports": "レポート",
@@ -2772,7 +3627,6 @@
     },
     "staffPage": {
       "stats": {
-        "totalStaff": {},
         "activeStaff": {
           "description": "現在有効"
         },
@@ -2838,7 +3692,6 @@
       "updateSuccess": "{count} 件の顧客を更新しました",
       "updateError": "{count} 件の顧客の更新に失敗しました"
     },
-    "staffDataTable": {},
     "discountsDataTable": {
       "deleteBulkDescription": "{count} 件の割引を削除しますか？この操作は元に戻せません。",
       "deleteBulkSuccess": "{count} 件の割引を削除しました",
@@ -2865,13 +3718,13 @@
           "description": "比較しやすいカードと性能訴求で、高スペック商品の魅力を伝えるデザイン。",
           "styleNote": "技術系商品・アクセサリ・機能豊富な商品詳細フローに最適化。"
         },
-        "luxe": {
-          "name": "Fashion",
-          "description": "プレミアムなファッション・ビューティー・ライフスタイルブランド向けのエディトリアル調ビジュアル。",
-          "styleNote": "画像中心のマーチャンダイジングと洗練されたコレクション訴求に注力。"
+        "furniture": {
+          "name": "Furniture",
+          "description": "部屋ごとに提案するホームグッズ：全幅のインテリア写真、部屋別の売り場、素材のストーリー、部屋まるごとのセット販売。",
+          "styleNote": "ソファ・ベッド・ダイニングセット向け。部屋が主役で、商品はその中に。"
         },
         "women-fashion": {
-          "name": "Women Fashion",
+          "name": "Fashion",
           "description": "エディトリアルなアパレル演出：全幅のキャンペーンビジュアル、ルックブックタイル、シーズンごとの特集。",
           "styleNote": "衣料品・シューズ・アクセサリー向け。ビジュアルが主役で、UIは控えめに。"
         }
@@ -4142,7 +4995,167 @@
       "starterPublish": "テーマのスターターレイアウトを使用（推奨）",
       "starterPublishHint": "ストアはすぐに切り替わり、テーマのセクションはあなたのコレクションや商品に紐付きます。以前のレイアウトはバージョン履歴に残ります。",
       "subtitle": "有効なテーマのデザインオプションです。ストアの見た目を変えるもので、ページの内容はホームページとページのビルダーに残ります。",
-      "title": "テーマ設定"
+      "title": "テーマ設定",
+      "tabs": {
+        "theme": "テーマを選択",
+        "branding": "ブランディング",
+        "settings": "テーマ設定",
+        "css": "カスタム CSS"
+      }
+    },
+    "returnsPage": {
+      "stats": {
+        "needsReview": {
+          "title": "要確認",
+          "description": "承認または却下"
+        },
+        "onTheWayBack": {
+          "title": "返送中",
+          "description": "承認済み、未受領"
+        },
+        "refundDue": {
+          "title": "返金待ち",
+          "description": "受領済み、未返金",
+          "problems": "失敗または手動：{count}"
+        },
+        "refunded": {
+          "title": "返金済み（30日間）",
+          "description": "{value} を返金"
+        }
+      }
+    },
+    "media": {
+      "loadFailed": "メディアを読み込めませんでした",
+      "copyFailed": "URL をコピーできませんでした",
+      "demoDeleteBlocked": "デモモードが有効です。このデモサイトではファイルを削除できません。",
+      "deleteFailed": "削除に失敗しました",
+      "copyUrl": "URL をコピー",
+      "count": "{count, plural, other {# 件のファイル}}",
+      "deleteDescription": "{count, plural, other {ファイルはストレージから完全に削除されます。URL がまだ使われている場所（商品、ページ、メール）では、ファイルが表示されなくなります。}}",
+      "deleteSelected": "選択したものを削除",
+      "deleteTitle": "{count, plural, other {# 件のファイルを削除しますか？}}",
+      "deleted": "{count, plural, other {# 件のファイルを削除しました}}",
+      "empty": "メディアが見つかりません",
+      "emptyHint": "アップロードしたファイルは、有効なストレージプロバイダーに応じてここに表示されます。",
+      "key": "ストレージキー",
+      "loadMore": "さらに読み込む",
+      "modified": "更新日時",
+      "open": "開く",
+      "refresh": "更新",
+      "searchPlaceholder": "ファイルを検索…",
+      "selectedCount": "{count} 件選択中",
+      "size": "サイズ",
+      "tabLibrary": "メディアライブラリ",
+      "tabStorage": "ストレージ",
+      "type": "種類",
+      "upload": "アップロード",
+      "uploaded": "ファイルをアップロードしました",
+      "urlCopied": "URL をコピーしました",
+      "filter": {
+        "all": "すべて",
+        "documents": "ドキュメント",
+        "images": "画像",
+        "models": "3D モデル",
+        "videos": "動画"
+      }
+    },
+    "preferences": {
+      "title": "表示設定",
+      "fullscreenUnavailable": "このブラウザでは全画面表示を利用できません",
+      "enterFullscreen": "全画面表示",
+      "exitFullscreen": "全画面表示を終了",
+      "reset": "デフォルトに戻す",
+      "personalNote": "このブラウザで、あなただけに適用されます。ストアのロゴ、カラー、デフォルトの外観は オンラインストア → テーマ → ブランディング で設定します。",
+      "darkMode": "ダークモード",
+      "contrast": "コントラスト",
+      "rtl": "右から左",
+      "collapsedSidebar": "サイドバーを折りたたむ",
+      "sidebar": "サイドバー",
+      "sidebarColor": "カラー",
+      "sidebarIntegrate": "なじませる",
+      "sidebarApparent": "際立たせる"
+    },
+    "preorderAccess": {
+      "vendorFallback": "出品者",
+      "thisVendor": "この出品者",
+      "unnamedStore": "名前のないストア",
+      "approvedToast": "{name} は予約注文を開始できるようになりました",
+      "declinedToast": "{name} の予約注文の申請を却下しました",
+      "revokedToast": "{name} は新しい予約注文を開始できなくなりました",
+      "updateFailed": "予約注文の権限を更新できませんでした",
+      "revokeTitle": "{name} の予約注文の権限を取り消しますか？",
+      "declineTitle": "{name} の予約注文の申請を却下しますか？",
+      "revokeDescription": "新しい予約注文は開始できなくなります。販売中の予約注文は継続されます — 購入者はすでに手付金を支払っています。",
+      "declineDescription": "後で改めて申請できます。",
+      "reasonLabel": "理由 (出品者に送信されます)",
+      "reasonPlaceholder": "任意",
+      "reasonTooLong": "理由は {max} 文字以内で入力してください。",
+      "revokeSubmit": "権限を取り消す",
+      "declineSubmit": "却下",
+      "approve": "承認",
+      "grant": "権限を付与",
+      "revoke": "取り消す",
+      "since": "{date} から",
+      "asked": "{date} に申請",
+      "askedRecently": "最近申請",
+      "notAsked": "権限を申請していません",
+      "approvedBadge": "承認済み",
+      "waitingBadge": "審査待ち",
+      "noAccessBadge": "権限なし",
+      "lastNote": "最新のメモ: {note}",
+      "card": {
+        "title": "予約注文の権限",
+        "description": "この出品者が予約注文を開始できるかどうか。予約注文は商品ができる前に購入者から代金を受け取るため、ストアが誰に許可するかを審査できます。",
+        "rulesLink": "予約注文のルール",
+        "loadFailed": "予約注文の権限を読み込めませんでした。",
+        "storeOff": "ストア全体で予約注文がオフになっているため、現在は誰も予約注文を開始できません。ここで設定した内容は再びオンになったときに適用され、出品者には通知されません。",
+        "reviewOff": "審査がオフのため、この出品者はすでに予約注文を開始できます。ここで設定した内容は審査をオンにしたときに適用され、出品者には通知されません。",
+        "limits": "承認後は、発売日を最大 {days, plural, other {# 日}} 先まで、手付金を価格の最大 {percent}% まで設定できます。権限を取り消しても、販売中の出品が取り下げられることはありません。"
+      }
+    },
+    "branding": {
+      "colorPicker": "{label}を選択",
+      "removePreset": "プリセットを削除",
+      "removeNamedPreset": "プリセット「{name}」を削除",
+      "savePreset": "現在の色をプリセットとして保存",
+      "customPresetName": "カスタム {number}",
+      "preview": {
+        "title": "プレビュー",
+        "subtitle": "アプリ全体での色の見え方",
+        "primary": "プライマリ",
+        "secondary": "セカンダリ",
+        "accent": "アクセント",
+        "outline": "アウトライン",
+        "link": "リンク",
+        "accentSurface": "アクセント面"
+      },
+      "appearanceMode": "モード",
+      "appearanceSubtitle": "訪問者が自分でライトかダークを選ぶ前に、ストアをどちらで表示するか。",
+      "appearanceTitle": "デフォルトの外観",
+      "assetsSubtitle": "ストアフロントとダッシュボード全体で使うロゴ、ファビコン、アプリアイコン。",
+      "assetsTitle": "ブランドアセット",
+      "colorsSubtitle": "ストアフロントのボタン、リンク、ハイライト、そしてダッシュボード、チェックアウト、メール。プリセットを選ぶか、カラーピッカー、hex、rgb() で独自の色を設定します。",
+      "colorsTitle": "ブランドカラー",
+      "globalHint": "ブランドは全体共通です。テーマを切り替えても残り、ストアフロント、ダッシュボード、チェックアウト、メールで使われます。",
+      "save": "ブランディングを保存"
+    },
+    "mediaPicker": {
+      "uploadFailed": "アップロードに失敗しました",
+      "uploading": "アップロード中…",
+      "addVideoUrl": "URL から動画を追加",
+      "added": "追加しました",
+      "description": "メディアライブラリから選ぶか、新しいファイルをアップロードします。",
+      "dropToUpload": "ファイルをドロップしてアップロード",
+      "empty": "メディアライブラリは空です",
+      "emptyHint": "ここにアップロードしたファイルはライブラリに残り、いつでも再利用できます。",
+      "forbidden": "このアカウントではメディアライブラリを閲覧できません。新しいファイルのアップロードは可能です。",
+      "loadFailed": "メディアライブラリを読み込めませんでした",
+      "noMatches": "一致するファイルはありません",
+      "retry": "再試行",
+      "searchPlaceholder": "ファイルを検索…",
+      "selectUpTo": "{max, plural, other {最大 # 件のファイルを選択}}",
+      "selectedCount": "{max} 件中 {count} 件を選択中",
+      "title": "ファイルを選択"
     }
   },
   "footer": {
@@ -4171,7 +5184,9 @@
     "unauthorized": "権限がありません",
     "unauthorizedDescription": "このページにアクセスする権限がありません。",
     "networkError": "ネットワークエラー",
-    "networkErrorDescription": "インターネット接続を確認して、もう一度お試しください。"
+    "networkErrorDescription": "インターネット接続を確認して、もう一度お試しください。",
+    "tooManyRequestsIn": "リクエストが多すぎます。{duration}待ってからもう一度お試しください。",
+    "tooManyRequests": "リクエストが多すぎます。しばらく待ってからもう一度お試しください。"
   },
   "pos": {
     "searchProducts": "商品を検索...",
@@ -4495,9 +5510,9 @@
       "quickReplyOption": "クイック返信",
       "textHeaderOptional": "テキストヘッダー（任意）",
       "websiteUrlOption": "ウェブサイトURL",
-      "headerPlaceholder": "注文{{1}}の更新",
-      "bodyPlaceholder": "こんにちは{{1}}様、ご注文は現在{{2}}です。",
-      "placeholderHint": "連番のプレースホルダーを使用してください：{{1}}、{{2}}、以降も同様です。",
+      "headerPlaceholder": "注文'{{1}}'の更新",
+      "bodyPlaceholder": "こんにちは'{{1}}'様、ご注文は現在'{{2}}'です。",
+      "placeholderHint": "連番のプレースホルダーを使用してください：'{{1}}'、'{{2}}'、以降も同様です。",
       "authenticationNote": "認証テンプレートの文言はMetaが管理し、必要なコードコピーボタンを自動的に追加します。",
       "bodyExampleLabel": "本文の{variable}の例",
       "submitForReview": "Metaの審査に提出",
@@ -4738,7 +5753,7 @@
     "title": "ブースト",
     "empty": "ブーストはまだありません。商品をプロモーションして、より多くの購入者に届けましょう。",
     "addAction": "商品をブースト",
-    "searchPlaceholder": "位置またはラベルで検索",
+    "searchPlaceholder": "商品・ポジション・ラベルで検索",
     "tabs": {
       "all": "すべて",
       "active": "実施中",
@@ -4746,7 +5761,8 @@
       "paused": "一時停止中",
       "expired": "終了",
       "canceled": "キャンセル済み",
-      "scheduled": "予定"
+      "scheduled": "予定",
+      "creditOwed": "未精算クレジット"
     },
     "status": {
       "active": "実施中",
@@ -4768,7 +5784,8 @@
       "actions": "操作",
       "position": "枠",
       "startsIn": "{days}日後に開始",
-      "startsToday": "本日開始"
+      "startsToday": "本日開始",
+      "credit": "未精算クレジット"
     },
     "stats": {
       "active": "実施中のブースト",
@@ -4782,13 +5799,16 @@
       "revenue": "ブースト収益",
       "revenueDescription": "支払済み予約から返金を差し引いた累計（ストア通貨）",
       "upcoming": "予定",
-      "upcomingDescription": "予約済み・未開始"
+      "upcomingDescription": "予約済み・未開始",
+      "creditOwed": "未精算クレジット",
+      "creditOwedDescription": "件の予約が未精算",
+      "creditOwedNone": "未精算はありません"
     },
     "admin": {
       "title": "ブーストキャンペーン",
       "empty": "ブーストキャンペーンはまだありません",
+      "searchPlaceholder": "ストア・商品・ポジション・ラベルで検索",
       "create": "予約を作成",
-      "createTitle": "予約を作成（オフライン決済）",
       "createDescription": "ゲートウェイ外で受け取った支払いの記録、または掲載枠の無償提供に使います。日程は即座に押さえられ、他者には販売できません。",
       "createConfirm": "予約を作成",
       "created": "予約を作成しました",
@@ -4800,34 +5820,24 @@
       "cancelDescription": "明日以降の予約日はすべて即座にカレンダーへ戻され、再販可能になります。すでに掲載された日は請求されたままです。解放された分は出品者のクレジットに加算されるので、決済ゲートウェイで返金してください。",
       "pause": "一時停止",
       "resume": "再開",
-      "product": "商品",
-      "vendor": "出品者",
-      "selectVendor": "出品者を選択…",
-      "selectVendorFirst": "出品者を選ぶと商品が表示されます",
-      "searchProducts": "商品を検索…",
       "updated": "キャンペーンを更新しました",
       "updateFailed": "キャンペーンを更新できませんでした",
       "position": "掲載位置",
       "dates": "期間（UTC）",
-      "heldBy": "この位置の予約:",
-      "amountOverride": "記録する金額",
-      "amountOverrideHint": "空欄のままにすると定価 {amount} を請求します。低い金額にすると差額を無償提供し、0 なら無料になります。定価は超えられません。",
-      "recordingBooking": "位置 {position} · {days}日 · {amount} を支払済みとして記録",
       "markRefunded": "返金済みにする",
       "markRefundedTitle": "返金済みとして記録",
-      "markRefundedDescription": "未払いのクレジットを決済事業者側ですでに返金済みであることを記録します。台帳を更新するだけで、送金は行いません。"
+      "markRefundedDescription": "未払いのクレジットを決済事業者側ですでに返金済みであることを記録します。台帳を更新するだけで、送金は行いません。",
+      "creditLedger": "クレジット元帳",
+      "outstanding": "未精算",
+      "paymentAttempts": "支払い試行"
     },
     "purchase": {
       "subtitle": "スポンサーラダーの番号付き枠を、選んだ日数だけ予約します。",
-      "pickProduct": "商品を選択",
-      "pickPayment": "支払い方法を選択",
       "stepProduct": "商品",
       "stepPayment": "支払い",
       "searchProducts": "自分の商品を検索…",
       "noProducts": "公開中の商品が見つかりません",
       "noMethods": "利用できる支払い方法がありません。マーケットプレイス管理者にお問い合わせください。",
-      "boosting": "ブースト対象：",
-      "days": "{days}日間",
       "payNow": "支払って予約",
       "card": "カード",
       "mobileMoney": "モバイルマネー",
@@ -4841,34 +5851,68 @@
       "failed": "支払いを開始できませんでした",
       "loadFailed": "掲載位置ラダーを読み込めませんでした",
       "pollTimeout": "まだ支払いを確認できていません。確認され次第、自動的に有効になります。",
-      "stepSlot": "枠と期間",
-      "pickSlot": "掲載位置と期間を選択",
       "perDay": "/日",
       "noPositions": "販売中のスポンサー枠はまだありません",
       "pickPositionFirst": "空き日を確認するには掲載位置を選んでください。",
-      "legendFree": "空き",
       "legendBooked": "予約済み",
       "legendYours": "あなたの予約",
-      "conflictInline": "この位置ではその期間は空いていません。選び直してください。",
       "slotTaken": "この位置の {days} はたった今予約されました。",
       "slotTakenRetry": "選択中に {days} が予約されました。選び直してください。",
       "productBusy": "この商品は {days} にすでに予約されています。別の期間か別の商品を選んでください。",
-      "strictIndexNote": "購入するのは表示枠 {position} です。その日に上位の枠が売れ残っていても、そこには通常商品が表示され、あなたの枠が繰り上がることはありません。",
-      "reachDetail": "一覧ページでは、商品はショップのトップページと自身のカテゴリページに表示されます。絞り込み結果と検索結果にスポンサー商品は表示されません。",
-      "refundPolicy": "すでに掲載された日の返金はできません。将来の日は解放でき、マーケットプレイスが日額でクレジットし、決済事業者を通じて返金します。商品が在庫切れまたは非公開になった場合、その日は按分してクレジットされます。",
-      "utcNote": "1日はUTCの0時から0時までです。",
-      "utcShort": "UTC日",
-      "oneCheckout": "1商品につき進行中の決済は1件までです。位置や期間を変更すると、確保枠が新しい選択に移ります。",
       "holdExpires": "この期間はあと {clock} 確保されています",
       "holdExpired": "確保が期限切れになり、期間は再び販売中に戻りました。",
-      "observedReach": "過去30日間で平均 {n} インプレッション/日",
       "positionStale": "別の通貨で価格設定されています。マーケットプレイスに再設定を依頼してください。",
-      "summaryLine": "位置 {position}",
       "overMaxDays": "予約は {days} 日を超えられません。",
-      "alreadyBooked": "予約済み {count} 件",
       "availabilityFailed": "予約カレンダーを読み込めませんでした",
       "booked": "予約が確定しました。",
-      "tooManyHolds": "進行中の決済が多すぎます。まず一つを完了するかキャンセルしてください。"
+      "tooManyHolds": "進行中の決済が多すぎます。まず一つを完了するかキャンセルしてください。",
+      "gatewayUnavailable": "{gateway}で支払いを開始できませんでした。もう一度お試しいただくか、別の支払い方法を選んでください。"
+    },
+    "booking": {
+      "vendorTitle": "商品をブースト",
+      "offlinePayment": "オフライン決済",
+      "steps": "予約の手順",
+      "stepPositionDates": "掲載位置と期間",
+      "stepRecordPayment": "支払いを記録",
+      "searchAll": "商品名またはストア名で検索…",
+      "allStores": "すべてのストア",
+      "filterByStore": "ストアで絞り込む",
+      "showingSome": "{total}件中{shown}件を表示中 — 残りは検索してください",
+      "notOnHome": "ホームページには表示されません",
+      "notOnListings": "一覧ページには表示されません",
+      "notOnProductPages": "商品ページには表示されません",
+      "daysTaken": "{total}日中{taken}日が予約済み",
+      "noFreeDays": "今後{days}日間に空きなし",
+      "blockedNowhere": "現在どのページにも表示されません — 先に掲載枠の数を増やしてください。",
+      "blockedStale": "別の通貨で価格設定されています — 先にラダーで価格を設定し直してください。",
+      "pickFirstDay": "最初の日をクリックし、次に最後の日をクリックします。",
+      "pickLastDay": "最後の日をクリックしてください。",
+      "datesTaken": "この掲載位置はすでに予約済みです: {days}。別の期間か別の掲載位置を選んでください。",
+      "legendThisProduct": "この商品はブースト済み",
+      "dayCount": "{count, plural, other {#日}}",
+      "total": "合計",
+      "summary": "概要",
+      "dates": "期間",
+      "price": "価格",
+      "recordedAsPaid": "支払い済みとして記録",
+      "totalDue": "お支払い合計",
+      "amountReceived": "受領金額",
+      "fullPrice": "定価",
+      "partPayment": "一部支払いまたは割引",
+      "free": "無料",
+      "amountYouReceived": "受け取った金額",
+      "comped": "{amount} を免除",
+      "sameAsFullPrice": "定価と同額",
+      "enterAmountRange": "{min}〜{max}の範囲で入力",
+      "note": "メモ",
+      "optional": "任意",
+      "notePlaceholder": "銀行振込ID、領収書番号…",
+      "bookedAtOnce": "作成と同時に日程が予約され、ほかの人は購入できなくなります。",
+      "payWith": "支払い方法",
+      "termSlot": "購入するのは枠#{position}です。上の枠が売れ残っても、あなたの枠は繰り上がりません。",
+      "termListings": "一覧ではショップとカテゴリページに表示され、検索結果には表示されません。",
+      "termRefund": "経過した日は返金されません。今後の日は解放してクレジットにできます。",
+      "termHold": "お支払いの間、日程は{minutes}分間確保されます。"
     },
     "performance": {
       "back": "すべてのブースト",
@@ -4901,41 +5945,80 @@
       "deleteFailed": "削除できませんでした",
       "deleteTitle": "このポジションを削除しますか？",
       "deleted": "ポジションを削除しました",
-      "derivedPrices": "7日間 {week} · 30日間 {month}",
       "description": "説明（任意）",
       "dialogDescription": "出品者はこのポジションを予約した日数分、この価格を支払います。",
       "editTitle": "ポジションを編集",
       "empty": "ポジションがまだありません",
       "emptyHint": "最上位のスポンサー枠を販売するには、ポジション1を作成してください。",
-      "horizonDays": "{days}日",
       "label": "ラベル",
       "labelPlaceholder": "最上位枠",
       "labelRequired": "ラベルを入力してください",
       "ladderGap": "ポジション{positions}は未定義です。該当の枠には常に通常商品が表示されます。",
-      "occupancy": "予約状況",
-      "occupancyBooked": "{total}日中{booked}日が予約済み",
-      "occupancyFull": "満枠",
-      "occupancyNextFree": "次の空き {day}",
-      "perDay": "/ 日",
       "position": "ポジション",
       "positionLocked": "作成後にポジション番号は変更できません。この段をアーカイブして新しく作成してください。",
       "positionRequired": "ポジションは1〜50で指定してください",
       "pricePerDay": "1日あたりの価格",
       "pricePerDayHint": "7日間 = {week} · 30日間 = {month}",
       "priceRequired": "1日あたりの価格は0より大きくしてください",
-      "reach": "表示先",
       "reachHome": "ホーム（上位{n}）",
       "reachListing": "一覧（上位{n}）",
       "reachProductPage": "商品ページ（上位{n}）",
-      "reachesNothing": "ポジション{position}はどこにも表示されません。いずれかの掲載枠数を増やすか、この段をアーカイブしてください。",
       "saveFailed": "ポジションを保存できませんでした",
       "status": "ステータス",
       "subtitle": "出品者は期間を指定して1つのポジションを予約します。ポジションNは表示枠Nに出ます。売れていないポジションには通常商品が入り、下位のポジションが繰り上がることはありません。",
       "title": "ポジションラダー",
       "unarchive": "アーカイブ解除",
       "updated": "ポジションを更新しました",
-      "delivery": "過去30日間で平均 {n} インプレッション/日",
-      "deliveryNone": "配信の記録はまだありません"
+      "ladderGapOne": "ポジション{positions}は未定義です。該当の枠には常に通常商品が表示されます。",
+      "defineGap": "#{position}を定義",
+      "windowLabel": "表示日数",
+      "ladderSummary": "ラダーの{percent}%が予約済み · {total}日中{booked}日",
+      "slotsPerSurface": "ページごとのスポンサー枠：",
+      "surfaceHome": "ホーム",
+      "surfaceListing": "一覧",
+      "surfaceProductPage": "商品ページ",
+      "surfaceOff": "オフ",
+      "settingsLink": "設定",
+      "colPrice": "価格",
+      "colPerDay": "1日あたり",
+      "colBooked": "予約率",
+      "colNextDays": "今後{days}日間",
+      "colImpressions": "インプレッション",
+      "colImpressionsHint": "1日あたり · 30日平均",
+      "axisToday": "今日",
+      "statusNowhere": "どこにも表示されない",
+      "statusReprice": "価格の再設定が必要",
+      "chipOn": "{surface}は上位{n}ポジションを表示（このポジションを含む）",
+      "chipOff": "{surface}は上位{n}ポジションのみ表示",
+      "chipDisabled": "{surface}には現在スポンサー商品が表示されません",
+      "freeFrom": "{day}から空き",
+      "freeToday": "今日は空き",
+      "freeWindow": "空き — 今後{days}日間予約なし",
+      "freeShort": "空き",
+      "notForSale": "販売停止中",
+      "nowhereTrack": "どのページにも表示されません。出店者は予約できません。",
+      "nowhereFix": "枠数を変更",
+      "staleTrack": "価格を再設定するまで出店者は決済できません",
+      "segmentUntil": "{day}まで",
+      "segmentHold": "仮押さえ · 未払い",
+      "segmentRange": "{from} – {to} · {count, plural, other {#日間}}",
+      "segmentOpen": "予約を開く",
+      "segmentHoldHint": "未完了の決済 — 支払いがなければ日程は解放されます",
+      "bookedOf": "{total}日中{booked}日",
+      "bookedOfHeld": "{total}日中{booked}日（うち{held}日は仮押さえ）",
+      "freeFromShort": "{day}から空き",
+      "noFreeDay": "今後{days}日間に空きなし",
+      "noNewBookings": "新規予約なし",
+      "noData": "データなし",
+      "storeCurrency": "ストア通貨は{currency}",
+      "editAria": "ポジション{position}を編集",
+      "moreActions": "ポジション{position}のその他の操作",
+      "viewBookings": "予約を表示",
+      "deleteBlockedBooked": "今日以降の予約があります。代わりにアーカイブしてください。",
+      "deleteBlockedClaimed": "一時停止中・予定済み・未払いの予約がまだ使用しています。代わりにアーカイブしてください。",
+      "gapTitle": "未定義",
+      "gapHint": "枠{position}には毎日通常商品が表示されます。下のポジションが繰り上がることはありません。",
+      "gapRangeHint": "枠{from}–{to}には毎日通常商品が表示されます。下のポジションが繰り上がることはありません。"
     },
     "cancel": {
       "action": "予約をキャンセル",
@@ -4944,6 +6027,15 @@
       "confirm": "予約をキャンセル",
       "done": "予約をキャンセルしました",
       "failed": "予約をキャンセルできませんでした"
+    },
+    "disabled": {
+      "title": "商品ブーストは無効です",
+      "campaigns": "設定 → 商品ブーストでブーストを有効にすると、出店者にスポンサー枠を販売できます。",
+      "positions": "設定 → 商品ブーストでブーストを有効にすると、ポジションの順位表を管理できます。"
+    },
+    "filters": {
+      "allVendors": "すべての出店者",
+      "allPositions": "すべてのポジション"
     }
   },
   "install": {
@@ -5014,5 +6106,18 @@
     "short": "比較する",
     "bar": "{count}件を比較",
     "clear": "クリア"
+  },
+  "permissionPacks": {
+    "aiStudio": "AI スタジオ",
+    "analytics": "アナリティクス",
+    "boosts": "ブースト",
+    "catalog": "カタログ",
+    "discounts": "割引",
+    "inbox": "受信トレイ",
+    "orders": "注文",
+    "payouts": "支払い",
+    "pos": "POS",
+    "staff": "スタッフ",
+    "storefront": "ストアフロント"
   }
 }

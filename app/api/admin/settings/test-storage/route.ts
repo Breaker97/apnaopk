@@ -13,12 +13,13 @@ import {
   SELECTABLE_STORAGE_PROVIDERS,
   isSelectableStorageProvider,
 } from "@/lib/storage";
+import { normalizePublicUrl } from "@/lib/storage/endpoint";
 import { getSettings } from "@/models/settings.model";
 import {
   resolveStorageCredentials,
   STORAGE_CREDENTIAL_BLOCKS,
 } from "@/lib/settings/credentials";
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 
 export const POST = withApi(
@@ -72,6 +73,10 @@ export const POST = withApi(
       const endpoint = typedOrSaved(typed.endpoint, saved.endpoint);
       const region = typedOrSaved(typed.region, saved.region);
       const bucketName = typedOrSaved(typed.bucketName, saved.bucketName);
+      const privateBucketName = typedOrSaved(
+        typed.privateBucketName,
+        saved.privateBucketName,
+      );
       const publicUrl = typedOrSaved(typed.publicUrl, saved.publicUrl);
       const accessKeyId = typedOrSaved(typed.accessKeyId, saved.accessKeyId);
       const secretAccessKey = typedOrSaved(
@@ -113,9 +118,10 @@ export const POST = withApi(
         endpoint,
         region: region || "auto",
         bucketName,
+        privateBucketName,
         accessKeyId,
         secretAccessKey,
-        publicUrl,
+        publicUrl: normalizePublicUrl(publicUrl),
         maxFileSizeMB: 10,
         allowedMimeTypes: [],
       };

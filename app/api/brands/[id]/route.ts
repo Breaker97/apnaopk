@@ -11,7 +11,7 @@ import {
 } from "@/lib/catalog/brands";
 import mongoose from "mongoose";
 import { revalidateBrandContent, revalidateProductContent } from "@/lib/cache-invalidation";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 type RouteParams = { id: string };

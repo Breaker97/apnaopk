@@ -21,6 +21,7 @@ import { NotificationType } from "@/models/notification.model";
 import { sendPushToUser } from "@/lib/notifications/push-notifications";
 import { sendEmail } from "@/lib/email/email";
 import {
+  orderAddressLinkPath,
   preorderBalanceLinkPath,
   preorderManageLinkPath,
 } from "@/lib/payments/preorder-balance-link";
@@ -41,9 +42,19 @@ import {
   STAFF_PERMISSIONS,
   type StaffPermission,
 } from "@/config/permissions.config";
-import { sendReturnRequestOwnerEmail } from "@/lib/email/return-emails";
+import {
+  sendReturnApprovedEmail,
+  sendReturnRequestOwnerEmail,
+} from "@/lib/email/return-emails";
+import {
+  DEFAULT_GUEST_RETURN_INSTRUCTIONS,
+  DEFAULT_RETURN_INSTRUCTIONS,
+  describeReturnDestination,
+  renderReturnInstructions,
+  returnMethodOf,
+} from "@/lib/returns/return-shipping";
 import { getSettings, type ISettings } from "@/models/settings.model";
-import { RETURN_STATUS } from "@/lib/returns/returns";
+import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
 import {
   hasAnyNotificationChannel,
   normalizeNotificationSettings,
@@ -240,13 +251,34 @@ async function findAdminRecipients(): Promise<NotificationRecipient[]> {
   });
 }
 
+/**
+ * Staff who hear of an event: active, holding one of the permissions, and
+ * able to see it. Platform staff scoped to sellers hear of those sellers'
+ * orders, stock and returns; a vendor's own staff only of events wholly their
+ * vendor's, the orders their staff area shows (`wholeOrdersOnly`); and
+ * neither hears anything store-wide. Every order, every product and every new
+ * customer went to them all, other sellers' included. A vendor's staff member
+ * with no vendor left hears nothing (see `effectiveStaffPermissions`).
+ */
 async function getStaffNotificationRecipients(
   requiredPermissions: StaffPermission[],
+  vendorIds: string[],
 ): Promise<NotificationRecipient[]> {
   await connectDB();
   const profiles = await StaffProfile.find({
     isActive: true,
     permissions: { $in: requiredPermissions },
+    $or: [
+      { "vendorIds.0": { $exists: false }, managedBy: { $ne: "vendor" } },
+      ...(vendorIds.length > 0
+        ? [
+            { managedBy: "platform", vendorIds: { $in: vendorIds } },
+            // Explicitly vendor-owned, or written before `managedBy` with
+            // vendorIds — the legacy reading of a vendor's staff.
+            { managedBy: { $ne: "platform" }, vendorIds: { $all: vendorIds } },
+          ]
+        : []),
+    ],
   })
     .select("userId permissions")
     .populate("userId", "name email phone status")
@@ -568,6 +600,8 @@ async function dispatchNotification(options: DispatchOptions) {
 
 async function notifyStaffUsers(params: {
   permissions: StaffPermission[];
+  /** The vendors the event belongs to; empty for a store-wide one. */
+  vendorIds: string[];
   channels: NotificationChannelSettings;
   type: NotificationType;
   title: string;
@@ -579,7 +613,10 @@ async function notifyStaffUsers(params: {
 }) {
   if (!hasAnyNotificationChannel(params.channels)) return;
 
-  const staff = await getStaffNotificationRecipients(params.permissions);
+  const staff = await getStaffNotificationRecipients(
+    params.permissions,
+    params.vendorIds,
+  );
   await Promise.allSettled(
     staff.map((recipient) =>
       dispatchNotification({
@@ -657,6 +694,22 @@ export function buildOrderPlacedNotificationCopy(params: {
       message: isCustomerRecipient
         ? `Your POS order #${params.orderNumber} is complete.`
         : `POS order #${params.orderNumber} has been completed.`,
+      link,
+      status,
+      recipientRole,
+    };
+  }
+
+  // Sent when the order is placed, which for a gateway is when the money
+  // arrives: the order is `processing` (or `preordered`) by then, and telling
+  // a shopper who has just paid that it "is now pending" read as a payment
+  // that had not gone through. Pending is for orders still waiting on it —
+  // cash on delivery, pay later, a bank transfer.
+  if (status !== ORDER_STATUS.PENDING) {
+    return {
+      type: NotificationType.ORDER_PLACED,
+      title: "Order Confirmed",
+      message: `Your order #${params.orderNumber} has been placed and confirmed.`,
       link,
       status,
       recipientRole,
@@ -945,6 +998,14 @@ export async function notifyOrderItemsDropped(params: {
   });
 }
 
+/**
+ * The dedupe stage for a balance request someone repeated by hand ("Send
+ * balance reminder"). Minute-grained, so a double click still sends one.
+ */
+export function manualBalanceReminderStage(now = new Date()): string {
+  return `manual:${now.toISOString().slice(0, 16)}`;
+}
+
 export async function notifyPreorderCustomerUpdate(
   userId: string,
   orderNumber: string,
@@ -993,6 +1054,14 @@ export async function notifyPreorderCustomerUpdate(
      */
     chargeAttempt?: number;
     /**
+     * Which balance reminder this is (`t-7`, `t-1`), or a stamp for a reminder
+     * someone sent by hand. Part of the dedupe key for the same reason as
+     * `chargeAttempt`: a reminder carries the same status and release date as
+     * the request before it, so the gate matched the request and every
+     * reminder after it was dropped before its email went out.
+     */
+    reminderStage?: string;
+    /**
      * Set when the order was placed without an account, whose `userId` is
      * then the shopper's CART. Only used when `orderId` is absent — with it,
      * the order itself says who the shopper is and how to reach them.
@@ -1029,6 +1098,8 @@ export async function notifyPreorderCustomerUpdate(
       month: "short",
       day: "numeric",
       year: "numeric",
+      // The release date is a UTC calendar day; see `formatPreorderReleaseDate`.
+      timeZone: "UTC",
     }).format(date);
   };
   const releaseDate = formatDate(options.releaseDate);
@@ -1189,6 +1260,7 @@ export async function notifyPreorderCustomerUpdate(
         recipientRole: USER_ROLES.CUSTOMER,
         ...(options.addressSummary ? { addressSummary: options.addressSummary } : {}),
         ...(options.chargeAttempt ? { chargeAttempt: options.chargeAttempt } : {}),
+        ...(options.reminderStage ? { reminderStage: options.reminderStage } : {}),
       },
       // Status and release date alone cannot tell two DIFFERENT events of the
       // same kind apart, and the dedupe gate returns before email is sent — so
@@ -1207,10 +1279,186 @@ export async function notifyPreorderCustomerUpdate(
         ...(options.chargeAttempt
           ? { "data.chargeAttempt": options.chargeAttempt }
           : {}),
+        ...(options.reminderStage
+          ? { "data.reminderStage": options.reminderStage }
+          : {}),
       },
     },
     skip: { email: optOuts.orderEmail, sms: optOuts.sms || !isShopper },
   });
+}
+
+/**
+ * The customer's side of an address hold.
+ *
+ * `request` and `reminder` carry the signed address link, which works with or
+ * without an account — a guest has no other way to reach their order. `changed`
+ * goes to the order's own contact whoever made the change, so a forwarded link
+ * used by someone else is seen by the person it belongs to. `cancelled` says
+ * why, which "your order was cancelled" alone would not.
+ */
+export async function notifyAddressHoldCustomer(params: {
+  orderId: string;
+  kind: "request" | "reminder" | "changed" | "cancelled";
+  /** Why the address can't be delivered to. */
+  reason?: string;
+  deadline?: Date | string;
+  addressSummary?: string;
+  /** Which reminder this is — part of the dedupe key, as each is its own event. */
+  reminderNumber?: number;
+  /** A cancellation whose refund did not go through: the store sends it by hand. */
+  refundOwed?: boolean;
+  settings?: ISettings;
+}) {
+  const settings = params.settings || (await getSettings());
+  const channels = normalizeNotificationSettings(settings.notifications).customer
+    .orderUpdates;
+  if (!hasAnyNotificationChannel(channels)) return null;
+
+  const loaded = await loadOrderCustomer(params.orderId);
+  if (!loaded?.customer) return null;
+  const orderNumber = String((loaded.order as { orderNumber?: string }).orderNumber || "");
+
+  const deadline = params.deadline
+    ? new Intl.DateTimeFormat("en", { month: "long", day: "numeric" }).format(
+        new Date(params.deadline),
+      )
+    : "";
+  const reason = params.reason?.trim();
+  const link = orderAddressLinkPath(params.orderId);
+  const sentAt = new Date().toISOString();
+
+  const copy = {
+    request: {
+      title: `Action needed: confirm your delivery address for #${orderNumber}`,
+      message: `The courier can't deliver to the address on order #${orderNumber}${
+        reason ? ` (${reason})` : ""
+      }, so we've paused shipping. Please confirm or correct it${
+        deadline ? ` by ${deadline}` : ""
+      }. It takes a minute and no sign-in is needed.`,
+    },
+    reminder: {
+      title: `Reminder: confirm your delivery address for #${orderNumber}`,
+      message: `We still can't deliver order #${orderNumber} to the address you gave${
+        reason ? ` (${reason})` : ""
+      }. Please confirm or correct it${deadline ? ` by ${deadline}` : ""}, or the store will review the order.`,
+    },
+    changed: {
+      title: `Delivery address updated for #${orderNumber}`,
+      message: `The delivery address for order #${orderNumber} was changed${
+        params.addressSummary ? ` to ${params.addressSummary}` : ""
+      }. If you did not make this change, contact us straight away.`,
+    },
+    cancelled: {
+      title: `Order #${orderNumber} cancelled`,
+      message: `We cancelled order #${orderNumber} because the delivery address couldn't be confirmed in time. ${
+        params.refundOwed
+          ? "Your refund could not be sent automatically, so the store will return what you paid."
+          : "Anything you paid is being refunded."
+      }`,
+    },
+  }[params.kind];
+
+  const customer = loaded.customer;
+  const isShopper = customer.role === USER_ROLES.CUSTOMER;
+  const optOuts =
+    isShopper && (channels.email || channels.sms)
+      ? await customerOptOuts(customer.userId)
+      : { orderEmail: false, sms: false };
+
+  return dispatchNotification({
+    recipient: customer,
+    channels,
+    settings,
+    notification: {
+      type: NotificationType.ORDER_STATUS,
+      title: copy.title,
+      message: copy.message,
+      link:
+        params.kind === "request" || params.kind === "reminder"
+          ? link ||
+            (customer.userId ? `/account/orders/${params.orderId}` : trackOrderLink(orderNumber))
+          : customer.userId
+            ? `/account/orders/${params.orderId}`
+            : trackOrderLink(orderNumber),
+      data: {
+        orderNumber,
+        orderId: params.orderId,
+        addressHold: params.kind,
+        ...(params.kind === "request" ? { sentAt } : {}),
+        recipientRole: USER_ROLES.CUSTOMER,
+        ...(params.reminderNumber ? { reminderNumber: params.reminderNumber } : {}),
+        ...(params.addressSummary ? { addressSummary: params.addressSummary } : {}),
+      },
+      dedupe: {
+        type: NotificationType.ORDER_STATUS,
+        "data.orderNumber": orderNumber,
+        "data.addressHold": params.kind,
+        "data.recipientRole": USER_ROLES.CUSTOMER,
+        // A second request after a store resend, each reminder and each change
+        // is its own event; keyed on the kind alone they would be swallowed.
+        ...(params.kind === "request" ? { "data.sentAt": sentAt } : {}),
+        ...(params.reminderNumber ? { "data.reminderNumber": params.reminderNumber } : {}),
+        ...(params.addressSummary ? { "data.addressSummary": params.addressSummary } : {}),
+      },
+    },
+    skip: { email: optOuts.orderEmail, sms: optOuts.sms || !isShopper },
+  });
+}
+
+/** The store's side of an address hold: something needs a person. */
+export async function notifyAdminsAddressHold(params: {
+  orderId: string;
+  orderNumber: string;
+  /** `deadline_confirmed`: the deadline passed on a customer who said the address is right. */
+  kind: "customer_confirmed" | "deadline" | "deadline_confirmed";
+}) {
+  try {
+    const settings = await getSettings();
+    const admins = await findAdminRecipients();
+    const copy = {
+      customer_confirmed: {
+        title: `Customer confirmed the address on #${params.orderNumber}`,
+        message: `The customer says the delivery address on order #${params.orderNumber} is correct as it is, but the courier could not deliver to it. Check it, then ship anyway or cancel.`,
+      },
+      deadline: {
+        title: `Address deadline passed on #${params.orderNumber}`,
+        message: `The customer did not correct the undeliverable address on order #${params.orderNumber} in time. The order is still open — cancel and refund it, edit the address, or give more time.`,
+      },
+      deadline_confirmed: {
+        title: `Address deadline passed on #${params.orderNumber}`,
+        message: `The customer says the delivery address on order #${params.orderNumber} is correct as it is, and the deadline has passed. The order stays open until you decide — ship anyway, edit the address, or cancel and refund it.`,
+      },
+    }[params.kind];
+    await Promise.allSettled(
+      admins.map((recipient) =>
+        dispatchNotification({
+          recipient,
+          channels: { inApp: true, browserPush: true, email: true, sms: false },
+          settings,
+          notification: {
+            type: NotificationType.SYSTEM,
+            title: copy.title,
+            message: copy.message,
+            link: `/admin/orders/${params.orderId}`,
+            data: {
+              orderId: params.orderId,
+              orderNumber: params.orderNumber,
+              dedupeKey: `address-hold:${params.kind}:${params.orderId}`,
+              recipientRole: USER_ROLES.ADMIN,
+            },
+            dedupe: {
+              type: NotificationType.SYSTEM,
+              "data.dedupeKey": `address-hold:${params.kind}:${params.orderId}`,
+              "data.recipientRole": USER_ROLES.ADMIN,
+            },
+          },
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error("Failed to notify admins about an address hold:", error);
+  }
 }
 
 /**
@@ -1604,6 +1852,8 @@ export async function notifyAdminsNewCustomer(
           STAFF_PERMISSIONS.CREATE_CUSTOMERS,
           STAFF_PERMISSIONS.EDIT_CUSTOMERS,
         ],
+        // A new account has bought nothing yet, so it is in no seller's scope.
+        vendorIds: [],
         channels: staffChannels,
         type: NotificationType.SYSTEM,
         title,
@@ -1683,6 +1933,14 @@ export async function notifyAdminsPaymentReceived(
       "data.orderId": payment.orderId,
       "data.kind": kind,
     };
+    const staffVendorIds =
+      payment.orderId && hasAnyNotificationChannel(staffChannels)
+        ? vendorIdsOfOrder(
+            await Order.findById(payment.orderId)
+              .select("items.vendorId subOrders.vendorId")
+              .lean(),
+          )
+        : [];
 
     await Promise.allSettled([
       ...admins.map((recipient) =>
@@ -1707,6 +1965,7 @@ export async function notifyAdminsPaymentReceived(
           STAFF_PERMISSIONS.VIEW_ORDERS,
           STAFF_PERMISSIONS.MANAGE_ORDERS,
         ],
+        vendorIds: staffVendorIds,
         channels: staffChannels,
         type: NotificationType.PAYMENT_RECEIVED,
         title,
@@ -1819,6 +2078,8 @@ export async function notifyStaffLowStock(
   currentStock: number,
   options: {
     productId?: string;
+    /** The product's seller; staff limited to other sellers are not told. */
+    vendorId?: string;
     settings?: ISettings;
   } = {},
 ) {
@@ -1835,6 +2096,7 @@ export async function notifyStaffLowStock(
       STAFF_PERMISSIONS.MANAGE_INVENTORY,
       STAFF_PERMISSIONS.EDIT_INVENTORY,
     ],
+    vendorIds: options.vendorId ? [options.vendorId] : [],
     channels,
     type: NotificationType.PRODUCT_LOW_STOCK,
     title: "Low Stock Alert",
@@ -1872,7 +2134,45 @@ type ReturnRequestLikeForNotification = {
   estimatedRefund?: {
     total?: number;
     currency?: string;
+    discountAdjustment?: number;
+    tax?: number;
+    shipping?: number;
+    restockingFee?: number;
+    returnShippingFee?: number;
   };
+  /** Why the store said no — the shopper was never told. */
+  rejectionReason?: string;
+  /**
+   * Whether the money has actually gone. A refund no gateway can carry sits on
+   * `manual_required` until somebody sends it and records that they did — and
+   * the shopper must not be told they have been paid before then.
+   */
+  refundStatus?: string;
+  actualRefund?: {
+    amount?: number;
+    settledAt?: unknown;
+    storeCredit?: number;
+    exchange?: number;
+  };
+  /** The exchange order the return became (R7). */
+  exchange?: {
+    orderNumber?: string;
+    credit?: number;
+    owed?: number;
+    undoneAt?: unknown;
+  } | null;
+  /** The checkout email of a guest order — the only way to reach its shopper. */
+  guestEmail?: string | null;
+  /** How the parcel comes back, and where — see lib/returns/return-shipping.ts. */
+  returnMethod?: string | null;
+  returnTo?: { name?: string | null; address?: string | null } | null;
+  returnInstructions?: string | null;
+  shipment?: {
+    carrier?: string | null;
+    trackingNumber?: string | null;
+    labelUrl?: string | null;
+    labelFileKey?: string | null;
+  } | null;
 };
 
 type OrderLikeForNotification = OrderContactLike & {
@@ -1889,6 +2189,25 @@ type OrderLikeForNotification = OrderContactLike & {
   }>;
   items?: unknown[];
 };
+
+/** The sellers an order's consignments and lines name, each once. */
+function vendorIdsOfOrder(
+  order: {
+    subOrders?: Array<{ vendorId?: unknown } | null> | null;
+    items?: unknown[] | null;
+  } | null,
+): string[] {
+  if (!order) return [];
+  const ids = [
+    ...(order.subOrders ?? []).map((subOrder) => subOrder?.vendorId),
+    ...(order.items ?? []).map(
+      (item) => (item as { vendorId?: unknown } | null)?.vendorId,
+    ),
+  ]
+    .map(getIdString)
+    .filter(Boolean);
+  return Array.from(new Set(ids));
+}
 
 function getIdString(value: unknown) {
   if (!value) return "";
@@ -2046,6 +2365,7 @@ async function notifyReturnRequestOwnerUser(
             unitPrice: Number(item.unitPrice || 0),
           })),
           estimatedRefundTotal: Number(returnRequest.estimatedRefund?.total || 0),
+          estimate: returnRequest.estimatedRefund,
           currency: returnRequest.estimatedRefund?.currency || "USD",
           dashboardUrl: absoluteLink(notification.link),
         },
@@ -2059,6 +2379,323 @@ async function notifyReturnRequestOwnerUser(
       return true;
     },
   });
+}
+
+/**
+ * Tell a vendor that a refund is theirs to send.
+ *
+ * On a cash-on-delivery sale the vendor's own van took the notes at the door,
+ * so the store is holding nothing to give back — the books have always posted
+ * such a refund as the vendor's (`resolveRefundPayer`). What nobody ever said
+ * was so out loud: the return sat on `manual_required` addressed to an admin
+ * who had never held the money, and the shopper waited on a transfer nobody
+ * had been asked to make.
+ *
+ * Sent once the refund is issued, because until then there is no figure to
+ * name. Deliberately not an admin notice: an admin who sends it as well is the
+ * shopper being paid twice.
+ */
+export async function notifyVendorRefundOwed(params: {
+  returnRequest: ReturnRequestLikeForNotification & {
+    ownerVendorId?: unknown;
+    refundDestination?: { method?: string } | null;
+  };
+  amount: number;
+  currency: string;
+  settings?: ISettings;
+}) {
+  try {
+    await connectDB();
+    const settings = params.settings || (await getSettings());
+    const channels = normalizeNotificationSettings(settings.notifications)
+      .vendor.returns;
+    if (!hasAnyNotificationChannel(channels)) return null;
+
+    const ownerVendorId = getIdString(params.returnRequest.ownerVendorId);
+    if (!ownerVendorId) return null;
+    const vendor = await Vendor.findById(ownerVendorId)
+      .select("userId address.phone address.country")
+      .populate("userId", `${USER_CONTACT_FIELDS} status`)
+      .lean<VendorContactDoc | null>();
+    const vendorStatus = (vendor?.userId as { status?: string } | undefined)
+      ?.status;
+    const recipient = vendor ? vendorRecipient(vendor) : null;
+    if (!recipient || vendorStatus === USER_ACCOUNT_STATUS.BANNED) return null;
+
+    const returnNumber = params.returnRequest.returnNumber || "a return";
+    const orderNumber = params.returnRequest.orderNumber || "";
+    const returnRequestId = getIdString(params.returnRequest._id);
+    const amount = `${Math.max(0, Number(params.amount) || 0).toFixed(2)} ${String(
+      params.currency || "",
+    ).toUpperCase()}`.trim();
+
+    return dispatchNotification({
+      recipient,
+      channels,
+      settings,
+      notification: {
+        type: NotificationType.RETURN_REQUEST,
+        title: "You owe a refund on a returned order",
+        message: `Return ${returnNumber}${
+          orderNumber ? ` on order #${orderNumber}` : ""
+        }: you collected this order's money at the door, so the ${amount} refund is yours to send. Pay the shopper and record it on the return — the commission on those goods comes off what you owe the store.`,
+        link: "/vendor/returns",
+        data: {
+          returnNumber,
+          returnRequestId,
+          orderNumber,
+          recipientRole: USER_ROLES.VENDOR,
+          refundOwed: true,
+        },
+        dedupe: {
+          type: NotificationType.RETURN_REQUEST,
+          "data.returnRequestId": returnRequestId,
+          "data.refundOwed": true,
+          "data.recipientRole": USER_ROLES.VENDOR,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to tell a vendor a refund is theirs:", error);
+    return null;
+  }
+}
+
+/**
+ * Tell a seller a refund sent from the order screen is theirs to pay.
+ *
+ * The fact `notifyVendorRefundOwed` gives them about a return: they took this
+ * order's cash at the door, so the store holds none of it to send. The order
+ * screen never said so, and the store paid the shopper itself.
+ */
+export async function notifyVendorOrderRefundOwed(params: {
+  vendorId: string;
+  orderId: string;
+  orderNumber: string;
+  /** The refund row, so one refund is announced once. */
+  transactionId: string;
+  amount: number;
+  currency: string;
+  settings?: ISettings;
+}) {
+  try {
+    await connectDB();
+    const settings = params.settings || (await getSettings());
+    // Refunds a seller owes are one kind of thing, whichever screen raised
+    // them, so they go wherever the seller hears about returns.
+    const channels = normalizeNotificationSettings(settings.notifications)
+      .vendor.returns;
+    if (!hasAnyNotificationChannel(channels)) return null;
+
+    const vendor = await Vendor.findById(params.vendorId)
+      .select("userId address.phone address.country")
+      .populate("userId", `${USER_CONTACT_FIELDS} status`)
+      .lean<VendorContactDoc | null>();
+    const vendorStatus = (vendor?.userId as { status?: string } | undefined)
+      ?.status;
+    const recipient = vendor ? vendorRecipient(vendor) : null;
+    if (!recipient || vendorStatus === USER_ACCOUNT_STATUS.BANNED) return null;
+
+    const amount = `${Math.max(0, Number(params.amount) || 0).toFixed(2)} ${String(
+      params.currency || "",
+    ).toUpperCase()}`.trim();
+
+    return dispatchNotification({
+      recipient,
+      channels,
+      settings,
+      notification: {
+        type: NotificationType.ORDER_STATUS,
+        title: "You owe a refund on an order",
+        message: `Order #${params.orderNumber}: you collected this order's money at the door, so the ${amount} refund is yours to send. Pay the shopper and let the store know it has gone — the commission on those goods comes off what you owe the store.`,
+        link: `/vendor/orders/${params.orderId}`,
+        data: {
+          orderId: params.orderId,
+          orderNumber: params.orderNumber,
+          transactionId: params.transactionId,
+          recipientRole: USER_ROLES.VENDOR,
+          refundOwed: true,
+        },
+        dedupe: {
+          type: NotificationType.ORDER_STATUS,
+          "data.transactionId": params.transactionId,
+          "data.refundOwed": true,
+          "data.recipientRole": USER_ROLES.VENDOR,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to tell a vendor an order refund is theirs:", error);
+    return null;
+  }
+}
+
+/**
+ * Tell whoever is handling a return what the shopper just did with it: the
+ * seller holding the queue, and the store's admins.
+ */
+async function announceToReturnOwners(
+  returnRequest: ReturnRequestLikeForNotification,
+  settings: ISettings | undefined,
+  content: {
+    title: string;
+    message: string;
+    /** Marks the notification, and keeps one per return per event. */
+    event: "cancelledByShopper" | "shippedByShopper" | "openedOnBehalf";
+    /** Who hears: the seller holding the return, the store's admins, or both. */
+    audience?: "all" | "vendor" | "admins";
+  },
+) {
+  const audience = content.audience ?? "all";
+  await connectDB();
+  const resolvedSettings = settings || (await getSettings());
+  const notificationSettings = normalizeNotificationSettings(
+    resolvedSettings.notifications,
+  );
+  const returnNumber = returnRequest.returnNumber || "a return";
+  const orderNumber = returnRequest.orderNumber || "";
+  const returnRequestId = getIdString(returnRequest._id);
+
+  const notice = (
+    recipient: NotificationRecipient,
+    recipientRole: typeof USER_ROLES.ADMIN | typeof USER_ROLES.VENDOR,
+  ) =>
+    dispatchNotification({
+      recipient,
+      channels:
+        recipientRole === USER_ROLES.ADMIN
+          ? notificationSettings.admin.returns
+          : notificationSettings.vendor.returns,
+      settings: resolvedSettings,
+      notification: {
+        type: NotificationType.RETURN_REQUEST,
+        title: content.title,
+        message: content.message,
+        link: recipientRole === USER_ROLES.ADMIN ? "/admin/returns" : "/vendor/returns",
+        data: {
+          returnNumber,
+          returnRequestId,
+          orderNumber,
+          recipientRole,
+          [content.event]: true,
+        },
+        dedupe: {
+          type: NotificationType.RETURN_REQUEST,
+          "data.returnRequestId": returnRequestId,
+          [`data.${content.event}`]: true,
+          "data.recipientRole": recipientRole,
+        },
+      },
+    });
+
+  const jobs: Promise<unknown>[] = [];
+  if (returnRequest.ownerType === "vendor" && audience !== "admins") {
+    const ownerVendorId = getIdString(returnRequest.ownerVendorId);
+    const vendor = ownerVendorId
+      ? await Vendor.findById(ownerVendorId)
+          .select("userId address.phone address.country")
+          .populate("userId", `${USER_CONTACT_FIELDS} status`)
+          .lean<VendorContactDoc | null>()
+      : null;
+    const vendorStatus = (vendor?.userId as { status?: string } | undefined)
+      ?.status;
+    const recipient = vendor ? vendorRecipient(vendor) : null;
+    if (recipient && vendorStatus !== USER_ACCOUNT_STATUS.BANNED) {
+      jobs.push(notice(recipient, USER_ROLES.VENDOR));
+    }
+  }
+  if (
+    audience !== "vendor" &&
+    hasAnyNotificationChannel(notificationSettings.admin.returns)
+  ) {
+    const admins = await findAdminRecipients();
+    jobs.push(...admins.map((admin) => notice(admin, USER_ROLES.ADMIN)));
+  }
+  await Promise.allSettled(jobs);
+}
+
+/**
+ * A return opened on the shopper's behalf, told to whoever did not open it:
+ * the seller whose goods are coming back when the store opened it, the store's
+ * admins when a seller did.
+ */
+export async function notifyReturnOpenedOnBehalf(
+  returnRequest: ReturnRequestLikeForNotification,
+  settings: ISettings | undefined,
+  openedBy: "staff" | "vendor",
+) {
+  try {
+    if (openedBy === "staff" && returnRequest.ownerType !== "vendor") return;
+    const returnNumber = returnRequest.returnNumber || "a return";
+    const orderNumber = returnRequest.orderNumber || "";
+    const onOrder = orderNumber ? ` on order #${orderNumber}` : "";
+    await announceToReturnOwners(returnRequest, settings, {
+      title: "Return opened for a shopper",
+      message:
+        openedBy === "staff"
+          ? `The store opened return ${returnNumber} for your items${onOrder}. Record what comes back when it arrives.`
+          : `A seller opened return ${returnNumber}${onOrder} for a shopper.`,
+      event: "openedOnBehalf",
+      audience: openedBy === "staff" ? "vendor" : "admins",
+    });
+  } catch (error) {
+    console.error("Failed to announce a return opened for a shopper:", error);
+  }
+}
+
+/**
+ * Tell whoever was handling a return that the shopper called it off.
+ *
+ * The seller holding the queue, and the store's admins, were never told: a
+ * return they had approved and were waiting on simply turned "cancelled".
+ */
+export async function notifyReturnCancelledByShopper(
+  returnRequest: ReturnRequestLikeForNotification,
+  settings?: ISettings,
+) {
+  try {
+    const returnNumber = returnRequest.returnNumber || "a return";
+    const orderNumber = returnRequest.orderNumber || "";
+    await announceToReturnOwners(returnRequest, settings, {
+      title: "Return cancelled by the shopper",
+      message: `The shopper cancelled return ${returnNumber}${
+        orderNumber ? ` on order #${orderNumber}` : ""
+      }. Nothing is coming back, and its items are returnable again.`,
+      event: "cancelledByShopper",
+    });
+  } catch (error) {
+    console.error("Failed to announce a return the shopper cancelled:", error);
+  }
+}
+
+/**
+ * Tell whoever is waiting on a return's parcel that the shopper has posted it,
+ * with the tracking number they gave.
+ */
+export async function notifyReturnShippedByShopper(
+  returnRequest: ReturnRequestLikeForNotification,
+  settings?: ISettings,
+) {
+  try {
+    const returnNumber = returnRequest.returnNumber || "a return";
+    const orderNumber = returnRequest.orderNumber || "";
+    const tracking = [
+      returnRequest.shipment?.carrier,
+      returnRequest.shipment?.trackingNumber,
+    ]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(" ");
+    await announceToReturnOwners(returnRequest, settings, {
+      title: "Return parcel sent by the shopper",
+      message: `The shopper sent return ${returnNumber}${
+        orderNumber ? ` on order #${orderNumber}` : ""
+      } back${tracking ? ` (${tracking})` : ""}. Record what came back when it arrives.`,
+      event: "shippedByShopper",
+    });
+  } catch (error) {
+    console.error("Failed to announce a return the shopper posted:", error);
+  }
 }
 
 export async function notifyReturnRequestSubmitted(
@@ -2132,6 +2769,12 @@ export async function notifyReturnRequestSubmitted(
           STAFF_PERMISSIONS.MANAGE_ORDERS,
           STAFF_PERMISSIONS.EDIT_ORDERS,
         ],
+        // A store-owned return is the store's, whoever else sold on the order.
+        vendorIds:
+          returnRequest.ownerType === "vendor" &&
+          getIdString(returnRequest.ownerVendorId)
+            ? [getIdString(returnRequest.ownerVendorId)]
+            : [],
         channels: normalizeNotificationSettings(resolvedSettings.notifications)
           .staff.returns,
         type: NotificationType.RETURN_REQUEST,
@@ -2163,9 +2806,22 @@ export async function notifyReturnRequestCustomer(
   returnRequest: ReturnRequestLikeForNotification,
   status?: string,
   settings?: ISettings,
+  options: {
+    /**
+     * How the parcel comes back changed after approval — a label added, the
+     * address changed. The shopper hears again, with the same details the
+     * approval carried, rather than finding out from a label they never saw.
+     */
+    shippingUpdated?: boolean;
+    /** The store or a seller opened it for the shopper, approved at once. */
+    openedForShopper?: boolean;
+    /** The return has just become its exchange order (R7). */
+    exchanged?: boolean;
+  } = {},
 ) {
   const customerId = getIdString(returnRequest.customerId);
-  if (!customerId) return null;
+  // A guest's return is reached through what its order recorded, account or not.
+  if (!customerId && !returnRequest.guestEmail) return null;
 
   const resolvedSettings = settings || (await getSettings());
   const channels = normalizeNotificationSettings(resolvedSettings.notifications)
@@ -2186,6 +2842,69 @@ export async function notifyReturnRequestCustomer(
   const itemText =
     itemCount > 0 ? ` with ${itemCount} item${itemCount === 1 ? "" : "s"}` : "";
 
+  // What the shopper is owed, and whether it has actually reached them.
+  //
+  // A refund no gateway can carry — cash on delivery, a bank transfer — is
+  // marked `manual_required` and stays there until someone sends the money and
+  // records it. The return's STATUS says `refunded` the moment it is issued,
+  // so telling the shopper from the status alone told them they had been paid
+  // while the transfer had not even been started.
+  const refundStatus = String(returnRequest.refundStatus || "");
+  const awaitingHandPayment = refundStatus === RETURN_REFUND_STATUS.MANUAL_REQUIRED;
+  // Asked of the payment provider, which sends it only once it approves —
+  // Pesapal's refunds work this way. Not yet money in the shopper's hands.
+  const awaitingProvider = refundStatus === RETURN_REFUND_STATUS.PROCESSING;
+  const refundAmount = Number(returnRequest.actualRefund?.amount || 0);
+  const refundCurrency = String(
+    returnRequest.estimatedRefund?.currency || "",
+  ).toUpperCase();
+  const refundText =
+    refundAmount > 0
+      ? ` of ${refundAmount.toFixed(2)}${refundCurrency ? ` ${refundCurrency}` : ""}`
+      : "";
+  // The part the shopper holds as store credit (R8) rather than back where
+  // they paid: already theirs to spend, so said as that.
+  const creditRefunded = Number(returnRequest.actualRefund?.storeCredit || 0);
+  const creditText =
+    creditRefunded > 0
+      ? creditRefunded >= refundAmount - 0.001
+        ? " as store credit, ready to spend at checkout"
+        : `, ${creditRefunded.toFixed(2)}${refundCurrency ? ` ${refundCurrency}` : ""} of it as store credit`
+      : "";
+
+  // Texted at the phone the order was delivered to, as order updates are. A
+  // guest order's shopper has no account at all, so they are reached through
+  // what the order recorded, whatever the channel — asked of the order, so a
+  // guest who has since signed up is an account holder again.
+  const isGuestReturn = Boolean(returnRequest.guestEmail);
+  const loaded =
+    (channels.sms || isGuestReturn) && orderId
+      ? await loadOrderCustomer(orderId)
+      : null;
+  const guestContact =
+    loaded?.customer && !loaded.customer.userId ? loaded.customer : null;
+  // A guest's label can only be the link the store gave: the public tracking
+  // page they have instead of an order page shows no label.
+  const guestLabelLink = guestContact ? returnRequest.shipment?.labelUrl || "" : "";
+
+  // What the shopper now needs to do, which "approved" alone never said: where
+  // the parcel goes, that a label is waiting, or that nothing needs sending.
+  const returnMethod = returnMethodOf(returnRequest.returnMethod);
+  const destination = describeReturnDestination(returnRequest.returnTo);
+  const approvedLead = `Return request #${returnNumber} for order #${orderNumber} has been approved.`;
+  const approvedMessage =
+    returnMethod === "no_shipping"
+      ? `${approvedLead} You don't need to send anything back.`
+      : returnMethod === "label"
+        ? guestContact
+          ? guestLabelLink
+            ? `${approvedLead} We've emailed you a link to the return label.`
+            : `${approvedLead} Contact us for the return label.`
+          : `${approvedLead} Your return label is on your order page.`
+        : destination
+          ? `${approvedLead} Send it to ${destination}.`
+          : approvedLead;
+
   const statusCopy: Record<string, { title: string; message: string }> = {
     [RETURN_STATUS.REQUESTED]: {
       title: "Return Request Pending",
@@ -2193,7 +2912,7 @@ export async function notifyReturnRequestCustomer(
     },
     [RETURN_STATUS.APPROVED]: {
       title: "Return Request Approved",
-      message: `Return request #${returnNumber} for order #${orderNumber} has been approved.`,
+      message: approvedMessage,
     },
     [RETURN_STATUS.AWAITING_SHIPMENT]: {
       title: "Return Awaiting Shipment",
@@ -2215,17 +2934,40 @@ export async function notifyReturnRequestCustomer(
       title: "Return Refund Pending",
       message: `Refund processing has started for return request #${returnNumber}.`,
     },
-    [RETURN_STATUS.PARTIALLY_REFUNDED]: {
-      title: "Return Partially Refunded",
-      message: `A partial refund has been issued for return request #${returnNumber}.`,
-    },
-    [RETURN_STATUS.REFUNDED]: {
-      title: "Return Refunded",
-      message: `Return request #${returnNumber} has been accepted and refunded.`,
-    },
+    [RETURN_STATUS.PARTIALLY_REFUNDED]: awaitingHandPayment
+      ? {
+          title: "Return Refund On Its Way",
+          message: `A partial refund${refundText} has been approved for return request #${returnNumber}. It cannot go back the way you paid, so we are sending it to the account you gave us — we will let you know once it has gone.`,
+        }
+      : awaitingProvider
+      ? {
+          title: "Return Refund Requested",
+          message: `A partial refund${refundText} for return request #${returnNumber} has been requested from your payment provider. It reaches you once they approve it — we will let you know when it has gone.`,
+        }
+      : {
+          title: "Return Partially Refunded",
+          message: `A partial refund${refundText} has been issued for return request #${returnNumber}${creditText}.`,
+        },
+    [RETURN_STATUS.REFUNDED]: awaitingHandPayment
+      ? {
+          title: "Return Refund On Its Way",
+          message: `Return request #${returnNumber} has been accepted and a refund${refundText} approved. It cannot go back the way you paid, so we are sending it to the account you gave us — we will let you know once it has gone.`,
+        }
+      : awaitingProvider
+      ? {
+          title: "Return Refund Requested",
+          message: `Return request #${returnNumber} has been accepted and a refund${refundText} requested from your payment provider. It reaches you once they approve it — we will let you know when it has gone.`,
+        }
+      : {
+          title: "Return Refunded",
+          message: `Return request #${returnNumber} has been accepted and refunded${refundText}${creditText}.`,
+        },
     [RETURN_STATUS.REJECTED]: {
       title: "Return Request Rejected",
-      message: `Return request #${returnNumber} for order #${orderNumber} was rejected.`,
+      // With the store's reason, which the shopper was never shown anywhere.
+      message: `Return request #${returnNumber} for order #${orderNumber} was rejected.${
+        returnRequest.rejectionReason ? ` Reason: ${returnRequest.rejectionReason}` : ""
+      }`,
     },
     [RETURN_STATUS.CANCELLED]: {
       title: "Return Request Cancelled",
@@ -2237,45 +2979,157 @@ export async function notifyReturnRequestCustomer(
     },
   };
 
-  const notification = statusCopy[nextStatus] || {
-    title: "Return Request Updated",
-    message: `Return request #${returnNumber} status is now ${nextStatus}.`,
-  };
+  const shippingUpdated = Boolean(options.shippingUpdated);
+  const openedForShopper = Boolean(options.openedForShopper);
+  const shippingUpdatedAt = shippingUpdated ? new Date().toISOString() : undefined;
+  // What the exchange order still asks of them, and what of the return is
+  // still to come back as a refund.
+  const exchange =
+    options.exchanged && returnRequest.exchange?.orderNumber && !returnRequest.exchange.undoneAt
+      ? returnRequest.exchange
+      : null;
+  const money = (value: number) =>
+    `${value.toFixed(2)}${refundCurrency ? ` ${refundCurrency}` : ""}`;
+  const exchangeRest = Math.max(
+    0,
+    Number(returnRequest.estimatedRefund?.total || 0) - refundAmount,
+  );
+  const notification = exchange
+    ? {
+        title: "Return Exchanged",
+        message: `Return request #${returnNumber} has been accepted and exchanged for order #${exchange.orderNumber}.${
+          Number(exchange.owed || 0) > 0
+            ? ` Your return covered ${money(Number(exchange.credit || 0))} of it — we've emailed you a link to pay the remaining ${money(Number(exchange.owed))}.`
+            : " Your return paid for it in full."
+        }${
+          exchangeRest > 0.005
+            ? ` The other ${money(exchangeRest)} of your return is refunded separately.`
+            : ""
+        }`,
+      }
+    : shippingUpdated
+    ? {
+        title: "Return Details Updated",
+        message: approvedMessage.replace(
+          approvedLead,
+          `The store updated how to send back return request #${returnNumber}.`,
+        ),
+      }
+    : openedForShopper
+      ? {
+          title: "Return Opened For You",
+          message: approvedMessage.replace(
+            approvedLead,
+            `We opened return request #${returnNumber} for order #${orderNumber}.`,
+          ),
+        }
+      : statusCopy[nextStatus] || {
+          title: "Return Request Updated",
+          message: `Return request #${returnNumber} status is now ${nextStatus}.`,
+        };
 
-  // Texted at the phone the order was delivered to, as order updates are.
-  const loaded =
-    channels.sms && orderId ? await loadOrderCustomer(orderId) : null;
   const optOuts = channels.sms
-    ? await customerOptOuts(customerId)
+    ? await customerOptOuts(guestContact ? undefined : customerId)
     : { orderEmail: false, sms: false };
+  // A guest has no account page; the public tracking page is theirs.
+  const shopperLink = guestContact
+    ? trackOrderLink(orderNumber)
+    : orderId
+      ? `/account/orders/${orderId}`
+      : "/account/orders";
 
   return dispatchNotification({
     recipient:
-      loaded?.customer?.userId === customerId
+      guestContact ??
+      (loaded?.customer?.userId === customerId
         ? loaded.customer
-        : { userId: customerId },
+        : { userId: customerId }),
     channels,
     settings: resolvedSettings,
     notification: {
       type: NotificationType.RETURN_REQUEST,
       ...notification,
-      link: orderId ? `/account/orders/${orderId}` : "/account/orders",
+      link: shopperLink,
       data: {
         returnNumber,
         returnRequestId,
         orderNumber,
         orderId,
         status: nextStatus,
+        refundStatus: refundStatus || undefined,
+        refundedAmount: refundAmount > 0 ? refundAmount : undefined,
         recipientRole: USER_ROLES.CUSTOMER,
+        shippingUpdatedAt,
+        ...(exchange ? { exchangeOrderNumber: exchange.orderNumber } : {}),
       },
       dedupe: {
         type: NotificationType.RETURN_REQUEST,
         "data.returnRequestId": returnRequestId,
         "data.status": nextStatus,
+        // Two different things to say about the same status: the refund is
+        // coming, and the refund has gone. Keyed on the status alone, the
+        // second was dropped as a repeat of the first — which is how a shopper
+        // waiting on a bank transfer was never told it had been sent.
+        "data.refundStatus": refundStatus || undefined,
+        // And a second partial refund is news of its own: keyed without the
+        // amount, it read as a repeat of the first and was never sent.
+        "data.refundedAmount": refundAmount > 0 ? refundAmount : undefined,
         "data.recipientRole": USER_ROLES.CUSTOMER,
+        // Each change is news of its own.
+        "data.shippingUpdatedAt": shippingUpdatedAt,
+        "data.exchangeOrderNumber": exchange?.orderNumber,
       },
     },
     skip: { sms: optOuts.sms },
+    email:
+      nextStatus === RETURN_STATUS.APPROVED || shippingUpdated || openedForShopper
+        ? async (contact, dedupeKey) => {
+            if (!contact.email) return false;
+            const orderUrl = absoluteLink(shopperLink);
+            // The default wording points at the address above it, so it is
+            // only used when there is an address to point at.
+            const template =
+              returnRequest.returnInstructions ||
+              (destination
+                ? guestContact
+                  ? DEFAULT_GUEST_RETURN_INSTRUCTIONS
+                  : DEFAULT_RETURN_INSTRUCTIONS
+                : "");
+            const sent = await sendReturnApprovedEmail(
+              {
+                to: contact.email,
+                customerName: contact.name || "there",
+                returnNumber,
+                orderNumber,
+                method: returnMethod,
+                destination: returnRequest.returnTo,
+                instructions: template
+                  ? renderReturnInstructions(template, {
+                      returnNumber,
+                      address: destination,
+                    })
+                  : undefined,
+                labelLink: guestContact
+                  ? guestLabelLink || undefined
+                  : returnRequest.shipment?.labelUrl || orderUrl,
+                orderUrl,
+                guest: Boolean(guestContact),
+                variant: shippingUpdated
+                  ? "updated"
+                  : openedForShopper
+                    ? "opened"
+                    : "approved",
+              },
+              resolvedSettings,
+              dedupeKey,
+            );
+            if (!sent) {
+              console.error(`Failed to send return approved email to ${contact.email}`);
+            }
+            // Queued for retry either way; the generic notice must not follow it.
+            return true;
+          }
+        : undefined,
   });
 }
 
@@ -2384,6 +3238,7 @@ export async function notifyOrderCreatedParticipants(
         STAFF_PERMISSIONS.MANAGE_ORDERS,
         STAFF_PERMISSIONS.EDIT_ORDERS,
       ],
+      vendorIds: vendorIdsOfOrder(order),
       channels: notificationSettings.staff.newOrders,
       type: NotificationType.ORDER_PLACED,
       title: "New Order Received",
@@ -2485,6 +3340,30 @@ export async function notifyQuoteOffer(offer: {
 }
 
 /**
+ * The merchant pulled back a price the shopper was holding — withdrawn, or the
+ * quote closed as lost. Same audience and the same type as the offer itself:
+ * it is the other half of the same conversation.
+ */
+export async function notifyQuoteWithdrawn(offer: {
+  quoteId: string;
+  userId: string;
+  productName: string;
+}) {
+  try {
+    await createNotification({
+      userId: offer.userId,
+      type: NotificationType.QUOTE_OFFER,
+      title: "Your quoted price was withdrawn",
+      message: `The price for ${offer.productName} is no longer available.`,
+      link: "/account/quotes",
+      data: { quoteId: offer.quoteId },
+    });
+  } catch (error) {
+    console.error("Failed to notify customer of withdrawn quote:", error);
+  }
+}
+
+/**
  * Tell the store a shopper has asked for a price on a "price on request"
  * product.
  *
@@ -2516,7 +3395,7 @@ export async function notifyAdminsQuoteRequest(quote: {
           type: NotificationType.QUOTE_REQUEST,
           title,
           message,
-          link: "/admin/quotes",
+          link: `/admin/quotes?quote=${quote.quoteId}`,
           data: { quoteId: quote.quoteId, recipientRole: USER_ROLES.ADMIN },
         }),
       ),

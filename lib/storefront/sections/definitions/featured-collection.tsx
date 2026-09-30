@@ -172,6 +172,9 @@ export const featuredCollection: SectionDefinition = {
   ],
   starter: { blocks: [{ type: "collection" }, { type: "collection" }] },
   migrate: migrateFeaturedCollectionV1,
+  // A row needs a collection; with none picked, CollectionRows draws nothing.
+  isEmpty: ({ blocks }) =>
+    !blocks.some((block) => block.visible && readRow(block.settings).collection),
   Render: ({ settings, blocks, ctx }) => (
     <CollectionRows
       locale={ctx.locale}

@@ -843,7 +843,6 @@ export function ConversationInbox({
                     </p>
                     <div className="rounded-lg border bg-muted/20">
                       <ProductContextCard
-                        locale={locale}
                         product={draftPreview.productContext}
                         viewProductLabel={tr("viewProduct", "View product")}
                       />
@@ -994,7 +993,6 @@ export function ConversationInbox({
           </div>
 
           <ConversationDetails
-            locale={locale}
             viewerMode={viewerMode}
             conversation={selectedConversation}
             messages={messages}

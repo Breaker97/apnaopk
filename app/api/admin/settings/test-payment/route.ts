@@ -37,7 +37,7 @@ import {
   resolvePesapalCredentials,
   resolveStripeCredentials,
 } from "@/lib/settings/credentials";
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 
 const TestProviderSchema = z.object({ provider: z.string().max(40).optional() });

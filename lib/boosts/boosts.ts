@@ -366,23 +366,45 @@ export async function pauseBoostCampaign(
   campaignId: string,
 ): Promise<IBoostCampaign | null> {
   const now = new Date();
+  const firstReleasable = addDays(utcDay(now), 1);
+
+  // Counted BEFORE the status write, and credited in the same write — the same
+  // discipline as `cancelBoostCampaign`. Deleting the rows first and
+  // incrementing after leaves a window where a crash hands the inventory back
+  // to the market without paying the vendor for it.
+  const willRelease = await BoostSlotDay.countDocuments({
+    campaignId,
+    day: { $gte: firstReleasable },
+  });
+
   const updated = await BoostCampaign.findOneAndUpdate(
     { _id: campaignId, status: BOOST_CAMPAIGN_STATUS.ACTIVE },
-    { $set: { status: BOOST_CAMPAIGN_STATUS.PAUSED, pausedAt: now } },
+    {
+      $set: { status: BOOST_CAMPAIGN_STATUS.PAUSED, pausedAt: now },
+      ...(willRelease > 0 ? { $inc: { releasedDays: willRelease } } : {}),
+    },
     { returnDocument: "after" },
   );
   if (!updated) return null;
 
   const released = await releaseBoostSlotDaysFrom(
     updated._id as Types.ObjectId,
-    addDays(utcDay(now), 1),
+    firstReleasable,
   );
-  if (released.length > 0) {
+
+  // The count and the delete can disagree — a concurrent release took some of
+  // those days first. Settle on what actually came back rather than on the
+  // optimistic count.
+  if (released.length !== willRelease) {
     await BoostCampaign.updateOne(
       { _id: updated._id },
-      { $inc: { releasedDays: released.length } },
+      { $inc: { releasedDays: released.length - willRelease } },
     );
+  }
+  if (released.length > 0 || willRelease > 0) {
     await refreshBoostCredit(updated._id as Types.ObjectId);
+  }
+  if (released.length > 0) {
     await notifyCampaign("days_released", updated, { days: released });
   }
   revalidateSponsoredProducts();
@@ -475,7 +497,9 @@ export async function resumeBoostCampaign(
     await refreshBoostCredit(updated._id as Types.ObjectId);
   }
   revalidateSponsoredProducts();
-  await notifyCampaign("activated", updated);
+  // A resume that lands back in `scheduled` has not started: "your boost is
+  // live" would name a placement that is not rendering for days yet.
+  await notifyCampaign(startsNow ? "activated" : "booked", updated);
   return { ok: true, campaign: updated };
 }
 
@@ -926,46 +950,65 @@ export async function getPositionDeliveryAverages(
 ): Promise<Record<number, number>> {
   const today = utcDay(now);
   const since = addDays(today, -windowDays);
+  // Whole days only, on both sides of the division. Today is half-run, and a
+  // half day of impressions over a whole day of inventory reads as a slump
+  // every morning.
+  const range = { $gte: since, $lt: today };
 
-  const rows = await BoostMetricDaily.aggregate<{
-    _id: number | null;
-    impressions: number;
-    days: number;
-  }>([
-    { $match: { date: { $gte: since, $lte: today } } },
-    // Fold placements together first: one campaign-day is one day of delivery
-    // however many surfaces it rendered on.
-    {
-      $group: {
-        _id: { campaignId: "$campaignId", date: "$date" },
-        impressions: { $sum: "$impressions" },
+  const [impressionRows, bookedRows] = await Promise.all([
+    BoostMetricDaily.aggregate<{ _id: number | null; impressions: number }>([
+      { $match: { date: range } },
+      // Fold placements together first: one campaign-day is one day of delivery
+      // however many surfaces it rendered on.
+      {
+        $group: {
+          _id: { campaignId: "$campaignId", date: "$date" },
+          impressions: { $sum: "$impressions" },
+        },
       },
-    },
-    {
-      $lookup: {
-        from: "boostcampaigns",
-        localField: "_id.campaignId",
-        foreignField: "_id",
-        as: "campaign",
-        pipeline: [{ $project: { position: "$positionSnapshot.position" } }],
+      {
+        $lookup: {
+          from: "boostcampaigns",
+          localField: "_id.campaignId",
+          foreignField: "_id",
+          as: "campaign",
+          pipeline: [{ $project: { position: "$positionSnapshot.position" } }],
+        },
       },
-    },
-    { $unwind: "$campaign" },
-    {
-      $group: {
-        _id: "$campaign.position",
-        impressions: { $sum: "$impressions" },
-        days: { $sum: 1 },
+      { $unwind: "$campaign" },
+      {
+        $group: {
+          _id: "$campaign.position",
+          impressions: { $sum: "$impressions" },
+        },
       },
-    },
+    ]),
+    // THE DENOMINATOR: days the rung was SOLD, not days that happened to
+    // record a metric. A booked day with no traffic writes no BoostMetricDaily
+    // row at all, so counting metric rows quietly drops every quiet day and
+    // reports a rung as busier than it is — on the one screen the ladder is
+    // priced from. Past slot-days are never pruned, so this window is complete.
+    BoostSlotDay.aggregate<{ _id: number | null; days: number }>([
+      { $match: { day: range } },
+      { $group: { _id: "$position", days: { $sum: 1 } } },
+    ]),
   ]);
 
+  const impressionsByPosition = new Map<number, number>();
+  for (const row of impressionRows) {
+    if (typeof row._id === "number") {
+      impressionsByPosition.set(row._id, row.impressions);
+    }
+  }
+
   const averages: Record<number, number> = {};
-  for (const row of rows) {
+  for (const row of bookedRows) {
     // {position, day} is unique, so no two campaigns share a rung-day and the
     // day count is a true denominator rather than a sum of overlaps.
     if (typeof row._id !== "number" || row.days <= 0) continue;
-    averages[row._id] = Math.round(row.impressions / row.days);
+    averages[row._id] = Math.round(
+      (impressionsByPosition.get(row._id) ?? 0) / row.days,
+    );
   }
   return averages;
 }

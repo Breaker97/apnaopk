@@ -59,6 +59,9 @@ function SheetContent({
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        // Left/right sheets cap at `sm:max-w-sm`; a caller wanting a wider one
+        // must pass a `sm:`-prefixed max-width, since a bare `w-[...]` is
+        // still clamped by that default above the `sm` breakpoint.
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-[90] flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&

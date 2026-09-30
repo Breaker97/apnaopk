@@ -1,6 +1,7 @@
 import { ValidationError } from "@/lib/api/errors";
+import { codLimitBreach } from "@/lib/checkout/cod-limits";
 
-export type CashOnDeliverySettings = {
+type CashOnDeliverySettings = {
   enabled?: boolean;
   minOrderAmount?: number;
   maxOrderAmount?: number;
@@ -47,21 +48,21 @@ export function assertCashOnDeliveryAllowed(params: {
       "Cash on Delivery is not available for pre-order items",
     );
   }
-  if (
-    typeof settings?.minOrderAmount === "number" &&
-    total < settings.minOrderAmount
-  ) {
+  // The same rule the checkout form greys the method out with — see
+  // lib/checkout/cod-limits.ts, which both sides read so neither can drift.
+  const breach = codLimitBreach({
+    total,
+    minOrderAmount: settings?.minOrderAmount,
+    maxOrderAmount: settings?.maxOrderAmount,
+  });
+  if (breach === "below_minimum") {
     throw new ValidationError(
-      `Minimum order amount for Cash on Delivery is ${settings.minOrderAmount}`,
+      `Minimum order amount for Cash on Delivery is ${settings?.minOrderAmount}`,
     );
   }
-  if (
-    typeof settings?.maxOrderAmount === "number" &&
-    settings.maxOrderAmount > 0 &&
-    total > settings.maxOrderAmount
-  ) {
+  if (breach === "above_maximum") {
     throw new ValidationError(
-      `Maximum order amount for Cash on Delivery is ${settings.maxOrderAmount}`,
+      `Maximum order amount for Cash on Delivery is ${settings?.maxOrderAmount}`,
     );
   }
 }

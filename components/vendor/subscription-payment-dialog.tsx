@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { CreditCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,12 @@ import { apiClient } from "@/lib/api/client";
 import { openRazorpayCheckout } from "@/components/checkout/checkout-helpers";
 import {
   PaymentMethodPicker,
+  platformPaymentErrorMessage,
   type PlatformGateway,
 } from "@/components/vendor/payment-method-picker";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useGatewayWindow } from "@/hooks/use-gateway-window";
 
 interface InitiationResponse {
   paymentId: string;
@@ -75,6 +77,7 @@ export function SubscriptionPaymentDialog(props: {
   const [mtnMomoPhone, setMtnMomoPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
+  const { gatewayOpen, withGatewayWindow } = useGatewayWindow();
 
   useApplyOnChange([props.open], () => {
     if (!props.open) return;
@@ -172,22 +175,27 @@ export function SubscriptionPaymentDialog(props: {
 
       const initiation = response as InitiationResponse;
       if (initiation.type === "razorpay" && initiation.razorpayOrderId) {
+        const razorpayOrderId = initiation.razorpayOrderId;
         // Never resolves: Razorpay returns the vendor to the dashboard, whose
         // return verifier confirms the payment with the signature it carries.
-        await openRazorpayCheckout({
-          keyId: initiation.keyId ?? "",
-          razorpayOrderId: initiation.razorpayOrderId,
-          amount: initiation.amount ?? 0,
-          currency: initiation.currency ?? "",
-          name: initiation.name ?? "",
-          description: initiation.description,
-          callbackUrl: initiation.callbackUrl ?? "",
-          prefill: initiation.prefill,
-          canceledMessage: label(
-            "vendor.billing.paymentCanceled",
-            "Payment was canceled. Please try again.",
-          ),
-        });
+        // The dialog steps aside meanwhile, or its modal lock would leave
+        // Razorpay's window unclickable.
+        await withGatewayWindow(() =>
+          openRazorpayCheckout({
+            keyId: initiation.keyId ?? "",
+            razorpayOrderId,
+            amount: initiation.amount ?? 0,
+            currency: initiation.currency ?? "",
+            name: initiation.name ?? "",
+            description: initiation.description,
+            callbackUrl: initiation.callbackUrl ?? "",
+            prefill: initiation.prefill,
+            canceledMessage: label(
+              "vendor.billing.paymentCanceled",
+              "Payment was canceled. Please try again.",
+            ),
+          }),
+        );
         return;
       }
 
@@ -207,18 +215,29 @@ export function SubscriptionPaymentDialog(props: {
       );
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : label("vendor.billing.paymentFailed", "Failed to start the payment"),
+        platformPaymentErrorMessage(
+          error,
+          label,
+          label("vendor.billing.paymentFailed", "Failed to start the payment"),
+        ),
       );
     } finally {
       setIsSubmitting(false);
     }
-  }, [method, props, iotecChannel, iotecPhone, mtnMomoPhone, label, pollVerify, router]);
+  }, [
+    method,
+    props,
+    iotecChannel,
+    iotecPhone,
+    mtnMomoPhone,
+    label,
+    pollVerify,
+    withGatewayWindow,
+  ]);
 
   return (
     <Dialog
-      open={props.open}
+      open={props.open && !gatewayOpen}
       onOpenChange={(open) => {
         if (isPolling || isSubmitting) return;
         props.onOpenChange(open);

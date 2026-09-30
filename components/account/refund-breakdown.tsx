@@ -12,6 +12,9 @@
  * afterwards. Same component, so the shopper sees the same shape both times.
  */
 
+import { useTranslations } from "next-intl";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useCurrencyFormatter } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
 
 export interface RefundBreakdownData {
@@ -27,7 +30,6 @@ export interface RefundBreakdownData {
 
 interface RefundBreakdownProps {
   estimate: RefundBreakdownData;
-  formatPrice: (value: number) => string;
   /**
    * Whether the store hands the original delivery back for this return. Known
    * while previewing; absent for a stored estimate, where a zero delivery is
@@ -36,6 +38,11 @@ interface RefundBreakdownProps {
   refundsShipping?: boolean;
   /** Whether the return is the store's fault, which waives both fees. */
   merchantAtFault?: boolean;
+  /**
+   * What has actually been paid back. The list said "Estimated refund" for
+   * ever, and never what reached the shopper.
+   */
+  refundedAmount?: number;
   className?: string;
 }
 
@@ -43,38 +50,59 @@ const isPositive = (value: unknown) => Number(value || 0) > 0;
 
 export function RefundBreakdown({
   estimate,
-  formatPrice,
   refundsShipping,
   merchantAtFault,
+  refundedAmount,
   className,
 }: RefundBreakdownProps) {
-  const rows: Array<{ label: string; value: number; negative?: boolean }> = [
-    { label: "Items", value: Number(estimate.itemsSubtotal || 0) },
+  const t = useTranslations();
+  const tf = useFallbackTranslator(t);
+  // In the currency the return was priced in, not whatever the store shows
+  // today — after a change of store currency the old symbol was wrong.
+  const formatPrice = useCurrencyFormatter(estimate.currency);
+
+  const rows: Array<{ key: string; label: string; value: number; negative?: boolean }> = [
+    {
+      key: "items",
+      label: tf("orders.returns.breakdown.items", "Items"),
+      value: Number(estimate.itemsSubtotal || 0),
+    },
   ];
 
   if (isPositive(estimate.discountAdjustment)) {
     rows.push({
-      label: "Discount applied at checkout",
+      key: "discount",
+      label: tf("orders.returns.breakdown.discount", "Discount applied at checkout"),
       value: Number(estimate.discountAdjustment),
       negative: true,
     });
   }
   if (isPositive(estimate.tax)) {
-    rows.push({ label: "Tax", value: Number(estimate.tax) });
+    rows.push({
+      key: "tax",
+      label: tf("orders.returns.breakdown.tax", "Tax"),
+      value: Number(estimate.tax),
+    });
   }
   if (isPositive(estimate.shipping)) {
-    rows.push({ label: "Delivery charge", value: Number(estimate.shipping) });
+    rows.push({
+      key: "shipping",
+      label: tf("orders.returns.breakdown.delivery", "Delivery charge"),
+      value: Number(estimate.shipping),
+    });
   }
   if (isPositive(estimate.restockingFee)) {
     rows.push({
-      label: "Restocking fee",
+      key: "restocking",
+      label: tf("orders.returns.breakdown.restockingFee", "Restocking fee"),
       value: Number(estimate.restockingFee),
       negative: true,
     });
   }
   if (isPositive(estimate.returnShippingFee)) {
     rows.push({
-      label: "Return shipping",
+      key: "returnShipping",
+      label: tf("orders.returns.breakdown.returnShipping", "Return shipping"),
       value: Number(estimate.returnShippingFee),
       negative: true,
     });
@@ -90,7 +118,7 @@ export function RefundBreakdown({
     <div className={cn("rounded-md border bg-muted/40 p-4 text-sm", className)}>
       <dl className="grid gap-2">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-baseline justify-between gap-4">
+          <div key={row.key} className="flex items-baseline justify-between gap-4">
             <dt className="text-muted-foreground">{row.label}</dt>
             <dd className="tabular-nums">
               {row.negative ? "−" : ""}
@@ -101,22 +129,42 @@ export function RefundBreakdown({
 
         {showsUnrefundedDelivery ? (
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">Delivery charge</dt>
-            <dd className="text-muted-foreground">Not refunded</dd>
+            <dt className="text-muted-foreground">
+              {tf("orders.returns.breakdown.delivery", "Delivery charge")}
+            </dt>
+            <dd className="text-muted-foreground">
+              {tf("orders.returns.breakdown.notRefunded", "Not refunded")}
+            </dd>
           </div>
         ) : null}
 
         <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-3">
-          <dt className="font-medium">Estimated refund</dt>
+          <dt className="font-medium">
+            {tf("orders.returns.breakdown.estimated", "Estimated refund")}
+          </dt>
           <dd className="font-medium tabular-nums">
             {formatPrice(Number(estimate.total || 0))}
           </dd>
         </div>
+
+        {isPositive(refundedAmount) ? (
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="font-medium">
+              {tf("orders.returns.breakdown.refunded", "Refunded so far")}
+            </dt>
+            <dd className="font-medium tabular-nums">
+              {formatPrice(Number(refundedAmount))}
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
       {merchantAtFault ? (
         <p className="mt-3 text-xs text-muted-foreground">
-          This return is on us, so there is no restocking or return shipping fee.
+          {tf(
+            "orders.returns.breakdown.onUs",
+            "This return is on us, so there is no restocking or return shipping fee.",
+          )}
         </p>
       ) : null}
     </div>

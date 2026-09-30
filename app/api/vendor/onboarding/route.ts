@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { z } from "zod";
+import * as z from "zod";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
 import { User, Vendor, VendorApplication } from "@/models";

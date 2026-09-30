@@ -21,16 +21,7 @@ import { withCronRun } from "@/lib/cron/health";
  * install that never enables boosting this scans a handful of empty indexed
  * queries and exits.
  */
-export const GET = withCronRun("boosts", async (request) => {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
+export const GET = withCronRun("boosts", async () => {
   await connectDB();
   const summary = await reconcileBoostCampaigns(100);
 

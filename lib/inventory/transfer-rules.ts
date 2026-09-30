@@ -86,7 +86,7 @@ export function canTransitionTransferStatus(
   return STATUS_TRANSITIONS[currentStatus]?.includes(nextStatus) ?? false;
 }
 
-export type TransferLineProgress = {
+type TransferLineProgress = {
   quantity: number;
   receivedQuantity?: number;
   rejectedQuantity?: number;
@@ -144,7 +144,7 @@ export type TransferReceiptInput = {
   rejected: number;
 };
 
-export type TransferReceiptLine = {
+type TransferReceiptLine = {
   productId: string;
   variantId: string;
   quantity: number;
@@ -152,7 +152,7 @@ export type TransferReceiptLine = {
   rejectedQuantity: number;
 };
 
-export type TransferReceiptPlan = {
+type TransferReceiptPlan = {
   /** Every line of the transfer with its progress after this receipt. */
   items: TransferReceiptLine[];
   /** Units to add at the destination, one entry per line with any accepted. */

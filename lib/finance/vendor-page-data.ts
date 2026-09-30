@@ -7,6 +7,7 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getVendorStatement, resolveRequestedPeriod } from "@/lib/finance/reports";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 /**
  * The guard and the load every vendor finance screen repeats.
@@ -26,7 +27,7 @@ export async function guardVendorFinance(locale: string) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.multiVendorMode?.enabled) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
 
   const vendor = await requireApprovedVendorByUserId(access.session.user.id);

@@ -177,26 +177,6 @@ export function locationOwnerFilter(
   return filter;
 }
 
-/** Whether a loaded location may be acted on under this scope. */
-export function ownsLocation(
-  location: { _id?: unknown; vendorId?: unknown } | null | undefined,
-  scope: InventoryLocationScope,
-): boolean {
-  if (!location) return false;
-
-  if (
-    scope.locationIds.length > 0 &&
-    !scope.locationIds.includes(String(location._id))
-  ) {
-    return false;
-  }
-
-  // Unowned legacy row — see `locationOwnerFilter`.
-  if (location.vendorId === undefined || location.vendorId === null) return true;
-
-  return scope.readVendorIds.includes(String(location.vendorId));
-}
-
 /**
  * The subset of `locationIds` this caller may actually write to, as a Set.
  *

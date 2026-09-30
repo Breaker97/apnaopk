@@ -18,21 +18,6 @@ export const QUOTE_REQUEST_STATUSES = [
 
 export type QuoteRequestStatus = (typeof QUOTE_REQUEST_STATUSES)[number];
 
-/** Column/dropdown wording for each status. */
-export const QUOTE_REQUEST_STATUS_LABELS: Record<QuoteRequestStatus, string> = {
-  new: "New",
-  in_progress: "In progress",
-  quoted: "Quoted",
-  won: "Won",
-  lost: "Lost",
-};
-
-export function isQuoteRequestStatus(
-  value: unknown,
-): value is QuoteRequestStatus {
-  return QUOTE_REQUEST_STATUSES.includes(value as QuoteRequestStatus);
-}
-
 /**
  * How the merchant's price offer on a quote stands right now.
  *
@@ -52,10 +37,69 @@ export const QUOTE_OFFER_STATES = [
 
 export type QuoteOfferState = (typeof QUOTE_OFFER_STATES)[number];
 
-export const QUOTE_OFFER_STATE_LABELS: Record<QuoteOfferState, string> = {
-  none: "No price sent",
-  live: "Offer open",
-  expired: "Offer expired",
-  withdrawn: "Offer withdrawn",
-  ordered: "Ordered",
+
+/**
+ * Where a quote stands, as the admin Quotes page shows it: one answer per
+ * row, in place of the old staff dropdown plus a separate offer badge that
+ * could say two different things at once ("Won" beside "Offer withdrawn").
+ *
+ * Derived on read, like the offer state above, from the stored `status`, the
+ * offer and the order the offer was spent on — so it cannot disagree with
+ * them. The only stored input a person sets is `lost`; everything else moves
+ * because something happened (a price was sent, it lapsed, an order was
+ * placed or paid). See `quoteStageExpression` in lib/quotes/quotes.ts.
+ *
+ *   needs_reply  asked, no price sent yet
+ *   offer_sent   the price is live and buyable
+ *   expired      the price lapsed without an order
+ *   ordered      an order holds the price and is not paid yet
+ *   won          that order is paid
+ *   closed       marked lost, or the price was withdrawn
+ */
+export const QUOTE_STAGES = [
+  "needs_reply",
+  "offer_sent",
+  "expired",
+  "ordered",
+  "won",
+  "closed",
+] as const;
+
+export type QuoteStage = (typeof QUOTE_STAGES)[number];
+
+/**
+ * The admin list's tabs. `ordered` covers both stages an order can put a
+ * quote in, paid or not: the tab answers "which of these became orders".
+ */
+const QUOTE_LIST_TABS = [
+  "needs_reply",
+  "offer_sent",
+  "expired",
+  "ordered",
+  "closed",
+] as const;
+
+type QuoteListTab = (typeof QUOTE_LIST_TABS)[number];
+
+export function isQuoteListTab(value: unknown): value is QuoteListTab {
+  return QUOTE_LIST_TABS.includes(value as QuoteListTab);
+}
+
+/** The stages each tab lists. */
+export const QUOTE_TAB_STAGES: Record<QuoteListTab, QuoteStage[]> = {
+  needs_reply: ["needs_reply"],
+  offer_sent: ["offer_sent"],
+  expired: ["expired"],
+  ordered: ["ordered", "won"],
+  closed: ["closed"],
 };
+
+/**
+ * Payment statuses that make the order an offer was spent on a paid one —
+ * money arrived, even if some of it later went back.
+ */
+export const QUOTE_WON_PAYMENT_STATUSES = [
+  "paid",
+  "partially_refunded",
+  "refunded",
+] as const;

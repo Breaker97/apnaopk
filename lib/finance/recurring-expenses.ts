@@ -9,77 +9,26 @@
  * **Catches up rather than skipping.** A store whose cron was down for two
  * months gets both months, each dated when it was actually due — not one row
  * dated today. That is the difference between a ledger that matches reality and
- * one that matches the uptime of a cron.
+ * one that matches the uptime of a cron. Whether a template dated in the past
+ * owes its past is decided when it is switched on (`nextDueAt`), not here.
+ *
+ * The calendar arithmetic lives in `recurring-schedule`, which the form shares.
  */
 
 import { Types } from "mongoose";
 import { Expense } from "@/models/expense.model";
 import { postExpense } from "@/lib/finance/post-events";
+import {
+  dueDateFor,
+  nextOccurrence,
+  type RecurringInterval,
+} from "@/lib/finance/recurring-schedule";
 
-type RecurringInterval = "weekly" | "monthly" | "quarterly" | "yearly";
+export { dueDateFor, nextOccurrence };
 
-/**
- * The next occurrence after `from`. Months step by calendar, not by 30 days.
- *
- * `anchorDay` is the day of the month the template was set up on, and it has to
- * be passed along the whole chain rather than read off the previous occurrence.
- * Rent due on the 31st falls to the 28th in February — that part is unavoidable
- * — but if the next step then measures from the 28th, the 31st is gone for
- * good and the template quietly pays on the 28th for the rest of its life. The
- * anchor is what lets it climb back to the 31st in March.
- */
-export function nextOccurrence(
-  from: Date,
-  interval: RecurringInterval,
-  anchorDay = from.getUTCDate(),
-): Date {
-  if (interval === "weekly") {
-    // A week is always seven days; no month-end reasoning applies.
-    const next = new Date(from);
-    next.setUTCDate(next.getUTCDate() + 7);
-    return next;
-  }
-  const months = interval === "quarterly" ? 3 : interval === "yearly" ? 12 : 1;
-  return addMonths(from, months, anchorDay);
-}
-
-/**
- * `from` plus `months`, landing on `anchorDay` or the last day of that month.
- *
- * Built from the target month rather than by nudging the date, because
- * `setUTCMonth` overflows: 31 January plus a month is 3 March, since February
- * has no 31st. Asking the target month how many days it has and taking the
- * smaller of the two is what a calendar means by "monthly".
- */
-function addMonths(from: Date, months: number, anchorDay: number): Date {
-  const target = new Date(
-    Date.UTC(
-      from.getUTCFullYear(),
-      from.getUTCMonth() + months,
-      1,
-      from.getUTCHours(),
-      from.getUTCMinutes(),
-      from.getUTCSeconds(),
-      from.getUTCMilliseconds(),
-    ),
-  );
-  // Day 0 of the following month is the last day of this one.
-  const lastDay = new Date(
-    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  target.setUTCDate(Math.min(anchorDay, lastDay));
-  return target;
-}
-
-/** A template that has never run is due one interval after its own date. */
-export function dueDateFor(template: {
-  date: Date;
-  recurring?: { interval?: RecurringInterval; nextDueAt?: Date | null } | null;
-}): Date {
-  const interval = template.recurring?.interval ?? "monthly";
-  return (
-    template.recurring?.nextDueAt ?? nextOccurrence(template.date, interval)
-  );
+/** A second insert of the same copy, refused by the unique index. */
+function isDuplicateKey(error: unknown): boolean {
+  return (error as { code?: number } | null)?.code === 11000;
 }
 
 /**
@@ -115,60 +64,72 @@ export async function runRecurringExpenses(
     // it from the previous occurrence instead lets one February pull a rent
     // template down to the 28th permanently.
     const anchorDay = template.date.getUTCDate();
+    const endsAt = template.recurring?.endsAt ?? null;
     let due = dueDateFor(template);
     let madeForThisTemplate = 0;
 
-    while (due <= now && madeForThisTemplate < maxPerTemplate) {
-      // Idempotent by construction: one copy per template per due date, so a
-      // tick that runs twice — or a retry after a crash mid-loop — collides on
-      // the same query rather than duplicating a month's rent.
+    while (
+      due <= now &&
+      (!endsAt || due <= endsAt) &&
+      madeForThisTemplate < maxPerTemplate
+    ) {
+      // One copy per template per due date. The check skips the work on a
+      // re-run; the unique index on (template, date) is what actually holds
+      // when two runs overlap, since a check and an insert are two steps.
       const exists = await Expense.exists({
         "recurring.templateId": template._id,
         date: due,
       });
 
       if (!exists) {
-        const copy = await Expense.create({
-          date: due,
-          book: template.book,
-          scope: "platform",
-          category: template.category,
-          amount: template.amount,
-          currency: template.currency,
-          description: template.description,
-          payee: template.payee ?? null,
-          paidFrom: template.paidFrom,
-          vendorId: template.vendorId ?? null,
-          note: template.note ?? null,
-          // Copied, not re-derived: a copy must post to the same account its
-          // template did, or a stock template would start splitting its costs
-          // across two accounts the day the mapping is touched.
-          debitAccount: template.debitAccount ?? "operating_expense",
-          // The copy is NOT itself a template — otherwise every month would
-          // start generating its own children and the store would drown.
-          recurring: {
-            enabled: false,
-            interval,
-            nextDueAt: null,
-            templateId: template._id as Types.ObjectId,
-          },
-          createdBy: template.createdBy,
-        });
+        try {
+          const copy = await Expense.create({
+            date: due,
+            book: template.book,
+            scope: "platform",
+            category: template.category,
+            amount: template.amount,
+            currency: template.currency,
+            description: template.description,
+            payee: template.payee ?? null,
+            paidFrom: template.paidFrom,
+            vendorId: template.vendorId ?? null,
+            note: template.note ?? null,
+            // Copied, not re-derived: a copy must post to the same account its
+            // template did, or a stock template would start splitting its costs
+            // across two accounts the day the mapping is touched.
+            debitAccount: template.debitAccount ?? "operating_expense",
+            // The copy is NOT itself a template — otherwise every month would
+            // start generating its own children and the store would drown. It
+            // does not inherit a payment either: each month's bill is paid on
+            // its own.
+            recurring: {
+              enabled: false,
+              interval,
+              nextDueAt: null,
+              templateId: template._id as Types.ObjectId,
+            },
+            createdBy: template.createdBy,
+          });
 
-        await postExpense({
-          _id: copy._id,
-          date: copy.date,
-          book: copy.book,
-          category: copy.category,
-          amount: copy.amount,
-          currency: copy.currency,
-          description: copy.description,
-          paidFrom: copy.paidFrom,
-          vendorId: copy.vendorId,
-          revision: 0,
-          debitAccount: copy.debitAccount,
-        });
-        created += 1;
+          await postExpense({
+            _id: copy._id,
+            date: copy.date,
+            book: copy.book,
+            category: copy.category,
+            amount: copy.amount,
+            currency: copy.currency,
+            description: copy.description,
+            paidFrom: copy.paidFrom,
+            vendorId: copy.vendorId,
+            revision: 0,
+            debitAccount: copy.debitAccount,
+          });
+          created += 1;
+        } catch (error) {
+          // Another run made this copy between the check and the insert.
+          if (!isDuplicateKey(error)) throw error;
+        }
       }
 
       due = nextOccurrence(due, interval, anchorDay);
@@ -176,10 +137,17 @@ export async function runRecurringExpenses(
     }
 
     // Move the clock forward even when nothing was created, so a template whose
-    // copies already exist is not re-examined on every tick forever.
+    // copies already exist is not re-examined on every tick forever. A series
+    // past its end date is switched off, so the list stops calling it one.
+    const ended = Boolean(endsAt && due > endsAt);
     await Expense.updateOne(
       { _id: template._id },
-      { $set: { "recurring.nextDueAt": due } },
+      {
+        $set: {
+          "recurring.nextDueAt": due,
+          ...(ended ? { "recurring.enabled": false } : {}),
+        },
+      },
     );
   }
 

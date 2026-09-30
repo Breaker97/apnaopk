@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
+import { useTranslations } from "next-intl";
 import { PanelLeftIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -162,6 +163,7 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const t = useTranslations("admin.sidebar");
 
   if (collapsible === "none") {
     return (
@@ -187,9 +189,16 @@ function Sidebar({
           data-slot="sidebar"
           data-mobile="true"
           className={cn(
-            "bg-sidebar text-sidebar-foreground w-(--sidebar-width) max-w-(--sidebar-width) p-0 [&>button]:hidden",
+            "bg-sidebar text-sidebar-foreground w-(--sidebar-width) max-w-(--sidebar-width) p-0 outline-none [&>button]:hidden",
             className,
           )}
+          // The drawer takes focus itself rather than its first control: that
+          // is the settings menu's search box, and focusing it on open put
+          // the phone's keyboard over the menu. Tab still starts inside.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            (event.currentTarget as HTMLElement | null)?.focus();
+          }}
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -199,8 +208,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>{t("mobileTitle")}</SheetTitle>
+            <SheetDescription>{t("mobileDescription")}</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -220,7 +229,7 @@ function Sidebar({
       data-side={side}
       data-slot="sidebar"
       role="navigation"
-      aria-label="Primary"
+      aria-label={t("landmark")}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
@@ -268,6 +277,7 @@ function SidebarTrigger({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
+  const t = useTranslations("admin.sidebar");
 
   return (
     <Button
@@ -283,7 +293,7 @@ function SidebarTrigger({
       {...props}
     >
       <PanelLeftIcon className="h-6 w-6" />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">{t("toggle")}</span>
     </Button>
   );
 }

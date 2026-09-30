@@ -51,13 +51,18 @@ interface PreorderListContext {
 function releaseWindowCondition(view: string): Record<string, unknown> | null {
   if (view === "overdue") {
     return {
-      preorderStatus: PREORDER_ITEM_STATUS.RESERVED,
+      // A delayed reservation counts against its new date, as the sweep does.
+      preorderStatus: {
+        $in: [PREORDER_ITEM_STATUS.RESERVED, PREORDER_ITEM_STATUS.DELAYED],
+      },
       preorderReleaseDate: { $lt: new Date() },
     };
   }
   if (view === "due_soon") {
     return {
-      preorderStatus: PREORDER_ITEM_STATUS.RESERVED,
+      preorderStatus: {
+        $in: [PREORDER_ITEM_STATUS.RESERVED, PREORDER_ITEM_STATUS.DELAYED],
+      },
       preorderReleaseDate: {
         $gte: new Date(),
         $lte: new Date(Date.now() + DUE_SOON_WINDOW_MS),

@@ -83,6 +83,21 @@ export interface IPlatformPayment extends Document {
   provider: PlatformPaymentProvider;
   status: PlatformPaymentStatus;
   amount: number;
+  /**
+   * What has been given back, CUMULATIVE — never one refund's own figure.
+   *
+   * Stripe reports `amount_refunded` as a running total that arrives replayed,
+   * out of order and concurrently, and the boost credit formula subtracts this
+   * from what is owed. A per-refund figure could not be reconciled against
+   * either.
+   *
+   * It was written before it was declared here, which with `strict` on meant
+   * mongoose stripped every `$set` of it: the field never reached the database,
+   * `{$lt}` never matched the document that lacked it, and so a partially
+   * refunded boost went on showing the whole refund as still owed while the
+   * money had already left.
+   */
+  refundedAmount: number;
   currency: string;
   /** Our merchant reference ("BOOST-<id>-<ts36>" / "VSUB-<id>-<ts36>"). */
   reference: string;
@@ -110,6 +125,11 @@ export interface IPlatformPayment extends Document {
   benefitGrantedAt: Date | null;
   failedAt: Date | null;
   failureReason: string | null;
+  /**
+   * Provider "manual" only: what the admin wrote down when recording money
+   * taken offline — a bank transfer id, a receipt number.
+   */
+  note: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -183,6 +203,13 @@ const PlatformPaymentSchema = new Schema<IPlatformPayment>(
       required: true,
       min: [0, "Amount cannot be negative"],
     },
+    // Undefaulted on purpose: a row written before this existed carries
+    // nothing, and the claims that move it have to treat "missing" and "zero"
+    // alike anyway — see `refundedAtMostMatch`.
+    refundedAmount: {
+      type: Number,
+      min: [0, "A refund cannot be negative"],
+    },
     currency: {
       type: String,
       required: true,
@@ -213,6 +240,7 @@ const PlatformPaymentSchema = new Schema<IPlatformPayment>(
   benefitGrantedAt: { type: Date, default: null },
     failedAt: { type: Date, default: null },
     failureReason: { type: String, default: null },
+    note: { type: String, default: null, trim: true, maxlength: 200 },
   },
   {
     timestamps: true,
@@ -273,6 +301,28 @@ PlatformPaymentSchema.index(
   { stripePaymentIntentId: 1 },
   uniqueWhenString("stripePaymentIntentId"),
 );
+
+/**
+ * "This attempt has given back less than `total`" — the guard a refund claims
+ * its increase under.
+ *
+ * Spelled out here rather than written at each call site because the obvious
+ * spelling is wrong in a way nothing reports. MongoDB brackets `$lt` by type,
+ * so `{refundedAmount: {$lt: 10}}` does NOT match a document that has no
+ * `refundedAmount` at all — which is every row written before the field
+ * existed, and so every FIRST refund. The claim silently matched nothing, the
+ * cumulative total never moved off zero, and the credit formula went on
+ * offering a refund that had already been paid.
+ */
+export function refundedBelowMatch(total: number): Record<string, unknown> {
+  return {
+    $or: [
+      { refundedAmount: { $lt: total } },
+      { refundedAmount: { $exists: false } },
+      { refundedAmount: null },
+    ],
+  };
+}
 
 export const PlatformPayment: Model<IPlatformPayment> =
   mongoose.models.PlatformPayment ||

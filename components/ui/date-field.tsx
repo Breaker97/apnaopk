@@ -32,6 +32,18 @@ export function DateField({
   placeholder,
   /** Days after this cannot be picked — a cost cannot be incurred in the future. */
   disableAfter,
+  /** Days before this cannot be picked — a bill cannot be paid before it exists. */
+  disableBefore,
+  /**
+   * Month and year menus in the calendar's caption, reaching back to
+   * `startMonth` — for a date that may be years ago.
+   */
+  yearPicker = false,
+  startMonth,
+  /** The last month the menus offer; defaults to `disableAfter`. */
+  endMonth,
+  invalid = false,
+  ariaDescribedBy,
 }: {
   id?: string;
   value: string;
@@ -40,6 +52,12 @@ export function DateField({
   className?: string;
   placeholder?: string;
   disableAfter?: Date;
+  disableBefore?: Date;
+  yearPicker?: boolean;
+  startMonth?: Date;
+  endMonth?: Date;
+  invalid?: boolean;
+  ariaDescribedBy?: string;
 }) {
   const locale = useLocale();
   const [open, setOpen] = React.useState(false);
@@ -66,9 +84,12 @@ export function DateField({
           type="button"
           variant="outline"
           disabled={disabled}
+          aria-invalid={invalid || undefined}
+          aria-describedby={ariaDescribedBy}
           className={cn(
             "w-full justify-between font-normal",
             !selected && "text-muted-foreground",
+            invalid && "border-destructive",
             className,
           )}
         >
@@ -81,7 +102,13 @@ export function DateField({
           mode="single"
           selected={selected}
           defaultMonth={selected}
-          disabled={disableAfter ? { after: disableAfter } : undefined}
+          disabled={[
+            ...(disableAfter ? [{ after: disableAfter }] : []),
+            ...(disableBefore ? [{ before: disableBefore }] : []),
+          ]}
+          captionLayout={yearPicker ? "dropdown" : "label"}
+          startMonth={yearPicker ? startMonth : undefined}
+          endMonth={yearPicker ? (endMonth ?? disableAfter) : undefined}
           onSelect={(date) => {
             if (!date) return;
             // Formatted from the local parts, never `toISOString()`: that is

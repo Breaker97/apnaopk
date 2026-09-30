@@ -7,6 +7,8 @@ import {
   resolveListSort,
   type ListResult,
 } from "@/lib/api/list-query";
+import { mergeScopeFilter, type StaffAccessScope } from "@/lib/access/staff-scope";
+import { staffReviewScopeFilter } from "@/lib/catalog/review-staff-scope";
 
 /**
  * Admin review list query.
@@ -89,11 +91,15 @@ function buildReviewListFilter({
 
 export async function fetchAdminReviewList(
   params: AdminReviewListParams,
+  staffScope?: StaffAccessScope | null,
 ): Promise<ListResult<unknown>> {
   await connectDB();
 
   const { page, limit, sortBy, sortOrder } = params;
-  const query = buildReviewListFilter(params);
+  const query = mergeScopeFilter(
+    buildReviewListFilter(params),
+    await staffReviewScopeFilter(staffScope),
+  );
   const sort = resolveListSort({
     sortBy,
     sortOrder,

@@ -8,7 +8,8 @@
  * this same page); this file is the Classic markup over that state.
  */
 
-import Link from "next/link";
+import { useStoreDefaultLocale } from "@/hooks/use-locale-navigation";
+import Link from "@/components/language/link";
 import type { CartItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +60,7 @@ function SummaryRow({
 }
 
 export function CartPageContent() {
+  const storeDefault = useStoreDefaultLocale();
   const {
     t,
     locale,
@@ -113,7 +115,7 @@ export function CartPageContent() {
             {t("cart.emptyCartDescription")}
           </p>
           <Button asChild>
-            <Link href={`/${locale}/products`}>{t("common.shopNow")}</Link>
+            <Link href="/products">{t("common.shopNow")}</Link>
           </Button>
         </div>
       </div>
@@ -124,6 +126,9 @@ export function CartPageContent() {
    * One cart line. Extracted so the list can be rendered either flat or
    * under per-seller headers without the markup existing twice.
    */
+  // Said before they pay: a final-sale line cannot be sent back.
+  const finalSaleLabel = t("cart.finalSale");
+
   const renderCartLine = (item: CartItem) => {
     // A product name sits one level below whatever introduces it: directly
     // under the page's <h1> on a single-seller bag, under the seller's <h2>
@@ -220,6 +225,11 @@ export function CartPageContent() {
                 Low in stock
               </p>
             )}
+            {item.finalSale ? (
+              <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+                {finalSaleLabel}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -286,6 +296,7 @@ export function CartPageContent() {
       <StoreBreadcrumb
         className="mb-4 sm:mb-6"
         locale={locale}
+        storeDefault={storeDefault}
         jsonLd={false}
         items={[{ label: t("common.cart") }]}
       />
@@ -480,7 +491,7 @@ export function CartPageContent() {
           </button>
 
           <Link
-            href={`/${locale}/products`}
+            href="/products"
             data-slot="button"
             className="mt-3 flex h-[46px] w-full items-center justify-center rounded-lg border border-input bg-background px-4 text-center text-[14px] font-semibold leading-none text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/20"
           >

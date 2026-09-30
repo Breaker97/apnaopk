@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/language/link";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   BarChart3,
@@ -81,7 +81,7 @@ function buildStaffNav(
   const mainItems: NavItem[] = [
     {
       key: "dashboard",
-      href: `/${locale}/staff/dashboard`,
+      href: "/staff/dashboard",
       label: "admin.sidebar.dashboard",
       icon: LayoutDashboard,
     },
@@ -90,7 +90,7 @@ function buildStaffNav(
   if (has(STAFF_PERMISSIONS.VIEW_ORDERS)) {
     mainItems.push({
       key: "orders",
-      href: `/${locale}/staff/orders`,
+      href: "/staff/orders",
       label: "admin.sidebar.orders",
       icon: ClipboardList,
     });
@@ -105,7 +105,7 @@ function buildStaffNav(
   ) {
     mainItems.push({
       key: "products",
-      href: `/${locale}/staff/products`,
+      href: "/staff/products",
       label: "admin.sidebar.products",
       icon: Package,
     });
@@ -120,7 +120,7 @@ function buildStaffNav(
   ) {
     mainItems.push({
       key: "inventory",
-      href: `/${locale}/staff/inventory`,
+      href: "/staff/inventory",
       label: "admin.sidebar.inventory",
       icon: Warehouse,
     });
@@ -135,7 +135,7 @@ function buildStaffNav(
   ) {
     mainItems.push({
       key: "customers",
-      href: `/${locale}/staff/customers`,
+      href: "/staff/customers",
       label: "admin.sidebar.customers",
       icon: Users,
     });
@@ -145,13 +145,13 @@ function buildStaffNav(
     mainItems.push(
       {
         key: "analytics",
-        href: `/${locale}/staff/analytics`,
+        href: "/staff/analytics",
         label: "admin.sidebar.analytics",
         icon: BarChart3,
       },
       {
         key: "search-insights",
-        href: `/${locale}/staff/analytics/search`,
+        href: "/staff/analytics/search",
         label: "admin.sidebar.searchInsights",
         icon: SearchX,
       },
@@ -165,7 +165,7 @@ function buildStaffNav(
   ) {
     mainItems.push({
       key: "inbox",
-      href: `/${locale}/staff/inbox`,
+      href: "/staff/inbox",
       label: "admin.sidebar.inbox",
       icon: MessageSquare,
     });
@@ -179,7 +179,7 @@ function buildStaffNav(
       items: [
         {
           key: "pos",
-          href: `/${locale}/staff/pos`,
+          href: "/staff/pos",
           label: "admin.sidebar.pos",
           icon: ShoppingCart,
         },
@@ -354,7 +354,7 @@ export function StaffSidebar({
   // matching lit "Analytics" and "Search insights" together on the latter,
   // whose URL nests under the former's.
   const navHrefs = navGroups.flatMap((group) =>
-    group.items.map((item) => item.href.replace(`/${locale}`, "")),
+    group.items.map((item) => item.href),
   );
   const isItemActive = (href: string) => {
     if (basePath === href) return true;
@@ -370,7 +370,7 @@ export function StaffSidebar({
     return null;
   }
 
-  const profileHref = `/${locale}/staff/profile`;
+  const profileHref = "/staff/profile";
   const isProfileActive = isItemActive(`/staff/profile`);
 
   return (
@@ -398,7 +398,7 @@ export function StaffSidebar({
       <SidebarHeader className="border-b-0 px-3 py-3 relative group-data-[collapsible=icon]:px-2">
         <Link
           prefetch={false}
-          href={`/${locale}/staff/dashboard`}
+          href="/staff/dashboard"
           className="flex w-full items-center px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
           {renderBrand()}
@@ -428,9 +428,7 @@ export function StaffSidebar({
               <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-3">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const active = isItemActive(
-                    item.href.replace(`/${locale}`, ""),
-                  );
+                  const active = isItemActive(item.href);
                   const count = item.key === "inbox" ? inboxUnread : 0;
                   return (
                     <SidebarMenuItem

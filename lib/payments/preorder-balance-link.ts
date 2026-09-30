@@ -56,12 +56,33 @@ import { appBaseUrl } from "@/lib/app-url";
  * sitting in inboxes are HMACs of that string, and renaming it would kill
  * every one of them.
  */
-type LinkPurpose = "balance" | "manage";
+type LinkPurpose = "balance" | "manage" | "address" | "pay";
 
 const PURPOSE_LABEL: Record<LinkPurpose, string> = {
   balance: "preorder-balance-link",
   manage: "preorder-manage-link",
+  // Any order, not only a pre-order: the link in an undeliverable-address
+  // request. It corrects or confirms the delivery address and nothing else.
+  address: "order-address-link",
+  // "Pay now" for an order whose payment never arrived — the one purpose
+  // here that carries its own expiry. See `createOrderPayToken`.
+  pay: "order-pay-link",
 };
+
+/**
+ * How long a "pay now" link works for.
+ *
+ * The others are open-ended because what they authorise is self-limiting: a
+ * balance link stops working when the balance is settled, an address link
+ * when the parcel ships. A pay link is different in kind — it is sent because
+ * a payment failed, and the thing it authorises (paying for this order) stays
+ * possible for as long as the order does. Left open-ended it would be a
+ * payment page sitting in a mailbox for ever.
+ *
+ * Seven days, which is the provider deadline Shopify describes for a pending
+ * payment and comfortably longer than any reminder ladder.
+ */
+const PAY_LINK_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
 function signingSecret(): string | undefined {
   const secret = process.env.BETTER_AUTH_SECRET;
@@ -72,6 +93,89 @@ function signature(orderId: string, secret: string, purpose: LinkPurpose): strin
   return createHmac("sha256", secret)
     .update(`${PURPOSE_LABEL[purpose]}:${orderId}`)
     .digest("base64url");
+}
+
+/**
+ * The signature over an order id AND the moment the link stops working.
+ *
+ * The expiry is signed rather than stored, so the token still needs nothing
+ * in the database and still cannot be edited: moving the date by a day
+ * changes the HMAC, and a tampered token verifies as nothing at all.
+ */
+function expiringSignature(
+  orderId: string,
+  secret: string,
+  purpose: LinkPurpose,
+  expiresAt: number,
+): string {
+  return createHmac("sha256", secret)
+    .update(`${PURPOSE_LABEL[purpose]}:${orderId}:${expiresAt}`)
+    .digest("base64url");
+}
+
+/**
+ * The link that lets a shopper pay for an order whose payment never arrived.
+ *
+ * Unlike the others it expires, and unlike the others it is NOT stable: each
+ * one is minted for seven days from the moment it is sent, so a second
+ * reminder carries a link that outlives the first. That is the right way
+ * round here — the older link is the one that should die.
+ */
+export function createOrderPayToken(
+  orderId: string,
+  now: Date = new Date(),
+): string | undefined {
+  const secret = signingSecret();
+  if (!secret) return undefined;
+  const id = String(orderId);
+  if (!Types.ObjectId.isValid(id)) return undefined;
+  const expiresAt = now.getTime() + PAY_LINK_LIFETIME_MS;
+  return `${id}.${expiresAt.toString(36)}.${expiringSignature(
+    id,
+    secret,
+    "pay",
+    expiresAt,
+  )}`;
+}
+
+/**
+ * The order a pay token names, if it really signed it and has not run out.
+ *
+ * An expired link is the same `null` as a forged one, deliberately: the page
+ * behind it tells the shopper their link has expired and offers a fresh one,
+ * which is a friendlier answer than any this function could give and the only
+ * one that does not turn a signature check into an order-existence oracle.
+ */
+export function readOrderPayToken(
+  token: string | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  const secret = signingSecret();
+  if (!secret || !token) return null;
+  const parts = String(token).split(".");
+  if (parts.length !== 3) return null;
+  const [orderId, expiryPart, presented] = parts;
+  if (!Types.ObjectId.isValid(orderId) || !presented) return null;
+
+  const expiresAt = parseInt(expiryPart, 36);
+  if (!Number.isFinite(expiresAt) || expiresAt <= now.getTime()) return null;
+
+  const expected = expiringSignature(orderId, secret, "pay", expiresAt);
+  const presentedBuffer = Buffer.from(presented, "utf8");
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  if (presentedBuffer.length !== expectedBuffer.length) return null;
+  return timingSafeEqual(presentedBuffer, expectedBuffer) ? orderId : null;
+}
+
+/** Where the pay link points, absolute — it only ever goes in an email. */
+export function orderPayLinkUrl(
+  orderId: string,
+  locale?: string,
+): string | undefined {
+  const token = createOrderPayToken(orderId);
+  if (!token) return undefined;
+  const prefix = locale ? `/${locale}` : "";
+  return `${appBaseUrl()}${prefix}/order/pay/${token}`;
 }
 
 function createLinkToken(orderId: string, purpose: LinkPurpose): string | undefined {
@@ -156,6 +260,34 @@ export function preorderManageLinkPath(
   return `${prefix}/pre-order/manage/${token}`;
 }
 
+/**
+ * The token in an undeliverable-address request: it lets whoever holds it
+ * correct or confirm one order's delivery address, and nothing else — no
+ * cancelling, no paying, no seeing the order's items. Changes it makes are
+ * announced to the order's own email, as a manage link's are.
+ */
+export function createOrderAddressToken(orderId: string): string | undefined {
+  return createLinkToken(orderId, "address");
+}
+
+/** The order an address token names, if it really signed it for that purpose. */
+export function readOrderAddressToken(
+  token: string | null | undefined,
+): string | null {
+  return readLinkToken(token, "address");
+}
+
+/** Where the address link points, relative. */
+export function orderAddressLinkPath(
+  orderId: string,
+  locale?: string,
+): string | undefined {
+  const token = createOrderAddressToken(orderId);
+  if (!token) return undefined;
+  const prefix = locale ? `/${locale}` : "";
+  return `${prefix}/order/address/${token}`;
+}
+
 /** Where the link points, relative — for an in-app notification. */
 export function preorderBalanceLinkPath(
   orderId: string,
@@ -165,18 +297,4 @@ export function preorderBalanceLinkPath(
   if (!token) return undefined;
   const prefix = locale ? `/${locale}` : "";
   return `${prefix}/pre-order/balance/${token}`;
-}
-
-/**
- * The absolute link, for an email.
- *
- * Built from the configured origin rather than a request, because the caller
- * is a notification or a background sweep with no request to read.
- */
-export function preorderBalanceLinkUrl(
-  orderId: string,
-  locale?: string,
-): string | undefined {
-  const path = preorderBalanceLinkPath(orderId, locale);
-  return path ? `${appBaseUrl()}${path}` : undefined;
 }

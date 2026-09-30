@@ -12,7 +12,7 @@ export default async function AdminMenusPage({ params }: PageProps) {
   await requireAdminPageAccess(locale);
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4">
-      <NavigationHub locale={locale} />
+      <NavigationHub />
     </div>
   );
 }

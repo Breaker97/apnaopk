@@ -70,6 +70,8 @@ export const AUDIT_RESOURCES = [
   "expense",
   "fiscalPeriod",
   "storePage",
+  /** A stored file deleted from the Media Library, by its storage key. */
+  "media",
   /**
    * A hand-entered ledger correction. The only write in finance with no source
    * document standing behind it, which is exactly why it has to be auditable:

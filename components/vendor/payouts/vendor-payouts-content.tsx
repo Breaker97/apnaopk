@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   PayoutsTableCard,
@@ -61,7 +61,7 @@ export function VendorPayoutsContent({
         isLoading={list.isLoading}
         title={t("vendor.payoutsPage.listSection.title")}
         detailHref={(row) => `/${locale}/vendor/payouts/${row._id}`}
-        onRowOpen={(row) => router.push(`/${locale}/vendor/payouts/${row._id}`)}
+        onRowOpen={(row) => router.push(`/vendor/payouts/${row._id}`)}
         tabs={tabs}
         activeTab={list.activeTab}
         onTabChange={list.handleTabChange}

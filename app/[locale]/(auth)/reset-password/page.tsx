@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import Link from "@/components/language/link";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { z } from "zod";
+import * as z from "zod";
 
 const ResetPasswordSchema = z
   .object({
@@ -42,10 +43,17 @@ type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
 function ResetPasswordContent() {
   const t = useTranslations();
   const router = useRouter();
-  const params = useParams();
   const searchParams = useSearchParams();
-  const locale = params.locale as string;
-  const token = searchParams.get("token");
+  // Kept from the first render, then taken out of the address bar: the token
+  // is a password for the account until it is used, and an address lingers in
+  // history and in analytics.
+  const [token] = useState(() => searchParams.get("token"));
+  useEffect(() => {
+    if (!token) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("token");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [token]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
@@ -101,7 +109,9 @@ function ResetPasswordContent() {
 
       if (!response.ok) {
         if (response.status === 429) {
-          setError(`Too many attempts. Please request a new reset link.`);
+          // Too many tries with one link means the link is spent: show the
+          // invalid-link screen and its "Request a new link" button.
+          setIsValidToken(false);
         } else {
           setError(result.message || "An error occurred");
         }
@@ -111,7 +121,7 @@ function ResetPasswordContent() {
       setSuccess(true);
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        router.push(`/${locale}/login`);
+        router.push("/login");
       }, 3000);
     } catch {
       setError("An error occurred. Please try again.");
@@ -149,12 +159,12 @@ function ResetPasswordContent() {
         </CardHeader>
         <CardFooter className="flex flex-col gap-4">
           <Button className="w-full" asChild>
-            <Link href={`/${locale}/forgot-password`}>
+            <Link href="/forgot-password">
               {t("auth.requestNewLink")}
             </Link>
           </Button>
           <Button variant="link" className="w-full" asChild>
-            <Link href={`/${locale}/login`}>
+            <Link href="/login">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("auth.backToLogin")}
             </Link>
@@ -181,7 +191,7 @@ function ResetPasswordContent() {
         </CardHeader>
         <CardFooter>
           <Button className="w-full" asChild>
-            <Link href={`/${locale}/login`}>
+            <Link href="/login">
               {t("auth.goToLogin")}
             </Link>
           </Button>
@@ -274,7 +284,7 @@ function ResetPasswordContent() {
       </CardContent>
       <CardFooter>
         <Button variant="link" className="w-full" asChild>
-          <Link href={`/${locale}/login`}>
+          <Link href="/login">
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t("auth.backToLogin")}
           </Link>

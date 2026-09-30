@@ -1,7 +1,8 @@
 import { Types } from "mongoose";
 import { Order } from "@/models";
-import { ORDER_STATUS } from "@/config/app.config";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import {
+  PAY_LATER_PAYMENT_METHOD,
   getPreorderBalanceDue,
   owesPreorderBalanceMatch,
 } from "@/lib/orders/order-payment-status";
@@ -55,7 +56,7 @@ import {
  * MUST stay ordered furthest-first: each stage's window is bounded below by
  * the next one down, so that an order does not fall into two at once.
  */
-export const PREORDER_REMINDER_STAGES = [
+const PREORDER_REMINDER_STAGES = [
   { key: "t-7", daysBefore: 7 },
   { key: "t-1", daysBefore: 1 },
 ] as const;
@@ -74,7 +75,7 @@ export const PREORDER_REMINDER_STAGES = [
  * behaviour they have had all along, and better than inventing a request date
  * from `updatedAt`, which would expire orders for having been edited.
  */
-export const PREORDER_EXPIRY_GRACE_DAYS = 14;
+const PREORDER_EXPIRY_GRACE_DAYS = 14;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -96,6 +97,12 @@ function unpaidBalanceFilter() {
     preorderOutstandingAmount: { $gt: 0 },
   };
 }
+
+/** A reservation still waiting on its goods — on its first date or a moved one. */
+const WAITING_PREORDER_STATUSES: string[] = [
+  PREORDER_ITEM_STATUS.RESERVED,
+  PREORDER_ITEM_STATUS.DELAYED,
+];
 
 type CronOrder = {
   _id: Types.ObjectId;
@@ -194,6 +201,9 @@ export async function sendPreorderBalanceReminders(limit = 200): Promise<{
           releaseDate: order.preorderReleaseDate,
           outstandingAmount: getPreorderBalanceDue(order),
           balanceRequestedAt: order.preorderBalanceRequestedAt ?? undefined,
+          // Its own event: without the stage the reminder shared the request
+          // notice's dedupe key and was dropped before the email went out.
+          reminderStage: stage.key,
           // A guest order's `customerId` is its cart, so this is the only
           // address the reminder can reach.
           guestEmail: order.guestEmail,
@@ -261,11 +271,19 @@ export async function expireUnpaidPreorders(limit = 100): Promise<{
     if (getPreorderBalanceDue(order) <= 0) continue;
 
     // The claim: only a still-live order can be expired, and only once.
+    // Still owing, at the moment of the write: the candidates were read
+    // before this loop spent seconds per order on refunds, and a balance paid
+    // in that window leaves the order on `payment_due` until its release runs
+    // — for good, if its stock is not in. Without these the shopper who paid
+    // on deadline day was cancelled and refunded after being told "paid".
     const claimed = await Order.findOneAndUpdate(
       {
         _id: order._id,
-        status: { $ne: ORDER_STATUS.CANCELLED },
-        preorderStatus: PREORDER_ITEM_STATUS.PAYMENT_DUE,
+        ...unpaidBalanceFilter(),
+        $or: [
+          { preorderBalancePaidAt: null },
+          { preorderBalancePaidAt: { $exists: false } },
+        ],
       },
       {
         $set: {
@@ -383,11 +401,26 @@ export async function retryPreorderBalanceCharges(limit = 100): Promise<{
   const retryCutoff = new Date(
     Date.now() - PREORDER_BALANCE_RETRY_HOURS * 60 * 60 * 1000,
   );
+  const owing = unpaidBalanceFilter();
   const candidates = await Order.find({
-    ...unpaidBalanceFilter(),
+    ...owing,
     preorderSavedPaymentMethodId: { $nin: [null, ""] },
     preorderMandateAcceptedAt: { $ne: null },
-    preorderBalanceChargeAttempts: { $lt: PREORDER_BALANCE_MAX_ATTEMPTS },
+    // Never tried counts as nought tries. The field has no default and `$lt`
+    // does not match a missing one, so an order whose first charge never ran
+    // (it threw before its claim, or was asked for before this existed) was
+    // never charged at all — reminded, then expired.
+    // Replaces the `$and` the spread above carries, so it is restated here.
+    $and: [
+      owesPreorderBalanceMatch(),
+      {
+        $or: [
+          { preorderBalanceChargeAttempts: { $exists: false } },
+          { preorderBalanceChargeAttempts: null },
+          { preorderBalanceChargeAttempts: { $lt: PREORDER_BALANCE_MAX_ATTEMPTS } },
+        ],
+      },
+    ],
     $or: [
       { preorderBalanceLastChargeAt: { $exists: false } },
       { preorderBalanceLastChargeAt: null },
@@ -472,13 +505,34 @@ export async function autoReleaseDuePreorders(limit = 100): Promise<{
   const cutoff = new Date(Date.now() - policy.autoReleaseDelayDays * DAY_MS);
   const candidates = await Order.find({
     hasPreorder: true,
-    preorderStatus: PREORDER_ITEM_STATUS.RESERVED,
+    // A delayed reservation is still a reservation — on its new date, which
+    // the delay wrote to `preorderReleaseDate`. Left out, a delayed order was
+    // never released at all.
+    preorderStatus: { $in: WAITING_PREORDER_STATUSES },
     status: { $ne: ORDER_STATUS.CANCELLED },
     preorderReleaseDate: { $lte: cutoff },
+    // A gateway order the shopper walked away from never captured anything
+    // and never will; it is not the sweep's to release.
+    $or: [
+      { paymentStatus: { $ne: PAYMENT_STATUS.PENDING } },
+      { paymentMethod: PAY_LATER_PAYMENT_METHOD },
+    ],
   })
+    // Least recently passed over first. Without an order here the same rows
+    // came back every run, and enough reservations still waiting on stock
+    // filled every batch and starved the rest.
+    .sort({ preorderAutoReleaseCheckedAt: 1, preorderReleaseDate: 1 })
     .select(CRON_ORDER_FIELDS)
     .limit(limit)
     .lean<CronOrder[]>();
+
+  const passOver = (orderId: unknown) =>
+    Order.updateOne(
+      { _id: orderId },
+      { $set: { preorderAutoReleaseCheckedAt: new Date() } },
+    ).catch((err) =>
+      console.error("Failed to stamp a pre-order the auto-release passed over:", err),
+    );
 
   let balanceRequested = 0;
   let released = 0;
@@ -493,6 +547,7 @@ export async function autoReleaseDuePreorders(limit = 100): Promise<{
       // would put an unpaid order in the vendor's queue to ship. It stays
       // reserved until the payment arrives.
       if (getFulfillmentPaymentBlock({ ...order, hasPreorder: true }, null)) {
+        await passOver(order._id);
         continue;
       }
       const outcome = await consumePreorderStockOnReady(String(order._id));
@@ -501,6 +556,7 @@ export async function autoReleaseDuePreorders(limit = 100): Promise<{
         // next run simply tries again — which is the whole point of letting
         // the stock claim be the gate.
         waitingOnStock += 1;
+        await passOver(order._id);
         continue;
       }
       const claimed = await claimAutoRelease(order._id, {
@@ -509,15 +565,26 @@ export async function autoReleaseDuePreorders(limit = 100): Promise<{
         extraSet: { processingAt: new Date() },
       });
       if (!claimed) {
-        // An admin released it from under us between the read and the claim,
-        // and the units we just took are theirs. Put ours back — claim-based,
-        // so it no-ops if their own path already accounted for them.
-        await restoreOrderInventory(String(order._id)).catch((err) =>
-          console.error(
-            "Failed to restore stock after a lost auto-release race:",
-            err,
-          ),
-        );
+        // Someone moved it between the read and the claim. The stock claim is
+        // per order, not per caller: an admin who released it in that window
+        // found our consumption already made ("already consumed") and is now
+        // shipping against it, so giving those units back put them on sale
+        // twice. Only an order that is NOT being fulfilled — cancelled, or
+        // asked for its balance instead — gets them back.
+        const now = await Order.findById(order._id)
+          .select("status preorderStatus")
+          .lean<{ status?: string; preorderStatus?: string } | null>();
+        const beingFulfilled =
+          now?.status !== ORDER_STATUS.CANCELLED &&
+          now?.preorderStatus === PREORDER_ITEM_STATUS.READY;
+        if (!beingFulfilled) {
+          await restoreOrderInventory(String(order._id)).catch((err) =>
+            console.error(
+              "Failed to restore stock after a lost auto-release race:",
+              err,
+            ),
+          );
+        }
         continue;
       }
       released += 1;
@@ -583,7 +650,7 @@ export async function autoReleaseDuePreorders(limit = 100): Promise<{
 }
 
 /**
- * Move one reservation on, and only from `reserved`.
+ * Move one reservation on, and only from `reserved` (or `delayed`).
  *
  * The status guard is the idempotency: two overlapping runs, or a run racing
  * an admin, cannot both transition the same order, and the loser is told so by
@@ -602,7 +669,7 @@ async function claimAutoRelease(
     {
       _id: orderId,
       status: { $ne: ORDER_STATUS.CANCELLED },
-      preorderStatus: PREORDER_ITEM_STATUS.RESERVED,
+      preorderStatus: { $in: WAITING_PREORDER_STATUSES },
     },
     {
       $set: {
@@ -644,7 +711,8 @@ async function claimAutoRelease(
 export async function countOverdueReleases(): Promise<number> {
   return Order.countDocuments({
     hasPreorder: true,
-    preorderStatus: PREORDER_ITEM_STATUS.RESERVED,
+    // A delayed order past its NEW date is as overdue as any other.
+    preorderStatus: { $in: WAITING_PREORDER_STATUSES },
     status: { $ne: ORDER_STATUS.CANCELLED },
     preorderReleaseDate: { $lt: new Date() },
   });

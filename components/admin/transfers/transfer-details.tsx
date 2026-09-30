@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { useRouter } from "@/hooks/use-locale-navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
@@ -283,44 +284,43 @@ export function TransferDetails({
         </CardHeader>
         <CardContent className="space-y-4">
           {record.stockMovementPending ? (
-            <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <div className="flex gap-2">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                <p>
-                  {t(
-                    lockStuck
-                      ? "admin.transfers.details.lock.stuck"
-                      : "admin.transfers.details.lock.busy",
-                    { from: record.fromLocationName, to: record.toLocationName },
-                  )}
-                </p>
-              </div>
-              {lockStuck && (access?.canSend || access?.canReceive) ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0"
-                  disabled={updating !== null}
-                  onClick={releaseLock}
-                >
-                  {updating === "release_lock" ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  {t("admin.transfers.details.lock.release")}
-                </Button>
-              ) : null}
-            </div>
+            <WarningBanner
+              action={
+                lockStuck && (access?.canSend || access?.canReceive) ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={updating !== null}
+                    onClick={releaseLock}
+                  >
+                    {updating === "release_lock" ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    {t("admin.transfers.details.lock.release")}
+                  </Button>
+                ) : null
+              }
+            >
+              <p>
+                {t(
+                  lockStuck
+                    ? "admin.transfers.details.lock.stuck"
+                    : "admin.transfers.details.lock.busy",
+                  { from: record.fromLocationName, to: record.toLocationName },
+                )}
+              </p>
+            </WarningBanner>
           ) : null}
           {shortLines.length > 0 ? (
-            <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <WarningBanner>
               <p>
                 {t("admin.transfers.details.shortage", {
                   lines: shortLines.length,
                   from: record.fromLocationName,
                 })}
               </p>
-            </div>
+            </WarningBanner>
           ) : null}
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

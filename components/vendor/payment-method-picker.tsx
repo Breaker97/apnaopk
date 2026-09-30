@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { CreditCard, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiClientError } from "@/lib/api/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
@@ -30,6 +31,39 @@ export const GATEWAY_LABELS: Record<PlatformGateway, string> = {
   orange_money: "Orange Money",
   mtn_momo: "MTN Mobile Money",
 };
+
+/**
+ * What a vendor reads when starting a vendor→platform payment failed.
+ *
+ * A gateway that refused or could not be reached answers `gateway_unavailable`
+ * with its id (GatewayUnavailableError in lib/payments/platform-payments.ts),
+ * and is named here in the vendor's language. Its own error text — bad keys, a
+ * currency the account never enabled — is marketplace setup and stays in the
+ * server log. Every other failure keeps the server's sentence.
+ */
+export function platformPaymentErrorMessage(
+  error: unknown,
+  label: (
+    key: string,
+    fallback: string,
+    values?: Record<string, string | number>,
+  ) => string,
+  fallback: string,
+): string {
+  if (error instanceof ApiClientError) {
+    const details = error.details as { reason?: string; gateway?: string } | undefined;
+    if (details?.reason === "gateway_unavailable") {
+      const gateway =
+        GATEWAY_LABELS[details.gateway as PlatformGateway] ?? details.gateway ?? "";
+      return label(
+        "boosts.purchase.gatewayUnavailable",
+        "{gateway} could not start the payment. Try again, or choose another payment method.",
+        { gateway },
+      );
+    }
+  }
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 /**
  * Gateway radio cards for vendor→platform payments (boost purchases,

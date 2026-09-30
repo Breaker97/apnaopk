@@ -5,7 +5,7 @@
  * in /api/vendor/apply; the server remains the authority.
  */
 
-import { z } from "zod";
+import * as z from "zod";
 import type { ResolvedField, ResolvedStep } from "@/lib/vendors/vendor-onboarding";
 import { ONBOARDING_STEP_KINDS } from "@/lib/vendors/vendor-onboarding-fields";
 

@@ -28,19 +28,19 @@ import {
 import { deriveOrderStatusFromSubOrders } from "@/lib/orders/order-status-apply";
 import { restoreSubOrderInventory } from "@/lib/orders/order-inventory";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
-import { notifyPreorderCustomerUpdate } from "@/lib/notifications/notifications";
+import {
+  manualBalanceReminderStage,
+  notifyPreorderCustomerUpdate,
+} from "@/lib/notifications/notifications";
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
 import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
 import { collectPreorderBalanceOnRequest } from "@/lib/payments/preorder-balance-charge";
-import {
-  getSubOrderPreorderCollectedAmount,
-  refundCancelledPreorder,
-} from "@/lib/orders/preorder-cancel-refund";
+import { refundOrderCancellation } from "@/lib/orders/preorder-cancel-refund";
 import { createAuditContext } from "@/lib/audit";
 import { queueAutoShipForOrder } from "@/lib/shipping/carriers/shipment-worker";
 import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 
 const VendorPreorderActionSchema = z.object({
   /**
@@ -119,6 +119,17 @@ export const PUT = withApi<{ id: string }>(
           "This pre-order has been cancelled and can no longer be marked ready",
         );
       }
+      // Goods already on their way are past the pre-order. "Ready" wrote the
+      // consignment back to processing, which took a delivered parcel out of
+      // payout and told the shopper it was being packed again.
+      if (
+        subOrder.status === ORDER_STATUS.SHIPPED ||
+        subOrder.status === ORDER_STATUS.DELIVERED
+      ) {
+        throw new ValidationError(
+          "This consignment has already shipped, so it is past the pre-order stage",
+        );
+      }
       // Zero once the balance has been paid or recorded — the raw figure
       // stays on the order for good and would re-request money already in.
       const outstandingAmount = getPreorderBalanceDue(order);
@@ -161,6 +172,7 @@ export const PUT = withApi<{ id: string }>(
         );
         // Only the first request starts the expiry clock; a reminder must not
         // push the deadline out or reset the reminders already sent.
+        const askedBefore = Boolean(order.preorderBalanceRequestedAt);
         if (!order.preorderBalanceRequestedAt) {
           order.preorderBalanceRequestedAt = new Date();
           order.preorderBalanceRemindersSent = undefined;
@@ -185,6 +197,10 @@ export const PUT = withApi<{ id: string }>(
               releaseDate: order.preorderReleaseDate,
               outstandingAmount,
               balanceRequestedAt: order.preorderBalanceRequestedAt,
+              // Asked before: a reminder sent by hand, not the first request.
+              ...(askedBefore
+                ? { reminderStage: manualBalanceReminderStage() }
+                : {}),
               // A guest order's `customerId` is its cart — see the notifier.
               guestEmail: order.guestEmail,
             },
@@ -364,6 +380,12 @@ export const PUT = withApi<{ id: string }>(
       const previousReleaseDate =
         latestPreorderDate(subOrder.items as DatedLine[]) ||
         order.preorderReleaseDate;
+      // A balance already asked for stays asked for — see the admin delay.
+      // `delayed` is read by nothing that collects money, so writing it over
+      // `payment_due` stopped the charge retries, reminders and expiry, and a
+      // balance paid afterwards released nothing.
+      const keepsBalanceRequest =
+        order.preorderStatus === PREORDER_ITEM_STATUS.PAYMENT_DUE;
       const markDelayed = (item: {
         purchaseType?: string;
         preorderReleaseDate?: Date;
@@ -371,7 +393,9 @@ export const PUT = withApi<{ id: string }>(
       }) => {
         if (item.purchaseType === PURCHASE_TYPE.PREORDER) {
           item.preorderReleaseDate = releaseDate;
-          item.preorderStatus = PREORDER_ITEM_STATUS.DELAYED;
+          if (!keepsBalanceRequest) {
+            item.preorderStatus = PREORDER_ITEM_STATUS.DELAYED;
+          }
         }
       };
       subOrder.items.forEach(markDelayed);
@@ -394,7 +418,9 @@ export const PUT = withApi<{ id: string }>(
       order.preorderOriginalReleaseDate =
         order.preorderOriginalReleaseDate || previousReleaseDate || releaseDate;
       order.preorderReleaseDate = latest || releaseDate;
-      order.preorderStatus = PREORDER_ITEM_STATUS.DELAYED;
+      if (!keepsBalanceRequest) {
+        order.preorderStatus = PREORDER_ITEM_STATUS.DELAYED;
+      }
       order.preorderDelayReason = reason;
       order.preorderReleaseDateUpdatedAt = new Date();
       order.preorderCustomerNotifiedAt = new Date();
@@ -492,15 +518,6 @@ export const PUT = withApi<{ id: string }>(
           },
         );
       }
-      // Measured off the order's own money fields, which the cancellation
-      // above does not touch — the consignment's share of what was charged is
-      // the same figure before and after. Taken here rather than inside the
-      // refund call so the refund helper stays free of sub-order shapes.
-      const cancelledShare = getSubOrderPreorderCollectedAmount(
-        order.toObject(),
-        subOrder,
-      );
-
       // Written as conditional updates, not a save of the document read above.
       // The claim already moved this consignment; saving the whole order
       // would write every sibling's status back as it was read — undoing a
@@ -575,26 +592,35 @@ export const PUT = withApi<{ id: string }>(
         );
       }
 
-      // Cancel means refund — whoever cancelled. This path did not, so a
-      // vendor calling off their own pre-order kept the shopper's deposit,
-      // against the policy the product page states and the admin route and
-      // the expiry job both keep.
-      //
-      // Scoped to THIS consignment unless the cancellation took the whole
-      // order with it: on a split order the shopper is still receiving, and
-      // still paying for, everybody else's goods. A failure is reported, not
-      // thrown — the cancellation stands either way, and somebody has to be
-      // told the money still needs sending back by hand.
+      // And any label already bought for this consignment's parcel.
+      const { voidLabelsForCancellation } = await import(
+        "@/lib/shipping/cancel-labels"
+      );
+      await voidLabelsForCancellation({
+        orderId: order._id,
+        subOrderId: subOrder._id,
+      }).catch((err) =>
+        console.error("Failed to void labels on vendor pre-order cancel:", err),
+      );
+
+      // Cancel means refund — whoever cancelled. Through the same flow the
+      // vendor orders screen uses, so the refund is claimed on THIS
+      // consignment, capped by what the books still hold for it, and recorded
+      // against this seller alone. Calling the refund directly without the
+      // consignment spread one seller's cancellation over every seller on the
+      // order — the ledger, the payables and the commission of a vendor who
+      // cancelled nothing. A failure is reported, not thrown: the cancellation
+      // stands either way.
       const wholeOrderCancelled = order.status === ORDER_STATUS.CANCELLED;
-      const refund = await refundCancelledPreorder({
+      const refund = await refundOrderCancellation({
         orderId: String(order._id),
+        cancelledSubOrderIds: [subOrder._id],
         reason: wholeOrderCancelled
           ? "Pre-order cancelled by the seller"
           : "Pre-order consignment cancelled by the seller",
         actor: session.user.email || session.user.id,
         createdBy: session.user.id,
         auditContext: createAuditContext(request, session),
-        ...(wholeOrderCancelled ? {} : { collected: cancelledShare }),
       }).catch((err: unknown) => {
         console.error("Failed to refund cancelled vendor pre-order:", err);
         return { refunded: false, reason: "The refund could not be issued" };
@@ -612,7 +638,15 @@ export const PUT = withApi<{ id: string }>(
       ).catch((err) =>
         console.error("Failed to notify preorder cancellation customer:", err),
       );
-      return successResponse({ ...toVendorOrderView(order, vendor._id), refund });
+      return successResponse({
+        ...toVendorOrderView(order, vendor._id),
+        // Nothing collected comes back as no outcome at all; the table still
+        // wants a reason, rather than announcing a refund that never happened.
+        refund: refund ?? {
+          refunded: false,
+          reason: "Nothing was collected for this consignment, so nothing was refunded",
+        },
+      });
     }
 
     throw new ValidationError("Unsupported preorder action");

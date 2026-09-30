@@ -10,6 +10,7 @@ import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validatePartialBody, isValidObjectId } from "@/lib/api/validate";
 import { UpdateCouponSchema } from "@/lib/validations";
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
+import { revalidateCouponContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
 
 /**
@@ -113,6 +114,7 @@ export const PUT = withApi<{ id: string }>(
     ).lean();
 
     if (!coupon) return notFoundResponse("Coupon");
+    revalidateCouponContent();
 
     const auditContext = createAuditContext(request, session);
     await auditUpdate(
@@ -164,6 +166,7 @@ export const DELETE = withApi<{ id: string }>(
     });
 
     if (!coupon) return notFoundResponse("Coupon");
+    revalidateCouponContent();
 
     const auditContext = createAuditContext(request, session);
     await auditDelete(

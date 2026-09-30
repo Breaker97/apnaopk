@@ -39,8 +39,15 @@ const AISalesActionSchema = new Schema(
 
 const AISalesConversationSchema = new Schema(
   {
+    /** The conversation's public id — never the guest's cart session. */
     sessionId: { type: String, required: true },
     userId: { type: Schema.Types.ObjectId, ref: "User", index: true },
+    /**
+     * A guest owner: SHA-256 of their cart session, so the value itself —
+     * which opens their cart — is never stored or shown. See
+     * `lib/ai-sales-agent/conversation-owner.ts`.
+     */
+    ownerSessionHash: { type: String, index: true },
     locale: { type: String, default: "en", index: true },
     status: {
       type: String,

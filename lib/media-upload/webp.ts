@@ -1,6 +1,7 @@
 import "server-only";
 
 import sharp from "sharp";
+import { isVectorImageType } from "@/lib/storage/content-type";
 import { WEBP_CONTENT_TYPE, webpFileName } from "./webp-name";
 import { WEBP_CONVERSION_ENABLED } from "./webp-policy";
 
@@ -14,23 +15,6 @@ interface ConvertedWebp {
   fileSize: number;
   width: number;
   height: number;
-}
-
-/**
- * Vector image types — the ones a WebP re-encode would destroy rather than
- * compress, since sharp can only rasterize them to a fixed size.
- *
- * Keeping the vector is NOT the default. An SVG is a document that can carry
- * script, and stored raw it is served from the store's own media host, so
- * the general upload path rasterizes it like any other image. Only a caller
- * that has asked for it — the brand logo, which has to stay sharp at every
- * size and is uploaded by someone who already manages store media — gets the
- * original bytes (see `keepVector`).
- */
-const VECTOR_TYPES = new Set<string>(["image/svg+xml"]);
-
-export function isVectorImageType(contentType: string): boolean {
-  return VECTOR_TYPES.has(contentType.trim().toLowerCase());
 }
 
 /**

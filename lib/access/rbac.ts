@@ -6,13 +6,12 @@
 import { USER_ROLES, type UserRole } from "@/config/app.config";
 import { isStaffRole } from "@/lib/access/staff-role";
 import {
-  VENDOR_PERMISSIONS,
   STAFF_PERMISSIONS,
   type VendorPermission,
-  type StaffPermission,
 } from "@/config/permissions.config";
 import { StaffProfile, type IStaffProfile } from "@/models/staff-profile.model";
 import { AuthorizationError } from "@/lib/api/errors";
+import { effectiveStaffPermissions } from "@/lib/access/staff-authz";
 
 // ============================================
 // Role Checking Utilities
@@ -72,37 +71,6 @@ export function isVendor(user: MinimalUser): boolean {
  */
 export function isSeller(user: MinimalUser): boolean {
   return isStaffRole(user?.role) || hasRole(user, USER_ROLES.SELLER);
-}
-
-/**
- * May this caller delete store media by storage key?
- *
- * Deletion takes an arbitrary key rather than a record the caller owns, so
- * holding *some* non-customer role is not enough — a staff account with an
- * empty permission list would otherwise be able to empty the bucket. Admins
- * qualify outright; vendors and staff need a product-management grant.
- */
-export async function canManageStoreMedia(
-  user: MinimalUser & { id?: string },
-): Promise<boolean> {
-  if (!user) return false;
-  if (isAdmin(user)) return true;
-
-  if (isVendor(user)) {
-    return (
-      (await hasVendorPermission(user, VENDOR_PERMISSIONS.MANAGE_PRODUCTS)) ||
-      (await hasVendorPermission(user, VENDOR_PERMISSIONS.EDIT_PRODUCTS))
-    );
-  }
-
-  if (isSeller(user) && user.id) {
-    return hasAnyStaffPermission(user.id, [
-      STAFF_PERMISSIONS.MANAGE_PRODUCTS,
-      STAFF_PERMISSIONS.EDIT_PRODUCTS,
-    ]);
-  }
-
-  return false;
 }
 
 /**
@@ -196,7 +164,9 @@ export async function canAccessPOS(
       if (!user.id) return false;
       const profile = await getStaffProfile(user.id);
       if (!profile?.isActive) return false;
-      return profile.permissions.includes(STAFF_PERMISSIONS.ACCESS_POS);
+      return effectiveStaffPermissions(profile).includes(
+        STAFF_PERMISSIONS.ACCESS_POS,
+      );
     }
 
     return false;
@@ -221,7 +191,7 @@ export async function canApplyPosDiscount(user: MinimalUser): Promise<boolean> {
     const profile = await getStaffProfile(user.id);
     return Boolean(
       profile?.isActive &&
-        profile.permissions.includes(STAFF_PERMISSIONS.MANAGE_POS),
+        effectiveStaffPermissions(profile).includes(STAFF_PERMISSIONS.MANAGE_POS),
     );
   }
   return false;
@@ -243,16 +213,4 @@ async function getStaffProfile(
   } catch {
     return null;
   }
-}
-
-/**
- * Check if staff user has any of the specified permissions
- */
-async function hasAnyStaffPermission(
-  userId: string,
-  permissions: StaffPermission[],
-): Promise<boolean> {
-  const profile = await getStaffProfile(userId);
-  if (!profile || !profile.isActive) return false;
-  return permissions.some((p) => profile.permissions.includes(p));
 }

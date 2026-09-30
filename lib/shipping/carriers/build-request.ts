@@ -12,6 +12,7 @@ import {
 import type { IOrder, IVendor, OrderItem, SubOrder } from "@/types";
 import { isSubOrderPaid } from "@/lib/orders/order-payment-status";
 import { consignmentCharge } from "@/lib/finance/postings";
+import { quantizeToCurrency } from "@/lib/intl/money";
 import {
   resolveItemDimensions,
   type ProductDimensions,
@@ -98,6 +99,7 @@ type CodOrder = Pick<
   | "coupon"
   | "customs"
   | "subOrders"
+  | "storeCredit"
 >;
 
 /**
@@ -125,7 +127,11 @@ export function cashOnDeliveryDue(
   const charge = consignmentCharge({ ...order, currency }, subOrder._id);
   // A consignment charged nothing — a coupon covered all of it — has no cash
   // to collect, and a courier asked for 0 is a courier who refuses the parcel.
-  if (charge) return charge.total > 0 ? { amount: charge.total, currency } : undefined;
+  // Nor the part the shopper's store credit paid (R8): only the rest is cash.
+  if (charge) {
+    const cash = quantizeToCurrency(charge.total - charge.storeCredit, currency);
+    return cash > 0 ? { amount: cash, currency } : undefined;
+  }
   // Nothing charged at all — a fully discounted order has no cash to collect.
   if (!(Number(order.total) > 0)) return undefined;
   // An order the decomposition cannot place this consignment on. Collecting

@@ -1,8 +1,10 @@
 import {
   ALL_STAFF_PERMISSIONS,
   STAFF_PERMISSIONS,
+  VENDOR_STAFF_PERMISSIONS,
 } from "@/config/permissions.config";
 import type { StaffPermission } from "@/config/permissions.config";
+import type { StaffArea } from "./staff-detail-types";
 
 /**
  * The permission vocabulary shared by the staff create form and the staff
@@ -21,6 +23,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   create_orders: "Create Orders",
   edit_orders: "Edit Orders",
   delete_orders: "Delete Orders",
+  create_ineligible_returns: "Open returns the rules refuse",
   view_products: "View Products",
   manage_products: "Manage Products",
   create_products: "Create Products",
@@ -81,6 +84,14 @@ export const PERMISSION_RESOURCES: PermissionResource[] = [
     delete: STAFF_PERMISSIONS.DELETE_ORDERS,
   },
   {
+    // Opening a return is part of editing orders; this is the one thing about
+    // returns worth granting on its own.
+    key: "returns",
+    label: "Returns",
+    hint: "Create = open one past the return window or on a final sale item",
+    create: STAFF_PERMISSIONS.CREATE_INELIGIBLE_RETURNS,
+  },
+  {
     key: "products",
     label: "Products",
     view: STAFF_PERMISSIONS.VIEW_PRODUCTS,
@@ -134,6 +145,50 @@ export const PERMISSION_RESOURCES: PermissionResource[] = [
     edit: STAFF_PERMISSIONS.MANAGE_INBOX,
   },
 ];
+
+/**
+ * The matrix a vendor's own staff can be granted: the platform-only boxes
+ * (`VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS`) are left out rather than offered
+ * and dropped on save, and a row that loses columns says why.
+ */
+const VENDOR_ROW_HINTS: Record<string, string> = {
+  orders: "Creating and cancelling orders stays with the store",
+  customers: "Customer accounts are changed by the store",
+};
+
+const VENDOR_PERMISSION_RESOURCES: PermissionResource[] = PERMISSION_RESOURCES.map(
+  (resource) => ({
+    ...resource,
+    hint: VENDOR_ROW_HINTS[resource.key] ?? resource.hint,
+    view: vendorGrantable(resource.view),
+    legacyManage: vendorGrantable(resource.legacyManage),
+    create: vendorGrantable(resource.create),
+    edit: vendorGrantable(resource.edit),
+    delete: vendorGrantable(resource.delete),
+  }),
+);
+
+function vendorGrantable(
+  permission: StaffPermission | undefined,
+): StaffPermission | undefined {
+  return permission && VENDOR_STAFF_PERMISSIONS.includes(permission)
+    ? permission
+    : undefined;
+}
+
+export function permissionResourcesFor(area: StaffArea): PermissionResource[] {
+  return area === "vendor" ? VENDOR_PERMISSION_RESOURCES : PERMISSION_RESOURCES;
+}
+
+/** A permission list cut down to what this area can grant. */
+export function grantableInArea(
+  permissions: StaffPermission[],
+  area: StaffArea,
+): StaffPermission[] {
+  return area === "vendor"
+    ? permissions.filter((permission) => VENDOR_STAFF_PERMISSIONS.includes(permission))
+    : permissions;
+}
 
 export const PERMISSION_ACTIONS: {
   key: PermissionAction;
@@ -315,11 +370,12 @@ export const STAFF_ROLE_PRESETS: StaffRolePreset[] = [
  */
 export function matchStaffRolePreset(
   permissions: StaffPermission[],
+  area: StaffArea = "admin",
 ): StaffRolePreset | null {
-  const current = toGrantableSet(permissions);
+  const current = toGrantableSet(permissions, area);
   return (
     STAFF_ROLE_PRESETS.find((preset) => {
-      const target = toGrantableSet(preset.permissions);
+      const target = toGrantableSet(preset.permissions, area);
       if (target.size !== current.size) return false;
       for (const permission of target) {
         if (!current.has(permission)) return false;
@@ -329,10 +385,11 @@ export function matchStaffRolePreset(
   );
 }
 
-function toGrantableSet(permissions: StaffPermission[]) {
+function toGrantableSet(permissions: StaffPermission[], area: StaffArea) {
+  const grantable = grantableInArea(GRANTABLE_STAFF_PERMISSIONS, area);
   return new Set(
     normalizeStaffPermissions(permissions).filter((permission) =>
-      GRANTABLE_STAFF_PERMISSIONS.includes(permission),
+      grantable.includes(permission),
     ),
   );
 }

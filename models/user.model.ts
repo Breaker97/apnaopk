@@ -20,7 +20,10 @@ const AddressSchema = new Schema<Address>(
     city: { type: String, required: true },
     state: { type: String },
     apartment: { type: String },
-    postalCode: { type: String, required: true },
+    // Not required: a country without postal codes has none to store, and
+    // checkout already accepts an order without one. Existing rows all carry
+    // theirs, so nothing needs migrating.
+    postalCode: { type: String },
     country: { type: String, required: true },
     phone: { type: String },
     isDefault: { type: Boolean, default: false },

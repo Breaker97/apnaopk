@@ -1,10 +1,13 @@
 import { Order } from "@/models";
-import { AuthorizationError } from "@/lib/api/errors";
+import { AuthorizationError, ValidationError } from "@/lib/api/errors";
 import { ORDER_STATUS } from "@/config/app.config";
 import type { AuditContext } from "@/lib/audit";
 import { restoreOrderInventory } from "@/lib/orders/order-inventory";
 import { releaseOrderPreorders } from "@/lib/orders/preorders";
-import { refundOrderCancellation } from "@/lib/orders/preorder-cancel-refund";
+import {
+  refundOrderCancellation,
+  reportFailedCancelRefund,
+} from "@/lib/orders/preorder-cancel-refund";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
 import { auditOrderCancelled } from "@/lib/orders/audit-order";
 import {
@@ -12,6 +15,7 @@ import {
   subOrderUpdateOptions,
 } from "@/lib/orders/order-status-apply";
 import { reconcileOrderStatus } from "@/lib/orders/order-status-reconcile";
+import { getPendingPaymentLock } from "@/lib/orders/pending-payment-lock";
 
 /**
  * A shopper cancelling their own order.
@@ -36,17 +40,42 @@ export async function cancelOrderForCustomer(params: {
   createdBy?: string;
   /** Why, as the audit trail and refund row should say it. */
   reason?: string;
+  /**
+   * Who is cancelling. `system` is the address-hold deadline, which runs the
+   * same cascade on an order nobody corrected — see `address-hold.ts`.
+   */
+  by?: "customer" | "system";
+  /**
+   * The statuses this cancellation may start from. A customer may only call
+   * off an order that has not moved on; the address-hold deadline also reaches
+   * one in `processing`, which is where a refused label leaves it.
+   */
+  allowedStatuses?: string[];
 }) {
+  const by = params.by ?? "customer";
   // Selects `status` rather than using `exists`, so the audit entry below can
   // name the status the order was cancelled FROM — and the consignments', so
   // the refund can tell which of them this cancellation actually called off.
   const existing = await Order.findOne(params.orderFilter)
-    .select("status subOrders._id subOrders.status")
+    .select(
+      "status paymentMethod paymentStatus channel subOrders._id subOrders.status",
+    )
     .lean<{
       status?: string;
+      paymentMethod?: string;
+      paymentStatus?: string;
+      channel?: string;
       subOrders?: Array<{ _id?: unknown; status?: string }>;
     }>();
   if (!existing) return null;
+
+  // A mobile-money payment still in flight is not cancellable by anyone: the
+  // PIN prompt may be answered a minute from now, and the money would land on
+  // a cancelled order that these providers cannot refund automatically. The
+  // shopper is told to wait rather than given a cancellation that could cost
+  // them their money. See `lib/orders/pending-payment-lock.ts`.
+  const pendingPaymentLock = getPendingPaymentLock(existing);
+  if (pendingPaymentLock) throw new ValidationError(pendingPaymentLock);
 
   // Built from the shared cascade so a customer cancelling writes exactly
   // what an admin cancelling writes. It previously used a bare `$[]`,
@@ -55,7 +84,8 @@ export async function cancelOrderForCustomer(params: {
   // delivery and, until the same change fixed it, restocked the units.
   const updates = {
     ...buildOrderStatusUpdates({ status: ORDER_STATUS.CANCELLED }),
-    cancelReason: "Cancelled by customer",
+    cancelReason:
+      by === "system" ? params.reason || "Cancelled automatically" : "Cancelled by customer",
   };
 
   // Atomic status guard: the cancellable status is part of the filter, so a
@@ -64,7 +94,9 @@ export async function cancelOrderForCustomer(params: {
   const order = await Order.findOneAndUpdate(
     {
       ...params.orderFilter,
-      status: { $in: [ORDER_STATUS.PENDING, ORDER_STATUS.PREORDERED] },
+      status: {
+        $in: params.allowedStatuses ?? [ORDER_STATUS.PENDING, ORDER_STATUS.PREORDERED],
+      },
     },
     { $set: updates },
     { returnDocument: "after", ...subOrderUpdateOptions(updates) },
@@ -110,7 +142,7 @@ export async function cancelOrderForCustomer(params: {
   // preorder quota and reversed a coupon — and left no trace on the order.
   await auditOrderCancelled(params.auditContext, order, {
     from: String(existing.status),
-    by: "customer",
+    by,
     reason: params.reason,
   });
 
@@ -146,8 +178,13 @@ export async function cancelOrderForCustomer(params: {
         : "Order cancelled by the customer"),
     createdBy: params.createdBy,
     auditContext: params.auditContext,
-  }).catch((err: unknown) => {
+  }).catch(async (err: unknown) => {
     console.error("Failed to refund customer-cancelled order:", err);
+    // No admin was involved in this cancel, so nobody else would ever know.
+    await reportFailedCancelRefund({
+      order,
+      why: err instanceof Error ? err.message : "the refund could not be issued",
+    });
     // `failed` tells this apart from an order that simply took no money, so a
     // shopper is only ever told money is owed when it is.
     return {

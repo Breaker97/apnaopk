@@ -1,6 +1,7 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { ExternalLink, Globe, ImageOff, PackageSearch } from "lucide-react";
@@ -8,13 +9,7 @@ import { type Locale } from "@/config/i18n.config";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SortLinkSelectLazy } from "@/components/products/sort-link-select-lazy";
 import {
   ModernProductCardSkeleton,
   type ModernProduct,
@@ -113,6 +108,7 @@ export default async function BrandDetailPage({
   const { locale, slug } = await params;
   const search = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const t = await getTranslations({ locale });
 
@@ -129,6 +125,7 @@ export default async function BrandDetailPage({
     <div className="container mx-auto px-4 py-8">
       <StoreBreadcrumb
         locale={locale}
+        storeDefault={storeDefault}
         items={[
           { label: t("nav.brands"), href: "/brands" },
           { label: brand.name },
@@ -322,34 +319,19 @@ function SortSelect({
   const base = `/${locale}/brands/${slug}`;
   const sortHref = (sort?: string) => `${base}${buildPageUrl(1, sort, location)}`;
   return (
-    <Select defaultValue={currentSort || "featured"}>
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder={labels.placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="featured">
-          <a href={sortHref()}>{labels.featured}</a>
-        </SelectItem>
-        <SelectItem value="best-selling">
-          <a href={sortHref("best-selling")}>{labels.bestSelling}</a>
-        </SelectItem>
-        <SelectItem value="title-asc">
-          <a href={sortHref("title-asc")}>{labels.aToZ}</a>
-        </SelectItem>
-        <SelectItem value="title-desc">
-          <a href={sortHref("title-desc")}>{labels.zToA}</a>
-        </SelectItem>
-        <SelectItem value="price-asc">
-          <a href={sortHref("price-asc")}>{labels.priceLowHigh}</a>
-        </SelectItem>
-        <SelectItem value="price-desc">
-          <a href={sortHref("price-desc")}>{labels.priceHighLow}</a>
-        </SelectItem>
-        <SelectItem value="created-desc">
-          <a href={sortHref("created-desc")}>{labels.newest}</a>
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    <SortLinkSelectLazy
+      value={currentSort || "featured"}
+      placeholder={labels.placeholder}
+      options={[
+        { value: "featured", label: labels.featured, href: sortHref() },
+        { value: "best-selling", label: labels.bestSelling, href: sortHref("best-selling") },
+        { value: "title-asc", label: labels.aToZ, href: sortHref("title-asc") },
+        { value: "title-desc", label: labels.zToA, href: sortHref("title-desc") },
+        { value: "price-asc", label: labels.priceLowHigh, href: sortHref("price-asc") },
+        { value: "price-desc", label: labels.priceHighLow, href: sortHref("price-desc") },
+        { value: "created-desc", label: labels.newest, href: sortHref("created-desc") },
+      ]}
+    />
   );
 }
 

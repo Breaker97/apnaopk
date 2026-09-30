@@ -41,6 +41,10 @@ type TemplateSearchParams = Record<
  * signature exactly as the hand-wired pages did. Every listing resource
  * carries the raw searchParams and the shopper's coarse request location —
  * the two request-scoped inputs sections cannot resolve themselves.
+ *
+ * The product page carries neither: it is served from the cache, so what
+ * depends on the shopper's place (the "Collect at" offer) is asked from the
+ * browser.
  */
 interface ProductTemplateResource {
   type: "product";
@@ -50,7 +54,6 @@ interface ProductTemplateResource {
     slug: string;
     name: string;
   } & Record<string, unknown>;
-  location: RequestLocation;
 }
 
 export interface ProductsTemplateResource {
@@ -391,6 +394,15 @@ export interface SectionRenderContext extends SectionAvailabilityContext {
    */
   resource?: TemplateResource;
   /**
+   * The section types the page draws, leaving out hidden, gated-off and
+   * unknown ones. This is for a section whose own chrome points at a
+   * sibling: the product page's tab strip names the Specification and
+   * Reviews sections, and must not offer a tab that scrolls to nothing.
+   * StoreSections sets it from the whole page, so a single-section preview
+   * frame answers for the page and not for the frame.
+   */
+  pageSectionTypes?: ReadonlySet<string>;
+  /**
    * This is an admin PREVIEW (the /draft routes), not the live storefront.
    *
    * Sections with nothing to show render a labelled placeholder here instead
@@ -599,10 +611,18 @@ export interface SectionDefinition {
    * it and render inline — exactly the split the home page draws today.
    * `ctx` is passed by the section renderer so a skeleton can mirror
    * theme-dependent framing (e.g. "theme" width/height); older skeletons
-   * simply ignore it.
+   * simply ignore it. A route's loading frame draws the same skeletons.
    */
   Skeleton?: ComponentType<{
     settings: Record<string, unknown>;
     ctx?: SectionRenderContext;
   }>;
+  /**
+   * True when the instance's own settings and blocks leave it nothing to
+   * draw — no cell assigned, nothing picked by hand. It is answered from the
+   * configuration alone because the renderer asks before any data is read:
+   * a section that will render nothing must not flash its skeleton first.
+   * Render must agree, returning its empty state for the same instance.
+   */
+  isEmpty?: (instance: Pick<SectionRenderProps, "settings" | "blocks">) => boolean;
 }

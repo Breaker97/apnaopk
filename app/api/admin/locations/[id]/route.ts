@@ -13,6 +13,7 @@ import {
   pickupFieldsFromBody,
   requireScope,
   resolveLocationGeo,
+  returnsFieldsFromBody,
 } from "@/lib/locations/location-api";
 
 interface RouteParams {
@@ -116,6 +117,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     Object.assign(existing, dispatchFieldsFromBody(body));
     Object.assign(existing, counterFieldsFromBody(body));
+    Object.assign(existing, returnsFieldsFromBody(body));
 
     // Re-resolved whenever the address changes or a map link is pasted: a
     // branch that moved must stop being found at the old point.

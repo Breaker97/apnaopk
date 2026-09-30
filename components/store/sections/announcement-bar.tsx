@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import {
   backgroundCss,
@@ -23,13 +23,11 @@ import {
  * bar" row — see AnnouncementStyle.
  */
 export function AnnouncementBar({
-  locale,
   text,
   href,
   background,
   style: barStyle = defaultAnnouncementStyle(),
 }: {
-  locale: string;
   text: string;
   href: string;
   background: SlideBackground;
@@ -51,11 +49,17 @@ export function AnnouncementBar({
       {href ? <ArrowRight className="h-3.5 w-3.5 shrink-0 rtl:rotate-180" /> : null}
     </span>
   );
-  const className = "block w-full px-4 py-2 leading-5";
+  // The inset comes from the style now (announcementBarCss), so a merchant
+  // can close the strip up or open it out; a class here would win over it.
+  const className = "block w-full leading-5";
   const fallbackClass = painted ? "" : " bg-primary text-primary-foreground";
 
   if (href) {
-    const target = href.startsWith("http") ? href : `/${locale}${href.startsWith("/") ? href : `/${href}`}`;
+    const target = href.startsWith("http")
+      ? href
+      : href.startsWith("/")
+        ? href
+        : `/${href}`;
     const external = href.startsWith("http");
     return external ? (
       <a

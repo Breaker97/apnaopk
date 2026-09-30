@@ -15,7 +15,8 @@ import {
   findPlatformPaymentByReference,
   verifyPlatformPayment,
 } from "@/lib/payments/platform-payments";
-import { z } from "zod";
+import * as z from "zod";
+import { amountDueNow } from "@/lib/payments/finalize-order";
 
 type OrangeMoneyNotification = {
   order_id?: string;
@@ -137,7 +138,7 @@ async function handleOrangeMoneyCallback(request: NextRequest) {
     const order = await Order.findOne({
       paymentMethod: "orange_money",
       orangeMoneyOrderId: orderId,
-    }).select("orangeMoneyPayToken orangeMoneyNotifToken total preorderOutstandingAmount");
+    }).select("orangeMoneyPayToken orangeMoneyNotifToken total preorderOutstandingAmount storeCredit");
 
     if (!order) {
       console.error("Orange Money callback for an unknown order:", orderId);
@@ -177,10 +178,8 @@ async function handleOrangeMoneyCallback(request: NextRequest) {
     );
     const creds = getOrangeMoneyCredentials(resolved);
 
-    const expectedAmount = Math.max(
-      0,
-      Number(order.total || 0) - Number(order.preorderOutstandingAmount || 0),
-    );
+    // What every gateway is held to — store credit included (R8).
+    const expectedAmount = amountDueNow(order);
 
     // Never trust the callback body — re-fetch the authoritative status. The
     // call carries our own order id, pay token and expected amount, so a

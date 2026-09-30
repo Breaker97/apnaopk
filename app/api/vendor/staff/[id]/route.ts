@@ -2,11 +2,8 @@ import { NextRequest } from "next/server";
 import { Types } from "mongoose";
 import { StaffProfile, User } from "@/models";
 import { USER_ROLES } from "@/config/app.config";
-import {
-  ALL_STAFF_PERMISSIONS,
-  VENDOR_PERMISSIONS,
-  type StaffPermission,
-} from "@/config/permissions.config";
+import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
+import { sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
 import { setUserRole } from "@/lib/access/user-role";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError, handleApiError } from "@/lib/api/errors";
@@ -17,7 +14,7 @@ import {
   VENDOR_OWNED_STAFF_FILTER,
 } from "@/lib/access/staff-ownership";
 import { getDemoModeMutationResponse } from "@/lib/demo-mode";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 interface RouteParams {
@@ -140,7 +137,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const profileUpdate: Record<string, unknown> = {};
     if (Array.isArray(permissions)) {
-      profileUpdate.permissions = sanitizeStaffPermissions(permissions);
+      profileUpdate.permissions = sanitizeVendorStaffPermissions(permissions);
     }
     if (department !== undefined) {
       profileUpdate.department = department?.trim() || undefined;
@@ -232,16 +229,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error);
   }
-}
-
-function sanitizeStaffPermissions(input: unknown): StaffPermission[] {
-  if (!Array.isArray(input)) return [];
-  const valid = input.filter(
-    (permission: unknown): permission is StaffPermission =>
-      typeof permission === "string" &&
-      ALL_STAFF_PERMISSIONS.includes(permission as StaffPermission),
-  );
-  return Array.from(new Set(valid));
 }
 
 /** Whether the invite has been accepted, without leaking the hash. */

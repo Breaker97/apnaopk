@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { ArrowRight, LayoutTemplate, ListTree, PanelBottom } from "lucide-react";
 import {
@@ -18,13 +18,13 @@ import { createTSafe } from "@/components/admin/online-store/t-safe";
  * has exactly these three navigation surfaces, so a list you could add
  * arbitrary menus to only created rows nothing rendered.
  */
-export function NavigationHub({ locale }: { locale: string }) {
+export function NavigationHub() {
   const tSafe = createTSafe(useTranslations());
 
   const surfaces = [
     {
       key: "header",
-      href: `/${locale}/admin/online-store/menus/header`,
+      href: "/admin/online-store/menus/header",
       icon: LayoutTemplate,
       title: tSafe("admin.navigationHub.header.title", "Header"),
       description: tSafe(
@@ -34,7 +34,7 @@ export function NavigationHub({ locale }: { locale: string }) {
     },
     {
       key: "footer",
-      href: `/${locale}/admin/online-store/menus/footer`,
+      href: "/admin/online-store/menus/footer",
       icon: PanelBottom,
       title: tSafe("admin.navigationHub.footer.title", "Footer"),
       description: tSafe(
@@ -44,7 +44,7 @@ export function NavigationHub({ locale }: { locale: string }) {
     },
     {
       key: "megaMenu",
-      href: `/${locale}/admin/online-store/menus/main-mega-menu/edit`,
+      href: "/admin/online-store/menus/main-mega-menu/edit",
       icon: ListTree,
       title: tSafe("admin.navigationHub.megaMenu.title", "Mega Menu"),
       description: tSafe(

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
@@ -31,11 +31,15 @@ import {
   type FaqItem,
 } from "@/lib/site-config/content-pages-config";
 import { isRecord } from "@/lib/utils";
+import { resolveReturnPolicy, type ReturnPolicySettingsLike } from "@/lib/returns/return-policy";
+import { returnPolicyCopyWarnings } from "@/lib/site-config/return-policy-copy";
+import { ReturnCopyWarnings } from "@/components/admin/online-store/return-copy-warnings";
 
 type SettingsResponse = {
   success?: boolean;
   data?: {
     contentPages?: unknown;
+    orders?: ReturnPolicySettingsLike["orders"];
   };
 };
 
@@ -62,6 +66,20 @@ export function FaqPageEditor({ locale }: { locale: string }) {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  // The window checkout sells with — what `{windowDays}` stands for.
+  const [windowDays, setWindowDays] = useState<number | null>(
+    () => resolveReturnPolicy(null).windowDays,
+  );
+  // Only the answers about returns: the rest quote delivery and other days
+  // that have nothing to do with the window.
+  const copyWarnings = useMemo(
+    () =>
+      returnPolicyCopyWarnings(
+        items.filter((item) => /\breturn/i.test(`${item.question} ${item.answer}`)),
+        windowDays,
+      ),
+    [items, windowDays],
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -90,6 +108,7 @@ export function FaqPageEditor({ locale }: { locale: string }) {
         setInitialSubtitle(normalized.faq.subtitle);
         setInitialVisible(normalized.faq.visible);
         setInitialItems(normalized.faq.items);
+        setWindowDays(resolveReturnPolicy({ orders: payload.data.orders }).windowDays);
       } catch {
         toast.error("Failed to load FAQ editor");
       } finally {
@@ -254,6 +273,8 @@ export function FaqPageEditor({ locale }: { locale: string }) {
           </>
         }
       />
+
+      <ReturnCopyWarnings warnings={copyWarnings} windowDays={windowDays} />
 
       <Card className="rounded-sm border border-border bg-card p-4 shadow-[0_3px_14px_rgba(15,23,42,0.06)] md:p-6">
         <div className="space-y-4">

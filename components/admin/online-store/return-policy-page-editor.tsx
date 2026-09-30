@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useStoreDefaultLocale } from "@/hooks/use-locale-navigation";
+import Link from "@/components/language/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDown,
@@ -32,11 +33,15 @@ import { useAppSettings } from "@/providers/app-settings-provider";
 import { FieldRow, SwitchRow } from "@/components/admin/online-store/editor-fields";
 import { PageEditorSkeleton } from "@/components/admin/online-store/online-store-skeletons";
 import { isRecord } from "@/lib/utils";
+import { resolveReturnPolicy, type ReturnPolicySettingsLike } from "@/lib/returns/return-policy";
+import { returnPolicyCopyWarnings } from "@/lib/site-config/return-policy-copy";
+import { ReturnCopyWarnings } from "@/components/admin/online-store/return-copy-warnings";
 
 type SettingsResponse = {
   success?: boolean;
   data?: {
     contentPages?: unknown;
+    orders?: ReturnPolicySettingsLike["orders"];
   };
 };
 
@@ -83,12 +88,17 @@ function createStatus(): ReturnPolicyStatusRow {
 }
 
 export function ReturnPolicyPageEditor({ locale }: { locale: string }) {
+  const storeDefault = useStoreDefaultLocale();
   const pageMeta = CONTENT_PAGE_META.returns;
   // The preview stands in for the live page, so it renders the store's own
   // name and support details — the same ones the storefront reads.
   const { storeName, storeEmail, storePhone } = useAppSettings();
   const [page, setPage] = useState<ReturnPolicyPageData | null>(null);
   const [initialPage, setInitialPage] = useState<ReturnPolicyPageData | null>(null);
+  // The window checkout sells with — what `{windowDays}` stands for.
+  const [windowDays, setWindowDays] = useState<number | null>(
+    () => resolveReturnPolicy(null).windowDays,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -106,6 +116,7 @@ export function ReturnPolicyPageEditor({ locale }: { locale: string }) {
         const normalized = normalizeContentPagesSettings(payload.data.contentPages);
         setPage(cloneReturns(normalized.returns));
         setInitialPage(cloneReturns(normalized.returns));
+        setWindowDays(resolveReturnPolicy({ orders: payload.data.orders }).windowDays);
       } catch {
         toast.error("Failed to load Return and Refund Policy editor");
       } finally {
@@ -119,6 +130,12 @@ export function ReturnPolicyPageEditor({ locale }: { locale: string }) {
   const isDirty = useMemo(
     () => JSON.stringify(page) !== JSON.stringify(initialPage),
     [page, initialPage],
+  );
+  // What the page promises that the store does not do. The merchant's words
+  // are never changed for them; this says where they have gone stale.
+  const copyWarnings = useMemo(
+    () => (page ? returnPolicyCopyWarnings(page, windowDays) : []),
+    [page, windowDays],
   );
 
   const updateField = <K extends keyof ReturnPolicyPageData>(
@@ -300,6 +317,8 @@ export function ReturnPolicyPageEditor({ locale }: { locale: string }) {
         }
       />
 
+      <ReturnCopyWarnings warnings={copyWarnings} windowDays={windowDays} />
+
       <section className="rounded-sm border border-border bg-background shadow-[0_3px_14px_rgba(15,23,42,0.06)]">
         <div className="border-b border-border px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -309,8 +328,10 @@ export function ReturnPolicyPageEditor({ locale }: { locale: string }) {
         <div className="max-h-[720px] overflow-y-auto">
           <ReturnPolicyPageView
             locale={locale}
+            storeDefault={storeDefault}
             page={page}
             storeName={storeName}
+            windowDays={windowDays}
             supportEmail={storeEmail}
             supportPhone={storePhone}
           />

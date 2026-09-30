@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { SliderDocument } from "@/lib/sliders/types";
 
-export interface HistoryLabels {
+interface HistoryLabels {
   title: string;
   description: string;
   restore: string;
@@ -63,7 +63,7 @@ export function SliderHistoryDialog({
           <span className="rounded-full bg-muted px-1.5 text-[10px] tabular-nums">{history.length}</span>
         ) : null}
       </Button>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{labels.title}</DialogTitle>
           <DialogDescription>{labels.description}</DialogDescription>

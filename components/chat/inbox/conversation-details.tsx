@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { cn } from "@/lib/utils";
 import { ConversationAssignmentControl } from "@/components/chat/conversation-assignment-control";
 import { channelLabel } from "@/lib/conversations/channels";
@@ -33,7 +34,6 @@ type DetailsView = "details" | "media";
 type MediaTab = "media" | "files" | "links";
 
 interface ConversationDetailsProps {
-  locale: string;
   viewerMode: "customer" | "store";
   conversation: ConversationDTO;
   messages: ConversationMessageDTO[];
@@ -63,7 +63,6 @@ interface ConversationDetailsProps {
 const URL_PATTERN = /https?:\/\/[^\s]+/g;
 
 export function ConversationDetails({
-  locale,
   viewerMode,
   conversation,
   messages,
@@ -318,7 +317,6 @@ export function ConversationDetails({
             {labels.product}
           </p>
           <ProductContextCard
-            locale={locale}
             product={conversation.productContext}
             viewProductLabel={labels.viewProduct}
           />
@@ -327,10 +325,7 @@ export function ConversationDetails({
 
       {replyWindowExpired ? (
         <div className="border-t px-4 py-3">
-          <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-amber-800 dark:text-amber-200">
-            <Clock3 className="mt-0.5 size-3.5 shrink-0" />
-            {labels.windowClosed}
-          </p>
+          <WarningBanner icon={Clock3}>{labels.windowClosed}</WarningBanner>
         </div>
       ) : null}
 

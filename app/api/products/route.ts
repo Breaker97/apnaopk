@@ -14,7 +14,7 @@ import { withApi } from "@/lib/api/handler";
 export const GET = withApi(
   {},
   async ({ request }) => {
-    await rateLimitByIP(request, "lenient");
+    await rateLimitByIP(request, "browse");
 
     const searchParams = request.nextUrl.searchParams;
     const facets = {

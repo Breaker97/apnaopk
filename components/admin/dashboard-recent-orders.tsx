@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "@/components/language/link";
+import { useTranslations } from "next-intl";
 import { PackageCheck, User } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { cn, truncateByWords } from "@/lib/utils";
@@ -39,9 +38,6 @@ function getStatusPill(t: ReturnType<typeof useTranslations>, orderStatus: strin
 /** The five newest orders, already flattened server-side to one line per order. */
 export function DashboardRecentOrders({ orders }: { orders: RecentOrder[] }) {
   const t = useTranslations();
-  const intlLocale = useLocale();
-  const params = useParams<{ locale: string }>();
-  const locale = params?.locale || intlLocale || "en";
   const { formatPrice } = useCurrency();
 
   return (
@@ -51,7 +47,7 @@ export function DashboardRecentOrders({ orders }: { orders: RecentOrder[] }) {
           {t("admin.dashboardPage.recentOrders")}
         </h2>
         <Link
-          href={`/${locale}/admin/orders`}
+          href="/admin/orders"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           {t("admin.dashboardPage.viewAllOrders")}
@@ -68,7 +64,6 @@ export function DashboardRecentOrders({ orders }: { orders: RecentOrder[] }) {
             <RecentOrderCard
               key={order._id}
               order={order}
-              locale={locale}
               t={t}
               formatPrice={formatPrice}
             />
@@ -81,12 +76,10 @@ export function DashboardRecentOrders({ orders }: { orders: RecentOrder[] }) {
 
 function RecentOrderCard({
   order,
-  locale,
   t,
   formatPrice,
 }: {
   order: RecentOrder;
-  locale: string;
   t: ReturnType<typeof useTranslations>;
   formatPrice: (amount: number) => string;
 }) {
@@ -112,7 +105,7 @@ function RecentOrderCard({
 
   return (
     <Link
-      href={`/${locale}/admin/orders/${order._id}`}
+      href={`/admin/orders/${order._id}`}
       className="block rounded-sm border border-border px-4 py-3 transition-colors hover:bg-muted/40 active:bg-muted/60 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-[minmax(260px,2.1fr)_1.1fr_0.6fr_0.8fr_1fr_0.7fr]"
     >
       {/* Mobile: compact summary — image + name + price on one row, then a

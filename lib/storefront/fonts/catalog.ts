@@ -46,20 +46,7 @@ export const FONT_CATALOG: FontFace[] = [
   { id: "noto-serif-bengali", name: "Noto Serif Bengali", family: "Noto Serif Bengali", category: "serif", files: ["noto-serif-bengali-bengali.woff2", "noto-serif-bengali-latin.woff2"], note: "Bengali + Latin, serif" },
 ];
 
-/** Curated heading/body pairs the editor offers as one click. */
-export const FONT_PAIRINGS: { key: string; name: string; heading: string; body: string }[] = [
-  { key: "inter", name: "Inter / Inter", heading: "inter", body: "inter" },
-  { key: "manrope-inter", name: "Manrope / Inter", heading: "manrope", body: "inter" },
-  { key: "jakarta-dm", name: "Plus Jakarta / DM Sans", heading: "plus-jakarta-sans", body: "dm-sans" },
-  { key: "grotesk-inter", name: "Space Grotesk / Inter", heading: "space-grotesk", body: "inter" },
-  { key: "playfair-source", name: "Playfair / Source Sans", heading: "playfair-display", body: "source-sans-3" },
-  { key: "cormorant-manrope", name: "Cormorant / Manrope", heading: "cormorant-garamond", body: "manrope" },
-  { key: "fraunces-nunito", name: "Fraunces / Nunito", heading: "fraunces", body: "nunito" },
-  { key: "dmserif-dmsans", name: "DM Serif / DM Sans", heading: "dm-serif-display", body: "dm-sans" },
-  { key: "lora-source", name: "Lora / Source Sans", heading: "lora", body: "source-sans-3" },
-];
-
-export function getFontFace(id: unknown): FontFace | undefined {
+function getFontFace(id: unknown): FontFace | undefined {
   return FONT_CATALOG.find((face) => face.id === id);
 }
 

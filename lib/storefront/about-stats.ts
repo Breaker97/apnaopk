@@ -3,8 +3,11 @@ import type {
   AboutStatKey,
 } from "@/lib/site-config/content-pages-config";
 
-/** Live counts behind the About page's numbers strip. `founded` is never counted. */
-export type AboutStatCounts = Record<Exclude<AboutStatKey, "founded">, number>;
+/** The stats a live count can fill. `founded` is never counted. */
+export type AboutCountKey = Exclude<AboutStatKey, "founded">;
+
+/** Live counts behind the About page's numbers strip. */
+export type AboutStatCounts = Record<AboutCountKey, number>;
 
 /**
  * A live count below this is hidden rather than shown: "12 orders delivered"
@@ -27,14 +30,28 @@ export function formatAboutCount(value: number, locale: string): string {
 }
 
 /**
+ * The counts the admin's stat rows would show — the rows `resolveAboutStats`
+ * fills from a live count. Only these are worth counting: a disabled row, or
+ * one showing the merchant's own figure, never reads its count.
+ */
+export function liveAboutStatKeys(stats: AboutStat[]): AboutCountKey[] {
+  const keys = new Set<AboutCountKey>();
+  for (const stat of stats) {
+    if (!stat.enabled || !stat.label.trim() || stat.manualValue.trim()) continue;
+    if (stat.key !== "founded") keys.add(stat.key);
+  }
+  return [...keys].sort();
+}
+
+/**
  * Turn the admin's stat rows plus the live counts into the tiles to render.
  * Disabled rows, unlabeled rows, `founded` without a year, and counts under
- * the threshold all drop out; the caller hides the strip when fewer than two
- * survive.
+ * the threshold or not counted all drop out; the caller hides the strip when
+ * fewer than two survive.
  */
 export function resolveAboutStats(
   stats: AboutStat[],
-  counts: AboutStatCounts | null,
+  counts: Partial<AboutStatCounts> | null,
   locale: string,
 ): ResolvedAboutStat[] {
   const resolved: ResolvedAboutStat[] = [];
@@ -52,7 +69,13 @@ export function resolveAboutStats(
 
     if (stat.key === "founded" || !counts) continue;
     const count = counts[stat.key];
-    if (!Number.isFinite(count) || count < ABOUT_STAT_MIN_AUTO_VALUE) continue;
+    if (
+      count === undefined ||
+      !Number.isFinite(count) ||
+      count < ABOUT_STAT_MIN_AUTO_VALUE
+    ) {
+      continue;
+    }
 
     resolved.push({
       key: stat.key,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "@/components/language/link";
 import {
   ArrowLeft,
   Eye,
@@ -13,14 +13,18 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "@/components/ui/toast-notification";
+import { BrandColorsFields } from "@/components/admin/online-store/brand-colors-fields";
+import { useAdminSettingsContext } from "@/components/admin/settings/admin-settings-context";
+import { useBrandingSave } from "@/components/admin/settings/branding-save";
 import { ThemePreviewPane } from "@/components/admin/online-store/theme-preview-pane";
 import {
   createTSafe,
   type TSafe,
 } from "@/components/admin/online-store/t-safe";
 import { apiClient, ApiClientError } from "@/lib/api/client";
+import { normalizeColorToHex } from "@/lib/site-config/appearance-colors";
 import {
   resolveThemeSchemes,
   type BrandColors,
@@ -81,6 +85,15 @@ export function ThemeEditor({
   const tSafe = createTSafe(t);
   const [saved, setSaved] = useState(initialTokens);
   const [tokens, setTokens] = useState(initialTokens);
+  /**
+   * The BRAND, edited here beside the roles that reference it. It is global
+   * — one brand across every theme — so it keeps its own store
+   * (`appearance.*`) and its own save call; what this editor does is put
+   * both behind one Save, since from the merchant's side it is one sitting
+   * of choosing colors.
+   */
+  const { settings: liveSettings } = useAdminSettingsContext();
+  const { isDirty: brandDirty, save: saveBrand } = useBrandingSave();
   // Keyed on the theme so a switch elsewhere never edits stale tokens.
   const storageKey = `theme-editor:${themeId}`;
   const [group, setGroup] = useState<ThemeGroupKey>("colors");
@@ -90,10 +103,11 @@ export function ThemeEditor({
   // Below xl the preview replaces the controls instead of sitting beside them.
   const [showPreview, setShowPreview] = useState(false);
 
-  const dirty = useMemo(
+  const tokensDirty = useMemo(
     () => JSON.stringify(tokens) !== JSON.stringify(saved),
     [tokens, saved],
   );
+  const dirty = tokensDirty || brandDirty;
 
   useEffect(() => {
     if (!dirty) return;
@@ -104,9 +118,26 @@ export function ThemeEditor({
     return () => window.removeEventListener("beforeunload", guard);
   }, [dirty]);
 
+  /**
+   * What the preview resolves against: the brand as it stands in the form,
+   * so a role set to "Brand" moves while the colour is being picked. Falls
+   * back to the server's value for anything the form has not loaded or has
+   * left in a state the colour pipeline cannot read.
+   */
+  const liveBrand = useMemo<BrandColors>(() => {
+    const appearance = liveSettings?.appearance;
+    const pick = (value: string | undefined, fallback: string) =>
+      normalizeColorToHex(value ?? "") ?? fallback;
+    return {
+      primary: pick(appearance?.primaryColor, brand.primary),
+      secondary: pick(appearance?.secondaryColor, brand.secondary),
+      accent: pick(appearance?.accentColor, brand.accent),
+    };
+  }, [liveSettings?.appearance, brand]);
+
   const schemes = useMemo(
-    () => resolveThemeSchemes(tokens, brand),
-    [tokens, brand],
+    () => resolveThemeSchemes(tokens, liveBrand),
+    [tokens, liveBrand],
   );
 
   const setField = (groupKey: ThemeGroupKey, key: string, value: unknown) => {
@@ -136,6 +167,17 @@ export function ThemeEditor({
   const save = async () => {
     setSaving(true);
     try {
+      // The brand first: it is what the theme's roles resolve against, so a
+      // tokens write that landed while the brand failed would leave the two
+      // describing different palettes.
+      if (brandDirty && liveSettings) {
+        const ok = await saveBrand(liveSettings);
+        if (!ok) return;
+      }
+      if (!tokensDirty) {
+        toast.success(tSafe("admin.themeEditor.saved", "Theme settings saved"));
+        return;
+      }
       const result = await apiClient.patch<{ values: ThemeTokens }>(
         "/api/admin/theme-settings",
         { values: tokens },
@@ -166,7 +208,7 @@ export function ThemeEditor({
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
         <Button variant="ghost" size="sm" asChild className="gap-1.5">
-          <Link href={`/${locale}/admin/online-store/theme`}>
+          <Link href="/admin/online-store/theme">
             <ArrowLeft className="h-4 w-4" />
             {tSafe("admin.themeEditor.back", "Themes")}
           </Link>
@@ -229,7 +271,7 @@ export function ThemeEditor({
           <Button
             variant="outline"
             size="sm"
-            disabled={!dirty || saving}
+            disabled={!tokensDirty || saving}
             onClick={() => setTokens(saved)}
             className="gap-1.5"
           >
@@ -334,7 +376,12 @@ export function ThemeEditor({
                 mode={mode}
                 setMode={setMode}
                 schemes={schemes}
-                brand={brand}
+                brand={liveBrand}
+                brandFields={
+                  liveSettings ? (
+                    <BrandColorsFields settings={liveSettings} tSafe={tSafe} />
+                  ) : null
+                }
                 setColor={setColor}
                 setDarkMode={(value) =>
                   setTokens((current) => ({
@@ -355,6 +402,16 @@ export function ThemeEditor({
                 .map((field) => (
                   <GenericControl
                     key={field.key}
+                    brand={liveBrand}
+                    resolved={
+                      field.resolvesTo
+                        ? schemes[mode][field.resolvesTo]
+                        : String(
+                            (tokens[activeGroup.key] as Record<string, unknown>)[
+                              field.key
+                            ] ?? "",
+                          ) || "transparent"
+                    }
                     field={field}
                     value={
                       (tokens[activeGroup.key] as Record<string, unknown>)[
@@ -417,11 +474,17 @@ function GenericControl({
   field,
   value,
   onChange,
+  brand,
+  resolved,
   tSafe,
 }: {
   field: TokenField;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** For a colour token: the brand a "Brand" reference resolves against. */
+  brand: BrandColors;
+  /** For a colour token: what its empty value actually paints. */
+  resolved: string;
   tSafe: TSafe;
 }) {
   switch (field.kind) {
@@ -467,7 +530,16 @@ function GenericControl({
         />
       );
     case "color":
-      return null;
+      return (
+        <ColorControl
+          field={field}
+          value={String(value ?? "")}
+          onChange={onChange}
+          brand={brand}
+          resolved={resolved}
+          tSafe={tSafe}
+        />
+      );
   }
 }
 
@@ -478,6 +550,7 @@ function ColorsGroup({
   setMode,
   schemes,
   brand,
+  brandFields,
   setColor,
   setDarkMode,
   tSafe,
@@ -488,6 +561,8 @@ function ColorsGroup({
   setMode: (mode: "light" | "dark") => void;
   schemes: ReturnType<typeof resolveThemeSchemes>;
   brand: BrandColors;
+  /** The global brand's own fields, shown above the roles that cite it. */
+  brandFields: ReactNode;
   setColor: (role: ColorRole, value: string) => void;
   setDarkMode: (value: "auto" | "custom") => void;
   tSafe: TSafe;
@@ -498,6 +573,26 @@ function ColorsGroup({
 
   return (
     <>
+      {/* The brand, then what this theme does with it. One brand across
+          every theme — switching themes does not change it — so it is
+          marked as such rather than left to look like a theme setting. */}
+      {brandFields ? (
+        <section className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
+          <div className="space-y-0.5">
+            <h3 className="text-xs font-semibold">
+              {tSafe("admin.branding.colorsTitle", "Brand colors")}
+            </h3>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {tSafe(
+                "admin.themeEditor.brandScope",
+                "Your brand, shared by every theme and used by the storefront, the dashboard, checkout and emails. A role below can reference it.",
+              )}
+            </p>
+          </div>
+          {brandFields}
+        </section>
+      ) : null}
+
       <div
         role="radiogroup"
         className="flex rounded-md border border-border p-0.5"

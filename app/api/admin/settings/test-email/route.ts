@@ -6,9 +6,10 @@ import {
   DEFAULT_STORE_NAME,
 } from "@/config/branding.config";
 import { createSmtpTransport, sendEmail } from "@/lib/email/email";
+import { escapeHtml } from "@/lib/email/escape-html";
 import { getSmtpConfigurationFingerprint } from "@/lib/email/smtp-verification";
 import { revalidateSettingsContent } from "@/lib/cache-invalidation";
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 
 const TestEmailSchema = z.object({ testEmail: z.unknown().optional() });
@@ -56,8 +57,10 @@ export const POST = withApi(
 
       const { config: smtp } = transport;
       const storeName = settings.general?.storeName || DEFAULT_STORE_NAME;
-      const primaryColor =
-        settings.appearance?.primaryColor || DEFAULT_PRIMARY_COLOR;
+      const safeStoreName = escapeHtml(storeName);
+      const primaryColor = escapeHtml(
+        settings.appearance?.primaryColor || DEFAULT_PRIMARY_COLOR,
+      );
 
       // Send test email
       const sent = await sendEmail({
@@ -68,11 +71,11 @@ export const POST = withApi(
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: ${primaryColor};">Email Configuration Test</h2>
-            <p>This is a test email from <strong>${storeName}</strong>.</p>
+            <p>This is a test email from <strong>${safeStoreName}</strong>.</p>
             <p>If you received this email, your SMTP configuration is working correctly!</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
             <p style="color: #666; font-size: 12px;">
-              Sent from ${storeName} Admin Panel
+              Sent from ${safeStoreName} Admin Panel
             </p>
           </div>
         `,

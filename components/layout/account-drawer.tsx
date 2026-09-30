@@ -4,7 +4,10 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type OAuthEnabled } from "@/components/auth/login-form";
+import {
+  type DemoCredential,
+  type OAuthEnabled,
+} from "@/components/auth/login-form";
 import { type Locale } from "@/config/i18n.config";
 
 interface AccountDrawerProps {
@@ -13,7 +16,7 @@ interface AccountDrawerProps {
   setIsOpen: (open: boolean) => void;
   /** Server-resolved on the store layout, same flags the /login page gets. */
   oauthEnabled: OAuthEnabled;
-  demoModeEnabled: boolean;
+  demoCredentials: DemoCredential[];
   emailVerificationRequired: boolean;
 }
 
@@ -67,7 +70,7 @@ export function AccountDrawer({
   isOpen,
   setIsOpen,
   oauthEnabled,
-  demoModeEnabled,
+  demoCredentials,
   emailVerificationRequired,
 }: AccountDrawerProps) {
   const close = () => setIsOpen(false);
@@ -84,7 +87,7 @@ export function AccountDrawer({
             locale={locale}
             close={close}
             oauthEnabled={oauthEnabled}
-            demoModeEnabled={demoModeEnabled}
+            demoCredentials={demoCredentials}
             emailVerificationRequired={emailVerificationRequired}
           />
         ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Lock } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 /**
  * Read-only hint shown under a credential field when its value is supplied by
@@ -9,13 +10,12 @@ import { Lock } from "lucide-react";
  * fields. Render only when `show` is true.
  */
 export function EnvSourceHint({ show }: { show?: boolean }) {
+  const t = useTranslations("admin.settings.fields");
   if (!show) return null;
   return (
     <p className="flex items-center gap-1 text-xs text-muted-foreground">
       <Lock className="h-3 w-3" aria-hidden="true" />
-      <span>
-        Set via environment variable. A value saved here overrides it.
-      </span>
+      <span>{t("envSourceHint")}</span>
     </p>
   );
 }

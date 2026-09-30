@@ -1,5 +1,5 @@
-import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ClientSuspense } from "@/components/common/client-suspense";
 import { ProfileForm } from "@/components/account/profile-form";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 
@@ -24,10 +24,10 @@ export default async function ProfilePage({ params }: PageProps) {
         </p>
       </div>
 
-      {/* Profile Form */}
-      <Suspense fallback={<ProfileFormSkeleton />}>
+      {/* Profile Form — its loading state is this boundary's fallback. */}
+      <ClientSuspense fallback={<ProfileFormSkeleton />}>
         <ProfileForm />
-      </Suspense>
+      </ClientSuspense>
     </div>
   );
 }

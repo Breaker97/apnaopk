@@ -8,12 +8,17 @@ import {
   fetchRefundTotalsByOrder,
   fetchVendorOverpayment,
   isPastPayoutHold,
+  loadOrderIdsHeldForReturns,
+  orderPayoutHoldCutoff,
+  orderPayoutHoldDays,
   payableInCurrency,
-  payoutHoldCutoff,
   sumVendorPayable,
 } from "@/lib/vendors/vendor-earnings";
 import { sumHeldReserve } from "@/lib/vendors/preorder-reserve";
-import { resolveReturnPolicy } from "@/lib/returns/return-policy";
+import {
+  resolveReturnPolicy,
+  type ReturnTermsLike,
+} from "@/lib/returns/return-policy";
 import { roundMoney } from "@/lib/intl/money";
 import { resolveMinWithdrawal } from "@/lib/orders/order-settings";
 
@@ -54,11 +59,27 @@ export async function loadVendorBalance(params: {
   const currency = String(params.currency || "USD").toUpperCase();
   const settings = await getSettings();
   const policy = resolveReturnPolicy(settings);
-  const holdCutoff = payoutHoldCutoff(settings);
+  const now = new Date();
 
-  const payableOrders = await Order.find(buildPayableOrderFilter(vendorObjectId))
-    .select(PAYABLE_ORDER_PROJECTION)
-    .lean();
+  const [payableOrders, heldForReturns] = await Promise.all([
+    Order.find(buildPayableOrderFilter(vendorObjectId))
+      .select(PAYABLE_ORDER_PROJECTION)
+      .lean(),
+    loadOrderIdsHeldForReturns(vendorObjectId),
+  ]);
+  // A sale a return is still open on waits with the ones inside the window:
+  // it is what a payout made now would leave out.
+  const returnOpen = new Set(heldForReturns.map(String));
+  // Each sale waits out the window it was sold with, not today's.
+  const waiting = (
+    sub: Parameters<typeof isPastPayoutHold>[0],
+    order: { _id?: unknown; returnTerms?: ReturnTermsLike | null },
+  ) =>
+    !isPastPayoutHold(
+      sub,
+      orderPayoutHoldCutoff(order, settings, now, vendorObjectId),
+    ) ||
+    returnOpen.has(String(order._id));
   const refundByOrderId = await fetchRefundTotalsByOrder(
     payableOrders.map((order) => order._id as Types.ObjectId),
   );
@@ -73,7 +94,7 @@ export async function loadVendorBalance(params: {
       payableOrders,
       vendorObjectId,
       refundByOrderId,
-      (sub) => isUnpaidDelivered(sub) && isPastPayoutHold(sub, holdCutoff),
+      (sub, order) => isUnpaidDelivered(sub) && !waiting(sub, order),
       currency,
     ),
     currency,
@@ -83,7 +104,7 @@ export async function loadVendorBalance(params: {
       payableOrders,
       vendorObjectId,
       refundByOrderId,
-      (sub) => isUnpaidDelivered(sub) && !isPastPayoutHold(sub, holdCutoff),
+      (sub, order) => isUnpaidDelivered(sub) && waiting(sub, order),
       currency,
     ),
     currency,
@@ -106,6 +127,17 @@ export async function loadVendorBalance(params: {
       .lean<{ preorderReserveReleaseAt?: Date | null } | null>(),
   ]);
 
+  // Sales made under different return windows wait different times; the hint
+  // names the longest of those still waiting, the one that pays out last.
+  const heldIds = new Set(held.orderIds.map(String));
+  const heldWindowDays = payableOrders.reduce(
+    (longest, order) =>
+      heldIds.has(String(order._id))
+        ? Math.max(longest, orderPayoutHoldDays(order, settings, vendorObjectId))
+        : longest,
+    0,
+  );
+
   return {
     currency,
     readyToPay: roundMoney(ready.netAmount),
@@ -113,7 +145,9 @@ export async function loadVendorBalance(params: {
     heldInReturnWindow: {
       amount: roundMoney(held.netAmount),
       orderCount: held.orderIds.length,
-      windowDays: policy.windowDays,
+      // With nothing held, the store's own window — or, with no time limit,
+      // the most a payout waits on it.
+      windowDays: heldWindowDays || (policy.windowDays ?? policy.payoutHoldMaxDays),
     },
     reserveHeld: {
       amount: roundMoney(reserveHeld),

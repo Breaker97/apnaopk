@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Lock, LockOpen } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";

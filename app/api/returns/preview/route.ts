@@ -17,6 +17,7 @@ import { validateBody } from "@/lib/api/validate";
 import { CreateReturnRequestSchema } from "@/lib/validations";
 import {
   assertReturnEligible,
+  assertReturnSelfServe,
   loadReturnableOrder,
   planReturnRequest,
 } from "@/lib/returns/return-plan";
@@ -24,20 +25,26 @@ import { getSettings } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";
 
 export const POST = withApi(
-  { auth: "user" },
+  {
+    auth: "user",
+    // Three queries a call, answered on every change of the form — capped so
+    // a script cannot turn it into a load test.
+    rateLimit: { action: "returns:preview", preset: "lenient" },
+  },
   async ({ request, session }) => {
     // The same schema the submission validates against, so a selection that
     // previews cleanly cannot then be rejected on submit for its shape.
     const body = await validateBody(request, CreateReturnRequestSchema);
 
     await connectDB();
+    const settings = await getSettings();
+    assertReturnSelfServe(settings);
 
     const order = await loadReturnableOrder({
       orderId: body.orderId,
       customerId: session.user.id,
     });
 
-    const settings = await getSettings();
     assertReturnEligible(order, settings);
 
     const plan = await planReturnRequest({

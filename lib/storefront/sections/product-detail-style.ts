@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 /**
  * The Minimal product page's Visibility + Style configuration — shared by
  * the storefront renderer (product-main's "minimal" design) and the admin
@@ -19,14 +17,10 @@ export interface ProductDetailVisibility {
   discountChip: boolean;
   /** The gallery's discount badge on the main image. */
   discountChipOnImage: boolean;
-  /** "N sold" beside the rating (renders only when the product carries it). */
-  itemSold: boolean;
   /** "(N)" review count beside the stars. */
   ratingCount: boolean;
   /** One star + the numeric rating instead of the five-star row. */
   ratingMinimized: boolean;
-  /** "+N" variant count beside the rating. */
-  variantCount: boolean;
   /** The quantity stepper beside the buttons. */
   quantity: boolean;
   /** The gallery's zoom: magnify on hover and the zoom toggle button. */
@@ -35,6 +29,12 @@ export interface ProductDetailVisibility {
   thumbnails: boolean;
   /** The first accordion (Overview) arrives open. */
   accordionOpenFirst: boolean;
+  /**
+   * The Description / Specifications / Reviews strip under the buy box,
+   * which pins under the header with the price and buy button while the
+   * page scrolls.
+   */
+  sectionTabs: boolean;
 }
 
 export interface ProductDetailTypography {
@@ -49,7 +49,6 @@ export interface ProductDetailTypography {
 }
 
 export type ProductDetailTypographyKey =
-  | "brand"
   | "product"
   | "category"
   | "price"
@@ -76,6 +75,9 @@ export const PRODUCT_DETAIL_ACCORDION_ICONS = ["plus", "chevron"] as const;
 export type ProductDetailAccordionIcon =
   (typeof PRODUCT_DETAIL_ACCORDION_ICONS)[number];
 
+/** The narrowest thumbnail the page setting allows, px. */
+export const MIN_THUMB_SIZE = 40;
+
 /**
  * How an image sits in its frame when the image itself says nothing
  * (ProductMedia.fit "auto"): floated inside with air around it, or filling
@@ -97,6 +99,7 @@ export type ProductDetailShareNetwork =
 export interface ProductDetailStyle {
   /** The delivery/returns info card. */
   cardRadius: number;
+  /** Each line's inline padding, px. */
   cardPadding: number;
   cardBackground: string;
   cardBorder: string;
@@ -145,11 +148,15 @@ export interface ProductDetailStyle {
   imageFit: ProductDetailImageFit;
   /** Air around a contained image, px; -1 = the layout's responsive default. */
   imagePadding: number;
-  /** Thumbnail width, px; 0 = the layout's own. */
+  /** Thumbnail width, px (MIN_THUMB_SIZE–200); capped to its share of the row. */
   thumbSize: number;
   thumbRadius: number;
   /** Outline on the selected thumbnail; "" = the tile's surface step. */
   thumbActiveBorder: string;
+  /** Behind each thumbnail; "" = the neutral grey tile. */
+  thumbBackground: string;
+  /** "contain" shows the whole shot inside the tile; "cover" fills it. */
+  thumbFit: ProductDetailImageFit;
 
   /* ---- Buttons ---- */
   actions: ProductDetailActions;
@@ -215,14 +222,13 @@ export interface ProductDetailConfig {
 const DEFAULT_PRODUCT_DETAIL_VISIBILITY: ProductDetailVisibility = {
   discountChip: true,
   discountChipOnImage: true,
-  itemSold: true,
   ratingCount: true,
   ratingMinimized: false,
-  variantCount: false,
   quantity: true,
   zoom: true,
   thumbnails: true,
   accordionOpenFirst: false,
+  sectionTabs: true,
 };
 
 export const EMPTY_TYPOGRAPHY: ProductDetailTypography = {
@@ -260,9 +266,11 @@ const DEFAULT_PRODUCT_DETAIL_STYLE: ProductDetailStyle = {
   imageGap: 16,
   imageFit: "contain",
   imagePadding: -1,
-  thumbSize: 0,
+  thumbSize: 160,
   thumbRadius: 6,
   thumbActiveBorder: "",
+  thumbBackground: "",
+  thumbFit: "contain",
 
   actions: "both",
   buttonHeight: 44,
@@ -351,7 +359,6 @@ function parseTypography(raw: unknown): ProductDetailTypography | undefined {
 }
 
 const TYPOGRAPHY_KEYS: ProductDetailTypographyKey[] = [
-  "brand",
   "product",
   "category",
   "price",
@@ -418,21 +425,20 @@ export function parseProductDetailConfig(raw: unknown): ProductDetailConfig {
     visibility: {
       discountChip: bool(vs.discountChip, dv.discountChip),
       discountChipOnImage: bool(vs.discountChipOnImage, dv.discountChipOnImage),
-      itemSold: bool(vs.itemSold, dv.itemSold),
       ratingCount: bool(vs.ratingCount, dv.ratingCount),
       ratingMinimized: bool(vs.ratingMinimized, dv.ratingMinimized),
-      variantCount: bool(vs.variantCount, dv.variantCount),
       quantity: bool(vs.quantity, dv.quantity),
       zoom: bool(vs.zoom, dv.zoom),
       thumbnails: bool(vs.thumbnails, dv.thumbnails),
       accordionOpenFirst: bool(vs.accordionOpenFirst, dv.accordionOpenFirst),
+      sectionTabs: bool(vs.sectionTabs, dv.sectionTabs),
     },
     style: {
-      cardRadius: num(ss.cardRadius, ds.cardRadius),
-      cardPadding: num(ss.cardPadding, ds.cardPadding),
+      cardRadius: clamp(ss.cardRadius, ds.cardRadius, 0, 48),
+      cardPadding: clamp(ss.cardPadding, ds.cardPadding, 0, 64),
       cardBackground: str(ss.cardBackground, ds.cardBackground),
       cardBorder: str(ss.cardBorder, ds.cardBorder),
-      cardBorderWidth: num(ss.cardBorderWidth, ds.cardBorderWidth),
+      cardBorderWidth: clamp(ss.cardBorderWidth, ds.cardBorderWidth, 0, 4),
       previewBackground: str(ss.previewBackground, ds.previewBackground),
       previewHeight: clamp(ss.previewHeight, ds.previewHeight, 0, 1600),
       groupGap: num(ss.groupGap, ds.groupGap),
@@ -452,9 +458,17 @@ export function parseProductDetailConfig(raw: unknown): ProductDetailConfig {
       imageGap: clamp(ss.imageGap, ds.imageGap, 0, 64),
       imageFit: oneOf(PRODUCT_DETAIL_IMAGE_FITS, ss.imageFit, ds.imageFit),
       imagePadding: clamp(ss.imagePadding, ds.imagePadding, -1, 120),
-      thumbSize: clamp(ss.thumbSize, ds.thumbSize, 0, 200),
+      // 0 was "the layout's own" width; a saved 0 now reads as the default,
+      // and nothing below 40 is kept — the slider used to start at 0, so the
+      // first nudge shrank the tiles to a few pixels and they vanished.
+      thumbSize:
+        num(ss.thumbSize, 0) > 0
+          ? clamp(ss.thumbSize, ds.thumbSize, MIN_THUMB_SIZE, 200)
+          : ds.thumbSize,
       thumbRadius: clamp(ss.thumbRadius, ds.thumbRadius, 0, 48),
       thumbActiveBorder: str(ss.thumbActiveBorder, ds.thumbActiveBorder),
+      thumbBackground: str(ss.thumbBackground, ds.thumbBackground),
+      thumbFit: oneOf(PRODUCT_DETAIL_IMAGE_FITS, ss.thumbFit, ds.thumbFit),
 
       actions: oneOf(PRODUCT_DETAIL_ACTIONS, ss.actions, ds.actions),
       buttonHeight: clamp(ss.buttonHeight, ds.buttonHeight, 32, 72),
@@ -494,86 +508,5 @@ export function parseProductDetailConfig(raw: unknown): ProductDetailConfig {
       shareIconColor: str(ss.shareIconColor, ds.shareIconColor),
       shareNetworks,
     },
-  };
-}
-
-/** Typography → inline style, only the properties the merchant actually set. */
-export function typographyCss(
-  value: ProductDetailTypography | undefined,
-): CSSProperties {
-  if (!value) return {};
-  const css: CSSProperties = {};
-  if (value.weight)
-    css.fontWeight = value.weight as CSSProperties["fontWeight"];
-  if (value.style) css.fontStyle = value.style;
-  if (value.size > 0) css.fontSize = `${value.size}px`;
-  if (value.color) css.color = value.color;
-  return css;
-}
-
-/** Only the colours that are set, as inline style. */
-function paint(background: string, color: string): CSSProperties {
-  const css: CSSProperties = {};
-  if (background) css.backgroundColor = background;
-  if (color) css.color = color;
-  return css;
-}
-
-export type ProductDetailStockState = "in" | "out" | "preorder";
-
-/**
- * The stock chip's inline style for a state: its radius, its own colours
- * where set, and the Stock Text typography over them. An unset colour keeps
- * the status class's default, so a fresh page still reads green/red/blue.
- */
-export function stockChipCss(
-  style: ProductDetailStyle,
-  state: ProductDetailStockState,
-): CSSProperties {
-  const colors =
-    state === "preorder"
-      ? paint(style.preorderBackground, style.preorderColor)
-      : state === "in"
-        ? paint(style.inStockBackground, style.inStockColor)
-        : paint(style.outOfStockBackground, style.outOfStockColor);
-  return {
-    borderRadius: style.stockRadius,
-    ...colors,
-    ...typographyCss(style.typography.stock),
-  };
-}
-
-/** The "N% OFF" chip beside the price. */
-export function discountChipCss(style: ProductDetailStyle): CSSProperties {
-  return {
-    borderRadius: style.discountRadius,
-    ...paint(style.discountBackground, style.discountColor),
-  };
-}
-
-/**
- * A purchase button's inline style. Radius and height ride inline because
- * the store theme's [data-slot="button"] rules (globals.css) outrank any
- * rounded-* or h-* class on a Button; the case only when the merchant chose
- * one, so "theme" leaves the theme's button tokens in charge.
- */
-export function purchaseButtonCss(
-  style: ProductDetailStyle,
-  kind: "cart" | "buy",
-): CSSProperties {
-  const background = kind === "cart" ? style.cartBackground : style.buyBackground;
-  const border = kind === "cart" ? style.cartBorder : style.buyBorder;
-  const borderWidth = kind === "cart" ? style.cartBorderWidth : style.buyBorderWidth;
-  return {
-    height: style.buttonHeight,
-    borderRadius: style.cartRadius,
-    ...(background ? { backgroundColor: background } : {}),
-    ...(border && borderWidth > 0
-      ? { borderColor: border, borderWidth, borderStyle: "solid" }
-      : {}),
-    ...(style.buttonCase === "theme"
-      ? {}
-      : { textTransform: style.buttonCase === "uppercase" ? "uppercase" : "none" }),
-    ...typographyCss(style.typography[kind]),
   };
 }

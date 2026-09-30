@@ -195,8 +195,6 @@ export function buildMenuFirstLayout(): HeaderLayout {
   };
 }
 
-export const DEFAULT_HEADER_LAYOUT_PRESET = "nav-top";
-
 export function getDefaultHeaderLayout(): HeaderLayout {
   return buildMenuFirstLayout();
 }

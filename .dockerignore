@@ -2,6 +2,12 @@
 # must never be copied in.
 node_modules
 
+# Local vendor release archives and tooling are not runtime source.
+Storify-v*
+Documentation
+__MACOSX
+__agent__
+
 # The prebuilt .next IS shipped — only the compiler/image-optimizer cache is
 # dropped (the optimizer cache is recreated at runtime; mount a volume at
 # /app/.next/cache to keep it across deploys, see docs/STORAGE_SETUP.md).
@@ -23,4 +29,7 @@ tsconfig.tsbuildinfo
 .agents
 .superpowers
 .trae
+docs/superpowers
+docs/security-audit-*
+docs/audit
 .vercel

@@ -1,7 +1,7 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -12,7 +12,6 @@ import {
 } from "@/config/permissions.config";
 import type { Settings } from "@/components/admin/settings/types";
 import { SettingsTabHeader } from "./settings-tab-header";
-import { StickySaveFooter } from "./sticky-save-footer";
 
 /** What each switch buys a vendor, for the operator setting marketplace policy. */
 const PACK_BLURB_KEYS: Record<VendorPermissionPack, string> = {
@@ -47,10 +46,7 @@ const PACK_BLURB_KEYS: Record<VendorPermissionPack, string> = {
  */
 export function VendorPermissionsSettingsTab(props: {
   settings: Settings;
-  isSaving: boolean;
-  isDirty: boolean;
   updateField: (path: string, value: unknown) => void;
-  onSave: () => void | Promise<unknown>;
   disabled?: boolean;
 }) {
   const t = useTranslations("admin.settings.vendorPermissions");
@@ -76,10 +72,9 @@ export function VendorPermissionsSettingsTab(props: {
             <p className="text-sm text-muted-foreground">{t("warning")}</p>
           ) : null}
 
-          <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3.5 py-3 text-[13px] leading-relaxed text-amber-800 dark:text-amber-300">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <WarningBanner>
             <p className="text-pretty">{t("liveWarning")}</p>
-          </div>
+          </WarningBanner>
 
           <div className="grid gap-2">
             {ALL_VENDOR_PACKS.map((pack) => (
@@ -105,14 +100,6 @@ export function VendorPermissionsSettingsTab(props: {
               </div>
             ))}
           </div>
-
-          <StickySaveFooter
-            label="Save changes"
-            isSaving={props.isSaving}
-            isDirty={props.isDirty}
-            disabled={props.isSaving || !props.isDirty}
-            onSave={props.onSave}
-          />
         </CardContent>
       </Card>
     </div>

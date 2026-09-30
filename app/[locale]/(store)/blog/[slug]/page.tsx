@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import Link from "@/components/language/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
@@ -42,6 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BlogDetailPage({ params }: PageProps) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const [t, data] = await Promise.all([
     getTranslations({ locale }),
@@ -77,6 +79,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
         <StoreBreadcrumb
           className="mb-6"
           locale={locale}
+          storeDefault={storeDefault}
           items={[
             { label: t("nav.blog"), href: "/blog" },
             { label: post.title },
@@ -86,7 +89,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
         {post.categories && post.categories.length > 0 ? (
           <div className="mb-4 flex flex-wrap gap-1.5">
             {post.categories.map((c) => (
-              <Link key={c._id} href={`/${locale}/blog?category=${c.slug}`}>
+              <Link key={c._id} href={`/blog?category=${c.slug}`}>
                 <Badge variant="secondary" className="hover:bg-secondary/70">
                   {c.name}
                 </Badge>
@@ -153,7 +156,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
         {post.tags && post.tags.length > 0 ? (
           <div className="mt-12 flex flex-wrap gap-2 border-t pt-6">
             {post.tags.map((tag) => (
-              <Link key={tag} href={`/${locale}/blog?tag=${tag}`}>
+              <Link key={tag} href={`/blog?tag=${tag}`}>
                 <Badge
                   variant="outline"
                   className="rounded-full capitalize hover:bg-muted"
@@ -176,7 +179,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
               {related.map((p) => (
                 <Link
                   key={p._id}
-                  href={`/${locale}/blog/${p.slug}`}
+                  href={`/blog/${p.slug}`}
                   className="group flex flex-col overflow-hidden rounded-2xl border bg-card transition-shadow hover:shadow-md"
                 >
                   <div className="aspect-[16/10] overflow-hidden bg-muted">

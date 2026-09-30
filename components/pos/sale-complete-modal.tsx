@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Check, Printer, FileText, Plus, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,6 +47,9 @@ export function POSSaleCompleteModal({
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sale complete"
         className={cn(
           "bg-background w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl",
           "animate-in zoom-in-95 slide-in-from-bottom-2 duration-300",

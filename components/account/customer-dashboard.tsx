@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   Package,
@@ -156,7 +156,7 @@ export function CustomerDashboard({
       icon: ShoppingBag,
       value: String(stats.totalOrders),
       label: t("account.totalOrders"),
-      href: `/${locale}/account/orders`,
+      href: "/account/orders",
     },
     {
       key: "spent",
@@ -169,14 +169,14 @@ export function CustomerDashboard({
       icon: Clock,
       value: String(stats.pendingOrders),
       label: t("account.pendingOrders"),
-      href: `/${locale}/account/orders`,
+      href: "/account/orders",
     },
     {
       key: "wishlist",
       icon: Heart,
       value: String(stats.wishlistCount),
       label: t("account.wishlistItems"),
-      href: `/${locale}/account/wishlist`,
+      href: "/account/wishlist",
     },
   ];
   // One shell for every tile at every width — see the grid below.
@@ -215,7 +215,7 @@ export function CustomerDashboard({
       {/* In-flight order — the lead answer on phones. */}
       {inFlightOrder && (
         <Link
-          href={`/${locale}/account/orders/${inFlightOrder._id}`}
+          href={`/account/orders/${inFlightOrder._id}`}
           className="flex min-h-[72px] items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 transition-colors hover:bg-primary/10 lg:hidden"
         >
           <div className="rounded-lg bg-background p-2.5">
@@ -301,7 +301,7 @@ export function CustomerDashboard({
         >
           <CardTitle>{t("account.recentOrders")}</CardTitle>
           <Button variant="ghost" size="sm" className="min-h-11 sm:min-h-8" asChild>
-            <Link href={`/${locale}/account/orders`}>
+            <Link href="/account/orders">
               {t("common.viewAll")}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
@@ -313,7 +313,7 @@ export function CustomerDashboard({
               <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>{t("account.noOrders")}</p>
               <Button variant="outline" className="mt-4" asChild>
-                <Link href={`/${locale}/products`}>
+                <Link href="/products">
                   {t("account.startShopping")}
                 </Link>
               </Button>
@@ -323,7 +323,7 @@ export function CustomerDashboard({
               {recentOrders.map((order) => (
                 <Link
                   key={order._id}
-                  href={`/${locale}/account/orders/${order._id}`}
+                  href={`/account/orders/${order._id}`}
                   className="block"
                 >
                   <div className="flex min-h-[72px] items-center justify-between gap-3 px-3 py-3 transition-colors hover:bg-muted/50 sm:min-h-0 sm:gap-4 sm:rounded-lg sm:border sm:p-4">
@@ -383,7 +383,7 @@ export function CustomerDashboard({
               return (
                 <Link
                   key={link.href}
-                  href={`/${locale}${link.href}`}
+                  href={`${link.href}`}
                   className="flex min-h-11 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/50"
                 >
                   <span className="rounded-md bg-primary/10 p-1.5 text-primary">
@@ -414,7 +414,7 @@ export function CustomerDashboard({
               return (
                 <Link
                   key={link.href}
-                  href={`/${locale}${link.href}`}
+                  href={`${link.href}`}
                   className="flex min-h-11 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/50"
                 >
                   <span className="rounded-md bg-primary/10 p-1.5 text-primary">

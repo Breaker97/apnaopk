@@ -237,7 +237,7 @@ export async function refundPaystackTransaction(params: {
 }
 
 /** A dispute, and a refund, as Paystack's API returns them. */
-export type PaystackDispute = PaystackDisputeLike & { id: number | string };
+type PaystackDispute = PaystackDisputeLike & { id: number | string };
 export type PaystackRefund = PaystackRefundLike & { id: number | string };
 
 /** A Paystack read that fails as a `GatewayApiError`, so a caller can tell an outage from a refusal. */
@@ -348,6 +348,35 @@ export async function listPaystackRefunds(params: {
       (reference !== "" && refundReference === reference)
     );
   });
+}
+
+/**
+ * Refunds on the integration, a page at a time. `from` and `to` bound when the
+ * refund was created. For the hourly refund sync — see `listPaystackRefunds`
+ * for one transaction's.
+ */
+export async function listPaystackRefundsCreated(params: {
+  creds: PaystackCredentials;
+  from?: Date;
+  to?: Date;
+  page?: number;
+  perPage?: number;
+}): Promise<{ refunds: PaystackRefund[]; pageCount: number }> {
+  const query = new URLSearchParams({
+    perPage: String(Math.min(100, Math.max(1, params.perPage ?? 100))),
+    page: String(Math.max(1, params.page ?? 1)),
+  });
+  if (params.from) query.set("from", params.from.toISOString());
+  if (params.to) query.set("to", params.to.toISOString());
+  const { data, meta } = await getPaystack<PaystackRefund[]>(
+    params.creds,
+    `/refund?${query.toString()}`,
+    "list refunds",
+  );
+  return {
+    refunds: Array.isArray(data) ? data : [],
+    pageCount: Math.max(1, Number(meta?.pageCount || 1)),
+  };
 }
 
 export async function testPaystackCredentials(creds: PaystackCredentials) {

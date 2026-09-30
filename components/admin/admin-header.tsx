@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import { SearchModal } from "@/components/admin/search-modal";
 import {
   User,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOutAndReload } from "@/lib/auth/auth-client";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { SettingsDrawer } from "@/components/admin/settings-drawer";
+import { PreferencesDrawer } from "@/components/layout/preferences-drawer";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -36,6 +36,7 @@ import { useAppSettings as usePublicAppSettings } from "@/providers/app-settings
 import { useAppTheme } from "@/providers/theme-provider";
 import { AppImage } from "@/components/ui/app-image";
 import { cn } from "@/lib/utils";
+import { confirmLeaveSettings } from "@/components/admin/settings/settings-leave-check";
 
 interface AdminHeaderProps {
   user: {
@@ -87,12 +88,15 @@ export function AdminHeader({
     await signOutAndReload(locale);
   };
 
-  const handleLocaleChange = (newLocale: Locale) => {
+  const handleLocaleChange = async (newLocale: Locale) => {
     if (!pathname) return;
     const currentPrefix = `/${locale}`;
     const newPathname = pathname.startsWith(currentPrefix)
       ? pathname.replace(currentPrefix, `/${newLocale}`)
       : `/${newLocale}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
+    // A push is no link click, so a settings page with unsaved edits is
+    // asked here rather than by its own link guard.
+    if (!(await confirmLeaveSettings(newPathname))) return;
     router.push(newPathname);
   };
 
@@ -198,7 +202,7 @@ export function AdminHeader({
         <SearchableSelect
           options={languageOptions}
           value={locale}
-          onValueChange={(loc) => handleLocaleChange(loc as Locale)}
+          onValueChange={(loc) => void handleLocaleChange(loc as Locale)}
           searchPlaceholder={t("common.selectLanguage")}
           align="end"
           contentClassName="w-56 rounded-xl border-border/60 bg-popover/95 shadow-xl backdrop-blur"
@@ -217,8 +221,8 @@ export function AdminHeader({
         {/* Notifications Drawer */}
         <NotificationDrawer locale={locale} />
 
-        {/* Settings Drawer */}
-        {isAdmin && <SettingsDrawer locale={locale} />}
+        {/* The viewer's own preferences; nothing in it is store-wide. */}
+        <PreferencesDrawer locale={locale} />
 
         {/* User Menu */}
         <DropdownMenu>
@@ -263,7 +267,9 @@ export function AdminHeader({
             {isAdmin && (
               <DropdownMenuItem asChild>
                 <Link
-                  href={`/${locale}/admin/settings`}
+                  // Straight to the first section, as the sidebar's Settings
+                  // button does: `/admin/settings` only redirects there.
+                  href={`/${locale}/admin/settings/general`}
                   className="cursor-pointer"
                 >
                   <Settings className="mr-2 h-4 w-4" />

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { Cart } from "@/models";
 import { getSettingsLean } from "@/models/settings.model";
@@ -177,6 +177,7 @@ export const POST = withApi(
       isMultiVendorEnabled,
       selectedShippingOptionId,
       vendorShippingSelections,
+      currency: settings.general?.defaultCurrency,
     });
 
     return successResponse({

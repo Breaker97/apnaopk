@@ -93,18 +93,26 @@ export async function reconcileMtnMomoPayments(
     paymentStatus: PAYMENT_STATUS.PENDING,
     mtnMomoReferenceId: { $gt: "" },
     createdAt: { $lt: olderThan, $gt: newerThan },
+    paymentReconcileClosedAt: { $exists: false },
   })
+    // Least recently asked first, so every pending order gets its turn. With
+    // no order the same first batch — usually abandoned checkouts — took every
+    // slot, and a paid order past it could wait out the window unreconciled.
+    .sort({ paymentReconcileCheckedAt: 1, createdAt: -1 })
     .select("_id mtnMomoReferenceId")
     .limit(limit);
 
   for (const order of orders) {
     result.checked++;
+    await markReconcileChecked(order._id);
     try {
       const transaction = await getMtnMomoRequestToPayStatus({
         creds,
         referenceId: String(order.mtnMomoReferenceId),
       });
-      if (getMtnMomoTransactionState(transaction) !== "completed") continue;
+      const state = getMtnMomoTransactionState(transaction);
+      if (state === "failed") await markReconcileClosed(order._id);
+      if (state !== "completed") continue;
 
       // No customerEmail: the confirmation email belongs to the path the
       // shopper is watching, and a sweep replaying it days later is noise.
@@ -120,6 +128,7 @@ export async function reconcileMtnMomoPayments(
       // failed after the reference was stored — permanently unanswerable, and
       // permanently unpaid. Not an error worth alarming on every sweep.
       if (error instanceof MtnMomoApiError && error.httpStatus === 404) {
+        await markReconcileClosed(order._id);
         continue;
       }
       result.failed++;
@@ -153,4 +162,22 @@ export async function reconcileMtnMomoPayments(
   }
 
   return result;
+}
+
+function markReconcileChecked(orderId: unknown) {
+  return Order.updateOne(
+    { _id: orderId },
+    { $set: { paymentReconcileCheckedAt: new Date() } },
+  ).catch((error) =>
+    console.error("Failed to note an MTN MoMo reconcile check:", error),
+  );
+}
+
+function markReconcileClosed(orderId: unknown) {
+  return Order.updateOne(
+    { _id: orderId },
+    { $set: { paymentReconcileClosedAt: new Date() } },
+  ).catch((error) =>
+    console.error("Failed to close an MTN MoMo reconcile:", error),
+  );
 }

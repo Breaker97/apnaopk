@@ -116,14 +116,34 @@ export async function sanitizeOrdersForCustomer<T extends RawOrder>(
   return orders.map((order) => sanitizeOne(order, namesById));
 }
 
+/**
+ * What a customer may see of an address hold: whether shipping waits on them,
+ * why, and by when. Never who on the staff placed or released it.
+ */
+function customerAddressHold(order: RawOrder) {
+  const hold = (order as { addressHold?: Record<string, unknown> }).addressHold;
+  if (!hold) return undefined;
+  return {
+    state: hold.state,
+    message: hold.message,
+    deadlineAt: hold.deadlineAt,
+    customerConfirmedAt: hold.customerConfirmedAt,
+    releasedAt: hold.releasedAt,
+  };
+}
+
 function sanitizeOne<T extends RawOrder>(
   order: T,
   namesById: Map<string, string | undefined>,
 ): Omit<T, "subOrders"> & { subOrders: CustomerSubOrderView[] } {
   const raw = order.subOrders || [];
+  const privateFields = {
+    addressHold: customerAddressHold(order),
+    addressCheck: undefined,
+  };
 
   if (raw.length < 2) {
-    return { ...order, subOrders: [] };
+    return { ...order, ...privateFields, subOrders: [] };
   }
 
   const items = order.items || [];
@@ -152,5 +172,5 @@ function sanitizeOne<T extends RawOrder>(
     };
   });
 
-  return { ...order, subOrders };
+  return { ...order, ...privateFields, subOrders };
 }

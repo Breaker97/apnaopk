@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
-import { FooterBuilder } from "@/components/admin/online-store/footer-builder";
+import { FooterWorkspace } from "@/components/admin/online-store/footer-studio/footer-workspace";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -12,5 +12,5 @@ export default async function OnlineStoreMenusFooterPage({ params }: PageProps) 
 
   await requireAdminPageAccess(locale);
 
-  return <FooterBuilder locale={locale} />;
+  return <FooterWorkspace locale={locale} />;
 }

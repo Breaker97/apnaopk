@@ -15,13 +15,7 @@ import type {
   ResolvedField,
   ResolvedStep,
 } from "@/lib/vendors/vendor-onboarding";
-import { PricingPlanCard } from "@/components/vendor-plans/pricing-plan-card";
-import { PlanGrid } from "@/components/vendor-plans/plan-grid";
-import {
-  PlanBillingToggle,
-  type BillingView,
-} from "@/components/vendor-plans/plan-billing-toggle";
-import { planFeatureLines } from "@/components/vendor-plans/plan-feature-lines";
+import { VendorPlanPicker } from "@/components/vendor-plans/vendor-plan-picker";
 import { cn } from "@/lib/utils";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
@@ -62,7 +56,6 @@ export function OnboardingWizardPreview({
   const stepKeys = steps.map((s) => s.key);
 
   const [currentKey, setCurrentKey] = useState(stepKeys[0] ?? "");
-  const [billingView, setBillingView] = useState<BillingView>("monthly");
   // Keep the active step valid as the admin edits the flow.
   useApplyOnChange([stepKeys.join("|")], () => {
     if (!stepKeys.includes(currentKey)) setCurrentKey(stepKeys[0] ?? "");
@@ -171,92 +164,39 @@ export function OnboardingWizardPreview({
                 )}
 
               {/* Subscription → plan cards */}
-              {kind === ONBOARDING_STEP_KINDS.SUBSCRIPTION &&
-                (() => {
-                  const hasMonthly = plans.some(
-                    (p) => p.billingInterval === "monthly",
-                  );
-                  const hasYearly = plans.some(
-                    (p) => p.billingInterval === "yearly",
-                  );
-                  const showToggle = hasMonthly && hasYearly;
-                  const visiblePlans = plans.filter(
-                    (p) =>
-                      p.billingInterval === "none" ||
-                      p.billingInterval === billingView,
-                  );
+              {kind === ONBOARDING_STEP_KINDS.SUBSCRIPTION && (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">
+                      Choose your plan
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Pick the subscription you want the admin to review with
+                      your application.
+                    </p>
+                  </div>
 
-                  return (
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-base font-semibold text-foreground">
-                          Choose your plan
-                        </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Pick the subscription that fits your business. You can
-                          change it later.
-                        </p>
-                      </div>
+                  {plans.length === 0 ? (
+                    <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+                      No active plans yet — add plans under Vendor Plans.
+                    </p>
+                  ) : (
+                    // Inputs stay disabled in the preview; the Default plan
+                    // shows pre-selected, as it is on the storefront.
+                    <VendorPlanPicker
+                      plans={plans}
+                      selectedId={plans.find((p) => p.isDefault)?.id ?? null}
+                      disabled
+                    />
+                  )}
 
-                      {plans.length === 0 ? (
-                        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-                          No active plans yet — add plans under Vendor Plans.
-                        </p>
-                      ) : (
-                        <>
-                          {showToggle && (
-                            <div className="flex justify-center">
-                              <PlanBillingToggle
-                                value={billingView}
-                                onChange={setBillingView}
-                              />
-                            </div>
-                          )}
-                          <PlanGrid count={visiblePlans.length}>
-                            {visiblePlans.map((plan, i) => (
-                              <PricingPlanCard
-                                key={plan.id}
-                                plan={{
-                                  id: plan.id,
-                                  name: plan.name,
-                                  description: plan.description,
-                                  price: plan.price,
-                                  billingInterval: plan.billingInterval,
-                                  commissionRate: plan.commissionRate,
-                                  trialDays: plan.trialDays,
-                                  features: planFeatureLines(
-                                    plan.features,
-                                    plan.limits,
-                                  ),
-                                }}
-                                highlighted={plan.isDefault}
-                                selected={i === 0}
-                                footer={
-                                  <Button
-                                    type="button"
-                                    disabled
-                                    variant={
-                                      plan.isDefault ? "secondary" : "outline"
-                                    }
-                                    className="w-full"
-                                  >
-                                    Purchase
-                                  </Button>
-                                }
-                              />
-                            ))}
-                          </PlanGrid>
-                        </>
-                      )}
-
-                      <NavButtons
-                        canBack={idx > 0}
-                        onBack={goBack}
-                        onNext={goNext}
-                      />
-                    </div>
-                  );
-                })()}
+                  <NavButtons
+                    canBack={idx > 0}
+                    onBack={goBack}
+                    onNext={goNext}
+                  />
+                </div>
+              )}
 
               {/* Review → summary */}
               {kind === ONBOARDING_STEP_KINDS.REVIEW && (

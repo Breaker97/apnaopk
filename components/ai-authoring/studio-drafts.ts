@@ -75,20 +75,3 @@ export function clearStudioDraft(key: string | undefined) {
     // ignore
   }
 }
-
-export function clearAiStudioDraftsByPersistKeyPrefix(
-  persistKeyPrefix: string,
-): void {
-  if (!persistKeyPrefix || typeof window === "undefined") return;
-  const storagePrefix = AI_STUDIO_DRAFT_STORAGE_PREFIX + persistKeyPrefix;
-  try {
-    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
-      const key = window.localStorage.key(index);
-      if (key?.startsWith(storagePrefix)) {
-        window.localStorage.removeItem(key);
-      }
-    }
-  } catch {
-    // Storage access can be blocked; draft cleanup must not block slide removal.
-  }
-}

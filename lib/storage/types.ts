@@ -125,6 +125,12 @@ export interface StorageConfig {
   endpoint?: string;
   region?: string;
   bucketName?: string;
+  /**
+   * Where private files go (`uploadPrivateFile`): a bucket with no public
+   * access, so a leaked key opens nothing. Unset, they share `bucketName` —
+   * and on a bucket served publicly, anyone holding a key can read them.
+   */
+  privateBucketName?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
   publicUrl?: string;
@@ -205,6 +211,11 @@ export interface PrivateDownloadOptions {
   expiresInSeconds?: number;
   /** Original filename for the Content-Disposition header. */
   filename?: string;
+  /**
+   * "attachment" (the default) downloads the file; "inline" lets the browser
+   * show it — a receipt someone wants to look at, not keep.
+   */
+  disposition?: "attachment" | "inline";
 }
 
 export interface ListFilesOptions {
@@ -212,6 +223,33 @@ export interface ListFilesOptions {
   cursor?: string;
   /** Max objects per page (default 50). */
   limit?: number;
+  /**
+   * List one owner's folder (`<prefix><scope>/`) instead of the whole prefix.
+   * Server-derived, like UploadOptions.ownerScope — never taken from a request.
+   */
+  ownerScope?: string;
+}
+
+/** What the media library reads a stored file as, from its extension. */
+export type MediaLibraryKind = "image" | "video" | "model" | "document" | "other";
+
+/** One file as GET /api/media/library returns it. */
+export interface MediaLibraryFile {
+  key: string;
+  /**
+   * Loadable right now: a short-lived signed URL when the bucket has no public
+   * URL configured. For previews only — it expires.
+   */
+  url: string;
+  /** The permanent address an upload of this file returned: the one to store. */
+  publicUrl: string;
+  size: number;
+  lastModified?: string;
+  /** The key's last segment, for display. */
+  filename: string;
+  kind: MediaLibraryKind;
+  /** From the extension; object listings carry no content type. */
+  mimeType: string;
 }
 
 export interface ListFilesResult {
@@ -238,8 +276,8 @@ export interface StorageService {
   deleteFile(key: string): Promise<DeleteResult>;
 
   /**
-   * List stored files under the configured path prefix (paginated).
-   * Powers the admin Media Library for every provider.
+   * List stored files under the configured path prefix (paginated), or under
+   * one owner's folder of it. Powers the media library for every provider.
    */
   listFiles(options?: ListFilesOptions): Promise<ListFilesResult>;
 

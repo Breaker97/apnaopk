@@ -1,7 +1,6 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
-import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
 
 export interface BlogArticleCardData {
@@ -29,14 +28,12 @@ function formatDate(iso: string) {
 
 export function BlogArticleCard({
   article,
-  locale,
   className,
 }: {
   article: BlogArticleCardData;
-  locale: Locale;
   className?: string;
 }) {
-  const href = `/${locale}/blog/${article.slug}`;
+  const href = `/blog/${article.slug}`;
 
   return (
     <article

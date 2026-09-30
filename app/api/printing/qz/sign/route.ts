@@ -1,5 +1,5 @@
 import { createSign } from "node:crypto";
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { AuthorizationError, ValidationError } from "@/lib/api/errors";
 import { validateBody } from "@/lib/api/validate";

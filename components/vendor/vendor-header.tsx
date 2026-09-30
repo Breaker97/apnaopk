@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { signOutAndReload } from "@/lib/auth/auth-client";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import {
   User,
   Settings,
@@ -24,7 +24,7 @@ import {
   Globe,
   ShoppingCart,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { PreferencesDrawer } from "@/components/layout/preferences-drawer";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -202,11 +202,8 @@ export function VendorHeader({
         {/* Notifications Drawer */}
         <NotificationDrawer locale={locale} />
 
-        {/* Theme only. The admin settings drawer used to sit here, but every
-            control in it writes the store-wide appearance record through an
-            admin-only endpoint: a vendor's changes 403'd, were swallowed, and
-            were undone by the next page load. */}
-        <ThemeToggle />
+        {/* The viewer's own preferences; nothing in it is store-wide. */}
+        <PreferencesDrawer locale={locale} />
 
         {/* User Menu */}
         <DropdownMenu>

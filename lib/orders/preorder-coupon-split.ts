@@ -17,9 +17,12 @@ import { quantizeToCurrency } from "@/lib/intl/money";
  * 20% of what the shopper actually pays. The balance is what is returned; the
  * deposit is simply the rest of the discounted line.
  *
- * A seller's scoped coupon comes off that seller's lines only, spread by line
- * value. Pure and free of database access so the checkout page, the checkout
- * routes and the Stripe order builder all compute the same figure.
+ * A seller's scoped coupon comes off that seller's lines only, and of those
+ * only the products it applied to, spread by line value — the lines the order
+ * records the coupon against (`splitCouponAcrossLines`).
+ *
+ * Pure and free of database access so the checkout page, the checkout routes
+ * and the Stripe order builder all compute the same figure.
  */
 export interface PreorderSplitLine {
   price?: number | null;
@@ -28,6 +31,8 @@ export interface PreorderSplitLine {
   preorderOutstandingAmount?: number | null;
   /** Whose line it is, when the coupon was scoped to sellers. */
   vendorId?: string | null;
+  /** The line's product, matched against the coupon's `eligibleProductIds`. */
+  productId?: string | null;
 }
 
 export function preorderOutstandingAfterCoupon(
@@ -37,6 +42,11 @@ export function preorderOutstandingAfterCoupon(
     goodsDiscount: number;
     /** The goods discount by seller, for a coupon limited to some of them. */
     vendorShares?: Record<string, number> | null;
+    /**
+     * The products a scoped coupon applied to. Absent — a payment quoted
+     * before this was carried — every one of the seller's lines shares it.
+     */
+    eligibleProductIds?: ReadonlyArray<string> | null;
   } | null,
   currency: string,
 ): number[] {
@@ -48,7 +58,9 @@ export function preorderOutstandingAfterCoupon(
     Math.max(0, Number(line.price || 0) * Number(line.quantity || 0)),
   );
 
-  // Each line's share of the goods discount.
+  // Each line's share of the goods discount. Left unrounded, as it always was:
+  // a payment already quoted has to come out at exactly the figure it was
+  // charged by.
   const lineDiscounts = new Array<number>(lines.length).fill(0);
   const spread = (amount: number, indexes: number[]) => {
     const weight = indexes.reduce((sum, index) => sum + lineTotals[index]!, 0);
@@ -59,13 +71,20 @@ export function preorderOutstandingAfterCoupon(
   };
   const shares = coupon?.vendorShares;
   if (shares && Object.keys(shares).length > 0) {
+    const eligible = coupon?.eligibleProductIds;
     for (const [vendorId, amount] of Object.entries(shares)) {
+      const own = lines
+        .map((line, index) => ({ line, index }))
+        .filter(({ line }) => String(line.vendorId || "") === vendorId);
+      // Only the products the coupon applied to; all of the seller's lines if
+      // none of them can be named, which is how a payment quoted before this
+      // was carried shared it.
+      const reached = eligible
+        ? own.filter(({ line }) => eligible.includes(String(line.productId || "")))
+        : [];
       spread(
         Math.max(0, Number(amount) || 0),
-        lines
-          .map((line, index) => ({ line, index }))
-          .filter(({ line }) => String(line.vendorId || "") === vendorId)
-          .map(({ index }) => index),
+        (reached.length > 0 ? reached : own).map(({ index }) => index),
       );
     }
   } else {

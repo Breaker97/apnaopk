@@ -6,9 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { isInternalError, publicErrorMessage } from "@/lib/api/errors";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import { canManageStoreMedia } from "@/lib/access/rbac";
+import { isAdmin } from "@/lib/access/rbac";
+import { isPublicMediaKey } from "@/lib/storage/private-prefixes";
+import { auditDelete, createAuditContext } from "@/lib/audit";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { getStorageConfig, getStorageService } from "@/lib/storage";
 import { resolveUploadScope } from "@/lib/storage/upload-scope";
@@ -17,10 +20,13 @@ import {
   uploadMediaFile,
   type UploadedMediaRecord,
 } from "@/lib/media-upload/upload-file";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
+import {
+  isShopper,
+  maxFilesPerUpload,
+  readUploadForm,
+  uploadBodyLimit,
+  UploadTooLargeError,
+} from "@/lib/media-upload/upload-policy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,15 +54,31 @@ export async function POST(request: NextRequest) {
       session.user.role,
     );
 
-    const formData = await request.formData();
+    // A shopper uploads photos within tighter limits than the store's own —
+    // see lib/media-upload/upload-policy.ts. The limit is known before the
+    // body is read, so an oversized request is refused as it arrives.
+    const shopper = isShopper(session.user);
+    const config = await getStorageConfig();
+
+    let formData: FormData;
+    try {
+      formData = await readUploadForm(request, uploadBodyLimit(config, shopper));
+    } catch (error) {
+      if (error instanceof UploadTooLargeError) {
+        return NextResponse.json(
+          { success: false, message: error.message },
+          { status: 413 },
+        );
+      }
+      throw error;
+    }
 
     // Support both 'file' (single) and 'files' (batch) field names
-    // The logo exception, asked for by the uploader and granted only to a
-    // caller who already manages store media — raw SVG can carry script and
-    // is served from the store's own media host.
+    // The logo exception, asked for by the uploader and granted only to an
+    // admin — the store's logos are the one place it is used, and raw SVG can
+    // carry script served from the store's own media host.
     const keepVector =
-      formData.get("keepVector") === "1" &&
-      (await canManageStoreMedia(session.user));
+      formData.get("keepVector") === "1" && isAdmin(session.user);
 
     const files = formData.getAll("files") as File[];
     const singleFile = formData.get("file") as File | null;
@@ -70,8 +92,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get storage configuration
-    const config = await getStorageConfig();
+    const maxFiles = maxFilesPerUpload(shopper);
+    if (allFiles.length > maxFiles) {
+      return NextResponse.json(
+        { success: false, message: `Upload at most ${maxFiles} files at a time` },
+        { status: 400 },
+      );
+    }
+
     const storage = await getStorageService();
     // Vendor uploads are filed under their own key prefix — resolved from the
     // session, so the caller cannot claim someone else's scope.
@@ -92,10 +120,16 @@ export async function POST(request: NextRequest) {
             uploadedBy: session.user.id,
             ownerScope,
             keepVector,
+            shopper,
           }),
         );
       } catch (error) {
-        errors.push(`${file.name}: ${getErrorMessage(error, "Upload failed")}`);
+        // A storage or runtime failure reaches the caller only as "Upload
+        // failed", so it is logged here in full.
+        if (error instanceof Error && isInternalError(error)) {
+          console.error(`Upload of "${file.name}" failed:`, error);
+        }
+        errors.push(`${file.name}: ${publicErrorMessage(error, "Upload failed")}`);
       }
     }
 
@@ -122,7 +156,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: getErrorMessage(error, "Failed to upload files"),
+        message: publicErrorMessage(error, "Failed to upload files"),
       },
       { status: 500 },
     );
@@ -140,12 +174,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Deletion accepts an arbitrary storage key, so it is limited to callers
-    // who actually manage store media: an admin, or a vendor/staff account
-    // holding a product-management grant. "Any signed-in non-customer" was too
-    // wide — a staff member with an empty permission list could delete any
-    // object in the bucket by key.
-    if (!(await canManageStoreMedia(session.user))) {
+    // Deletion takes a storage key, and nothing records who uploaded what:
+    // a vendor or staff member with the product grant could delete another
+    // store's photos — or the store's own logo — by reading the key off a
+    // public URL. The admin Media Library is the only screen that deletes by
+    // key, so only an admin may.
+    if (!isAdmin(session.user)) {
       return NextResponse.json(
         { success: false, message: "You do not have permission to delete files" },
         { status: 403 },
@@ -164,8 +198,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Public media only: a private file (an identity document, a paid
+    // download, a receipt) is removed by what owns it, and a crafted key
+    // must not reach outside the media folder.
+    const config = await getStorageConfig();
+    if (!isPublicMediaKey(key, config.pathPrefix || "")) {
+      return NextResponse.json(
+        { success: false, message: "Only files in the media library can be deleted here" },
+        { status: 400 },
+      );
+    }
+
     const storage = await getStorageService();
     const result = await storage.deleteFile(key);
+    await auditDelete(
+      createAuditContext(request, session),
+      "media",
+      key,
+      { key },
+      key.split("/").pop(),
+    );
 
     return NextResponse.json({
       success: true,
@@ -177,7 +229,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: getErrorMessage(error, "Failed to delete file"),
+        message: publicErrorMessage(error, "Failed to delete file"),
       },
       { status: 500 },
     );

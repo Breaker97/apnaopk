@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { LinkIcon } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
@@ -20,6 +20,7 @@ import {
 import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
 import { preorderAddressChangeBlocker } from "@/lib/orders/preorder-address";
 import { PreorderManageView } from "@/components/store/preorder-manage-view";
+import { RouteMessages } from "@/components/language/route-messages";
 
 /**
  * Manage a pre-order without an account — the page the delay notice links to.
@@ -47,11 +48,9 @@ interface PageProps {
 }
 
 function Shell({
-  locale,
   title,
   children,
 }: {
-  locale: string;
   title: string;
   children: React.ReactNode;
 }) {
@@ -61,18 +60,18 @@ function Shell({
       {children}
       <div className="mt-8">
         <Button asChild variant="outline" className="rounded-full">
-          <Link href={`/${locale}`}>Back to the store</Link>
+          <Link href="/">Back to the store</Link>
         </Button>
       </div>
     </div>
   );
 }
 
-function InvalidLink({ locale }: { locale: string }) {
+function InvalidLink() {
   // One message for a forged token and an unknown order alike: telling them
   // apart would make this page a way to ask whether an order id exists.
   return (
-    <Shell locale={locale} title="Manage your pre-order">
+    <Shell title="Manage your pre-order">
       <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
         <LinkIcon className="mt-0.5 h-5 w-5 text-muted-foreground" aria-hidden />
         <div>
@@ -104,15 +103,15 @@ export default async function PreorderManagePage({ params }: PageProps) {
   setRequestLocale(locale as Locale);
 
   const orderId = readPreorderManageToken(token);
-  if (!orderId) return <InvalidLink locale={locale} />;
+  if (!orderId) return <InvalidLink />;
 
   await connectDB();
   const order = await Order.findById(orderId)
     .select(
-      "orderNumber status paymentStatus paymentMethod total refundedTotal digitalOnly shippingAddress hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderReleaseDate preorderOriginalReleaseDate preorderDelayReason preorderBalanceRequestedAt subOrders.status subOrders.fulfillment.method subOrders.items.preorderOutstandingAmount",
+      "orderNumber status paymentStatus paymentMethod total refundedTotal digitalOnly shippingAddress hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount preorderReleaseDate preorderOriginalReleaseDate preorderDelayReason preorderBalanceRequestedAt subOrders.status subOrders.fulfillment.method subOrders.items.preorderOutstandingAmount",
     )
     .lean();
-  if (!order || !order.hasPreorder) return <InvalidLink locale={locale} />;
+  if (!order || !order.hasPreorder) return <InvalidLink />;
 
   const cancelled = order.status === ORDER_STATUS.CANCELLED;
   const balanceDue = getPreorderBalanceDue(order);
@@ -130,52 +129,54 @@ export default async function PreorderManagePage({ params }: PageProps) {
   const balanceToken = balanceDue > 0 ? createPreorderBalanceToken(orderId) : undefined;
 
   return (
-    <Shell locale={locale} title={`Pre-order #${order.orderNumber}`}>
-      <PreorderManageView
-        locale={locale}
-        manageToken={token}
-        balanceToken={balanceToken}
-        order={{
-          _id: String(order._id),
-          orderNumber: order.orderNumber,
-          cancelled,
-          // The same statuses the account route cancels from.
-          canCancel:
-            order.status === ORDER_STATUS.PENDING ||
-            order.status === ORDER_STATUS.PREORDERED,
-          addressBlocker: order.digitalOnly
-            ? "This order has nothing to ship"
-            : preorderAddressChangeBlocker(order),
-          releaseDateLabel: formatDay(order.preorderReleaseDate, locale),
-          originalReleaseDateLabel: order.preorderOriginalReleaseDate
-            ? formatDay(order.preorderOriginalReleaseDate, locale)
-            : undefined,
-          delayReason: order.preorderDelayReason || undefined,
-          shippingAddress: order.digitalOnly
-            ? undefined
-            : (order.shippingAddress as React.ComponentProps<
-                typeof PreorderManageView
-              >["order"]["shippingAddress"]),
-          balance:
-            balanceDue > 0
-              ? {
-                  _id: String(order._id),
-                  status: String(order.status || ""),
-                  paymentStatus: String(order.paymentStatus || ""),
-                  hasPreorder: true,
-                  preorderStatus: order.preorderStatus,
-                  preorderPaymentMode: order.preorderPaymentMode,
-                  preorderOutstandingAmount: order.preorderOutstandingAmount,
-                  // Worked out here: the card cannot see which part of the
-                  // balance belongs to a consignment a vendor called off.
-                  preorderBalanceDue: balanceDue,
-                  preorderPaidSoFar: getPreorderPaidSoFar(order),
-                  preorderBalanceDeadline: deadline?.toISOString(),
-                  total: Number(order.total || 0),
-                }
+    <Shell title={`Pre-order #${order.orderNumber}`}>
+      <RouteMessages namespaces={["orders", "checkout"]}>
+        <PreorderManageView
+          locale={locale}
+          manageToken={token}
+          balanceToken={balanceToken}
+          order={{
+            _id: String(order._id),
+            orderNumber: order.orderNumber,
+            cancelled,
+            // The same statuses the account route cancels from.
+            canCancel:
+              order.status === ORDER_STATUS.PENDING ||
+              order.status === ORDER_STATUS.PREORDERED,
+            addressBlocker: order.digitalOnly
+              ? "This order has nothing to ship"
+              : preorderAddressChangeBlocker(order),
+            releaseDateLabel: formatDay(order.preorderReleaseDate, locale),
+            originalReleaseDateLabel: order.preorderOriginalReleaseDate
+              ? formatDay(order.preorderOriginalReleaseDate, locale)
               : undefined,
-        }}
-      />
+            delayReason: order.preorderDelayReason || undefined,
+            shippingAddress: order.digitalOnly
+              ? undefined
+              : (order.shippingAddress as React.ComponentProps<
+                  typeof PreorderManageView
+                >["order"]["shippingAddress"]),
+            balance:
+              balanceDue > 0
+                ? {
+                    _id: String(order._id),
+                    status: String(order.status || ""),
+                    paymentStatus: String(order.paymentStatus || ""),
+                    hasPreorder: true,
+                    preorderStatus: order.preorderStatus,
+                    preorderPaymentMode: order.preorderPaymentMode,
+                    preorderOutstandingAmount: order.preorderOutstandingAmount,
+                    // Worked out here: the card cannot see which part of the
+                    // balance belongs to a consignment a vendor called off.
+                    preorderBalanceDue: balanceDue,
+                    preorderPaidSoFar: getPreorderPaidSoFar(order),
+                    preorderBalanceDeadline: deadline?.toISOString(),
+                    total: Number(order.total || 0),
+                  }
+                : undefined,
+          }}
+        />
+      </RouteMessages>
     </Shell>
   );
 }

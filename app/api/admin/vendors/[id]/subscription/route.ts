@@ -47,7 +47,7 @@ import {
 } from "@/lib/vendors/vendor-stripe-adapter";
 import { synchronizeVendorBilling } from "@/lib/vendors/vendor-billing-sync";
 import { dispatchVendorBillingNotifications } from "@/lib/vendors/vendor-billing-notifications";
-import { z } from "zod";
+import * as z from "zod";
 import type { HydratedDocument } from "mongoose";
 import type { IVendor } from "@/types";
 import type { IVendorPlan } from "@/models/vendorPlan.model";

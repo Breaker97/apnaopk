@@ -1,5 +1,6 @@
 "use client";
 
+import { useStoreDefaultLocale } from "@/hooks/use-locale-navigation";
 import { type CSSProperties, FormEvent, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -7,12 +8,15 @@ import { format } from "date-fns";
 import {
   AlertCircle,
   Check,
+  Clock,
   Download,
   ExternalLink,
   Loader2,
   MapPin,
   Package,
   Search,
+  Truck,
+  XCircle,
 } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
@@ -37,8 +41,17 @@ import {
   DeliveryException,
   type DeliveryException as DeliveryExceptionData,
 } from "@/components/shipping/delivery-exception";
+import {
+  CopyTrackingNumber,
+  LatestScan,
+} from "@/components/shipping/parcel-tracking";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
+import {
+  partialShipmentState,
+  summarizeShipments,
+  type ShipmentProgress,
+} from "@/lib/orders/shipment-progress";
 import { formatPickupWindow } from "@/lib/checkout/pickup-fulfillment-shared";
 
 type TrackingEvent = {
@@ -137,7 +150,27 @@ function getDeliveredDate(order: TrackedOrder) {
   return delivered ? formatEventDate(delivered) : "Pending";
 }
 
-function getCurrentTrackingStatus(order: TrackedOrder, activeIndex: number) {
+const partialStateLabels = {
+  partially_shipped: "Partially shipped",
+  partially_delivered: "Partially delivered",
+};
+
+/** How many packages have reached a timeline step; null for steps not counted. */
+function packagesAtStep(progress: ShipmentProgress | null, key: string) {
+  if (!progress) return null;
+  if (key === "processing") return progress.processing;
+  if (key === "shipped") return progress.shipped;
+  if (key === "delivered") return progress.delivered;
+  return null;
+}
+
+function getCurrentTrackingStatus(
+  order: TrackedOrder,
+  activeIndex: number,
+  progress: ShipmentProgress | null,
+) {
+  const partial = partialShipmentState(progress);
+  if (partial) return partialStateLabels[partial];
   const activeEvent = order.timeline[activeIndex];
   if (activeEvent && activeEvent.key !== "placed") return activeEvent.title;
   return statusLabels[order.status] || order.status;
@@ -147,6 +180,7 @@ export function TrackOrderContent({
   initialOrderNumber = "",
 }: TrackOrderContentProps) {
   const t = useTranslations();
+  const storeDefault = useStoreDefaultLocale();
   const locale = useParams().locale as string;
   const { formatPrice } = useCurrency();
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
@@ -160,9 +194,19 @@ export function TrackOrderContent({
     () => (order ? getActiveStepIndex(order.timeline) : 0),
     [order],
   );
+  // Split orders only. Each seller dispatches on their own schedule, so the
+  // order-level status — the slowest package — cannot say one is on its way.
+  const packages = useMemo(
+    () => (order && !order.pickup ? order.shipments ?? [] : []),
+    [order],
+  );
+  const progress = useMemo(
+    () => (packages.length ? summarizeShipments(packages) : null),
+    [packages],
+  );
   const currentTrackingStatus = useMemo(
-    () => (order ? getCurrentTrackingStatus(order, activeIndex) : ""),
-    [activeIndex, order],
+    () => (order ? getCurrentTrackingStatus(order, activeIndex, progress) : ""),
+    [activeIndex, order, progress],
   );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -233,6 +277,7 @@ export function TrackOrderContent({
         <StoreBreadcrumb
           className="mb-8"
           locale={locale}
+        storeDefault={storeDefault}
           items={[{ label: t("orders.trackOrder") }]}
         />
 
@@ -308,7 +353,14 @@ export function TrackOrderContent({
               <div className="grid gap-4 border-b py-5 sm:grid-cols-2 lg:grid-cols-5">
                 <Detail label="Order Number" value={order.orderNumber} />
                 <Detail label="Order Placed" value={formatDate(order.placedAt)} />
-                <Detail label="Order Delivered" value={getDeliveredDate(order)} />
+                {progress ? (
+                  <Detail
+                    label="Packages"
+                    value={`${progress.shipped} of ${progress.total} shipped`}
+                  />
+                ) : (
+                  <Detail label="Order Delivered" value={getDeliveredDate(order)} />
+                )}
                 <Detail
                   label="No. of Items"
                   value={`${order.itemCount} ${order.itemCount === 1 ? "item" : "items"}`}
@@ -316,6 +368,7 @@ export function TrackOrderContent({
                 <Detail
                   label="Status"
                   value={currentTrackingStatus}
+                  className={cn(partialShipmentState(progress) && "text-primary")}
                 />
               </div>
             </section>
@@ -338,7 +391,22 @@ export function TrackOrderContent({
                   }
                 >
                   {order.timeline.map((event, index) => {
-                    const isActive = index === activeIndex;
+                    const reached = packagesAtStep(progress, event.key);
+                    const isPartial =
+                      !event.completed &&
+                      reached !== null &&
+                      reached > 0 &&
+                      reached < progress!.total;
+                    const nextEvent = order.timeline[index + 1];
+                    const nextReached = nextEvent
+                      ? packagesAtStep(progress, nextEvent.key)
+                      : null;
+                    const nextIsPartial =
+                      !!nextEvent &&
+                      !nextEvent.completed &&
+                      nextReached !== null &&
+                      nextReached > 0;
+                    const isActive = isPartial || index === activeIndex;
                     const isComplete = event.completed;
                     const hasNextStep = index < order.timeline.length - 1;
 
@@ -347,8 +415,12 @@ export function TrackOrderContent({
                         {hasNextStep ? (
                           <div
                             className={cn(
-                              "absolute left-[calc(50%+1rem)] right-[calc(-50%-0.5rem)] top-4 hidden h-0.5 md:block",
-                              isComplete ? "bg-primary" : "bg-border",
+                              "absolute left-[calc(50%+1rem)] right-[calc(-50%-0.5rem)] top-4 hidden md:block",
+                              isComplete && nextIsPartial
+                                ? "border-t-2 border-dashed border-primary"
+                                : isComplete
+                                  ? "h-0.5 bg-primary"
+                                  : "h-0.5 bg-border",
                             )}
                           />
                         ) : null}
@@ -357,15 +429,29 @@ export function TrackOrderContent({
                             className={cn(
                               "z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-semibold",
                               isComplete && "border-primary bg-primary text-primary-foreground",
+                              isPartial && "border-2 border-primary text-[10px] font-bold text-primary",
                               isActive && "ring-4 ring-primary/15",
                             )}
                           >
-                            {isComplete ? <Check className="h-4 w-4" /> : index + 1}
+                            {isComplete ? (
+                              <Check className="h-4 w-4" />
+                            ) : isPartial ? (
+                              `${reached}/${progress!.total}`
+                            ) : (
+                              index + 1
+                            )}
                           </div>
                           <div className="min-w-0 md:mt-1.5">
                             <h3 className="text-sm font-semibold">{event.title}</h3>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {formatEventDate(event)}
+                            <p
+                              className={cn(
+                                "mt-1 text-xs text-muted-foreground",
+                                isPartial && "font-medium text-primary",
+                              )}
+                            >
+                              {reached !== null && !isComplete
+                                ? `${reached} of ${progress!.total} packages`
+                                : formatEventDate(event)}
                             </p>
                           </div>
                         </div>
@@ -374,7 +460,23 @@ export function TrackOrderContent({
                   })}
                 </div>
 
-                {(order.carrier || order.trackingNumber) && !order.pickup ? (
+                {progress ? (
+                  <p className="mt-5 rounded-md bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                    Your order ships in{" "}
+                    <span className="font-semibold text-foreground">
+                      {packages.length} packages
+                    </span>{" "}
+                    from different sellers. Each one has its own tracking number
+                    below.
+                  </p>
+                ) : null}
+
+                {/* Single-seller orders: the order's parcel IS the delivery. On
+                    a split order it is only the latest one to ship, so there it
+                    would pass one seller's tracking off as the whole order's. */}
+                {(order.carrier || order.trackingNumber) &&
+                !order.pickup &&
+                !packages.length ? (
                   <div className="mt-5 rounded-md bg-muted/40 px-4 py-3 text-sm">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span>
@@ -403,61 +505,6 @@ export function TrackOrderContent({
                   </div>
                 ) : null}
 
-                {/* Split orders only: each seller dispatches on their own
-                    schedule, so one badge and one AWB cannot describe them. */}
-                {order.shipments?.length && !order.pickup ? (
-                  <div className="mt-5 space-y-3">
-                    {order.shipments.map((shipment, index) => (
-                      <div
-                        key={shipment.trackingNumber || shipment.vendorName || index}
-                        className="rounded-md border px-4 py-3 text-sm"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                          <p className="font-medium">
-                            {shipment.vendorName || `Seller ${index + 1}`}
-                          </p>
-                          <span className="text-xs text-muted-foreground">
-                            {statusLabels[shipment.status] || shipment.status}
-                            {shipment.deliveredAt
-                              ? ` • ${formatDate(shipment.deliveredAt)}`
-                              : shipment.shippedAt
-                                ? ` • ${formatDate(shipment.shippedAt)}`
-                                : ""}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-muted-foreground">
-                          {shipment.itemIndexes
-                            .map((itemIndex) => order.items[itemIndex]?.name)
-                            .filter(Boolean)
-                            .join(", ") || "Items in this shipment"}
-                        </p>
-                        {shipment.carrier || shipment.trackingNumber ? (
-                          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span>{shipment.carrier || "Carrier pending"}</span>
-                            {shipment.trackingNumber ? (
-                              <span className="text-muted-foreground">
-                                | Tracking no. {shipment.trackingNumber}
-                              </span>
-                            ) : null}
-                            {shipment.trackingUrl ? (
-                              <a
-                                href={shipment.trackingUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                              >
-                                Track with carrier
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        <DeliveryException exception={shipment.exception} />
-                        <ScanHistory events={shipment.events} />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
                 {order.pickup ? (
                   <div className="mt-5 rounded-md bg-primary/5 px-4 py-3 text-sm">
                     <div className="flex items-start gap-2">
@@ -491,6 +538,23 @@ export function TrackOrderContent({
               </div>
             </section>
 
+            {packages.length ? (
+              <section>
+                <h2 className="text-xl font-semibold">Packages</h2>
+                <div className="mt-5 space-y-4">
+                  {packages.map((shipment, index) => (
+                    <PackageCard
+                      key={shipment.trackingNumber || shipment.vendorName || index}
+                      shipment={shipment}
+                      position={index + 1}
+                      count={packages.length}
+                      items={order.items}
+                      formatPrice={formatPrice}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
             <section>
               <h2 className="text-xl font-semibold">Items from the order</h2>
               <div className="mt-5 overflow-hidden rounded-lg border bg-card shadow-sm [&_[data-slot=table-container]]:overflow-hidden [&_td]:px-3 [&_th]:px-3 sm:[&_td]:px-4 sm:[&_th]:px-4">
@@ -552,6 +616,7 @@ export function TrackOrderContent({
                 </Table>
               </div>
             </section>
+            )}
 
             <section className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border bg-card p-5 shadow-sm">
@@ -578,6 +643,155 @@ export function TrackOrderContent({
         ) : null}
       </div>
     </div>
+  );
+}
+
+const SHIPPED_STATUSES = ["shipped", "delivered"];
+
+function PackageStatusBadge({ shipment }: { shipment: TrackedShipment }) {
+  const base =
+    "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold";
+
+  if (shipment.status === "cancelled") {
+    return (
+      <span className={cn(base, "bg-destructive/10 text-destructive")}>
+        <XCircle className="h-3.5 w-3.5" />
+        Cancelled
+      </span>
+    );
+  }
+  if (shipment.status === "delivered") {
+    return (
+      <span className={cn(base, "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}>
+        <Check className="h-3.5 w-3.5" />
+        Delivered
+        {shipment.deliveredAt ? ` · ${formatDate(shipment.deliveredAt)}` : ""}
+      </span>
+    );
+  }
+  if (shipment.status === "shipped") {
+    return (
+      <span className={cn(base, "bg-primary/10 text-primary")}>
+        <Truck className="h-3.5 w-3.5" />
+        In transit
+        {shipment.shippedAt ? ` · shipped ${formatDate(shipment.shippedAt)}` : ""}
+      </span>
+    );
+  }
+  return (
+    <span className={cn(base, "bg-amber-500/10 text-amber-800 dark:text-amber-300")}>
+      <Clock className="h-3.5 w-3.5" />
+      Preparing · not shipped yet
+    </span>
+  );
+}
+
+/** One seller's parcel on a split order: what is in it and where it is. */
+function PackageCard({
+  shipment,
+  position,
+  count,
+  items,
+  formatPrice,
+}: {
+  shipment: TrackedShipment;
+  position: number;
+  count: number;
+  items: TrackedOrder["items"];
+  formatPrice: (value: number) => string;
+}) {
+  const hasShipped = SHIPPED_STATUSES.includes(shipment.status);
+  const isCancelled = shipment.status === "cancelled";
+  const carrierName = shipment.carrier || "carrier";
+
+  return (
+    <article className="overflow-hidden rounded-lg border bg-card shadow-sm">
+      <header className="flex flex-col gap-2 border-b bg-muted/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+          <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="font-semibold">
+            Package {position} of {count}
+          </span>
+          <span className="text-muted-foreground">
+            · Sold by {shipment.vendorName || `Seller ${position}`}
+          </span>
+        </div>
+        <PackageStatusBadge shipment={shipment} />
+      </header>
+
+      <div className="grid gap-5 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_340px] md:gap-8">
+        <div className="min-w-0 space-y-4">
+          <ul className="space-y-3">
+            {shipment.itemIndexes.map((itemIndex) => {
+              const item = items[itemIndex];
+              if (!item) return null;
+              return (
+                <li key={itemIndex} className="flex min-w-0 items-center gap-3">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                    {item.image ? (
+                      <AppImage src={item.image} alt={item.name} fill className="object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Package className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="line-clamp-2 text-sm font-medium">{item.name}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Qty {item.quantity} · {formatPrice(item.price * item.quantity)}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <LatestScan
+            events={shipment.events}
+            title={`Latest from ${carrierName}`}
+            className="border-t border-dashed pt-4"
+          />
+          <DeliveryException exception={shipment.exception} className="mt-0" />
+        </div>
+
+        {shipment.trackingNumber ? (
+          <div className="h-fit space-y-3 rounded-md border p-4 text-sm">
+            {shipment.carrier ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Carrier</span>
+                <span className="font-semibold">{shipment.carrier}</span>
+              </div>
+            ) : null}
+            <div className="space-y-1.5">
+              <p className="text-muted-foreground">Tracking number</p>
+              <div className="flex items-center justify-between gap-2 rounded-md bg-muted/50 py-1.5 pl-3 pr-1.5">
+                <span className="min-w-0 break-all font-mono text-xs sm:text-sm">
+                  {shipment.trackingNumber}
+                </span>
+                <CopyTrackingNumber value={shipment.trackingNumber} />
+              </div>
+            </div>
+            {shipment.trackingUrl ? (
+              <Button asChild variant="outline" className="w-full">
+                <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer">
+                  Track on {carrierName}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        ) : isCancelled ? null : (
+          <div className="flex h-fit items-start gap-2.5 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+            <Truck className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              {hasShipped
+                ? "This package was sent without a tracking number."
+                : "The seller is getting this package ready. Its tracking number shows up here once it ships."}
+            </p>
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 

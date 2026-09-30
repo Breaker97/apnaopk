@@ -25,6 +25,12 @@ interface IEmailDelivery {
   }>;
   category: string;
   /**
+   * Extra SMTP headers for this one message, e.g. `List-Unsubscribe` on a
+   * marketing send. Held with the job rather than applied at delivery so a
+   * retry sends the same message the first attempt did.
+   */
+  headers?: Record<string, string>;
+  /**
    * One email per event per recipient — see `sendEmail`'s `dedupeKey`. Only
    * notifications set it; a password reset or an invite must always go out.
    */
@@ -52,6 +58,7 @@ const EmailDeliverySchema = new Schema<IEmailDelivery>(
     text: String,
     attachments: { type: Schema.Types.Mixed },
     category: { type: String, default: "transactional", index: true },
+    headers: { type: Schema.Types.Mixed },
     dedupeKey: String,
     status: {
       type: String,

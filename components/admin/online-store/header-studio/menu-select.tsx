@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useLocale } from "next-intl";
+import Link from "@/components/language/link";
 import { ArrowUpRight } from "lucide-react";
 import { NativeSelect } from "@/components/ui/native-select";
 import { apiClient } from "@/lib/api/client";
@@ -68,7 +67,6 @@ export function MenuSelect({
   manageLabel: string;
   ariaLabel: string;
 }) {
-  const locale = useLocale();
   const [menus, setMenus] = useState<MenuOption[] | null>(null);
 
   useEffect(() => {
@@ -105,7 +103,7 @@ export function MenuSelect({
         ))}
       </NativeSelect>
       <Link
-        href={`/${locale}/admin/online-store/menus`}
+        href="/admin/online-store/menus"
         target="_blank"
         className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
       >

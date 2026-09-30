@@ -1,12 +1,12 @@
 "use client";
 
 import { useSession as useBetterAuthSession } from "@/lib/auth/auth-client";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
+import { useEffect } from "react";
 import type { UserRole } from "@/config/app.config";
 import { appConfig } from "@/config/app.config";
 import { buildLoginUrl, currentBrowserPath } from "@/lib/auth/return-path";
-import { useProfileContext } from "@/providers/auth-provider";
 
 /**
  * Custom hook for authentication with role-based access control
@@ -63,21 +63,19 @@ export function useAuth(options?: {
     phone?: string;
   };
 
-  const { profileImage } = useProfileContext();
-
-  const mergedUser = useMemo(() => {
-    const user = session?.user as ExtendedUser | null | undefined;
-    if (!user) return null;
-    if (!profileImage) return user;
-    return { ...user, image: profileImage };
-  }, [session?.user, profileImage]);
+  // The avatar comes straight off the session. Both avatar uploaders end
+  // with `authClient.updateUser({ image })`, which re-issues the session
+  // cookie cache and wakes every `useSession` subscriber, so the header
+  // follows a new picture with no read of its own. A root provider used to
+  // overlay it from `/api/user/profile` on every page load — three database
+  // round trips for a field the session already carried.
+  const user = (session?.user as ExtendedUser | null | undefined) ?? null;
 
   return {
-    user: mergedUser,
+    user,
     session: session?.session,
     isLoading: isPending,
     isAuthenticated: !!session?.user,
     error,
   };
 }
-

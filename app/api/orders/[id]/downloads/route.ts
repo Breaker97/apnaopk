@@ -26,11 +26,13 @@ export const GET = withApi<{ id: string }>(
       ...(isValidObjectId(id) ? { _id: id } : { orderNumber: id }),
       customerId: session.user.id,
     })
-      .select("items paymentStatus digitalDownloads subOrders.vendorId subOrders.status subOrders.paymentStatus")
+      .select("items status paymentStatus goodsRefundedAt digitalDownloads subOrders.vendorId subOrders.status subOrders.paymentStatus")
       .lean();
     if (!order) return notFoundResponse("Order");
 
     const entitled = isOrderEntitledToDownloads(order);
+    // A line the store refunded in full no longer comes with its files
+    // (`fullyRefundedLines`, read inside).
     const files = entitled ? await getOrderDigitalEntitlements(order) : [];
 
     return successResponse({ entitled, files });

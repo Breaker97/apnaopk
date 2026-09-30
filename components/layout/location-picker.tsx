@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Clock, Crosshair, Loader2, MapPin, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import {
   EVERYWHERE_RADIUS_INDEX,
@@ -42,6 +43,14 @@ import {
 import { readStoredShopperLocationFromBrowser } from "@/lib/locations/shopper-location-client";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { useHydrated } from "@/hooks/use-client-value";
+
+// The radius slider (Radix) is drawn only by the grid filter's open panel. The
+// header's "Deliver to" face, on every page, never shows it, so it is not in
+// every page's first load; the placeholder holds its height while it arrives.
+const Slider = dynamic(
+  () => import("@/components/ui/slider").then((module) => module.Slider),
+  { loading: () => <div className="h-4" aria-hidden="true" /> },
+);
 
 type MarketplaceCity = {
   city: string;
@@ -77,9 +86,10 @@ interface LocationPickerProps {
    * The location the server already rendered against, so the trigger paints
    * the right place on the first frame instead of flashing "Set location".
    *
-   * The header face is seeded from the cookie (`readStoredShopperLocation`);
-   * the pill face from the page's own location params, which are what its grid
-   * is filtered by.
+   * Only the pill face gets one: the page's own location params, which are
+   * what its grid is filtered by. The header face is part of pages every
+   * visitor is served from the cache, so it starts empty and restores the
+   * shopper's saved place in the browser (below).
    */
   initialLocation?: ShopperLocation | null;
   appearance?: "pill" | "header";
@@ -182,18 +192,36 @@ async function namePoint(
   }
 }
 
-export function LocationPicker({
+/** What the delivery face reads of the URL: nothing. */
+const NO_SEARCH_PARAMS = new URLSearchParams();
+
+export function LocationPicker(props: LocationPickerProps) {
+  // Only the filter face follows the URL. Reading it in the header too would
+  // make every page that draws the header depend on its query string, and
+  // the home page is served from the cache to every URL it is asked for.
+  return props.appearance === "header" ? (
+    <LocationPickerControl {...props} searchParams={NO_SEARCH_PARAMS} />
+  ) : (
+    <FilterLocationPicker {...props} />
+  );
+}
+
+function FilterLocationPicker(props: LocationPickerProps) {
+  return <LocationPickerControl {...props} searchParams={useSearchParams()} />;
+}
+
+function LocationPickerControl({
   initialLocation = null,
   appearance = "pill",
   caption,
   iconSize = 18,
   className,
-}: LocationPickerProps) {
+  searchParams,
+}: LocationPickerProps & { searchParams: Pick<URLSearchParams, "toString"> }) {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   /** The header face is the delivery control; the pill face is a grid filter. */
   const delivery = appearance === "header";
@@ -287,8 +315,8 @@ export function LocationPicker({
     setRadiusIndex(draftIndexForLocation(fromUrl));
   });
 
-  // Delivery face: restore the remembered place on a page the server rendered
-  // without one — a shopper who set Dhaka last week lands on the homepage
+  // Delivery face: restore the remembered place, which the server never
+  // renders — a shopper who set Dhaka last week lands on the homepage
   // expecting Dhaka. Once, when the browser can first read storage;
   // `hydrated` flips exactly one time, so this never re-runs on a navigation.
   useApplyOnChange([hydrated, delivery], () => {

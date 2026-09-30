@@ -1,0 +1,24 @@
+{
+  "template": "furniture",
+  "exportedAt": "2026-09-28T16:32:26.338Z",
+  "sourceDb": "storify-furniture",
+  "counts": {
+    "vendors.json": 5,
+    "inventory-locations.json": 0,
+    "categories.json": 8,
+    "brands.json": 0,
+    "global-variants.json": 0,
+    "products.json": 36,
+    "collections.json": 2,
+    "menus.json": 2,
+    "sliders.json": 3,
+    "store-pages.json": 4,
+    "coupons.json": 0,
+    "blog-categories.json": 0,
+    "blog-posts.json": 3,
+    "vendor-plans.json": 0,
+    "onboarding-template.json": 0,
+    "settings.json": 1
+  },
+  "repairs": []
+}

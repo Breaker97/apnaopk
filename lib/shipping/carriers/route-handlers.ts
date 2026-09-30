@@ -1,12 +1,13 @@
 import "server-only";
 
-import { z } from "zod";
+import * as z from "zod";
 import { NextRequest } from "next/server";
 import { Vendor } from "@/models";
 import { Shipment } from "@/models/shipment.model";
 import { getSettings, type ISettings } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
+import { resolveAddressHoldSettings } from "@/lib/orders/address-hold-policy";
 import { validateBody } from "@/lib/api/validate";
 import { createAuditContext } from "@/lib/audit";
 import { auditOrderShipment } from "@/lib/orders/audit-order";
@@ -18,6 +19,7 @@ import {
   CARRIER_PROVIDERS,
   DIMENSION_UNITS,
   PARCEL_WEIGHT_UNITS,
+  isTestLabel,
 } from "@/lib/shipping/carrier-config";
 import { CarrierError } from "./errors";
 import { labelCashOnDelivery } from "./build-request";
@@ -181,7 +183,10 @@ export function createPurchaseHandler(resolveScope: ScopeResolver) {
         customerEmail: scope.customerEmail,
       });
 
-      if (!alreadyOwned && shipment.trackingNumber) {
+      // A test label records the parcel and nothing else: the order is not
+      // moved and the customer is not sent a tracking number that no courier
+      // will ever scan (see `isTestLabel`).
+      if (!alreadyOwned && shipment.trackingNumber && !isTestLabel(shipment)) {
         const settings = await getSettings();
         // Buying the label is the act that produces a tracking number, so the
         // order carries it immediately. Waiting for the carrier's first scan
@@ -217,7 +222,9 @@ export function createPurchaseHandler(resolveScope: ScopeResolver) {
         shipment,
         alreadyOwned
           ? "This label was already purchased"
-          : "Shipping label purchased",
+          : isTestLabel(shipment)
+            ? "Test label created — the order and its books were left as they were"
+            : "Shipping label purchased",
       );
     } catch (error) {
       rethrowAsValidation(error);
@@ -254,11 +261,14 @@ export function createVoidHandler(resolveScope: ScopeResolver) {
         {
           shipment: result.shipment,
           refunded: result.refunded,
+          refundPending: result.refundPending,
           state: result.state,
         },
         result.refunded
-          ? "Label voided and refund requested"
-          : "Label voided — the carrier does not refund this shipment",
+          ? "Label cancelled and refund requested"
+          : result.refundPending
+            ? "Label cancelled — the carrier is still deciding the refund, and the cost comes off the books once it confirms"
+            : "Label cancelled — the carrier does not refund this shipment",
       );
     } catch (error) {
       rethrowAsValidation(error);
@@ -333,6 +343,28 @@ export function createLabelHandler(resolveScope: ScopeResolver) {
       orderId: params.id,
       vendorId: scope.vendorId,
     });
+
+    // A carrier parcel has a label only once one is bought, and a voided one's
+    // is dead. Both used to come back anyway: a draft fell through to the
+    // generated PDF below — footer "CARRIER LABEL", the order number printed as
+    // the tracking number — and a voided parcel handed back the label its
+    // carrier had just cancelled. Either one, printed and stuck on a box, sends
+    // goods out on a label no courier will honour.
+    if (shipment.provider) {
+      if (
+        shipment.purchase?.state === "voided" ||
+        shipment.status === "cancelled"
+      ) {
+        throw new ValidationError(
+          "This label was cancelled and can no longer be printed.",
+        );
+      }
+      if (shipment.purchase?.state !== "purchased" || !shipment.labelUrl) {
+        throw new ValidationError(
+          "This parcel has no carrier label yet. Buy one before printing.",
+        );
+      }
+    }
 
     const filename = `shipping-label-${scope.order.orderNumber}.pdf`;
 
@@ -433,9 +465,33 @@ export function createListHandler(resolveScope: ScopeResolver) {
     // seller names, whether a consignment has anything to put in a box, and
     // which vendors ship on carrier accounts of their own.
     const dispatch = await dispatchOptions(scope, settings);
+    const holdConfig = resolveAddressHoldSettings(settings.shipping?.addressHold);
+    const order = scope.order as typeof scope.order & {
+      refundedTotal?: number;
+      addressHold?: { state?: string; message?: string };
+    };
     return successResponse({
       shipments,
       consignments: dispatch.consignments,
+      // Whether shipping waits on the address, so the panel can say why its
+      // courier button is gone rather than leave it to be discovered.
+      addressHold:
+        order.addressHold?.state === "open"
+          ? { state: "open", message: order.addressHold.message }
+          : undefined,
+      // What a returned parcel's refund starts from. Store staff only: a
+      // vendor does not refund the shopper from this panel.
+      refund: scope.vendorId
+        ? undefined
+        : {
+            refundable: Math.max(
+              0,
+              Number(order.total || 0) - Number(order.refundedTotal || 0),
+            ),
+            paymentStatus: order.paymentStatus,
+            currency: order.currency || settings.general?.defaultCurrency,
+            keepReturnShipping: holdConfig.keepReturnShipping,
+          },
       carriersEnabled: Boolean(settings.shipping?.carriers?.enabled),
       carriersConnected: dispatch.carriersConnected,
       packages: settings.shipping?.packages || [],

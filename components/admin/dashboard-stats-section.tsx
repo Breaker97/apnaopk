@@ -71,7 +71,27 @@ export function DashboardStatsSection({
     maximumFractionDigits: 1,
   });
   const ordersLabel = t("admin.dashboardPage.orders");
-  const casesLabel = t("admin.dashboardPage.cases");
+  /**
+   * What the money cards actually count, for the reader who has just come from
+   * Finance with a different number.
+   *
+   * They are not the same question and cannot be made to agree: these are
+   * order totals — gross, including tax and, on a marketplace, the vendors'
+   * share — dated when the order was placed. Finance reports revenue from the
+   * ledger, net of refunds, dated when the money arrived. A tooltip rather
+   * than a line of copy because the six cards share one tight grid.
+   */
+  const moneyHint = t.has("admin.dashboardPage.salesBasis")
+    ? t("admin.dashboardPage.salesBasis")
+    : "Order totals collected in the store's currency, gross of tax. Finance reports revenue from the ledger, net of refunds.";
+  const withHint = (text: string) => <span title={moneyHint}>{text}</span>;
+  // The refunds card counts refund payments, not return cases — an order
+  // refunded outright, a cancelled pre-order and a chargeback are all refunds
+  // and none of them is a case. Falls back to the old wording where a locale
+  // has not been given the new one.
+  const refundsCountLabel = t.has("admin.dashboardPage.refundsCount")
+    ? t("admin.dashboardPage.refundsCount")
+    : t("admin.dashboardPage.cases");
 
   const definitions: StatCardDefinition[] = [
     {
@@ -82,7 +102,7 @@ export function DashboardStatsSection({
       getMetric: (s) => s.inStoreSales,
       formatValue: (m) => formatPrice(m.amount),
       formatSubLabel: (m) =>
-        `${compactFormatter.format(m.count)} ${ordersLabel}`,
+        withHint(`${compactFormatter.format(m.count)} ${ordersLabel}`),
     },
     {
       id: "website-sales",
@@ -91,7 +111,7 @@ export function DashboardStatsSection({
       getMetric: (s) => s.websiteSales,
       formatValue: (m) => formatPrice(m.amount),
       formatSubLabel: (m) =>
-        `${compactFormatter.format(m.count)} ${ordersLabel}`,
+        withHint(`${compactFormatter.format(m.count)} ${ordersLabel}`),
     },
     {
       id: "total-orders",
@@ -109,7 +129,7 @@ export function DashboardStatsSection({
       getMetric: (s) => s.discount,
       formatValue: (m) => formatPrice(m.amount),
       formatSubLabel: (m) =>
-        `${compactFormatter.format(m.count)} ${ordersLabel}`,
+        withHint(`${compactFormatter.format(m.count)} ${ordersLabel}`),
     },
     {
       id: "customers",
@@ -129,7 +149,7 @@ export function DashboardStatsSection({
       getMetric: (s) => s.refunds,
       formatValue: (m) => formatPrice(m.amount),
       formatSubLabel: (m) =>
-        `${compactFormatter.format(m.count)} ${casesLabel}`,
+        `${compactFormatter.format(m.count)} ${refundsCountLabel}`,
     },
   ];
 

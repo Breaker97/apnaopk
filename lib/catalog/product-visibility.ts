@@ -34,19 +34,21 @@ function shareInFlight<T>(load: () => Promise<T>): () => Promise<T> {
  * Whether multi-vendor mode is enabled.
  *
  * Called on hot, anonymous storefront paths (cart GET/POST, cart-item add,
- * wishlist GET/POST). It previously loaded the *entire* ~62KB settings singleton
- * just to read one boolean. This reads only the `multiVendorMode` sub-doc as a
- * lean object and caches it, tagged `settings`, so it refreshes immediately when
- * settings are saved (`revalidateSettingsContent()` busts the tag) and otherwise
- * costs at most one tiny lookup per revalidate window.
+ * wishlist GET/POST). Cached and tagged `settings`, so it refreshes
+ * immediately when settings are saved (`revalidateSettingsContent()` busts the
+ * tag) and otherwise costs at most one lookup per revalidate window.
+ *
+ * The lookup is the request's shared settings read (`getSettingsLean`), not a
+ * query of its own. A page render reads the document once for its layout, and
+ * the sections that ask this later used to add a round trip each, one after
+ * another — on a cold home page, six settings queries where one had already
+ * answered them.
  */
 export const isStorefrontMultiVendorEnabled = unstable_cache(
   shareInFlight(async (): Promise<boolean> => {
-    const { Settings } = await import("@/models/settings.model");
-    const doc = await Settings.findOne()
-      .select("multiVendorMode.enabled")
-      .lean<{ multiVendorMode?: { enabled?: boolean } } | null>();
-    return Boolean(doc?.multiVendorMode?.enabled);
+    const { getSettingsLean } = await import("@/models/settings.model");
+    const settings = await getSettingsLean();
+    return Boolean(settings.multiVendorMode?.enabled);
   }),
   ["storefront-multi-vendor-enabled"],
   {
@@ -59,8 +61,8 @@ export const isStorefrontMultiVendorEnabled = unstable_cache(
  * The platform's out-of-stock display policy.
  *
  * Read on every storefront listing, so it follows `isStorefrontMultiVendorEnabled`
- * exactly: the smallest possible projection, cached, and tagged `settings` so an
- * admin save takes effect immediately instead of at the next revalidate.
+ * exactly: the request's shared settings read, cached, and tagged `settings` so
+ * an admin save takes effect immediately instead of at the next revalidate.
  *
  * Callers read this *inside* their own cached function rather than folding it
  * into the cache key. Keying on it would double every storefront cache entry to
@@ -68,11 +70,9 @@ export const isStorefrontMultiVendorEnabled = unstable_cache(
  */
 export const getStorefrontOutOfStockDisplay = unstable_cache(
   shareInFlight(async (): Promise<OutOfStockDisplay> => {
-    const { Settings } = await import("@/models/settings.model");
-    const doc = await Settings.findOne()
-      .select("catalog.outOfStockDisplay")
-      .lean<{ catalog?: { outOfStockDisplay?: string } } | null>();
-    return normalizeOutOfStockDisplay(doc?.catalog?.outOfStockDisplay);
+    const { getSettingsLean } = await import("@/models/settings.model");
+    const settings = await getSettingsLean();
+    return normalizeOutOfStockDisplay(settings.catalog?.outOfStockDisplay);
   }),
   ["storefront-out-of-stock-display"],
   {

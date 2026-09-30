@@ -18,7 +18,9 @@ interface PlanGridProps {
  *   3 plans → three columns (one perfect row)
  *   4 plans → two columns → a symmetric 2×2 block instead of a 3+1 orphan
  *   5+      → up to three columns (5 → 3+2, 6 → 3+3, etc.)
- * The grid is centered so partial rows don't hug the left edge.
+ * The grid is centered so partial rows don't hug the left edge. The top
+ * padding and the taller row gap leave room for the "Recommended" tag, which
+ * sits on a card's top border.
  */
 export function PlanGrid({ count, children, className }: PlanGridProps) {
   let columns: string;
@@ -34,7 +36,7 @@ export function PlanGrid({ count, children, className }: PlanGridProps) {
   }
 
   return (
-    <div className={cn("mx-auto grid gap-6", columns, className)}>
+    <div className={cn("mx-auto grid gap-x-4 gap-y-6 pt-3", columns, className)}>
       {children}
     </div>
   );

@@ -1,395 +1,48 @@
-"use client";
-
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { Fragment, Suspense, type CSSProperties, type ReactNode } from "react";
+import { getTranslations } from "next-intl/server";
+import { messageTemplate } from "@/lib/i18n/message-template";
 import {
-  Star,
-  Loader2,
-  Minus,
-  Plus,
-  ShoppingBag,
-  BookOpen,
   ChevronDown,
   ChevronRight,
-  FileDown,
   Home,
-  PackageOpen,
-  RotateCcw,
+  Plus,
+  Star,
   Store,
-  Truck,
 } from "lucide-react";
+import Link from "@/components/language/link";
 import { AppImage } from "@/components/ui/app-image";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCurrency } from "@/providers/currency-provider";
-import { useSession } from "@/lib/auth/auth-client";
-import { PreorderWaitlistForm } from "@/components/products/preorder-waitlist-form";
-import { useQuoteOffers } from "@/hooks/use-quote-offers";
-import { useMultiVendorMode } from "@/providers/app-settings-provider";
-import { useCart } from "@/hooks/use-cart";
-import { toast } from "@/components/ui/toast-notification";
-import { type Locale } from "@/config/i18n.config";
-import { ProductCollapsibleSection } from "./product-collapsible-section";
-import { ProductImageGallery } from "./product-image-gallery";
-import { OptionValueSelector } from "./option-value-selector";
-import { ProductShareButtons } from "./product-share-buttons";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
-import { StorefrontChatButton } from "@/components/chat/storefront-chat-button";
 import { VendorExternalChannels } from "@/components/chat/vendor-external-channels";
-import type { VendorMessagingSettings } from "@/lib/notifications/vendor-messaging";
+import { type Locale } from "@/config/i18n.config";
 import type { ProductFulfillmentNotes } from "@/lib/products/fulfillment-notes";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/intl/money";
-import { trackAddToCart, trackProductView } from "@/lib/analytics/events";
 import {
-  UNTRACKED_PURCHASE_CAP,
-  getPurchasableQuantity,
-  productTracksStock,
-} from "@/lib/products/stock-policy";
+  productInfoSectionKind,
+  toPurchaseProduct,
+  type ProductPageProduct,
+} from "@/lib/products/purchase-product";
 import {
   DEFAULT_PRODUCT_DETAIL_GROUPS,
   visibleProductDetailGroups,
   type ProductDetailRow,
   type ProductDetailRowItem,
 } from "@/lib/storefront/sections/product-detail-rows";
-import {
-  DEFAULT_PRODUCT_DETAIL_CONFIG,
-  discountChipCss,
-  purchaseButtonCss,
-  stockChipCss,
-  typographyCss,
-  type ProductDetailConfig,
-} from "@/lib/storefront/sections/product-detail-style";
-import {
-  getQuoteButtonLabel,
-  isQuoteOnlyProduct,
-} from "@/lib/products/quote-pricing";
-import {
-  QuoteRequestDialog,
-} from "@/components/products/quote-request-dialog";
-import { useHydrated } from "@/hooks/use-client-value";
-import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import type { ProductDetailConfig } from "@/lib/storefront/sections/product-detail-style";
+import { typographyCss } from "@/lib/storefront/sections/product-detail-css";
+import { buildStorefrontUrl } from "@/lib/storefront/storefront-metadata";
+import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
+import { cn } from "@/lib/utils";
+import { ProductIsland, ProductPurchaseProvider } from "./product-details-lazy";
+import { ProductDetailsSkeleton } from "./product-details-skeleton";
+import { ProductShareRow } from "./product-share-row";
 
-// Deferred so the large size-chart tables/modal load only when opened.
-const ProductSizeGuide = dynamic(() => import("./product-size-guide"));
-
-interface Product {
-  _id: string;
-  name: string;
-  title?: string;
-  slug: string;
-  description: string;
-  shortDescription?: string;
-  price: number;
-  comparePrice?: number;
-  /** Sold by quote — see lib/products/quote-pricing.ts. */
-  priceOnRequest?: boolean;
-  quoteButtonLabel?: string;
-  sku: string;
-  barcode?: string;
-  stock: number;
-  /** Stock policy — read via lib/products/stock-policy.ts, never directly. */
-  inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
-  preorder?: {
-    enabled?: boolean;
-    releaseDate?: string | Date;
-    message?: string;
-    limit?: number;
-    reservedQuantity?: number;
-    preorderOnly?: boolean;
-    autoConvert?: boolean;
-    paymentMode?: "full" | "deposit" | "pay_later";
-    depositType?: "percentage" | "fixed";
-    depositValue?: number;
-    batchName?: string;
-  };
-  images: string[];
-  media?: {
-    _id: string;
-    type?: "image" | "video" | "model" | "external_video";
-    url: string;
-    alt?: string;
-    position?: number;
-    mimeType?: string;
-    thumbnailUrl?: string;
-    provider?: "youtube" | "vimeo";
-    embedId?: string;
-    fit?: "auto" | "contain" | "cover";
-    /** Recorded at upload; the carousels size each frame by them. */
-    width?: number;
-    height?: number;
-  }[];
-  /** Sanitized for the storefront — no storage keys, display fields only. */
-  digitalAssets?: { _id: string; filename: string; size?: number }[];
-  digitalPreview?: { url: string; filename?: string };
-  category?: { _id: string; name: string; slug: string };
-  brand?: { _id: string; name: string; slug: string; logo?: string };
-  tags: string[];
-  attributes: { name: string; value: string }[];
-  shipping?: {
-    isPhysicalProduct?: boolean;
-    weight?: number;
-    weightUnit?: "g" | "kg" | "lb" | "oz";
-    countryOfOrigin?: string;
-    hsCode?: string;
-  };
-  options?: {
-    name: string;
-    values: {
-      _id: string;
-      value: string;
-      position?: number;
-      colorCode?: string;
-    }[];
-  }[];
-  variants: {
-    _id: string;
-    name: string;
-    sku: string;
-    barcode?: string;
-    price: number;
-    comparePrice?: number;
-    stock: number;
-    attributes: { name: string; value: string }[];
-    optionValues?: (
-      | string
-      | {
-          optionId: string;
-          optionName: string;
-          valueId: string;
-          value: string;
-          colorCode?: string;
-        }
-    )[];
-    requiresShipping?: boolean;
-    weight?: number;
-    weightUnit?: "g" | "kg" | "lb" | "oz";
-    mediaId?: string;
-    image?: string;
-    preorder?: Product["preorder"];
-  }[];
-  rating: number;
-  reviewCount: number;
-  /** Lifetime units sold, when the API provides it (Minimal's "N sold"). */
-  soldCount?: number;
-  featured: boolean;
-  vendorId?: {
-    _id: string;
-    storeName: string;
-    slug: string;
-    logo?: string;
-    rating: number;
-    messaging?: VendorMessagingSettings;
-    isDefault?: boolean;
-  };
-  platformMessaging?: VendorMessagingSettings;
-}
-
-type OptionValueObj = {
-  optionId: string;
-  optionName: string;
-  valueId: string;
-  value: string;
-  colorCode?: string;
-};
-
-type ProductMediaKind = "image" | "video" | "model" | "external_video";
-type ProductDetailsSection = "description" | "specifications" | "reviews";
-type ProductInfoSectionKind =
-  | "sizeFit"
-  | "technicalDetails"
-  | "dimensionsDetails"
-  | "productInformation"
-  | "productDetails";
-type ProductInfoField = {
-  label: string;
-  value: string;
-  href?: string;
-};
-
-type DisplayMedia = {
-  id: string;
-  type: ProductMediaKind;
-  url: string;
-  alt: string;
-  mimeType?: string;
-  thumbnailUrl?: string;
-  provider?: "youtube" | "vimeo";
-  embedId?: string;
-};
-
-function getProductInfoSectionKind(product: Product): ProductInfoSectionKind {
-  const categoryText = [
-    product.category?.name,
-    product.category?.slug,
-    ...(product.tags || []),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (
-    /\b(cloth|clothes|clothing|fashion|apparel|wear|shirt|t-shirt|tee|pant|jean|dress|shoe|sneaker|hoodie|jacket)\b/.test(
-      categoryText,
-    )
-  ) {
-    return "sizeFit";
-  }
-
-  if (
-    /\b(electronic|electronics|phone|mobile|laptop|computer|camera|audio|speaker|headphone|gadget|device|tv|television)\b/.test(
-      categoryText,
-    )
-  ) {
-    return "technicalDetails";
-  }
-
-  if (
-    /\b(furniture|home|decor|table|chair|sofa|bed|mattress|cabinet|shelf|lighting)\b/.test(
-      categoryText,
-    )
-  ) {
-    return "dimensionsDetails";
-  }
-
-  if (
-    /\b(beauty|cosmetic|skincare|makeup|perfume|fragrance|health|personal-care)\b/.test(
-      categoryText,
-    )
-  ) {
-    return "productInformation";
-  }
-
-  return "productDetails";
-}
-
-function normalizeAttributeKey(key: string) {
-  return key
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-function buildAttributeLookup(
-  productAttributes: Product["attributes"],
-  variantAttributes?: Product["variants"][number]["attributes"],
-) {
-  const lookup = new Map<string, string>();
-  const addAttributes = (attributes?: Product["attributes"]) => {
-    attributes?.forEach((attribute) => {
-      const key = normalizeAttributeKey(attribute.name || "");
-      const value = attribute.value?.trim();
-      if (key && value) lookup.set(key, value);
-    });
-  };
-
-  addAttributes(productAttributes);
-  addAttributes(variantAttributes);
-
-  return lookup;
-}
-
-function getAttributeValue(attributes: Map<string, string>, keys: string[]) {
-  for (const key of keys) {
-    const value = attributes.get(normalizeAttributeKey(key));
-    if (value) return value;
-  }
-  return undefined;
-}
-
-function formatProductWeight(
-  weight?: number,
-  weightUnit?: "g" | "kg" | "lb" | "oz",
-) {
-  if (typeof weight !== "number" || Number.isNaN(weight) || weight <= 0) {
-    return undefined;
-  }
-  return `${weight}${weightUnit ? ` ${weightUnit}` : ""}`;
-}
-
-function formatPreorderDate(value?: string | Date) {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
-function getPreorderRemaining(settings?: Product["preorder"]) {
-  const limit = Number(settings?.limit || 0);
-  if (!Number.isFinite(limit) || limit <= 0) return Number.POSITIVE_INFINITY;
-  return Math.max(0, limit - Number(settings?.reservedQuantity || 0));
-}
-
-/**
- * The release window alone, ignoring the quota — what `isPreorderOpen` checks
- * before it also asks for a free spot. Separated so a FULL pre-order can be
- * told apart from a closed one: the first can take a waiting list, the second
- * has passed its release date and cannot.
- */
-function isPreorderWindowOpen(settings?: Product["preorder"]) {
-  if (!settings?.enabled) return false;
-  const releaseDate = settings.releaseDate
-    ? new Date(settings.releaseDate)
-    : null;
-  return !(
-    settings.autoConvert !== false &&
-    releaseDate &&
-    !Number.isNaN(releaseDate.getTime()) &&
-    releaseDate.getTime() < Date.now()
-  );
-}
-
-function isPreorderOpen(settings?: Product["preorder"]) {
-  if (!settings?.enabled) return false;
-  const releaseDate = settings.releaseDate
-    ? new Date(settings.releaseDate)
-    : null;
-  if (
-    settings.autoConvert !== false &&
-    releaseDate &&
-    !Number.isNaN(releaseDate.getTime()) &&
-    releaseDate.getTime() < Date.now()
-  ) {
-    return false;
-  }
-  return getPreorderRemaining(settings) > 0;
-}
-
-function calculatePreorderDueNow(params: {
-  unitPrice: number;
-  quantity: number;
-  settings?: Product["preorder"];
-}) {
-  const lineTotal = Math.max(0, params.unitPrice * params.quantity);
-  const mode = params.settings?.paymentMode || "full";
-  if (mode === "pay_later") return { dueNow: 0, dueLater: lineTotal };
-  if (mode !== "deposit") return { dueNow: lineTotal, dueLater: 0 };
-
-  const rawValue = Number(params.settings?.depositValue || 0);
-  const value = Number.isFinite(rawValue) ? Math.max(0, rawValue) : 0;
-  const dueNow =
-    params.settings?.depositType === "fixed"
-      ? Math.min(lineTotal, value * params.quantity)
-      : Math.min(lineTotal, (lineTotal * Math.min(value, 100)) / 100);
-  return { dueNow, dueLater: Math.max(0, lineTotal - dueNow) };
-}
-
-/* The Description row in the minimal appearance is a summary, not the whole
+/* The buy box's Description row is a summary, not the whole
    article — the full rich text still renders in the page's Description
    section below. Merchants who wrote a short description get theirs
    verbatim; otherwise we trim the long copy down to its opening sentences. */
 const DESCRIPTION_SUMMARY_MAX_CHARS = 240;
 
-function getDescriptionSummary(product: Product) {
+function getDescriptionSummary(product: ProductPageProduct) {
   const short = product.shortDescription?.trim();
   if (short) return short;
 
@@ -413,383 +66,9 @@ function getDescriptionSummary(product: Product) {
   return `${(lastSpace > 0 ? clipped.slice(0, lastSpace) : clipped).replace(/[,;:.\s]+$/, "")}…`;
 }
 
-function humanizeAttributeLabel(key: string) {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function isColorOptionName(optionName: string) {
-  return ["color", "colour", "colors", "colours"].some((keyword) =>
-    optionName.toLowerCase().includes(keyword),
-  );
-}
-
-function isSizeOptionName(optionName: string) {
-  return ["size", "sizing"].some((keyword) =>
-    optionName.toLowerCase().includes(keyword),
-  );
-}
-
-function getSelectedOptionEntries({
-  product,
-  selectedVariant,
-  selectedOptions,
-}: {
-  product: Product;
-  selectedVariant?: Product["variants"][number];
-  selectedOptions: string[];
-}) {
-  const productOptions = product.options || [];
-  const optionValues = (selectedVariant?.optionValues || []) as (
-    string | OptionValueObj
-  )[];
-
-  if (optionValues.length > 0) {
-    return optionValues
-      .map((optionValue, index) => {
-        if (typeof optionValue === "string") {
-          return {
-            name: productOptions[index]?.name || "",
-            value: optionValue,
-          };
-        }
-
-        return {
-          name: optionValue.optionName || productOptions[index]?.name || "",
-          value: optionValue.value,
-        };
-      })
-      .filter((entry) => entry.name && entry.value);
-  }
-
-  return selectedOptions
-    .map((value, index) => ({
-      name: productOptions[index]?.name || "",
-      value,
-    }))
-    .filter((entry) => entry.name && entry.value);
-}
-
-function getOptionValues(product: Product, matcher: (name: string) => boolean) {
-  const option = product.options?.find((item) => matcher(item.name));
-  if (!option) return [];
-
-  return Array.from(
-    new Set(
-      option.values
-        .map((item) => item.value?.trim())
-        .filter((value): value is string => Boolean(value)),
-    ),
-  );
-}
-
-function getProductInfoFields({
-  product,
-  selectedVariant,
-  selectedOptions,
-  sectionKind,
-  locale,
-}: {
-  product: Product;
-  selectedVariant?: Product["variants"][number];
-  selectedOptions: string[];
-  sectionKind: ProductInfoSectionKind;
-  locale: Locale;
-}): ProductInfoField[] {
-  const attributes = buildAttributeLookup(
-    product.attributes || [],
-    selectedVariant?.attributes || [],
-  );
-  const categoryHref = product.category
-    ? `/${locale}/categories/${product.category.slug}`
-    : undefined;
-  const brandHref = product.brand
-    ? `/${locale}/brands/${encodeURIComponent(product.brand.slug)}`
-    : undefined;
-  const weight =
-    formatProductWeight(selectedVariant?.weight, selectedVariant?.weightUnit) ||
-    formatProductWeight(product.shipping?.weight, product.shipping?.weightUnit);
-
-  const fields: ProductInfoField[] = [
-    {
-      label: "SKU",
-      value: selectedVariant?.sku || product.sku,
-    },
-  ];
-
-  if (product.brand?.name) {
-    fields.push({
-      label: "Brand",
-      value: product.brand.name,
-      href: brandHref,
-    });
-  }
-
-  if (product.category?.name) {
-    fields.push({
-      label: "Category",
-      value: product.category.name,
-      href: categoryHref,
-    });
-  }
-
-  if (sectionKind === "sizeFit") {
-    const selectedEntries = getSelectedOptionEntries({
-      product,
-      selectedVariant,
-      selectedOptions,
-    });
-    const selectedColor = selectedEntries.find((entry) =>
-      isColorOptionName(entry.name),
-    )?.value;
-    const selectedSize = selectedEntries.find((entry) =>
-      isSizeOptionName(entry.name),
-    )?.value;
-
-    if (selectedColor) fields.push({ label: "Color", value: selectedColor });
-    if (selectedSize) {
-      fields.push({ label: "Size shown", value: selectedSize });
-    }
-  }
-
-  const configs: Record<
-    ProductInfoSectionKind,
-    { label: string; keys: string[] }[]
-  > = {
-    sizeFit: [
-      {
-        label: "Material",
-        keys: ["material", "fabric", "composition", "upper_material"],
-      },
-      { label: "Fit", keys: ["fit", "fit_type", "silhouette"] },
-      {
-        label: "Size shown",
-        keys: ["size_display", "size_shown", "display_size", "model_size"],
-      },
-      {
-        label: "Model info",
-        keys: ["model_info", "model_height", "model_wears", "model_size"],
-      },
-      { label: "Care", keys: ["care", "care_instructions", "wash_care"] },
-    ],
-    technicalDetails: [
-      { label: "Brand", keys: ["brand", "manufacturer"] },
-      { label: "Model", keys: ["model", "model_number", "part_number"] },
-      { label: "Warranty", keys: ["warranty", "guarantee"] },
-      { label: "Power", keys: ["power", "battery", "battery_life"] },
-      { label: "Connectivity", keys: ["connectivity", "connection"] },
-      { label: "Dimensions", keys: ["dimensions", "size"] },
-      { label: "In the box", keys: ["in_the_box", "box_contents"] },
-    ],
-    dimensionsDetails: [
-      { label: "Material", keys: ["material", "finish"] },
-      { label: "Dimensions", keys: ["dimensions", "size", "l_w_h"] },
-      { label: "Assembly", keys: ["assembly", "assembly_required"] },
-      { label: "Load capacity", keys: ["load_capacity", "weight_capacity"] },
-      { label: "Care", keys: ["care", "care_instructions", "cleaning"] },
-      { label: "Origin", keys: ["country_of_origin", "origin"] },
-    ],
-    productInformation: [
-      { label: "Net content", keys: ["net_content", "volume", "quantity"] },
-      { label: "Ingredients", keys: ["ingredients"] },
-      {
-        label: "Suitable for",
-        keys: ["skin_type", "hair_type", "suitable_for"],
-      },
-      { label: "How to use", keys: ["how_to_use", "usage", "directions"] },
-      { label: "Shelf life", keys: ["shelf_life", "expiry", "expiration"] },
-      { label: "Warnings", keys: ["warnings", "caution"] },
-    ],
-    productDetails: [
-      { label: "Brand", keys: ["brand", "manufacturer"] },
-      { label: "Model", keys: ["model", "model_number"] },
-      { label: "Material", keys: ["material"] },
-      { label: "Dimensions", keys: ["dimensions", "size"] },
-      { label: "Warranty", keys: ["warranty", "guarantee"] },
-      { label: "Origin", keys: ["country_of_origin", "origin"] },
-    ],
-  };
-
-  configs[sectionKind].forEach((config) => {
-    const value = getAttributeValue(attributes, config.keys);
-    if (value) fields.push({ label: config.label, value });
-  });
-
-  if (sectionKind === "sizeFit") {
-    const availableColors = getOptionValues(product, isColorOptionName);
-    const availableSizes = getOptionValues(product, isSizeOptionName);
-    const selectedEntries = getSelectedOptionEntries({
-      product,
-      selectedVariant,
-      selectedOptions,
-    });
-    const selectedColor = selectedEntries.find((entry) =>
-      isColorOptionName(entry.name),
-    )?.value;
-
-    if (availableColors.length > 0) {
-      fields.push({
-        label: "Color variants",
-        value: availableColors.join(", "),
-      });
-    }
-    if (availableSizes.length > 0) {
-      fields.push({
-        label: selectedColor ? `${selectedColor} sizes` : "Available sizes",
-        value: availableSizes.join(", "),
-      });
-    }
-  }
-
-  if (weight) fields.push({ label: "Weight", value: weight });
-  if (product.shipping?.countryOfOrigin) {
-    fields.push({ label: "Origin", value: product.shipping.countryOfOrigin });
-  }
-  if (selectedVariant?.barcode || product.barcode) {
-    fields.push({
-      label: "Barcode",
-      value: selectedVariant?.barcode || product.barcode || "",
-    });
-  }
-
-  const usedLabels = new Set(fields.map((field) => field.label.toLowerCase()));
-  for (const [key, value] of attributes.entries()) {
-    const label = humanizeAttributeLabel(key);
-    if (usedLabels.has(label.toLowerCase())) continue;
-    fields.push({ label, value });
-    usedLabels.add(label.toLowerCase());
-    if (fields.length >= 12) break;
-  }
-
-  return fields
-    .filter((field) => field.value.trim().length > 0)
-    .filter(
-      (field, index, allFields) =>
-        allFields.findIndex(
-          (candidate) =>
-            candidate.label.toLowerCase() === field.label.toLowerCase(),
-        ) === index,
-    )
-    .slice(0, 12);
-}
-
-function inferMediaType(media: {
-  type?: ProductMediaKind;
-  url: string;
-  mimeType?: string;
-}): ProductMediaKind {
-  if (media.type) return media.type;
-  const mimeType = media.mimeType?.toLowerCase() || "";
-  const url = media.url.toLowerCase();
-
-  if (mimeType.startsWith("video/")) return "video";
-  if (
-    mimeType.includes("gltf") ||
-    mimeType === "application/octet-stream" ||
-    url.endsWith(".glb") ||
-    url.endsWith(".gltf")
-  ) {
-    return "model";
-  }
-
-  return "image";
-}
-
-function firstImageUrl(media: DisplayMedia[], images: string[]) {
-  return (
-    media.find((item) => item.type === "image")?.url ||
-    images.find(Boolean) ||
-    media.find((item) => item.thumbnailUrl)?.thumbnailUrl ||
-    ""
-  );
-}
-
-const colorMap: Record<string, string> = {
-  red: "#ef4444",
-  blue: "#3b82f6",
-  green: "#22c55e",
-  yellow: "#eab308",
-  orange: "#f97316",
-  purple: "#a855f7",
-  pink: "#ec4899",
-  black: "#000000",
-  white: "#ffffff",
-  gray: "#6b7280",
-  grey: "#6b7280",
-  brown: "#92400e",
-  navy: "#1e3a8a",
-  beige: "#d4c4a8",
-  cream: "#fffdd0",
-  teal: "#14b8a6",
-  cyan: "#06b6d4",
-  indigo: "#6366f1",
-  violet: "#8b5cf6",
-  maroon: "#7f1d1d",
-  olive: "#65a30d",
-  coral: "#fb7185",
-  mint: "#86efac",
-  gold: "#ca8a04",
-  silver: "#94a3b8",
-};
-
-function getColorCode(value: string, colorCode?: string): string | null {
-  if (colorCode) return colorCode;
-  const lowerValue = value.toLowerCase();
-  return colorMap[lowerValue] || null;
-}
-
-function getVariantColorCodeForOptionValue({
-  product,
-  optionName,
-  valueId,
-  value,
-}: {
-  product: Product;
-  optionName: string;
-  valueId: string;
-  value: string;
-}) {
-  for (const variant of product.variants || []) {
-    const optionValues = (variant.optionValues || []) as (
-      string | OptionValueObj
-    )[];
-
-    for (let index = 0; index < optionValues.length; index += 1) {
-      const optionValue = optionValues[index];
-      if (typeof optionValue === "string") continue;
-
-      const variantOptionName =
-        optionValue.optionName || product.options?.[index]?.name || "";
-      const matchesOption =
-        variantOptionName.toLowerCase() === optionName.toLowerCase();
-      const matchesValue =
-        optionValue.valueId === valueId || optionValue.value === value;
-
-      if (matchesOption && matchesValue && optionValue.colorCode) {
-        return optionValue.colorCode;
-      }
-    }
-  }
-
-  return undefined;
-}
-
 interface ProductDetailsProps {
-  product: Product;
+  product: ProductPageProduct;
   locale: Locale;
-  /**
-   * The nearest branch that can actually hand this over, when the shopper has
-   * set a location. Resolved on the server so the per-branch counts behind the
-   * answer never reach the browser — see `lib/locations/product-collection.ts`.
-   */
-  collectionOffer?: {
-    branchName: string;
-    pickupArea?: string;
-    distanceKm?: number;
-    /** Variants the branch stocks; `null` when the product has none. */
-    variantIds: string[] | null;
-  } | null;
   /**
    * What the "Delivery info" row may promise: the delivery window checkout
    * would quote and the return terms in force, resolved on the server from
@@ -798,563 +77,77 @@ interface ProductDetailsProps {
    */
   fulfillment?: ProductFulfillmentNotes | null;
   /**
+   * Whether the product — and each variant, by id — is final sale, resolved on
+   * the server with the store's final-sale collections (lib/returns/final-sale.ts).
+   * A final-sale choice replaces the return terms in the "Delivery info" row.
+   */
+  finalSale?: { product: boolean; variants: Record<string, boolean> } | null;
+  /**
    * The product template's `galleryLayout` setting (product-main section).
-   * "full" and "vertical" also change the page arrangement: "full" stacks
-   * the gallery above the buy box at every width; "vertical" keeps the two
+   * "full", "carousel" and "vertical" also change the page arrangement:
+   * "full" and "carousel" stack the gallery above the buy box at every
+   * width (the carousel needs the page width to show several slides at
+   * once); "vertical" keeps the two
    * columns but makes the BUY BOX the sticky side while the media list
    * scrolls.
    */
   galleryLayout?: "bottom" | "left" | "grid" | "carousel" | "vertical" | "full";
   /**
-   * Which buy-box ARRANGEMENT to draw. Presentation only: both appearances
-   * run the identical logic above — variant matching, stock policy, preorder
-   * terms, cart handlers — and differ solely in how the same values are laid
-   * out. Adding one means adding a branch in the buy-box column below and
-   * nothing else; if you find yourself reaching for it outside that column,
-   * the difference belongs in the shared code instead.
-   */
-  appearance?: ProductBuyBoxAppearance;
-  /**
    * The Minimal design's row arrangement: visible row keys per group, a
    * hairline between groups. Resolved by the section definition from the
-   * stored `rows` setting; the other appearances ignore it.
+   * stored `rows` setting.
    */
   rowGroups?: ProductDetailRowItem[][];
   /**
    * The Minimal design's Visibility + Style knobs, resolved by the section
-   * definition from the stored `detailStyle` setting. Ignored elsewhere.
+   * definition from the stored `detailStyle` setting.
    */
-  detail?: ProductDetailConfig;
+  detail: ProductDetailConfig;
   /**
    * The template also renders the standalone `product-specification`
    * section (the Electronics preset does), so the inline spec block here
    * stands down — two spec tables on one page is the bug this prevents.
    */
-  standaloneSpecs?: boolean;
+  standaloneSpecs: boolean;
+  /**
+   * Which sections the tab strip may send the shopper to, besides the
+   * description. A section the page does not draw gets no tab, and without
+   * a reviews section the rating's review count stops linking to one.
+   */
+  sectionTargets: { specifications: boolean; reviews: boolean };
+  /** The store runs as a marketplace, so third-party sellers are named. */
+  isMultiVendor: boolean;
 }
 
-/** The buy-box designs `product-main` offers as section variants. */
-export type ProductBuyBoxAppearance = "classic" | "electronics" | "minimal";
-
-export function ProductDetails({
+/**
+ * The product page's main section: gallery, buy box, description.
+ *
+ * Drawn on the server. What does not change while the shopper is on the page
+ * — the breadcrumb, the title, the rating, the seller, the summary, the
+ * description and the specification table, the whole arrangement — is plain
+ * markup that ships no code. The controls that answer to the shopper (the
+ * variant picker and everything it moves: the gallery, the price and stock,
+ * the cart buttons, the details list, the pinned tab strip) are client
+ * islands sharing one purchase state (product-purchase.tsx), loaded as one
+ * chunk through product-details-lazy.tsx.
+ */
+export async function ProductDetails({
   product,
   locale,
-  collectionOffer,
   fulfillment = null,
+  finalSale = null,
   galleryLayout = "bottom",
-  appearance = "classic",
   rowGroups,
-  detail = DEFAULT_PRODUCT_DETAIL_CONFIG,
-  standaloneSpecs = false,
+  detail,
+  standaloneSpecs,
+  sectionTargets,
+  isMultiVendor,
 }: ProductDetailsProps) {
-  const t = useTranslations();
-  const router = useRouter();
-  const { currency, formatPrice } = useCurrency();
-  const { isMultiVendor } = useMultiVendorMode();
-  const { addItem, clearCart, items } = useCart();
-  const directVendor =
-    product.vendorId && product.vendorId.isDefault !== true
-      ? product.vendorId
-      : undefined;
-  const messaging = directVendor?.messaging || product.platformMessaging;
-  // "Sold by" attribution — only in a marketplace (multi-vendor on), and only
-  // for third-party sellers: the default vendor IS the store itself and has no
-  // public /vendors page to stand behind the link.
-  const soldByVendor = isMultiVendor ? directVendor : undefined;
-
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isBuyingNow, setIsBuyingNow] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-  const [isQuoteOpen, setIsQuoteOpen] = useState(false);
-  const hasMounted = useHydrated();
-
-  /**
-   * "Price on request": this product has no price a shopper may read and no
-   * cart line they may create. Every buy box below swaps its money for a
-   * "Price on request" line and its Add to cart / Buy now pair for the single
-   * button that opens the request form — the cart API refuses these products
-   * anyway, so leaving a live Add to cart on screen would only produce an
-   * error toast at the end of a click the shopper had every reason to expect
-   * to work.
-   */
-  const quoteOnly = isQuoteOnlyProduct(product);
-
-
-  const hasSpecifications =
-    Array.isArray(product.attributes) && product.attributes.length > 0;
-  const hasDescription = !!product.description?.trim();
-  const descriptionSummary = getDescriptionSummary(product);
-  const descriptionRef = useRef<HTMLDivElement | null>(null);
-  const specificationsRef = useRef<HTMLDivElement | null>(null);
-  const [activeSection, setActiveSection] =
-    useState<ProductDetailsSection>("description");
-
-  // Minimal design's morphing tab bar. It pins under the storefront header
-  // when its home slot scrolls past it — and the product/name (left) and
-  // price/CTA (right) only exist while pinned. Its pinned life is decoupled
-  // from its DOM parent on purpose: reviews render as their own section
-  // further down the page and the strip must ride until THAT section's end,
-  // which CSS sticky cannot do across section boundaries. So while pinned
-  // the strip is position:fixed at its home slot's measured left/width (the
-  // slot keeps its height so nothing jumps), and once the reviews section's
-  // bottom passes the strip it slides away. Band changes go through state;
-  // per-frame geometry writes go straight to the element.
-  const tabsHomeRef = useRef<HTMLDivElement | null>(null);
-  const tabsBarRef = useRef<HTMLDivElement | null>(null);
-  const [tabsStuck, setTabsStuck] = useState(false);
-  const [tabsReleased, setTabsReleased] = useState(false);
-
-  useEffect(() => {
-    if (appearance !== "minimal") return;
-    const home = tabsHomeRef.current;
-    const bar = tabsBarRef.current;
-    if (!home || !bar) return;
-
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      const header = document.querySelector<HTMLElement>(
-        "[data-sticky-header]",
-      );
-      const offset = header?.offsetHeight ?? 64;
-      const homeRect = home.getBoundingClientRect();
-      const barHeight = bar.offsetHeight;
-      const stuck = homeRect.top <= offset;
-      // The strip rides only as far as the reviews section. A template
-      // without one falls back to the details section — the old boundary.
-      const bound =
-        document.getElementById("reviews") ?? home.closest("section");
-      const released = Boolean(
-        stuck &&
-        bound &&
-        bound.getBoundingClientRect().bottom <= offset + barHeight,
-      );
-
-      if (stuck) {
-        // The bar's -mx-4 bleed still applies under position:fixed, so the
-        // measured slot width is widened by both margins to keep the fixed
-        // box exactly where the in-flow box was.
-        const marginX = parseFloat(getComputedStyle(bar).marginLeft) || 0;
-        home.style.height = `${barHeight}px`;
-        bar.style.position = "fixed";
-        bar.style.top = `${offset}px`;
-        bar.style.left = `${homeRect.left}px`;
-        bar.style.width = `${homeRect.width - 2 * marginX}px`;
-      } else {
-        home.style.height = "";
-        bar.style.position = "";
-        bar.style.top = "";
-        bar.style.left = "";
-        bar.style.width = "";
-      }
-      setTabsStuck(stuck && !released);
-      setTabsReleased(released);
-    };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      if (frame) cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-    };
-  }, [appearance]);
-
-  const scrollToSection = (target: ProductDetailsSection) => {
-    // The specification block lives INSIDE this component under the classic
-    // appearance and in its own `product-specification` section under the
-    // electronics one, so fall back to the id the section publishes.
-    const el =
-      target === "description"
-        ? descriptionRef.current
-        : target === "specifications"
-          ? (specificationsRef.current ??
-            document.getElementById("specifications"))
-          : document.getElementById("reviews");
-    if (!el) return;
-    setActiveSection(target);
-    const header = document.querySelector<HTMLElement>("[data-sticky-header]");
-    const offset = (header?.offsetHeight ?? 64) + 24;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    const desc = descriptionRef.current;
-    if (!desc) return;
-
-    const targets: Element[] = [desc];
-    const spec =
-      specificationsRef.current ?? document.getElementById("specifications");
-    const reviews = document.getElementById("reviews");
-    if (spec) targets.push(spec);
-    if (reviews) targets.push(reviews);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!visible) return;
-        const target = visible.target as HTMLElement;
-        const id = target.dataset.section ?? target.id;
-        if (
-          id === "description" ||
-          id === "specifications" ||
-          id === "reviews"
-        ) {
-          setActiveSection(id);
-        }
-      },
-      { rootMargin: "-30% 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
-    );
-
-    targets.forEach((target) => observer.observe(target));
-    return () => observer.disconnect();
-    // All three sections render unconditionally now, so the observer no longer
-    // needs to re-subscribe when a product happens to lack specs or reviews.
-  }, []);
-
-  const displayMedia = useMemo(() => {
-    if (Array.isArray(product.media) && product.media.length > 0) {
-      return [...product.media]
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-        .map((m) => ({
-          id: m._id,
-          type: inferMediaType(m),
-          url: m.url,
-          alt: m.alt || product.name,
-          mimeType: m.mimeType,
-          thumbnailUrl: m.thumbnailUrl,
-          provider: m.provider,
-          embedId: m.embedId,
-          fit: m.fit,
-          width: m.width,
-          height: m.height,
-        }));
-    }
-    return (product.images || []).map((url, idx) => ({
-      id: String(idx),
-      type: "image" as const,
-      url,
-      alt: product.name,
-    }));
-  }, [product.images, product.media, product.name]);
-  const cartPreviewImage = useMemo(
-    () => firstImageUrl(displayMedia, product.images || []),
-    [displayMedia, product.images],
-  );
-
-  const selectedVariant = useMemo(() => {
-    if (!Array.isArray(product.variants) || product.variants.length === 0) {
-      return undefined;
-    }
-    const hasOptions =
-      Array.isArray(product.options) && product.options.length > 0;
-    if (!hasOptions) return product.variants[0];
-    const key = selectedOptions.join("||");
-    return (
-      product.variants.find((v) => {
-        const vKey = ((v.optionValues ?? []) as (string | OptionValueObj)[])
-          .map((ov) => (typeof ov === "string" ? ov : ov.value))
-          .join("||");
-        return vKey === key;
-      }) || product.variants[0]
-    );
-  }, [product.options, product.variants, selectedOptions]);
-
-  /**
-   * The merchant may have answered this shopper's request with a price. If so
-   * this buy box stops being a lead form and becomes a normal one — for them
-   * alone, and only for the exact lot that was quoted.
-   *
-   * Fetched client-side (see useQuoteOffers): the rendered page is cached and
-   * shared, so a price resolved during render would leak to other visitors.
-   */
-  const { data: authSession } = useSession();
-  const quoteOffers = useQuoteOffers(
-    product._id,
-    quoteOnly && Boolean(authSession?.user),
-  );
-  const quoteOffer = quoteOffers.find(
-    (offer) => (offer.variantId ?? "") === (selectedVariant?._id ?? ""),
-  );
-  // Start on the quantity that can actually be bought, so the default state of
-  // the page is the buyable one rather than a price the shopper has to hunt
-  // for by nudging the stepper.
-  useApplyOnChange([quoteOffer?.quoteId, quoteOffer?.quantity], () => {
-    if (quoteOffer) setQuantity(quoteOffer.quantity);
-  });
-  /**
-   * The offer covers a quantity, not a unit, so the buy box tells the truth at
-   * every setting of the stepper: at the quoted quantity there is a price and
-   * an Add to cart; at any other, the shopper is back to asking.
-   */
-  const quotedNow = Boolean(quoteOffer && quantity === quoteOffer.quantity);
-
-  useApplyOnChange([product._id, product.options, product.variants], () => {
-    if (
-      Array.isArray(product.options) &&
-      product.options.length > 0 &&
-      Array.isArray(product.variants) &&
-      product.variants.length > 0
-    ) {
-      const first = product.variants[0];
-      const initial = Array.isArray(first.optionValues)
-        ? (first.optionValues as (string | OptionValueObj)[]).map((ov) =>
-            typeof ov === "string" ? ov : ov.value,
-          )
-        : product.options.map((o) => o.values?.[0]?.value || "");
-      setSelectedOptions(initial);
-    } else {
-      setSelectedOptions([]);
-    }
-    setSelectedImage(0);
-    setQuantity(1);
-  });
-
-  useApplyOnChange([displayMedia, product.media, selectedVariant], () => {
-    if (!selectedVariant) return;
-    if (
-      selectedVariant.mediaId &&
-      Array.isArray(product.media) &&
-      product.media.length > 0
-    ) {
-      const idx = displayMedia.findIndex(
-        (m) => m.id === selectedVariant.mediaId,
-      );
-      if (idx >= 0) setSelectedImage(idx);
-    }
-  });
-
-  const displayedPrice = selectedVariant?.price ?? product.price;
-  const displayedComparePrice =
-    selectedVariant?.comparePrice ?? product.comparePrice;
-  // Zero for a quote-only product: a "% OFF" badge computed against a price
-  // the shopper is never shown is a discount off nothing.
-  const discountPercentage =
-    !quoteOnly &&
-    displayedComparePrice &&
-    displayedComparePrice > displayedPrice
-      ? Math.round(
-          ((displayedComparePrice - displayedPrice) / displayedComparePrice) *
-            100,
-        )
-      : 0;
-  /**
-   * The collection offer, once it is checked against what is actually selected.
-   *
-   * `variantIds` is `null` for a product with no variants, where the offer
-   * stands as given. With variants it lists exactly the ones that branch holds,
-   * so switching from a size it stocks to one it does not withdraws the line
-   * rather than leaving a promise on screen for a different item.
-   */
-  const collectionAtBranch =
-    collectionOffer &&
-    (collectionOffer.variantIds === null ||
-      (selectedVariant?._id
-        ? collectionOffer.variantIds.includes(String(selectedVariant._id))
-        : false))
-      ? collectionOffer
-      : null;
-  const currentStock = selectedVariant?.stock ?? product.stock;
-  // What the buyer may actually take: `currentStock` for a tracked product,
-  // otherwise the untracked cap (digital downloads, tracking off, or
-  // "continue selling when out of stock").
-  const availableStock = getPurchasableQuantity(product, currentStock);
-  const selectedPreorder = selectedVariant?.preorder?.enabled
-    ? selectedVariant.preorder
-    : product.preorder;
-  const preorderOpen = isPreorderOpen(selectedPreorder);
-  const preorderPurchase =
-    preorderOpen && (selectedPreorder?.preorderOnly || availableStock <= 0);
-  const preorderRemaining = getPreorderRemaining(selectedPreorder);
-  // Taking pre-orders, but every spot is taken and there is no stock to sell
-  // instead — the state this page used to show as a bare "Out of stock", a dead
-  // end for a product that may well open up again. It gets a waiting list.
-  const preorderFull =
-    isPreorderWindowOpen(selectedPreorder) &&
-    Number.isFinite(preorderRemaining) &&
-    preorderRemaining <= 0 &&
-    (Boolean(selectedPreorder?.preorderOnly) || availableStock <= 0);
-  const preorderWaitlistNode = preorderFull ? (
-    <PreorderWaitlistForm
-      productKey={product.slug || String(product._id)}
-      variantId={
-        selectedVariant?.preorder?.enabled && selectedVariant?._id
-          ? String(selectedVariant._id)
-          : undefined
-      }
-      locale={locale}
-      signedInEmail={authSession?.user?.email || undefined}
-    />
-  ) : null;
-  const maxPurchasableQuantity = preorderPurchase
-    ? Math.min(
-        UNTRACKED_PURCHASE_CAP,
-        Number.isFinite(preorderRemaining)
-          ? preorderRemaining
-          : UNTRACKED_PURCHASE_CAP,
-      )
-    : availableStock;
-  const preorderDateLabel = formatPreorderDate(selectedPreorder?.releaseDate);
-  const preorderLimit = Number(selectedPreorder?.limit || 0);
-  const preorderReserved = Math.max(
-    0,
-    Number(selectedPreorder?.reservedQuantity || 0),
-  );
-  const preorderProgress =
-    preorderLimit > 0
-      ? Math.min(100, Math.round((preorderReserved / preorderLimit) * 100))
-      : 0;
-  const preorderTerms = calculatePreorderDueNow({
-    unitPrice: selectedVariant?.price ?? product.price,
-    quantity,
-    settings: selectedPreorder,
-  });
-  const analyticsItem = useMemo(
-    () => ({
-      item_id: String(product._id),
-      item_name: product.name,
-      item_variant: selectedVariant?._id
-        ? String(selectedVariant._id)
-        : undefined,
-      item_category: product.category?.name,
-      item_brand: product.brand?.name,
-      sku: selectedVariant?.sku || product.sku,
-      price: selectedVariant?.price ?? product.price,
-      quantity,
-    }),
-    [
-      product._id,
-      product.name,
-      product.price,
-      product.sku,
-      product.category?.name,
-      product.brand?.name,
-      quantity,
-      selectedVariant?._id,
-      selectedVariant?.price,
-      selectedVariant?.sku,
-    ],
-  );
-
-  useEffect(() => {
-    trackProductView({
-      currency: currency.code,
-      value: selectedVariant?.price ?? product.price,
-      items: [analyticsItem],
-    });
-  }, [analyticsItem, currency.code, product.price, selectedVariant?.price]);
-
-  const handleAddToCart = async () => {
-    // A quote-only product is buyable only at the lot this shopper was quoted;
-    // the server re-reads the offer and prices the line from it either way, so
-    // the price passed here is for the optimistic render alone.
-    if (quoteOnly && !quotedNow) return;
-    setIsAddingToCart(true);
-    try {
-      await addItem({
-        productId: product._id,
-        variantId: selectedVariant?._id,
-        name: selectedVariant
-          ? `${product.name} - ${selectedVariant.name}`
-          : product.name,
-        price: quoteOffer?.unitPrice ?? selectedVariant?.price ?? product.price,
-        image:
-          displayMedia[selectedImage]?.type === "image"
-            ? displayMedia[selectedImage].url
-            : cartPreviewImage,
-        quantity,
-      });
-      trackAddToCart({
-        currency: currency.code,
-        value: (selectedVariant?.price ?? product.price) * quantity,
-        items: [analyticsItem],
-      });
-      toast.success(t("cart.itemAdded"));
-    } catch {
-      toast.error(t("common.error"));
-    } finally {
-      setIsAddingToCart(false);
-    }
-  };
-
-  const handleBuyNow = async () => {
-    if (quoteOnly && !quotedNow) return;
-    setIsBuyingNow(true);
-    try {
-      // "Buy Now" goes straight to checkout for this single item, so clear
-      // the existing cart when it contains items of a different purchase type
-      // (the API rejects mixed standard/pre-order carts).
-      const requestedPurchaseType = preorderPurchase ? "preorder" : "standard";
-      const hasMixedCart = items.some(
-        (item) => (item.purchaseType || "standard") !== requestedPurchaseType,
-      );
-      if (hasMixedCart) {
-        await clearCart();
-      }
-
-      await addItem({
-        productId: product._id,
-        variantId: selectedVariant?._id,
-        name: selectedVariant
-          ? `${product.name} - ${selectedVariant.name}`
-          : product.name,
-        price: quoteOffer?.unitPrice ?? selectedVariant?.price ?? product.price,
-        image:
-          displayMedia[selectedImage]?.type === "image"
-            ? displayMedia[selectedImage].url
-            : cartPreviewImage,
-        quantity,
-      });
-      trackAddToCart({
-        currency: currency.code,
-        value: (selectedVariant?.price ?? product.price) * quantity,
-        items: [analyticsItem],
-      });
-      router.push(`/${locale}/checkout`);
-    } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : t("common.error");
-      toast.error(message);
-    } finally {
-      setIsBuyingNow(false);
-    }
-  };
-
-  const isColorOption = (optionName: string) => {
-    const colorKeywords = ["color", "colour", "colors", "colours"];
-    return colorKeywords.some((k) => optionName.toLowerCase().includes(k));
-  };
-  const isSizeOption = (optionName: string) => {
-    const sizeKeywords = ["size", "sizing"];
-    return sizeKeywords.some((k) => optionName.toLowerCase().includes(k));
-  };
-  const optionEntries = useMemo(() => {
-    const opts = Array.isArray(product.options) ? product.options : [];
-    return opts
-      .map((opt, idx) => ({
-        opt,
-        idx,
-        rank: isColorOption(opt.name) ? 0 : isSizeOption(opt.name) ? 1 : 2,
-      }))
-      .sort((a, b) => a.rank - b.rank || a.idx - b.idx);
-  }, [product.options]);
-
-  const normalizeOptionLabel = (name: string) => {
-    if (isColorOption(name)) return "Color";
-    if (isSizeOption(name)) return "Size";
-    return name;
-  };
+  const [t, { shareSettings }, shareUrl] = await Promise.all([
+    getTranslations({ locale }),
+    getStorefrontSettings(),
+    buildStorefrontUrl(locale, `/products/${product.slug}`),
+  ]);
   const tf = (
     key: string,
     fallback: string,
@@ -1370,133 +163,48 @@ export function ProductDetails({
   };
   /**
    * Same as `tf`, for templates whose {placeholders} are substituted by the
-   * component that RECEIVES them rather than here. `t.raw` returns the message
-   * exactly as authored, so the placeholder survives to the consumer instead of
-   * being resolved (or stripped) at this layer.
+   * component that RECEIVES them rather than here: the placeholder survives to
+   * the consumer instead of being resolved (or stripped) at this layer.
    */
   const traw = (key: string, fallback: string) =>
-    t.has(key) ? String(t.raw(key)) : fallback;
-  const buyNowLabel = t.has("common.buyNow")
-    ? t("common.buyNow")
-    : t.has("product.buyNow")
-      ? t("product.buyNow")
-      : "Buy now";
-  const productInfoSectionKind = getProductInfoSectionKind(product);
+    messageTemplate(t, key, fallback);
+
+  const directVendor =
+    product.vendorId && product.vendorId.isDefault !== true
+      ? product.vendorId
+      : undefined;
+  const messaging = directVendor?.messaging || product.platformMessaging;
+  // "Sold by" attribution — only in a marketplace (multi-vendor on), and only
+  // for third-party sellers: the default vendor IS the store itself and has no
+  // public /vendors page to stand behind the link.
+  const soldByVendor = isMultiVendor ? directVendor : undefined;
+
+  const hasSpecifications =
+    Array.isArray(product.attributes) && product.attributes.length > 0;
+  const hasDescription = !!product.description?.trim();
+  const descriptionSummary = getDescriptionSummary(product);
+  const hasOptions =
+    Array.isArray(product.options) && product.options.length > 0;
+  const productInfoSectionKindValue = productInfoSectionKind(product);
   const productInfoSectionTitle = {
     sizeFit: tf("product.sizeAndFit", "Size & Fit"),
     technicalDetails: tf("product.technicalDetails", "Technical Details"),
     dimensionsDetails: tf("product.dimensionsDetails", "Dimensions & Details"),
     productInformation: tf("product.productInformation", "Product Information"),
     productDetails: tf("product.productDetails", "Product Details"),
-  }[productInfoSectionKind];
-  const productInfoFields = useMemo(
-    () =>
-      getProductInfoFields({
-        product,
-        selectedVariant,
-        selectedOptions,
-        sectionKind: productInfoSectionKind,
-        locale,
-      }),
-    [locale, product, productInfoSectionKind, selectedOptions, selectedVariant],
-  );
-  const formatDisplayPrice = (price: number) => {
-    if (hasMounted) {
-      return formatPrice(price);
-    }
-
-    // Keep SSR and first client render deterministic to avoid hydration
-    // mismatches. The currency still comes from the store (seeded during render
-    // by <CurrencyApplier>, so both passes agree) — pinning it to USD here made
-    // every non-dollar store flash a "$" before mount.
-    return formatCurrency(price, currency.code, currency.locale, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-  /* The two pieces every buy box swaps in for a quote-only product. Written
-     once here rather than inline in each design: five layouts (minimal,
-     electronics, classic, the desktop sticky bar and the mobile one) each
-     print a price and a cart control, and five copies of the same swap is how
-     one of them ends up still offering Add to cart after a redesign. Both take
-     the host design's own classes, so the substitute sits at the size and
-     weight of what it replaced. */
-  const quoteButtonText = getQuoteButtonLabel(
-    product,
-    tf("product.requestQuote", "Request a quote"),
-  );
-  const renderQuotePrice = (
-    className: string,
-    style?: React.CSSProperties,
-  ) => (
-    <span className={className} style={style}>
-      {quoteOffer ? (
-        <>
-          {formatDisplayPrice(quoteOffer.unitPrice)}
-          {/* The offer covers one exact lot, so a shopper who has moved the
-              stepper off it is told what the price actually applies to rather
-              than left wondering why the button went back to asking. */}
-          {quotedNow ? null : (
-            <span className="ms-1 text-xs font-normal text-muted-foreground">
-              {tf("product.quotedForQuantity", "for {count}").replace(
-                "{count}",
-                String(quoteOffer.quantity),
-              )}
-            </span>
-          )}
-        </>
-      ) : (
-        tf("product.priceOnRequest", "Price on request")
-      )}
-    </span>
-  );
-  const renderQuoteButton = (
-    className: string,
-    style?: React.CSSProperties,
-  ) =>
-    quotedNow ? (
-      <Button
-        type="button"
-        className={className}
-        style={style}
-        onClick={handleAddToCart}
-        disabled={isAddingToCart}
-      >
-        {isAddingToCart ? (
-          <Loader2 className="me-2 h-4 w-4 animate-spin" />
-        ) : null}
-        {t("product.addToCart")}
-      </Button>
-    ) : (
-      <Button
-        type="button"
-        className={className}
-        style={style}
-        onClick={() => setIsQuoteOpen(true)}
-      >
-        {quoteButtonText}
-      </Button>
-    );
-
-  // Fixed set of tabs: the three sections always render (each with its own
-  // empty state), so the tab strip no longer changes shape per product.
-  const sectionTabs: { id: ProductDetailsSection; label: string }[] = [
-    { id: "description", label: tf("product.description", "Description") },
-    {
-      id: "specifications",
-      label: tf("product.specifications", "Specifications"),
-    },
-    { id: "reviews", label: tf("product.reviews", "Reviews") },
-  ];
+  }[productInfoSectionKindValue];
 
   // "full" stacks everything in one column and renders the gallery in its
-  // classic bottom arrangement; "vertical" flips which column is sticky —
-  // the media list scrolls while the buy box holds.
-  const isFullWidthLayout = galleryLayout === "full";
+  // classic bottom arrangement; "carousel" stacks the same way, so its strip
+  // runs the page width with the next slides in view instead of one slide
+  // squeezed into a column; "vertical" flips which column is sticky — the
+  // media list scrolls while the buy box holds.
+  const isFullWidthLayout =
+    galleryLayout === "full" || galleryLayout === "carousel";
   const isVerticalLayout = galleryLayout === "vertical";
-  const galleryInternalLayout = isFullWidthLayout ? "bottom" : galleryLayout;
+  const galleryInternalLayout = galleryLayout === "full" ? "bottom" : galleryLayout;
 
-  /* "Sold by {seller}" line, shared by every buy-box design. The template is
+  /* "Sold by {seller}" line, used by the Sold by row. The template is
      split around its placeholder so the seller name can carry emphasis and
      the link while translators keep control of word order. `cart.soldBy` is
      the phrase's existing home (the bag's per-seller group headers). */
@@ -1506,7 +214,7 @@ export function ProductDetails({
     const [beforeSeller, afterSeller = ""] = template.split("{seller}");
     return (
       <Link
-        href={`/${locale}/vendors/${encodeURIComponent(soldByVendor.slug)}`}
+        href={`/vendors/${encodeURIComponent(soldByVendor.slug)}`}
         className="group/vendor flex w-fit max-w-full items-center gap-2 text-sm text-muted-foreground"
       >
         {soldByVendor.logo ? (
@@ -1533,26 +241,19 @@ export function ProductDetails({
     );
   };
 
-  /* Live chat plus the seller's click-to-chat channels, shared by every
-     buy-box design. Live chat follows the server's rule — on unless switched
+  /* Live chat plus the seller's click-to-chat channels, used by the Sold by
+     and Chat rows. Live chat follows the server's rule — on unless switched
      off, so a seller with no saved messaging settings still gets the button —
      while the external channels need those settings to exist. */
   const renderChatControls = () => (
     <div className="flex flex-wrap items-center gap-2">
       {messaging?.liveChatEnabled !== false ? (
-        <StorefrontChatButton
-          locale={locale}
+        <ProductIsland
+          island="chat"
           vendorId={directVendor?._id}
           vendorName={
-            directVendor?.storeName ||
-            tf("chat.storeSupport", "Store support")
+            directVendor?.storeName || tf("chat.storeSupport", "Store support")
           }
-          product={{
-            id: product._id,
-            name: product.name,
-            variantId: selectedVariant?._id,
-            variantName: selectedVariant?.name,
-          }}
           label={
             directVendor
               ? tf("chat.chatWithSeller", "Chat with Seller")
@@ -1579,8 +280,7 @@ export function ProductDetails({
           )}
           settings={messaging}
           vendorName={
-            directVendor?.storeName ||
-            tf("chat.storeSupport", "Store support")
+            directVendor?.storeName || tf("chat.storeSupport", "Store support")
           }
           productName={product.name}
         />
@@ -1589,10 +289,8 @@ export function ProductDetails({
   );
 
   // ── Minimal design rows (Figma 774:4992) ────────────────────────────────
-  // The SAME computed values as the other appearances — price, stock,
-  // preorder, variant and cart rules all come from the shared code above —
-  // arranged as merchant-ordered rows. Groups come from the section's
-  // "Order" setting; a hairline is drawn between groups.
+  // Merchant-ordered rows from the section's "Order" setting. Groups come
+  // from that setting; a hairline is drawn between some of them.
   const minimalGroups =
     rowGroups && rowGroups.length > 0
       ? rowGroups
@@ -1602,20 +300,35 @@ export function ProductDetails({
   /** The accordion "Open first" applies to: the first one in page order. */
   const minimalFirstAccordion = minimalGroups
     .flat()
-    .find(
-      (item) =>
-        item.key === "description" || item.key === "details" || item.key === "faq",
-    )?.key;
-  /** The minimal page's own pinning switch; other designs always pin. */
-  const pinColumn = appearance !== "minimal" || sty.stickyColumn;
+    .find((item) => item.key === "description" || item.key === "details")
+    ?.key;
+  const pinColumn = sty.stickyColumn;
+  const hasChatRow = minimalGroups.some((items) =>
+    items.some((item) => item.key === "chat"),
+  );
   /**
-   * The gallery's bleeds, minimal design only. A max content width puts the
-   * page in a narrower box than the one the inset measures, so the left bleed
-   * stands down there rather than running to the wrong edge.
+   * The gallery's bleeds. A max content width puts the page in a narrower
+   * box than the one the inset measures, so the left bleed stands down there
+   * rather than running to the wrong edge.
    */
-  const bleedLeft =
-    appearance === "minimal" && sty.galleryBleedLeft && !(sty.contentMaxWidth > 0);
-  const bleedTop = appearance === "minimal" && sty.galleryBleedTop;
+  const bleedLeft = sty.galleryBleedLeft && !(sty.contentMaxWidth > 0);
+  const bleedTop = sty.galleryBleedTop;
+
+  /**
+   * The Delivery info card has something to say for good when the store
+   * promises a delivery window or return terms. Without either it speaks
+   * only for a pre-order — so for a product that can be pre-ordered it is
+   * there exactly while the shopper's choice is one.
+   */
+  const infoCardAlways = Boolean(
+    fulfillment?.deliveryDays || fulfillment?.returns,
+  );
+  const infoCardForPreorder =
+    !infoCardAlways &&
+    Boolean(
+      product.preorder?.enabled ||
+        product.variants?.some((variant) => variant.preorder?.enabled),
+    );
 
   /* Accordion rows per the Figma: hairline-separated, title with a plus on
      the end edge that turns into an X when open — no boxed chrome. Native
@@ -1623,7 +336,7 @@ export function ProductDetails({
   const minimalAccordion = (
     key: ProductDetailRow,
     title: string,
-    content: React.ReactNode,
+    content: ReactNode,
   ) => (
     <details
       className="group/acc py-4 first:pt-0 last:pb-0"
@@ -1651,7 +364,7 @@ export function ProductDetails({
     </details>
   );
 
-  const renderMinimalRow = (item: ProductDetailRowItem) => {
+  const renderMinimalRow = (item: ProductDetailRowItem): ReactNode => {
     const row: ProductDetailRow = item.key;
     switch (row) {
       case "breadcrumb":
@@ -1662,7 +375,7 @@ export function ProductDetails({
             style={typographyCss(typo.category)}
           >
             <Link
-              href={`/${locale}`}
+              href="/"
               aria-label={t("common.home")}
               // A 14px icon is the whole link. The pseudo-element takes the
               // reach to ~30x22 without moving anything; it stops there
@@ -1676,7 +389,7 @@ export function ProductDetails({
               <>
                 <ChevronRight className="h-3 w-3 opacity-60" aria-hidden />
                 <Link
-                  href={`/${locale}/categories/${product.category.slug}`}
+                  href={`/categories/${product.category.slug}`}
                   className="transition-colors hover:text-foreground"
                 >
                   {product.category.name}
@@ -1687,7 +400,7 @@ export function ProductDetails({
               <>
                 <ChevronRight className="h-3 w-3 opacity-60" aria-hidden />
                 <Link
-                  href={`/${locale}/brands/${encodeURIComponent(product.brand.slug)}`}
+                  href={`/brands/${encodeURIComponent(product.brand.slug)}`}
                   className="transition-colors hover:text-foreground"
                 >
                   {product.brand.name}
@@ -1703,7 +416,7 @@ export function ProductDetails({
         if (!product.brand?.name) return null;
         return product.brand.logo ? (
           <Link
-            href={`/${locale}/brands/${encodeURIComponent(product.brand.slug)}`}
+            href={`/brands/${encodeURIComponent(product.brand.slug)}`}
             className="flex w-fit items-center hover:opacity-80"
             style={{ height: sty.brandLogoHeight }}
             aria-label={product.brand.name}
@@ -1743,11 +456,7 @@ export function ProductDetails({
         // controls. A store that placed the `chat` row itself keeps them
         // there instead of showing them twice.
         const soldBy = renderSoldBy();
-        const chat =
-          soldBy &&
-          !minimalGroups.some((items) => items.some((item) => item.key === "chat"))
-            ? renderChatControls()
-            : null;
+        const chat = soldBy && !hasChatRow ? renderChatControls() : null;
         return chat ? (
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             {soldBy}
@@ -1792,340 +501,28 @@ export function ProductDetails({
               </div>
             )}
             {vis.ratingCount ? (
-              <Link
-                href="#reviews"
-                className="relative text-xs font-medium text-muted-foreground before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] hover:text-foreground"
-              >
-                ({product.reviewCount})
-              </Link>
-            ) : null}
-            {vis.itemSold && (product.soldCount ?? 0) > 0 ? (
-              <span className="border-s border-border ps-2.5 text-xs font-medium text-muted-foreground">
-                {tf("product.itemsSold", "{count} sold", {
-                  count: product.soldCount ?? 0,
-                })}
-              </span>
-            ) : null}
-            {vis.variantCount && product.variants.length > 1 ? (
-              <span className="text-xs font-semibold text-sky-600">
-                +{product.variants.length}
-              </span>
+              sectionTargets.reviews ? (
+                <Link
+                  href="#reviews"
+                  className="relative text-xs font-medium text-muted-foreground before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] hover:text-foreground"
+                >
+                  ({product.reviewCount})
+                </Link>
+              ) : (
+                <span className="text-xs font-medium text-muted-foreground">
+                  ({product.reviewCount})
+                </span>
+              )
             ) : null}
           </div>
         );
       }
       case "price":
-        return (
-          <div className="space-y-2.5">
-            <div className="flex flex-wrap items-center gap-3">
-              {quoteOnly ? (
-                renderQuotePrice(
-                  "text-2xl font-bold tracking-tight text-foreground",
-                  typographyCss(typo.price),
-                )
-              ) : (
-                <>
-                  <span
-                    className="text-2xl font-bold tracking-tight text-foreground"
-                    style={typographyCss(typo.price)}
-                  >
-                    {formatDisplayPrice(displayedPrice)}
-                  </span>
-                  {displayedComparePrice &&
-                  displayedComparePrice > displayedPrice ? (
-                    <span
-                      className="text-base font-medium text-muted-foreground line-through"
-                      style={typographyCss(typo.discounted)}
-                    >
-                      {formatDisplayPrice(displayedComparePrice)}
-                    </span>
-                  ) : null}
-                </>
-              )}
-              {vis.discountChip && discountPercentage > 0 ? (
-                <span
-                  className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600 dark:bg-rose-500/15 dark:text-rose-300"
-                  style={discountChipCss(sty)}
-                >
-                  {discountPercentage}% OFF
-                </span>
-              ) : null}
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold",
-                  preorderPurchase
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
-                    : availableStock > 0
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-                      : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200",
-                )}
-                style={stockChipCss(
-                  sty,
-                  preorderPurchase ? "preorder" : availableStock > 0 ? "in" : "out",
-                )}
-              >
-                {preorderPurchase
-                  ? tf("product.preorder", "Pre-order")
-                  : availableStock > 0
-                    ? t("product.inStock")
-                    : t("product.outOfStock")}
-              </span>
-            </div>
-            {preorderWaitlistNode}
-            {!preorderPurchase &&
-            productTracksStock(product) &&
-            currentStock > 0 &&
-            currentStock < 10 ? (
-              <p
-                className="text-sm text-orange-600"
-                style={sty.lowStockColor ? { color: sty.lowStockColor } : undefined}
-              >
-                {tf("product.lowStock", "Only {count} left in stock", {
-                  count: currentStock,
-                })}
-              </p>
-            ) : null}
-            {collectionAtBranch ? (
-              <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-                <Store
-                  className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                  aria-hidden="true"
-                />
-                <span className="min-w-0">
-                  <span className="font-medium">
-                    {tf("product.collectAt", "Collect at {branch}", {
-                      branch: collectionAtBranch.branchName,
-                    })}
-                  </span>
-                </span>
-              </div>
-            ) : null}
-          </div>
-        );
+        return <ProductIsland island="price" />;
       case "variants":
-        return optionEntries.length > 0 ? (
-          <div className="divide-y divide-border">
-            {optionEntries.map(({ opt, idx }) => (
-              <div
-                key={opt.name}
-                // `justify-between` is the two-column design: it reads as a
-                // label/value pair only while the column is narrow. Stacked, it
-                // opened ~400px of dead space between "Color" and its swatches,
-                // so below lg the values simply follow the label.
-                className="flex flex-wrap items-center gap-x-4 gap-y-2.5 py-3.5 first:pt-0 last:pb-0 lg:justify-between lg:gap-3"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-foreground">
-                    {normalizeOptionLabel(opt.name)}
-                  </span>
-                  {isSizeOption(opt.name) ? (
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-sky-600 hover:text-sky-500"
-                      onClick={() => setIsSizeGuideOpen(true)}
-                    >
-                      {t("product.sizeGuide")}
-                    </button>
-                  ) : null}
-                </div>
-                <OptionValueSelector
-                  size="sm"
-                  option={opt}
-                  selectedValue={selectedOptions[idx]}
-                  onSelect={(value) => {
-                    const next = [...selectedOptions];
-                    next[idx] = value;
-                    setSelectedOptions(next);
-                    setQuantity(1);
-                  }}
-                  resolveColor={(v) =>
-                    getColorCode(
-                      v.value,
-                      v.colorCode ||
-                        getVariantColorCodeForOptionValue({
-                          product,
-                          optionName: opt.name,
-                          valueId: v._id,
-                          value: v.value,
-                        }),
-                    )
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        ) : null;
+        return hasOptions ? <ProductIsland island="variants" /> : null;
       case "quantity-cart":
-        // Every control in this row shares the "Cart button radius" knob, set
-        // inline: the store theme's [data-slot="button"] radius rule
-        // (globals.css) outranks any rounded-* class on a Button.
-        //
-        // Quote-only: no quantity stepper either. The number that matters is
-        // the one the shopper types into the request form, and a stepper here
-        // would be a second, silently ignored answer to the same question.
-        if (quoteOnly) {
-          return (
-            <div className="space-y-3">
-              {renderQuoteButton("h-11 w-full text-sm font-bold", {
-                borderRadius: sty.cartRadius,
-                height: sty.buttonHeight,
-              })}
-            </div>
-          );
-        }
-        return (
-          <div className="space-y-3">
-            <div
-              className={cn(
-                "flex gap-2.5",
-                // Stacked: each control on its own full-width line.
-                sty.buttonLayout === "stacked"
-                  ? "flex-col items-stretch"
-                  : "flex-wrap items-center",
-              )}
-            >
-              {vis.quantity ? (
-              <div
-                className={cn(
-                  "flex w-[100px] shrink-0 items-center justify-between border border-foreground bg-background px-1",
-                  sty.buttonLayout === "stacked" && "self-start",
-                )}
-                style={{
-                  borderRadius: sty.cartRadius,
-                  height: sty.buttonHeight,
-                  ...(sty.quantityBorder ? { borderColor: sty.quantityBorder } : {}),
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
-                  aria-label={tf(
-                    "common.decreaseQuantity",
-                    "Decrease quantity",
-                  )}
-                  className="inline-flex h-full w-8 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="min-w-5 text-center text-sm font-bold text-foreground">
-                  {quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setQuantity(Math.min(maxPurchasableQuantity, quantity + 1))
-                  }
-                  disabled={quantity >= maxPurchasableQuantity}
-                  aria-label={tf(
-                    "common.increaseQuantity",
-                    "Increase quantity",
-                  )}
-                  className="inline-flex h-full w-8 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-              ) : null}
-              {sty.actions !== "buy" ? (
-                <Button
-                  size="lg"
-                  className={cn(
-                    "h-11 min-w-[120px] bg-foreground text-sm font-bold text-background hover:bg-foreground/90",
-                    sty.buttonLayout === "stacked" ? "w-full" : "flex-1",
-                  )}
-                  style={purchaseButtonCss(sty, "cart")}
-                  onClick={handleAddToCart}
-                  disabled={
-                    maxPurchasableQuantity <= 0 || isAddingToCart || isBuyingNow
-                  }
-                >
-                  {/* A pre-order keeps its own wording: a custom "Add to bag"
-                      would promise stock the product does not have. */}
-                  {preorderPurchase
-                    ? tf("product.preorderNow", "Pre-order now")
-                    : sty.cartLabel || t("common.addToCart")}
-                </Button>
-              ) : null}
-              {sty.actions !== "cart" ? (
-                <Button
-                  size="lg"
-                  className={cn(
-                    "h-11 min-w-[120px] text-sm font-bold",
-                    sty.buttonLayout === "stacked" ? "w-full" : "flex-1",
-                  )}
-                  style={purchaseButtonCss(sty, "buy")}
-                  onClick={handleBuyNow}
-                  disabled={
-                    maxPurchasableQuantity <= 0 || isBuyingNow || isAddingToCart
-                  }
-                >
-                  {preorderPurchase
-                    ? tf("product.preorderCheckout", "Pre-order checkout")
-                    : sty.buyLabel || buyNowLabel}
-                </Button>
-              ) : null}
-            </div>
-            {preorderPurchase ? (
-              <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold">
-                    {preorderDateLabel
-                      ? tf(
-                          "product.preorderShips",
-                          "Expected ship date: {date}",
-                          {
-                            date: preorderDateLabel,
-                          },
-                        )
-                      : tf(
-                          "product.preorderShipsSoon",
-                          "Expected to ship soon",
-                        )}
-                  </p>
-                  {Number.isFinite(preorderRemaining) ? (
-                    <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-500/20 dark:text-blue-100">
-                      {Math.max(0, preorderRemaining)} spots left
-                    </span>
-                  ) : null}
-                </div>
-                <div className="grid gap-2 rounded-md bg-white/70 p-3 text-xs text-blue-900 dark:bg-blue-950/30 dark:text-blue-100 sm:grid-cols-2">
-                  <div>
-                    <span className="block text-blue-700/80 dark:text-blue-200/80">
-                      Due today
-                    </span>
-                    <span className="font-semibold">
-                      {formatPrice(preorderTerms.dueNow)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-blue-700/80 dark:text-blue-200/80">
-                      Due before shipping
-                    </span>
-                    <span className="font-semibold">
-                      {formatPrice(preorderTerms.dueLater)}
-                    </span>
-                  </div>
-                  {/* "Due today" is the ITEM's share and nothing else, so
-                      a pay-later pre-order reads as costing nothing today —
-                      while checkout charges shipping and tax on the spot
-                      (`paymentDueNow = total - outstanding`, where the
-                      outstanding is only the line price). Said plainly here
-                      rather than left for the shopper to discover at the
-                      payment step. */}
-                  {preorderTerms.dueLater > 0 ? (
-                    <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
-                      {tf(
-                        "product.preorderShippingAtCheckout",
-                        "Shipping and tax are charged at checkout.",
-                      )}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        );
+        return <ProductIsland island="cart" />;
       case "description":
         // This row only holds the short summary — the full rich-text
         // description keeps its own "Description" section further down, so the
@@ -2142,227 +539,37 @@ export function ProductDetails({
         return minimalAccordion(
           "details",
           productInfoSectionTitle,
-          <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-            {productInfoFields.map((field) => (
-              <div
-                key={`${field.label}-${field.value}`}
-                className="grid grid-cols-[112px_1fr] gap-2"
-              >
-                <span className="font-medium text-foreground/80">
-                  {field.label}:
-                </span>
-                {field.href ? (
-                  <Link
-                    href={field.href}
-                    className="min-w-0 break-words underline underline-offset-4 hover:text-foreground"
-                  >
-                    {field.value}
-                  </Link>
-                ) : (
-                  <span className="min-w-0 break-words">{field.value}</span>
-                )}
-              </div>
-            ))}
-          </div>,
+          <ProductIsland
+            island="details"
+            sectionKind={productInfoSectionKindValue}
+          />,
         );
-      case "faq":
-        return minimalAccordion(
-          "faq",
-          tf("product.faq", "FAQ"),
-          <p className="text-sm text-muted-foreground">
-            {tf(
-              "product.faqHint",
-              "Common questions about this product will appear here.",
-            )}
-          </p>,
-        );
-      case "info-card": {
-        // Both lines read the settings checkout and the return flow enforce
-        // (see the `fulfillment` prop). A line with nothing true to say is
-        // left out, and a card with no lines is not drawn at all.
-        const delivery = fulfillment?.deliveryDays ?? null;
-        const returns = fulfillment?.returns ?? null;
-        if (!delivery && !returns && !preorderPurchase) return null;
-
-        /**
-         * "within 4–7 days"; a window with one edge ("within 5 days") when
-         * the rate names a single figure or only an upper bound.
-         *
-         * A pre-order counts the same figures from DISPATCH rather than from
-         * checkout. The carrier's window is the carrier's window — what a
-         * pre-order does not have is a parcel to start it, so printing it as
-         * "standard delivery within 4–7 days" directly under a release date
-         * two months out promised the goods before they exist. The rate is
-         * unchanged; only the day it starts counting is said out loud.
-         */
-        const deliveryRange = delivery && delivery.min > 0 && delivery.min < delivery.max;
-        const deliveryText = !delivery
-          ? null
-          : preorderPurchase
-            ? deliveryRange
-              ? tf(
-                  "product.deliveryRangeAfterDispatch",
-                  "Delivery within {min}–{max} days once it ships",
-                  { min: delivery.min, max: delivery.max },
-                )
-              : tf(
-                  "product.deliveryWithinAfterDispatch",
-                  "Delivery within {days} days once it ships",
-                  { days: delivery.max },
-                )
-            : deliveryRange
-              ? tf(
-                  "product.deliveryRange",
-                  "Standard delivery within {min}–{max} days",
-                  { min: delivery.min, max: delivery.max },
-                )
-              : tf(
-                  "product.deliveryWithin",
-                  "Standard delivery within {days} days",
-                  { days: delivery.max },
-                );
-
-        /**
-         * A pre-order is bought before it exists, so the return window has not
-         * started and printing it promises the wrong thing: nothing has been
-         * delivered to send back "in original condition". What governs the
-         * money until dispatch is the cancellation rule
-         * lib/orders/preorder-cancel-refund.ts enforces — cancel means refund,
-         * whoever cancels, with no per-campaign exception to read — so that is
-         * the policy this row states while the item is still a pre-order. The
-         * return terms come back on their own the moment it ships as stock.
-         */
-        const preorderPolicyText = !preorderPurchase
-          ? null
-          : preorderTerms.dueNow <= 0
-            ? tf(
-                "product.preorderCancelNothingPaid",
-                "Cancel before it ships and anything you have paid is refunded in full — the item itself is not charged until the balance is due",
-              )
-            : preorderTerms.dueLater > 0
-              ? tf(
-                  "product.preorderCancelDeposit",
-                  "Cancel before it ships and your {amount} deposit is refunded in full",
-                  { amount: formatPrice(preorderTerms.dueNow) },
-                )
-              : tf(
-                  "product.preorderCancelRefund",
-                  "Cancel before it ships for a full refund",
-                );
-
-        let returnsText: string | null = null;
-        if (returns && !preorderPurchase) {
-          const values = {
-            days: returns.windowDays,
-            percent: returns.restockingFeePercent,
-            fee: formatPrice(returns.returnShippingFee),
-          };
-          const restocking = returns.restockingFeePercent > 0;
-          const shippingFee = returns.returnShippingFee > 0;
-          returnsText =
-            restocking && shippingFee
-              ? tf(
-                  "product.returnsWindowFees",
-                  "Return within {days} days in original condition — {percent}% restocking fee and {fee} return shipping apply",
-                  values,
-                )
-              : restocking
-                ? tf(
-                    "product.returnsWindowRestocking",
-                    "Return within {days} days in original condition — a {percent}% restocking fee applies",
-                    values,
-                  )
-                : shippingFee
-                  ? tf(
-                      "product.returnsWindowShippingFee",
-                      "Return within {days} days in original condition — {fee} return shipping applies",
-                      values,
-                    )
-                  : tf(
-                      "product.returnsWindow",
-                      "Return within {days} days in original condition for a full refund",
-                      values,
-                    );
-        }
-
-        // One policy line, never two: the pre-order rule while it is a
-        // pre-order, the return terms once it is ordinary stock.
-        const policyText = preorderPolicyText ?? returnsText;
-
-        const lineClassName =
-          "flex items-center gap-3 py-3 text-sm text-foreground";
-        const lineStyle = {
-          paddingLeft: sty.cardPadding,
-          paddingRight: sty.cardPadding,
-        };
-        return (
-          <div
-            className="divide-y divide-border rounded-xl border border-border"
-            style={{
-              borderRadius: sty.cardRadius,
-              ...(sty.cardBackground
-                ? { backgroundColor: sty.cardBackground }
-                : {}),
-              ...(sty.cardBorder ? { borderColor: sty.cardBorder } : {}),
-              borderWidth: sty.cardBorderWidth,
-            }}
-          >
-            {deliveryText ? (
-              <div className={lineClassName} style={lineStyle}>
-                <Truck className="h-5 w-5 shrink-0" aria-hidden />
-                {deliveryText}
-              </div>
-            ) : null}
-            {policyText ? (
-              <div className={lineClassName} style={lineStyle}>
-                {preorderPolicyText ? (
-                  <RotateCcw className="h-5 w-5 shrink-0" aria-hidden />
-                ) : (
-                  <PackageOpen className="h-5 w-5 shrink-0" aria-hidden />
-                )}
-                {returns?.policyPage ? (
-                  <Link
-                    href={`/${locale}/returns`}
-                    className="underline-offset-4 hover:underline"
-                  >
-                    {policyText}
-                  </Link>
-                ) : (
-                  policyText
-                )}
-              </div>
-            ) : null}
-          </div>
-        );
-      }
+      case "info-card":
+        return infoCardAlways || infoCardForPreorder ? (
+          <ProductIsland island="infoCard" />
+        ) : null;
       case "share":
         // The Figma's two-row arrangement: a "Share" title, then the icons
-        // as gray rounded tiles (the component's tile variant skips its own
-        // inline label so the title is not said twice).
+        // as gray rounded tiles. Nothing at all — title included — when the
+        // store offers no way to share.
         return (
-          <div className="space-y-2.5">
-            <p className="text-sm font-semibold text-foreground">
-              {/* `product.share` is a NAMESPACE (facebook/twitter/…), so the
-                  heading must read its `label` leaf — `t.has` answers true
-                  for the namespace itself and then renders the raw key. */}
-              {tf("product.share.label", "Share")}
-            </p>
-            <ProductShareButtons
-              productName={product.name}
-              image={product.images?.[0]}
-              variant="tile"
-              networks={sty.shareNetworks}
-              tileStyle={{
-                width: sty.shareSize,
-                height: sty.shareSize,
-                borderRadius: sty.shareRadius,
-                ...(sty.shareBackground
-                  ? { backgroundColor: sty.shareBackground }
-                  : {}),
-                ...(sty.shareIconColor ? { color: sty.shareIconColor } : {}),
-              }}
-            />
-          </div>
+          <ProductShareRow
+            url={shareUrl}
+            productName={product.name}
+            image={product.images?.[0]}
+            settings={shareSettings}
+            networks={sty.shareNetworks}
+            tileStyle={{
+              width: sty.shareSize,
+              height: sty.shareSize,
+              borderRadius: sty.shareRadius,
+              ...(sty.shareBackground
+                ? { backgroundColor: sty.shareBackground }
+                : {}),
+              ...(sty.shareIconColor ? { color: sty.shareIconColor } : {}),
+            }}
+            tf={tf}
+          />
         );
       case "chat":
         return renderChatControls();
@@ -2392,1470 +599,263 @@ export function ProductDetails({
      hairline and the half-gap padding, so those products showed an empty
      bordered strip between the price and the cart row. Render the rows first
      and drop any group that came back with nothing in it, so the hairline and
-     the gap leave together. Indexing after the filter is what keeps the
-     first/last padding rules on the groups that actually appear. */
-  const minimalRenderedGroups =
-    appearance === "minimal"
-      ? minimalGroups
-          .map((items) => ({
-            keys: items.map((item) => item.key),
-            // Keyed by the row's id: a gap or a line can appear more than once.
-            rows: items.map((item) => ({
-              key: item.id,
-              node: renderMinimalRow(item),
-            })),
-          }))
-          .filter((group) => group.rows.some((row) => row.node != null))
-      : [];
+     the gap leave together.
 
-  const minimalLayout = appearance === "minimal";
+     The one row whose presence the shopper decides is a pre-order-only
+     Delivery info card; a group holding nothing else is handed to the card
+     itself, which draws the group's frame only while it has something to
+     show. So the first group's missing top padding, the last group's missing
+     bottom padding and the hairline "between" groups are CSS structure
+     (first/last child) rather than indexes counted here — they have to hold
+     for whichever groups are actually in the page. */
+  const minimalRenderedGroups = minimalGroups
+    .map((items) => ({
+      keys: items.map((item) => item.key),
+      // Keyed by the row's id: a gap or a line can appear more than once.
+      rows: items
+        .map((item) => ({
+          key: item.id,
+          row: item.key,
+          node: renderMinimalRow(item),
+        }))
+        .filter((entry) => entry.node != null),
+    }))
+    .filter((group) => group.rows.length > 0);
+
+  const productForClient = toPurchaseProduct(product);
+
+  // The skeleton while the controls' chunk loads — see product-details-lazy.tsx.
   return (
-    <div
-      className={cn(
-        "space-y-14",
-        minimalLayout && sty.contentMaxWidth > 0 && "mx-auto w-full",
-      )}
-      style={
-        minimalLayout && sty.contentMaxWidth > 0
-          ? { maxWidth: sty.contentMaxWidth }
-          : undefined
-      }
-    >
-      <div
-        className={cn(
-          "grid grid-cols-1 gap-8",
-          // The split used to wait for xl (1280): a 13" laptop at default
-          // zoom never reached it, so 1024 rendered the phone layout — a
-          // 992px-wide gallery with the price a full screen below it.
-          !isFullWidthLayout &&
-            (minimalLayout
-              ? // The gallery's share of the row is the merchant's; the buy
-                // box takes what is left.
-                "lg:grid-cols-[minmax(0,var(--pdp-gallery-w,50%))_minmax(0,1fr)] lg:gap-10 xl:gap-12"
-              : "lg:grid-cols-2 lg:gap-10 xl:gap-12"),
-        )}
-        style={
-          minimalLayout && !isFullWidthLayout
-            ? ({ "--pdp-gallery-w": `${sty.galleryWidth}%` } as React.CSSProperties)
-            : undefined
-        }
+    <Suspense fallback={<ProductDetailsSkeleton />}>
+      <ProductPurchaseProvider
+        product={productForClient}
+        locale={locale}
+        fulfillment={fulfillment}
+        finalSale={finalSale}
+        detail={detail}
       >
-        {/* Sticky offset tracks the real header height (--storefront-header-height,
-            published by store-header) instead of a hardcoded value that pushed the
-            gallery below the buy box at scroll 0. Pinned from lg, where the
-            two-column layout starts. */}
         <div
           className={cn(
-            !isFullWidthLayout &&
-              !isVerticalLayout &&
-              pinColumn &&
-              (bleedTop
-                ? // Flush under the header while it scrolls, too.
-                  "lg:sticky lg:top-[var(--storefront-header-height,4rem)] lg:self-start"
-                : "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start"),
-            // Stacked, the gallery runs edge to edge; beside the buy box it
-            // runs out to the left edge only. Negative margins on a stretched
-            // grid item widen it by exactly the inset.
-            bleedLeft &&
-              (isFullWidthLayout
-                ? "-mx-[var(--store-content-inset,1rem)]"
-                : "-mx-[var(--store-content-inset,1rem)] lg:mr-0"),
-            // Cancels the page's own top space (product-main.tsx: pt-6 lg:pt-8).
-            bleedTop && "-mt-6 lg:-mt-8",
+            "space-y-14",
+            sty.contentMaxWidth > 0 && "mx-auto w-full",
           )}
+          style={
+            sty.contentMaxWidth > 0 ? { maxWidth: sty.contentMaxWidth } : undefined
+          }
         >
-          <ProductImageGallery
-            media={displayMedia}
-            productName={product.name}
-            selectedIndex={selectedImage}
-            onSelect={setSelectedImage}
-            discountPercentage={
-              appearance === "minimal" && !vis.discountChipOnImage
-                ? 0
-                : discountPercentage
-            }
-            layout={galleryInternalLayout}
-            stageBackground={
-              appearance === "minimal" && sty.previewBackground
-                ? sty.previewBackground
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-8",
+              // The split used to wait for xl (1280): a 13" laptop at default
+              // zoom never reached it, so 1024 rendered the phone layout — a
+              // 992px-wide gallery with the price a full screen below it.
+              // The gallery's share of the row is the merchant's; the buy box
+              // takes what is left.
+              !isFullWidthLayout &&
+                "lg:grid-cols-[minmax(0,var(--pdp-gallery-w,50%))_minmax(0,1fr)] lg:gap-10 xl:gap-12",
+            )}
+            style={
+              !isFullWidthLayout
+                ? ({ "--pdp-gallery-w": `${sty.galleryWidth}%` } as CSSProperties)
                 : undefined
             }
-            stageHeight={
-              appearance === "minimal" && sty.previewHeight > 0
-                ? sty.previewHeight
-                : undefined
-            }
-            appearance={
-              appearance === "minimal"
-                ? {
-                    radius: sty.imageRadius,
-                    gap: sty.imageGap,
-                    fit: sty.imageFit,
-                    padding: sty.imagePadding,
-                    thumbSize: sty.thumbSize,
-                    thumbRadius: sty.thumbRadius,
-                    thumbActiveBorder: sty.thumbActiveBorder,
-                    zoom: vis.zoom,
-                    thumbnails: vis.thumbnails,
-                  }
-                : undefined
-            }
-          />
-        </div>
-
-        <div
-          className={cn(
-            // Same cap the gallery carries (GALLERY_STACK_CLASS) so the two
-            // read as one centred column while stacked, instead of a label
-            // pinned left and its values flung 400px away at the right edge.
-            !isFullWidthLayout && "mx-auto w-full max-w-xl lg:max-w-none",
-            isVerticalLayout &&
-              pinColumn &&
-              "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start",
-          )}
-        >
-          {appearance === "minimal" ? (
-            /* ── Minimal buy box (Figma 774:4992) ──────────────────────────
-              Merchant-ordered rows from the section's "Order" setting. Every
-              row reads the shared values computed above, so this design can
-              never disagree with the others about price, stock, or
-              purchasability. Hairlines are not between every pair of groups:
-              per the Figma they sit ON TOP of the variants block, the cart
-              row, and each accordion row — the heading, price, and info-card
-              runs separate by whitespace alone. */
-            <div>
-              {minimalRenderedGroups.map(({ keys, rows }, groupIndex) => {
-                // A group of nothing but accordions renders as one hairline
-                // list (the Figma's Description / Technical Details / FAQ run)
-                // instead of gap-spaced rows.
-                const accordionsOnly = keys.every(
-                  (key) =>
-                    key === "description" || key === "details" || key === "faq",
-                );
-                const bordered =
-                  groupIndex > 0 &&
-                  (accordionsOnly ||
-                    keys[0] === "variants" ||
-                    keys[0] === "quantity-cart");
-                return (
-                  <div
-                    key={`minimal-group-${groupIndex}`}
-                    className={cn(
-                      "flex flex-col",
-                      bordered && "border-t border-border",
-                    )}
-                    style={{
-                      paddingTop: groupIndex === 0 ? 0 : sty.groupGap / 2,
-                      paddingBottom:
-                        groupIndex === minimalRenderedGroups.length - 1
-                          ? 0
-                          : sty.groupGap / 2,
-                      rowGap: accordionsOnly ? 0 : sty.itemGap,
-                    }}
-                  >
-                    {accordionsOnly ? (
-                      <div
-                        className="divide-y divide-border"
-                        // The hairline colour, scoped to this list.
-                        style={
-                          sty.accordionDivider
-                            ? ({ "--border": sty.accordionDivider } as React.CSSProperties)
-                            : undefined
-                        }
-                      >
-                        {rows.map(({ key, node }) => (
-                          <Fragment key={key}>{node}</Fragment>
-                        ))}
-                      </div>
-                    ) : (
-                      rows.map(({ key, node }) => (
-                        <Fragment key={key}>{node}</Fragment>
-                      ))
-                    )}
-                  </div>
-                );
-              })}
+          >
+            {/* Sticky offset tracks the real header height (--storefront-header-height,
+                published by store-header) instead of a hardcoded value that pushed the
+                gallery below the buy box at scroll 0. Pinned from lg, where the
+                two-column layout starts. */}
+            <div
+              className={cn(
+                !isFullWidthLayout &&
+                  !isVerticalLayout &&
+                  pinColumn &&
+                  (bleedTop
+                    ? // Flush under the header while it scrolls, too.
+                      "lg:sticky lg:top-[var(--storefront-header-height,4rem)] lg:self-start"
+                    : "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start"),
+                // Stacked, the gallery runs edge to edge; beside the buy box it
+                // runs out to the left edge only. Negative margins on a stretched
+                // grid item widen it by exactly the inset.
+                bleedLeft &&
+                  (isFullWidthLayout
+                    ? "-mx-[var(--store-content-inset,1rem)]"
+                    : "-mx-[var(--store-content-inset,1rem)] lg:mr-0"),
+                // Cancels the page's own top space (product-main.tsx: pt-6 lg:pt-8).
+                bleedTop && "-mt-6 lg:-mt-8",
+              )}
+            >
+              <ProductIsland island="gallery" layout={galleryInternalLayout} />
             </div>
-          ) : appearance === "electronics" ? (
-            /* ── Electronics buy box (Figma 675:5021) ──────────────────────
-              The SAME values the classic column below renders — every price,
-              stock, preorder and variant rule is computed once above and read
-              here through the closure, so the two designs can never disagree
-              about what the product costs or whether it can be bought.
 
-              What differs is rhythm: hairline-separated rows (`divide-y`
-              collapses cleanly when a conditional row is absent), each option
-              label sitting BESIDE its values instead of above them, and one
-              dark full-width call to action. */
-            <div className="divide-y divide-border">
-              <div className="space-y-2.5 pb-5">
-                {product.brand?.name ? (
-                  product.brand.logo ? (
-                    <Link
-                      href={`/${locale}/brands/${encodeURIComponent(
-                        product.brand.slug,
-                      )}`}
-                      className="flex h-12 w-fit items-center hover:opacity-80"
-                      aria-label={product.brand.name}
-                    >
-                      <span className="relative h-12 w-56 shrink-0">
-                        <AppImage
-                          src={product.brand.logo}
-                          alt={product.brand.name}
-                          fill
-                          sizes="224px"
-                          className="object-contain object-left"
-                        />
-                      </span>
-                    </Link>
-                  ) : (
-                    <div className="h-12" aria-hidden />
-                  )
-                ) : null}
-
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                  {product.name}
-                </h1>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <Star
-                          key={`electronics-rating-star-${index}`}
-                          className={cn(
-                            "h-[18px] w-[18px]",
-                            index < Math.round(product.rating)
-                              ? "fill-amber-500 text-amber-500"
-                              : "fill-muted-foreground text-muted-foreground opacity-30",
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      ({product.reviewCount})
-                    </span>
-                  </div>
-                  <Link
-                    href="#reviews"
-                    className="border-s border-border ps-3 text-xs font-medium text-muted-foreground hover:text-foreground"
-                  >
-                    {t("common.reviews")}
-                  </Link>
-                </div>
-
-                {renderSoldBy()}
-              </div>
-
-              <div className="space-y-3 py-5">
-                <div className="flex flex-wrap items-center gap-3">
-                  {quoteOnly ? (
-                    renderQuotePrice(
-                      "text-3xl font-bold tracking-tight text-foreground",
-                    )
-                  ) : (
-                    <>
-                      <span className="text-3xl font-bold tracking-tight text-foreground">
-                        {formatDisplayPrice(displayedPrice)}
-                      </span>
-                      {displayedComparePrice &&
-                      displayedComparePrice > displayedPrice ? (
-                        <span className="text-base font-medium text-muted-foreground line-through">
-                          {formatDisplayPrice(displayedComparePrice)}
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold",
-                      preorderPurchase
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
-                        : availableStock > 0
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-                          : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200",
-                    )}
-                  >
-                    {preorderPurchase
-                      ? tf("product.preorder", "Pre-order")
-                      : availableStock > 0
-                        ? t("product.inStock")
-                        : t("product.outOfStock")}
-                  </span>
-                </div>
-
-                {preorderWaitlistNode}
-
-                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  {product.shortDescription ||
-                    tf("product.noDescription", "No description available.")}
-                </p>
-
-                {collectionAtBranch ? (
-                  <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-                    <Store
-                      className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                    <span className="min-w-0">
-                      <span className="font-medium">
-                        {tf("product.collectAt", "Collect at {branch}", {
-                          branch: collectionAtBranch.branchName,
-                        })}
-                      </span>
-                      {collectionAtBranch.pickupArea ||
-                      typeof collectionAtBranch.distanceKm === "number" ? (
-                        <span className="block text-xs text-muted-foreground">
-                          {[
-                            collectionAtBranch.pickupArea,
-                            typeof collectionAtBranch.distanceKm === "number"
-                              ? t("location.kmAway", {
-                                  km: Math.max(
-                                    1,
-                                    Math.round(collectionAtBranch.distanceKm),
-                                  ),
-                                })
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      ) : null}
-                    </span>
-                  </div>
-                ) : null}
-
-                {product.digitalAssets?.length ||
-                product.digitalPreview?.url ? (
-                  <div className="flex flex-wrap items-center gap-3">
-                    {(product.digitalAssets?.length ?? 0) > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                        <FileDown className="h-3.5 w-3.5" />
-                        {tf(
-                          "product.digitalDownloadNote",
-                          "Instant download · {count} file(s)",
-                          { count: product.digitalAssets?.length ?? 0 },
-                        )}
-                      </span>
-                    ) : null}
-                    {product.digitalPreview?.url ? (
-                      <a
-                        href={product.digitalPreview.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 hover:text-sky-500"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        {tf("product.readSample", "Read a sample")}
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* One row per option: label on the start edge, values on the end
-                edge. `flex-wrap` lets a long value list drop under its label
-                instead of squeezing the pills. */}
-              {optionEntries.map(({ opt, idx }) => (
-                <div
-                  key={opt.name}
-                  className="flex flex-wrap items-center justify-between gap-3 py-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-semibold text-foreground">
-                      {normalizeOptionLabel(opt.name)}
-                    </span>
-                    {isSizeOption(opt.name) ? (
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-sky-600 hover:text-sky-500"
-                        onClick={() => setIsSizeGuideOpen(true)}
-                      >
-                        {t("product.sizeGuide")}
-                      </button>
-                    ) : null}
-                  </div>
-                  <OptionValueSelector
-                    size="sm"
-                    option={opt}
-                    selectedValue={selectedOptions[idx]}
-                    onSelect={(value) => {
-                      const next = [...selectedOptions];
-                      next[idx] = value;
-                      setSelectedOptions(next);
-                      setQuantity(1);
-                    }}
-                    resolveColor={(v) =>
-                      getColorCode(
-                        v.value,
-                        v.colorCode ||
-                          getVariantColorCodeForOptionValue({
-                            product,
-                            optionName: opt.name,
-                            valueId: v._id,
-                            value: v.value,
-                          }),
-                      )
-                    }
-                  />
-                </div>
-              ))}
-
-              <div className="space-y-3 py-5">
-                {quoteOnly ? (
-                  renderQuoteButton(
-                    "h-[52px] w-full rounded-md text-sm font-bold",
-                  )
-                ) : (
-                <>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex h-[52px] w-[117px] shrink-0 items-center justify-between rounded-md border border-foreground bg-background px-1">
-                    <button
-                      type="button"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
-                      aria-label={tf(
-                        "common.decreaseQuantity",
-                        "Decrease quantity",
-                      )}
-                      className="inline-flex h-full w-9 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="min-w-6 text-center text-base font-bold text-foreground">
-                      {quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setQuantity(
-                          Math.min(maxPurchasableQuantity, quantity + 1),
-                        )
-                      }
-                      disabled={quantity >= maxPurchasableQuantity}
-                      aria-label={tf(
-                        "common.increaseQuantity",
-                        "Increase quantity",
-                      )}
-                      className="inline-flex h-full w-9 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="h-[52px] flex-1 min-w-[180px] rounded-md bg-foreground text-sm font-bold text-background hover:bg-foreground/90"
-                    onClick={handleAddToCart}
-                    disabled={
-                      maxPurchasableQuantity <= 0 ||
-                      isAddingToCart ||
-                      isBuyingNow
-                    }
-                  >
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    {preorderPurchase
-                      ? tf("product.preorderNow", "Pre-order now")
-                      : t("common.addToCart")}
-                  </Button>
-                </div>
-                {/* The design shows one CTA; Buy Now stays because removing a
-                  checkout path is a commerce change, not a restyle. */}
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-[52px] w-full rounded-md border-foreground text-sm font-bold"
-                  onClick={handleBuyNow}
-                  disabled={
-                    maxPurchasableQuantity <= 0 || isBuyingNow || isAddingToCart
-                  }
-                >
-                  {preorderPurchase
-                    ? tf("product.preorderCheckout", "Pre-order checkout")
-                    : buyNowLabel}
-                </Button>
-                </>
-                )}
-
-                {preorderPurchase ? (
-                  <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold">
-                        {preorderDateLabel
-                          ? tf(
-                              "product.preorderShips",
-                              "Expected ship date: {date}",
-                              { date: preorderDateLabel },
-                            )
-                          : tf(
-                              "product.preorderShipsSoon",
-                              "Expected to ship soon",
-                            )}
-                      </p>
-                      {Number.isFinite(preorderRemaining) ? (
-                        <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-500/20 dark:text-blue-100">
-                          {Math.max(0, preorderRemaining)} spots left
-                        </span>
-                      ) : null}
-                    </div>
-                    {preorderLimit > 0 ? (
-                      <div className="space-y-1.5">
-                        <div className="h-2 overflow-hidden rounded-full bg-blue-200/70 dark:bg-blue-950">
-                          <div
-                            className="h-full rounded-full bg-blue-600"
-                            style={{ width: `${preorderProgress}%` }}
-                          />
-                        </div>
-                        <p className="text-xs text-blue-800/80 dark:text-blue-100/75">
-                          {preorderReserved} of {preorderLimit} reservations
-                          claimed
-                        </p>
-                      </div>
-                    ) : null}
-                    <div className="grid gap-2 rounded-md bg-white/70 p-3 text-xs text-blue-900 dark:bg-blue-950/30 dark:text-blue-100 sm:grid-cols-2">
-                      <div>
-                        <span className="block text-blue-700/80 dark:text-blue-200/80">
-                          Due today
-                        </span>
-                        <span className="font-semibold">
-                          {formatPrice(preorderTerms.dueNow)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="block text-blue-700/80 dark:text-blue-200/80">
-                          Due before shipping
-                        </span>
-                        <span className="font-semibold">
-                          {formatPrice(preorderTerms.dueLater)}
-                        </span>
-                      </div>
-                      {/* Same note as the first "Due today" block above. */}
-                      {preorderTerms.dueLater > 0 ? (
-                        <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
-                          {tf(
-                            "product.preorderShippingAtCheckout",
-                            "Shipping and tax are charged at checkout.",
-                          )}
-                        </p>
-                      ) : null}
-                    </div>
-                    {selectedPreorder?.batchName ? (
-                      <p className="text-xs font-medium">
-                        Batch: {selectedPreorder.batchName}
-                      </p>
-                    ) : null}
-                    {selectedPreorder?.message ? (
-                      <p>{selectedPreorder.message}</p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {!preorderPurchase &&
-                productTracksStock(product) &&
-                currentStock > 0 &&
-                currentStock < 10 ? (
-                  <p className="text-sm text-orange-600">
-                    {tf("product.lowStock", "Only {count} left in stock", {
-                      count: currentStock,
-                    })}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="space-y-2 py-4">
-                <ProductCollapsibleSection title={productInfoSectionTitle}>
-                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    {productInfoFields.map((field) => (
-                      <div
-                        key={`${field.label}-${field.value}`}
-                        className="grid grid-cols-[112px_1fr] gap-2"
-                      >
-                        <span className="font-medium text-foreground/80">
-                          {field.label}:
-                        </span>
-                        {field.href ? (
-                          <Link
-                            href={field.href}
-                            className="min-w-0 break-words underline underline-offset-4 hover:text-foreground"
-                          >
-                            {field.value}
-                          </Link>
-                        ) : (
-                          <span className="min-w-0 break-words">
-                            {field.value}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ProductCollapsibleSection>
-                <ProductCollapsibleSection title={tf("product.faq", "FAQ")}>
-                  <p className="text-sm text-muted-foreground">
-                    {tf(
-                      "product.faqHint",
-                      "Common questions about this product will appear here.",
-                    )}
-                  </p>
-                </ProductCollapsibleSection>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-5">
-                {renderChatControls()}
-                <ProductShareButtons
-                  productName={product.name}
-                  image={product.images?.[0]}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <div className="space-y-4">
-                {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Link href={`/${locale}`} className="hover:text-foreground">
-                  {t("common.home")}
-                </Link>
-                <span>/</span>
-                {product.category ? (
-                  <Link
-                    href={`/${locale}/categories/${product.category.slug}`}
-                    className="hover:text-foreground"
-                  >
-                    {product.category.name}
-                  </Link>
-                ) : (
-                  <span>{t("common.products")}</span>
-                )}
-                <span>/</span>
-                <span className="text-foreground">{product.name}</span>
-              </div> */}
-
-                {product.brand?.name ? (
-                  product.brand.logo ? (
-                    <Link
-                      href={`/${locale}/brands/${encodeURIComponent(
-                        product.brand.slug,
-                      )}`}
-                      className="flex h-12 w-fit items-center hover:opacity-80"
-                      aria-label={product.brand.name}
-                    >
-                      <span className="relative h-12 w-56 shrink-0">
-                        <AppImage
-                          src={product.brand.logo}
-                          alt={product.brand.name}
-                          fill
-                          sizes="224px"
-                          className="object-contain object-left"
-                        />
-                      </span>
-                    </Link>
-                  ) : (
-                    <div className="h-12" aria-hidden />
-                  )
-                ) : null}
-
-                <h1 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl xl:text-3xl xl:leading-[1.05]">
-                  {product.name}
-                </h1>
-                <div className="flex items-center gap-1.5">
-                  {Array.from({ length: 5 }).map((_, index) => {
-                    const isFilled = index < Math.round(product.rating);
-                    return (
-                      <Star
-                        key={`rating-star-${index}`}
-                        className={cn(
-                          "h-4 w-4",
-                          isFilled
-                            ? "fill-amber-500 text-amber-500"
-                            : "fill-muted-foreground text-muted-foreground opacity-30",
-                        )}
-                      />
-                    );
-                  })}
-                  <Link
-                    href="#reviews"
-                    className="ml-1 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    ({product.reviewCount} {t("common.reviews")})
-                  </Link>
-                </div>
-                {renderSoldBy()}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-end gap-2">
-                      {quoteOnly ? (
-                        renderQuotePrice(
-                          "text-xl font-semibold leading-none text-foreground",
-                        )
-                      ) : (
-                        <>
-                          <span className="text-xl font-semibold leading-none text-foreground">
-                            {formatDisplayPrice(displayedPrice)}
-                          </span>
-                          {displayedComparePrice &&
-                            displayedComparePrice > displayedPrice && (
-                              <span className="text-base font-medium leading-none text-muted-foreground line-through">
-                                {formatDisplayPrice(displayedComparePrice)}
-                              </span>
-                            )}
-                        </>
-                      )}
-                    </div>
-
-                    <div
-                      className={cn(
-                        "inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold",
-                        preorderPurchase
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
-                          : availableStock > 0
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-                            : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200",
-                      )}
-                    >
-                      {preorderPurchase
-                        ? tf("product.preorder", "Pre-order")
-                        : availableStock > 0
-                          ? t("product.inStock")
-                          : t("product.outOfStock")}
-                    </div>
-                  </div>
-                </div>
-
-                {preorderWaitlistNode}
-
-                {/* Collection, when the shopper has told us where they are and a
-                  branch in range actually holds this. Withdrawn the moment
-                  they switch to a variant that branch does not have, because
-                  the whole value of the line is that it is specific. */}
-                {collectionAtBranch ? (
-                  <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-                    <Store
-                      className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                      aria-hidden="true"
-                    />
-                    <span className="min-w-0">
-                      <span className="font-medium">
-                        {tf("product.collectAt", "Collect at {branch}", {
-                          branch: collectionAtBranch.branchName,
-                        })}
-                      </span>
-                      {collectionAtBranch.pickupArea ||
-                      typeof collectionAtBranch.distanceKm === "number" ? (
-                        <span className="block text-xs text-muted-foreground">
-                          {[
-                            collectionAtBranch.pickupArea,
-                            typeof collectionAtBranch.distanceKm === "number"
-                              ? t("location.kmAway", {
-                                  km: Math.max(
-                                    1,
-                                    Math.round(collectionAtBranch.distanceKm),
-                                  ),
-                                })
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      ) : null}
-                    </span>
-                  </div>
-                ) : null}
-
-                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  {product.shortDescription ||
-                    tf("product.noDescription", "No description available.")}
-                </p>
-
-                {/* Digital product: instant-download note + public sample */}
-                {(product.digitalAssets?.length ||
-                  product.digitalPreview?.url) && (
-                  <div className="flex flex-wrap items-center gap-3">
-                    {(product.digitalAssets?.length ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                        <FileDown className="h-3.5 w-3.5" />
-                        {tf(
-                          "product.digitalDownloadNote",
-                          "Instant download · {count} file(s)",
-                          { count: product.digitalAssets?.length ?? 0 },
-                        )}
-                      </span>
-                    )}
-                    {product.digitalPreview?.url && (
-                      <a
-                        href={product.digitalPreview.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 hover:text-sky-500"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        {tf("product.readSample", "Read a sample")}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {optionEntries.length > 0 && (
-                <div className="space-y-4 xl:space-y-6">
-                  {optionEntries.map(({ opt, idx }) => {
-                    const isSize = isSizeOption(opt.name);
-                    return (
-                      <div key={opt.name} className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-medium text-foreground">
-                            {normalizeOptionLabel(opt.name)}
-                          </div>
-                          {isSize && (
-                            <button
-                              type="button"
-                              className="text-xs font-medium text-sky-600 hover:text-sky-500"
-                              onClick={() => setIsSizeGuideOpen(true)}
-                            >
-                              {t("product.sizeGuide")}
-                            </button>
-                          )}
-                        </div>
-
-                        <OptionValueSelector
-                          size="sm"
-                          option={opt}
-                          selectedValue={selectedOptions[idx]}
-                          onSelect={(value) => {
-                            const next = [...selectedOptions];
-                            next[idx] = value;
-                            setSelectedOptions(next);
-                            setQuantity(1);
-                          }}
-                          resolveColor={(v) =>
-                            getColorCode(
-                              v.value,
-                              v.colorCode ||
-                                getVariantColorCodeForOptionValue({
-                                  product,
-                                  optionName: opt.name,
-                                  valueId: v._id,
-                                  value: v.value,
-                                }),
-                            )
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+            <div
+              className={cn(
+                // Same cap the gallery carries (GALLERY_STACK_CLASS) so the two
+                // read as one centred column while stacked, instead of a label
+                // pinned left and its values flung 400px away at the right edge.
+                !isFullWidthLayout && "mx-auto w-full max-w-xl lg:max-w-none",
+                isVerticalLayout &&
+                  pinColumn &&
+                  "lg:sticky lg:top-[calc(var(--storefront-header-height,4rem)+1.5rem)] lg:self-start",
               )}
-
-              {quoteOnly ? (
-                renderQuoteButton(
-                  "h-12 w-full rounded-sm px-4 text-sm font-semibold sm:px-5 sm:text-base",
-                )
-              ) : (
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex h-12 items-center overflow-hidden rounded-xl border border-border bg-muted">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                    className="inline-flex h-full w-12 items-center justify-center bg-muted text-muted-foreground transition hover:bg-muted/80 disabled:opacity-50"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="inline-flex h-full w-16 items-center justify-center border-x border-border bg-muted/80 text-center text-[23px] font-normal leading-none text-foreground">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setQuantity(
-                        Math.min(maxPurchasableQuantity, quantity + 1),
-                      )
-                    }
-                    disabled={quantity >= maxPurchasableQuantity}
-                    className="inline-flex h-full w-12 items-center justify-center bg-muted text-foreground/80 transition hover:bg-muted/80 disabled:opacity-50"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="flex flex-1 min-w-[260px] flex-wrap items-center gap-3">
-                  <Button
-                    size="lg"
-                    className="h-12 flex-1 rounded-sm bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/90 sm:px-5 sm:text-base"
-                    onClick={handleAddToCart}
-                    disabled={
-                      maxPurchasableQuantity <= 0 ||
-                      isAddingToCart ||
-                      isBuyingNow
-                    }
-                  >
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    {preorderPurchase
-                      ? tf("product.preorderNow", "Pre-order now")
-                      : t("common.addToCart")}
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="h-12 flex-1 rounded-sm bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:px-5 sm:text-base"
-                    onClick={handleBuyNow}
-                    disabled={
-                      maxPurchasableQuantity <= 0 ||
-                      isBuyingNow ||
-                      isAddingToCart
-                    }
-                  >
-                    {preorderPurchase
-                      ? tf("product.preorderCheckout", "Pre-order checkout")
-                      : buyNowLabel}
-                  </Button>
-                </div>
-              </div>
-              )}
-
-              {/* Secondary actions on one line: chat/messaging on the start edge,
-                sharing pushed to the end. Demoted below the CTAs so chat never
-                competes with Add to Cart / Buy Now for the primary click. */}
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pt-8">
-                {renderChatControls()}
-
-                <ProductShareButtons
-                  productName={product.name}
-                  image={product.images?.[0]}
-                />
-              </div>
-
-              {preorderPurchase && (
-                <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold">
-                      {preorderDateLabel
-                        ? tf(
-                            "product.preorderShips",
-                            "Expected ship date: {date}",
-                            {
-                              date: preorderDateLabel,
-                            },
-                          )
-                        : tf(
-                            "product.preorderShipsSoon",
-                            "Expected to ship soon",
-                          )}
-                    </p>
-                    {Number.isFinite(preorderRemaining) ? (
-                      <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-500/20 dark:text-blue-100">
-                        {Math.max(0, preorderRemaining)} spots left
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {preorderLimit > 0 ? (
-                    <div className="space-y-1.5">
-                      <div className="h-2 overflow-hidden rounded-full bg-blue-200/70 dark:bg-blue-950">
-                        <div
-                          className="h-full rounded-full bg-blue-600"
-                          style={{ width: `${preorderProgress}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-blue-800/80 dark:text-blue-100/75">
-                        {preorderReserved} of {preorderLimit} reservations
-                        claimed
-                      </p>
-                    </div>
-                  ) : null}
-
-                  <div className="grid gap-2 rounded-md bg-white/70 p-3 text-xs text-blue-900 dark:bg-blue-950/30 dark:text-blue-100 sm:grid-cols-2">
-                    <div>
-                      <span className="block text-blue-700/80 dark:text-blue-200/80">
-                        Due today
-                      </span>
-                      <span className="font-semibold">
-                        {formatPrice(preorderTerms.dueNow)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-blue-700/80 dark:text-blue-200/80">
-                        Due before shipping
-                      </span>
-                      <span className="font-semibold">
-                        {formatPrice(preorderTerms.dueLater)}
-                      </span>
-                    </div>
-                    {/* Same note as the first "Due today" block above. */}
-                    {preorderTerms.dueLater > 0 ? (
-                      <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
-                        {tf(
-                          "product.preorderShippingAtCheckout",
-                          "Shipping and tax are charged at checkout.",
-                        )}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  {selectedPreorder?.batchName ? (
-                    <p className="text-xs font-medium">
-                      Batch: {selectedPreorder.batchName}
-                    </p>
-                  ) : null}
-                  {selectedPreorder?.message ? (
-                    <p>{selectedPreorder.message}</p>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Scarcity only means something when the count is a real limit. */}
-              {!preorderPurchase &&
-                productTracksStock(product) &&
-                currentStock > 0 &&
-                currentStock < 10 && (
-                  <p className="text-sm text-orange-600">
-                    {tf("product.lowStock", "Only {count} left in stock", {
-                      count: currentStock,
-                    })}
-                  </p>
-                )}
-
-              <div className="h-px w-full bg-border/80" />
-
-              <div className="space-y-2">
-                <ProductCollapsibleSection title={productInfoSectionTitle}>
-                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    {productInfoFields.map((field) => (
-                      <div
-                        key={`${field.label}-${field.value}`}
-                        className="grid grid-cols-[112px_1fr] gap-2"
-                      >
-                        <span className="font-medium text-foreground/80">
-                          {field.label}:
-                        </span>
-                        {field.href ? (
-                          <Link
-                            href={field.href}
-                            className="min-w-0 break-words underline underline-offset-4 hover:text-foreground"
-                          >
-                            {field.value}
-                          </Link>
-                        ) : (
-                          <span className="min-w-0 break-words">
-                            {field.value}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ProductCollapsibleSection>
-
-                <ProductCollapsibleSection title={tf("product.faq", "FAQ")}>
-                  <p className="text-sm text-muted-foreground">
-                    {tf(
-                      "product.faqHint",
-                      "Common questions about this product will appear here.",
-                    )}
-                  </p>
-                </ProductCollapsibleSection>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* The sticky product bar (Figma 697:65). It sits after the hero and
-          rides the page down, carrying the buy box's own quantity and
-          handlers — which is why it lives here rather than in a section of
-          its own: a second component would need a second copy of that
-          state and the two could disagree. It replaces the classic tab
-          strip below, so only one of the two ever renders. */}
-      {appearance === "electronics" ? (
-        <div className="sticky top-[var(--storefront-header-height,4rem)] z-30 -mx-4 border-b border-border bg-background/90 px-4 backdrop-blur-xl">
-          <div className="flex items-center gap-4 py-3">
-            <span className="relative hidden h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted sm:block">
-              <AppImage
-                src={firstImageUrl(displayMedia, product.images)}
-                alt=""
-                fill
-                sizes="56px"
-                className="object-contain"
-              />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-base font-semibold text-foreground">
-                {product.name}
-              </span>
-            </span>
-
-            {/* Same targets as the classic tab strip — one scroll spy, one
-                set of ids, whichever chrome is on screen. */}
-            <nav className="hidden items-center gap-8 lg:flex">
-              {sectionTabs.map(({ id, label }) => (
-                <button
-                  key={`sticky-${id}`}
-                  type="button"
-                  onClick={() => scrollToSection(id)}
-                  className={cn(
-                    "text-xs font-semibold transition-colors",
-                    activeSection === id
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
-
-            {quoteOnly
-              ? renderQuotePrice(
-                  "hidden text-base font-bold text-foreground sm:block",
-                )
-              : (
-                <span className="hidden text-base font-bold text-foreground sm:block">
-                  {formatDisplayPrice(displayedPrice)}
-                </span>
-              )}
-
-            <span className="flex shrink-0 items-center gap-1.5">
-              {quoteOnly ? (
-                renderQuoteButton("h-9 rounded-md px-4 text-xs font-bold")
-              ) : (
-              <>
-              <span className="hidden h-9 items-center justify-between rounded-md border border-foreground px-1 sm:flex">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
-                  aria-label={tf(
-                    "common.decreaseQuantity",
-                    "Decrease quantity",
-                  )}
-                  className="inline-flex h-full w-7 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-                <span className="min-w-5 text-center text-sm font-bold text-foreground">
-                  {quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setQuantity(Math.min(maxPurchasableQuantity, quantity + 1))
-                  }
-                  disabled={quantity >= maxPurchasableQuantity}
-                  aria-label={tf(
-                    "common.increaseQuantity",
-                    "Increase quantity",
-                  )}
-                  className="inline-flex h-full w-7 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </span>
-              <Button
-                size="sm"
-                className="h-9 rounded-md bg-foreground px-4 text-xs font-bold text-background hover:bg-foreground/90"
-                onClick={handleAddToCart}
-                disabled={
-                  maxPurchasableQuantity <= 0 || isAddingToCart || isBuyingNow
+            >
+              {/* ── Minimal buy box (Figma 774:4992) ──────────────────────────
+                Merchant-ordered rows from the section's "Order" setting.
+                Hairlines are not between every pair of groups: per the Figma
+                they sit ON TOP of the variants block, the cart row, and each
+                accordion row — the heading, price, and info-card runs separate
+                by whitespace alone. */}
+              <div
+                style={
+                  { "--pdp-group-pad": `${sty.groupGap / 2}px` } as CSSProperties
                 }
               >
-                {preorderPurchase
-                  ? tf("product.preorderNow", "Pre-order now")
-                  : t("common.addToCart")}
-              </Button>
-              </>
-              )}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {isSizeGuideOpen && (
-        <ProductSizeGuide
-          product={product}
-          onClose={() => setIsSizeGuideOpen(false)}
-        />
-      )}
-
-      {/* Mounted once for the whole page, whichever buy box opened it — every
-          design's quote button drives the same dialog. */}
-      {quoteOnly ? (
-        <QuoteRequestDialog
-          open={isQuoteOpen}
-          onOpenChange={setIsQuoteOpen}
-          target={{
-            productId: product._id,
-            productName: product.name,
-            variantId: selectedVariant?._id,
-            variantName: selectedVariant?.name,
-            quantity,
-          }}
-        />
-      ) : null}
-
-      <section className="py-8">
-        {appearance === "minimal" ? (
-          <>
-            {/* The home slot: where the strip lives un-pinned, and the
-                height placeholder while the strip rides fixed. The pinned
-                strip shrinks a step and the product (left) and price/CTA
-                (right) slide in; scrolling back up reverses it. It slides
-                away once the reviews section ends (see the effect above). */}
-            <div ref={tabsHomeRef} className="mb-8">
-              <div
-                ref={tabsBarRef}
-                className={cn(
-                  "z-30 -mx-4 border-b border-border bg-background/95 px-4 backdrop-blur-xl transition-[transform,opacity] duration-300",
-                  tabsReleased &&
-                    "pointer-events-none -translate-y-full opacity-0",
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex items-center gap-3 transition-[padding] duration-300",
-                    tabsStuck ? "py-2" : "py-4",
-                  )}
-                >
-                  <div
-                    inert={!tabsStuck}
-                    className={cn(
-                      "flex min-w-0 flex-1 items-center gap-3 transition-all duration-300",
-                      tabsStuck
-                        ? "translate-x-0 opacity-100"
-                        : "pointer-events-none -translate-x-3 opacity-0",
-                    )}
-                  >
-                    <span className="relative hidden h-11 w-11 shrink-0 overflow-hidden rounded-md bg-muted sm:block">
-                      <AppImage
-                        src={firstImageUrl(displayMedia, product.images)}
-                        alt=""
-                        fill
-                        sizes="44px"
-                        className="object-contain"
+                {minimalRenderedGroups.map(({ keys, rows }, groupIndex) => {
+                  // A group of nothing but accordions renders as one hairline
+                  // list (the Figma's Description / Technical Details run)
+                  // instead of gap-spaced rows.
+                  const accordionsOnly = keys.every(
+                    (key) => key === "description" || key === "details",
+                  );
+                  const groupClassName = cn(
+                    "flex flex-col py-(--pdp-group-pad) first:pt-0 last:pb-0",
+                    (accordionsOnly ||
+                      keys[0] === "variants" ||
+                      keys[0] === "quantity-cart") &&
+                      "border-border not-first:border-t",
+                  );
+                  const groupStyle = { rowGap: accordionsOnly ? 0 : sty.itemGap };
+                  if (
+                    infoCardForPreorder &&
+                    rows.length === 1 &&
+                    rows[0].row === "info-card"
+                  ) {
+                    return (
+                      <ProductIsland
+                        key={`minimal-group-${groupIndex}`}
+                        island="infoCard"
+                        group={{ className: groupClassName, style: groupStyle }}
                       />
-                    </span>
-                    <span className="hidden min-w-0 truncate text-sm font-semibold text-foreground md:block">
-                      {product.name}
-                    </span>
-                  </div>
-
-                  <nav
-                    className={cn(
-                      "flex shrink-0 items-center justify-center gap-6 font-semibold transition-all duration-300 sm:gap-10",
-                      tabsStuck ? "text-xs" : "text-sm",
-                    )}
-                  >
-                    {sectionTabs.map(({ id, label }) => (
-                      <button
-                        key={`minimal-tab-${id}`}
-                        type="button"
-                        onClick={() => scrollToSection(id)}
-                        className={cn(
-                          "transition-colors",
-                          activeSection === id
-                            ? "text-foreground"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {label}
-                        {id === "reviews" && (product.reviewCount ?? 0) > 0
-                          ? ` (${product.reviewCount})`
-                          : ""}
-                      </button>
-                    ))}
-                  </nav>
-
-                  <div
-                    inert={!tabsStuck}
-                    className={cn(
-                      "flex min-w-0 flex-1 items-center justify-end gap-2.5 transition-all duration-300",
-                      tabsStuck
-                        ? "translate-x-0 opacity-100"
-                        : "pointer-events-none translate-x-3 opacity-0",
-                    )}
-                  >
-                    {quoteOnly
-                      ? renderQuotePrice(
-                          "hidden text-base font-bold text-foreground sm:block",
-                        )
-                      : (
-                        <span className="hidden text-base font-bold text-foreground sm:block">
-                          {formatDisplayPrice(displayedPrice)}
-                        </span>
+                    );
+                  }
+                  return (
+                    <div
+                      key={`minimal-group-${groupIndex}`}
+                      className={groupClassName}
+                      style={groupStyle}
+                    >
+                      {accordionsOnly ? (
+                        <div
+                          className="divide-y divide-border"
+                          // The hairline colour, scoped to this list.
+                          style={
+                            sty.accordionDivider
+                              ? ({
+                                  "--border": sty.accordionDivider,
+                                } as CSSProperties)
+                              : undefined
+                          }
+                        >
+                          {rows.map(({ key, node }) => (
+                            <Fragment key={key}>{node}</Fragment>
+                          ))}
+                        </div>
+                      ) : (
+                        rows.map(({ key, node }) => (
+                          <Fragment key={key}>{node}</Fragment>
+                        ))
                       )}
-                    {/* Same "Cart button radius" knob as the buy box row. */}
-                    {quoteOnly ? (
-                      renderQuoteButton(
-                        "hidden h-9 px-4 text-xs font-bold sm:inline-flex",
-                        { borderRadius: sty.cartRadius },
-                      )
-                    ) : (
-                    <>
-                    <span
-                      className="hidden h-9 items-center justify-between border border-foreground px-1 lg:flex"
-                      style={{ borderRadius: sty.cartRadius }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1}
-                        aria-label={tf(
-                          "common.decreaseQuantity",
-                          "Decrease quantity",
-                        )}
-                        className="inline-flex h-full w-7 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="min-w-5 text-center text-sm font-bold text-foreground">
-                        {quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setQuantity(
-                            Math.min(maxPurchasableQuantity, quantity + 1),
-                          )
-                        }
-                        disabled={quantity >= maxPurchasableQuantity}
-                        aria-label={tf(
-                          "common.increaseQuantity",
-                          "Increase quantity",
-                        )}
-                        className="inline-flex h-full w-7 items-center justify-center text-foreground transition hover:opacity-70 disabled:opacity-40"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                    <Button
-                      size="sm"
-                      className="hidden h-9 bg-foreground px-4 text-xs font-bold text-background hover:bg-foreground/90 sm:inline-flex"
-                      style={{ borderRadius: sty.cartRadius }}
-                      onClick={handleAddToCart}
-                      disabled={
-                        maxPurchasableQuantity <= 0 ||
-                        isAddingToCart ||
-                        isBuyingNow
-                      }
-                    >
-                      {preorderPurchase
-                        ? tf("product.preorderNow", "Pre-order now")
-                        : t("common.addToCart")}
-                    </Button>
-                    </>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </>
-        ) : appearance === "electronics" ? null : (
-          <div className="mb-8 flex flex-wrap items-center border-b border-border">
-            {sectionTabs.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => scrollToSection(id)}
-                className={cn(
-                  "relative -mb-px inline-flex h-12 items-center gap-1.5 border-b-2 px-4 text-sm font-medium transition-colors",
-                  activeSection === id
-                    ? "border-blue-600 bg-blue-50 text-blue-600 dark:border-blue-400 dark:bg-blue-950/30 dark:text-blue-400"
-                    : "border-transparent text-foreground hover:bg-muted/60 hover:text-blue-600 dark:hover:text-blue-400",
-                )}
-              >
-                <span>{label}</span>
-                {/* The tab itself is always present; the count pill is not
-                  worth rendering as a bare "0". */}
-                {id === "reviews" && (product.reviewCount ?? 0) > 0 && (
-                  <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-zinc-300 px-2 py-0.5 text-xs font-semibold leading-none text-white dark:bg-zinc-600">
-                    {product.reviewCount}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="max-w-4xl space-y-8 text-sm leading-7 text-muted-foreground">
-          <div
-            ref={descriptionRef}
-            data-section="description"
-            className="scroll-mt-24"
-          >
-            {/* Same two-tone heading as the Specifications and Reviews
-                sections below, so the page's three titles read as one set. */}
-            <ElectronicsSectionHeading
-              title={tf("product.description", "Description")}
-              className="mb-5 text-left text-xl sm:text-2xl"
-            />
-            {hasDescription ? (
-              <div
-                className="rich-text-content max-w-none text-muted-foreground [&_img]:h-auto [&_img]:max-h-[640px] [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:object-contain"
-                // Already sanitized by getStorefrontProductBySlug on the
-                // server — see lib/products/storefront-product-detail.ts.
-                dangerouslySetInnerHTML={{ __html: product.description }}
-              />
-            ) : (
-              <p>{tf("product.noDescription", "No description available.")}</p>
-            )}
           </div>
 
-          {/* Electronics moves the table onto the page as its own
-              `product-specification` section — and any template carrying
-              that section makes this copy stand down the same way. */}
-          {appearance === "electronics" || standaloneSpecs ? null : (
-            <div
-              ref={specificationsRef}
-              data-section="specifications"
-              className="scroll-mt-24"
-            >
-              <ElectronicsSectionHeading
-                title={tf("product.specifications", "Specifications")}
-                className="mb-5 text-left text-xl sm:text-2xl"
-              />
-              {hasSpecifications ? (
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <tbody className="divide-y divide-border">
-                      {product.attributes.map((attr, index) => (
-                        <tr key={`${attr.name}-${index}`}>
-                          <th
-                            scope="row"
-                            className="w-1/3 bg-muted/30 px-4 py-3 text-left align-top font-medium text-foreground"
-                          >
-                            {attr.name}
-                          </th>
-                          <td className="px-4 py-3 align-top text-foreground/90">
-                            {attr.value}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p>
-                  {tf(
-                    "product.noSpecifications",
-                    "No specifications available for this product.",
+          <section className="py-8">
+            {vis.sectionTabs ? (
+              <ProductIsland island="tabs" sectionTargets={sectionTargets} />
+            ) : null}
+
+            <div className="max-w-4xl space-y-8 text-sm leading-7 text-muted-foreground">
+              <div data-section="description" className="scroll-mt-24">
+                {/* Same two-tone heading as the Specifications and Reviews
+                    sections below, so the page's three titles read as one set. */}
+                <ElectronicsSectionHeading
+                  title={tf("product.description", "Description")}
+                  className="mb-5 text-left text-xl sm:text-2xl"
+                />
+                {hasDescription ? (
+                  <div
+                    className="rich-text-content max-w-none text-muted-foreground [&_img]:h-auto [&_img]:max-h-[640px] [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-border [&_img]:object-contain"
+                    // Already sanitized by getStorefrontProductBySlug on the
+                    // server — see lib/products/storefront-product-detail.ts.
+                    dangerouslySetInnerHTML={{ __html: product.description }}
+                  />
+                ) : (
+                  <p>{tf("product.noDescription", "No description available.")}</p>
+                )}
+              </div>
+
+              {/* A template carrying the standalone `product-specification`
+                  section (the Electronics preset does) makes this copy stand
+                  down. */}
+              {standaloneSpecs ? null : (
+                <div data-section="specifications" className="scroll-mt-24">
+                  <ElectronicsSectionHeading
+                    title={tf("product.specifications", "Specifications")}
+                    className="mb-5 text-left text-xl sm:text-2xl"
+                  />
+                  {hasSpecifications ? (
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <table className="w-full text-sm">
+                        <tbody className="divide-y divide-border">
+                          {product.attributes.map((attr, index) => (
+                            <tr key={`${attr.name}-${index}`}>
+                              <th
+                                scope="row"
+                                className="w-1/3 bg-muted/30 px-4 py-3 text-left align-top font-medium text-foreground"
+                              >
+                                {attr.name}
+                              </th>
+                              <td className="px-4 py-3 align-top text-foreground/90">
+                                {attr.value}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p>
+                      {tf(
+                        "product.noSpecifications",
+                        "No specifications available for this product.",
+                      )}
+                    </p>
                   )}
-                </p>
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        {product.tags.length > 0 && (
-          <div className="mt-7 flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium">
-              {tf("common.tags", "Tags")}:
-            </span>
-            {product.tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="rounded-full px-3 py-1 text-xs"
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+            {product.tags?.length > 0 && (
+              <div className="mt-7 flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium">
+                  {tf("common.tags", "Tags")}:
+                </span>
+                {product.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="rounded-full px-3 py-1 text-xs"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </ProductPurchaseProvider>
+    </Suspense>
   );
 }

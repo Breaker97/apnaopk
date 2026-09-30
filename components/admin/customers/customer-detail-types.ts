@@ -1,4 +1,10 @@
 import { USER_ACCOUNT_STATUS } from "@/config/app.config";
+import type {
+  MarketingChannel,
+  MarketingConsentSource,
+  MarketingConsentState,
+  MarketingOptInLevel,
+} from "@/config/app.config";
 
 export type CustomerStatus = "active" | "inactive" | "banned";
 export type LoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
@@ -107,9 +113,45 @@ type SetCustomerField = <K extends keyof CustomerFormValues>(
   value: CustomerFormValues[K],
 ) => void;
 
+/**
+ * The consent record behind the marketing switch: read-only here, because it
+ * is written by the consent helper rather than by this form. Shown so an
+ * admin can see what they are about to change — when the shopper agreed,
+ * how, and from where — instead of a bare toggle with no history.
+ */
+export interface CustomerConsentInfo {
+  state: MarketingConsentState;
+  optInLevel?: MarketingOptInLevel;
+  consentUpdatedAt?: string;
+  source?: MarketingConsentSource;
+  sourceOrderId?: string;
+  sourceCountry?: string;
+  confirmedAt?: string;
+  history?: {
+    channel: MarketingChannel;
+    state: MarketingConsentState;
+    optInLevel?: MarketingOptInLevel;
+    at: string;
+    source?: MarketingConsentSource;
+    sourceOrderId?: string;
+  }[];
+  sms?: {
+    state: MarketingConsentState;
+    phone?: string;
+    consentUpdatedAt?: string;
+  };
+}
+
 /** Shared props every editable tab panel receives from the shell. */
 export interface CustomerTabProps {
   form: CustomerFormValues;
   setField: SetCustomerField;
   readOnly?: boolean;
+  /** Absent while the customer is still loading. */
+  consent?: CustomerConsentInfo;
+  /**
+   * The login email is where a password reset goes, so only an admin may
+   * change it — the staff area shows it read-only (the route refuses too).
+   */
+  emailLocked?: boolean;
 }

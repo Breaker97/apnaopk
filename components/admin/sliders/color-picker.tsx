@@ -114,10 +114,16 @@ function useDragArea(
 export function ColorPickerPanel({
   value,
   onChange,
+  alpha: withOpacity = true,
   className,
 }: {
   value: string;
   onChange: (hex: string) => void;
+  /**
+   * The opacity rail and % field. Off where the stored value must stay a
+   * plain `#rrggbb` (a variant swatch, a theme token).
+   */
+  alpha?: boolean;
   className?: string;
 }) {
   const [hsv, setHsv] = useState(() => hexToHsv(value || "#f1f1f1"));
@@ -137,7 +143,8 @@ export function ColorPickerPanel({
   }, [value]);
 
   const emit = useCallback(
-    (next: { h: number; s: number; v: number }, nextAlpha: number) => {
+    (next: { h: number; s: number; v: number }, requestedAlpha: number) => {
+      const nextAlpha = withOpacity ? requestedAlpha : 1;
       setHsv(next);
       setAlpha(nextAlpha);
       const hex = withAlpha(hsvToHex(next.h, next.s, next.v), nextAlpha);
@@ -145,7 +152,7 @@ export function ColorPickerPanel({
       emitted.current = hex;
       onChange(hex);
     },
-    [onChange],
+    [onChange, withOpacity],
   );
 
   const { areaRef: squareRef, handlePointer: onSquarePointer } = useDragArea(
@@ -200,6 +207,7 @@ export function ColorPickerPanel({
           into a chequerboard so a half-transparent white is not a rail of
           nothing. The value rides in the hex as its last two digits. */}
       <div
+        hidden={!withOpacity}
         ref={alphaRef}
         onPointerDown={onAlphaPointer}
         className="relative h-3.5 w-full cursor-pointer touch-none rounded-full"
@@ -230,7 +238,10 @@ export function ColorPickerPanel({
             const next = event.target.value;
             setHexText(next);
             const trimmed = next.trim();
-            if (HEX_INPUT.test(trimmed)) {
+            if (
+              HEX_INPUT.test(trimmed) &&
+              (withOpacity || trimmed.length !== 9)
+            ) {
               setHsv(hexToHsv(trimmed));
               setAlpha(hexAlpha(trimmed));
               emitted.current = trimmed;
@@ -240,20 +251,24 @@ export function ColorPickerPanel({
           className="h-8 flex-1 text-sm"
           spellCheck={false}
         />
-        <NumberInput
-          min={0}
-          max={100}
-          step={1}
-          value={Math.round(alpha * 100)}
-          whenEmpty="keep"
-          normalize={Math.round}
-          onValueChange={(next) => {
-            if (next !== undefined) emit(hsv, next / 100);
-          }}
-          className="h-8 w-[4.5rem] text-sm"
-          aria-label="Opacity"
-        />
-        <span className="text-xs text-muted-foreground">%</span>
+        {withOpacity ? (
+          <>
+            <NumberInput
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round(alpha * 100)}
+              whenEmpty="keep"
+              normalize={Math.round}
+              onValueChange={(next) => {
+                if (next !== undefined) emit(hsv, next / 100);
+              }}
+              className="h-8 w-[4.5rem] text-sm"
+              aria-label="Opacity"
+            />
+            <span className="text-xs text-muted-foreground">%</span>
+          </>
+        ) : null}
       </div>
     </div>
   );

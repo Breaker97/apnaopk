@@ -9,6 +9,10 @@ import {
   hasStaffScope,
   type StaffAccessScope,
 } from "@/lib/access/staff-scope";
+import { NON_CUSTOMER_ACCOUNT_FILTER } from "@/lib/access/customer-account";
+import { emailConsentStateFilter } from "@/lib/customers/marketing-consent";
+import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+import type { MarketingConsentState } from "@/config/app.config";
 
 /**
  * Admin/staff customer list query.
@@ -26,6 +30,8 @@ interface AdminCustomerListParams {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   loyaltyTier?: string;
+  /** Email marketing consent state, as the "Email subscription" filter sends it. */
+  subscription?: string;
   tag?: string;
   minSpent?: number;
   maxSpent?: number;
@@ -67,6 +73,22 @@ const USER_LOOKUP: PipelineStage = {
     ],
   },
 };
+
+/**
+ * The admins, vendors and staff whose customer profiles the admin list and
+ * its stats leave out. Such an account can hold one — made at sign-up before
+ * it had the role, or by opening its own account page or placing an order —
+ * and it stays theirs (orders, points) if the role goes away; only the
+ * customer list is not the place for it. These accounts are few beside the
+ * shoppers, so they are listed once and their profiles excluded up front,
+ * instead of joining every profile to its user before the page is cut.
+ */
+async function fetchNonCustomerUserIds(): Promise<Types.ObjectId[]> {
+  const users = await User.find(NON_CUSTOMER_ACCOUNT_FILTER)
+    .select("_id")
+    .lean<{ _id: Types.ObjectId }[]>();
+  return users.map((user) => user._id);
+}
 
 function matchStage(
   conditions: Record<string, unknown>[],
@@ -149,14 +171,29 @@ export async function fetchAdminCustomerStats(): Promise<AdminCustomerStats> {
   // the count needs the linked user's status. Joining every profile to its
   // user with a $lookup made this grow linearly with the customer base on
   // every load of the customers page. Non-active accounts are rare, so list
-  // those once and subtract the profiles they own instead.
-  const [totals, inactiveUsers] = await Promise.all([
+  // those once and subtract the profiles they own instead. The admins,
+  // vendors and staff the list leaves out count nowhere here either.
+  const [nonCustomerIds, inactiveUsers] = await Promise.all([
+    fetchNonCustomerUserIds(),
+    User.find({
+      status: { $exists: true, $ne: USER_ACCOUNT_STATUS.ACTIVE },
+      $nor: [NON_CUSTOMER_ACCOUNT_FILTER],
+    })
+      .select("_id")
+      .lean(),
+  ]);
+
+  // A profile whose user record is missing, or whose user has no status at
+  // all, counted as active before and still does: only an explicit non-active
+  // status removes it.
+  const [totals, inactiveCustomers] = await Promise.all([
     CustomerProfile.aggregate<{
       totalCustomers: number;
       accountCustomers: number;
       vipCustomers: number;
       totalSpend: number;
     }>([
+      { $match: { userId: { $nin: nonCustomerIds } } },
       {
         $group: {
           _id: null,
@@ -173,22 +210,13 @@ export async function fetchAdminCustomerStats(): Promise<AdminCustomerStats> {
         },
       },
     ]).then((rows) => rows[0]),
-    User.find({
-      status: { $exists: true, $ne: USER_ACCOUNT_STATUS.ACTIVE },
-    })
-      .select("_id")
-      .lean(),
+    inactiveUsers.length
+      ? CustomerProfile.countDocuments({
+          isGuest: { $ne: true },
+          userId: { $in: inactiveUsers.map((user) => user._id) },
+        })
+      : 0,
   ]);
-
-  // A profile whose user record is missing, or whose user has no status at
-  // all, counted as active before and still does: only an explicit non-active
-  // status removes it.
-  const inactiveCustomers = inactiveUsers.length
-    ? await CustomerProfile.countDocuments({
-        isGuest: { $ne: true },
-        userId: { $in: inactiveUsers.map((user) => user._id) },
-      })
-    : 0;
 
   const totalCustomers = totals?.totalCustomers ?? 0;
   const totalSpend = totals?.totalSpend ?? 0;
@@ -205,6 +233,55 @@ export async function fetchAdminCustomerStats(): Promise<AdminCustomerStats> {
   };
 }
 
+/** Scoped staff see the customers of the orders they can see. */
+async function staffScopeProfileCondition(
+  staffScope?: StaffAccessScope | null,
+): Promise<Record<string, unknown> | null> {
+  if (!hasStaffScope(staffScope)) return null;
+  const scopeFilter = buildStaffOrderScopeFilter(staffScope);
+  const [customerIds, guestEmails] = await Promise.all([
+    Order.distinct("customerId", scopeFilter),
+    // Guest orders carry no usable customerId (it points at the guest's
+    // cart), so scoped staff match their customers by checkout email.
+    Order.distinct("guestEmail", {
+      ...scopeFilter,
+      guestEmail: { $exists: true, $ne: null },
+    }),
+  ]);
+  return {
+    $or: [
+      { userId: { $in: customerIds } },
+      ...(guestEmails.length > 0
+        ? [{ isGuest: true, email: { $in: guestEmails } }]
+        : []),
+    ],
+  };
+}
+
+/** The profiles the admin list covers before any filter or tab. */
+async function customerProfileConditions(
+  staffScope?: StaffAccessScope | null,
+): Promise<Record<string, unknown>[]> {
+  const [nonCustomerIds, staffScopeCondition] = await Promise.all([
+    fetchNonCustomerUserIds(),
+    staffScopeProfileCondition(staffScope),
+  ]);
+  return [
+    { userId: { $nin: nonCustomerIds } },
+    ...(staffScopeCondition ? [staffScopeCondition] : []),
+  ];
+}
+
+/** The list's All-tab total, for a dashboard that shows only the count. */
+export async function countAdminCustomers(
+  staffScope?: StaffAccessScope | null,
+): Promise<number> {
+  await connectDB();
+  return CustomerProfile.countDocuments({
+    $and: await customerProfileConditions(staffScope),
+  });
+}
+
 export async function fetchAdminCustomerList(
   params: AdminCustomerListParams,
   staffScope?: StaffAccessScope | null,
@@ -219,35 +296,23 @@ export async function fetchAdminCustomerList(
     sortBy,
     sortOrder,
     loyaltyTier,
+    subscription,
     tag,
     minSpent,
     maxSpent,
   } = params;
 
-  const profileConditions: Record<string, unknown>[] = [];
+  const profileConditions = await customerProfileConditions(staffScope);
   const userConditions: Record<string, unknown>[] = [];
 
-  if (hasStaffScope(staffScope)) {
-    const scopeFilter = buildStaffOrderScopeFilter(staffScope);
-    const [customerIds, guestEmails] = await Promise.all([
-      Order.distinct("customerId", scopeFilter),
-      // Guest orders carry no usable customerId (it points at the guest's
-      // cart), so scoped staff match their customers by checkout email.
-      Order.distinct("guestEmail", {
-        ...scopeFilter,
-        guestEmail: { $exists: true, $ne: null },
-      }),
-    ]);
-    profileConditions.push({
-      $or: [
-        { userId: { $in: customerIds } },
-        ...(guestEmails.length > 0
-          ? [{ isGuest: true, email: { $in: guestEmails } }]
-          : []),
-      ],
-    });
-  }
   if (loyaltyTier) profileConditions.push({ loyaltyTier });
+  // Rows written before the consent record carry only the old boolean, so the
+  // filter has to speak both — see `emailConsentStateFilter`.
+  if (subscription) {
+    profileConditions.push(
+      emailConsentStateFilter(subscription as MarketingConsentState),
+    );
+  }
   if (tag) profileConditions.push({ tags: tag });
   if (minSpent !== undefined || maxSpent !== undefined) {
     const totalSpentFilter: Record<string, number> = {};
@@ -354,11 +419,18 @@ export async function fetchVendorCustomerList(
   // (paid-ish payment status, or a delivered COD order); membership only
   // needs the order to not be cancelled, so a shopper with one pending order
   // is already visible with zeroed figures.
+  //
+  // But a checkout abandoned at a gateway is not a shopper of this vendor's.
+  // It sits on `pending` and was counted here, so a vendor's customer list
+  // filled up with people who had reached a payment page and closed it — every
+  // one of them with zeroes in every column, because the money rule below has
+  // always been right about them.
   const purchasers = await Order.aggregate([
     {
       $match: {
         "subOrders.vendorId": vendorObjectId,
         status: { $ne: "cancelled" },
+        ...placedOrderMatch(),
       },
     },
     {
@@ -466,6 +538,10 @@ export async function fetchVendorCustomerList(
         lifetimePoints: 0,
         loyaltyTier: 0,
         marketingOptIn: 0,
+        emailMarketing: 0,
+        smsMarketing: 0,
+        marketingConsentHistory: 0,
+        unsubscribeToken: 0,
         emailNotifications: 0,
         preferredCategories: 0,
         preferredPaymentMethod: 0,

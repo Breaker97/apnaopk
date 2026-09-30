@@ -66,6 +66,14 @@ interface PricingCardProps {
   setPricingAccordionValue: (value: string) => void;
   unitPricePopoverOpen: boolean;
   setUnitPricePopoverOpen: (open: boolean) => void;
+  /**
+   * Whether the "Price on request" switch appears. It is chosen when a product
+   * is created (if Settings → Products offers it); an existing product shows
+   * it only while it is priced on request, so it can be turned off.
+   */
+  showPriceOnRequest: boolean;
+  /** The store no longer offers it, which the switch's hint then says. */
+  priceOnRequestSwitchedOff: boolean;
 }
 
 export function PricingCard({
@@ -82,6 +90,8 @@ export function PricingCard({
   setPricingAccordionValue,
   unitPricePopoverOpen,
   setUnitPricePopoverOpen,
+  showPriceOnRequest,
+  priceOnRequestSwitchedOff,
 }: PricingCardProps) {
   const t = useTranslations();
   const [unitPriceSnapshot, setUnitPriceSnapshot] =
@@ -568,30 +578,40 @@ export function PricingCard({
           </>
         )}
 
-        <Separator />
+        {showPriceOnRequest ? (
+          <>
+            <Separator />
 
-        <FormField
-          control={form.control}
-          name="pricing.priceOnRequest"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <FormLabel>
-                  {t("admin.productForm.fields.priceOnRequest")}
-                </FormLabel>
-                <p className="text-xs font-normal text-muted-foreground">
-                  {t("admin.productForm.quote.priceOnRequestHelp")}
-                </p>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="pricing.priceOnRequest"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>
+                      {t("admin.productForm.fields.priceOnRequest")}
+                    </FormLabel>
+                    <p className="text-xs font-normal text-muted-foreground">
+                      {priceOnRequestSwitchedOff
+                        ? t("admin.productForm.quote.switchedOff")
+                        : t("admin.productForm.quote.priceOnRequestHelp")}
+                    </p>
+                  </div>
+                  <FormControl>
+                    {/* Free to flip either way: on a new product the store
+                        offers it, and an existing one had it when it loaded,
+                        so turning it back on before saving changes nothing
+                        the save could refuse. */}
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </>
+        ) : null}
 
         {watchedPriceOnRequest ? (
           <FormField

@@ -132,6 +132,61 @@ function isMongooseCastError(error: unknown): error is MongooseCastLike {
   );
 }
 
+const RUNTIME_ERROR_NAMES = new Set([
+  "TypeError",
+  "ReferenceError",
+  "RangeError",
+  "SyntaxError",
+  "EvalError",
+  "URIError",
+]);
+
+/**
+ * An error raised below the app — the runtime, the database driver, the AWS
+ * SDK, the mail transport — rather than a sentence the app wrote for the
+ * caller. Its message names things no caller should see: hosts, collections,
+ * bucket names, file paths, or a bug's "Cannot read properties of undefined".
+ * The app's own errors, plain or domain subclasses ("Only 3 left", a
+ * carrier's refusal), are not internal and keep their message.
+ */
+export function isInternalError(error: Error): boolean {
+  const details = error as Error & {
+    code?: unknown;
+    syscall?: unknown;
+    errno?: unknown;
+    $metadata?: unknown;
+  };
+  if (RUNTIME_ERROR_NAMES.has(error.name)) return true;
+  // Node system errors, and libraries that borrow their codes (nodemailer's
+  // EAUTH). Not the app's own SCREAMING_SNAKE codes.
+  if (details.syscall !== undefined || details.errno !== undefined) return true;
+  if (
+    typeof details.code === "string" &&
+    /^(E[A-Z]+|ERR_[A-Z0-9_]+)$/.test(details.code)
+  ) {
+    return true;
+  }
+  // AWS SDK service errors.
+  if (details.$metadata !== undefined) return true;
+  // The MongoDB driver's errors, and every Mongoose error class.
+  if (error.name.startsWith("Mongo")) return true;
+  for (
+    let proto = Object.getPrototypeOf(error);
+    proto && proto !== Error.prototype;
+    proto = Object.getPrototypeOf(proto)
+  ) {
+    if (proto.constructor?.name === "MongooseError") return true;
+  }
+  return false;
+}
+
+/** The message a caller may see for `error`, or `fallback` when it is internal. */
+export function publicErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message && !isInternalError(error)
+    ? error.message
+    : fallback;
+}
+
 export function handleApiError(error: unknown): NextResponse {
   // Handle rate limit errors with Retry-After header
   if (error instanceof RateLimitError) {
@@ -239,6 +294,22 @@ export function handleApiError(error: unknown): NextResponse {
         errors: { [error.path]: [`Invalid value for ${error.path}`] },
       },
       { status: 400 },
+    );
+  }
+
+  if (error instanceof Error && isInternalError(error)) {
+    // Logged in full under a reference the caller can quote; answered with
+    // nothing the caller could learn the deployment from.
+    const reference = crypto.randomUUID().slice(0, 8);
+    console.error(`Unhandled error [${reference}]:`, error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Something went wrong on our side. Please try again.",
+        code: "INTERNAL_ERROR",
+        reference,
+      },
+      { status: 500 },
     );
   }
 

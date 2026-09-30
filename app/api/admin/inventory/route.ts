@@ -23,7 +23,7 @@ import {
   allowedLocationIds,
   resolveLocationScope,
 } from "@/lib/inventory/inventory-location-scope";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 export const GET = withApi(

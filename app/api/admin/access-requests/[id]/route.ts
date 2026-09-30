@@ -6,7 +6,7 @@ import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { createAuditContext } from "@/lib/audit";
 import { decideAccessRequest } from "@/lib/vendors/vendor-access-requests";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 const AccessDecisionSchema = z.object({

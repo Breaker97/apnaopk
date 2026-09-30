@@ -3,6 +3,7 @@ import { User, StaffProfile } from "@/models";
 import { connectDB } from "@/lib/db";
 import { STAFF_USER_ROLES, TEAM_USER_ROLES } from "@/lib/access/staff-role";
 import { getOwnerAdminUserIds } from "@/lib/access/team-roles";
+import { effectiveStaffPermissions } from "@/lib/access/staff-authz";
 import {
   VENDOR_OWNED_STAFF_FILTER,
   getVendorOwnedStaffUserIds,
@@ -111,11 +112,18 @@ export async function fetchStaffList(
   );
 
   const ownerIdSet = new Set(ownerIds);
-  const items = users.map((user) => ({
-    ...user,
-    isOwner: ownerIdSet.has(String(user._id)),
-    staffProfile: profileByUserId.get(String(user._id)) || null,
-  }));
+  const items = users.map((user) => {
+    const profile = profileByUserId.get(String(user._id));
+    return {
+      ...user,
+      isOwner: ownerIdSet.has(String(user._id)),
+      // What the member can actually do — a vendor's staff lose grants saved
+      // before the platform-only list existed, and the row says so.
+      staffProfile: profile
+        ? { ...profile, permissions: effectiveStaffPermissions(profile) }
+        : null,
+    };
+  });
 
   return listResult(items as unknown[], page, limit, total);
 }

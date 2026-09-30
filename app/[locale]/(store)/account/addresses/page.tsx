@@ -1,5 +1,5 @@
-import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ClientSuspense } from "@/components/common/client-suspense";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { AddressManager } from "@/components/account/address-manager";
 
@@ -20,19 +20,20 @@ export default async function AddressesPage({ params }: PageProps) {
         {t("addresses.title")}
       </h1>
 
-      {/* Address Manager */}
-      <Suspense fallback={<AddressesSkeleton />}>
+      {/* Address Manager — its loading state is this boundary's fallback. */}
+      <ClientSuspense fallback={<AddressesSkeleton />}>
         <AddressManager />
-      </Suspense>
+      </ClientSuspense>
     </div>
   );
 }
 
+/** Same grid and card height as the address cards it stands in for. */
 function AddressesSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
       {Array.from({ length: 3 }).map((_, i) => (
-        <Skeleton key={i} className="h-52 rounded-xl" />
+        <Skeleton key={i} className="min-h-[220px] rounded-xl" />
       ))}
     </div>
   );

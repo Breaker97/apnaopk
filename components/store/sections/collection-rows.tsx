@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
@@ -142,7 +142,7 @@ export async function CollectionRows({
         ) : null}
 
         {resolved.map(({ row, shelf }, index) => {
-          const href = `/${locale}/collections/${shelf.slug}`;
+          const href = `/collections/${shelf.slug}`;
           const [lead, ...rest] = shelf.products;
           const cards = (
             rest.length >= row.limit ? rest : shelf.products

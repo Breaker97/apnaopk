@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { ErrorFallback } from "@/components/errors/error-fallback";
 
@@ -46,7 +47,7 @@ export default function Error({
       description={t("errors.serverErrorDescription")}
       homeLabel={t("common.home")}
       retryLabel={t("common.tryAgain")}
-      homeHref={`/${locale}`}
+      homeHref="/"
       error={error}
       onRetry={() => {
         if (shouldHardReload && typeof window !== "undefined") {

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -383,11 +383,9 @@ function BreakdownTable({
 // ─── Not Configured ───────────────────────────────────────────────────────────
 
 function NotConfigured({
-  locale,
   area,
   t,
 }: {
-  locale: string;
   area: "admin" | "staff";
   t: ReturnType<typeof useTranslations>;
 }) {
@@ -407,7 +405,7 @@ function NotConfigured({
         </div>
         {area === "admin" ? (
           <Button asChild variant="outline" className="gap-2">
-            <Link href={`/${locale}/admin/settings/analytics`}>
+            <Link href="/admin/settings/analytics">
               <Settings className="h-4 w-4" />
               {t("admin.analyticsPage.notConfigured.cta")}
             </Link>
@@ -829,7 +827,7 @@ export function AdminAnalyticsContent({
       {loading && configured === null ? (
         <AnalyticsSkeleton />
       ) : configured === false ? (
-        <NotConfigured locale={locale} area={area} t={t} />
+        <NotConfigured area={area} t={t} />
       ) : (
         <>
           {/* ── Traffic Tiles ── */}

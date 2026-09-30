@@ -178,6 +178,20 @@ export function counterFieldsFromBody(body: Record<string, unknown>) {
 }
 
 /**
+ * Whether returned parcels may be sent here, only when the body carried it —
+ * the same rule as the other capabilities, for the same reason.
+ */
+export function returnsFieldsFromBody(body: Record<string, unknown>) {
+  const fields: Record<string, unknown> = {};
+
+  if ("acceptsReturns" in body) {
+    fields.acceptsReturns = Boolean(body.acceptsReturns);
+  }
+
+  return fields;
+}
+
+/**
  * The point this branch is found by, from the cheapest source that has one.
  *
  * An explicit map link wins, because a merchant who pasted one is telling us

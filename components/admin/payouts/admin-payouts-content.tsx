@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
@@ -154,7 +154,7 @@ export function AdminPayoutsContent({
         isLoading={list.isLoading}
         title={t("admin.payoutsPage.listSection.title")}
         detailHref={(row) => `/${locale}/admin/payouts/${row._id}`}
-        onRowOpen={(row) => router.push(`/${locale}/admin/payouts/${row._id}`)}
+        onRowOpen={(row) => router.push(`/admin/payouts/${row._id}`)}
         showVendorColumn
         tabs={tabs}
         activeTab={list.activeTab}

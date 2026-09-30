@@ -1,4 +1,4 @@
-import { backgroundAccentColor, hasBackground } from "@/lib/sliders/types";
+import { backgroundAccentColor, hasBackground } from "@/lib/sliders/background";
 import {
   colorChroma,
   colorTone,
@@ -94,7 +94,7 @@ function clearItemInk(item: HeaderLayoutItem): HeaderLayoutItem {
 }
 
 /** The merchant's dark scheme — `HeaderSettings["colors"]["dark"]`. */
-export interface HeaderSchemeColors {
+interface HeaderSchemeColors {
   backgroundColor: string;
   textColor: string;
   searchBackgroundColor: string;
@@ -281,6 +281,16 @@ function darkenItem(
     case "user":
     case "location":
       return { ...item, foreground: readableInk(item.foreground, surface) };
+
+    case "language":
+      return {
+        ...item,
+        foreground: readableInk(item.foreground, surface),
+        textStyle: readableText(item.textStyle, surface),
+      };
+
+    case "currency":
+      return { ...item, textStyle: readableText(item.textStyle, surface) };
   }
 }
 

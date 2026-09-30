@@ -2,38 +2,8 @@
   "admin": {
     "settings": {
       "title": "Ayarlar",
-      "description": "Mağaza yapılandırmanızı yönetin",
-      "tabs": {
-        "general": "Genel",
-        "security": "Güvenlik",
-        "appearance": "Görünüm",
-        "payment": "Ödemeler",
-        "email": "E-posta",
-        "notifications": "Bildirimler",
-        "orders": "Siparişler",
-        "seo": "SEO",
-        "social": "Sosyal",
-        "maintenance": "Bakım",
-        "storage": "Depolama"
-      },
       "search": "Ayarlarda ara",
-      "close": "Ayarları kapat",
-      "openMenu": "Ayarlar menüsünü aç",
-      "closeMenu": "Ayarlar menüsünü kapat",
-      "storeNameFallback": "Mağazanız",
-      "attention": "İşlem Gerekli",
-      "disabled": "Devre dışı",
       "unsaved": "Kaydedilmedi",
-      "session": {
-        "duration": "Oturum Süresi (gün)",
-        "maxAttempts": "Maksimum Giriş Denemesi",
-        "lockout": "Kilitlenme Süresi (dk)"
-      },
-      "passwordPolicy": {
-        "uppercase": "Büyük Harf Zorunlu Kıl",
-        "numbers": "Rakam Zorunlu Kıl",
-        "specialChars": "Özel Karakter Zorunlu Kıl"
-      },
       "general": {
         "title": "Genel Ayarlar",
         "description": "Mağazanızın temel bilgilerini yapılandırın",
@@ -44,90 +14,162 @@
         "address": "Adres",
         "storeDescription": "Mağaza Açıklaması",
         "defaultLanguage": "Varsayılan Dil",
-        "defaultCurrency": "Varsayılan Para Birimi",
-        "logoUrl": "Logo URL'si",
-        "faviconUrl": "Favicon URL'si",
-        "timezone": "Saat Dilimi",
-        "timezonePlaceholder": "UTC",
+        "defaultCurrency": "Mağaza Para Birimi",
         "supportedLanguages": "Desteklenen diller",
         "supportedLanguagesDesc": "Mağazanızda kullanılabilen diller.",
-        "supportedCurrencies": "Desteklenen para birimleri",
-        "supportedCurrenciesDesc": "Fiyatlandırma ve gösterim için izin verilen para birimi kodları.",
-        "save": "Değişiklikleri Kaydet"
+        "save": "Değişiklikleri Kaydet",
+        "storeInfoTitle": "Mağaza Bilgileri",
+        "storeInfoDescription": "Mağazanızla ilgili temel bilgiler",
+        "languageCurrencyTitle": "Dil ve para birimi",
+        "languageCurrencyDescription": "Mağazanızın açıldığı dil ve satış yaptığı tek para birimi",
+        "searchLanguage": "Dil ara...",
+        "searchCurrency": "Para birimi ara...",
+        "storeCurrencyHint": "Tüm fiyatlar, siparişler ve ödemeler bu para biriminde yapılır. Değiştirmek yalnızca fiyatların etiketini değiştirir; onları dönüştürmez.",
+        "countries": {
+          "title": "Kullanılabilir ülkeler",
+          "description": "Ödeme, satıcı başvurusu, adresler, gönderim ve ürün formlarında kullanılan ülke listelerini denetleyin.",
+          "all": "Tüm ülkeler",
+          "allHint": "Desteklenen tüm ülkeleri ({count}) tüm ülke seçicilerinde göster.",
+          "specific": "Belirli ülkeler",
+          "specificHint": "Yalnızca aşağıda seçtiğiniz ülkeleri göster.",
+          "label": "Ülkeler",
+          "placeholder": "Ülke seçin",
+          "search": "Ülke veya ISO kodu ara...",
+          "empty": "Ülke bulunamadı.",
+          "required": "Kaydetmeden önce en az bir ülke seçin.",
+          "selected": "{count, plural, one {# ülke seçildi.} other {# ülke seçildi.}}"
+        },
+        "defaultBadge": "Varsayılan",
+        "countryRequired": "En az bir ülke seçin ya da Tüm ülkeler seçeneğini seçin."
       },
       "appearance": {
-        "title": "Görünüm",
-        "description": "Mağazanızın görünümünü ve tarzını özelleştirin",
+        "title": "Marka",
         "primaryColor": "Birincil Renk",
         "secondaryColor": "İkincil Renk",
         "accentColor": "Vurgu Rengi",
-        "theme": "Varsayılan Tema",
         "themes": {
           "light": "Açık",
-          "dark": "Koyu",
-          "system": "Sistem"
-        },
-        "borderRadius": "Köşe yuvarlaklığı",
-        "mode": "Mod",
-        "contrast": "Kontrast",
-        "rtl": "Sağdan sola",
-        "collapsedSidebar": "Daraltılmış kenar çubuğu",
-        "nav": "Gezinme",
-        "layout": "Yerleşim",
-        "color": "Renk",
-        "navColor": {
-          "integrate": "Bütünleşik",
-          "apparent": "Belirgin"
+          "dark": "Koyu"
         },
         "presets": "Hazır Ayarlar",
-        "save": "Değişiklikleri Kaydet"
+        "skeletonColor": "İskelet rengi",
+        "skeletonColorHint": "Yükleme yer tutucuları. Boş bırakılırsa nötr gri kalır."
       },
       "payment": {
         "title": "Ödeme Ayarları",
         "description": "Ödeme ağ geçitlerini ve seçeneklerini yapılandırın",
-        "enableStripe": "Stripe'ı Etkinleştir",
         "stripePublishableKey": "Yayınlanabilir Anahtar",
         "stripeWebhookSecret": "Webhook Gizli Anahtarı",
-        "enablePayPal": "PayPal'ı Etkinleştir",
         "paypalClientId": "İstemci Kimliği",
         "paypalMode": "Mod",
         "paypalSandbox": "Test Ortamı",
         "paypalLive": "Canlı",
         "paypalWebhookId": "Webhook Kimliği",
-        "enableCOD": "Kapıda Ödemeyi Etkinleştir",
         "codInstructions": "Kapıda Ödeme Talimatları",
         "codMinOrder": "Minimum Sipariş Tutarı",
         "codMaxOrder": "Maksimum Sipariş Tutarı",
         "stripe": {
           "title": "Stripe",
-          "description": "Stripe ödeme ağ geçidini yapılandırın",
-          "enable": "Stripe Ödemelerini Etkinleştir",
-          "publishableKey": "Yayınlanabilir Anahtar",
+          "description": "Dünya genelinde kredi ve banka kartlarını kabul edin",
           "secretKey": "Gizli Anahtar",
-          "webhookSecret": "Webhook Gizli Anahtarı",
           "webhookSecretHint": "Ödeme olaylarını işlemek için gereklidir. Bunu Stripe Kontrol Paneli → Developers → Webhooks bölümünden alın"
         },
         "paypal": {
           "title": "PayPal",
-          "description": "PayPal ödeme ağ geçidini yapılandırın",
-          "enablePayPal": "PayPal'ı Etkinleştir",
-          "paypalClientId": "İstemci Kimliği",
+          "description": "Dünya genelinde güvenilir ödeme ve cüzdan",
           "clientSecret": "İstemci Gizli Anahtarı",
-          "paypalMode": "Mod",
-          "paypalSandbox": "Test Ortamı",
-          "paypalLive": "Canlı",
-          "paypalWebhookId": "Webhook Kimliği"
+          "clientIdPlaceholder": "PayPal istemci kimliği",
+          "webhookIdPlaceholder": "PayPal webhook kimliği"
         },
         "cod": {
           "title": "Kapıda Ödeme",
-          "description": "Kapıda ödeme seçeneğini yapılandırın",
-          "enable": "Kapıda Ödemeyi Etkinleştir",
-          "instructions": "Kapıda Ödeme Talimatları",
-          "placeholder": "Müşterilere gösterilen talimatlar...",
-          "codMinOrder": "Minimum Sipariş Tutarı",
-          "codMaxOrder": "Maksimum Sipariş Tutarı"
+          "description": "Müşterilerin siparişleri geldiğinde ödeme yapmasına izin verin",
+          "placeholder": "ör. Kurye geldiğinde lütfen tam para hazır bulundurun.",
+          "offline": "Çevrimdışı"
         },
-        "save": "Ödeme Ayarlarını Kaydet"
+        "pesapal": {
+          "ipnRegistered": "Pesapal IPN kaydedildi",
+          "ipnFailed": "Pesapal IPN kaydedilemedi",
+          "description": "Doğu Afrika genelinde mobil para ve kart ödemeleri",
+          "registerIpn": "IPN kaydet",
+          "consumerKeyPlaceholder": "Pesapal consumer key",
+          "consumerSecretPlaceholder": "Pesapal consumer secret",
+          "ipnId": "IPN Kimliği",
+          "ipnIdPlaceholder": "Kayıtlı Pesapal IPN kimliği",
+          "ipnHint": "<code>{path}</code> adresini POST IPN URL'si olarak kaydedin, ardından dönen kimliği girin."
+        },
+        "testConnection": "Bağlantıyı test et",
+        "activeCount": "{count} etkin",
+        "checkout": {
+          "currencyListed": "Ödemede gizli: mağaza para birimi {currency} desteklenmiyor. Yalnızca {currencies} desteklenir. Sunmak için Genel Ayarlar'dan para birimini değiştirin.",
+          "currency": "Ödemede gizli: mağaza para birimi {currency} desteklenmiyor. Sunmak için Genel Ayarlar'dan para birimini değiştirin.",
+          "keys": "Anahtarları kaydedilene kadar ödemede gizli."
+        },
+        "fields": {
+          "keyId": "Key ID",
+          "keySecret": "Key Secret",
+          "webhookSecret": "Webhook gizli anahtarı",
+          "webhookUrl": "Webhook URL'si",
+          "publicKey": "Genel Anahtar",
+          "secretKey": "Gizli Anahtar",
+          "consumerKey": "Consumer Key",
+          "consumerSecret": "Consumer Secret",
+          "clientId": "İstemci Kimliği",
+          "clientSecret": "İstemci Gizli Anahtarı",
+          "walletId": "Cüzdan Kimliği",
+          "merchantKey": "Üye İşyeri Anahtarı",
+          "countryCode": "Ülke kodu",
+          "subscriptionKey": "Abonelik Anahtarı",
+          "apiUser": "API Kullanıcısı",
+          "apiKey": "API Anahtarı",
+          "targetEnvironment": "Hedef ortam",
+          "callbackHost": "Geri çağırma sunucusu (isteğe bağlı)"
+        },
+        "razorpay": {
+          "description": "Hindistan için ödemeler, Razorpay Curlec üzerinden de Malezya için",
+          "internationalNote": "{currency} yalnızca Razorpay hesabınızda International Payments etkinse kabul edilir.",
+          "keySecretPlaceholder": "Key secret",
+          "webhookSecretPlaceholder": "Webhook gizli anahtarı",
+          "webhookSecretHint": "O webhook'ta belirlediğiniz gizli anahtar. Güvenlik nedeniyle kaydedilen gizli değerler yeniden gösterilmez.",
+          "webhookUrlHint": "Razorpay Dashboard → Account & Settings → Webhooks bölümüne payment.captured, order.paid, refund.created, refund.processed ve refund.failed olaylarıyla ekleyin. Alıcı mağazanıza hiç geri dönmese bile ödemeyi onaylar; bu, FPX ve diğer banka yönlendirmelerinde yaygındır."
+        },
+        "paystack": {
+          "description": "Afrika için modern ödemeler"
+        },
+        "iotec": {
+          "description": "MTN ve Airtel mobil para ve kart ödemeleri (Uganda)",
+          "clientIdPlaceholder": "ioTec istemci kimliği",
+          "clientSecretPlaceholder": "ioTec istemci gizli anahtarı",
+          "walletIdPlaceholder": "ioTec Pay cüzdan UUID'si",
+          "walletIdHint": "ioTec Pay portalında cüzdan ayarlarınızda bulunur.",
+          "callbackHint": "İsteğe bağlı: anlık durum güncellemeleri için ioTec Pay portalında tahsilat geri çağırma URL'sini <code>{path}</code> olarak ayarlayın. Ödemeler bu olmadan da sorgulamayla onaylanır."
+        },
+        "orangeMoney": {
+          "description": "Batı ve Orta Afrika genelinde Orange mobil para",
+          "clientIdPlaceholder": "Orange geliştirici istemci kimliği",
+          "clientSecretPlaceholder": "Orange geliştirici istemci gizli anahtarı",
+          "merchantKeyPlaceholder": "Orange Money üye işyeri anahtarı",
+          "merchantKeyHint": "Üye işyeri sözleşmesi imzalandıktan sonra yerel Orange operatörünüz tarafından verilir — geliştirici portalında bulunmaz.",
+          "countryHint": "Üye işyeri anahtarınızı veren Orange operatörünün ülkesinin iki harfli kodu (ci, sn, cm, ml, mg…). Canlıda zorunlu; test ortamında yok sayılır ve her zaman Orange'ın <code>{endpoint}</code> uç noktası kullanılır.",
+          "callbackHint": "Orange geliştirici portalında bildirim URL'sini <code>{path}</code> olarak ayarlayın. Ödemeler ayrıca ödeme başarı sayfasında sorgulamayla onaylanır."
+        },
+        "mtnMomo": {
+          "description": "Afrika genelinde MTN MoMo PIN onaylı ödemeler",
+          "subscriptionKeyHint": "Collections ürün aboneliğinizin birincil anahtarı.",
+          "apiUserPlaceholder": "API kullanıcısı UUID'si",
+          "apiKeyPlaceholder": "Kullanıcıyla eşleşen API anahtarı",
+          "targetEnvironmentHint": "MTN OpCo'nuzun katılım sırasında verdiği X-Target-Environment (mtnuganda, mtnghana, …). Canlıda zorunlu; test ortamında yok sayılır ve her zaman <code>{value}</code> gönderilir.",
+          "callbackHostHint": "MTN'e sağlayıcı geri çağırma sunucusu olarak kaydettiğiniz alan adı, <code>{scheme}</code> ve yol olmadan. Geri çağırma URL'si başka bir sunucuyu gösteren ödemeleri MTN reddeder; tam eşleşmiyorsa boş bırakın — ödemeler her durumda sorgulama ve 15 dakikada bir yapılan mutabakatla onaylanır.",
+          "callbackHint": "Ayarlandığında MTN'den <code>{path}</code> adresine bildirim göndermesi istenir — yalnızca bir kez ve yeniden denemeden; bu yüzden asla tek onay yöntemi değildir."
+        },
+        "turnstile": {
+          "description": "Yalnızca art arda kart reddinden sonra istenen Cloudflare Turnstile",
+          "explainer": "Bir alışverişçinin kartları yarım saat içinde üç kez reddedildiğinde ödeme sayfası bir insan doğrulaması ister, altıdan sonra ödemeyi duraklatır. Duraklatma bu olmadan da çalışır; doğrulama için kendi Cloudflare Turnstile anahtarlarınız gerekir. Çoğu alışverişçi bunu hiç görmez.",
+          "missingKeys": "İki anahtar olmadan açıldı; bu yüzden doğrulama istenmez — yalnızca duraklatma uygulanır.",
+          "secretKey": "Gizli anahtar",
+          "siteKey": "Site anahtarı",
+          "title": "Kart deneme kontrolü"
+        }
       },
       "email": {
         "title": "E-posta Yapılandırması (SMTP)",
@@ -139,7 +181,6 @@
         "password": "SMTP Parolası",
         "fromEmail": "Gönderen E-posta",
         "fromName": "Gönderen Adı",
-        "secure": "SSL/TLS Kullan (465 bağlantı noktası için)",
         "test": {
           "label": "Test E-postası",
           "placeholder": "test@example.com",
@@ -147,36 +188,136 @@
           "success": "Test e-postası başarıyla gönderildi!",
           "error": "Test e-postası gönderilemedi"
         },
-        "save": "E-posta Ayarlarını Kaydet"
+        "save": "E-posta Ayarlarını Kaydet",
+        "passwordPlaceholder": "Şifreyi girin",
+        "fromNamePlaceholder": "Mağazanızın adı",
+        "encryptionNote": "Şifreleme otomatiktir: 465 numaralı port örtük TLS kullanır, 587 numaralı port STARTTLS gerektirir."
       },
       "notifications": {
         "title": "Bildirim Ayarları",
-        "description": "Hangi olayların kontrol paneli bildirimleri, e-postalar ve tarayıcı anlık bildirimleri oluşturacağını seçin."
+        "description": "Hangi olayların panel bildirimleri, e-postalar, anlık bildirimler ve SMS oluşturacağını seçin.",
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "Yeni siparişler",
+              "description": "Bir sipariş verildiğinde yöneticileri bilgilendir."
+            },
+            "newCustomers": {
+              "title": "Yeni müşteriler",
+              "description": "Bir müşteri profili oluşturulduğunda yöneticileri bilgilendir."
+            },
+            "newVendors": {
+              "title": "Yeni satıcı başvuruları",
+              "description": "Bir satıcı başvurusu beklemede olduğunda yöneticileri bilgilendir."
+            },
+            "returns": {
+              "title": "İade talepleri",
+              "description": "Bir iade talebinin incelenmesi gerektiğinde yöneticileri bilgilendir."
+            },
+            "payments": {
+              "title": "Ödemeler",
+              "description": "Ödeme hareketi kaydedildiğinde yöneticileri bilgilendir."
+            },
+            "preorderAccessRequests": {
+              "title": "Ön sipariş erişim istekleri",
+              "description": "Bir satıcı ön sipariş satmak istediğinde yöneticileri bilgilendir."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "Satıcı başvuru durumu",
+              "description": "Hesapları onaylandığında veya reddedildiğinde satıcıları bilgilendir."
+            },
+            "newOrders": {
+              "title": "Satıcı yeni siparişleri",
+              "description": "Yeni bir sipariş aldıklarında satıcıları bilgilendir."
+            },
+            "returns": {
+              "title": "Satıcı iade talepleri",
+              "description": "Bir iade talebi kendilerine ait olduğunda satıcıları bilgilendir."
+            },
+            "preorderAccess": {
+              "title": "Satıcı ön sipariş erişimi",
+              "description": "Ön sipariş erişimleri onaylandığında, reddedildiğinde veya geri alındığında satıcıları bilgilendir."
+            }
+          },
+          "staff": {
+            "newOrders": {
+              "title": "Personel için yeni siparişler",
+              "description": "Bir sipariş verildiğinde sipariş erişimi olan personeli bilgilendir."
+            },
+            "newCustomers": {
+              "title": "Personel için yeni müşteriler",
+              "description": "Bir müşteri profili oluşturulduğunda müşteri erişimi olan personeli bilgilendir."
+            },
+            "returns": {
+              "title": "Personel için iade talepleri",
+              "description": "İade taleplerinin incelenmesi gerektiğinde sipariş erişimi olan personeli bilgilendir."
+            },
+            "payments": {
+              "title": "Personel için ödemeler",
+              "description": "Ödeme hareketi kaydedildiğinde POS ve sipariş personelini bilgilendir."
+            },
+            "lowStock": {
+              "title": "Personel için düşük stok",
+              "description": "Ürünlerin yenilenmesi gerektiğinde envanter personelini bilgilendir."
+            }
+          },
+          "customer": {
+            "orderUpdates": {
+              "title": "Müşteri sipariş güncellemeleri",
+              "description": "Sipariş durumu değiştiğinde müşterileri bilgilendir."
+            },
+            "returnUpdates": {
+              "title": "Müşteri iade güncellemeleri",
+              "description": "İade durumu değiştiğinde müşterileri bilgilendir."
+            }
+          }
+        },
+        "event": "Olay",
+        "channels": {
+          "inApp": "Uygulama içi",
+          "email": "E-posta",
+          "browserPush": "Anlık",
+          "sms": "SMS"
+        },
+        "smsSettingsLink": "SMS ayarları",
+        "smsOffWarning": "Bazı olaylar SMS gönderecek şekilde ayarlı, ancak SMS kapalı veya tam olarak ayarlanmamış; bu yüzden hiçbiri gönderilmeyecek.",
+        "smsSetupHint": "SMS göndermek için önce Twilio'yu ayarlayın.",
+        "groups": {
+          "admin": {
+            "title": "Yönetici bildirimleri",
+            "description": "Mağaza yönetim ekibini uyarması gereken olaylar."
+          },
+          "vendor": {
+            "title": "Satıcı bildirimleri",
+            "description": "Satıcı hesaplarına gönderilen olaylar."
+          },
+          "staff": {
+            "title": "Personel bildirimleri",
+            "description": "Modül izinlerine göre aktif personele gönderilen olaylar."
+          },
+          "customer": {
+            "title": "Müşteri bildirimleri",
+            "description": "Müşteri hesaplarına gönderilen olaylar."
+          }
+        }
       },
       "security": {
         "title": "Güvenlik ve Erişim Kontrolü",
         "description": "Çoklu satıcı modunu, oturum güvenliğini ve parola politikalarını yapılandırın",
-        "tabs": {
-          "general": "Genel",
-          "2fa": "İki Faktörlü Kimlik Doğrulama",
-          "oauth": "OAuth",
-          "pos": "POS Erişimi",
-          "vendor": "Satıcı İzinleri"
-        },
         "multiVendor": {
-          "title": "Mağaza Modu",
           "label": "Çoklu Satıcı Modu",
-          "description": "Pazar yeri özelliklerini etkinleştirin: satıcı kaydı, birden fazla mağaza, satıcı kontrol paneli"
+          "description": "Pazar yeri özelliklerini etkinleştirin: satıcı kaydı, birden fazla mağaza, satıcı kontrol paneli",
+          "manageLink": "Satıcı kaydını, planları ve politikayı yönet"
         },
         "emailVerification": {
           "title": "E-posta Doğrulama",
           "required": "E-posta Doğrulamayı Zorunlu Kıl",
           "requiredDesc": "Kullanıcılar mağazaya erişmeden önce e-postalarını doğrulamalıdır",
-          "vendorRequired": "Satıcılar için Zorunlu Kıl",
-          "vendorRequiredDesc": "Satıcılar ürün listelemeden önce e-postalarını doğrulamalıdır"
+          "vendorRequired": "Satıcılar için Zorunlu Kıl"
         },
         "session": {
-          "title": "Oturum Güvenliği",
           "duration": "Oturum Süresi (gün)",
           "maxAttempts": "Maksimum Giriş Denemesi",
           "lockout": "Kilitlenme Süresi (dk)"
@@ -189,10 +330,15 @@
           "cartPreset": "Sepet",
           "couponPreset": "Kuponlar",
           "authPreset": "Kimlik Doğrulama / Giriş",
-          "ipPreset": "Misafir / Herkese Açık (IP tabanlı)"
+          "ipPreset": "Misafir / Herkese Açık (IP tabanlı)",
+          "presets": {
+            "default": "Varsayılan",
+            "lenient": "Esnek (100/15 dk)",
+            "moderate": "Orta (20/15 dk)",
+            "strict": "Katı (5/15 dk)"
+          }
         },
         "passwordPolicy": {
-          "title": "Parola Politikası",
           "minLength": "Minimum Parola Uzunluğu",
           "uppercase": "Büyük Harf Zorunlu Kıl",
           "numbers": "Rakam Zorunlu Kıl",
@@ -202,7 +348,10 @@
         "unlock": {
           "label": "Bir hesabın kilidini aç",
           "action": "Kilidi aç",
-          "hint": "Bu adres için başarısız giriş sayacını, kilitlendiği tüm cihazlarda temizler. Anında geçerli — kaydetmeye gerek yok."
+          "hint": "Bu adres için başarısız giriş sayacını, kilitlendiği tüm cihazlarda temizler. Anında geçerli — kaydetmeye gerek yok.",
+          "done": "Hesabın kilidi açıldı. Artık yeniden giriş yapabilir.",
+          "notLocked": "Bu adres kilitli değildi. Temizlenecek bir şey yok.",
+          "failed": "Bu hesabın kilidi açılamadı"
         }
       },
       "orders": {
@@ -214,10 +363,53 @@
         "freeShippingThreshold": "Ücretsiz Kargo Alt Sınırı ($)",
         "freeShippingPlaceholder": "Devre dışı bırakmak için 0 girin",
         "shippingHandledByZones": "Kargo bölgeleri açık, bu nedenle bu iki değer kullanılmıyor. Ücretler Kargo ve Teslimat ayarlarından gelir.",
-        "vendorCommission": "Satıcı Komisyonu",
         "commissionRate": "Komisyon Oranı (%)",
         "minWithdrawal": "Minimum Çekim Tutarı ($)",
-        "save": "Sipariş Ayarlarını Kaydet"
+        "returnInstructions": "İade talimatları",
+        "returnInstructionsHint": "Bir iade onaylandığında iade adresiyle birlikte alışverişçiye gönderilir. İade numarası için {returnNumber} kullanın. Gösterilen metni kullanmak için boş bırakın.",
+        "finalSaleCollections": "İadesiz satış koleksiyonları",
+        "finalSaleCollectionsSearch": "Koleksiyon ara",
+        "finalSaleCollectionsNone": "Koleksiyon bulunamadı",
+        "finalSaleCollectionMissing": "Kaldırılmış koleksiyon",
+        "finalSaleCollectionUnnamed": "Koleksiyon",
+        "finalSaleCollectionsHint": "Bu koleksiyonlardaki ürünler iadesiz satılır: alışverişçiler bunları iade edemez. Önceden verilmiş siparişler, satıldıkları kuralları korur.",
+        "billVendorCodShipping": "Kapıda ödeme gönderim ücretini satıcılara fatura et",
+        "billVendorCodShippingHint": "Satıcı kapıda nakit tahsil ettiğinde teslimat ücretini de elinde tutar. Kendi kuryenizin taşıdığı koliler için, borçlu oldukları komisyonla birlikte onlara fatura kesmek üzere bunu açın.",
+        "loyaltyHeading": "Sadakat puanları",
+        "loyaltySpendPerPoint": "Sadakat puanı başına harcama",
+        "loyaltySpendPerPointHint": "Müşteriler bu tutarı her harcadıklarında 1 puan kazanır. Seviyeler Gümüş için {silver, number}, Altın için {gold, number} ve Platin için {platinum, number} puandan başlar. Yeni oran bir sonraki ödenmiş siparişten itibaren geçerlidir; verilmiş puanlar kazanıldıkları oranı korur.",
+        "refundAdminFee": "İade yönetim ücreti (%)",
+        "refundAdminFeeCap": "İade başına ücret üst sınırı ({currency})",
+        "refundAdminFeeCapHint": "Üst sınır olmaması için 0 girin.",
+        "refundAdminFeeHint": "Bir satış iade edildiğinde komisyonunuzdan elinizde tuttuğunuz pay. Alışverişçiye her durumda tam iade yapılır; maliyet satıcıya geçer.",
+        "restockingFee": "Yeniden stoklama ücreti (%)",
+        "restockingFeeHint": "İade edilen ürünlerden kesilir, asla vergiden değil.",
+        "returnShippingFee": "İade kargo ücreti ({currency})",
+        "returnShippingFeeHint": "Alışverişçinin ürün geri gönderdiği her satıcı için bir kez alınır.",
+        "returnWindowDays": "İade süresi (gün)",
+        "returnWindowDaysHint": "Teslimattan sonra bir alışverişçinin siparişi iade etmek için ne kadar süre talepte bulunabileceği. Her ürün sayfasında gösterilir.",
+        "windowUnlimited": "Süre sınırı yok",
+        "windowStart": "Süre başlangıcı",
+        "windowStartParcel": "Her paket teslim edildiğinde",
+        "windowStartLast": "Siparişin son paketi teslim edildiğinde",
+        "windowStartHint": "Son paketten saymak her sipariş için tek bir süre verir ve son paket ulaşana kadar her satıcının hakedişini bekletir.",
+        "payoutHoldMaxDays": "En uzun hakediş bekletme süresi (gün)",
+        "payoutHoldMaxDaysHint": "Süre sınırı yokken satıcının satışı teslimattan bu kadar gün sonra ödenir. Bundan sonraki bir iade, satıcının bir sonraki hakedişinden düşülür.",
+        "windowOverrides": "Koleksiyona göre iade süreleri",
+        "windowOverrideDays": "Gün",
+        "windowOverrideDaysUnit": "gün",
+        "windowOverrideRemove": "Kaldır",
+        "windowOverridesSearch": "Koleksiyon ekle",
+        "windowOverridesHint": "Bu koleksiyonlardaki ürünler bunun yerine bu kadar gün içinde iade edilebilir. Bir ürün kendi süresini de belirleyebilir; birden fazlası geçerliyse en kısası uygulanır.",
+        "returnsHeading": "İadeler ve geri ödemeler",
+        "returnsHint": "Bunlar, ayar hâline gelmeden önce Storify’ın davranışıyla başlar; siz değiştirene kadar hiçbir şey değişmez.",
+        "selfServe": "Müşteriler iade talep edebilir",
+        "selfServeHint": "Kapalıyken müşteriler sizinle iletişime geçer ve iadeyi siparişten siz açarsınız. Mevcut iadelerini yine görebilir ve iptal edebilirler.",
+        "shippingRefund": "İadede teslimat ücretini geri öde",
+        "shippingRefundAlways": "Her zaman",
+        "shippingRefundHint": "Bizim hatamız; hasarlı ya da kusurlu, açıklamaya uymayan veya yanlış gönderilen ürün demektir.",
+        "shippingRefundMerchantFault": "Yalnızca iade bizim hatamızsa",
+        "shippingRefundNever": "Asla — alışverişçi teslimatı aldı"
       },
       "seo": {
         "title": "SEO Ayarları",
@@ -283,9 +475,7 @@
         "enable": "Bakım Modunu Etkinleştir",
         "enableDesc": "Etkinleştirildiğinde, ziyaretçiler bir bakım mesajı görür",
         "titleLabel": "Başlık",
-        "titlePlaceholder": "Yakında geri döneceğiz",
         "message": "Bakım Mesajı",
-        "messagePlaceholder": "Şu anda bakım çalışması yapıyoruz. Lütfen kısa süre sonra tekrar kontrol edin!",
         "backgroundImage": "Arka plan görseli",
         "backgroundImageHint": "Bir görsel ayarlandığında, ziyaretçiler kart olmadan bakım metninin arkasında bu görseli soluk halde görür.",
         "backgroundImagePreviewAlt": "Bakım arka planı önizlemesi",
@@ -295,7 +485,14 @@
         "countdownEndsAtHint": "Müşterilerin geri sayım yapacağı yerel tarih ve saati ayarlayın.",
         "allowedIPs": "İzin verilen IP adresleri",
         "allowedIPsHint": "Her satıra bir IP. Bu ziyaretçiler, bakım modu etkinken bile mağazaya erişebilir.",
-        "save": "Bakım Ayarlarını Kaydet"
+        "save": "Bakım Ayarlarını Kaydet",
+        "preview": {
+          "label": "Canlı Önizleme",
+          "countdownEmpty": "Geri sayımı başlatmak için bir dönüş zamanı seçin.",
+          "countdownHidden": "Geri sayım gizli. Ziyaretçiler yalnızca başlığı ve mesajı görür.",
+          "bypassTitle": "Erişim istisnası",
+          "bypassCount": "{count, plural, one {# IP mağazaya erişmeye devam edebilir.} other {# IP mağazaya erişmeye devam edebilir.}}"
+        }
       },
       "shipping": {
         "title": "Kargo ve Teslimat",
@@ -314,7 +511,6 @@
           "title": "Kargo çıkış noktası",
           "description": "Operasyonel referans ve gelecekteki kargo firması entegrasyonları için kullanılır.",
           "country": "Ülke",
-          "countryPlaceholder": "Amerika Birleşik Devletleri",
           "state": "Eyalet / İl",
           "statePlaceholder": "CA",
           "city": "Şehir",
@@ -394,14 +590,6 @@
           "minDays": "Min gün",
           "maxDays": "Maks gün"
         },
-        "pickup": {
-          "title": "Mağazadan teslim alma",
-          "description": "Alternatif bir teslimat yöntemi olarak mağazadan teslim almayı sunun.",
-          "address": "Teslim alma adresi",
-          "instructions": "Talimatlar",
-          "readyMin": "Hazır olma süresi (min gün)",
-          "readyMax": "Hazır olma süresi (maks gün)"
-        },
         "vendorShipping": {
           "title": "Satıcı bazlı kargo",
           "description": "Etkinleştirildiğinde, çoklu satıcılı bir sepetteki her satıcının ürünleri, o satıcının kendi kargo profiline göre (bu platform profiline geri dönerek) ücretlendirilir. Kargo, satıcı bazında tahsil edilir ve dağıtılır."
@@ -420,20 +608,134 @@
           "description": "Satıcı kendi aracıyla teslim ediyorsa nakdi o alır ve size komisyon borçlanır. Sizin kuryeniz teslim ediyorsa nakdi siz alırsınız ve satıcıya hakedişini borçlanırsınız; bu siparişleri yalnızca yönetici ödendi işaretleyebilir. Yeni siparişler için geçerlidir.",
           "vendor": "Satıcı",
           "platform": "Mağaza"
+        },
+        "carriers": {
+          "saveFirst": {
+            "test": "Bağlantıyı test etmeden önce gönderim ayarlarını kaydedin",
+            "webhook": "Webhook URL'si oluşturmadan önce gönderim ayarlarını kaydedin",
+            "disconnect": "Kargo firmasının bağlantısını kesmeden önce gönderim ayarlarını kaydedin",
+            "pickupLocations": "Teslim alma noktalarını yüklemeden önce gönderim ayarlarını kaydedin"
+          },
+          "webhookGenerated": "Webhook URL'si oluşturuldu",
+          "webhookFailed": "Webhook URL'si oluşturulamadı",
+          "disconnected": "Kargo firmasının bağlantısı kesildi",
+          "disconnectFailed": "Kargo firmasının bağlantısı kesilemedi",
+          "pickupLocationsFailed": "Teslim alma noktaları yüklenemedi",
+          "shippo": {
+            "labelFormats": {
+              "pdf4x6": "PDF 4×6 (termal)",
+              "pdf": "PDF (A4 / Letter)"
+            },
+            "description": "USPS, UPS, FedEx, DHL ve dünya çapında 40’tan fazla kargo şirketi.",
+            "labelFormat": "Etiket biçimi",
+            "liveToken": "Canlı API belirteci",
+            "modeHint": "Shippo’nun ayrı bir sandbox’ı yok — etiketin gerçek olup olmadığını kullandığınız belirteç belirler. İkisini de kaydedip buradan geçiş yapın.",
+            "testToken": "Test API belirteci"
+          },
+          "shiprocket": {
+            "pickupPlaceholder": "Bir teslim alma noktası seçin",
+            "description": "Hindistan kurye toplayıcısı — Delhivery, Bluedart, Ekart ve daha fazlası.",
+            "email": "API kullanıcısı e-postası",
+            "password": "API kullanıcısı şifresi",
+            "pickupHint": "Shiprocket, serbest yazılmış bir adresten değil, panellerinde kaydettiğiniz bir takma addan gönderim yapar. Biri seçilene kadar hiçbir şey gönderilemez.",
+            "webhookHint": "Shiprocket’in webhook ayarlarına aynı değeri girin; bunu taşımayan takip güncellemeleri reddedilir.",
+            "webhookToken": "Webhook belirteci (x-api-key)"
+          },
+          "authFailed": "Bu kargo şirketi kimlik bilgilerinizi reddediyor — onunla hiçbir şey gönderilemez.",
+          "authFailedHint": "Aşağıdaki kimlik bilgilerini güncelleyin, ardından Bağlantıyı test et düğmesine basın. Kargo şirketi bunları kabul edince uyarı kendiliğinden kalkar.",
+          "description": "Gerçek etiket satın almak ve kolileri otomatik takip etmek için bir kargo hesabı bağlayın. Ödeme sayfası kendi kargo ücretlerinizi kullanmaya devam eder.",
+          "disconnect": "Bağlantıyı kes",
+          "enable": "Kargo şirketlerini etkinleştir",
+          "mode": "Ortam",
+          "modeLive": "Canlı",
+          "modeTest": "Test",
+          "originNotSupported": "Shiprocket yalnızca Hindistan’dan gönderim yapar. Etkinleştirmek için gönderim çıkış ülkenizi Hindistan yapın.",
+          "pickupLocation": "Teslim alma noktası",
+          "refreshPickupLocations": "Teslim alma noktalarını yenile",
+          "registerWebhook": "Webhook URL’si oluştur",
+          "testConnection": "Bağlantıyı test et",
+          "title": "Kargo şirketleri",
+          "webhookUrl": "Webhook URL’si — bunu kargo şirketinin paneline yapıştırın"
+        },
+        "addressHold": {
+          "title": "Teslim edilemeyen adresler",
+          "description": "Kurye bir siparişin adresine teslim edemediğinde gönderim duraklatılır ve müşteriden adresi düzeltmesi istenir.",
+          "suggestAtCheckout": "Ödemede adresi kontrol et",
+          "suggestAtCheckoutHint": "Sipariş verilmeden önce bir düzeltme öner. Alıcı yazdığını yine de koruyabilir. Bağlı bir Shippo hesabı gerekir.",
+          "checkAfterOrder": "Yeni siparişlerin adreslerini kontrol et",
+          "checkAfterOrderHint": "Kuryenin etiketi reddetmesini beklemek yerine, adres kontrolden geçemediği anda siparişi beklet.",
+          "autoRequest": "Müşteriye otomatik sor",
+          "autoRequestHint": "Sipariş beklemeye alındığı anda müşteriye adresi düzeltmesi için bir bağlantı e-postala. Kapalıyken bu işi personel yapar.",
+          "reminderDays": "Hatırlatma (gün sonra)",
+          "reminderDaysHint": "İlk istekten sonraki günler, virgülle ayrılmış. Hatırlatma istemiyorsanız boş bırakın.",
+          "deadlineDays": "Son süre (gün)",
+          "deadlineDaysHint": "Müşterinin ilk istekten itibaren yanıt vermek için ne kadar süresi olduğu.",
+          "onDeadline": "Son süre dolduğunda",
+          "onDeadlineNotify": "Mağazaya bildir ve siparişi beklemede tut",
+          "onDeadlineCancel": "Siparişi iptal et ve tamamını iade et",
+          "keepReturnShipping": "Paket geri döndüğünde iade kargo ücretini tut",
+          "keepReturnShippingHint": "Bir paket hatalı adres nedeniyle göndericiye iade edildiğinde, sunulan iadeden etiket maliyeti düşülür. Bekletilen siparişler hiç gönderilmediği için her zaman tamamen iade edilir."
+        },
+        "automation": {
+          "buyLabel": "Etiketi otomatik satın al",
+          "buyLabelHint": "Kapalıyken fiyatları karşılaştırılmış bir taslak oluşturulur ve orada durur; satın alma bir insana bırakılır.",
+          "description": "Bir sipariş ödenip işleme alınır alınmaz gönderi oluşturun. İsterseniz bir siparişi her zaman elle de kuryeye gönderebilirsiniz.",
+          "enable": "Otomatik gönderimi etkinleştir",
+          "fixedServiceHint": "Kargo şirketinin kendi hizmet tanımlayıcısı. Hesabınızın hangi belirteçleri döndürdüğünü görmek için bir siparişi elle kuryeye gönderin.",
+          "fixedServiceToken": "Hizmet belirteci",
+          "includeCod": "Kapıda ödeme siparişlerini dahil et",
+          "includeCodHint": "Kapıda ödeme siparişi hiçbir zaman ödendi olarak işaretlenmez; bu yüzden yalnızca bu açıkken otomatik gönderilir.",
+          "markShipped": "Etiket satın alınınca siparişi gönderildi olarak işaretle",
+          "markShippedHint": "Müşteriye takip numarasını gönderir.",
+          "maxLabelCost": "Etiket maliyeti bunu aşarsa iptal et",
+          "maxLabelCostHint": "Mağazanın değil, kargo hesabınızın para biriminde.",
+          "maxOrderValue": "En yüksek sipariş tutarı",
+          "minOrderValue": "En düşük sipariş tutarı",
+          "noLimit": "Sınır yok",
+          "rateChoice": "Hangi ücret satın alınsın",
+          "rateChoiceCheapest": "En ucuz",
+          "rateChoiceFastest": "En hızlı",
+          "rateChoiceFixed": "Belirli bir hizmet",
+          "requiresCarrier": "Önce bir kargo şirketi bağlayın — aksi hâlde otomasyonun etiket alabileceği bir yer yok.",
+          "restrictCountries": "Yalnızca bu hedefleri otomatikleştir",
+          "restrictCountriesHint": "Tüm hedefleri otomatikleştirmek için boş bırakın.",
+          "title": "Otomatik gönderim"
+        },
+        "courierLinks": {
+          "add": "Kurye ekle",
+          "builtIn": "Kurulum gerektirmeden zaten bağlı olanlar:",
+          "carrier": "Kurye adı",
+          "description": "Elle girdiğiniz koliler için. Takip numarasının geleceği yere {tracking} yazın; yer tutucusu olmayan bir bağlantının sonuna numara eklenir.",
+          "remove": "Kurye bağlantısını kaldır",
+          "title": "Kurye takip bağlantıları",
+          "urlTemplate": "Takip URL’si"
+        },
+        "packages": {
+          "active": "Etkin",
+          "add": "Paket ekle",
+          "default": "Varsayılan kutu",
+          "description": "Kargo teklifinin fiyatlandırılabileceği kutular. Bir siparişteki ürünlerin kendi ölçüleri olmadığında varsayılan kutu kullanılır.",
+          "empty": "Henüz paket yok. Kargo ücretleri için en az bir kutu gerekir.",
+          "emptyWeight": "Boş ağırlık",
+          "height": "Yükseklik",
+          "length": "Uzunluk",
+          "maxWeight": "En fazla ağırlık",
+          "name": "Ad",
+          "newName": "Yeni kutu",
+          "noLimit": "Sınır yok",
+          "remove": "Paketi kaldır",
+          "title": "Kayıtlı paketler",
+          "unit": "Birim",
+          "width": "Genişlik"
         }
       },
       "twoFactor": {
         "title": "İki Faktörlü Kimlik Doğrulama",
         "description": "İki faktörlü kimlik doğrulamayı etkinleştirin ve hangi rollerin bunu ayarlayabileceğini seçin",
         "enable": "İki Faktörlü Kimlik Doğrulamayı Etkinleştir",
-        "enableDesc": "Kullanıcıların hesapları için 2FA ayarlamasına izin verin",
-        "requirements": "2FA kullanabilecek roller",
         "admin": "Yöneticiler için Etkinleştir",
-        "adminDesc": "Yönetici hesaplarının iki faktörlü kimlik doğrulama ayarlamasına izin verin",
         "vendor": "Satıcılar için Etkinleştir",
-        "vendorDesc": "Satıcı hesaplarının iki faktörlü kimlik doğrulama ayarlamasına izin verin",
         "staff": "Personel için Etkinleştir",
-        "staffDesc": "Personel hesaplarının iki faktörlü kimlik doğrulama ayarlamasına izin verin",
         "save": "2FA Ayarlarını Kaydet",
         "enableFirstHint": "Yöneticilere, satıcılara veya personele sunmak için iki faktörlü kimlik doğrulamayı açın."
       },
@@ -466,7 +768,8 @@
           "step4b": "ve şunu ekleyin:",
           "step4c": "App domains altına. Meta, uygulamayı yayına almadan önce bir Gizlilik Politikası URL'si de ister.",
           "step5": "App ID ve App Secret değerlerini yukarıdaki alanlara kopyalayıp kaydedin, ardından Kimlik bilgilerini doğrula düğmesine basın.",
-          "step6": "Uygulamayı Development modundan Live moduna alın. Bunu yapana kadar yalnızca uygulamada rolü olan kişiler Facebook ile oturum açabilir."
+          "step6": "Uygulamayı Development modundan Live moduna alın. Bunu yapana kadar yalnızca uygulamada rolü olan kişiler Facebook ile oturum açabilir.",
+          "appIdPlaceholder": "Facebook uygulama kimliği"
         },
         "save": "OAuth Ayarlarını Kaydet",
         "activeCount": "{count} etkin",
@@ -481,7 +784,9 @@
         "copyFailed": "URL kopyalanamadı",
         "setupGuide": "Nasıl kurulur (adım adım)",
         "verify": "Kimlik bilgilerini doğrula",
-        "verifyHint": "Doğrulama, kimlik ve gizli anahtarı sağlayıcıya sorar. Yönlendirme URI'sinin kayıtlı olup olmadığı ancak gerçek bir oturum açmayla anlaşılır."
+        "verifyHint": "Doğrulama, kimlik ve gizli anahtarı sağlayıcıya sorar. Yönlendirme URI'sinin kayıtlı olup olmadığı ancak gerçek bir oturum açmayla anlaşılır.",
+        "verified": "Kimlik bilgileri doğrulandı",
+        "verifyFailed": "Doğrulama başarısız oldu"
       },
       "pos": {
         "title": "Satış Noktası (POS) Erişimi",
@@ -494,7 +799,6 @@
         "vendor": "Satıcılar",
         "vendorDesc": "Satıcıların kendi ürünleri için POS üzerinden satış yapmasına izin verin",
         "general": "Genel",
-        "language": "Dil",
         "defaultLocation": "Varsayılan POS Konum Kimliği",
         "customize": "Özelleştir",
         "printedReceipts": "Basılı fişler",
@@ -508,7 +812,6 @@
         "disabled": "Devre dışı",
         "accessDesc": "Hangi kullanıcı rollerinin POS terminaline erişebileceğini kontrol edin",
         "generalDesc": "POS için varsayılan dil ve konumu yapılandırın",
-        "languageHint": "POS terminal arayüzünde kullanılan dil",
         "selectLocation": "Bir konum seçin",
         "noLocation": "Varsayılan konum yok",
         "defaultBadge": "Varsayılan",
@@ -527,11 +830,9 @@
         "offlinePaymentsDesc": "Cihaz çevrimdışıyken ödemeleri işleyin",
         "customizeDesc": "POS terminalinin görünümünü ve davranışını özelleştirin",
         "printedReceiptsDesc": "Her işlemden sonra fiş yazdırın",
-        "minutes": "dakika",
         "receiptPrinter": "Fiş Yazıcısı",
         "receiptPrinterPlaceholder": "örn. Star TSP143",
         "ordersDesc": "POS siparişleri için iade politikalarını yapılandırın",
-        "days": "gün",
         "sound": "Ses Efektleri",
         "soundDesc": "POS terminal etkileşimleri için sesli geri bildirimi yapılandırın",
         "soundEnable": "Ses Efektlerini Etkinleştir",
@@ -544,43 +845,26 @@
         "soundOrderComplete": "Sipariş Tamamlandı",
         "soundOrderCompleteDesc": "Bir sipariş tamamlandığında çınlama sesi çalın",
         "soundError": "Hata Uyarısı",
-        "soundErrorDesc": "Hatalar ve stok uyarıları için uyarı sesi"
-      },
-      "locations": {
-        "title": "Envanter Konumları",
-        "description": "Envanter takibi için depo ve mağaza konumlarını yönetin",
-        "add": "Yeni Konum Ekle",
-        "new": "Yeni Konum",
-        "name": "Konum Adı",
-        "address": "Adres",
-        "setAsDefault": "Varsayılan konum olarak ayarla",
-        "create": "Konum Oluştur",
-        "existing": "Mevcut Konumlar",
-        "empty": "Henüz yapılandırılmış konum yok",
-        "emptyHint": "Birden fazla yerde envanter takibine başlamak için ilk konumunuzu ekleyin",
-        "active": "Aktif",
-        "default": "Varsayılan",
-        "defaultBadge": "Varsayılan",
-        "inactive": "Pasif",
-        "infoTitle": "Konumlar Hakkında",
-        "info1": "Konumlar, birden fazla depo veya mağaza genelinde envanteri takip etmek için kullanılır",
-        "info2": "Varsayılan konum, POS satışları ve yeni envanter için kullanılır",
-        "info3": "Pasif konumlar, ürün envanteri formlarında görünmez",
-        "info4": "Varsayılan olarak ayarlanmış bir konumu silemezsiniz"
+        "soundErrorDesc": "Hatalar ve stok uyarıları için uyarı sesi",
+        "seller": "Personel",
+        "sellerDesc": "Personelin POS üzerinden satış yapmasına izin ver"
       },
       "vendorPermissions": {
-        "title": "Varsayılan Satıcı İzinleri",
-        "description": "Yeni satıcılar için varsayılan izinleri yapılandırın",
-        "warning": "Satıcı izinlerini yapılandırmak için Çoklu Satıcı Modunu etkinleştirin.",
-        "manageProducts": "Ürünleri Yönet",
-        "viewOrders": "Siparişleri Görüntüle",
-        "manageOrders": "Siparişleri Yönet",
-        "manageSettings": "Mağaza Ayarlarını Yönet",
-        "viewAnalytics": "Analizleri Görüntüle",
-        "manageDiscounts": "İndirimleri Yönet",
-        "managePayouts": "Ödemeleri Yönet",
-        "accessPOS": "POS Erişimi",
-        "save": "Satıcı İzinlerini Kaydet"
+        "title": "Pazar yeri politikası",
+        "description": "Her yetenek için bir anahtar, platform genelinde. Bunlar yeni satıcılar için varsayılanlar değildir — her biri mevcut tüm mağazalara hemen uygulanır.",
+        "warning": "Pazar yeri politikasını yapılandırmak için Çoklu Satıcı Modunu etkinleştirin.",
+        "liveWarning": "Birini kapatmak o yeteneği yalnızca yenilerden değil, bu pazar yerindeki her satıcıdan aynı anda kaldırır. Buna takılan bir satıcı, sebep olarak bu ayarın adını veren bir sayfa görür.",
+        "packAiStudio": "Ürün listeleri ve medya için yapay zekâ ile yazım",
+        "packAnalytics": "Satış ve trafik raporları",
+        "packBoosts": "Sponsorlu yerleşim satın alma",
+        "packCatalog": "Ürünler ve markalar",
+        "packDiscounts": "Kuponlar ve indirim kampanyaları",
+        "packInbox": "Çok kanallı mesajlaşma ve kanal kurulumu",
+        "packOrders": "Sipariş listesi, gönderim, iadeler",
+        "packPayouts": "Bakiye ve kendi kendine para çekme talepleri",
+        "packPos": "Yüz yüze satış",
+        "packStaff": "Mağaza kullanıcılarını davet etme ve yönetme",
+        "packStorefront": "Mağaza sayfası, marka, kargo ayarları"
       },
       "storage": {
         "title": "Depolama Ayarları",
@@ -590,7 +874,7 @@
         "cloudflareR2Desc": "Veri çıkış ücreti olmayan, S3 uyumlu depolama",
         "awsS3": "AWS S3",
         "awsS3Desc": "Amazon S3 nesne depolama",
-        "endpoint": "Endpoint URL",
+        "endpoint": "Uç nokta URL’si",
         "region": "AWS Bölgesi",
         "bucketName": "Klasör Adı",
         "accessKeyId": "Erişim Anahtarı Kimliği",
@@ -619,23 +903,25 @@
           "r2SecretKey": "R2 Gizli Erişim Anahtarınız",
           "r2AccountId": "1234567890abcdef",
           "cdnUrl": "https://cdn.example.com",
-          "r2Url": "https://pub-xxxx.r2.dev"
+          "r2Url": "https://pub-xxxx.r2.dev",
+          "privateBucket": "my-store-private"
         },
         "help": {
           "cloudfront": "Yüklenen dosyaları sunmak için CloudFront veya özel alan adı",
-          "r2Domain": "Yüklenen dosyaları sunmak için R2.dev alt alan adı veya özel alan adı",
-          "r2FindOverview": "Bunu Cloudflare Kontrol Paneli → R2 → Genel Bakış bölümünde bulun"
+          "r2Domain": "Klasörünüzün R2.dev alt alan adı veya bağladığınız özel alan adı — yüklenen dosyaları herkese açık sunmak için gereklidir",
+          "r2FindOverview": "Bunu Cloudflare Kontrol Paneli → R2 → Genel Bakış bölümünde bulun",
+          "privateBucket": "Kimlik belgeleri, dijital ürünler ve gider fişleri burada tutulur ve yalnızca imzalı bir bağlantı ile açılır. Aynı hesapta, genel erişimi kapalı ve bağlı alan adı olmadan oluşturun; yukarıdaki anahtarların onu kullanmasına izin verilmiş olmalı."
         },
         "minio": "MinIO",
-        "minioDesc": "Self-hosted S3 on your own server — no cloud account needed",
+        "minioDesc": "Kendi sunucunuzda barındırılan S3 — bulut hesabı gerekmez",
         "digitalocean": "DigitalOcean Spaces",
-        "digitaloceanDesc": "Spaces object storage with a built-in CDN",
-        "providerConfig": "{provider} Configuration",
-        "minioEndpointHelp": "The MinIO API URL — port 9000 by default. Must be reachable from this server.",
-        "minioPublicUrlHelp": "Where browsers load the files from. Usually the same host; add a CDN or reverse-proxy URL here if you use one.",
-        "spacesPublicUrlHelp": "Leave blank to serve from the Space directly, or paste the CDN endpoint (…cdn.digitaloceanspaces.com) for edge caching.",
+        "digitaloceanDesc": "Yerleşik CDN’li Spaces nesne depolaması",
+        "providerConfig": "{provider} yapılandırması",
+        "minioEndpointHelp": "MinIO API URL’si — varsayılan olarak 9000 portu. Bu sunucudan erişilebilir olmalı.",
+        "minioPublicUrlHelp": "Tarayıcıların dosyaları yüklediği adres. Genellikle aynı sunucudur; kullanıyorsanız buraya bir CDN veya ters vekil sunucu URL’si ekleyin.",
+        "spacesPublicUrlHelp": "Doğrudan Space’ten sunmak için boş bırakın ya da uçta önbellekleme için CDN uç noktasını (…cdn.digitaloceanspaces.com) yapıştırın.",
         "localRetired": {
-          "title": "Local storage has been retired",
+          "title": "Yerel depolama kullanımdan kaldırıldı",
           "body": "Bu sunucuda bulunan dosyalar yüklenmeye devam eder, ancak yeni yüklemeler için aşağıdaki sağlayıcılardan biri gerekir. Birini seçip kimlik bilgilerini girin, sonra “Hâlihazırdaki dosyaları taşıyın” bölümünü açın — komutlar ve bir sonraki dağıtımdan önce alınacak yedek orada."
         },
         "setup": {
@@ -689,7 +975,18 @@
           "step4": "Mağazayı ve Medya Kitaplığı'nı kontrol edin. Diskten hiçbir şey silinmez; görseller yüklenmeye başlayınca yerel kopyaları elle kaldırın.",
           "backup": "Bir sonraki dağıtımdan önce: güncelleme yönteminiz uygulama klasörünü değiştiriyorsa — cPanel yüklemesi, zip ile üzerine yazma, volume'süz konteyner — medyayı önce sunucudan kopyalayın. Klasörün değiştirilmesi onu siler.",
           "note": "Yüklenemeyen bir dosya yerel URL'sini korur; yani yarım kalan bir çalıştırma yarı bozuk değil, çalışan bir mağaza bırakır. Yeniden çalıştırmak güvenlidir."
-        }
+        },
+        "testSucceeded": "Depolama bağlantısı başarılı!",
+        "testRejected": "Bağlantı başarısız oldu",
+        "testFailed": "Bağlantı test edilemedi",
+        "statusFailed": "Depolama durumu kontrol edilemedi",
+        "maxImageSize": "Maks. Görsel Boyutu (MB)",
+        "maxVideoSize": "Maks. Video Boyutu (MB)",
+        "maxModelSize": "Maks. 3D Model Boyutu (MB)",
+        "privateBucketMissing": "Özel kova yok: kimlik belgeleri, dijital ürünler ve gider fişleri yukarıdaki genel kovada tutuluyor; bir dosyanın adresine sahip olan herkes onu açabilir. Bir özel kova ekleyin, ardından zaten depolanmış dosyaları taşımak için pnpm db:migrate private-storage komutunu çalıştırın.",
+        "privateBucketName": "Özel kova",
+        "publicUrlR2": "Genel URL / CDN (Zorunlu)",
+        "r2PublicUrlMissing": "Genel bir URL olmadan yüklenen dosyalar mağazanızda gösterilemez — görsel ve video URL’leri özel R2 uç noktasını gösterir ve yüklenemez. Cloudflare Dashboard → R2 → kovanız → Settings → Public access bölümünde R2.dev alt alan adını etkinleştirin (veya özel bir alan adı bağlayın) ve o URL’yi buraya yapıştırın."
       },
       "analytics": {
         "title": "Analitik Entegrasyonu",
@@ -714,9 +1011,6 @@
         "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
         "save": "Analitik Ayarlarını Kaydet"
       },
-      "abandonedCarts": {
-        "title": "Terk Edilmiş Sepetler"
-      },
       "loadError": "Ayarlar yüklenemedi",
       "unsavedChanges": {
         "title": "Kaydedilmemiş değişiklikler",
@@ -729,8 +1023,8 @@
         "description": "AI Studio içeriğini, SEO'yu ve görsel oluşturmayı tek bir yerden yapılandırın.",
         "statusConfigured": "Yapılandırıldı",
         "statusNotConfigured": "Yapılandırılmadı",
-        "enabled": "AI özelliklerini etkinleştir",
-        "enabledHint": "AI Studio'yu ve panodaki tüm AI düğmelerini açar veya kapatır.",
+        "enabled": "AI Studio'yu etkinleştir",
+        "enabledHint": "AI Studio'yu ve panodaki tüm AI düğmelerini açar veya kapatır. AI Satış Asistanı'nın kendi sayfasında kendi anahtarı vardır.",
         "apiKey": "OpenAI API anahtarı",
         "apiKeySetPlaceholder": "••••••••  (kaydedildi — değiştirmek için yeni bir anahtar girin)",
         "apiKeyHint": "AI Studio ve AI Satış Asistanı tarafından kullanılır. OPENAI_API_KEY ortam değişkenini kullanmaya devam etmek için boş bırakın.",
@@ -775,7 +1069,13 @@
         "primaryColor": "Birincil marka rengi",
         "secondaryColor": "İkincil marka rengi",
         "logoUrl": "Marka logosu URL'si",
-        "logoUrlHint": "Logonuzu mağazaya yükleyin, ardından URL'sini buraya yapıştırın. Sosyal medya dışa aktarımlarında isteğe bağlı bir logo yerleşimi olarak kullanılır."
+        "logoUrlHint": "Logonuzu mağazaya yükleyin, ardından URL'sini buraya yapıştırın. Sosyal medya dışa aktarımlarında isteğe bağlı bir logo yerleşimi olarak kullanılır.",
+        "modelNotes": {
+          "fastLowCost": "hızlı, düşük maliyetli",
+          "higherQuality": "daha yüksek kalite",
+          "bestQuality": "en iyi kalite",
+          "lowerCost": "daha düşük maliyet"
+        }
       },
       "saveChanges": "Değişiklikleri Kaydet",
       "boosting": {
@@ -816,6 +1116,286 @@
         "authentication": "Kimlik Doğrulama",
         "growth": "Büyüme",
         "advanced": "Gelişmiş"
+      },
+      "fields": {
+        "envSourceHint": "Ortam değişkeniyle ayarlandı. Burada kaydedilen değer bunun yerine geçer.",
+        "configured": "Yapılandırıldı",
+        "notConfigured": "Yapılandırılmadı",
+        "mode": {
+          "live": "Canlı",
+          "sandbox": "Test Ortamı",
+          "test": "Test"
+        },
+        "savedPlaceholder": "Kaydedildi (korumak için boş bırakın)",
+        "savedKeysHint": "Güvenlik nedeniyle kaydedilen anahtarlar yeniden gösterilmez.",
+        "savedSecretsHint": "Güvenlik nedeniyle kaydedilen gizli değerler yeniden gösterilmez.",
+        "savedPasswordsHint": "Güvenlik nedeniyle kaydedilen şifreler yeniden gösterilmez.",
+        "enableProvider": "Etkinleştir: {name}"
+      },
+      "demoMode": "Demo modu",
+      "vendorConfig": {
+        "paymentMethods": {
+          "description": "Satıcıların plan aboneliklerini hangi ödeme altyapılarıyla ödeyebileceği. Stripe otomatik olarak yeniler; diğer altyapılar yenileme hatırlatmalarıyla her seferinde bir dönem faturalar. Kimlik bilgileri Ödeme Ayarları'nda yapılandırılır.",
+          "title": "Abonelik ödeme yöntemleri"
+        },
+        "allowRegistration": {
+          "description": "Kişilerin mağaza vitrininden satıcı olmak için başvurmasına izin verin.",
+          "label": "Satıcı kaydına izin ver"
+        },
+        "commission": {
+          "byCurrencyAdd": "Para birimi ekle",
+          "byCurrencyAmount": "{currency} cinsinden en düşük ödeme",
+          "byCurrencyCode": "Para birimi kodu",
+          "byCurrencyDescription": "{currency} dışındaki bir para birimindeki ödemeler kendi en düşük tutarını kullanır. Burada listelenmeyen bir para biriminin en düşük tutarı yoktur.",
+          "byCurrencyLabel": "Diğer para birimlerinde en düşük tutar",
+          "byCurrencyRemove": "{currency} en düşük tutarını kaldır",
+          "description": "Planı olmayan satıcılara uygulanır. Sipariş Ayarları altında da düzenlenebilir.",
+          "minWithdrawalDescription": "Bir satıcının ödeme olarak talep edebileceği en küçük bakiye, mağaza para biriminizde.",
+          "minWithdrawalLabel": "En düşük çekim tutarı",
+          "rateDescription": "Platformun her satıcı satışından aldığı yüzde.",
+          "rateLabel": "Komisyon oranı",
+          "title": "Varsayılan komisyon"
+        },
+        "description": "Satıcılar için kayıt, onay ve abonelik planı politikası.",
+        "documents": {
+          "manageLink": "Katılım Akışını aç",
+          "movedDescription": "Gerekli belgeler — ve her katılım alanı — artık Katılım Akışı oluşturucusunda yönetiliyor; orada herhangi bir alanı zorunlu yapabilir, gizleyebilir, adımları yeniden sıralayabilir veya özel alanlar ekleyebilirsiniz.",
+          "title": "Gerekli belgeler ve alanlar"
+        },
+        "marketplaceOff": "Satıcı politikasını yapılandırmak için Çoklu Satıcı Yönetimi’ni etkinleştirin.",
+        "plans": {
+          "title": "Planlar ve abonelikler"
+        },
+        "plansEnabled": {
+          "description": "Katılım sırasında satıcılara bir plan adımı gösterin. Kapalıyken satıcılar varsayılan komisyonu kullanır.",
+          "label": "Abonelik planlarını etkinleştir"
+        },
+        "registration": {
+          "title": "Kayıt ve onay"
+        },
+        "requirePlanSelection": {
+          "description": "Başvuranlar bitirmeden önce bir plan seçmelidir. Aksi hâlde varsayılan bir plan kullanılır.",
+          "label": "Kayıtta plan zorunlu olsun"
+        },
+        "title": "Satıcı Yapılandırması"
+      },
+      "sms": {
+        "authTokenPlaceholder": "Auth Token girin",
+        "authTokenHint": "Twilio teslim bildirimlerini de doğrular. Kaydedilen belirteçler yeniden gösterilmez.",
+        "messagingServiceSidHint": "Önerilir. Twilio her hedef için doğru göndereni seçer ve STOP yanıtlarını işler.",
+        "fromNumberHint": "Messaging Service ayarlanmamışsa kullanılır: bir Twilio numarası veya hedeflerinizin izin verdiği yerlerde alfanümerik gönderici kimliği.",
+        "defaultCountryPlaceholder": "Gönderim çıkış ülkesini kullan",
+        "defaultCountryHint": "Ülke kodu olmadan kaydedilen profil numaraları bu ülkeye göre okunur. Bir siparişin telefonu her zaman teslimat ülkesine göre okunur.",
+        "includeLinksHint": "Sipariş veya kargo takip sayfasını ekler. Bağlantı mesajı çoğu zaman ikinci bir segmente taşır ve bu ikinci SMS olarak ücretlendirilir.",
+        "consentNote": "Müşterilere siparişlerindeki telefon numarasına SMS gönderilir; Hesap → Tercihler bölümünden veya STOP yanıtıyla aboneliği bırakabilirler. Yöneticiler, personel ve satıcılar profil ya da mağaza telefonlarından mesaj alır. Olayları <link>Bildirim ayarları</link> bölümünden seçin. Yalnızca sizden mesaj almayı kabul eden kişilere yazın.",
+        "testSent": "Test SMS'i gönderildi",
+        "testFailed": "Test SMS'i gönderilemedi",
+        "accountSid": "Account SID",
+        "authToken": "Auth Token",
+        "defaultCountry": "Telefon numaraları için varsayılan ülke",
+        "description": "Sipariş, iade ve ödeme güncellemelerini Twilio hesabınız üzerinden SMS olarak gönderin.",
+        "enable": "SMS bildirimlerini etkinleştir",
+        "enableHint": "Twilio her mesaj için ücret alır. Bildirim ayarlarında olayları da seçene kadar hiçbir SMS gönderilmez.",
+        "fromNumber": "Gönderen numara veya gönderici kimliği",
+        "includeLinks": "Bağlantı ekle",
+        "messagingServiceSid": "Messaging Service SID",
+        "save": "SMS ayarlarını kaydet",
+        "testButton": "Test SMS’i gönder",
+        "testLabel": "Test mesajının gönderileceği numara",
+        "title": "SMS (Twilio)"
+      },
+      "brandAssets": {
+        "wrongFormat": "{formats} dosyası olmalıdır",
+        "tooLarge": "{max} MB'tan küçük olmalıdır — bu dosya {size} MB",
+        "tooSmall": "{dimension}x{dimension}px'ten küçük ({width}x{height}px) — büyütülecek ve bulanık görünebilir",
+        "uploadingProgress": "Yükleniyor… %{progress}",
+        "dropHint": "Sürükleyip bırakın veya seçmek için tıklayın",
+        "maxSize": "Maks. boyut:",
+        "formats": "Biçimler:",
+        "recommended": "Önerilen:",
+        "lightLogo": {
+          "label": "Açık Tema Logosu",
+          "alt": "Açık tema logosu",
+          "upload": "Açık tema logosunu yükle",
+          "replace": "Açık logoyu değiştir"
+        },
+        "darkLogo": {
+          "label": "Koyu Tema Logosu",
+          "alt": "Koyu tema logosu",
+          "upload": "Koyu tema logosunu yükle",
+          "replace": "Koyu logoyu değiştir"
+        },
+        "favicon": {
+          "label": "Favicon",
+          "alt": "Mağaza favicon'u",
+          "upload": "Favicon yükle",
+          "replace": "Favicon'u değiştir"
+        },
+        "appIcon": {
+          "label": "Uygulama Simgesi",
+          "alt": "Yüklü uygulamanın simgesi",
+          "upload": "Uygulama simgesini yükle",
+          "replace": "Uygulama simgesini değiştir",
+          "recommended": "512x512px kare",
+          "note": "Uygulama simgesi, biri mağazanızı cihazına yüklediğinde tarayıcıların gösterdiği simgedir. 512x512px olarak işlenir; daha küçük bir görsel de çalışır — yalnızca daha yumuşak görünür. Boş bırakırsanız yedek olarak favicon kullanılır."
+        }
+      },
+      "preorder": {
+        "title": "Ön siparişler",
+        "description": "Bir satıcının, henüz var olmayan bir şeyi satarken neler vaat edebileceği — ve buna kimin izinli olduğu.",
+        "storeOff": "Ön siparişler tüm mağazada kapalı. Satıcıların neler vaat edebileceğini ayarlamak için <link>Ayarlar → Ürünler</link> bölümünden açın.",
+        "requireApproval": {
+          "title": "Satıcılar ön sipariş satmadan önce onları incele",
+          "description": "Açıkken bir satıcı ilk ön siparişini açmadan önce onayınıza ihtiyaç duyar. Mevcut ilanlar her durumda satılmaya devam eder."
+        },
+        "maxLead": {
+          "label": "En uzak çıkış tarihi",
+          "unit": "gün sonrasına kadar",
+          "hint": "Bekleme ne kadar uzun olursa, alıcı ödemeye o kadar uzun süre itiraz edebilir."
+        },
+        "maxDeposit": {
+          "label": "En yüksek kapora",
+          "unit": "fiyatın yüzdesi",
+          "hint": "Sabit tutarlar için de geçerlidir, fiyata göre ölçülür."
+        },
+        "expiry": {
+          "label": "Ödenmemiş bakiyeden vazgeç",
+          "unit": "gün (çıkış tarihinden sonra)",
+          "hint": "Sipariş iptal edilir, kontenjan serbest kalır ve kapora tamamen iade edilir."
+        },
+        "autoRelease": {
+          "title": "Bakiyeyi otomatik iste",
+          "description": "Çıkış tarihinde her ön siparişten kalan bakiye istenir ve ödemesi tamamlananlar serbest bırakılır. Tarihleriniz kayabilecekse bunu kapalı tutun — para istemek, ürünün hazır olduğunu söyler.",
+          "unit": "gün (çıkış tarihinden sonra)",
+          "hint": "Tamamen ödenmiş bir ön sipariş bile ancak stoku gerçekten kaydedildiğinde serbest bırakılır — takvim tek başına hiçbir şey göndermez."
+        },
+        "reserve": {
+          "label": "Ön sipariş ödemelerinden alıkoy",
+          "percentUnit": "% oranında,",
+          "daysUnit": "gün boyunca",
+          "hint": "Kart itirazı beklenen teslim tarihinden itibaren sayılır; bu yüzden bir ön sipariş, satıcıya ödeme yapıldıktan çok sonra ters ibraz edilebilir. Sıfır, rezervi kapatır."
+        },
+        "access": {
+          "title": "Satıcı erişimi",
+          "waiting": "{count} bekliyor",
+          "reviewOff": "İnceleme kapalı, bu nedenle her satıcı zaten ön sipariş açabilir. Yukarıda incelemeyi açana kadar burada onay vermek hiçbir şeyi değiştirmez ve satıcıya bildirilmez.",
+          "empty": "Henüz hiçbir satıcı ön sipariş erişimi istemedi.",
+          "revokeNote": "Geri almak bir sonraki ön siparişi durdurur. Zaten satışta olan ilanlar vaatlerini yerine getirir — alıcılar bunlar için kapora ödedi."
+        }
+      },
+      "deliveryLogs": {
+        "email": {
+          "title": "E-posta teslim kayıtları",
+          "description": "Gönderilen içerik hemen silinir; yalnızca teslim meta verileri saklanır. Saklama süresini değiştirdikten sonra e-posta ayarlarını kaydedin.",
+          "summaryLabel": "Konu",
+          "searchPlaceholder": "Alıcı, konu veya kategori",
+          "clearTitle": "Gönderilen e-posta kayıtları temizlensin mi?",
+          "deleteTitle": "Seçili e-posta kayıtları silinsin mi?",
+          "clearDescription": "{count, plural, one {Bu, gönderilen # e-posta kaydını kalıcı olarak siler. Bu işlem geri alınamaz.} other {Bu, gönderilen # e-posta kaydının tamamını kalıcı olarak siler. Bu işlem geri alınamaz.}}",
+          "deleteDescription": "{count, plural, one {Bu, seçili # tamamlanmış kaydı kalıcı olarak siler. Kuyruktaki veya gönderilmekte olan e-postalar asla silinmez.} other {Bu, seçili # tamamlanmış kaydı kalıcı olarak siler. Kuyruktaki veya gönderilmekte olan e-postalar asla silinmez.}}",
+          "queuedForRetry": "{count, plural, one {Başarısız # e-posta yeniden deneme kuyruğuna alındı.} other {Başarısız # e-posta yeniden deneme kuyruğuna alındı.}}"
+        },
+        "sms": {
+          "title": "SMS teslim kayıtları",
+          "description": "Her SMS, saklama süresi bitene kadar operatörün sonucuyla birlikte tutulur. Saklama süresini değiştirdikten sonra SMS ayarlarını kaydedin.",
+          "summaryLabel": "Mesaj",
+          "searchPlaceholder": "Telefon numarası, mesaj veya kategori",
+          "clearTitle": "Gönderilen SMS kayıtları temizlensin mi?",
+          "deleteTitle": "Seçili SMS kayıtları silinsin mi?",
+          "clearDescription": "{count, plural, one {Bu, gönderilen # SMS kaydını kalıcı olarak siler. Bu işlem geri alınamaz.} other {Bu, gönderilen # SMS kaydının tamamını kalıcı olarak siler. Bu işlem geri alınamaz.}}",
+          "deleteDescription": "{count, plural, one {Bu, seçili # tamamlanmış kaydı kalıcı olarak siler. Kuyruktaki veya gönderilmekte olan SMS'ler asla silinmez.} other {Bu, seçili # tamamlanmış kaydı kalıcı olarak siler. Kuyruktaki veya gönderilmekte olan SMS'ler asla silinmez.}}",
+          "queuedForRetry": "{count, plural, one {Başarısız # SMS yeniden deneme kuyruğuna alındı.} other {Başarısız # SMS yeniden deneme kuyruğuna alındı.}}"
+        },
+        "status": {
+          "sent": "Gönderildi",
+          "delivered": "Teslim edildi",
+          "undelivered": "Teslim edilmedi",
+          "failed": "Başarısız",
+          "queued": "Kuyrukta",
+          "retrying": "Yeniden deneniyor",
+          "sending": "Gönderiliyor"
+        },
+        "keepSentLogs": "Gönderilen kayıtları sakla",
+        "retentionDays": "{count, plural, one {# gün} other {# gün}}",
+        "refresh": "Yenile",
+        "stats": {
+          "total": "Toplam",
+          "sent": "Gönderilen",
+          "failed": "Başarısız",
+          "pending": "Bekleyen"
+        },
+        "allStatuses": "Tüm durumlar",
+        "range": {
+          "today": "Bugün",
+          "last7": "Son 7 gün",
+          "last30": "Son 30 gün",
+          "last90": "Son 90 gün",
+          "all": "Tüm zamanlar"
+        },
+        "deleteSelected": "Seçilenleri sil",
+        "retrySelectedFailed": "Seçili başarısızları yeniden dene",
+        "retryAllFailed": "Tüm başarısızları yeniden dene",
+        "clearSent": "Gönderilen kayıtları temizle",
+        "deleteLogs": "Kayıtları sil",
+        "selectPage": "Bu sayfadaki tamamlanmış kayıtları seç",
+        "selectRow": "{name} seç",
+        "columns": {
+          "created": "Oluşturulma",
+          "recipient": "Alıcı",
+          "status": "Durum",
+          "tries": "Deneme",
+          "action": "İşlem"
+        },
+        "empty": "Eşleşen teslimat yok.",
+        "segments": "{count, plural, one {# segment} other {# segment}}",
+        "retryNow": "Şimdi yeniden dene",
+        "retryFailed": "Yeniden deneme başarısız oldu",
+        "retrySent": "Başarıyla gönderildi",
+        "actionFailed": "İşlem başarısız oldu",
+        "updated": "Teslim kayıtları güncellendi",
+        "deleted": "{count, plural, one {# kayıt silindi.} other {# kayıt silindi.}}"
+      },
+      "demoModeMessage": "Demo modu etkin. Bu demo sitesinde ayar değişiklikleri devre dışı.",
+      "toasts": {
+        "connected": "Bağlandı",
+        "connectionFailed": "Bağlantı başarısız oldu",
+        "saveEmailFirst": "Test e-postası göndermeden önce e-posta ayarlarını kaydedin",
+        "savePaymentBeforeTest": "Bağlantıyı test etmeden önce ödeme ayarlarını kaydedin",
+        "deliveryLogsLoadFailed": "Teslim kayıtları yüklenemedi",
+        "loadFailed": "Ayarlar yüklenemedi",
+        "saveFailed": "Ayarlar kaydedilemedi",
+        "saveOauthFirst": "Kimlik bilgilerini doğrulamadan önce OAuth ayarlarını kaydedin",
+        "savePaymentFirst": "Pesapal IPN URL’sini kaydetmeden önce ödeme ayarlarını kaydedin",
+        "saveSmsFirst": "Test mesajı göndermeden önce SMS ayarlarını kaydedin",
+        "saved": "Ayarlar kaydedildi"
+      },
+      "conflict": {
+        "description": "Bu ayarlar, siz açtıktan sonra başka biri tarafından değiştirildi. En güncelini görmek için yeniden yükleyin ya da üzerine yazmak için tekrar kaydedin.",
+        "overwrite": "Yine de kaydet",
+        "reload": "Yeniden yükle",
+        "title": "Ayarlar başka bir yerde değiştirildi"
+      },
+      "messaging": {
+        "description": "Canlı sohbet saatleri, yönlendirme ve pazar yerinin yanıt verdiği WhatsApp, Messenger, Instagram ve Telegram hesapları",
+        "title": "Çok Kanallı Mesajlaşma"
+      },
+      "needsAttention": "İlgilenilmesi gerekiyor",
+      "noResults": "Ayar bulunamadı",
+      "products": {
+        "description": "Ürün düzenleyicinin neler sunacağını seçin. Kapattığınız her şey düzenleyiciden kalkar ve artık bir ürün için açılamaz.",
+        "digital": "Dijital ürünler ve hizmetler",
+        "digitalDesc": "E-kitap ve lisans anahtarı gibi indirmeler ya da gönderilecek bir şeyi olmayan hizmetler.",
+        "existingNote": "Bir özelliği kapatmak yayındaki bir ürünü asla değiştirmez: süren bir ön sipariş satmaya devam eder, yalnızca teklif alınan bir ürün teklif düğmesini korur ve dijital bir ürün dijital kalır.",
+        "physical": "Fiziksel ürünler",
+        "physicalDesc": "Stok, ağırlık ve gümrük bilgileriyle müşteriye gönderilir.",
+        "preorders": "Ön siparişler",
+        "preordersDesc": "Stok gelmeden önce, bir çıkış tarihi ve isteğe bağlı depozitoyla sipariş alın. Satıcı onayı ve sınırlar Çoklu Satıcı Yönetimi altındadır.",
+        "priceOnRequest": "Talep üzerine fiyat",
+        "priceOnRequestDesc": "Ürünün fiyatını gizleyip yerine “Teklif iste” düğmesi gösterin.",
+        "sellingHeading": "Satış seçenekleri",
+        "title": "Ürünler",
+        "typesHeading": "Ürün türleri",
+        "typesHint": "En az bir ürün türü açık kalır."
       }
     },
     "homePageBuilder": {
@@ -2088,6 +2668,8 @@
         "barcode": "Barkod",
         "unavailable": "Kullanılamaz",
         "committed": "Ayrılmış",
+        "unavailableHint": "Hasarlı, eksik veya kullanılamaz olarak iade edildi — henüz stoğa geri alınmadı ya da zarar yazılmadı",
+        "committedHint": "Satıldı ve hâlâ burada — henüz gönderilmedi, teslim alınmadı veya iptal edilmedi",
         "available": "Mevcut",
         "onHand": "Elde"
       },
@@ -2113,8 +2695,36 @@
         "variant": "Varyant",
         "sku": "SKU",
         "barcode": "Barkod",
+        "unavailable": "Kullanılamaz",
+        "committed": "Ayrılmış",
         "available": "Mevcut",
         "onHand": "Elde"
+      },
+      "breakdown": {
+        "committed": "{count} ayrılmış",
+        "unavailable": "{count} kullanılamaz"
+      },
+      "unavailableDialog": {
+        "title": "Kullanılamayan birimler",
+        "description": "Bir iadenin hasarlı, eksik veya kullanılamaz olarak geri getirdiği birimler. Siz yeniden satışa koyana ya da zarar yazana kadar stok dışında kalırlar.",
+        "fromReturn": "İade {returnNumber} · Sipariş {orderNumber}",
+        "countedOn": "{date} tarihinde sayıldı",
+        "held": "{count} birim bekletiliyor",
+        "quantity": "Birim",
+        "restock": "Satışa geri al",
+        "writeOff": "Zarar yaz",
+        "cancel": "İptal",
+        "confirmWriteOff": "{count} birim zarar yazılsın mı? Envanterinizden kalıcı olarak çıkar.",
+        "restocked": "{count} birim yeniden satışta",
+        "writtenOff": "{count} birim zarar yazıldı",
+        "actionError": "Bu birimler güncellenemedi.",
+        "loadError": "Bu birimler yüklenemedi. Kapatıp yeniden deneyin.",
+        "empty": "Bu ürün için artık bekletilen bir şey yok.",
+        "conditions": {
+          "damaged": "Hasarlı",
+          "missing_parts": "Parçası eksik",
+          "unusable": "Kullanılamaz"
+        }
       },
       "stats": {
         "trackedSkus": "Takip edilen SKU'lar",
@@ -2218,12 +2828,9 @@
       "categories": "Kategoriler",
       "brands": "Markalar",
       "inventory": "Envanter",
-      "purchaseOrders": "Satın Alma Siparişleri",
       "transfers": "Transferler",
-      "giftCards": "Hediye Kartları",
       "customers": "Müşteriler",
       "vendors": "Satıcılar",
-      "marketing": "Pazarlama",
       "discounts": "İndirimler",
       "content": "İçerik",
       "markets": "Pazarlar",
@@ -2231,16 +2838,12 @@
       "aiSalesAgent": "Satış Temsilcisi",
       "salesChannels": "Satış Kanalları",
       "onlineStore": "Çevrimiçi Mağaza",
-      "homePage": "Ana Sayfa",
-      "theme": "Tema",
       "themes": "Temalar",
       "pages": "Sayfalar",
       "pos": "Satış Noktası",
       "shipping": "Kargo",
       "posStaff": "Personel",
       "posLocations": "Konumlar",
-      "apps": "Uygulamalar",
-      "addApp": "Ekle",
       "addPage": "Sayfa Ekle",
       "navigation": "Gezinme",
       "checkout": "Ödeme",
@@ -2250,14 +2853,11 @@
       "transactions": "İşlemler",
       "reviews": "Değerlendirmeler",
       "blogPosts": "Blog yazıları",
-      "blogCategories": "Blog kategorileri",
-      "blogComments": "Yorumlar",
-      "allPosts": "Tüm yazılar",
-      "aiStudio": "AI Studio",
+      "aiStudio": "Yapay Zekâ Stüdyosu",
       "boosts": "Öne çıkarma",
       "boostCampaigns": "Öne çıkarma kampanyaları",
       "boostPositions": "Boost konumları",
-      "customize": "Customize",
+      "customize": "Özelleştir",
       "finance": "Finans",
       "financeOverview": "Genel bakış",
       "expenses": "Giderler",
@@ -2265,7 +2865,19 @@
       "financeReports": "Raporlar",
       "quotes": "Teklifler",
       "traffic": "Trafik",
-      "searchInsights": "Arama analizleri"
+      "searchInsights": "Arama analizleri",
+      "accessRequests": "Erişim Talepleri",
+      "inbox": "Gelen Kutusu",
+      "landmark": "Ana menü",
+      "mobileTitle": "Menü",
+      "mobileDescription": "Panelin her bölümüne bağlantılar.",
+      "preorders": "Ön siparişler",
+      "sliders": "Slaytlar",
+      "staff": "Ekip",
+      "toggle": "Kenar çubuğunu aç veya kapat",
+      "vendorConfiguration": "Yapılandırma",
+      "vendorOnboarding": "Katılım Akışı",
+      "vendorPlans": "Satıcı Planları"
     },
     "pos": "Satış Noktası",
     "posLocations": "POS Konumları",
@@ -2506,7 +3118,6 @@
     },
     "staffPage": {
       "stats": {
-        "totalStaff": {},
         "activeStaff": {
           "description": "Şu anda aktif"
         },
@@ -2572,7 +3183,6 @@
       "updateSuccess": "{count} müşteri güncellendi",
       "updateError": "{count} müşteri güncellenemedi"
     },
-    "staffDataTable": {},
     "discountsDataTable": {
       "deleteBulkDescription": "{count} indirimi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
       "deleteBulkSuccess": "{count} indirim silindi",
@@ -2599,13 +3209,13 @@
           "description": "Karşılaştırmaya uygun kartlar ve performans vurgularıyla üst düzey ürün anlatımı.",
           "styleNote": "Teknik ürünler, aksesuarlar ve özellik yoğun ürün sayfası akışları için optimize edilmiştir."
         },
-        "luxe": {
-          "name": "Fashion",
-          "description": "Premium moda, güzellik ve yaşam tarzı markaları için editöryel tarzda görsel işleme.",
-          "styleNote": "Görsel öncelikli ürün sunumuna ve rafine koleksiyon anlatılarına odaklanır."
+        "furniture": {
+          "name": "Furniture",
+          "description": "Odaya göre satılan ev ürünleri: tam genişlikte iç mekânlar, oda bazlı reyonlar, malzeme hikâyeleri ve odanın tamamını satın alma setleri.",
+          "styleNote": "Kanepeler, yataklar ve yemek takımları için tasarlandı — önce odalar, sonra ürünler."
         },
         "women-fashion": {
-          "name": "Women Fashion",
+          "name": "Fashion",
           "description": "Editoryal giyim sunumu: tam genişlikte kampanya görselleri, lookbook kutucukları ve sezon seçkileri.",
           "styleNote": "Giyim, ayakkabı ve aksesuar için tasarlandı — görseller önde, arayüz arka planda."
         }
@@ -3704,7 +4314,167 @@
       "starterPublish": "Temanın başlangıç düzenini kullan (önerilen)",
       "starterPublishHint": "Mağazanız hemen değişir; temanın bölümleri kendi koleksiyon ve ürünlerinize bağlanır. Önceki düzeniniz sürüm geçmişinde kalır.",
       "subtitle": "Etkin temanın tasarım seçenekleri. Mağazanın görünümünü değiştirirler — sayfa içeriği Ana Sayfa ve Sayfalar oluşturucularında kalır.",
-      "title": "Tema ayarları"
+      "title": "Tema ayarları",
+      "tabs": {
+        "theme": "Tema seç",
+        "branding": "Marka",
+        "settings": "Tema ayarları",
+        "css": "Özel CSS"
+      }
+    },
+    "returnsPage": {
+      "stats": {
+        "needsReview": {
+          "title": "İnceleme bekliyor",
+          "description": "Onayla veya reddet"
+        },
+        "onTheWayBack": {
+          "title": "Geri dönüş yolunda",
+          "description": "Onaylandı, henüz teslim alınmadı"
+        },
+        "refundDue": {
+          "title": "İade bekliyor",
+          "description": "Teslim alındı, henüz iade edilmedi",
+          "problems": "Başarısız veya manuel: {count}"
+        },
+        "refunded": {
+          "title": "İade edildi (30 gün)",
+          "description": "{value} geri ödendi"
+        }
+      }
+    },
+    "media": {
+      "loadFailed": "Medya yüklenemedi",
+      "copyFailed": "URL kopyalanamadı",
+      "demoDeleteBlocked": "Demo modu etkin. Bu demo sitesinde dosya silme devre dışı.",
+      "deleteFailed": "Silme başarısız oldu",
+      "copyUrl": "URL’yi kopyala",
+      "count": "{count, plural, one {# dosya} other {# dosya}}",
+      "deleteDescription": "{count, plural, one {Dosya depolamadan kalıcı olarak silinecek. URL’sinin hâlâ kullanıldığı her yerde (ürünler, sayfalar, e-postalar) bozuk bir dosya görünecek.} other {Dosyalar depolamadan kalıcı olarak silinecek. URL’lerinin hâlâ kullanıldığı her yerde (ürünler, sayfalar, e-postalar) bozuk dosyalar görünecek.}}",
+      "deleteSelected": "Seçilenleri sil",
+      "deleteTitle": "{count, plural, one {Bu dosya silinsin mi?} other {# dosya silinsin mi?}}",
+      "deleted": "{count, plural, one {# dosya silindi} other {# dosya silindi}}",
+      "empty": "Medya bulunamadı",
+      "emptyHint": "Yüklenen dosyalar, etkin depolama sağlayıcısı için burada görünür.",
+      "key": "Depolama anahtarı",
+      "loadMore": "Daha fazla yükle",
+      "modified": "Değiştirilme",
+      "open": "Aç",
+      "refresh": "Yenile",
+      "searchPlaceholder": "Dosya ara…",
+      "selectedCount": "{count} seçildi",
+      "size": "Boyut",
+      "tabLibrary": "Medya Kütüphanesi",
+      "tabStorage": "Depolama",
+      "type": "Tür",
+      "upload": "Yükle",
+      "uploaded": "Dosyalar yüklendi",
+      "urlCopied": "URL kopyalandı",
+      "filter": {
+        "all": "Tümü",
+        "documents": "Belgeler",
+        "images": "Görseller",
+        "models": "3D Modeller",
+        "videos": "Videolar"
+      }
+    },
+    "preferences": {
+      "title": "Tercihler",
+      "fullscreenUnavailable": "Bu tarayıcıda tam ekran kullanılamıyor",
+      "enterFullscreen": "Tam ekran",
+      "exitFullscreen": "Tam ekrandan çık",
+      "reset": "Varsayılanlara sıfırla",
+      "personalNote": "Yalnızca sizin için, bu tarayıcıda. Mağazanızın logoları, renkleri ve varsayılan görünümü Çevrimiçi Mağaza → Temalar → Marka bölümünde ayarlanır.",
+      "darkMode": "Koyu mod",
+      "contrast": "Kontrast",
+      "rtl": "Sağdan sola",
+      "collapsedSidebar": "Daraltılmış kenar çubuğu",
+      "sidebar": "Kenar çubuğu",
+      "sidebarColor": "Renk",
+      "sidebarIntegrate": "Bütünleşik",
+      "sidebarApparent": "Belirgin"
+    },
+    "preorderAccess": {
+      "vendorFallback": "Satıcı",
+      "thisVendor": "bu satıcı",
+      "unnamedStore": "Adsız mağaza",
+      "approvedToast": "{name} artık ön sipariş açabilir",
+      "declinedToast": "{name} adlı satıcının ön sipariş isteği reddedildi",
+      "revokedToast": "{name} artık yeni ön sipariş açamaz",
+      "updateFailed": "Ön sipariş erişimi güncellenemedi",
+      "revokeTitle": "{name} adlı satıcının ön sipariş erişimi geri alınsın mı?",
+      "declineTitle": "{name} adlı satıcının ön sipariş isteği reddedilsin mi?",
+      "revokeDescription": "Yeni ön sipariş açamayacak. Zaten satışta olan ön siparişler devam eder — alıcılar bunlar için kapora ödedi.",
+      "declineDescription": "Daha sonra yeni bir istek gönderebilir.",
+      "reasonLabel": "Neden (satıcıya gönderilir)",
+      "reasonPlaceholder": "İsteğe bağlı",
+      "reasonTooLong": "Nedeni {max} karakterin altında tutun.",
+      "revokeSubmit": "Erişimi geri al",
+      "declineSubmit": "Reddet",
+      "approve": "Onayla",
+      "grant": "Erişim ver",
+      "revoke": "Geri al",
+      "since": "{date} tarihinden beri",
+      "asked": "{date} tarihinde istedi",
+      "askedRecently": "Yakın zamanda istedi",
+      "notAsked": "Erişim istemedi",
+      "approvedBadge": "Onaylandı",
+      "waitingBadge": "İnceleme bekliyor",
+      "noAccessBadge": "Erişim yok",
+      "lastNote": "Son not: {note}",
+      "card": {
+        "title": "Ön sipariş erişimi",
+        "description": "Bu satıcının ön sipariş açıp açamayacağı. Ön sipariş, ürün henüz yokken alıcının parasını alır; bu yüzden mağaza buna kimin izinli olduğunu inceleyebilir.",
+        "rulesLink": "Ön sipariş kuralları",
+        "loadFailed": "Ön sipariş erişimi yüklenemedi.",
+        "storeOff": "Ön siparişler tüm mağazada kapalı, bu nedenle şu anda kimse ön sipariş açamaz. Burada ayarladıklarınız yeniden açıldığında geçerli olur ve satıcıya bildirilmez.",
+        "reviewOff": "İnceleme kapalı, bu nedenle bu satıcı zaten ön sipariş açabilir. Burada ayarladıklarınız inceleme açıldığında geçerli olur ve satıcıya bildirilmez.",
+        "limits": "Onaylandıktan sonra çıkış tarihleri en fazla {days, plural, one {# gün} other {# gün}} sonrasına, kaporalar ise fiyatın en fazla %{percent} oranına kadar olabilir. Erişimi geri almak, zaten satışta olan ilanları asla kaldırmaz."
+      }
+    },
+    "branding": {
+      "colorPicker": "Seç: {label}",
+      "removePreset": "Hazır ayarı kaldır",
+      "removeNamedPreset": "Hazır ayarı kaldır: {name}",
+      "savePreset": "Geçerli renkleri hazır ayar olarak kaydet",
+      "customPresetName": "Özel {number}",
+      "preview": {
+        "title": "Önizleme",
+        "subtitle": "renklerinizin uygulama genelinde nasıl göründüğü",
+        "primary": "Birincil",
+        "secondary": "İkincil",
+        "accent": "Vurgu",
+        "outline": "Çerçeve",
+        "link": "Bağlantı",
+        "accentSurface": "Vurgu yüzeyi"
+      },
+      "appearanceMode": "Mod",
+      "appearanceSubtitle": "Ziyaretçi açık veya koyu temayı kendisi seçmeden önce mağazanın nasıl açılacağı.",
+      "appearanceTitle": "Varsayılan görünüm",
+      "assetsSubtitle": "Mağazanızda ve panelinizde kullanılan logolar, favicon ve uygulama simgesi.",
+      "assetsTitle": "Marka varlıkları",
+      "colorsSubtitle": "Mağazadaki düğmeler, bağlantılar ve vurgular; ayrıca panel, ödeme sayfası ve e-postalar. Bir hazır ayar seçin ya da renk seçici, hex veya rgb() ile kendi renginizi belirleyin.",
+      "colorsTitle": "Marka renkleri",
+      "globalHint": "Markanız geneldir — tema değiştirseniz de korunur ve mağaza, panel, ödeme sayfası ve e-postalarda kullanılır.",
+      "save": "Markayı kaydet"
+    },
+    "mediaPicker": {
+      "uploadFailed": "Yükleme başarısız",
+      "uploading": "Yükleniyor…",
+      "addVideoUrl": "URL’den video ekle",
+      "added": "Eklendi",
+      "description": "Medya kütüphanenizden seçin veya kütüphaneye yeni dosyalar yükleyin.",
+      "dropToUpload": "Yüklemek için dosyaları bırakın",
+      "empty": "Medya kütüphaneniz boş",
+      "emptyHint": "Dosyaları buraya yükleyin; kütüphanede kalır, yeniden kullanıma hazır olur.",
+      "forbidden": "Hesabınız medya kütüphanesine göz atamıyor. Yine de yeni dosya yükleyebilirsiniz.",
+      "loadFailed": "Medya kütüphanesi yüklenemedi",
+      "noMatches": "Eşleşen dosya yok",
+      "retry": "Tekrar dene",
+      "searchPlaceholder": "Dosya ara…",
+      "selectUpTo": "{max, plural, one {En fazla # dosya seçin} other {En fazla # dosya seçin}}",
+      "selectedCount": "{max} dosyadan {count} tanesi seçildi",
+      "title": "Dosya seç"
     }
   },
   "vendor": {
@@ -4099,7 +4869,10 @@
         "refunded": "İade edildi"
       }
     },
-    "boosts": "Öne çıkarmalar"
+    "boosts": "Öne çıkarmalar",
+    "finance": "Finans",
+    "owedToPlatform": "Platforma borç",
+    "statements": "Hesap dökümleri"
   },
   "aiSalesAgentAdmin": {
     "header": {
@@ -4574,7 +5347,15 @@
     "increaseQuantity": "Adedi artır",
     "name": "Ad",
     "email": "E-posta",
-    "showingResultsFor": "<q>{query}</q> için sonuçlar gösteriliyor"
+    "showingResultsFor": "<q>{query}</q> için sonuçlar gösteriliyor",
+    "countryPicker": {
+      "placeholder": "Ülke seçin",
+      "search": "Ülke ara...",
+      "empty": "Ülke bulunamadı.",
+      "clear": "Ülkeyi temizle",
+      "selected": "{count, plural, one {# ülke seçildi} other {# ülke seçildi}}",
+      "remove": "Kaldır: {country}"
+    }
   },
   "checkout": {
     "checkout": "Ödeme",
@@ -4607,6 +5388,7 @@
     "zipCode": "Posta kodu",
     "country": "Ülke",
     "searchCountry": "Ülke ara...",
+    "searchState": "İl ara...",
     "phone": "Telefon",
     "cashOnDelivery": "Kapıda Ödeme",
     "creditDebitCard": "Kredi/Banka Kartı",
@@ -4843,7 +5625,6 @@
     "shareProduct": "Bu ürünü arkadaşlarınız ve ailenizle paylaşın",
     "sizeGuide": "Beden rehberi",
     "fabricCare": "Kumaş ve Bakım",
-    "faq": "Sıkça Sorulan Sorular",
     "productDetails": "Ürün Detayları",
     "returnPolicy": "İade politikası",
     "freeReturns": "30 gün ücretsiz iade",
@@ -4989,6 +5770,9 @@
     "shipments": "Gönderiler",
     "shipmentsDescription": "Farklı satıcıların ürünleri ayrı ayrı gönderilir ve ödenir.",
     "tracking": "Takip",
+    "trackingNumber": "Takip numarası",
+    "latestFromCarrier": "{carrier} son güncelleme",
+    "latestUpdate": "Son güncelleme",
     "payment": {
       "pending": "Ödeme bekleniyor",
       "paid": "Ödendi",
@@ -5086,6 +5870,8 @@
     "needAccessDescription": "{email} ile iletişime geçin.",
     "networkError": "Ağ Hatası",
     "networkErrorDescription": "Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
+    "tooManyRequestsIn": "Çok fazla istek yapıldı. {duration} bekleyip tekrar deneyin.",
+    "tooManyRequests": "Çok fazla istek yapıldı. Biraz bekleyip tekrar deneyin.",
     "needHelp": "Yardıma mı ihtiyacınız var? Belgeleri inceleyin veya destek ekibiyle iletişime geçin.",
     "adminPageNotFoundDescription": "Aradığınız yönetici sayfası mevcut değil veya farklı bir konuma taşınmış.",
     "vendorPageNotFoundDescription": "Aradığınız satıcı sayfası mevcut değil veya taşınmış olabilir.",
@@ -5768,9 +6554,9 @@
       "quickReplyOption": "Hızlı yanıt",
       "textHeaderOptional": "Metin başlığı (isteğe bağlı)",
       "websiteUrlOption": "Web sitesi adresi",
-      "headerPlaceholder": "Sipariş {{1}} güncellemesi",
-      "bodyPlaceholder": "Merhaba {{1}}, siparişiniz artık {{2}}.",
-      "placeholderHint": "Sıralı değişkenler kullanın: {{1}}, {{2}} vb.",
+      "headerPlaceholder": "Sipariş '{{1}}' güncellemesi",
+      "bodyPlaceholder": "Merhaba '{{1}}', siparişiniz artık '{{2}}'.",
+      "placeholderHint": "Sıralı değişkenler kullanın: '{{1}}', '{{2}}' vb.",
       "authenticationNote": "Kimlik doğrulama şablonlarının metnini Meta belirler ve gerekli kodu kopyala düğmesini ekler.",
       "bodyExampleLabel": "Gövde {variable} örneği",
       "submitForReview": "Meta incelemesine gönder",
@@ -6011,7 +6797,7 @@
     "title": "Öne çıkarmalar",
     "empty": "Henüz öne çıkarma yok. Daha fazla alıcıya ulaşmak için bir ürünü öne çıkarın.",
     "addAction": "Ürünü öne çıkar",
-    "searchPlaceholder": "Konuma veya etikete göre ara",
+    "searchPlaceholder": "Ürün, konum veya etiket ara",
     "tabs": {
       "all": "Tümü",
       "active": "Aktif",
@@ -6019,7 +6805,8 @@
       "paused": "Duraklatıldı",
       "expired": "Süresi doldu",
       "canceled": "İptal edildi",
-      "scheduled": "Yaklaşan"
+      "scheduled": "Yaklaşan",
+      "creditOwed": "Ödenecek alacak"
     },
     "status": {
       "active": "Aktif",
@@ -6041,7 +6828,8 @@
       "actions": "İşlemler",
       "position": "Sıra",
       "startsIn": "{days} gün sonra başlıyor",
-      "startsToday": "Bugün başlıyor"
+      "startsToday": "Bugün başlıyor",
+      "credit": "Ödenecek alacak"
     },
     "stats": {
       "active": "Aktif öne çıkarmalar",
@@ -6055,13 +6843,16 @@
       "revenue": "Öne çıkarma geliri",
       "revenueDescription": "Ödenen rezervasyonlar eksi iadeler, tüm zamanlar (mağaza para birimi)",
       "upcoming": "Yaklaşan",
-      "upcomingDescription": "Ayrılmış, başlamadı"
+      "upcomingDescription": "Ayrılmış, başlamadı",
+      "creditOwed": "Ödenecek alacak",
+      "creditOwedDescription": "kapatılacak rezervasyon",
+      "creditOwedNone": "bekleyen yok"
     },
     "admin": {
       "title": "Öne çıkarma kampanyaları",
       "empty": "Henüz öne çıkarma kampanyası yok",
+      "searchPlaceholder": "Mağaza, ürün, konum veya etiket ara",
       "create": "Rezervasyon oluştur",
-      "createTitle": "Rezervasyon oluştur (çevrimdışı ödeme)",
       "createDescription": "Ödeme ağ geçitleri dışında tahsil edilen ödemeler için ya da bir yerleşimi ikram etmek için. Günler anında ayrılır ve başkasına satılamaz.",
       "createConfirm": "Rezervasyon oluştur",
       "created": "Rezervasyon oluşturuldu",
@@ -6073,34 +6864,24 @@
       "cancelDescription": "Yarından itibaren ayrılmış her gün anında takvime geri bırakılır ve yeniden satılabilir. Yayınlanmış günler faturalı kalır; serbest bırakılanlar satıcının alacağına eklenir ve ödeme ağ geçidinden iade etmeniz gerekir.",
       "pause": "Duraklat",
       "resume": "Sürdür",
-      "product": "Ürün",
-      "vendor": "Satıcı",
-      "selectVendor": "Bir satıcı seçin…",
-      "selectVendorFirst": "Ürünleri görmek için bir satıcı seçin",
-      "searchProducts": "Ürün ara…",
       "updated": "Kampanya güncellendi",
       "updateFailed": "Kampanya güncellenemedi",
       "position": "Konum",
       "dates": "Tarihler (UTC)",
-      "heldBy": "Bu konumda ayrılmış:",
-      "amountOverride": "Kaydedilecek tutar",
-      "amountOverrideHint": "Liste fiyatı {amount} tahsil etmek için boş bırakın. Daha düşük bir tutar farkı bağışlar; 0 ücretsiz yapar. Liste fiyatını aşamaz.",
-      "recordingBooking": "Konum {position} · {days} gün · {amount} ödendi olarak kaydediliyor",
       "markRefunded": "İade edildi işaretle",
       "markRefundedTitle": "İade edildi olarak işaretle",
-      "markRefundedDescription": "Bekleyen alacağı ödeme sağlayıcısında zaten iade ettiğinizi kaydeder. Yalnızca defteri günceller — para transfer etmez."
+      "markRefundedDescription": "Bekleyen alacağı ödeme sağlayıcısında zaten iade ettiğinizi kaydeder. Yalnızca defteri günceller — para transfer etmez.",
+      "creditLedger": "Alacak defteri",
+      "outstanding": "Bekleyen",
+      "paymentAttempts": "Ödeme denemeleri"
     },
     "purchase": {
       "subtitle": "Sponsorlu merdivende numaralı bir konumu seçtiğiniz günler için ayırtın.",
-      "pickProduct": "Bir ürün seçin",
-      "pickPayment": "Bir ödeme yöntemi seçin",
       "stepProduct": "Ürün",
       "stepPayment": "Ödeme",
       "searchProducts": "Ürünlerinizde arayın…",
       "noProducts": "Aktif ürün bulunamadı",
       "noMethods": "Kullanılabilir ödeme yöntemi yok. Pazar yeri yöneticisiyle iletişime geçin.",
-      "boosting": "Öne çıkarılan:",
-      "days": "{days} gün",
       "payNow": "Öde ve ayırt",
       "card": "Kart",
       "mobileMoney": "Mobil para",
@@ -6114,34 +6895,68 @@
       "failed": "Ödeme başlatılamadı",
       "loadFailed": "Konum merdiveni yüklenemedi",
       "pollTimeout": "Ödemeyi henüz doğrulayamadık. Onaylandığında otomatik olarak etkinleşecek.",
-      "stepSlot": "Konum ve tarihler",
-      "pickSlot": "Bir konum ve tarih seçin",
       "perDay": "/gün",
       "noPositions": "Henüz satışta sponsorlu konum yok",
       "pickPositionFirst": "Hangi günlerin boş olduğunu görmek için bir konum seçin.",
-      "legendFree": "Boş",
       "legendBooked": "Dolu",
       "legendYours": "Sizin",
-      "conflictInline": "Bu konumda o tarihler boş değil — yeniden seçin.",
       "slotTaken": "Bu konumda {days} az önce alındı.",
       "slotTakenRetry": "Siz seçerken {days} alındı. Yeniden seçin.",
       "productBusy": "Bu ürün {days} için zaten planlanmış. Başka tarih ya da başka bir ürün seçin.",
-      "strictIndexNote": "Görsel sıra {position}'i satın alıyorsunuz. O gün üstünüzdeki bir konum satılmamışsa orada sıradan bir ürün görünür — sizin sıranız yukarı kaymaz.",
-      "reachDetail": "Liste sayfalarında ürününüz ana mağaza sayfasında ve kendi kategori sayfasında görünür. Filtrelenmiş sonuçlar ve arama sonuçları sponsorlu ürün göstermez.",
-      "refundPolicy": "Yayınlanmış günler iade edilmez. Gelecek günler serbest bırakılabilir — pazar yeri bunları günlük ücret üzerinden alacak kaydeder ve ödeme sağlayıcınız üzerinden iade eder. Ürününüz stokta kalmaz veya yayından kaldırılırsa o gün oransal olarak alacağa yazılır.",
-      "utcNote": "Günler UTC gece yarısından gece yarısına kadardır.",
-      "utcShort": "UTC günü",
-      "oneCheckout": "Ürün başına bir açık ödeme olabilir. Konumu veya tarihleri değiştirmek rezervasyonunuzu yeni seçime taşır.",
       "holdExpires": "Bu tarihler sizin için {clock} boyunca tutuluyor",
       "holdExpired": "Rezervasyonunuz doldu ve tarihler yeniden satışa çıktı.",
-      "observedReach": "Son 30 günde günde ortalama {n} gösterim",
       "positionStale": "Başka bir para biriminde fiyatlanmış — pazar yerinden yeniden fiyatlamasını isteyin.",
-      "summaryLine": "Konum {position}",
       "overMaxDays": "Bir rezervasyon {days} günü aşamaz.",
-      "alreadyBooked": "{count} rezervasyon var",
       "availabilityFailed": "Rezervasyon takvimi yüklenemedi",
       "booked": "Rezervasyonunuz onaylandı.",
-      "tooManyHolds": "Zaten çok fazla açık ödemeniz var. Önce birini tamamlayın ya da iptal edin."
+      "tooManyHolds": "Zaten çok fazla açık ödemeniz var. Önce birini tamamlayın ya da iptal edin.",
+      "gatewayUnavailable": "{gateway} ödemeyi başlatamadı. Tekrar deneyin veya başka bir ödeme yöntemi seçin."
+    },
+    "booking": {
+      "vendorTitle": "Ürünü öne çıkar",
+      "offlinePayment": "Çevrimdışı ödeme",
+      "steps": "Rezervasyon adımları",
+      "stepPositionDates": "Konum ve tarihler",
+      "stepRecordPayment": "Ödemeyi kaydet",
+      "searchAll": "Ürün veya mağaza adıyla arayın…",
+      "allStores": "Tüm mağazalar",
+      "filterByStore": "Mağazaya göre filtrele",
+      "showingSome": "{total} üründen {shown} tanesi gösteriliyor — kalanlar için arama yapın",
+      "notOnHome": "Ana sayfada görünmez",
+      "notOnListings": "Liste sayfalarında görünmez",
+      "notOnProductPages": "Ürün sayfalarında görünmez",
+      "daysTaken": "{total} günün {taken} günü dolu",
+      "noFreeDays": "Önümüzdeki {days} günde boş gün yok",
+      "blockedNowhere": "Şu an hiçbir sayfada görünmüyor — önce bir yerleşimin konum sayısını artırın.",
+      "blockedStale": "Başka bir para biriminde fiyatlandırılmış — önce merdivende yeniden fiyatlandırın.",
+      "pickFirstDay": "Önce ilk güne, sonra son güne tıklayın.",
+      "pickLastDay": "Şimdi son güne tıklayın.",
+      "datesTaken": "Bu konumda zaten dolu: {days}. Başka tarihler veya başka bir konum seçin.",
+      "legendThisProduct": "Bu ürün zaten öne çıkarılıyor",
+      "dayCount": "{count, plural, one {# gün} other {# gün}}",
+      "total": "Toplam",
+      "summary": "Özet",
+      "dates": "Tarihler",
+      "price": "Fiyat",
+      "recordedAsPaid": "Ödenmiş olarak kaydedilecek",
+      "totalDue": "Ödenecek toplam",
+      "amountReceived": "Alınan tutar",
+      "fullPrice": "Tam fiyat",
+      "partPayment": "Kısmi ödeme veya indirim",
+      "free": "Ücretsiz",
+      "amountYouReceived": "Aldığınız tutar",
+      "comped": "{amount} indirim",
+      "sameAsFullPrice": "Tam fiyatla aynı",
+      "enterAmountRange": "{min} ile {max} arasında girin",
+      "note": "Not",
+      "optional": "isteğe bağlı",
+      "notePlaceholder": "Havale numarası, makbuz numarası…",
+      "bookedAtOnce": "Oluşturduğunuz anda günler ayrılır — başka kimse onları satın alamaz.",
+      "payWith": "Ödeme yöntemi",
+      "termSlot": "#{position} numaralı konumu satın alıyorsunuz. Üstteki bir konum satılmazsa sizinki yukarı çıkmaz.",
+      "termListings": "Listelerde mağaza ve kategori sayfasında görünür, arama sonuçlarında asla görünmez.",
+      "termRefund": "Geçen günler iade edilmez. Gelecekteki günler kredi karşılığında bırakılabilir.",
+      "termHold": "Ödeme yaparken tarihleriniz {minutes} dakika sizin için tutulur."
     },
     "performance": {
       "back": "Tüm öne çıkarmalar",
@@ -6174,41 +6989,80 @@
       "deleteFailed": "Silinemedi",
       "deleteTitle": "Bu konum silinsin mi?",
       "deleted": "Konum silindi",
-      "derivedPrices": "7 gün {week} · 30 gün {month}",
       "description": "Açıklama (isteğe bağlı)",
       "dialogDescription": "Satıcılar bu konumda ayırttıkları her gün için bu ücreti öder.",
       "editTitle": "Konumu düzenle",
       "empty": "Henüz konum yok",
       "emptyHint": "En üstteki sponsorlu yuvayı satışa açmak için 1. konumu oluşturun.",
-      "horizonDays": "{days} g",
       "label": "Etiket",
       "labelPlaceholder": "En üst sıra",
       "labelRequired": "Bir etiket girin",
       "ladderGap": "{positions} konumları tanımlı değil — bu yuvalarda her zaman normal bir ürün gösterilir.",
-      "occupancy": "Doluluk",
-      "occupancyBooked": "{total} günün {booked} günü dolu",
-      "occupancyFull": "tamamen dolu",
-      "occupancyNextFree": "ilk boş gün {day}",
-      "perDay": "/ gün",
       "position": "Konum",
       "positionLocked": "Konum oluşturulduktan sonra değiştirilemez — bu basamağı arşivleyip yenisini oluşturun.",
       "positionRequired": "Konum 1 ile 50 arasında olmalı",
       "pricePerDay": "Günlük ücret",
       "pricePerDayHint": "7 gün = {week} · 30 gün = {month}",
       "priceRequired": "Günlük ücret sıfırdan büyük olmalı",
-      "reach": "Şurada görünür",
       "reachHome": "Ana sayfa (ilk {n})",
       "reachListing": "Listeler (ilk {n})",
       "reachProductPage": "Ürün sayfaları (ilk {n})",
-      "reachesNothing": "{position}. konum hiçbir yerde görünmüyor. Bir yerleşimin yuva sayısını artırın ya da bu basamağı arşivleyin.",
       "saveFailed": "Konum kaydedilemedi",
       "status": "Durum",
       "subtitle": "Satıcılar bir konumu belirli bir gün aralığı için ayırtır. N konumu N numaralı yuvada görünür; satılmamış bir konumda normal bir ürün gösterilir ve alttakiler asla yukarı kaymaz.",
       "title": "Konum merdiveni",
       "unarchive": "Arşivden çıkar",
       "updated": "Konum güncellendi",
-      "delivery": "Son 30 günde günde ortalama {n} gösterim",
-      "deliveryNone": "Henüz yayın kaydı yok"
+      "ladderGapOne": "{positions} konumu tanımlı değil — bu yuvada her zaman normal bir ürün gösterilir.",
+      "defineGap": "#{position} tanımla",
+      "windowLabel": "Önümüzdeki günler",
+      "ladderSummary": "Merdivenin %{percent} kadarı rezerve · {total} günün {booked} günü",
+      "slotsPerSurface": "Alan başına sponsorlu yuva:",
+      "surfaceHome": "Ana sayfa",
+      "surfaceListing": "Listeler",
+      "surfaceProductPage": "Ürün sayfaları",
+      "surfaceOff": "kapalı",
+      "settingsLink": "Ayarlar",
+      "colPrice": "Fiyat",
+      "colPerDay": "günlük",
+      "colBooked": "Rezerve",
+      "colNextDays": "önümüzdeki {days} gün",
+      "colImpressions": "Gösterimler",
+      "colImpressionsHint": "günlük · 30 günlük ortalama",
+      "axisToday": "Bugün",
+      "statusNowhere": "Hiçbir yerde görünmüyor",
+      "statusReprice": "Yeniden fiyatlandırılmalı",
+      "chipOn": "{surface} ilk {n} konumu gösterir — bu da dahil",
+      "chipOff": "{surface} yalnızca ilk {n} konumu gösterir",
+      "chipDisabled": "{surface} şu anda sponsorlu ürün göstermiyor",
+      "freeFrom": "{day} tarihinden itibaren boş",
+      "freeToday": "Bugün boş",
+      "freeWindow": "Boş — önümüzdeki {days} günde rezervasyon yok",
+      "freeShort": "Boş",
+      "notForSale": "Satışta değil",
+      "nowhereTrack": "Hiçbir sayfada görünmüyor — satıcılar rezerve edemez.",
+      "nowhereFix": "Yuva sayılarını değiştir",
+      "staleTrack": "Yeniden fiyatlandırılana kadar satıcılar ödeme yapamaz",
+      "segmentUntil": "{day} tarihine kadar",
+      "segmentHold": "Beklemede · ödenmedi",
+      "segmentRange": "{from} – {to} · {count, plural, one {# gün} other {# gün}}",
+      "segmentOpen": "Rezervasyonu aç",
+      "segmentHoldHint": "Tamamlanmamış ödeme — ödeme gelmezse günler serbest kalır",
+      "bookedOf": "{total} günün {booked} günü",
+      "bookedOfHeld": "{total} günün {booked} günü, {held} gün beklemede",
+      "freeFromShort": "{day} itibarıyla boş",
+      "noFreeDay": "önümüzdeki {days} günde boş gün yok",
+      "noNewBookings": "yeni rezervasyon yok",
+      "noData": "henüz veri yok",
+      "storeCurrency": "mağaza para birimi {currency}",
+      "editAria": "{position} konumunu düzenle",
+      "moreActions": "{position} konumu için diğer işlemler",
+      "viewBookings": "Rezervasyonları görüntüle",
+      "deleteBlockedBooked": "Bugünden itibaren rezervasyonları var — bunun yerine arşivleyin.",
+      "deleteBlockedClaimed": "Duraklatılmış, planlanmış veya ödenmemiş bir rezervasyon hâlâ onu tutuyor — bunun yerine arşivleyin.",
+      "gapTitle": "Tanımlı değil",
+      "gapHint": "{position} numaralı yuva her gün normal bir ürün gösterir — alttaki hiçbir konum yukarı çıkmaz.",
+      "gapRangeHint": "{from}–{to} numaralı yuvalar her gün normal bir ürün gösterir — alttaki hiçbir konum yukarı çıkmaz."
     },
     "cancel": {
       "action": "Rezervasyonu iptal et",
@@ -6217,6 +7071,15 @@
       "confirm": "Rezervasyonu iptal et",
       "done": "Rezervasyon iptal edildi",
       "failed": "Rezervasyon iptal edilemedi"
+    },
+    "disabled": {
+      "title": "Ürün öne çıkarma kapalı",
+      "campaigns": "Satıcılara sponsorlu yerleşim satmak için Ayarlar → Ürün Öne Çıkarma bölümünden öne çıkarmayı açın.",
+      "positions": "Konum merdivenini yönetmek için Ayarlar → Ürün Öne Çıkarma bölümünden öne çıkarmayı açın."
+    },
+    "filters": {
+      "allVendors": "Tüm satıcılar",
+      "allPositions": "Tüm konumlar"
     }
   },
   "install": {
@@ -6287,5 +7150,18 @@
     "short": "Karşılaştır",
     "bar": "{count} ürünü karşılaştır",
     "clear": "Temizle"
+  },
+  "permissionPacks": {
+    "aiStudio": "AI Studio",
+    "analytics": "Analitik",
+    "boosts": "Öne çıkarmalar",
+    "catalog": "Katalog",
+    "discounts": "İndirimler",
+    "inbox": "Gelen kutusu",
+    "orders": "Siparişler",
+    "payouts": "Ödemeler",
+    "pos": "Satış Noktası",
+    "staff": "Personel",
+    "storefront": "Mağaza vitrini"
   }
 }

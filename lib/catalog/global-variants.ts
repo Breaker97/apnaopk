@@ -70,3 +70,11 @@ export function normalizeGlobalVariantInput(body: Record<string, unknown>) {
     values,
   };
 }
+
+/**
+ * Why a scoped staff member may read global variants but not change them: a
+ * global variant is shared by every store's products, so it cannot be
+ * narrowed to the vendors or locations a staff member is limited to.
+ */
+export const GLOBAL_VARIANTS_PLATFORM_ONLY =
+  "Global variants are shared by every store, so only platform staff can change them";

@@ -6,7 +6,10 @@ import { connectDB } from "@/lib/db";
 import { StaffProfile, User } from "@/models";
 import type { StaffPermission } from "@/config/permissions.config";
 import { normalizeStaffScope } from "@/lib/access/staff-scope";
+import { effectiveStaffPermissions } from "@/lib/access/staff-authz";
+import { isVendorOwnedStaffProfile } from "@/lib/access/staff-ownership";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 export async function requireStaffAreaAccess(params: {
   locale: string;
@@ -17,10 +20,12 @@ export async function requireStaffAreaAccess(params: {
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) {
     redirect(
-      buildLoginUrl(
+      await localeHref(
         params.locale,
-        returnPathFromHeaders(requestHeaders) ??
-          `/${params.locale}/staff/dashboard`,
+        buildLoginUrl(
+          params.locale,
+          returnPathFromHeaders(requestHeaders) ?? "/staff/dashboard",
+        ),
       ),
     );
   }
@@ -29,13 +34,13 @@ export async function requireStaffAreaAccess(params: {
     session.user.role !== USER_ROLES.STAFF &&
     session.user.role !== USER_ROLES.SELLER
   ) {
-    redirect(`/${params.locale}`);
+    redirect("/");
   }
 
   await connectDB();
   const [profile, user] = await Promise.all([
     StaffProfile.findOne({ userId: session.user.id, isActive: true })
-      .select("permissions vendorIds locationIds fulfillmentRegions")
+      .select("permissions managedBy vendorIds locationIds fulfillmentRegions")
       .lean(),
     User.findById(session.user.id).select("status").lean(),
   ]);
@@ -45,22 +50,25 @@ export async function requireStaffAreaAccess(params: {
     status &&
     status !== USER_ACCOUNT_STATUS.ACTIVE
   ) {
-    redirect(`/${params.locale}/forbidden`);
+    redirect("/forbidden");
   }
 
   if (!profile) {
-    redirect(`/${params.locale}/forbidden`);
+    redirect("/forbidden");
   }
 
-  const staffPermissions = Array.isArray((profile as { permissions?: unknown }).permissions)
-    ? ((profile as { permissions?: unknown }).permissions as StaffPermission[])
-    : [];
+  const staffPermissions = effectiveStaffPermissions(
+    profile as { permissions?: unknown; managedBy?: unknown; vendorIds?: unknown[] },
+  );
   const staffScope = normalizeStaffScope({
     vendorIds: (profile as { vendorIds?: unknown[] }).vendorIds?.map(String),
     locationIds: (profile as { locationIds?: unknown[] }).locationIds?.map(String),
     fulfillmentRegions: (
       profile as { fulfillmentRegions?: unknown[] }
     ).fulfillmentRegions?.map(String),
+    wholeOrdersOnly: isVendorOwnedStaffProfile(
+      profile as { managedBy?: unknown; vendorIds?: unknown[] },
+    ),
   });
 
   const required = params.required || [];
@@ -70,7 +78,7 @@ export async function requireStaffAreaAccess(params: {
       mode === "all"
         ? required.every((p) => staffPermissions.includes(p))
         : required.some((p) => staffPermissions.includes(p));
-    if (!ok) redirect(`/${params.locale}/forbidden`);
+    if (!ok) redirect("/forbidden");
   }
 
   return { session, staffPermissions, staffScope };

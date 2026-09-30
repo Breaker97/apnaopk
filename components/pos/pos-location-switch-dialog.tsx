@@ -88,7 +88,12 @@ export function POSLocationSwitchDialog({
       {/* A bottom sheet on phones so the actions sit under the thumb, a centred
           dialog from `sm` up. Same content either way — the guard is not worth
           less on the screen where it is easiest to mis-tap. */}
-      <div className="flex w-full max-w-lg flex-col rounded-t-3xl border bg-background shadow-2xl duration-300 animate-in slide-in-from-bottom-4 sm:rounded-2xl sm:zoom-in-95">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Switch counter"
+        className="flex w-full max-w-lg flex-col rounded-t-3xl border bg-background shadow-2xl duration-300 animate-in slide-in-from-bottom-4 sm:rounded-2xl sm:zoom-in-95"
+      >
         <span className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-border sm:hidden" />
 
         <div className="flex items-start gap-3.5 px-5 pb-1 pt-4 sm:pt-5">

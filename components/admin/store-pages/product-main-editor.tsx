@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -21,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Star, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ import {
   PRODUCT_DETAIL_ACTIONS,
   PRODUCT_DETAIL_BUTTON_CASES,
   PRODUCT_DETAIL_BUTTON_LAYOUTS,
+  MIN_THUMB_SIZE,
   PRODUCT_DETAIL_IMAGE_FITS,
   PRODUCT_DETAIL_SHARE_NETWORKS,
   parseProductDetailConfig,
@@ -77,9 +79,11 @@ const LAYOUT_OPTIONS: { key: string; label: string }[] = [
   { key: "grid", label: "Grid" },
 ];
 
-// Only the toggles the detail page actually renders — the card
-// configurator's extras (item sold, variant count, …) stay out.
-const VISIBILITY_ROWS: { key: keyof ProductDetailVisibility; label: string }[] =
+const VISIBILITY_ROWS: {
+  key: keyof ProductDetailVisibility;
+  label: string;
+  hint?: string;
+}[] =
   [
     { key: "discountChip", label: "Discount chip" },
     { key: "discountChipOnImage", label: "Discount chip on preview image" },
@@ -89,10 +93,16 @@ const VISIBILITY_ROWS: { key: keyof ProductDetailVisibility; label: string }[] =
     { key: "zoom", label: "Image zoom" },
     { key: "thumbnails", label: "Thumbnails" },
     { key: "accordionOpenFirst", label: "Open the first accordion" },
+    {
+      key: "sectionTabs",
+      label: "Section tabs",
+      hint: "The Description / Specifications / Reviews bar under the buy box. While the page scrolls it pins under the header with the price and the buy button.",
+    },
   ];
 
+// The brand row draws the logo only (its name is in the breadcrumb, which
+// Category Text styles), so there is no Brand Text here.
 const TYPOGRAPHY_ROWS: { key: ProductDetailTypographyKey; label: string }[] = [
-  { key: "brand", label: "Brand Text" },
   { key: "product", label: "Product Text" },
   { key: "category", label: "Category Text" },
   { key: "price", label: "Price Text" },
@@ -188,48 +198,86 @@ export function ProductMainEditor({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
-  const findGroupIndex = (id: string) =>
-    groups.findIndex(
+  // A drag works on a local copy and commits ONCE, on drop. Committing on
+  // every cross-group hover sent each hop through the draft autosave, and
+  // the re-render it caused moved the rows under the pointer, which fired
+  // the next hover — a ping-pong React stopped as "Maximum update depth
+  // exceeded", taking the builder down.
+  const [dragGroups, setDragGroups] = useState<ProductDetailRowGroup[] | null>(
+    null,
+  );
+  const shownGroups = dragGroups ?? groups;
+  // One cross-group hop per frame: a hop reflows both lists, and the
+  // collision check that follows must see the settled layout, not decide
+  // again against the old one.
+  const hopPending = useRef(false);
+
+  const groupIndexIn = (list: ProductDetailRowGroup[], id: string) =>
+    list.findIndex(
       (group) => group.id === id || group.items.some((item) => item.id === id),
     );
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    if (!over) return;
-    const from = findGroupIndex(String(active.id));
-    const to = findGroupIndex(String(over.id));
+    if (!over || hopPending.current) return;
+    const current = dragGroups ?? groups;
+    const from = groupIndexIn(current, String(active.id));
+    const to = groupIndexIn(current, String(over.id));
     if (from < 0 || to < 0 || from === to) return;
 
-    const next = groups.map((group) => ({ ...group, items: [...group.items] }));
+    const next = current.map((group) => ({ ...group, items: [...group.items] }));
     const fromItems = next[from].items;
     const itemIndex = fromItems.findIndex((item) => item.id === active.id);
     if (itemIndex < 0) return;
     const [moved] = fromItems.splice(itemIndex, 1);
     const overIndex = next[to].items.findIndex((item) => item.id === over.id);
+    // Hovering the group itself (its empty space or an empty group) drops
+    // at its end; hovering a row lands before it, or after it when the
+    // dragged row's middle is already past the row's middle.
+    const activeRect = active.rect.current.translated;
+    const below =
+      overIndex >= 0 &&
+      activeRect != null &&
+      activeRect.top + activeRect.height / 2 > over.rect.top + over.rect.height / 2;
     next[to].items.splice(
-      overIndex < 0 ? next[to].items.length : overIndex,
+      overIndex < 0 ? next[to].items.length : overIndex + (below ? 1 : 0),
       0,
       moved,
     );
-    commitGroups(next);
+    hopPending.current = true;
+    requestAnimationFrame(() => {
+      hopPending.current = false;
+    });
+    setDragGroups(next);
+  };
+
+  const endDrag = () => {
+    hopPending.current = false;
+    setDragGroups(null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const from = findGroupIndex(String(active.id));
-    const to = findGroupIndex(String(over.id));
-    if (from < 0 || from !== to) return; // cross-group moves happen in onDragOver
-    const items = groups[from].items;
-    const oldIndex = items.findIndex((item) => item.id === active.id);
-    const newIndex = items.findIndex((item) => item.id === over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-    const next = groups.map((group, index) =>
-      index === from
-        ? { ...group, items: arrayMove(items, oldIndex, newIndex) }
-        : group,
-    );
-    commitGroups(next);
+    const current = dragGroups ?? groups;
+    endDrag();
+    let next = current;
+    if (over && active.id !== over.id) {
+      const from = groupIndexIn(current, String(active.id));
+      const to = groupIndexIn(current, String(over.id));
+      if (from >= 0 && from === to) {
+        const items = current[from].items;
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        if (oldIndex >= 0 && newIndex >= 0) {
+          next = current.map((group, index) =>
+            index === from
+              ? { ...group, items: arrayMove(items, oldIndex, newIndex) }
+              : group,
+          );
+        }
+      }
+    }
+    if (next !== groups) commitGroups(next);
   };
 
   const patchItem = (id: string, patch: Partial<ProductDetailRowItem>) => {
@@ -360,11 +408,13 @@ export function ProductMainEditor({
             id="product-main-order"
             sensors={sensors}
             collisionDetection={closestCorners}
+            onDragStart={() => setDragGroups(groups)}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={endDrag}
           >
             <div className="space-y-4">
-              {groups.map((group, index) => (
+              {shownGroups.map((group, index) => (
                 <OrderGroup
                   key={group.id}
                   group={group}
@@ -433,20 +483,27 @@ export function ProductMainEditor({
       <div className="mx-auto w-full space-y-3 lg:w-1/2">
         {heading(tSafe("admin.storeBuilder.visibilityTitle", "Visibility"))}
         <div className="space-y-2.5">
-          {VISIBILITY_ROWS.map(({ key, label }) => (
-            <div key={key} className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
-                <span className="truncate">
-                  {tSafe(`admin.storeBuilder.detailVisibility.${key}`, label)}
+          {VISIBILITY_ROWS.map(({ key, label, hint }) => (
+            <div key={key} className="space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
+                  <span className="truncate">
+                    {tSafe(`admin.storeBuilder.detailVisibility.${key}`, label)}
+                  </span>
+                  {visibilityExample(key)}
                 </span>
-                {visibilityExample(key)}
-              </span>
-              <Switch
-                checked={config.visibility[key]}
-                onCheckedChange={(checked) =>
-                  patchVisibility({ [key]: checked })
-                }
-              />
+                <Switch
+                  checked={config.visibility[key]}
+                  onCheckedChange={(checked) =>
+                    patchVisibility({ [key]: checked })
+                  }
+                />
+              </div>
+              {hint ? (
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {tSafe(`admin.storeBuilder.detailVisibility.${key}Hint`, hint)}
+                </p>
+              ) : null}
             </div>
           ))}
         </div>
@@ -614,8 +671,8 @@ export function ProductMainEditor({
           <SliderRow
             label={tSafe("admin.storeBuilder.detailStyle.thumbSize", "Thumbnail width")}
             value={config.style.thumbSize}
+            min={MIN_THUMB_SIZE}
             max={200}
-            zeroLabel={tSafe("admin.storeBuilder.detailStyle.auto", "Auto")}
             onChange={(thumbSize) => patchStyle({ thumbSize })}
           />
           <SliderRow
@@ -628,6 +685,21 @@ export function ProductMainEditor({
             label={tSafe("admin.storeBuilder.detailStyle.thumbActiveBorder", "Selected thumbnail outline")}
             value={config.style.thumbActiveBorder}
             onChange={(thumbActiveBorder) => patchStyle({ thumbActiveBorder })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.thumbBackground", "Thumbnail background")}
+            value={config.style.thumbBackground}
+            fallback="#f4f4f4"
+            onChange={(thumbBackground) => patchStyle({ thumbBackground })}
+          />
+          <ChoiceRow
+            label={tSafe("admin.storeBuilder.detailStyle.thumbFit", "Thumbnail fit")}
+            value={config.style.thumbFit}
+            options={PRODUCT_DETAIL_IMAGE_FITS.map((key) => ({
+              key,
+              label: tSafe(`admin.storeBuilder.imageFits.${key}`, IMAGE_FIT_LABELS[key]),
+            }))}
+            onChange={(thumbFit) => patchStyle({ thumbFit })}
           />
         </div>
 
@@ -841,6 +913,40 @@ export function ProductMainEditor({
             value={config.style.accordionDivider}
             fallback="#e4e4e7"
             onChange={(accordionDivider) => patchStyle({ accordionDivider })}
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          {subheading(tSafe("admin.storeBuilder.detailStyle.card", "Delivery info"))}
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.cardRadius", "Card radius")}
+            value={config.style.cardRadius}
+            max={48}
+            onChange={(cardRadius) => patchStyle({ cardRadius })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.cardPadding", "Card padding")}
+            value={config.style.cardPadding}
+            max={64}
+            onChange={(cardPadding) => patchStyle({ cardPadding })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.cardBackground", "Card background")}
+            value={config.style.cardBackground}
+            onChange={(cardBackground) => patchStyle({ cardBackground })}
+          />
+          <ColorRow
+            label={tSafe("admin.storeBuilder.detailStyle.cardBorder", "Card border")}
+            value={config.style.cardBorder}
+            fallback="#e4e4e7"
+            onChange={(cardBorder) => patchStyle({ cardBorder })}
+          />
+          <SliderRow
+            label={tSafe("admin.storeBuilder.detailStyle.cardBorderWidth", "Card border thickness")}
+            value={config.style.cardBorderWidth}
+            max={4}
+            step={0.5}
+            onChange={(cardBorderWidth) => patchStyle({ cardBorderWidth })}
           />
         </div>
 
@@ -1085,12 +1191,12 @@ function OrderRow({
             <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
               {tSafe("admin.storeBuilder.rowSettings.color", "Colour")}
               <span className="flex items-center gap-1">
-                <input
-                  type="color"
+                <ColorSwatchPicker
                   value={item.color || "#e4e4e7"}
-                  onChange={(event) => onPatch({ color: event.target.value })}
-                  aria-label={tSafe("admin.storeBuilder.rowSettings.color", "Colour")}
-                  className="h-7 w-9 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                  onChange={(color) => onPatch({ color })}
+                  align="end"
+                  ariaLabel={tSafe("admin.storeBuilder.rowSettings.color", "Colour")}
+                  className="h-7 w-9 rounded"
                 />
                 {item.color ? (
                   <button
@@ -1237,7 +1343,7 @@ interface ColorToken {
   value: string;
 }
 
-const HEX_RE = /^#[0-9a-f]{6}$/i;
+const HEX_RE = /^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 export function ColorRow({
   label,
@@ -1259,8 +1365,8 @@ export function ColorRow({
 }) {
   const token = tokens?.find((entry) => entry.value === value);
   const effective = value || fallback || "";
-  // <input type="color"> only understands #rrggbb: a token or an odd
-  // stored string seeds the picker with the fallback instead.
+  // The picker reads a hex (#rrggbb or #rrggbbaa): a token or an odd stored
+  // string seeds it with the fallback instead.
   const pickerValue = HEX_RE.test(value)
     ? value
     : HEX_RE.test(fallback ?? "")
@@ -1311,27 +1417,29 @@ export function ColorRow({
         >
           {token ? token.label : effective}
         </span>
-        {/* The Figma swatch: a color pill sitting inside a light frame. The
-            native input is stretched invisibly over it — browsers draw their
-            own chrome around <input type="color">, which is what looked
-            broken before. */}
-        <span className="relative inline-flex h-8 w-[72px] items-center rounded-[4px] border border-border/70 bg-muted/50 p-1 shadow-xs">
-          <span
-            className={cn(
-              "h-full w-full rounded-[2px]",
-              !effective && "border border-dashed border-border/70 bg-background/60",
-              !value && effective && "border border-dashed border-foreground/20",
-            )}
-            style={effective ? { backgroundColor: effective } : undefined}
-          />
-          <input
-            type="color"
-            value={pickerValue}
-            onChange={(event) => onChange(event.target.value)}
+        {/* The Figma swatch: a color pill sitting inside a light frame,
+            opening our picker. */}
+        <ColorSwatchPicker
+          value={pickerValue}
+          onChange={onChange}
+          align="end"
+          ariaLabel={label}
+        >
+          <button
+            type="button"
             aria-label={label}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          />
-        </span>
+            className="relative inline-flex h-8 w-[72px] cursor-pointer items-center rounded-[4px] border border-border/70 bg-muted/50 p-1 shadow-xs"
+          >
+            <span
+              className={cn(
+                "h-full w-full rounded-[2px]",
+                !effective && "border border-dashed border-border/70 bg-background/60",
+                !value && effective && "border border-dashed border-foreground/20",
+              )}
+              style={effective ? { backgroundColor: effective } : undefined}
+            />
+          </button>
+        </ColorSwatchPicker>
       </span>
     </div>
   );

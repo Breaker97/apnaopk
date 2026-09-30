@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   ChevronsUpDown,
   CheckCircle,
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/data-table";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useMemo, useState } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
@@ -71,6 +71,11 @@ interface VendorOrder {
   subOrders: VendorSubOrder[];
   /** What a payout would pay for this consignment — see the list query. */
   netSales: number;
+  /**
+   * The server refuses to move this consignment towards the shopper until the
+   * customer's payment arrives — worked out by the list query.
+   */
+  fulfillmentBlocked?: boolean;
 }
 
 interface VendorOrdersTableProps {
@@ -114,6 +119,10 @@ function getPaymentStatusStyles(paymentStatus: string) {
       "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300",
     partially_refunded:
       "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300",
+    // The gateway never took the money and the window closed. Its own colour
+    // because a merchant scanning the list is looking for exactly this row.
+    expired:
+      "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
   };
   return (
     map[paymentStatus] ||
@@ -128,6 +137,7 @@ function getPaymentLabel(status: string) {
     partially_paid: "Partially paid",
     refunded: "Refunded",
     partially_refunded: "Partially refunded",
+    expired: "Expired",
   };
   return labels[status] || status;
 }
@@ -235,7 +245,9 @@ export function VendorOrdersTable({
             if (
               !subOrder ||
               (getPickup(subOrder) && newStatus !== "cancelled") ||
-              !isAllowedTransition(subOrder.status, newStatus)
+              !isAllowedTransition(subOrder.status, newStatus) ||
+              // Unpaid: the server would refuse a move towards the shopper.
+              (newStatus !== "cancelled" && order.fulfillmentBlocked)
             ) {
               return false;
             }
@@ -291,7 +303,7 @@ export function VendorOrdersTable({
         cell: (row) => (
           <div className="min-w-0">
             <Link
-              href={`/${locale}/vendor/orders/${row._id}`}
+              href={`/vendor/orders/${row._id}`}
               className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
             >
               {row.orderNumber}
@@ -486,6 +498,10 @@ export function VendorOrdersTable({
             label: t("vendor.paymentStatus.partially_refunded"),
             value: "partially_refunded",
           },
+          {
+            label: t("vendor.paymentStatus.expired"),
+            value: "expired",
+          },
         ],
       },
     ],
@@ -563,7 +579,7 @@ export function VendorOrdersTable({
               id: "create-order",
               label: t("vendor.ordersTable.createOrder"),
               icon: <Plus className="h-4 w-4" />,
-              href: `/${locale}/vendor/orders/create`,
+              href: "/vendor/orders/create",
             }
           : undefined,
       }),
@@ -577,7 +593,7 @@ export function VendorOrdersTable({
           id: "view",
           label: t("vendor.ordersTable.actions.viewDetails"),
           icon: <Eye className="h-4 w-4" />,
-          href: `/${locale}/vendor/orders/${row._id}`,
+          href: `/vendor/orders/${row._id}`,
         },
       ];
 
@@ -600,10 +616,17 @@ export function VendorOrdersTable({
         return actions;
       }
 
+      // The server refuses these until the customer's payment arrives; shown
+      // greyed with the reason, as on the admin's list, instead of failing.
+      const blocked = Boolean(row.fulfillmentBlocked);
+      const blockedHint = blocked ? "Payment not received" : undefined;
+
       if (canEditOrder && isAllowedTransition(currentStatus, "processing")) {
         actions.push({
           id: "processing",
           label: t("vendor.ordersTable.actions.startProcessing"),
+          hint: blockedHint,
+          disabled: blocked,
           icon: <Package className="h-4 w-4" />,
           onClick: () => handleUpdateStatus(row._id, "processing"),
         });
@@ -613,6 +636,8 @@ export function VendorOrdersTable({
         actions.push({
           id: "shipped",
           label: t("vendor.ordersTable.actions.markShipped"),
+          hint: blockedHint,
+          disabled: blocked,
           icon: <Truck className="h-4 w-4" />,
           onClick: () => setShipDialog({ open: true, orderId: row._id }),
         });
@@ -622,6 +647,8 @@ export function VendorOrdersTable({
         actions.push({
           id: "delivered",
           label: t("vendor.ordersTable.actions.markDelivered"),
+          hint: blockedHint,
+          disabled: blocked,
           icon: <CheckCircle className="h-4 w-4" />,
           onClick: () => handleUpdateStatus(row._id, "delivered"),
         });
@@ -689,7 +716,7 @@ export function VendorOrdersTable({
         rowActions={rowActions}
         rowActionsHeader={t("vendor.ordersTable.columns.actions")}
         rowActionsVariant="dropdown"
-        onRowClick={(row) => router.push(`/${locale}/vendor/orders/${row._id}`)}
+        onRowClick={(row) => router.push(`/vendor/orders/${row._id}`)}
         emptyMessage={t("vendor.ordersTable.empty")}
       />
 

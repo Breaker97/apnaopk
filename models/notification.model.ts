@@ -27,6 +27,8 @@ export enum NotificationType {
   BOOST_ENDED = "boost_ended",
   BOOST_NOT_DELIVERED = "boost_not_delivered",
   BOOST_DAYS_RELEASED = "boost_days_released",
+  /** Store credit added to a shopper's account (R8). */
+  STORE_CREDIT = "store_credit",
   SYSTEM = "system",
 }
 

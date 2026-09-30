@@ -1,4 +1,10 @@
 import { mongoose } from "@/lib/db";
+import {
+  MARKETING_CONSENT_SOURCES,
+  MARKETING_CONSENT_STATE,
+  MARKETING_CONSENT_STATES,
+  MARKETING_OPT_IN_LEVELS,
+} from "@/config/app.config";
 import type { ICustomerProfile } from "@/types";
 import type { Model } from "mongoose";
 
@@ -43,6 +49,58 @@ const CustomerShippingAddressSchema = new Schema(
     phone: { type: String },
     isDefault: { type: Boolean, default: true },
     label: { type: String, default: "home" },
+  },
+  { _id: false },
+);
+
+/**
+ * Marketing consent, one record per channel.
+ *
+ * Every field but the state answers a question an audit asks later: when the
+ * shopper agreed, how (a tick-box, or a link they confirmed), where from, and
+ * — for a checkout — under which order and from which country. The state
+ * machine itself lives in `lib/customers/marketing-consent.ts`; nothing else
+ * may write these paths, or the history below goes out of step with them.
+ */
+const marketingConsentFields = () => ({
+  state: {
+    type: String,
+    enum: MARKETING_CONSENT_STATES,
+    default: MARKETING_CONSENT_STATE.NOT_SUBSCRIBED,
+  },
+  optInLevel: { type: String, enum: MARKETING_OPT_IN_LEVELS },
+  consentUpdatedAt: { type: Date },
+  source: { type: String, enum: MARKETING_CONSENT_SOURCES },
+  /** The order the tick-box was on, where the consent came from a checkout. */
+  sourceOrderId: { type: String },
+  /** The delivery country at the time — which decides whether a pre-tick was legal. */
+  sourceCountry: { type: String },
+  ip: { type: String },
+  /** When a double opt-in link was followed. */
+  confirmedAt: { type: Date },
+});
+
+const MarketingConsentSchema = new Schema(marketingConsentFields(), {
+  _id: false,
+});
+
+const SmsMarketingConsentSchema = new Schema(
+  {
+    ...marketingConsentFields(),
+    /** The number consented on, in E.164 — not necessarily the delivery phone. */
+    phone: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
+const MarketingConsentHistorySchema = new Schema(
+  {
+    channel: { type: String, enum: ["email", "sms"], required: true },
+    state: { type: String, enum: MARKETING_CONSENT_STATES, required: true },
+    optInLevel: { type: String, enum: MARKETING_OPT_IN_LEVELS },
+    at: { type: Date, required: true },
+    source: { type: String, enum: MARKETING_CONSENT_SOURCES },
+    sourceOrderId: { type: String },
   },
   { _id: false },
 );
@@ -96,6 +154,16 @@ const CustomerProfileSchema = new Schema<ICustomerProfile>(
       trim: true,
       lowercase: true,
     },
+    /**
+     * A guest who checked out with a phone number and no email, in E.164.
+     * Their consent to be texted has to live somewhere, and an email-keyed
+     * row cannot hold it. Set only on guest rows; a registered shopper's
+     * number is on the User.
+     */
+    phone: {
+      type: String,
+      trim: true,
+    },
     name: {
       type: String,
       trim: true,
@@ -128,10 +196,39 @@ const CustomerProfileSchema = new Schema<ICustomerProfile>(
     sizePreferences: { type: Schema.Types.Mixed },
 
     // Marketing & Communication
+    //
+    // `marketingOptIn` is the boolean this started as, kept in step with
+    // `emailMarketing.state` by `setMarketingConsent` so older readers (and
+    // anything still filtering on it) keep working. New code reads the state.
     marketingOptIn: {
       type: Boolean,
       default: false,
     },
+    emailMarketing: {
+      type: MarketingConsentSchema,
+      default: () => ({}),
+    },
+    smsMarketing: {
+      type: SmsMarketingConsentSchema,
+      default: () => ({}),
+    },
+    /**
+     * The last few consent changes, newest last, capped by the helper that
+     * writes them. Shopify keeps only the current record; this trail is what
+     * answers "who subscribed this address, and when" months later, which is
+     * the question an audit actually asks.
+     */
+    marketingConsentHistory: {
+      type: [MarketingConsentHistorySchema],
+      default: [],
+    },
+    /**
+     * The token behind the unsubscribe link in every marketing email. Minted
+     * the first time a shopper subscribes, and never rotated: links in mail
+     * already sent have to keep working. A guest has no account to sign in to,
+     * so without this there is no way out for them at all.
+     */
+    unsubscribeToken: { type: String },
     emailNotifications: {
       type: EmailNotificationsSchema,
       default: () => ({}),
@@ -180,10 +277,33 @@ CustomerProfileSchema.index(
   },
 );
 // One guest row per email; registered rows don't carry `email` (it lives on
-// the User), so the partial filter keeps them out of the constraint.
+// the User), so the partial filter keeps them out of the constraint — and so
+// does a guest who left a phone number instead, whose row has no email at all.
+// Without the `$type` clause every such row indexes as the same null key, and
+// the second phone-only shopper collided with the first.
 CustomerProfileSchema.index(
   { email: 1 },
-  { unique: true, partialFilterExpression: { isGuest: true } },
+  {
+    unique: true,
+    partialFilterExpression: { isGuest: true, email: { $type: "string" } },
+  },
+);
+// The customer list's email-subscription filter, and the recovery sweep's
+// "only shoppers who agreed" query, both match on the state alone.
+CustomerProfileSchema.index({ "emailMarketing.state": 1 });
+// Found by token when an unsubscribe link is opened; only subscribed rows
+// carry one, so the index stays small and the uniqueness skips the rest.
+CustomerProfileSchema.index(
+  { unsubscribeToken: 1 },
+  { unique: true, partialFilterExpression: { unsubscribeToken: { $type: "string" } } },
+);
+// One guest row per phone number, for the shopper who left no email.
+CustomerProfileSchema.index(
+  { phone: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { phone: { $type: "string" }, isGuest: true },
+  },
 );
 CustomerProfileSchema.index({ loyaltyTier: 1 });
 CustomerProfileSchema.index({ "stats.totalSpent": -1 });

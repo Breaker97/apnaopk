@@ -40,6 +40,7 @@
     "close": "Fermer",
     "scrollToTop": "Retour en haut",
     "back": "Retour",
+    "backToDashboard": "Retour au tableau de bord",
     "next": "Suivant",
     "previous": "Précédent",
     "viewAll": "Tout voir",
@@ -124,7 +125,17 @@
     "increaseQuantity": "Augmenter la quantité",
     "name": "Nom",
     "email": "E-mail",
-    "showingResultsFor": "Résultats pour <q>{query}</q>"
+    "showingResultsFor": "Résultats pour <q>{query}</q>",
+    "remove": "Supprimer",
+    "countryPicker": {
+      "placeholder": "Choisir un pays",
+      "search": "Rechercher un pays...",
+      "empty": "Aucun pays trouvé.",
+      "clear": "Effacer le pays",
+      "selected": "{count, plural, one {# pays sélectionné} other {# pays sélectionnés}}",
+      "remove": "Retirer {country}"
+    },
+    "clear": "Effacer"
   },
   "wishlist": {
     "title": "Ma liste de souhaits",
@@ -673,6 +684,9 @@
     "shipments": "Expéditions",
     "shipmentsDescription": "Les articles de vendeurs différents sont expédiés et payés séparément.",
     "tracking": "Suivi",
+    "trackingNumber": "Numéro de suivi",
+    "latestFromCarrier": "Dernière mise à jour de {carrier}",
+    "latestUpdate": "Dernière mise à jour",
     "payment": {
       "pending": "Paiement en attente",
       "paid": "Payé",
@@ -1037,7 +1051,10 @@
         "refunded": "Remboursée"
       }
     },
-    "boosts": "Boosts"
+    "boosts": "Mises en avant",
+    "finance": "Finances",
+    "owedToPlatform": "Dû à la plateforme",
+    "statements": "Relevés"
   },
   "adminProfile": {
     "title": "Profil",
@@ -1352,27 +1369,20 @@
       "collections": "Collections",
       "categories": "Catégories",
       "inventory": "Stock",
-      "purchaseOrders": "Commandes d'achat",
       "transfers": "Transferts",
-      "giftCards": "Cartes cadeaux",
       "customers": "Clients",
       "vendors": "Vendeurs",
-      "marketing": "Marketing",
       "discounts": "Réductions",
       "content": "Contenu",
       "markets": "Marchés",
       "analytics": "Analyses",
       "salesChannels": "Canaux de vente",
       "onlineStore": "Boutique en ligne",
-      "homePage": "Page d'accueil",
-      "theme": "Thème",
       "themes": "Thèmes",
       "pages": "Pages",
       "pos": "Point de vente",
       "posStaff": "Personnel",
       "posLocations": "Emplacements",
-      "apps": "Applications",
-      "addApp": "Ajouter",
       "addPage": "Ajouter une page",
       "dashboard": "Tableau de bord",
       "navigation": "Navigation",
@@ -1383,14 +1393,11 @@
       "transactions": "Transactions",
       "reviews": "Avis",
       "blogPosts": "Articles de blog",
-      "blogCategories": "Catégories de blog",
-      "blogComments": "Commentaires",
-      "allPosts": "Tous les articles",
       "aiStudio": "Studio IA",
       "boosts": "Mise en avant",
       "boostCampaigns": "Campagnes de boost",
       "boostPositions": "Positions sponsorisées",
-      "customize": "Customize",
+      "customize": "Personnaliser",
       "finance": "Finances",
       "financeOverview": "Vue d'ensemble",
       "expenses": "Dépenses",
@@ -1398,7 +1405,26 @@
       "financeReports": "Rapports",
       "quotes": "Devis",
       "traffic": "Trafic",
-      "searchInsights": "Analyse des recherches"
+      "searchInsights": "Analyse des recherches",
+      "abandonedCheckouts": "Paiements abandonnés",
+      "accessRequests": "Demandes d’accès",
+      "aiSalesAgent": "Agent commercial",
+      "allOrders": "Toutes les commandes",
+      "brands": "Marques",
+      "globalVariants": "Variantes globales",
+      "inbox": "Boîte de réception",
+      "landmark": "Menu principal",
+      "mobileTitle": "Menu",
+      "mobileDescription": "Des liens vers chaque partie du tableau de bord.",
+      "preorders": "Précommandes",
+      "returns": "Retours",
+      "shipping": "Livraison",
+      "sliders": "Carrousels",
+      "staff": "Équipe",
+      "toggle": "Afficher ou masquer la barre latérale",
+      "vendorConfiguration": "Configuration",
+      "vendorOnboarding": "Parcours d’inscription",
+      "vendorPlans": "Forfaits vendeurs"
     },
     "users": "Utilisateurs",
     "usersDesc": "Gérer les utilisateurs et les rôles",
@@ -1427,6 +1453,8 @@
         "sku": "SKU",
         "unavailable": "Indisponible",
         "committed": "Réservé",
+        "unavailableHint": "Retourné endommagé, incomplet ou inutilisable — pas encore remis en stock ni sorti du stock",
+        "committedHint": "Vendu et encore ici — pas encore expédié, retiré ni annulé",
         "available": "Disponible",
         "onHand": "En stock"
       },
@@ -1451,8 +1479,36 @@
         "product": "Produit",
         "variant": "Variante",
         "sku": "SKU",
+        "unavailable": "Indisponible",
+        "committed": "Réservé",
         "available": "Disponible",
         "onHand": "En stock"
+      },
+      "breakdown": {
+        "committed": "{count, plural, one {# réservée} other {# réservées}}",
+        "unavailable": "{count, plural, one {# indisponible} other {# indisponibles}}"
+      },
+      "unavailableDialog": {
+        "title": "Unités indisponibles",
+        "description": "Unités qu'un retour a rapportées endommagées, incomplètes ou inutilisables. Elles restent hors stock jusqu'à ce que vous les remettiez en vente ou les sortiez du stock.",
+        "fromReturn": "Retour {returnNumber} · Commande {orderNumber}",
+        "countedOn": "Compté le {date}",
+        "held": "{count, plural, one {# unité retenue} other {# unités retenues}}",
+        "quantity": "Unités",
+        "restock": "Remettre en disponible",
+        "writeOff": "Sortir du stock",
+        "cancel": "Annuler",
+        "confirmWriteOff": "Sortir {count, plural, one {# unité} other {# unités}} du stock ? Elles quittent définitivement votre inventaire.",
+        "restocked": "{count, plural, one {# unité est} other {# unités sont}} de nouveau en vente",
+        "writtenOff": "{count, plural, one {# unité sortie} other {# unités sorties}} du stock",
+        "actionError": "Impossible de mettre à jour ces unités.",
+        "loadError": "Impossible de charger ces unités. Fermez et réessayez.",
+        "empty": "Plus rien n'est retenu pour cet article.",
+        "conditions": {
+          "damaged": "Endommagé",
+          "missing_parts": "Pièces manquantes",
+          "unusable": "Inutilisable"
+        }
       },
       "stats": {
         "trackedSkus": "SKU suivis",
@@ -1536,35 +1592,8 @@
     },
     "settings": {
       "title": "Paramètres",
-      "description": "Gérez la configuration de votre boutique",
-      "tabs": {
-        "general": "Général",
-        "security": "Sécurité",
-        "appearance": "Apparence",
-        "payment": "Paiements",
-        "email": "E-mail",
-        "orders": "Commandes",
-        "seo": "SEO",
-        "social": "Social",
-        "maintenance": "Maintenance"
-      },
       "search": "Rechercher dans les paramètres",
-      "close": "Close settings",
-      "openMenu": "Open settings menu",
-      "closeMenu": "Close settings menu",
-      "attention": "Action requise",
-      "disabled": "Désactivé",
       "unsaved": "Non enregistré",
-      "session": {
-        "duration": "Durée de session (jours)",
-        "maxAttempts": "Tentatives de connexion max",
-        "lockout": "Durée de verrouillage (min)"
-      },
-      "passwordPolicy": {
-        "uppercase": "Exiger des majuscules",
-        "numbers": "Exiger des chiffres",
-        "specialChars": "Exiger des caractères spéciaux"
-      },
       "general": {
         "title": "Paramètres généraux",
         "description": "Configurez les informations de base de votre boutique",
@@ -1575,70 +1604,161 @@
         "address": "Adresse",
         "storeDescription": "Description de la boutique",
         "defaultLanguage": "Langue par défaut",
-        "defaultCurrency": "Devise par défaut",
-        "logoUrl": "URL du logo",
-        "faviconUrl": "URL du favicon",
-        "save": "Enregistrer les modifications"
+        "defaultCurrency": "Devise de la boutique",
+        "save": "Enregistrer les modifications",
+        "storeInfoTitle": "Informations de la boutique",
+        "storeInfoDescription": "Les informations de base de votre boutique",
+        "languageCurrencyTitle": "Langue et devise",
+        "languageCurrencyDescription": "La langue d'ouverture de votre boutique et l'unique devise dans laquelle elle vend",
+        "searchLanguage": "Rechercher une langue...",
+        "searchCurrency": "Rechercher une devise...",
+        "storeCurrencyHint": "Tous les prix, commandes et versements sont dans cette devise. La changer renomme les prix ; elle ne les convertit pas.",
+        "countries": {
+          "title": "Pays disponibles",
+          "description": "Contrôlez les listes de pays utilisées au paiement, lors de l'inscription des vendeurs, dans les adresses, les expéditions et les fiches produits.",
+          "all": "Tous les pays",
+          "allHint": "Afficher tous les pays pris en charge ({count}) dans tous les sélecteurs de pays.",
+          "specific": "Pays spécifiques",
+          "specificHint": "N'afficher que les pays sélectionnés ci-dessous.",
+          "label": "Pays",
+          "placeholder": "Sélectionner des pays",
+          "search": "Rechercher des pays ou codes ISO...",
+          "empty": "Aucun pays trouvé.",
+          "required": "Sélectionnez au moins un pays avant d'enregistrer.",
+          "selected": "{count, plural, one {# pays sélectionné.} other {# pays sélectionnés.}}"
+        },
+        "defaultBadge": "Par défaut",
+        "countryRequired": "Sélectionnez au moins un pays ou choisissez Tous les pays.",
+        "supportedLanguages": "Langues prises en charge",
+        "supportedLanguagesDesc": "Langues disponibles sur votre boutique."
       },
       "appearance": {
-        "title": "Apparence",
-        "description": "Personnalisez l'apparence de votre boutique",
+        "title": "Marque",
         "primaryColor": "Couleur primaire",
         "secondaryColor": "Couleur secondaire",
         "accentColor": "Couleur d'accentuation",
-        "theme": "Thème par défaut",
         "themes": {
           "light": "Clair",
-          "dark": "Sombre",
-          "system": "Système"
+          "dark": "Sombre"
         },
-        "save": "Enregistrer les modifications"
+        "presets": "Préréglages",
+        "skeletonColor": "Couleur du squelette",
+        "skeletonColorHint": "Espaces réservés pendant le chargement. Laissé vide, il reste un gris neutre."
       },
       "payment": {
         "stripe": {
           "title": "Stripe",
-          "description": "Configurer la passerelle de paiement Stripe",
-          "enable": "Activer les paiements Stripe",
-          "publishableKey": "Clé publique",
+          "description": "Acceptez les cartes de crédit et de débit dans le monde entier",
           "secretKey": "Clé secrète",
-          "webhookSecret": "Secret du Webhook",
           "webhookSecretHint": "Requis pour le traitement des événements de paiement. Obtenez-le depuis Tableau de bord Stripe → Développeurs → Webhooks"
         },
         "cod": {
           "title": "Paiement à la livraison",
-          "description": "Configurer l'option de paiement à la livraison",
-          "enable": "Activer le paiement à la livraison",
-          "instructions": "Instructions",
-          "placeholder": "Instructions affichées aux clients...",
-          "codMinOrder": "Montant minimum de commande",
-          "codMaxOrder": "Montant maximum de commande"
+          "description": "Laissez les clients payer à la réception de leur commande",
+          "placeholder": "p. ex. Merci de préparer l'appoint à l'arrivée du livreur.",
+          "offline": "Hors ligne"
         },
-        "save": "Enregistrer les paramètres de paiement",
         "title": "Paramètres de paiement",
         "description": "Configurer les passerelles et options de paiement",
-        "enableStripe": "Activer Stripe",
         "stripePublishableKey": "Clé publique",
         "stripeWebhookSecret": "Secret du Webhook",
-        "enablePayPal": "Activer PayPal",
         "paypalClientId": "ID client",
         "paypalMode": "Mode",
         "paypalSandbox": "Sandbox",
         "paypalLive": "En direct",
         "paypalWebhookId": "ID du Webhook",
-        "enableCOD": "Activer le paiement à la livraison",
         "codInstructions": "Instructions du paiement à la livraison",
         "codMinOrder": "Montant minimum de commande",
         "codMaxOrder": "Montant maximum de commande",
         "paypal": {
           "title": "PayPal",
-          "description": "Configurer la passerelle de paiement PayPal",
-          "enablePayPal": "Activer PayPal",
-          "paypalClientId": "ID client",
+          "description": "Paiement et portefeuille de confiance dans le monde entier",
           "clientSecret": "Secret client",
-          "paypalMode": "Mode",
-          "paypalSandbox": "Sandbox",
-          "paypalLive": "En direct",
-          "paypalWebhookId": "ID du Webhook"
+          "clientIdPlaceholder": "ID client PayPal",
+          "webhookIdPlaceholder": "ID du webhook PayPal"
+        },
+        "pesapal": {
+          "ipnRegistered": "IPN Pesapal enregistré",
+          "ipnFailed": "Impossible d'enregistrer l'IPN Pesapal",
+          "description": "Mobile money et paiements par carte en Afrique de l'Est",
+          "registerIpn": "Enregistrer l'IPN",
+          "consumerKeyPlaceholder": "Consumer key Pesapal",
+          "consumerSecretPlaceholder": "Consumer secret Pesapal",
+          "ipnId": "ID IPN",
+          "ipnIdPlaceholder": "ID IPN Pesapal enregistré",
+          "ipnHint": "Enregistrez <code>{path}</code> comme URL IPN POST, puis saisissez l'ID renvoyé."
+        },
+        "testConnection": "Tester la connexion",
+        "activeCount": "{count} actifs",
+        "checkout": {
+          "currencyListed": "Masqué au paiement : n'accepte pas {currency}, la devise de la boutique. N'accepte que {currencies}. Changez la devise dans les Paramètres généraux pour le proposer.",
+          "currency": "Masqué au paiement : n'accepte pas {currency}, la devise de la boutique. Changez la devise dans les Paramètres généraux pour le proposer.",
+          "keys": "Masqué au paiement tant que ses clés ne sont pas enregistrées."
+        },
+        "fields": {
+          "keyId": "Key ID",
+          "keySecret": "Key Secret",
+          "webhookSecret": "Secret du webhook",
+          "webhookUrl": "URL du webhook",
+          "publicKey": "Clé publique",
+          "secretKey": "Clé secrète",
+          "consumerKey": "Consumer Key",
+          "consumerSecret": "Consumer Secret",
+          "clientId": "ID client",
+          "clientSecret": "Secret client",
+          "walletId": "ID du portefeuille",
+          "merchantKey": "Clé marchand",
+          "countryCode": "Code pays",
+          "subscriptionKey": "Clé d'abonnement",
+          "apiUser": "Utilisateur API",
+          "apiKey": "Clé API",
+          "targetEnvironment": "Environnement cible",
+          "callbackHost": "Hôte de callback (facultatif)"
+        },
+        "razorpay": {
+          "description": "Paiements pour l'Inde, et pour la Malaisie via Razorpay Curlec",
+          "internationalNote": "Accepte {currency} uniquement si International Payments est activé sur votre compte Razorpay.",
+          "keySecretPlaceholder": "Key secret",
+          "webhookSecretPlaceholder": "Secret du webhook",
+          "webhookSecretHint": "Le secret défini sur ce webhook. Par sécurité, les secrets enregistrés ne sont plus affichés.",
+          "webhookUrlHint": "Ajoutez-la dans Razorpay Dashboard → Account & Settings → Webhooks, avec les événements payment.captured, order.paid, refund.created, refund.processed et refund.failed. Elle confirme un paiement même quand l'acheteur ne revient jamais sur votre boutique, ce qui est fréquent avec FPX et les autres redirections bancaires."
+        },
+        "paystack": {
+          "description": "Des paiements modernes pour l'Afrique"
+        },
+        "iotec": {
+          "description": "Mobile money MTN et Airtel et paiements par carte (Ouganda)",
+          "clientIdPlaceholder": "ID client ioTec",
+          "clientSecretPlaceholder": "Secret client ioTec",
+          "walletIdPlaceholder": "UUID du portefeuille ioTec Pay",
+          "walletIdHint": "Disponible dans le portail ioTec Pay, dans les paramètres de votre portefeuille.",
+          "callbackHint": "Facultatif : dans le portail ioTec Pay, définissez l'URL de callback des encaissements sur <code>{path}</code> pour des mises à jour de statut instantanées. Les paiements sont confirmés par interrogation même sans elle."
+        },
+        "orangeMoney": {
+          "description": "Mobile money Orange en Afrique de l'Ouest et centrale",
+          "clientIdPlaceholder": "ID client développeur Orange",
+          "clientSecretPlaceholder": "Secret client développeur Orange",
+          "merchantKeyPlaceholder": "Clé marchand Orange Money",
+          "merchantKeyHint": "Délivrée par votre opérateur Orange local une fois le contrat marchand signé — indisponible dans le portail développeur.",
+          "countryHint": "Le code à deux lettres du pays dont l'opérateur Orange a délivré votre clé marchand (ci, sn, cm, ml, mg…). Obligatoire en production ; ignoré en sandbox, qui utilise toujours le point de terminaison Orange <code>{endpoint}</code>.",
+          "callbackHint": "Dans le portail développeur Orange, définissez l'URL de notification sur <code>{path}</code>. Les paiements sont aussi confirmés par interrogation sur la page de confirmation de commande."
+        },
+        "mtnMomo": {
+          "description": "Paiements MTN MoMo par code PIN dans toute l'Afrique",
+          "subscriptionKeyHint": "La clé principale de votre abonnement au produit Collections.",
+          "apiUserPlaceholder": "UUID de l'utilisateur API",
+          "apiKeyPlaceholder": "Clé API associée à l'utilisateur",
+          "targetEnvironmentHint": "Le X-Target-Environment attribué par votre OpCo MTN lors de l'intégration (mtnuganda, mtnghana, …). Obligatoire en production ; ignoré en sandbox, qui envoie toujours <code>{value}</code>.",
+          "callbackHostHint": "Le domaine enregistré auprès de MTN comme hôte de callback du fournisseur, sans <code>{scheme}</code> ni chemin. MTN refuse un paiement dont l'URL de callback indique un autre hôte ; laissez donc vide sauf correspondance exacte — les paiements sont de toute façon confirmés par interrogation et par un rapprochement toutes les 15 minutes.",
+          "callbackHint": "Si défini, MTN est invité à notifier <code>{path}</code> — une seule fois, sans nouvel essai ; ce n'est donc jamais la seule confirmation."
+        },
+        "turnstile": {
+          "description": "Cloudflare Turnstile, demandé seulement après plusieurs refus de carte",
+          "explainer": "Le paiement demande une vérification humaine dès que les cartes d’un acheteur ont été refusées trois fois en une demi-heure, et met le paiement en pause après six. La pause fonctionne sans cela ; la vérification nécessite vos propres clés Cloudflare Turnstile. La plupart des acheteurs ne la voient jamais.",
+          "missingKeys": "Activé sans les deux clés, donc aucune vérification n’est demandée — seule la pause s’applique.",
+          "secretKey": "Clé secrète",
+          "siteKey": "Clé du site",
+          "title": "Protection contre les tests de cartes"
         }
       },
       "email": {
@@ -1651,7 +1771,6 @@
         "password": "Mot de passe SMTP",
         "fromEmail": "E-mail de l'expéditeur",
         "fromName": "Nom de l'expéditeur",
-        "secure": "Utiliser SSL/TLS (pour le port 465)",
         "test": {
           "label": "E-mail de test",
           "placeholder": "test@exemple.com",
@@ -1659,35 +1778,29 @@
           "success": "E-mail de test envoyé avec succès !",
           "error": "Échec de l'envoi de l'e-mail de test"
         },
-        "save": "Enregistrer les paramètres e-mail"
+        "save": "Enregistrer les paramètres e-mail",
+        "passwordPlaceholder": "Saisissez le mot de passe",
+        "fromNamePlaceholder": "Nom de votre boutique",
+        "encryptionNote": "Le chiffrement est automatique : le port 465 utilise TLS implicite et le port 587 exige STARTTLS."
       },
       "security": {
         "title": "Sécurité et contrôle d'accès",
-        "description": "Configure multi-vendor mode, session security, and password policies",
-        "tabs": {
-          "general": "General",
-          "2fa": "Two-Factor Auth",
-          "oauth": "OAuth",
-          "pos": "POS Access",
-          "vendor": "Vendor Permissions"
-        },
+        "description": "Configurez le mode multi-vendeurs, la sécurité des sessions et les règles de mot de passe",
         "multiVendor": {
-          "title": "Store Mode",
           "label": "Mode multi-vendeur",
-          "description": "Enable marketplace features: vendor registration, multiple stores, vendor dashboard"
+          "description": "Activer les fonctions de place de marché : inscription des vendeurs, boutiques multiples, tableau de bord vendeur",
+          "manageLink": "Gérer l'inscription des vendeurs, les forfaits et les règles"
         },
         "emailVerification": {
-          "title": "Email Verification",
-          "required": "Require Email Verification",
-          "requiredDesc": "Users must verify email before accessing the store",
-          "vendorRequired": "Require for Vendors",
-          "vendorRequiredDesc": "Vendors must verify email before listing products"
+          "title": "Vérification de l’e-mail",
+          "required": "Exiger la vérification de l’e-mail",
+          "requiredDesc": "Les utilisateurs doivent vérifier leur e-mail avant d’accéder à la boutique",
+          "vendorRequired": "L’exiger pour les vendeurs"
         },
         "session": {
-          "title": "Session Security",
-          "duration": "Session Duration (days)",
-          "maxAttempts": "Max Login Attempts",
-          "lockout": "Lockout Duration (min)"
+          "duration": "Durée de session (jours)",
+          "maxAttempts": "Tentatives de connexion maximales",
+          "lockout": "Durée du verrouillage (min)"
         },
         "rateLimiting": {
           "enabled": "Activer la limitation de taux",
@@ -1697,41 +1810,51 @@
           "cartPreset": "Panier",
           "couponPreset": "Coupons",
           "authPreset": "Auth / Connexion",
-          "ipPreset": "Invité / Public (par IP)"
+          "ipPreset": "Invité / Public (par IP)",
+          "presets": {
+            "default": "Par défaut",
+            "lenient": "Souple (100/15 min)",
+            "moderate": "Modéré (20/15 min)",
+            "strict": "Strict (5/15 min)"
+          }
         },
         "passwordPolicy": {
-          "title": "Password Policy",
-          "minLength": "Minimum Password Length",
-          "uppercase": "Require Uppercase",
-          "numbers": "Require Numbers",
-          "specialChars": "Require Special Characters"
+          "minLength": "Longueur minimale du mot de passe",
+          "uppercase": "Exiger des majuscules",
+          "numbers": "Exiger des chiffres",
+          "specialChars": "Exiger des caractères spéciaux"
         },
-        "save": "Save Security Settings",
+        "save": "Enregistrer les paramètres de sécurité",
         "unlock": {
           "label": "Débloquer un compte",
           "action": "Débloquer",
-          "hint": "Efface le compteur de tentatives échouées de cette adresse sur tous les appareils concernés. Effet immédiat — aucune sauvegarde nécessaire."
+          "hint": "Efface le compteur de tentatives échouées de cette adresse sur tous les appareils concernés. Effet immédiat — aucune sauvegarde nécessaire.",
+          "done": "Compte débloqué. La personne peut de nouveau se connecter.",
+          "notLocked": "Cette adresse n'était pas bloquée. Rien à réinitialiser.",
+          "failed": "Impossible de débloquer ce compte"
         }
       },
       "seo": {
         "title": "Paramètres SEO",
-        "description": "Configure search engine optimization",
-        "metaTitle": "Meta Title",
-        "metaTitlePlaceholder": "Your Store - Online Marketplace",
-        "metaDescription": "Meta Description",
-        "metaDescriptionPlaceholder": "Describe your store in 150-160 characters...",
-        "metaKeywords": "Meta Keywords",
-        "metaKeywordsPlaceholder": "ecommerce, online shopping, marketplace",
-        "save": "Save SEO Settings"
+        "description": "Configurez l’optimisation pour les moteurs de recherche",
+        "metaTitle": "Titre méta",
+        "metaTitlePlaceholder": "Votre boutique - Place de marché en ligne",
+        "metaDescription": "Méta-description",
+        "metaDescriptionPlaceholder": "Décrivez votre boutique en 150 à 160 caractères...",
+        "metaKeywords": "Mots-clés méta",
+        "metaKeywordsPlaceholder": "e-commerce, achats en ligne, place de marché",
+        "save": "Enregistrer les paramètres SEO",
+        "ogImage": "URL de l’image OG",
+        "ogImagePlaceholder": "https://example.com/og-image.jpg"
       },
       "social": {
         "title": "Liens sociaux",
-        "description": "Add your social media profiles",
+        "description": "Ajoutez vos profils de réseaux sociaux",
         "facebook": "Facebook",
         "twitter": "Twitter/X",
         "instagram": "Instagram",
         "youtube": "YouTube",
-        "save": "Save Social Links",
+        "save": "Enregistrer les liens sociaux",
         "facebookPlaceholder": "https://facebook.com/yourpage",
         "twitterPlaceholder": "https://twitter.com/yourhandle",
         "instagramPlaceholder": "https://instagram.com/yourprofile",
@@ -1739,37 +1862,79 @@
         "tiktok": "TikTok",
         "tiktokPlaceholder": "https://tiktok.com/@yourhandle",
         "linkedin": "LinkedIn",
-        "linkedinPlaceholder": "https://linkedin.com/company/yourcompany"
+        "linkedinPlaceholder": "https://linkedin.com/company/yourcompany",
+        "share": {
+          "copyLink": "Copier le lien",
+          "copyLinkDesc": "Un bouton qui copie le lien du produit dans le presse-papiers.",
+          "customAdd": "Ajouter une plateforme",
+          "customGroup": "Plateformes personnalisées",
+          "customHint": "Ajoutez toute autre plateforme disposant de son propre lien de partage.",
+          "customIcon": "Icône",
+          "customIconHint": "Facultatif. Envoyez une image carrée ou collez l’URL d’une image. À défaut, une icône de partage générique est utilisée.",
+          "customLabel": "Libellé",
+          "customLabelPlaceholder": "p. ex. Reddit",
+          "customRemove": "Retirer la plateforme",
+          "customUntitled": "Plateforme sans nom",
+          "customUrl": "Lien de partage",
+          "customUrlHint": "Insérez le lien et le titre du produit avec les jetons :",
+          "description": "Choisissez les boutons de partage affichés sur vos pages produit.",
+          "email": "E-mail",
+          "enable": "Activer les boutons de partage",
+          "enableDesc": "Afficher une rangée de boutons de partage sur les pages de détail des produits.",
+          "facebook": "Facebook",
+          "linkGroup": "Lien",
+          "linkedin": "LinkedIn",
+          "pinterest": "Pinterest",
+          "socialGroup": "Réseaux sociaux",
+          "telegram": "Telegram",
+          "title": "Boutons de partage",
+          "twitter": "X / Twitter",
+          "whatsapp": "WhatsApp"
+        }
       },
       "maintenance": {
         "title": "Mode maintenance",
-        "description": "Control store availability",
-        "enable": "Enable Maintenance Mode",
-        "enableDesc": "When enabled, visitors will see a maintenance message",
-        "message": "Maintenance Message",
-        "messagePlaceholder": "We're currently undergoing maintenance. Please check back soon!",
-        "save": "Save Maintenance Settings"
+        "description": "Contrôlez la disponibilité de la boutique",
+        "enable": "Activer le mode maintenance",
+        "enableDesc": "Une fois activé, les visiteurs verront un message de maintenance",
+        "message": "Message de maintenance",
+        "save": "Enregistrer les paramètres de maintenance",
+        "preview": {
+          "label": "Aperçu en direct",
+          "countdownEmpty": "Choisissez une heure de retour pour lancer le compte à rebours.",
+          "countdownHidden": "Le compte à rebours est masqué. Les visiteurs ne verront que le titre et le message.",
+          "bypassTitle": "Accès maintenu",
+          "bypassCount": "{count, plural, one {# IP peut toujours accéder à la boutique.} other {# IP peuvent toujours accéder à la boutique.}}"
+        },
+        "allowedIPs": "Adresses IP autorisées",
+        "allowedIPsHint": "Une IP par ligne. Ces visiteurs peuvent toujours accéder à la boutique pendant le mode maintenance.",
+        "backgroundImage": "Image d’arrière-plan",
+        "backgroundImageHint": "Quand une image est définie, les visiteurs la voient assombrie derrière le texte de maintenance, sans la carte.",
+        "backgroundImagePreviewAlt": "Aperçu de l’arrière-plan de maintenance",
+        "countdown": "Afficher un compte à rebours",
+        "countdownDesc": "Affiche un compte à rebours en direct jusqu’au retour prévu de la boutique en ligne.",
+        "countdownEndsAt": "Retour en ligne prévu",
+        "countdownEndsAtHint": "Définissez la date et l’heure locales jusqu’auxquelles les clients verront le compte à rebours.",
+        "titleLabel": "Titre"
       },
       "twoFactor": {
         "title": "Authentification à deux facteurs",
-        "description": "Enable and configure 2FA requirements for different user roles",
-        "enable": "Enable Two-Factor Authentication",
-        "enableDesc": "Allow users to set up 2FA for their accounts",
-        "requirements": "2FA Requirements by Role",
-        "admin": "Required for Administrators",
-        "adminDesc": "Admin accounts must enable 2FA",
-        "vendor": "Required for Vendors",
-        "vendorDesc": "Vendor accounts must enable 2FA",
-        "save": "Save 2FA Settings"
+        "description": "Activez l’authentification à deux facteurs et choisissez les rôles qui peuvent la configurer",
+        "enable": "Activer l’authentification à deux facteurs",
+        "admin": "Activer pour les administrateurs",
+        "vendor": "Activer pour les vendeurs",
+        "save": "Enregistrer les paramètres 2FA",
+        "enableFirstHint": "Activez l’authentification à deux facteurs pour la proposer aux administrateurs, aux vendeurs ou au personnel.",
+        "staff": "Activer pour le personnel"
       },
       "oauth": {
         "title": "OAuth / Connexion sociale",
-        "description": "Configure social login providers (Google, Facebook)",
+        "description": "Configurez les fournisseurs de connexion sociale (Google, Facebook)",
         "google": {
-          "label": "Google Sign-In",
-          "description": "Allow users to sign in with their Google account",
-          "clientId": "Google Client ID",
-          "clientSecret": "Google Client Secret",
+          "label": "Connexion avec Google",
+          "description": "Permettre aux utilisateurs de se connecter avec leur compte Google",
+          "clientId": "ID client Google",
+          "clientSecret": "Secret client Google",
           "openConsole": "Ouvrir Google Cloud Console",
           "step1": "Ouvrez Google Cloud Console et sélectionnez un projet existant, ou créez-en un pour cette boutique.",
           "step2": "Dans APIs & Services → OAuth consent screen, renseignez le nom de l'application, l'e-mail d'assistance et le domaine autorisé, puis publiez l'application. Tant qu'elle reste en Testing, seuls les utilisateurs de test listés peuvent se connecter.",
@@ -1779,10 +1944,10 @@
           "step6": "Copiez le Client ID et le Client secret dans les champs ci-dessus, enregistrez, puis cliquez sur Vérifier les identifiants. Un nouveau client Google peut mettre quelques minutes à devenir actif."
         },
         "facebook": {
-          "label": "Facebook Sign-In",
-          "description": "Allow users to sign in with their Facebook account",
-          "appId": "Facebook App ID",
-          "appSecret": "Facebook App Secret",
+          "label": "Connexion avec Facebook",
+          "description": "Permettre aux utilisateurs de se connecter avec leur compte Facebook",
+          "appId": "ID de l’application Facebook",
+          "appSecret": "Secret de l’application Facebook",
           "openConsole": "Ouvrir Meta for Developers",
           "step1": "Ouvrez Meta for Developers → My Apps → Create app et choisissez le cas d'usage “Authenticate and request data from users with Facebook Login”.",
           "step2": "Ajoutez le produit Facebook Login à l'application, puis ouvrez Facebook Login → Settings.",
@@ -1791,9 +1956,10 @@
           "step4b": "et ajoutez",
           "step4c": "dans App domains. Meta exige aussi une URL de politique de confidentialité avant de passer l'application en production.",
           "step5": "Copiez l'App ID et l'App Secret dans les champs ci-dessus, enregistrez, puis cliquez sur Vérifier les identifiants.",
-          "step6": "Faites passer l'application de Development à Live. Avant cela, seules les personnes ayant un rôle sur l'application peuvent se connecter avec Facebook."
+          "step6": "Faites passer l'application de Development à Live. Avant cela, seules les personnes ayant un rôle sur l'application peuvent se connecter avec Facebook.",
+          "appIdPlaceholder": "ID de l'app Facebook"
         },
-        "save": "Save OAuth Settings",
+        "save": "Enregistrer les paramètres OAuth",
         "activeCount": "{count} actifs",
         "envCredentials": "Les identifiants de ce fournisseur proviennent de variables d'environnement — activez-le pour les utiliser.",
         "originMismatch": "Vous naviguez sur {browser}, mais la connexion passe par {configured}. Enregistrez les URL affichées ci-dessous, ou pointez BETTER_AUTH_URL / NEXT_PUBLIC_APP_URL vers le domaine réellement utilisé.",
@@ -1806,34 +1972,34 @@
         "copyFailed": "Impossible de copier l'URL",
         "setupGuide": "Comment configurer (étape par étape)",
         "verify": "Vérifier les identifiants",
-        "verifyHint": "La vérification teste l'identifiant et le secret auprès du fournisseur. L'enregistrement de l'URI de redirection ne peut être prouvé que par une vraie connexion."
+        "verifyHint": "La vérification teste l'identifiant et le secret auprès du fournisseur. L'enregistrement de l'URI de redirection ne peut être prouvé que par une vraie connexion.",
+        "verified": "Identifiants vérifiés",
+        "verifyFailed": "Échec de la vérification"
       },
       "pos": {
         "title": "Accès point de vente (POS)",
-        "description": "Configure which roles can access the POS system",
-        "enable": "Enable POS System",
-        "enableDesc": "Allow in-store sales through the Point of Sale module",
-        "access": "POS Access by Role",
-        "admin": "Administrators",
-        "adminDesc": "Allow admins to make sales via POS",
-        "vendor": "Vendors",
-        "vendorDesc": "Allow vendors to make sales via POS for their products",
-        "save": "Save POS Settings",
-        "general": "General",
-        "language": "Language",
-        "defaultLocation": "Default POS Location ID",
-        "customize": "Customize",
-        "printedReceipts": "Printed receipts",
-        "checkout": "Checkout",
-        "offlinePayments": "Offline payments",
-        "orders": "Orders",
-        "orderNumberPrefix": "Order number prefix",
-        "orderNumberPrefixHint": "New POS orders use this prefix with a six-digit number, for example POS000017.",
+        "description": "Configurez les rôles qui peuvent accéder au système PDV",
+        "enable": "Activer le système PDV",
+        "enableDesc": "Permettre les ventes en magasin via le module de point de vente",
+        "access": "Accès au PDV par rôle",
+        "admin": "Administrateurs",
+        "adminDesc": "Permettre aux administrateurs de vendre via le PDV",
+        "vendor": "Vendeurs",
+        "vendorDesc": "Permettre aux vendeurs de vendre leurs produits via le PDV",
+        "save": "Enregistrer les paramètres PDV",
+        "general": "Général",
+        "defaultLocation": "ID de l’emplacement PDV par défaut",
+        "customize": "Personnaliser",
+        "printedReceipts": "Reçus imprimés",
+        "checkout": "Encaissement",
+        "offlinePayments": "Paiements hors ligne",
+        "orders": "Commandes",
+        "orderNumberPrefix": "Préfixe des numéros de commande",
+        "orderNumberPrefixHint": "Les nouvelles commandes POS utilisent ce préfixe suivi d’un numéro à six chiffres, par exemple POS000017.",
         "enabled": "Activé",
         "disabled": "Désactivé",
         "accessDesc": "Contrôlez quels rôles d'utilisateur peuvent accéder au terminal POS",
         "generalDesc": "Configurer la langue et l'emplacement par défaut pour le POS",
-        "languageHint": "Langue utilisée dans l'interface du terminal POS",
         "selectLocation": "Sélectionner un emplacement",
         "noLocation": "Aucun emplacement par défaut",
         "defaultBadge": "Par défaut",
@@ -1843,18 +2009,16 @@
         "paymentMethods": "Méthodes de Paiement Acceptées",
         "paymentCash": "Espèces",
         "paymentCashDesc": "Accepter les paiements en espèces",
-        "paymentCard": "Carte",
-        "paymentCardDesc": "Accepter les paiements par carte de crédit/débit",
+        "paymentCard": "Carte (Stripe)",
+        "paymentCardDesc": "Accepter les paiements par carte de crédit/débit via Stripe",
         "paymentManual": "Manuel",
         "paymentManualDesc": "Méthodes de paiement personnalisées",
         "offlinePaymentsDesc": "Traiter les paiements lorsque l'appareil est hors ligne",
         "customizeDesc": "Personnaliser l'apparence et le comportement du terminal POS",
         "printedReceiptsDesc": "Imprimer les reçus après chaque transaction",
-        "minutes": "minutes",
         "receiptPrinter": "Imprimante de Reçus",
         "receiptPrinterPlaceholder": "ex. Star TSP143",
         "ordersDesc": "Configurer les politiques de retour pour les commandes POS",
-        "days": "jours",
         "sound": "Effets Sonores",
         "soundDesc": "Configurer le retour audio pour les interactions du terminal POS",
         "soundEnable": "Activer les Effets Sonores",
@@ -1867,35 +2031,85 @@
         "soundOrderComplete": "Commande Terminée",
         "soundOrderCompleteDesc": "Carillon à la fin d'une commande",
         "soundError": "Alerte d'Erreur",
-        "soundErrorDesc": "Son d'alerte pour les erreurs et avertissements de stock"
+        "soundErrorDesc": "Son d'alerte pour les erreurs et avertissements de stock",
+        "paymentBank": "Virement bancaire",
+        "paymentBankDesc": "Accepter les virements bancaires avec référence",
+        "seller": "Personnel",
+        "sellerDesc": "Permettre au personnel de vendre via le PDV"
       },
       "vendorPermissions": {
-        "title": "Vendor Permission Defaults",
-        "description": "Configure default permissions for new vendors",
-        "warning": "Enable Multi-Vendor Mode to configure vendor permissions.",
-        "manageProducts": "Manage Products",
-        "viewOrders": "View Orders",
-        "manageOrders": "Manage Orders",
-        "manageSettings": "Manage Store Settings",
-        "viewAnalytics": "View Analytics",
-        "manageDiscounts": "Manage Discounts",
-        "managePayouts": "Manage Payouts",
-        "accessPOS": "Access POS",
-        "save": "Save Vendor Permissions"
+        "title": "Politique de la marketplace",
+        "description": "Un interrupteur par fonctionnalité, pour toute la plateforme. Ce ne sont pas des réglages par défaut pour les nouveaux vendeurs : chacun s’applique immédiatement à toutes les boutiques existantes.",
+        "warning": "Activez le mode multi-vendeur pour configurer la politique de la marketplace.",
+        "liveWarning": "En désactiver une retire cette capacité à tous les vendeurs de cette place de marché en même temps, pas seulement aux nouveaux. Un vendeur qui s’y heurte voit une page indiquant ce paramètre comme raison.",
+        "packAiStudio": "Rédaction IA des fiches et des médias",
+        "packAnalytics": "Rapports de ventes et de trafic",
+        "packBoosts": "Acheter des emplacements sponsorisés",
+        "packCatalog": "Produits et marques",
+        "packDiscounts": "Coupons et campagnes de remise",
+        "packInbox": "Messagerie omnicanale et configuration des canaux",
+        "packOrders": "Liste des commandes, traitement, retours",
+        "packPayouts": "Solde et demandes de retrait en libre-service",
+        "packPos": "Vente en personne",
+        "packStaff": "Inviter et gérer les accès de la boutique",
+        "packStorefront": "Page de la boutique, marque, paramètres d’expédition"
       },
       "orders": {
         "title": "Paramètres des commandes",
-        "description": "Configure order and commission settings",
-        "prefix": "Order Number Prefix",
-        "taxRate": "Tax Rate (%)",
-        "shippingCost": "Default Shipping Cost ($)",
-        "freeShippingThreshold": "Free Shipping Threshold ($)",
-        "freeShippingPlaceholder": "Leave empty to disable",
+        "description": "Configurez les paramètres des commandes et des commissions",
+        "prefix": "Préfixe des numéros de commande",
+        "taxRate": "Taux de taxe (%)",
+        "shippingCost": "Frais de livraison par défaut ($)",
+        "freeShippingThreshold": "Seuil de livraison gratuite ($)",
+        "freeShippingPlaceholder": "Mettez 0 pour désactiver",
         "shippingHandledByZones": "Les zones de livraison sont activées, ces deux valeurs ne sont donc pas utilisées. Les tarifs proviennent des paramètres Expédition et livraison.",
-        "vendorCommission": "Vendor Commission",
-        "commissionRate": "Commission Rate (%)",
-        "minWithdrawal": "Min Withdrawal Amount ($)",
-        "save": "Save Order Settings"
+        "commissionRate": "Taux de commission (%)",
+        "minWithdrawal": "Retrait minimum ($)",
+        "returnInstructions": "Instructions de retour",
+        "returnInstructionsHint": "Envoyées à l’acheteur avec l’adresse de retour lorsqu’un retour est approuvé. Utilisez {returnNumber} pour le numéro de retour. Laissez vide pour utiliser le texte affiché.",
+        "finalSaleCollections": "Collections en vente finale",
+        "finalSaleCollectionsSearch": "Rechercher des collections",
+        "finalSaleCollectionsNone": "Aucune collection trouvée",
+        "finalSaleCollectionMissing": "Collection supprimée",
+        "finalSaleCollectionUnnamed": "Collection",
+        "finalSaleCollectionsHint": "Les produits de ces collections sont en vente finale : les acheteurs ne peuvent pas les retourner. Les commandes déjà passées gardent les règles sous lesquelles elles ont été vendues.",
+        "billVendorCodShipping": "Facturer aux vendeurs la livraison contre remboursement",
+        "billVendorCodShippingHint": "Quand un vendeur encaisse en espèces à la porte, il garde aussi les frais de livraison. Activez cette option pour lui facturer les colis transportés par votre propre coursier, en plus de la commission qu’il vous doit.",
+        "loyaltyHeading": "Points de fidélité",
+        "loyaltySpendPerPoint": "Dépense par point de fidélité",
+        "loyaltySpendPerPointHint": "Les clients gagnent 1 point à chaque fois qu’ils dépensent ce montant. Les niveaux commencent à {silver, number} points pour Argent, {gold, number} pour Or et {platinum, number} pour Platine. Un nouveau taux s’applique à partir de la prochaine commande payée ; les points déjà attribués gardent le taux auquel ils ont été gagnés.",
+        "refundAdminFee": "Frais administratifs de remboursement (%)",
+        "refundAdminFeeCap": "Plafond des frais par retour ({currency})",
+        "refundAdminFeeCapHint": "Mettez 0 pour ne pas plafonner.",
+        "refundAdminFeeHint": "Part de votre commission que vous conservez quand une vente est retournée. L’acheteur est remboursé intégralement dans tous les cas ; le coût passe au vendeur.",
+        "restockingFee": "Frais de remise en stock (%)",
+        "restockingFeeHint": "Prélevés sur les articles retournés, jamais sur les taxes.",
+        "returnShippingFee": "Frais de retour ({currency})",
+        "returnShippingFeeHint": "Facturés une fois par vendeur auquel l’acheteur renvoie des articles.",
+        "returnWindowDays": "Délai de retour (jours)",
+        "returnWindowDaysHint": "Combien de temps après la livraison un acheteur peut encore demander le retour d’une commande. Affiché sur chaque page produit.",
+        "windowUnlimited": "Sans limite de temps",
+        "windowStart": "Début du délai",
+        "windowStartParcel": "À la livraison de chaque colis",
+        "windowStartLast": "À la livraison du dernier colis de la commande",
+        "windowStartHint": "Compter à partir du dernier colis donne un seul délai par commande et retient le versement de chaque vendeur jusqu’à l’arrivée du dernier colis.",
+        "payoutHoldMaxDays": "Retenue maximale du versement (jours)",
+        "payoutHoldMaxDaysHint": "Sans limite de temps, la vente d’un vendeur lui est versée ce nombre de jours après la livraison. Un remboursement ultérieur est déduit de son prochain versement.",
+        "windowOverrides": "Délais de retour par collection",
+        "windowOverrideDays": "Jours",
+        "windowOverrideDaysUnit": "jours",
+        "windowOverrideRemove": "Retirer",
+        "windowOverridesSearch": "Ajouter une collection",
+        "windowOverridesHint": "Les produits de ces collections peuvent être retournés pendant ce nombre de jours à la place. Un produit peut aussi fixer le sien ; si plusieurs s’appliquent, le plus court l’emporte.",
+        "returnsHeading": "Retours et remboursements",
+        "returnsHint": "Ils partent du comportement qu’avait Storify avant de devenir des paramètres ; rien ne change tant que vous ne le modifiez pas.",
+        "selfServe": "Les clients peuvent demander un retour",
+        "selfServeHint": "Désactivé, les clients vous contactent et vous ouvrez le retour pour eux depuis la commande. Ils voient toujours leurs retours et peuvent les annuler.",
+        "shippingRefund": "Rembourser la livraison lors d’un retour",
+        "shippingRefundAlways": "Toujours",
+        "shippingRefundHint": "Notre faute signifie article endommagé ou défectueux, non conforme à la description, ou mauvais article envoyé.",
+        "shippingRefundMerchantFault": "Seulement quand le retour est de notre faute",
+        "shippingRefundNever": "Jamais — l’acheteur a reçu la livraison"
       },
       "storage": {
         "title": "Paramètres de stockage",
@@ -1909,7 +2123,7 @@
         "cloudflareR2Desc": "Stockage compatible S3 sans frais de sortie",
         "awsS3": "AWS S3",
         "awsS3Desc": "Stockage d'objets Amazon S3",
-        "endpoint": "Endpoint URL",
+        "endpoint": "URL du point de terminaison",
         "region": "Région AWS",
         "bucketName": "Nom du bucket",
         "accessKeyId": "ID de clé d'accès",
@@ -1934,23 +2148,25 @@
           "r2SecretKey": "Votre clé d'accès secrète R2",
           "r2AccountId": "1234567890abcdef",
           "cdnUrl": "https://cdn.example.com",
-          "r2Url": "https://pub-xxxx.r2.dev"
+          "r2Url": "https://pub-xxxx.r2.dev",
+          "privateBucket": "my-store-private"
         },
         "help": {
           "cloudfront": "CloudFront ou domaine personnalisé pour servir les fichiers téléchargés",
-          "r2Domain": "Sous-domaine r2.dev ou domaine personnalisé pour servir les fichiers téléchargés",
-          "r2FindOverview": "Trouvez-le dans le tableau de bord Cloudflare → R2 → Vue d'ensemble"
+          "r2Domain": "Le sous-domaine R2.dev de votre bucket ou votre domaine personnalisé connecté — requis pour servir publiquement les fichiers envoyés",
+          "r2FindOverview": "Trouvez-le dans le tableau de bord Cloudflare → R2 → Vue d'ensemble",
+          "privateBucket": "Les pièces d’identité, les produits numériques et les reçus de dépenses sont conservés ici, et seul un lien signé les ouvre. Créez-le dans le même compte, avec l’accès public désactivé et sans domaine relié ; les clés ci-dessus doivent avoir le droit de l’utiliser."
         },
         "minio": "MinIO",
-        "minioDesc": "Self-hosted S3 on your own server — no cloud account needed",
+        "minioDesc": "S3 auto-hébergé sur votre propre serveur — aucun compte cloud nécessaire",
         "digitalocean": "DigitalOcean Spaces",
-        "digitaloceanDesc": "Spaces object storage with a built-in CDN",
-        "providerConfig": "{provider} Configuration",
-        "minioEndpointHelp": "The MinIO API URL — port 9000 by default. Must be reachable from this server.",
-        "minioPublicUrlHelp": "Where browsers load the files from. Usually the same host; add a CDN or reverse-proxy URL here if you use one.",
-        "spacesPublicUrlHelp": "Leave blank to serve from the Space directly, or paste the CDN endpoint (…cdn.digitaloceanspaces.com) for edge caching.",
+        "digitaloceanDesc": "Stockage d’objets Spaces avec CDN intégré",
+        "providerConfig": "Configuration {provider}",
+        "minioEndpointHelp": "L’URL de l’API MinIO — port 9000 par défaut. Elle doit être joignable depuis ce serveur.",
+        "minioPublicUrlHelp": "D’où les navigateurs chargent les fichiers. En général le même hôte ; indiquez ici l’URL d’un CDN ou d’un proxy inverse si vous en utilisez un.",
+        "spacesPublicUrlHelp": "Laissez vide pour servir directement depuis le Space, ou collez le point de terminaison CDN (…cdn.digitaloceanspaces.com) pour la mise en cache en périphérie.",
         "localRetired": {
-          "title": "Local storage has been retired",
+          "title": "Le stockage local a été retiré",
           "body": "Les fichiers déjà sur ce serveur continuent de s'afficher, mais les nouveaux téléversements exigent l'un des fournisseurs ci-dessous. Choisissez-en un, saisissez ses identifiants, puis ouvrez « Déplacer les fichiers déjà en place » — vous y trouverez les commandes et la sauvegarde à faire avant le prochain déploiement."
         },
         "setup": {
@@ -2004,30 +2220,41 @@
           "step4": "Vérifiez la boutique et la Médiathèque. Rien n'est jamais supprimé du disque : retirez les copies locales à la main une fois les images affichées.",
           "backup": "Avant votre prochain déploiement : si votre méthode de mise à jour remplace le dossier de l'application — envoi cPanel, écrasement d'un zip, conteneur sans volume — copiez d'abord les médias hors du serveur. Remplacer le dossier les supprime.",
           "note": "Un fichier dont le téléversement échoue conserve son URL locale : une exécution partielle laisse une boutique fonctionnelle plutôt qu'à moitié cassée. Relancer est sans risque."
-        }
+        },
+        "testSucceeded": "Connexion au stockage réussie !",
+        "testRejected": "Échec de la connexion",
+        "testFailed": "Impossible de tester la connexion",
+        "statusFailed": "Impossible de vérifier l'état du stockage",
+        "maxImageSize": "Taille max. des images (Mo)",
+        "maxVideoSize": "Taille max. des vidéos (Mo)",
+        "maxModelSize": "Taille max. des modèles 3D (Mo)",
+        "privateBucketMissing": "Aucun bucket privé : les pièces d’identité, les produits numériques et les reçus de dépenses sont conservés dans le bucket public ci-dessus, où toute personne ayant l’adresse d’un fichier peut l’ouvrir. Ajoutez un bucket privé, puis exécutez pnpm db:migrate private-storage pour déplacer les fichiers déjà stockés.",
+        "privateBucketName": "Bucket privé",
+        "publicUrlR2": "URL publique / CDN (obligatoire)",
+        "r2PublicUrlMissing": "Sans URL publique, les fichiers envoyés ne peuvent pas s’afficher sur votre boutique — les URL des images et vidéos pointeront vers le point de terminaison R2 privé et ne se chargeront pas. Dans Cloudflare Dashboard → R2 → votre bucket → Settings → Public access, activez le sous-domaine R2.dev (ou reliez un domaine personnalisé) et collez cette URL ici."
       },
       "analytics": {
         "title": "Intégration analytique",
-        "description": "Connect external analytics services",
-        "googleAnalyticsId": "Google Analytics ID",
+        "description": "Connectez des services d’analyse externes",
+        "googleAnalyticsId": "ID Google Analytics",
         "googleAnalyticsIdPlaceholder": "G-XXXXXXXXXX",
-        "googleTagManagerId": "Google Tag Manager ID",
+        "googleTagManagerId": "ID Google Tag Manager",
         "googleTagManagerIdPlaceholder": "GTM-XXXXXXX",
-        "facebookPixelId": "Facebook Pixel ID",
+        "facebookPixelId": "ID Facebook Pixel",
         "facebookPixelIdPlaceholder": "123456789012345",
-        "tiktokPixelId": "TikTok Pixel ID",
+        "tiktokPixelId": "ID TikTok Pixel",
         "tiktokPixelIdPlaceholder": "C1234567890ABCDEF",
         "plausibleTitle": "Plausible Analytics",
-        "plausibleDomain": "Site Domain",
+        "plausibleDomain": "Domaine du site",
         "plausibleDomainPlaceholder": "yourdomain.com",
-        "plausibleDomainHelp": "Enter just the domain, e.g. yourdomain.com (no https://)",
+        "plausibleDomainHelp": "Saisissez seulement le domaine, p. ex. yourdomain.com (sans https://)",
         "plausibleApiKey": "API Key",
-        "plausibleApiKeyPlaceholder": "Enter your Plausible API key",
-        "plausibleApiKeyHelp": "Found in Plausible → Settings → API Keys",
-        "plausibleSelfHosted": "Self-hosted instance",
-        "plausibleBaseUrl": "Custom Instance URL",
+        "plausibleApiKeyPlaceholder": "Saisissez votre clé API Plausible",
+        "plausibleApiKeyHelp": "Disponible dans Plausible → Settings → API Keys",
+        "plausibleSelfHosted": "Instance auto-hébergée",
+        "plausibleBaseUrl": "URL de l’instance personnalisée",
         "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
-        "save": "Save Analytics Settings"
+        "save": "Enregistrer les paramètres d’analyse"
       },
       "loadError": "Impossible de charger les paramètres",
       "unsavedChanges": {
@@ -2036,9 +2263,6 @@
         "confirm": "Ignorer",
         "cancel": "Rester"
       },
-      "locations": {
-        "title": "Emplacements de stock"
-      },
       "shipping": {
         "title": "Expédition et livraison",
         "codCollectedBy": {
@@ -2046,6 +2270,232 @@
           "description": "Si le vendeur livre avec sa propre flotte, il encaisse et vous doit la commission. Si votre coursier livre, vous encaissez et devez au vendeur ses gains — et seul un administrateur peut marquer ces commandes payées. S'applique aux nouvelles commandes.",
           "vendor": "Le vendeur",
           "platform": "La boutique"
+        },
+        "carriers": {
+          "saveFirst": {
+            "test": "Enregistrez les paramètres d'expédition avant de tester la connexion",
+            "webhook": "Enregistrez les paramètres d'expédition avant de générer l'URL du webhook",
+            "disconnect": "Enregistrez les paramètres d'expédition avant de déconnecter le transporteur",
+            "pickupLocations": "Enregistrez les paramètres d'expédition avant de charger les points d'enlèvement"
+          },
+          "webhookGenerated": "URL du webhook générée",
+          "webhookFailed": "Impossible de générer l'URL du webhook",
+          "disconnected": "Transporteur déconnecté",
+          "disconnectFailed": "Impossible de déconnecter le transporteur",
+          "pickupLocationsFailed": "Impossible de charger les points d'enlèvement",
+          "shippo": {
+            "labelFormats": {
+              "pdf4x6": "PDF 4×6 (thermique)",
+              "pdf": "PDF (A4 / Letter)"
+            },
+            "description": "USPS, UPS, FedEx, DHL et plus de 40 transporteurs dans le monde.",
+            "labelFormat": "Format d’étiquette",
+            "liveToken": "Jeton API de production",
+            "modeHint": "Shippo n’a pas de sandbox séparée — c’est le jeton utilisé qui détermine si une étiquette est réelle. Enregistrez les deux et basculez ici.",
+            "testToken": "Jeton API de test"
+          },
+          "shiprocket": {
+            "pickupPlaceholder": "Sélectionnez un point d'enlèvement",
+            "description": "Agrégateur de coursiers indien — Delhivery, Bluedart, Ekart et d’autres.",
+            "email": "E-mail de l’utilisateur API",
+            "password": "Mot de passe de l’utilisateur API",
+            "pickupHint": "Shiprocket expédie depuis un surnom que vous enregistrez dans son tableau de bord, pas depuis une adresse libre. Rien ne peut partir tant qu’aucun n’est sélectionné.",
+            "webhookHint": "Indiquez la même valeur dans les paramètres de webhook de Shiprocket ; les mises à jour de suivi qui ne la portent pas sont refusées.",
+            "webhookToken": "Jeton du webhook (x-api-key)"
+          },
+          "authFailed": "Ce transporteur refuse vos identifiants — rien ne peut être expédié avec lui.",
+          "authFailedHint": "Mettez à jour les identifiants ci-dessous, puis appuyez sur Tester la connexion. L’avertissement disparaît de lui-même une fois qu’ils sont acceptés.",
+          "description": "Connectez un compte transporteur pour acheter de vraies étiquettes et suivre les colis automatiquement. Le paiement continue d’utiliser vos propres tarifs de livraison.",
+          "disconnect": "Déconnecter",
+          "enable": "Activer les transporteurs",
+          "mode": "Environnement",
+          "modeLive": "Production",
+          "modeTest": "Test",
+          "originNotSupported": "Shiprocket n’expédie que depuis l’Inde. Définissez l’Inde comme pays d’origine de l’expédition pour l’activer.",
+          "pickupLocation": "Point d’enlèvement",
+          "refreshPickupLocations": "Actualiser les points d’enlèvement",
+          "registerWebhook": "Générer l’URL du webhook",
+          "testConnection": "Tester la connexion",
+          "title": "Transporteurs",
+          "webhookUrl": "URL du webhook — collez-la dans le tableau de bord du transporteur"
+        },
+        "addressHold": {
+          "title": "Adresses non livrables",
+          "description": "Quand un transporteur ne peut pas livrer à l'adresse d'une commande, l'expédition est suspendue et le client est invité à la corriger.",
+          "suggestAtCheckout": "Vérifier l'adresse au paiement",
+          "suggestAtCheckoutHint": "Proposer une correction avant la commande. L'acheteur peut garder ce qu'il a saisi. Nécessite un compte Shippo connecté.",
+          "checkAfterOrder": "Vérifier l'adresse des nouvelles commandes",
+          "checkAfterOrderHint": "Suspendre une commande dès que son adresse échoue à la vérification, au lieu d'attendre qu'un transporteur refuse l'étiquette.",
+          "autoRequest": "Demander automatiquement au client",
+          "autoRequestHint": "Envoyer au client un lien pour corriger l'adresse dès qu'une commande est suspendue. Désactivé, c'est au personnel de s'en charger.",
+          "reminderDays": "Relancer après (jours)",
+          "reminderDaysHint": "Jours après la première demande, séparés par des virgules. Laissez vide pour ne pas relancer.",
+          "deadlineDays": "Délai (jours)",
+          "deadlineDaysHint": "Le temps dont dispose le client pour répondre, à partir de la première demande.",
+          "onDeadline": "À l'expiration du délai",
+          "onDeadlineNotify": "Prévenir la boutique et garder la commande suspendue",
+          "onDeadlineCancel": "Annuler la commande et la rembourser intégralement",
+          "keepReturnShipping": "Retenir les frais de retour quand un colis revient",
+          "keepReturnShippingHint": "Quand un colis revient à l'expéditeur à cause d'une adresse erronée, le remboursement proposé déduit le coût de l'étiquette. Les commandes suspendues n'ont jamais été expédiées ; elles sont donc toujours remboursées intégralement."
+        },
+        "zone": {
+          "isFallback": "Reste du monde",
+          "conditionalRatesWarning": "⚠️ Tous les tarifs de cette zone sont conditionnels. Un panier qui ne remplit aucune condition n’obtient aucun tarif de cette zone : il passe au tarif de secours, ou le client apprend que la livraison est indisponible. Ajoutez un tarif forfaitaire pour couvrir le reste.",
+          "countries": "Pays",
+          "countriesPlaceholder": "Sélectionnez des pays",
+          "isFallbackHint": "Fixe le prix de toute adresse qu’aucune autre zone ne couvre. Ses pays et régions sont ignorés, et elle remplace le tarif de secours unique ci-dessous.",
+          "name": "Nom de la zone",
+          "namePlaceholder": "National",
+          "noCountriesWarning": "Aucun pays sélectionné. Cette zone ne correspondra à aucune adresse.",
+          "noCountryMatches": "Aucun pays trouvé.",
+          "noRegionMatches": "Aucune région trouvée.",
+          "regions": "Régions (facultatif)",
+          "regionsFreeTextPlaceholder": "CA, NY, TX",
+          "regionsPlaceholder": "Toutes les régions",
+          "remove": "Retirer",
+          "searchCountries": "Rechercher des pays...",
+          "searchRegions": "Rechercher des régions..."
+        },
+        "automation": {
+          "buyLabel": "Acheter l’étiquette automatiquement",
+          "buyLabelHint": "Désactivé, un brouillon avec tarifs comparés est créé puis tout s’arrête ; l’achat est laissé à une personne.",
+          "description": "Créez un envoi dès qu’une commande est payée et passe en traitement. Vous pouvez toujours envoyer une commande à un coursier manuellement.",
+          "enable": "Activer l’expédition automatique",
+          "fixedServiceHint": "L’identifiant de service propre au transporteur. Envoyez une commande manuellement à un coursier pour voir les jetons que renvoie votre compte.",
+          "fixedServiceToken": "Jeton de service",
+          "includeCod": "Inclure les commandes contre remboursement",
+          "includeCodHint": "Une commande contre remboursement n’est jamais marquée payée ; elle n’est donc expédiée automatiquement que si cette option est activée.",
+          "markShipped": "Marquer la commande expédiée une fois l’étiquette achetée",
+          "markShippedHint": "Envoie au client son numéro de suivi.",
+          "maxLabelCost": "Annuler au-delà de ce coût d’étiquette",
+          "maxLabelCostHint": "Dans la devise de votre compte transporteur, pas celle de la boutique.",
+          "maxOrderValue": "Valeur maximale de la commande",
+          "minOrderValue": "Valeur minimale de la commande",
+          "noLimit": "Aucune limite",
+          "rateChoice": "Quel tarif acheter",
+          "rateChoiceCheapest": "Le moins cher",
+          "rateChoiceFastest": "Le plus rapide",
+          "rateChoiceFixed": "Un service précis",
+          "requiresCarrier": "Connectez d’abord un transporteur — sinon l’automatisation n’a nulle part où acheter une étiquette.",
+          "restrictCountries": "Automatiser seulement ces destinations",
+          "restrictCountriesHint": "Laissez vide pour automatiser toutes les destinations.",
+          "title": "Expédition automatique"
+        },
+        "courierLinks": {
+          "add": "Ajouter un coursier",
+          "builtIn": "Déjà reliés sans aucun réglage :",
+          "carrier": "Nom du coursier",
+          "description": "Pour les colis saisis à la main. Utilisez {tracking} là où va le numéro de suivi ; un lien sans espace réservé reçoit le numéro à la fin.",
+          "remove": "Retirer le lien du coursier",
+          "title": "Liens de suivi des coursiers",
+          "urlTemplate": "URL de suivi"
+        },
+        "customs": {
+          "ddp": "DDP — percevoir les droits au paiement",
+          "ddu": "DDU — le client paie à la livraison",
+          "deMinimis": "De minimis (exonération en dessous de)",
+          "description": "Gérez les droits d’importation des commandes transfrontalières. DDP perçoit des droits estimés au paiement ; DDU/DAP laisse le client payer les droits à la livraison.",
+          "dutyMode": "Traitement des droits",
+          "dutyRatePercent": "Taux de droits estimé (%)",
+          "title": "Douane et droits"
+        },
+        "delivery": {
+          "description": "Définissez le délai de préparation ajouté aux délais de livraison des tarifs lors de l’affichage.",
+          "processingMax": "Jours de préparation (max)",
+          "processingMin": "Jours de préparation (min)",
+          "showEstimated": "Afficher les estimations au paiement",
+          "title": "Estimations de livraison"
+        },
+        "description": "Configurez les zones d’expédition, les tarifs et les estimations de livraison comme dans Shopify.",
+        "enable": {
+          "help": "Activé, le paiement utilise vos zones et tarifs d’expédition. Sinon, il revient à la livraison forfaitaire des paramètres de commande.",
+          "label": "Activer les tarifs d’expédition"
+        },
+        "fallback": {
+          "description": "Si aucune zone ne correspond à l’adresse, vous pouvez appliquer un tarif par défaut.",
+          "enable": "Activer le tarif de secours",
+          "maxDays": "Jours max",
+          "minDays": "Jours min",
+          "name": "Nom",
+          "price": "Prix",
+          "supersededByZone": "La zone « {zone} » couvre le reste du monde, ce tarif unique n’est donc plus utilisé. Modifiez cette zone pour changer ce qui est facturé aux adresses non couvertes.",
+          "title": "Tarif de secours"
+        },
+        "origin": {
+          "address1": "Adresse, ligne 1",
+          "address1Placeholder": "123 Market St",
+          "address2": "Adresse, ligne 2",
+          "address2Placeholder": "Suite 100 (facultatif)",
+          "city": "Ville",
+          "cityPlaceholder": "San Francisco",
+          "country": "Pays",
+          "description": "Sert de référence opérationnelle et pour les futures intégrations de transporteurs.",
+          "postalCode": "Code postal",
+          "postalCodePlaceholder": "94105",
+          "state": "État / Province",
+          "statePlaceholder": "CA",
+          "title": "Origine de l’expédition"
+        },
+        "packages": {
+          "active": "Actif",
+          "add": "Ajouter un colis",
+          "default": "Carton par défaut",
+          "description": "Cartons sur lesquels un devis transporteur peut être calculé. Le carton par défaut est utilisé quand les articles d’une commande n’ont pas de dimensions propres.",
+          "empty": "Aucun colis pour l’instant. Les tarifs transporteur nécessitent au moins un carton.",
+          "emptyWeight": "Poids à vide",
+          "height": "Hauteur",
+          "length": "Longueur",
+          "maxWeight": "Poids max",
+          "name": "Nom",
+          "newName": "Nouveau carton",
+          "noLimit": "Aucune limite",
+          "remove": "Retirer le colis",
+          "title": "Colis enregistrés",
+          "unit": "Unité",
+          "width": "Largeur"
+        },
+        "rate": {
+          "active": "Actif",
+          "freeOver": "Gratuit au-delà de",
+          "maxDays": "Jours de livraison (max)",
+          "maxSubtotal": "Sous-total max",
+          "maxWeight": "Poids max",
+          "minDays": "Jours de livraison (min)",
+          "minSubtotal": "Sous-total min",
+          "minWeight": "Poids min",
+          "name": "Nom du tarif",
+          "namePlaceholder": "Standard",
+          "price": "Prix",
+          "pricePerWeightUnit": "Prix par",
+          "type": {
+            "flat": "Tarif forfaitaire",
+            "freeOver": "Gratuit au-delà d’un sous-total",
+            "subtotalRange": "Plage de sous-total",
+            "weightRange": "Plage de poids"
+          },
+          "typeLabel": "Type",
+          "typePlaceholder": "Sélectionnez un type"
+        },
+        "rates": {
+          "add": "Ajouter un tarif",
+          "empty": "Aucun tarif dans cette zone pour l’instant. Ajoutez un tarif (p. ex. Standard ou Express).",
+          "title": "Tarifs"
+        },
+        "vendorShipping": {
+          "description": "Activé, les articles de chaque vendeur dans un panier multi-vendeurs sont tarifés selon le profil d’expédition de ce vendeur (à défaut, celui de la plateforme). L’expédition est facturée et répartie par vendeur.",
+          "title": "Expédition par vendeur"
+        },
+        "weightUnit": {
+          "help": "Unité utilisée pour le poids des produits et les tarifs d’expédition au poids.",
+          "kg": "Kilogrammes (kg)",
+          "label": "Unité de poids",
+          "lb": "Livres (lb)"
+        },
+        "zones": {
+          "add": "Ajouter une zone",
+          "description": "Créez des zones et définissez des tarifs. Choisissez des pays dans la liste, puis restreignez éventuellement une zone à certaines régions — laissez les régions vides pour couvrir tout le pays.",
+          "empty": "Aucune zone pour l’instant. Ajoutez une zone pour commencer à configurer les tarifs d’expédition.",
+          "title": "Zones d’expédition"
         }
       },
       "ai": {
@@ -2053,8 +2503,8 @@
         "description": "Un seul endroit pour configurer le contenu du Studio IA, le SEO et la génération d'images.",
         "statusConfigured": "Configuré",
         "statusNotConfigured": "Non configuré",
-        "enabled": "Activer les fonctionnalités IA",
-        "enabledHint": "Active ou désactive le Studio IA et chaque bouton IA du tableau de bord.",
+        "enabled": "Activer le Studio IA",
+        "enabledHint": "Active ou désactive le Studio IA et chaque bouton IA du tableau de bord. L'Agent Commercial IA dispose de son propre interrupteur sur sa propre page.",
         "apiKey": "Clé API OpenAI",
         "apiKeySetPlaceholder": "••••••••  (enregistrée — saisissez une nouvelle clé pour la remplacer)",
         "apiKeyHint": "Utilisée par le Studio IA et l'Agent Commercial IA. Laissez vide pour continuer à utiliser la variable d'environnement OPENAI_API_KEY.",
@@ -2099,7 +2549,13 @@
         "primaryColor": "Couleur principale de la marque",
         "secondaryColor": "Couleur secondaire de la marque",
         "logoUrl": "URL du logo de la marque",
-        "logoUrlHint": "Téléversez votre logo sur la boutique, puis collez son URL ici. Utilisé comme habillage optionnel sur les exports pour réseaux sociaux."
+        "logoUrlHint": "Téléversez votre logo sur la boutique, puis collez son URL ici. Utilisé comme habillage optionnel sur les exports pour réseaux sociaux.",
+        "modelNotes": {
+          "fastLowCost": "rapide, peu coûteux",
+          "higherQuality": "qualité supérieure",
+          "bestQuality": "meilleure qualité",
+          "lowerCost": "moins coûteux"
+        }
       },
       "saveChanges": "Enregistrer les modifications",
       "boosting": {
@@ -2140,6 +2596,396 @@
         "authentication": "Authentification",
         "growth": "Croissance",
         "advanced": "Avancé"
+      },
+      "fields": {
+        "envSourceHint": "Défini par une variable d'environnement. Une valeur enregistrée ici la remplace.",
+        "configured": "Configuré",
+        "notConfigured": "Non configuré",
+        "mode": {
+          "live": "Production",
+          "sandbox": "Sandbox",
+          "test": "Test"
+        },
+        "savedPlaceholder": "Enregistré (laisser vide pour conserver)",
+        "savedKeysHint": "Par sécurité, les clés enregistrées ne sont plus affichées.",
+        "savedSecretsHint": "Par sécurité, les secrets enregistrés ne sont plus affichés.",
+        "savedPasswordsHint": "Par sécurité, les mots de passe enregistrés ne sont plus affichés.",
+        "enableProvider": "Activer {name}"
+      },
+      "demoMode": "Mode démo",
+      "vendorConfig": {
+        "paymentMethods": {
+          "description": "Les passerelles par lesquelles les vendeurs peuvent payer l'abonnement de leur forfait. Stripe renouvelle automatiquement ; les autres passerelles facturent une période à la fois avec des rappels de renouvellement. Les identifiants se configurent dans les Paramètres de paiement.",
+          "title": "Moyens de paiement des abonnements"
+        },
+        "allowRegistration": {
+          "description": "Permettre aux visiteurs de demander à devenir vendeur depuis la boutique.",
+          "label": "Autoriser l’inscription des vendeurs"
+        },
+        "commission": {
+          "byCurrencyAdd": "Ajouter une devise",
+          "byCurrencyAmount": "Versement minimum en {currency}",
+          "byCurrencyCode": "Code de devise",
+          "byCurrencyDescription": "Les versements dans une devise autre que {currency} utilisent leur propre minimum. Une devise absente de cette liste n’a pas de minimum.",
+          "byCurrencyLabel": "Minimum dans d’autres devises",
+          "byCurrencyRemove": "Retirer le minimum en {currency}",
+          "description": "S’applique aux vendeurs sans forfait. Modifiable aussi dans Paramètres des commandes.",
+          "minWithdrawalDescription": "Le plus petit solde qu’un vendeur peut demander en versement, dans la devise de votre boutique.",
+          "minWithdrawalLabel": "Montant minimum de retrait",
+          "rateDescription": "Pourcentage que la plateforme conserve sur chaque vente d’un vendeur.",
+          "rateLabel": "Taux de commission",
+          "title": "Commission par défaut"
+        },
+        "description": "Politique d’inscription, d’approbation et de forfaits d’abonnement des vendeurs.",
+        "documents": {
+          "manageLink": "Ouvrir le parcours d’intégration",
+          "movedDescription": "Les documents requis — et chaque champ d’intégration — se gèrent désormais dans le créateur de parcours d’intégration, où vous pouvez rendre un champ obligatoire, le masquer, réordonner les étapes ou ajouter des champs personnalisés.",
+          "title": "Documents et champs requis"
+        },
+        "marketplaceOff": "Activez la Gestion multi-vendeurs pour configurer la politique des vendeurs.",
+        "plans": {
+          "title": "Forfaits et abonnements"
+        },
+        "plansEnabled": {
+          "description": "Afficher aux vendeurs une étape de choix du forfait pendant l’intégration. Désactivé, les vendeurs utilisent la commission par défaut.",
+          "label": "Activer les forfaits d’abonnement"
+        },
+        "registration": {
+          "title": "Inscription et approbation"
+        },
+        "requirePlanSelection": {
+          "description": "Les candidats doivent choisir un forfait avant de terminer. Sinon, un forfait par défaut est utilisé.",
+          "label": "Exiger un forfait à l’inscription"
+        },
+        "title": "Configuration des vendeurs"
+      },
+      "sms": {
+        "authTokenPlaceholder": "Saisissez l'Auth Token",
+        "authTokenHint": "Vérifie aussi les accusés de livraison de Twilio. Les jetons enregistrés ne sont plus affichés.",
+        "messagingServiceSidHint": "Recommandé. Twilio choisit l'expéditeur adapté à chaque destination et gère les réponses STOP.",
+        "fromNumberHint": "Utilisé si aucun Messaging Service n'est défini : un numéro Twilio, ou un identifiant d'expéditeur alphanumérique là où vos destinations l'autorisent.",
+        "defaultCountryPlaceholder": "Utiliser le pays d'origine des expéditions",
+        "defaultCountryHint": "Interprète les numéros de profil enregistrés sans indicatif pays. Le téléphone d'une commande est toujours interprété selon son pays de livraison.",
+        "includeLinksHint": "Ajoute la page de la commande ou du suivi. Un lien fait souvent passer le message sur un second segment, facturé comme un second SMS.",
+        "consentNote": "Les clients reçoivent les SMS sur le téléphone de leur commande et peuvent se désinscrire dans Compte → Préférences ou en répondant STOP. Les administrateurs, le personnel et les vendeurs les reçoivent sur le téléphone de leur profil ou de leur boutique. Choisissez les événements dans les <link>Paramètres de notification</link>. N'écrivez qu'aux personnes qui ont accepté de recevoir vos messages.",
+        "testSent": "SMS de test envoyé",
+        "testFailed": "Impossible d'envoyer le SMS de test",
+        "accountSid": "Account SID",
+        "authToken": "Auth Token",
+        "defaultCountry": "Pays par défaut des numéros de téléphone",
+        "description": "Envoyez les mises à jour de commandes, de retours et de paiements par SMS via votre compte Twilio.",
+        "enable": "Activer les notifications SMS",
+        "enableHint": "Twilio facture chaque message. Aucun SMS n’est envoyé tant que vous n’avez pas aussi choisi des événements dans les paramètres de notification.",
+        "fromNumber": "Numéro ou ID d’expéditeur",
+        "includeLinks": "Inclure un lien",
+        "messagingServiceSid": "Messaging Service SID",
+        "save": "Enregistrer les paramètres SMS",
+        "testButton": "Envoyer un SMS de test",
+        "testLabel": "Envoyer un message de test à",
+        "title": "SMS (Twilio)"
+      },
+      "brandAssets": {
+        "wrongFormat": "Doit être un fichier {formats}",
+        "tooLarge": "Doit faire moins de {max} Mo — ce fichier fait {size} Mo",
+        "tooSmall": "Plus petit que {dimension}x{dimension}px ({width}x{height}px) — il sera agrandi et peut sembler flou",
+        "uploadingProgress": "Envoi… {progress}%",
+        "dropHint": "Glissez-déposez ou cliquez pour sélectionner",
+        "maxSize": "Taille max. :",
+        "formats": "Formats :",
+        "recommended": "Recommandé :",
+        "lightLogo": {
+          "label": "Logo du thème clair",
+          "alt": "Logo du thème clair",
+          "upload": "Envoyer le logo du thème clair",
+          "replace": "Remplacer le logo clair"
+        },
+        "darkLogo": {
+          "label": "Logo du thème sombre",
+          "alt": "Logo du thème sombre",
+          "upload": "Envoyer le logo du thème sombre",
+          "replace": "Remplacer le logo sombre"
+        },
+        "favicon": {
+          "label": "Favicon",
+          "alt": "Favicon de la boutique",
+          "upload": "Envoyer le favicon",
+          "replace": "Remplacer le favicon"
+        },
+        "appIcon": {
+          "label": "Icône de l'application",
+          "alt": "Icône de l'application installée",
+          "upload": "Envoyer l'icône de l'application",
+          "replace": "Remplacer l'icône de l'application",
+          "recommended": "512x512px, carré",
+          "note": "L'icône de l'application est ce qu'affichent les navigateurs quand quelqu'un installe votre boutique sur son appareil. Elle est rendue en 512x512px ; une image plus petite fonctionne aussi — elle paraît simplement moins nette. Laissez vide pour utiliser le favicon à la place."
+        }
+      },
+      "preorder": {
+        "title": "Précommandes",
+        "description": "Ce qu'un vendeur peut promettre quand il vend quelque chose qui n'existe pas encore — et qui a le droit de le faire.",
+        "storeOff": "Les précommandes sont désactivées dans toute la boutique. Activez-les dans <link>Paramètres → Produits</link> pour définir ce que les vendeurs peuvent promettre.",
+        "requireApproval": {
+          "title": "Examiner les vendeurs avant qu'ils puissent vendre en précommande",
+          "description": "Si activé, un vendeur a besoin de votre accord avant d'ouvrir sa première précommande. Les annonces existantes continuent de se vendre dans tous les cas."
+        },
+        "maxLead": {
+          "label": "Date de sortie la plus lointaine",
+          "unit": "jours à l'avance",
+          "hint": "Plus l'attente est longue, plus l'acheteur dispose de temps pour contester le paiement."
+        },
+        "maxDeposit": {
+          "label": "Acompte maximal",
+          "unit": "% du prix",
+          "hint": "S'applique aussi aux montants fixes, rapportés au prix."
+        },
+        "expiry": {
+          "label": "Abandonner un solde impayé après",
+          "unit": "jours après la date de sortie",
+          "hint": "La commande est annulée, le quota libéré et l'acompte remboursé intégralement."
+        },
+        "autoRelease": {
+          "title": "Demander le solde automatiquement",
+          "description": "À la date de sortie, le solde restant de chaque précommande est demandé et celles déjà payées sont libérées. Laissez désactivé si vos dates risquent de glisser — demander l'argent signifie que le produit est prêt.",
+          "unit": "jours après la date de sortie",
+          "hint": "Une précommande entièrement payée n'est libérée qu'une fois son stock réellement enregistré — le calendrier seul n'expédie jamais rien."
+        },
+        "reserve": {
+          "label": "Retenir sur les versements des précommandes",
+          "percentUnit": "% pendant",
+          "daysUnit": "jours",
+          "hint": "Une contestation de carte court à partir de la date de livraison prévue ; une précommande peut donc faire l'objet d'une rétrofacturation longtemps après le paiement du vendeur. Zéro désactive la réserve."
+        },
+        "access": {
+          "title": "Accès des vendeurs",
+          "waiting": "{count} en attente",
+          "reviewOff": "L'examen est désactivé ; chaque vendeur peut donc déjà ouvrir des précommandes. Approuver ici ne change rien tant que vous n'activez pas l'examen ci-dessus, et le vendeur n'en est pas averti.",
+          "empty": "Aucun vendeur n'a encore demandé l'accès aux précommandes.",
+          "revokeNote": "Retirer l'accès bloque la prochaine précommande. Les annonces déjà en vente tiennent leurs promesses — les acheteurs ont versé des acomptes."
+        }
+      },
+      "notifications": {
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "Nouvelles commandes",
+              "description": "Avertir les administrateurs lorsqu'une commande est passée."
+            },
+            "newCustomers": {
+              "title": "Nouveaux clients",
+              "description": "Avertir les administrateurs lorsqu'un profil client est créé."
+            },
+            "newVendors": {
+              "title": "Nouvelles candidatures de vendeurs",
+              "description": "Avertir les administrateurs lorsqu'une candidature de vendeur est en attente."
+            },
+            "returns": {
+              "title": "Demandes de retour",
+              "description": "Avertir les administrateurs lorsqu'une demande de retour doit être examinée."
+            },
+            "payments": {
+              "title": "Paiements",
+              "description": "Avertir les administrateurs lorsqu'une activité de paiement est enregistrée."
+            },
+            "preorderAccessRequests": {
+              "title": "Demandes d'accès aux précommandes",
+              "description": "Avertir les administrateurs lorsqu'un vendeur demande à vendre en précommande."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "Statut de la candidature du vendeur",
+              "description": "Avertir les vendeurs lorsque leur compte est approuvé ou refusé."
+            },
+            "newOrders": {
+              "title": "Nouvelles commandes du vendeur",
+              "description": "Avertir les vendeurs lorsqu'ils reçoivent une nouvelle commande."
+            },
+            "returns": {
+              "title": "Demandes de retour du vendeur",
+              "description": "Avertir les vendeurs lorsqu'une demande de retour les concerne."
+            },
+            "preorderAccess": {
+              "title": "Accès aux précommandes du vendeur",
+              "description": "Avertir les vendeurs lorsque leur accès aux précommandes est approuvé, refusé ou retiré."
+            }
+          },
+          "staff": {
+            "newOrders": {
+              "title": "Nouvelles commandes pour le personnel",
+              "description": "Avertir le personnel ayant accès aux commandes lorsqu'une commande est passée."
+            },
+            "newCustomers": {
+              "title": "Nouveaux clients pour le personnel",
+              "description": "Avertir le personnel ayant accès aux clients lorsqu'un profil client est créé."
+            },
+            "returns": {
+              "title": "Retours pour le personnel",
+              "description": "Avertir le personnel ayant accès aux commandes lorsque des retours doivent être examinés."
+            },
+            "payments": {
+              "title": "Paiements pour le personnel",
+              "description": "Avertir le personnel de caisse et des commandes lorsqu'une activité de paiement est enregistrée."
+            },
+            "lowStock": {
+              "title": "Stock bas pour le personnel",
+              "description": "Avertir le personnel d'inventaire lorsque des produits doivent être réapprovisionnés."
+            }
+          },
+          "customer": {
+            "orderUpdates": {
+              "title": "Suivi des commandes client",
+              "description": "Avertir les clients lorsque le statut d'une commande change."
+            },
+            "returnUpdates": {
+              "title": "Suivi des retours client",
+              "description": "Avertir les clients lorsque le statut d'un retour change."
+            }
+          }
+        },
+        "event": "Événement",
+        "channels": {
+          "inApp": "Dans l'app",
+          "email": "E-mail",
+          "browserPush": "Push",
+          "sms": "SMS"
+        },
+        "smsSettingsLink": "Paramètres SMS",
+        "smsOffWarning": "Certains événements doivent envoyer un SMS, mais les SMS sont désactivés ou incomplètement configurés ; aucun ne partira.",
+        "smsSetupHint": "Pour envoyer des SMS, configurez d'abord Twilio.",
+        "groups": {
+          "admin": {
+            "title": "Notifications administrateurs",
+            "description": "Les événements qui doivent alerter l'équipe d'administration de la boutique."
+          },
+          "vendor": {
+            "title": "Notifications vendeurs",
+            "description": "Les événements envoyés aux comptes vendeurs."
+          },
+          "staff": {
+            "title": "Notifications du personnel",
+            "description": "Les événements envoyés au personnel actif selon les permissions de ses modules."
+          },
+          "customer": {
+            "title": "Notifications clients",
+            "description": "Les événements envoyés aux comptes clients."
+          }
+        },
+        "description": "Choisissez quels événements génèrent des notifications dans le tableau de bord, des e-mails, des alertes push et des SMS.",
+        "title": "Paramètres des notifications"
+      },
+      "deliveryLogs": {
+        "email": {
+          "title": "Journaux d'envoi des e-mails",
+          "description": "Le contenu envoyé est supprimé immédiatement ; seules les métadonnées d'envoi sont conservées. Enregistrez les paramètres e-mail après avoir modifié la durée de conservation.",
+          "summaryLabel": "Objet",
+          "searchPlaceholder": "Destinataire, objet ou catégorie",
+          "clearTitle": "Effacer les journaux des e-mails envoyés ?",
+          "deleteTitle": "Supprimer les journaux d'e-mails sélectionnés ?",
+          "clearDescription": "{count, plural, one {Cela supprime définitivement # journal d'e-mail envoyé. Cette action est irréversible.} other {Cela supprime définitivement les # journaux d'e-mails envoyés. Cette action est irréversible.}}",
+          "deleteDescription": "{count, plural, one {Cela supprime définitivement # journal terminé sélectionné. Les e-mails en file d'attente ou en cours d'envoi ne sont jamais supprimés.} other {Cela supprime définitivement # journaux terminés sélectionnés. Les e-mails en file d'attente ou en cours d'envoi ne sont jamais supprimés.}}",
+          "queuedForRetry": "{count, plural, one {# e-mail en échec remis en file pour un nouvel essai.} other {# e-mails en échec remis en file pour un nouvel essai.}}"
+        },
+        "sms": {
+          "title": "Journaux d'envoi des SMS",
+          "description": "Chaque SMS est conservé avec le verdict de l'opérateur jusqu'à la fin de la durée de conservation. Enregistrez les paramètres SMS après avoir modifié la durée de conservation.",
+          "summaryLabel": "Message",
+          "searchPlaceholder": "Numéro de téléphone, message ou catégorie",
+          "clearTitle": "Effacer les journaux des SMS envoyés ?",
+          "deleteTitle": "Supprimer les journaux de SMS sélectionnés ?",
+          "clearDescription": "{count, plural, one {Cela supprime définitivement # journal de SMS envoyé. Cette action est irréversible.} other {Cela supprime définitivement les # journaux de SMS envoyés. Cette action est irréversible.}}",
+          "deleteDescription": "{count, plural, one {Cela supprime définitivement # journal terminé sélectionné. Les SMS en file d'attente ou en cours d'envoi ne sont jamais supprimés.} other {Cela supprime définitivement # journaux terminés sélectionnés. Les SMS en file d'attente ou en cours d'envoi ne sont jamais supprimés.}}",
+          "queuedForRetry": "{count, plural, one {# SMS en échec remis en file pour un nouvel essai.} other {# SMS en échec remis en file pour un nouvel essai.}}"
+        },
+        "status": {
+          "sent": "Envoyé",
+          "delivered": "Délivré",
+          "undelivered": "Non délivré",
+          "failed": "Échec",
+          "queued": "En file d'attente",
+          "retrying": "Nouvel essai",
+          "sending": "Envoi en cours"
+        },
+        "keepSentLogs": "Conserver les journaux envoyés",
+        "retentionDays": "{count, plural, one {# jour} other {# jours}}",
+        "refresh": "Actualiser",
+        "stats": {
+          "total": "Total",
+          "sent": "Envoyés",
+          "failed": "En échec",
+          "pending": "En attente"
+        },
+        "allStatuses": "Tous les statuts",
+        "range": {
+          "today": "Aujourd'hui",
+          "last7": "7 derniers jours",
+          "last30": "30 derniers jours",
+          "last90": "90 derniers jours",
+          "all": "Toute la période"
+        },
+        "deleteSelected": "Supprimer la sélection",
+        "retrySelectedFailed": "Réessayer les échecs sélectionnés",
+        "retryAllFailed": "Réessayer tous les échecs",
+        "clearSent": "Effacer les journaux envoyés",
+        "deleteLogs": "Supprimer les journaux",
+        "selectPage": "Sélectionner les journaux terminés de cette page",
+        "selectRow": "Sélectionner {name}",
+        "columns": {
+          "created": "Créé",
+          "recipient": "Destinataire",
+          "status": "Statut",
+          "tries": "Essais",
+          "action": "Action"
+        },
+        "empty": "Aucun envoi correspondant.",
+        "segments": "{count, plural, one {# segment} other {# segments}}",
+        "retryNow": "Réessayer maintenant",
+        "retryFailed": "Le nouvel essai a échoué",
+        "retrySent": "Envoyé avec succès",
+        "actionFailed": "L'action a échoué",
+        "updated": "Journaux d'envoi mis à jour",
+        "deleted": "{count, plural, one {# journal supprimé.} other {# journaux supprimés.}}"
+      },
+      "demoModeMessage": "Le mode démo est activé. La modification des paramètres est désactivée sur ce site de démonstration.",
+      "toasts": {
+        "connected": "Connecté",
+        "connectionFailed": "Échec de la connexion",
+        "saveEmailFirst": "Enregistrez les paramètres e-mail avant d'envoyer un e-mail de test",
+        "savePaymentBeforeTest": "Enregistrez les paramètres de paiement avant de tester la connexion",
+        "deliveryLogsLoadFailed": "Impossible de charger les journaux d'envoi",
+        "loadFailed": "Impossible de charger les paramètres",
+        "saveFailed": "Impossible d’enregistrer les paramètres",
+        "saveOauthFirst": "Enregistrez les paramètres OAuth avant de vérifier les identifiants",
+        "savePaymentFirst": "Enregistrez les paramètres de paiement avant d’enregistrer l’URL IPN de Pesapal",
+        "saveSmsFirst": "Enregistrez les paramètres SMS avant d’envoyer un message de test",
+        "saved": "Paramètres enregistrés"
+      },
+      "conflict": {
+        "description": "Quelqu’un d’autre a modifié ces paramètres depuis que vous les avez ouverts. Rechargez pour voir la dernière version, ou enregistrez à nouveau pour les écraser.",
+        "overwrite": "Enregistrer quand même",
+        "reload": "Recharger",
+        "title": "Paramètres modifiés ailleurs"
+      },
+      "messaging": {
+        "description": "Horaires du chat en direct, escalade, et les comptes WhatsApp, Messenger, Instagram et Telegram depuis lesquels la place de marché répond",
+        "title": "Messagerie omnicanale"
+      },
+      "needsAttention": "À traiter",
+      "noResults": "Aucun paramètre trouvé",
+      "products": {
+        "description": "Choisissez ce que propose l’éditeur de produits. Ce que vous désactivez disparaît de l’éditeur et ne peut plus être activé pour un produit.",
+        "digital": "Produits et services numériques",
+        "digitalDesc": "Téléchargements comme les livres numériques et les clés de licence, ou services sans rien à expédier.",
+        "existingNote": "Désactiver une fonction ne modifie jamais un produit en ligne : une précommande en cours continue de se vendre, un produit sur devis garde son bouton de devis et un produit numérique reste numérique.",
+        "physical": "Produits physiques",
+        "physicalDesc": "Expédiés au client, avec stock, poids et informations douanières.",
+        "preorders": "Précommandes",
+        "preordersDesc": "Prenez des commandes avant l’arrivée du stock, avec une date de sortie et un acompte facultatif. L’approbation des vendeurs et les limites se trouvent dans Gestion multi-vendeurs.",
+        "priceOnRequest": "Prix sur demande",
+        "priceOnRequestDesc": "Masquer le prix d’un produit et afficher à la place un bouton « Demander un devis ».",
+        "sellingHeading": "Options de vente",
+        "title": "Produits",
+        "typesHeading": "Types de produits",
+        "typesHint": "Au moins un type de produit reste activé."
       }
     },
     "reports": "Rapports",
@@ -2762,7 +3608,6 @@
     },
     "staffPage": {
       "stats": {
-        "totalStaff": {},
         "activeStaff": {
           "description": "Currently active"
         },
@@ -2828,7 +3673,6 @@
       "updateSuccess": "{count} customers updated",
       "updateError": "Failed to update {count} customers"
     },
-    "staffDataTable": {},
     "discountsDataTable": {
       "deleteBulkDescription": "Are you sure you want to delete {count} discounts? This action cannot be undone.",
       "deleteBulkSuccess": "{count} discounts deleted",
@@ -2855,13 +3699,13 @@
           "description": "Présentation technique des produits avec cartes de comparaison et repères de performance.",
           "styleNote": "Optimisé pour les produits techniques, les accessoires et les pages produit riches en fonctionnalités."
         },
-        "luxe": {
-          "name": "Fashion",
-          "description": "Traitement visuel éditorial pour les marques premium mode, beauté et lifestyle.",
-          "styleNote": "Mise sur un merchandising orienté image et des narratifs de collection raffinés."
+        "furniture": {
+          "name": "Furniture",
+          "description": "Des articles pour la maison vendus pièce par pièce : intérieurs en pleine largeur, rayons par pièce, histoires de matières et ensembles pour acheter toute la pièce.",
+          "styleNote": "Conçu pour les canapés, les lits et les salles à manger — les pièces d'abord, les produits ensuite."
         },
         "women-fashion": {
-          "name": "Women Fashion",
+          "name": "Fashion",
           "description": "Mise en avant éditoriale de la mode : visuels de campagne pleine largeur, tuiles lookbook et sélections de saison.",
           "styleNote": "Conçu pour les vêtements, chaussures et accessoires — l’image d’abord, l’interface s’efface."
         }
@@ -4132,7 +4976,167 @@
       "starterPublish": "Utiliser la mise en page de départ du thème (recommandé)",
       "starterPublishHint": "Votre boutique change immédiatement, avec les sections du thème liées à vos propres collections et produits. Votre ancienne mise en page reste dans l'historique.",
       "subtitle": "Options de design du thème actif. Elles restylent la boutique — le contenu des pages reste dans les constructeurs Accueil et Pages.",
-      "title": "Réglages du thème"
+      "title": "Réglages du thème",
+      "tabs": {
+        "theme": "Choisir un thème",
+        "branding": "Marque",
+        "settings": "Réglages du thème",
+        "css": "CSS personnalisé"
+      }
+    },
+    "returnsPage": {
+      "stats": {
+        "needsReview": {
+          "title": "À examiner",
+          "description": "Approuver ou refuser"
+        },
+        "onTheWayBack": {
+          "title": "Retour en cours",
+          "description": "Approuvé, pas encore reçu"
+        },
+        "refundDue": {
+          "title": "Remboursement dû",
+          "description": "Reçu, pas encore remboursé",
+          "problems": "Échoués ou manuels : {count}"
+        },
+        "refunded": {
+          "title": "Remboursé (30 jours)",
+          "description": "{value} rendus"
+        }
+      }
+    },
+    "media": {
+      "loadFailed": "Impossible de charger les médias",
+      "copyFailed": "Impossible de copier l'URL",
+      "demoDeleteBlocked": "Le mode démo est activé. La suppression de fichiers est désactivée sur ce site de démonstration.",
+      "deleteFailed": "Échec de la suppression",
+      "copyUrl": "Copier l’URL",
+      "count": "{count, plural, one {# fichier} other {# fichiers}}",
+      "deleteDescription": "{count, plural, one {Le fichier sera supprimé définitivement du stockage. Partout où son URL est encore utilisée (produits, pages, e-mails), un fichier cassé s’affichera.} other {Les fichiers seront supprimés définitivement du stockage. Partout où leurs URL sont encore utilisées (produits, pages, e-mails), des fichiers cassés s’afficheront.}}",
+      "deleteSelected": "Supprimer la sélection",
+      "deleteTitle": "{count, plural, one {Supprimer ce fichier ?} other {Supprimer # fichiers ?}}",
+      "deleted": "{count, plural, one {# fichier supprimé} other {# fichiers supprimés}}",
+      "empty": "Aucun média trouvé",
+      "emptyHint": "Les fichiers envoyés apparaîtront ici pour le fournisseur de stockage actif.",
+      "key": "Clé de stockage",
+      "loadMore": "Charger plus",
+      "modified": "Modifié",
+      "open": "Ouvrir",
+      "refresh": "Actualiser",
+      "searchPlaceholder": "Rechercher des fichiers…",
+      "selectedCount": "{count} sélectionné(s)",
+      "size": "Taille",
+      "tabLibrary": "Médiathèque",
+      "tabStorage": "Stockage",
+      "type": "Type",
+      "upload": "Envoyer",
+      "uploaded": "Fichiers envoyés",
+      "urlCopied": "URL copiée",
+      "filter": {
+        "all": "Tous",
+        "documents": "Documents",
+        "images": "Images",
+        "models": "Modèles 3D",
+        "videos": "Vidéos"
+      }
+    },
+    "preferences": {
+      "title": "Préférences",
+      "fullscreenUnavailable": "Le plein écran n'est pas disponible dans ce navigateur",
+      "enterFullscreen": "Plein écran",
+      "exitFullscreen": "Quitter le plein écran",
+      "reset": "Rétablir les valeurs par défaut",
+      "personalNote": "Rien que pour vous, dans ce navigateur. Les logos, couleurs et l'apparence par défaut de votre boutique se règlent dans Boutique en ligne → Thèmes → Marque.",
+      "darkMode": "Mode sombre",
+      "contrast": "Contraste",
+      "rtl": "De droite à gauche",
+      "collapsedSidebar": "Barre latérale réduite",
+      "sidebar": "Barre latérale",
+      "sidebarColor": "Couleur",
+      "sidebarIntegrate": "Intégrée",
+      "sidebarApparent": "Apparente"
+    },
+    "preorderAccess": {
+      "vendorFallback": "Vendeur",
+      "thisVendor": "ce vendeur",
+      "unnamedStore": "Boutique sans nom",
+      "approvedToast": "{name} peut désormais ouvrir des précommandes",
+      "declinedToast": "La demande de précommande de {name} a été refusée",
+      "revokedToast": "{name} ne peut plus ouvrir de nouvelles précommandes",
+      "updateFailed": "Impossible de mettre à jour l'accès aux précommandes",
+      "revokeTitle": "Retirer l'accès aux précommandes à {name} ?",
+      "declineTitle": "Refuser la demande de précommande de {name} ?",
+      "revokeDescription": "Il ne pourra plus ouvrir de nouvelles précommandes. Les précommandes déjà en vente continuent — les acheteurs ont versé des acomptes.",
+      "declineDescription": "Il pourra envoyer une nouvelle demande plus tard.",
+      "reasonLabel": "Motif (envoyé au vendeur)",
+      "reasonPlaceholder": "Facultatif",
+      "reasonTooLong": "Le motif doit faire moins de {max} caractères.",
+      "revokeSubmit": "Retirer l'accès",
+      "declineSubmit": "Refuser",
+      "approve": "Approuver",
+      "grant": "Accorder l'accès",
+      "revoke": "Retirer",
+      "since": "Depuis le {date}",
+      "asked": "Demandé le {date}",
+      "askedRecently": "Demandé récemment",
+      "notAsked": "N'a pas demandé l'accès",
+      "approvedBadge": "Approuvé",
+      "waitingBadge": "En attente d'examen",
+      "noAccessBadge": "Aucun accès",
+      "lastNote": "Dernière note : {note}",
+      "card": {
+        "title": "Accès aux précommandes",
+        "description": "Indique si ce vendeur peut ouvrir des précommandes. Une précommande encaisse l'argent d'un acheteur avant que le produit existe ; la boutique peut donc vérifier qui y est autorisé.",
+        "rulesLink": "Règles des précommandes",
+        "loadFailed": "Impossible de charger l'accès aux précommandes.",
+        "storeOff": "Les précommandes sont désactivées dans toute la boutique ; personne ne peut en ouvrir pour l'instant. Ce que vous réglez ici s'appliquera une fois réactivées, et le vendeur n'en est pas averti.",
+        "reviewOff": "L'examen est désactivé ; ce vendeur peut donc déjà ouvrir des précommandes. Ce que vous réglez ici s'appliquera une fois l'examen activé, et le vendeur n'en est pas averti.",
+        "limits": "Une fois approuvé, les dates de sortie peuvent aller jusqu'à {days, plural, one {# jour} other {# jours}} et les acomptes jusqu'à {percent}% du prix. Retirer l'accès ne retire jamais les annonces déjà en vente."
+      }
+    },
+    "branding": {
+      "colorPicker": "Sélecteur : {label}",
+      "removePreset": "Supprimer le préréglage",
+      "removeNamedPreset": "Supprimer le préréglage {name}",
+      "savePreset": "Enregistrer les couleurs actuelles comme préréglage",
+      "customPresetName": "Personnalisé {number}",
+      "preview": {
+        "title": "Aperçu",
+        "subtitle": "comment vos couleurs s’appliquent dans toute l’application",
+        "primary": "Primaire",
+        "secondary": "Secondaire",
+        "accent": "Accent",
+        "outline": "Contour",
+        "link": "Lien",
+        "accentSurface": "Surface d’accent"
+      },
+      "appearanceMode": "Mode",
+      "appearanceSubtitle": "Comment la boutique s’ouvre avant que le visiteur choisisse lui-même le mode clair ou sombre.",
+      "appearanceTitle": "Apparence par défaut",
+      "assetsSubtitle": "Logos, favicon et icône d’application utilisés sur votre boutique et votre tableau de bord.",
+      "assetsTitle": "Éléments de marque",
+      "colorsSubtitle": "Boutons, liens et mises en avant de la boutique, ainsi que le tableau de bord, le paiement et les e-mails. Choisissez un préréglage ou définissez votre couleur avec le sélecteur, en hex ou en rgb().",
+      "colorsTitle": "Couleurs de la marque",
+      "globalHint": "Votre marque est globale : elle reste quand vous changez de thème et sert à la boutique, au tableau de bord, au paiement et aux e-mails.",
+      "save": "Enregistrer la marque"
+    },
+    "mediaPicker": {
+      "uploadFailed": "Échec de l’envoi",
+      "uploading": "Envoi en cours…",
+      "addVideoUrl": "Ajouter une vidéo depuis une URL",
+      "added": "Ajouté",
+      "description": "Choisissez dans votre médiathèque ou envoyez-y de nouveaux fichiers.",
+      "dropToUpload": "Déposez les fichiers pour les envoyer",
+      "empty": "Votre médiathèque est vide",
+      "emptyHint": "Les fichiers envoyés ici restent dans la médiathèque, prêts à être réutilisés.",
+      "forbidden": "Votre compte ne peut pas parcourir la médiathèque. Vous pouvez tout de même envoyer de nouveaux fichiers.",
+      "loadFailed": "Impossible de charger la médiathèque",
+      "noMatches": "Aucun fichier ne correspond",
+      "retry": "Réessayer",
+      "searchPlaceholder": "Rechercher des fichiers…",
+      "selectUpTo": "{max, plural, one {Sélectionnez jusqu’à # fichier} other {Sélectionnez jusqu’à # fichiers}}",
+      "selectedCount": "{count} sur {max} sélectionnés",
+      "title": "Sélectionner des fichiers"
     }
   },
   "footer": {
@@ -4161,7 +5165,9 @@
     "unauthorized": "Non autorisé",
     "unauthorizedDescription": "Vous n'avez pas la permission d'accéder à cette page.",
     "networkError": "Erreur réseau",
-    "networkErrorDescription": "Veuillez vérifier votre connexion internet et réessayer."
+    "networkErrorDescription": "Veuillez vérifier votre connexion internet et réessayer.",
+    "tooManyRequestsIn": "Trop de requêtes. Attendez {duration} puis réessayez.",
+    "tooManyRequests": "Trop de requêtes. Attendez un instant puis réessayez."
   },
   "pos": {
     "searchProducts": "Rechercher des produits...",
@@ -4825,9 +5831,9 @@
       "quickReplyOption": "Réponse rapide",
       "textHeaderOptional": "En-tête texte (facultatif)",
       "websiteUrlOption": "URL du site web",
-      "headerPlaceholder": "Mise à jour de la commande {{1}}",
-      "bodyPlaceholder": "Bonjour {{1}}, votre commande est maintenant {{2}}.",
-      "placeholderHint": "Utilisez des espaces réservés séquentiels : {{1}}, {{2}}, et ainsi de suite.",
+      "headerPlaceholder": "Mise à jour de la commande '{{1}}'",
+      "bodyPlaceholder": "Bonjour '{{1}}', votre commande est maintenant '{{2}}'.",
+      "placeholderHint": "Utilisez des espaces réservés séquentiels : '{{1}}', '{{2}}', et ainsi de suite.",
       "authenticationNote": "Meta contrôle le libellé des modèles d'authentification et ajoute le bouton de copie du code requis.",
       "bodyExampleLabel": "Exemple de {variable} du corps",
       "submitForReview": "Soumettre à l'examen de Meta",
@@ -5068,7 +6074,7 @@
     "title": "Boosts",
     "empty": "Aucun boost pour l'instant. Mettez un produit en avant pour toucher plus d'acheteurs.",
     "addAction": "Booster un produit",
-    "searchPlaceholder": "Rechercher par position ou libellé",
+    "searchPlaceholder": "Rechercher par produit, position ou libellé",
     "tabs": {
       "all": "Tous",
       "active": "Actifs",
@@ -5076,7 +6082,8 @@
       "paused": "En pause",
       "expired": "Expirés",
       "canceled": "Annulés",
-      "scheduled": "À venir"
+      "scheduled": "À venir",
+      "creditOwed": "Crédit dû"
     },
     "status": {
       "active": "Actif",
@@ -5098,7 +6105,8 @@
       "actions": "Actions",
       "position": "Emplacement",
       "startsIn": "Débute dans {days} jours",
-      "startsToday": "Débute aujourd'hui"
+      "startsToday": "Débute aujourd'hui",
+      "credit": "Crédit dû"
     },
     "stats": {
       "active": "Boosts actifs",
@@ -5112,13 +6120,16 @@
       "revenue": "Revenus des boosts",
       "revenueDescription": "Réservations payées moins remboursements, tout temps (devise de la boutique)",
       "upcoming": "À venir",
-      "upcomingDescription": "Réservées, pas encore lancées"
+      "upcomingDescription": "Réservées, pas encore lancées",
+      "creditOwed": "Crédit dû",
+      "creditOwedDescription": "réservations à régler",
+      "creditOwedNone": "rien en attente"
     },
     "admin": {
       "title": "Campagnes de boost",
       "empty": "Aucune campagne de boost pour l'instant",
+      "searchPlaceholder": "Rechercher par boutique, produit, position ou libellé",
       "create": "Créer une réservation",
-      "createTitle": "Créer une réservation (paiement hors ligne)",
       "createDescription": "Pour les paiements encaissés hors passerelles, ou pour offrir un emplacement. Les jours sont réservés immédiatement et ne peuvent être vendus à personne d'autre.",
       "createConfirm": "Créer la réservation",
       "created": "Réservation créée",
@@ -5130,34 +6141,24 @@
       "cancelDescription": "Chaque jour réservé à partir de demain est immédiatement remis au calendrier et peut être revendu. Les jours déjà diffusés restent facturés ; ce qui est libéré s'ajoute au crédit du vendeur, à rembourser via la passerelle.",
       "pause": "Mettre en pause",
       "resume": "Reprendre",
-      "product": "Produit",
-      "vendor": "Vendeur",
-      "selectVendor": "Sélectionnez un vendeur…",
-      "selectVendorFirst": "Choisissez un vendeur pour voir ses produits",
-      "searchProducts": "Rechercher des produits…",
       "updated": "Campagne mise à jour",
       "updateFailed": "Échec de la mise à jour de la campagne",
       "position": "Position",
       "dates": "Dates (UTC)",
-      "heldBy": "Réservé à cette position :",
-      "amountOverride": "Montant à enregistrer",
-      "amountOverrideHint": "Laissez vide pour facturer le prix affiché de {amount}. Un montant inférieur offre la différence ; 0 le rend gratuit. Il ne peut pas dépasser le prix affiché.",
-      "recordingBooking": "Position {position} · {days} jours · enregistrement de {amount} comme payé",
       "markRefunded": "Marquer remboursé",
       "markRefundedTitle": "Marquer comme remboursé",
-      "markRefundedDescription": "Enregistre que vous avez déjà remboursé le crédit dû chez le prestataire de paiement. Cela met seulement le registre à jour — aucun argent n'est déplacé."
+      "markRefundedDescription": "Enregistre que vous avez déjà remboursé le crédit dû chez le prestataire de paiement. Cela met seulement le registre à jour — aucun argent n'est déplacé.",
+      "creditLedger": "Registre des crédits",
+      "outstanding": "Restant dû",
+      "paymentAttempts": "Tentatives de paiement"
     },
     "purchase": {
       "subtitle": "Réservez un emplacement numéroté de l'échelle sponsorisée pour les jours de votre choix.",
-      "pickProduct": "Choisissez un produit",
-      "pickPayment": "Choisissez un moyen de paiement",
       "stepProduct": "Produit",
       "stepPayment": "Paiement",
       "searchProducts": "Rechercher dans vos produits…",
       "noProducts": "Aucun produit actif trouvé",
       "noMethods": "Aucun moyen de paiement disponible. Contactez l'administrateur de la marketplace.",
-      "boosting": "Boost de :",
-      "days": "{days} jours",
       "payNow": "Payer et réserver",
       "card": "Carte",
       "mobileMoney": "Mobile money",
@@ -5171,34 +6172,68 @@
       "failed": "Impossible de démarrer le paiement",
       "loadFailed": "Impossible de charger l'échelle de positions",
       "pollTimeout": "Nous n'avons pas encore pu confirmer le paiement. Il s'activera automatiquement une fois confirmé.",
-      "stepSlot": "Emplacement et dates",
-      "pickSlot": "Choisissez une position et des dates",
       "perDay": "/jour",
       "noPositions": "Aucune position sponsorisée n'est encore en vente",
       "pickPositionFirst": "Choisissez une position pour voir les jours libres.",
-      "legendFree": "Libre",
       "legendBooked": "Réservé",
       "legendYours": "Le vôtre",
-      "conflictInline": "Ces dates ne sont pas libres à cette position — choisissez-en d'autres.",
       "slotTaken": "Quelqu'un vient de réserver {days} à cette position.",
       "slotTakenRetry": "Quelqu'un a réservé {days} pendant votre choix. Choisissez à nouveau.",
       "productBusy": "Ce produit est déjà programmé le {days}. Choisissez d'autres dates ou un autre produit.",
-      "strictIndexNote": "Vous achetez l'emplacement visible {position}. Si une position au-dessus reste invendue ce jour-là, elle affiche un produit ordinaire — le vôtre ne remonte pas.",
-      "reachDetail": "Sur les pages de listes, votre produit apparaît sur la page boutique principale et sur sa page de catégorie. Les résultats filtrés et de recherche n'affichent jamais de produits sponsorisés.",
-      "refundPolicy": "Les jours déjà diffusés ne sont pas remboursables. Les jours à venir peuvent être libérés — la marketplace les crédite au tarif journalier et rembourse via votre prestataire de paiement. Si votre produit est en rupture ou dépublié, la journée est créditée au prorata.",
-      "utcNote": "Les jours vont de minuit à minuit, UTC.",
-      "utcShort": "jours UTC",
-      "oneCheckout": "Vous pouvez avoir un paiement ouvert par produit. Changer la position ou les dates déplace votre réservation vers la nouvelle sélection.",
       "holdExpires": "Ces dates vous sont réservées pendant {clock}",
       "holdExpired": "Votre réservation a expiré et les dates sont de nouveau en vente.",
-      "observedReach": "Moyenne de {n} impressions/jour sur les 30 derniers jours",
       "positionStale": "Tarifé dans une autre devise — demandez à la marketplace de le retarifer.",
-      "summaryLine": "Position {position}",
       "overMaxDays": "Une réservation ne peut pas dépasser {days} jours.",
-      "alreadyBooked": "{count} réservations en cours",
       "availabilityFailed": "Impossible de charger le calendrier de réservation",
       "booked": "Votre réservation est confirmée.",
-      "tooManyHolds": "Vous avez déjà trop de paiements ouverts. Terminez-en un ou annulez-le d'abord."
+      "tooManyHolds": "Vous avez déjà trop de paiements ouverts. Terminez-en un ou annulez-le d'abord.",
+      "gatewayUnavailable": "{gateway} n'a pas pu démarrer le paiement. Réessayez ou choisissez un autre moyen de paiement."
+    },
+    "booking": {
+      "vendorTitle": "Booster un produit",
+      "offlinePayment": "Paiement hors ligne",
+      "steps": "Étapes de la réservation",
+      "stepPositionDates": "Position et dates",
+      "stepRecordPayment": "Enregistrer le paiement",
+      "searchAll": "Rechercher par nom de produit ou de boutique…",
+      "allStores": "Toutes les boutiques",
+      "filterByStore": "Filtrer par boutique",
+      "showingSome": "{shown} sur {total} affichés — lancez une recherche pour trouver le reste",
+      "notOnHome": "Absent de la page d'accueil",
+      "notOnListings": "Absent des pages de liste",
+      "notOnProductPages": "Absent des pages produit",
+      "daysTaken": "{taken} jours sur {total} déjà pris",
+      "noFreeDays": "Aucun jour libre dans les {days} prochains jours",
+      "blockedNowhere": "N'apparaît sur aucune page pour l'instant — augmentez d'abord le nombre d'emplacements d'un placement.",
+      "blockedStale": "Tarifé dans une autre devise — redéfinissez d'abord son prix sur l'échelle.",
+      "pickFirstDay": "Cliquez sur le premier jour, puis sur le dernier.",
+      "pickLastDay": "Cliquez maintenant sur le dernier jour.",
+      "datesTaken": "Déjà réservé sur cette position : {days}. Choisissez d'autres dates ou une autre position.",
+      "legendThisProduct": "Ce produit est déjà boosté",
+      "dayCount": "{count, plural, one {# jour} other {# jours}}",
+      "total": "Total",
+      "summary": "Récapitulatif",
+      "dates": "Dates",
+      "price": "Prix",
+      "recordedAsPaid": "Enregistré comme payé",
+      "totalDue": "Total à payer",
+      "amountReceived": "Montant reçu",
+      "fullPrice": "Prix plein",
+      "partPayment": "Paiement partiel ou remise",
+      "free": "Gratuit",
+      "amountYouReceived": "Montant que vous avez reçu",
+      "comped": "{amount} offerts",
+      "sameAsFullPrice": "Identique au prix plein",
+      "enterAmountRange": "Saisissez de {min} à {max}",
+      "note": "Note",
+      "optional": "facultatif",
+      "notePlaceholder": "Référence du virement, numéro de reçu…",
+      "bookedAtOnce": "Les jours sont réservés dès la création — personne d'autre ne peut les acheter.",
+      "payWith": "Payer avec",
+      "termSlot": "Vous achetez l'emplacement #{position}. Si un emplacement au-dessus reste invendu, le vôtre ne remonte pas.",
+      "termListings": "Dans les listes, il apparaît sur la boutique et sa catégorie, jamais dans les résultats de recherche.",
+      "termRefund": "Les jours déjà écoulés ne sont pas remboursés. Les jours futurs peuvent être libérés contre un crédit.",
+      "termHold": "Vos dates sont bloquées {minutes} minutes pendant le paiement."
     },
     "performance": {
       "back": "Tous les boosts",
@@ -5231,41 +6266,80 @@
       "deleteFailed": "Suppression impossible",
       "deleteTitle": "Supprimer cette position ?",
       "deleted": "Position supprimée",
-      "derivedPrices": "7 jours {week} · 30 jours {month}",
       "description": "Description (facultative)",
       "dialogDescription": "Les vendeurs paient ce prix pour chaque jour réservé à cette position.",
       "editTitle": "Modifier la position",
       "empty": "Aucune position pour l'instant",
       "emptyHint": "Créez la position 1 pour mettre en vente l'emplacement sponsorisé du haut.",
-      "horizonDays": "{days} j",
       "label": "Libellé",
       "labelPlaceholder": "Première place",
       "labelRequired": "Saisissez un libellé",
       "ladderGap": "Les positions {positions} ne sont pas définies — ces emplacements affichent toujours un produit normal.",
-      "occupancy": "Occupation",
-      "occupancyBooked": "{booked} jours réservés sur {total}",
-      "occupancyFull": "complet",
-      "occupancyNextFree": "prochain jour libre {day}",
-      "perDay": "/ jour",
       "position": "Position",
       "positionLocked": "La position ne peut pas être modifiée après création — archivez cet échelon et créez-en un nouveau.",
       "positionRequired": "La position doit être comprise entre 1 et 50",
       "pricePerDay": "Prix par jour",
       "pricePerDayHint": "7 jours = {week} · 30 jours = {month}",
       "priceRequired": "Le prix par jour doit être supérieur à zéro",
-      "reach": "S'affiche sur",
       "reachHome": "Accueil (top {n})",
       "reachListing": "Listes (top {n})",
       "reachProductPage": "Fiches produit (top {n})",
-      "reachesNothing": "La position {position} ne s'affiche nulle part. Augmentez le nombre d'emplacements d'un placement ou archivez cet échelon.",
       "saveFailed": "Impossible d'enregistrer la position",
       "status": "Statut",
       "subtitle": "Les vendeurs réservent une position sur une plage de jours. La position N s'affiche à l'emplacement N ; une position invendue affiche un produit normal et celles du dessous ne remontent jamais.",
       "title": "Échelle de positions",
       "unarchive": "Désarchiver",
       "updated": "Position mise à jour",
-      "delivery": "Moyenne de {n} impressions/jour sur les 30 derniers jours",
-      "deliveryNone": "Aucune diffusion enregistrée"
+      "ladderGapOne": "La position {positions} n'est pas définie — cet emplacement affiche toujours un produit normal.",
+      "defineGap": "Définir #{position}",
+      "windowLabel": "Jours à venir",
+      "ladderSummary": "{percent} % de l'échelle réservée · {booked} jours sur {total}",
+      "slotsPerSurface": "Emplacements sponsorisés par surface :",
+      "surfaceHome": "Accueil",
+      "surfaceListing": "Listes",
+      "surfaceProductPage": "Fiches produit",
+      "surfaceOff": "désactivé",
+      "settingsLink": "Paramètres",
+      "colPrice": "Prix",
+      "colPerDay": "par jour",
+      "colBooked": "Réservé",
+      "colNextDays": "{days} prochains jours",
+      "colImpressions": "Impressions",
+      "colImpressionsHint": "par jour · moyenne sur 30 jours",
+      "axisToday": "Aujourd'hui",
+      "statusNowhere": "Affichée nulle part",
+      "statusReprice": "Prix à revoir",
+      "chipOn": "{surface} affiche les {n} premières positions, dont celle-ci",
+      "chipOff": "{surface} n'affiche que les {n} premières positions",
+      "chipDisabled": "{surface} n'affiche aucun produit sponsorisé pour le moment",
+      "freeFrom": "Libre à partir du {day}",
+      "freeToday": "Libre aujourd'hui",
+      "freeWindow": "Libre — aucune réservation dans les {days} prochains jours",
+      "freeShort": "Libre",
+      "notForSale": "Pas en vente",
+      "nowhereTrack": "Affichée sur aucune page — les vendeurs ne peuvent pas la réserver.",
+      "nowhereFix": "Modifier le nombre d'emplacements",
+      "staleTrack": "Les vendeurs ne peuvent pas payer tant qu'elle n'a pas de nouveau prix",
+      "segmentUntil": "jusqu'au {day}",
+      "segmentHold": "En attente · non payé",
+      "segmentRange": "{from} – {to} · {count, plural, one {# jour} other {# jours}}",
+      "segmentOpen": "Ouvrir la réservation",
+      "segmentHoldHint": "Paiement en attente — les jours se libèrent si le paiement n'arrive pas",
+      "bookedOf": "{booked} jours sur {total}",
+      "bookedOfHeld": "{booked} jours sur {total}, dont {held} en attente",
+      "freeFromShort": "libre à partir du {day}",
+      "noFreeDay": "aucun jour libre dans les {days} prochains jours",
+      "noNewBookings": "aucune nouvelle réservation",
+      "noData": "pas encore de données",
+      "storeCurrency": "la boutique est en {currency}",
+      "editAria": "Modifier la position {position}",
+      "moreActions": "Plus d'actions pour la position {position}",
+      "viewBookings": "Voir les réservations",
+      "deleteBlockedBooked": "Elle a des réservations à partir d'aujourd'hui — archivez-la plutôt.",
+      "deleteBlockedClaimed": "Une réservation en pause, planifiée ou impayée l'occupe encore — archivez-la plutôt.",
+      "gapTitle": "Non définie",
+      "gapHint": "L'emplacement {position} affiche un produit normal chaque jour — aucune position inférieure ne remonte.",
+      "gapRangeHint": "Les emplacements {from}–{to} affichent un produit normal chaque jour — aucune position inférieure ne remonte."
     },
     "cancel": {
       "action": "Annuler la réservation",
@@ -5274,6 +6348,15 @@
       "confirm": "Annuler la réservation",
       "done": "Réservation annulée",
       "failed": "Impossible d'annuler la réservation"
+    },
+    "disabled": {
+      "title": "La mise en avant des produits est désactivée",
+      "campaigns": "Activez la mise en avant dans Paramètres → Mise en avant des produits pour vendre des emplacements sponsorisés aux vendeurs.",
+      "positions": "Activez la mise en avant dans Paramètres → Mise en avant des produits pour gérer l’échelle des positions."
+    },
+    "filters": {
+      "allVendors": "Tous les vendeurs",
+      "allPositions": "Toutes les positions"
     }
   },
   "install": {
@@ -5344,5 +6427,18 @@
     "short": "Comparer",
     "bar": "Comparer {count}",
     "clear": "Vider"
+  },
+  "permissionPacks": {
+    "aiStudio": "AI Studio",
+    "analytics": "Statistiques",
+    "boosts": "Mises en avant",
+    "catalog": "Catalogue",
+    "discounts": "Remises",
+    "inbox": "Boîte de réception",
+    "orders": "Commandes",
+    "payouts": "Versements",
+    "pos": "Point de vente",
+    "staff": "Personnel",
+    "storefront": "Boutique"
   }
 }

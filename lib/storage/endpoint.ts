@@ -74,3 +74,24 @@ export function resolveStorageEndpoint(
       return undefined;
   }
 }
+
+/**
+ * The public base URL files are addressed from: absolute, no trailing slash.
+ *
+ * The settings field takes what an admin types, and a bare host is the
+ * natural thing to type for a custom domain ("cdn.example.com" — the way
+ * Cloudflare's dashboard lists one). Used as given, every upload stored
+ * "cdn.example.com/uploads/…", which a browser resolves against the store's
+ * own domain: a broken image, and a connection test that fails. A missing
+ * scheme means https.
+ */
+export function normalizePublicUrl(
+  value: string | null | undefined,
+): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  const absolute = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed.replace(/^\/+/, "")}`;
+  return absolute.replace(/\/+$/, "");
+}

@@ -1,9 +1,45 @@
+import type { Types } from "mongoose";
 import { AuthorizationError } from "@/lib/api/errors";
 import { hasVendorPermission, isAdmin, type MinimalUser } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { checkPlanCapability } from "@/lib/vendors/vendor-limits";
+import type { ISettings } from "@/models/settings.model";
 import type { AIAuthoringRequest } from "./types";
+
+/** Which of the two vendor gates refuses, or null when both pass. */
+type VendorAuthoringDenial = "permission" | "plan" | null;
+
+/**
+ * The vendor half of AI authoring access, as a verdict rather than a throw.
+ *
+ * Both callers need the same answer but not the same shape: the routes turn it
+ * into the 403 they have always returned, while the vendor layout turns it into
+ * the flag that keeps AI buttons off a form the routes would refuse anyway.
+ * The caller supplies the permission set because it usually already has one —
+ * the layout from `requireVendorAreaAccess`, a route from `hasVendorPermission`
+ * — and a re-read here would cost every vendor page an extra lookup.
+ */
+export async function vendorAuthoringDenial(input: {
+  hasStudioPermission: boolean;
+  vendorId: Types.ObjectId | string;
+  /**
+   * Pre-loaded `Vendor.planId`, to skip the vendor lookup. `null` states there
+   * is no plan; leaving it out asks `checkPlanCapability` to look one up.
+   */
+  planId?: Types.ObjectId | string | null;
+  /** Pre-loaded settings, to skip the `plansEnabled` re-read. */
+  settings?: ISettings;
+}): Promise<VendorAuthoringDenial> {
+  if (!input.hasStudioPermission) return "permission";
+
+  const planGrants = await checkPlanCapability(input.vendorId, "aiAuthoring", {
+    planId: input.planId,
+    settings: input.settings,
+  });
+
+  return planGrants ? null : "plan";
+}
 
 /**
  * Gate a vendor/staff caller for AI authoring. Two independent checks (admins
@@ -26,20 +62,19 @@ export async function assertVendorAuthoringAccess(
 
   if (isAdmin(user)) return;
 
-  const hasStudioPermission = await hasVendorPermission(
-    user,
-    VENDOR_PERMISSIONS.ACCESS_AI_STUDIO,
-  );
-  if (!hasStudioPermission) {
-    throw new AuthorizationError(
-      "You do not have permission to use AI Studio",
-    );
-  }
-
-  const planGrants = await checkPlanCapability(vendor._id, "aiAuthoring", {
+  const denial = await vendorAuthoringDenial({
+    hasStudioPermission: await hasVendorPermission(
+      user,
+      VENDOR_PERMISSIONS.ACCESS_AI_STUDIO,
+    ),
+    vendorId: vendor._id,
     planId: vendor.planId,
   });
-  if (!planGrants) {
+
+  if (denial === "permission") {
+    throw new AuthorizationError("You do not have permission to use AI Studio");
+  }
+  if (denial === "plan") {
     throw new AuthorizationError(
       "AI Studio is not included in your plan. Upgrade to a plan with AI Authoring.",
     );

@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import { CarriersCard } from "./shipping/carriers-card";
 import { PackagesCard } from "./shipping/packages-card";
 import { CourierLinksCard } from "./shipping/courier-links-card";
 import { AutomationCard } from "./shipping/automation-card";
+import { AddressHoldCard } from "./shipping/address-hold-card";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 type ShippingSettings = Settings["shipping"];
@@ -302,10 +304,11 @@ export function ShippingSettingsTab(props: {
                 onChange={(country) =>
                   props.updateField("shipping.origin.country", country)
                 }
-                placeholder={tSafe(
-                  "admin.settings.shipping.origin.countryPlaceholder",
-                  "Select country",
-                )}
+                // Where parcels leave from, which is not the same question as
+                // where the store delivers: a warehouse or dropshipper can sit
+                // outside every country on offer. The zone lists below are the
+                // ship-to side and stay restricted.
+                restrictToAvailableCountries={false}
               />
             </div>
             <div className="space-y-2">
@@ -631,12 +634,12 @@ export function ShippingSettingsTab(props: {
 
                 {!zone.isFallback &&
                   (!zone.countries || zone.countries.length === 0) && (
-                  <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm text-amber-700 dark:text-amber-400">
+                  <WarningBanner>
                     {tSafe(
                       "admin.settings.shipping.zone.noCountriesWarning",
                       "⚠️ This zone has no countries configured. It will not match any customer addresses and the fallback rate will be used instead.",
                     )}
-                  </div>
+                  </WarningBanner>
                 )}
 
                 <div className="flex items-center justify-between gap-4">
@@ -950,12 +953,12 @@ export function ShippingSettingsTab(props: {
 
                   {(zone.rates || []).length > 0 &&
                   !(zone.rates || []).some(rateAppliesToEveryCart) ? (
-                    <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm text-amber-700 dark:text-amber-400">
+                    <WarningBanner>
                       {tSafe(
                         "admin.settings.shipping.zone.conditionalRatesWarning",
                         "⚠️ Every rate in this zone is conditional. A cart that meets none of these conditions gets no rate from this zone — it falls through to the fallback rate, or the customer is told shipping is unavailable. Add a flat rate to cover the rest.",
                       )}
-                    </div>
+                    </WarningBanner>
                   ) : null}
                 </div>
               </div>
@@ -980,7 +983,9 @@ export function ShippingSettingsTab(props: {
           {fallbackZone ? (
             <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
               {(() => {
-                const zone = fallbackZone.name || "Rest of the world";
+                const zone =
+                  fallbackZone.name ||
+                  tSafe("admin.settings.shipping.zone.isFallback", "Rest of the world");
                 // The fallback text is interpolated here too: tSafe returns it
                 // verbatim, so a locale without this key would otherwise render
                 // a literal "{zone}".
@@ -1274,6 +1279,14 @@ export function ShippingSettingsTab(props: {
           <AutomationCard
             automation={automation}
             carriersEnabled={Boolean(shipping.carriers?.enabled)}
+            tSafe={tSafe}
+            updateField={props.updateField}
+          />
+
+          <Separator />
+
+          <AddressHoldCard
+            addressHold={shipping.addressHold}
             tSafe={tSafe}
             updateField={props.updateField}
           />

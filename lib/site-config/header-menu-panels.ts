@@ -10,7 +10,7 @@ import type { HeaderMenuItem } from "@/lib/site-config/header-config";
  * storefront and its tests agree on it.
  */
 
-export interface MegaDropdownColumn {
+interface MegaDropdownColumn {
   title: string;
   /** The heading's own link; "" when the heading is only a label. */
   href: string;
@@ -18,14 +18,14 @@ export interface MegaDropdownColumn {
   links: HeaderMenuItem[];
 }
 
-export interface MegaDropdownPromo {
+interface MegaDropdownPromo {
   image: string;
   label: string;
   href: string;
   target?: HeaderMenuItem["target"];
 }
 
-export interface MegaDropdownLayout {
+interface MegaDropdownLayout {
   columns: MegaDropdownColumn[];
   promos: MegaDropdownPromo[];
 }
@@ -123,7 +123,7 @@ export function drawerEntryDrillsIn(item: HeaderMenuItem): boolean {
  * children of its own — "FOR HER" over its links) or an untitled run of
  * plain children between groups.
  */
-export interface DrawerPanelSection {
+interface DrawerPanelSection {
   /** "" for an untitled run of plain links. */
   title: string;
   /** The heading's own link; "" when it is only a label. */
@@ -132,7 +132,7 @@ export interface DrawerPanelSection {
   links: HeaderMenuItem[];
 }
 
-export interface DrawerPanel {
+interface DrawerPanel {
   sections: DrawerPanelSection[];
   promos: MegaDropdownPromo[];
 }

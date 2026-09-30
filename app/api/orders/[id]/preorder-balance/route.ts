@@ -4,7 +4,7 @@ import { validateBody } from "@/lib/api/validate";
 import { createPreorderBalanceIntent } from "@/lib/payments/preorder-balance";
 import { readPreorderBalanceToken } from "@/lib/payments/preorder-balance-link";
 import { ValidationError } from "@/lib/api/errors";
-import { z } from "zod";
+import * as z from "zod";
 
 const BodySchema = z.object({
   locale: z.string().max(10).optional(),

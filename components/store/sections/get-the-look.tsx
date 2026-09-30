@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { type Locale } from "@/config/i18n.config";
 import { AppImage } from "@/components/ui/app-image";
 import { ModernProductCard } from "@/components/products/modern-product-card";
@@ -71,7 +71,7 @@ export async function GetTheLook({
   const shelfGrid =
     SHELF_GRIDS[layout.cardsPerRow > 0 ? layout.cardsPerRow : products.length] ??
     SHELF_GRIDS[4];
-  const href = `/${locale}/collections/${look.slug}`;
+  const href = `/collections/${look.slug}`;
   const vars = {
     "--gl-image": `${layout.imageWidth}%`,
     "--gl-image-h": `${layout.imageHeight}px`,

@@ -22,8 +22,6 @@ export default async function AdminSettingsLayout({
   const initialSettings = await getSanitizedSettings();
 
   return (
-    <SettingsShell locale={locale} initialSettings={initialSettings}>
-      {children}
-    </SettingsShell>
+    <SettingsShell initialSettings={initialSettings}>{children}</SettingsShell>
   );
 }

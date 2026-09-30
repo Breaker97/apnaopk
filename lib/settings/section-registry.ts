@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { ValidationError } from "@/lib/api/errors";
 import { OUT_OF_STOCK_DISPLAY_VALUES } from "@/lib/catalog/catalog-display";
 import { CONTENT_PAGE_KEYS } from "@/lib/site-config/content-pages-config";
@@ -43,9 +43,7 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "defaultLanguage",
     "defaultCurrency",
     "supportedLanguages",
-    "supportedCurrencies",
     "countryAvailability",
-    "timezone",
   ] as const),
   appearance: section([
     "primaryColor",
@@ -53,15 +51,8 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "accentColor",
     "skeletonColor",
     "theme",
-    "contrast",
-    "rtl",
-    "collapsedSidebar",
-    "navLayout",
-    "navColor",
     "presetColor",
     "customPresets",
-    "fontFamily",
-    "borderRadius",
   ] as const),
   payment: section([
     "stripe",
@@ -73,15 +64,17 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "orange_money",
     "mtn_momo",
     "cod",
+    // The human check behind the card-testing guard (`lib/checkout/turnstile.ts`).
+    // `attemptGateways` is deliberately absent: it is an operator's rollout
+    // switch, set in the database, not a store setting.
+    "turnstile",
   ] as const),
   email: section([
-    "provider",
     "enabled",
     "smtp",
     "fromEmail",
     "fromName",
     "replyTo",
-    "apiKey",
     "logRetentionDays",
   ] as const),
   sms: section([
@@ -96,6 +89,7 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "taxRate",
     "freeShippingThreshold",
     "defaultShippingCost",
+    "loyaltySpendPerPoint",
     "commission",
     "returns",
   ] as const),
@@ -112,6 +106,7 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "carriers",
     "packages",
     "automation",
+    "addressHold",
     "courierTrackingLinks",
   ] as const),
   // No `robotsTxt`: it had a schema field and an allow-list entry but no field
@@ -176,7 +171,6 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "allowAdminSales",
     "allowVendorSales",
     "allowSellerSales",
-    "language",
     "defaultPosLocationId",
     "customize",
     "checkout",
@@ -208,8 +202,6 @@ export const SETTINGS_SECTION_SCHEMAS = {
   vendorConfig: section([
     "plansEnabled",
     "allowRegistration",
-    "autoApprove",
-    "freeTrialDays",
     "requirePlanSelection",
     "requiredDocuments",
     "defaultPlanId",
@@ -220,8 +212,13 @@ export const SETTINGS_SECTION_SCHEMAS = {
   // being written — and the storefront reader normalises anything it does
   // not recognise back to "show", which would present as the switch silently
   // refusing to hold its setting.
+  // The product features are typed for the same reason: a string "false"
+  // would be truthy, and read back as a switch that will not turn off.
   catalog: z.object({
     outOfStockDisplay: z.enum(OUT_OF_STOCK_DISPLAY_VALUES).optional(),
+    physicalProducts: z.boolean().optional(),
+    digitalProducts: z.boolean().optional(),
+    priceOnRequest: z.boolean().optional(),
   }),
   boosting: section([
     "enabled",
@@ -298,6 +295,13 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "pagesMenu",
   ] as const),
   footer: section([
+    // The footer AS A LAYOUT, as `header` keeps its own above. It must be
+    // listed: the route REPLACES the whole footer object with the
+    // normalizer's output (app/api/admin/settings/route.ts), so a key the
+    // allow-list strips is not merely unsaved, it is erased from a document
+    // that already had it — a merchant who built a layout and then saved
+    // anything from the footer form would lose it, with a 200 back.
+    "builder",
     "layout",
     "brand",
     "colors",
@@ -345,11 +349,6 @@ export function isSettingsSection(value: unknown): value is SettingsSectionKey {
     typeof value === "string" &&
     Object.prototype.hasOwnProperty.call(SETTINGS_SECTION_SCHEMAS, value)
   );
-}
-
-/** The keys a section accepts, for callers that still want a list. */
-export function allowedSectionKeys(section: SettingsSectionKey): string[] {
-  return Object.keys(SETTINGS_SECTION_SCHEMAS[section].shape);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { Cart, Order } from "@/models";
+import { orderContactEmail } from "@/lib/orders/order-contact-email";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import { sendOrderConfirmationEmail } from "@/lib/email/order-emails";
 import {
@@ -18,6 +19,12 @@ import {
   reservePreorderQuantity,
 } from "@/lib/orders/preorders";
 import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
+import { settleOrderStoreCredit } from "@/lib/store-credit/store-credit";
+import {
+  orderCreditApplied,
+  orderCreditCounted,
+  type OrderStoreCredit,
+} from "@/lib/store-credit/order-credit";
 import {
   auditOrderCancelled,
   auditOrderPaid,
@@ -101,6 +108,12 @@ export interface FinalizeCapturedOrderParams {
    */
   assertReference?: (order: PendingOrderDocument) => void;
   /**
+   * Runs when the order turns out to be paid already, for a gateway that can
+   * take a second payment against the same order (a retry reusing it). Never
+   * throws into the caller: a replay must still answer `alreadyPaid`.
+   */
+  onAlreadyPaid?: (order: PendingOrderDocument) => Promise<void>;
+  /**
    * Proves the gateway's answer matches this order — state, reference,
    * currency, amount — and throws a ValidationError on any doubt. Only runs
    * for an order that is still unpaid and not cancelled.
@@ -114,6 +127,30 @@ export interface FinalizeCapturedOrderParams {
   customerEmail?: string;
   /** Audit actor; the system actor unless the caller has a request to attach. */
   actor?: AuditContext;
+  /**
+   * What brought the checkout back, when the caller knows: a payment through
+   * the link a failed payment's email carries. The ladder's attribution
+   * otherwise.
+   */
+  recoveredVia?: "pay_link";
+}
+
+/**
+ * Payment states that mean the gateway's money is already on the order. A
+ * refunded order counts: mobile-money and card gateways keep reporting the
+ * original payment as successful after a refund, so a reloaded success page
+ * used to re-finalize it — back to paid, stock taken a second time, the
+ * confirmation sent again.
+ */
+const PAYMENT_RECORDED_STATUSES: string[] = [
+  PAYMENT_STATUS.PAID,
+  PAYMENT_STATUS.PARTIALLY_PAID,
+  PAYMENT_STATUS.REFUNDED,
+  PAYMENT_STATUS.PARTIALLY_REFUNDED,
+];
+
+function isPaymentAlreadyRecorded(status: unknown): boolean {
+  return PAYMENT_RECORDED_STATUSES.includes(String(status || ""));
 }
 
 const CANCELLED_BEFORE_CAPTURE =
@@ -140,7 +177,15 @@ type OrderLine = {
   quoteId?: unknown;
 };
 
-type ConsignmentRef = { _id?: unknown; vendorId?: unknown; status?: string };
+type ConsignmentRef = {
+  _id?: unknown;
+  vendorId?: unknown;
+  status?: string;
+  /** True once this consignment's goods have come off the shelf. */
+  inventoryReserved?: boolean;
+  /** True once its pre-order quota has been held. */
+  preorderReserved?: boolean;
+};
 
 function isStandardLine(item: { purchaseType?: string }) {
   return (item.purchaseType || PURCHASE_TYPE.STANDARD) === PURCHASE_TYPE.STANDARD;
@@ -252,6 +297,8 @@ async function refundDroppedConsignments(params: {
     orderId: String(order._id),
     cancelledSubOrderIds: params.subOrderIds,
     reason,
+    // The alert below carries the outcome, failure included.
+    reportFailure: false,
   }).catch((err: unknown) => ({
     refunded: false,
     gatewayCalled: undefined,
@@ -322,10 +369,13 @@ export async function finalizeCapturedOrder(
 
   params.assertReference?.(order);
 
-  if (
-    order.paymentStatus === PAYMENT_STATUS.PAID ||
-    order.paymentStatus === PAYMENT_STATUS.PARTIALLY_PAID
-  ) {
+  if (isPaymentAlreadyRecorded(order.paymentStatus)) {
+    await params.onAlreadyPaid?.(order).catch((err) =>
+      console.error(
+        `${provider.label}: failed to handle a payment on an already-paid order:`,
+        err,
+      ),
+    );
     return {
       orderId: String(order._id),
       orderNumber: order.orderNumber,
@@ -359,9 +409,7 @@ export async function finalizeCapturedOrder(
   const updatedOrder = await Order.findOneAndUpdate(
     {
       _id: order._id,
-      paymentStatus: {
-        $nin: [PAYMENT_STATUS.PAID, PAYMENT_STATUS.PARTIALLY_PAID],
-      },
+      paymentStatus: { $nin: PAYMENT_RECORDED_STATUSES },
       status: { $ne: ORDER_STATUS.CANCELLED },
     },
     {
@@ -400,10 +448,7 @@ export async function finalizeCapturedOrder(
     const freshOrder = await Order.findById(order._id).select(
       "paymentStatus status orderNumber",
     );
-    if (
-      freshOrder?.paymentStatus === PAYMENT_STATUS.PAID ||
-      freshOrder?.paymentStatus === PAYMENT_STATUS.PARTIALLY_PAID
-    ) {
+    if (isPaymentAlreadyRecorded(freshOrder?.paymentStatus)) {
       return {
         orderId: String(order._id),
         orderNumber: freshOrder.orderNumber,
@@ -431,6 +476,7 @@ export async function finalizeCapturedOrder(
       cartSessionId: params.cartSessionId,
     },
     customerEmail: params.customerEmail || verification.customerEmail,
+    recoveredVia: params.recoveredVia,
   });
   if (!settled.ok) {
     throw new ValidationError(SOLD_OUT_AFTER_CAPTURE);
@@ -507,6 +553,7 @@ async function refundUnfulfillablePayment(params: {
     reason,
     // The alert below already tells admins, with why the order could not ship.
     notifySettlement: false,
+    reportFailure: false,
   }).catch((err: unknown) => ({
     refunded: false,
     gatewayCalled: undefined,
@@ -534,8 +581,12 @@ async function refundUnfulfillablePayment(params: {
  * only the call that moves the cancelled order onto "paid" goes on to write
  * the charge and send it back, and every later call finds it paid or refunded
  * and stops.
+ *
+ * Exported for the attempt path, where the same thing happens to a checkout
+ * that was superseded or expired before its money turned up
+ * (`lib/payments/finalize-attempt.ts`).
  */
-async function refundLatePayment(params: {
+export async function refundLatePayment(params: {
   order: PendingOrderDocument;
   verification: CapturedPaymentVerification;
   provider: { label: string };
@@ -546,14 +597,7 @@ async function refundLatePayment(params: {
     {
       _id: order._id,
       status: ORDER_STATUS.CANCELLED,
-      paymentStatus: {
-        $nin: [
-          PAYMENT_STATUS.PAID,
-          PAYMENT_STATUS.PARTIALLY_PAID,
-          PAYMENT_STATUS.REFUNDED,
-          PAYMENT_STATUS.PARTIALLY_REFUNDED,
-        ],
-      },
+      paymentStatus: { $nin: PAYMENT_RECORDED_STATUSES },
     },
     {
       $set: {
@@ -570,6 +614,13 @@ async function refundLatePayment(params: {
   );
   if (!recorded) return;
 
+  // Credit still held for it is spent with it, and goes back with the rest
+  // below; credit already given back stays given (R8). Settled before the
+  // charge row, whose ledger posting reads what the credit paid.
+  await settleOrderStoreCredit(
+    recorded as Parameters<typeof settleOrderStoreCredit>[0],
+    { retake: false },
+  ).catch((err) => console.error("Failed to settle a late order's store credit:", err));
   await ensureChargeTransaction(
     chargeTransactionInput(
       recorded,
@@ -603,6 +654,8 @@ interface SettleCapturedOrderParams {
   /** Abandoned-checkout event text; defaults to "<label> payment captured". */
   recoveryMessage?: string;
   customerEmail?: string;
+  /** See FinalizeCapturedOrderParams.recoveredVia. */
+  recoveredVia?: "pay_link";
 }
 
 type SettleCapturedOrderResult =
@@ -648,6 +701,13 @@ export async function settleCapturedOrder(
   const currency =
     order.currency || settings.general?.defaultCurrency;
 
+  // The store credit that paid the rest is spent with it (R8) — before
+  // anything below can hand the order back and give the credit back too, and
+  // before the charge row, whose ledger posting reads what the credit paid:
+  // credit that could not be taken again must not be booked as spent.
+  await settleOrderStoreCredit(order as Parameters<typeof settleOrderStoreCredit>[0]).catch(
+    (err) => console.error("Failed to settle an order's store credit:", err),
+  );
   await ensureChargeTransaction(chargeTransactionInput(order, currency));
 
   // Only reached by the call that actually recorded the money — a replay
@@ -663,9 +723,9 @@ export async function settleCapturedOrder(
   }
   await auditOrderPaid(actor, order, {
     gateway: provider.label,
-    amount:
-      Number(order.total || 0) -
-      Number(order.preorderOutstandingAmount || 0),
+    // What this payment brought in: store credit paid the rest (R8).
+    amount: amountDueNow(order as Parameters<typeof amountDueNow>[0]),
+    storeCredit: orderCreditApplied(order as Parameters<typeof orderCreditApplied>[0]),
     currency,
     transactionId:
       params.auditTransactionId === undefined
@@ -691,15 +751,36 @@ export async function settleCapturedOrder(
     (item) => !item.vendorId || !cancelledSellers.has(lineVendorKey(item)),
   );
 
+  // Goods already committed when the order was written — the mobile-money
+  // paths, which hold stock from the moment the provider accepts the push, the
+  // way Shopify holds it for a pending payment. Taking it again here would
+  // decrement the same units twice.
+  //
+  // Every live consignment must be flagged, not just one: a half-flagged order
+  // is a state nothing writes today, and falling back to taking the stock is
+  // the safe way to be wrong about it. The flags are what the restore paths
+  // read too (`restoreOrderInventory`), so an order that skips this still
+  // gives its units back when it is cancelled or expires.
+  const liveConsignments = consignments.filter(
+    (sub) => sub.status !== ORDER_STATUS.CANCELLED,
+  );
+  const stockAlreadyHeld =
+    liveConsignments.length > 0 &&
+    liveConsignments.every((sub) =>
+      order.hasPreorder ? sub.preorderReserved : sub.inventoryReserved,
+    );
+
   // Stock before anything is spent on the sale: an order that turns out to be
   // unfulfillable must not have awarded points, used up a coupon or closed a
   // quote first.
   let soldOutSellers: string[] = [];
   try {
-    soldOutSellers = await takeStockDroppingSoldOutSellers({
-      order,
-      lines: liveLines,
-    });
+    soldOutSellers = stockAlreadyHeld
+      ? []
+      : await takeStockDroppingSoldOutSellers({
+          order,
+          lines: liveLines,
+        });
   } catch (err) {
     if (
       err instanceof InsufficientStockError ||
@@ -831,10 +912,10 @@ export async function settleCapturedOrder(
     ),
   );
 
-  // The negotiated prices this order was placed on are now paid for: bind any
-  // that were not bound at placement (Stripe creates its order here, already
-  // paid, so nothing bound them earlier — the bind is guarded and no-ops for
-  // every gateway that did) and close the quotes out as won.
+  // The negotiated prices this order was placed on are now paid for: bind them
+  // — no gateway order is bound before its money lands (persist-order.ts), and
+  // Stripe creates its order here, already paid — and close the quotes out as
+  // won. The bind leaves alone an offer another standing order already took.
   const quoteIds = items
     .map((item) => (item.quoteId ? String(item.quoteId) : ""))
     .filter(Boolean);
@@ -845,7 +926,7 @@ export async function settleCapturedOrder(
     await bindOffersToOrder(quoteIds, String(order._id)).catch((err) =>
       console.error("Failed to bind quote offers on capture:", err),
     );
-    await markQuotesWon(quoteIds).catch((err) =>
+    await markQuotesWon(quoteIds, String(order._id)).catch((err) =>
       console.error("Failed to close quotes on capture:", err),
     );
   }
@@ -861,7 +942,9 @@ export async function settleCapturedOrder(
     await markCheckoutRecovered({
       cartId: params.cart.cartId,
       orderId: order._id,
+      total: order.total,
       paymentEvent,
+      recoveredVia: params.recoveredVia,
     }).catch((err) =>
       console.error("Failed to mark abandoned checkout recovered:", err),
     );
@@ -881,7 +964,9 @@ export async function settleCapturedOrder(
       await markCheckoutRecovered({
         cartId: cart._id,
         orderId: order._id,
+        total: order.total,
         paymentEvent,
+        recoveredVia: params.recoveredVia,
       }).catch((err) =>
         console.error("Failed to mark abandoned checkout recovered:", err),
       );
@@ -898,6 +983,25 @@ export async function settleCapturedOrder(
       );
     }
   } else {
+    // No cart came with the payment — a pay link, or a webhook that beat the
+    // shopper back — so the checkout it belongs to is read off the order and
+    // recorded exactly as on the other paths: recovered, with what it was
+    // worth and what brought it back. It used to stay "open, not recovered"
+    // for good. Before the cart is emptied, so the record keeps what was
+    // bought — and `markCheckoutRecovered` retires the checkout's other unpaid
+    // orders, so a sibling the expiry sweep wrote off cannot charge for the
+    // same goods again.
+    if (order.checkoutCartId) {
+      await markCheckoutRecovered({
+        cartId: order.checkoutCartId,
+        orderId: order._id,
+        total: order.total,
+        paymentEvent,
+        recoveredVia: params.recoveredVia,
+      }).catch((err) =>
+        console.error("Failed to mark abandoned checkout recovered:", err),
+      );
+    }
     // Two queries because customerId means different things: a User id for a
     // registered checkout, and the guest's own cart _id for a guest one (see
     // the note on Order.customerId). Whichever misses is a no-op. Cart cleanup
@@ -913,7 +1017,12 @@ export async function settleCapturedOrder(
     );
   }
 
-  const customerEmail = params.customerEmail || undefined;
+  // A payment that brought no address — a pay link opened signed out, a
+  // gateway whose callback carries none — still confirms to the one the order
+  // was placed under. Without it the shopper who had just paid got only the
+  // generic "Order Pending" notice, and no confirmation or invoice.
+  const customerEmail =
+    params.customerEmail || (await orderContactEmail(order)) || undefined;
 
   const notifyShopper = async () => {
     if (customerEmail) {
@@ -966,13 +1075,21 @@ export async function settleCapturedOrder(
   return { ok: true };
 }
 
-/** The amount a gateway must have collected now: total less any pre-order balance. */
+/**
+ * The amount a gateway must have collected now: total less any pre-order
+ * balance, and less the store credit that pays the rest (R8) — counted even
+ * once its hold was given back, since the payment was asked for without it
+ * (see `orderCreditCounted`).
+ */
 export function amountDueNow(order: {
   total?: number;
   preorderOutstandingAmount?: number;
+  storeCredit?: OrderStoreCredit | null;
 }): number {
   return Math.max(
     0,
-    Number(order.total || 0) - Number(order.preorderOutstandingAmount || 0),
+    Number(order.total || 0) -
+      Number(order.preorderOutstandingAmount || 0) -
+      orderCreditCounted(order),
   );
 }

@@ -23,7 +23,7 @@ import {
 import {
   normalizeBackground,
   type SlideBackground,
-} from "@/lib/sliders/types";
+} from "@/lib/sliders/background";
 import { isRecord } from "@/lib/utils";
 
 /**
@@ -68,6 +68,8 @@ const HEADER_ITEM_TYPES = [
   "user",
   "menuButton",
   "location",
+  "language",
+  "currency",
 ] as const;
 export type HeaderItemType = (typeof HEADER_ITEM_TYPES)[number];
 
@@ -495,6 +497,58 @@ export interface HeaderLocationItem extends HeaderItemBase {
   caption: string;
 }
 
+export const HEADER_LANGUAGE_DISPLAYS = ["code", "name"] as const;
+export type HeaderLanguageDisplay = (typeof HEADER_LANGUAGE_DISPLAYS)[number];
+
+/**
+ * The storefront language switcher, placed by hand: the shopper's current
+ * language, opening the same picker the utility cluster's language glyph
+ * does. Placing it is the ask, so it renders whatever the legacy
+ * `market.showLanguageSelector` flag says (no screen edits that any more).
+ */
+export interface HeaderLanguageItem extends HeaderItemBase {
+  type: "language";
+  /** Flag size, px. */
+  size: number;
+  foreground: HeaderFill;
+  showFlag: boolean;
+  /** "EN" or "English". */
+  display: HeaderLanguageDisplay;
+  showChevron: boolean;
+  /** Label type, its colour included. */
+  textStyle: HeaderTextStyle;
+}
+
+export const HEADER_CURRENCY_DISPLAYS = ["code", "symbol", "both"] as const;
+export type HeaderCurrencyDisplay = (typeof HEADER_CURRENCY_DISPLAYS)[number];
+
+/**
+ * The store currency, shown in the bar. Read-only: prices are stored and
+ * shown in the one currency the admin sets (see providers/currency-provider),
+ * so there is nothing for a shopper to switch to — this says which currency
+ * the prices are in. Like the language item, it renders once placed,
+ * whatever `market.showCurrencySelector` says.
+ */
+export interface HeaderCurrencyItem extends HeaderItemBase {
+  type: "currency";
+  /** "USD", "$", or "$ USD". */
+  display: HeaderCurrencyDisplay;
+  /** Label type, its colour included. */
+  textStyle: HeaderTextStyle;
+}
+
+/** The currency item's text for a currency, per its display choice. */
+export function headerCurrencyLabel(
+  display: HeaderCurrencyDisplay,
+  currency: { code: string; symbol: string },
+): string {
+  if (display === "symbol") return currency.symbol || currency.code;
+  if (display === "both" && currency.symbol && currency.symbol !== currency.code) {
+    return `${currency.symbol} ${currency.code}`;
+  }
+  return currency.code;
+}
+
 export interface HeaderButtonsItem extends HeaderItemBase {
   type: "buttons";
   variant: HeaderButtonVariant;
@@ -552,7 +606,9 @@ export type HeaderLayoutItem =
   | HeaderIconsItem
   | HeaderUserItem
   | HeaderMenuButtonItem
-  | HeaderLocationItem;
+  | HeaderLocationItem
+  | HeaderLanguageItem
+  | HeaderCurrencyItem;
 
 export interface HeaderLayoutColumn {
   id: string;
@@ -577,6 +633,20 @@ export interface HeaderLayoutRow {
   /** Space between the row's columns, px. */
   gap: number;
   /**
+   * The row's own inset, px. Height alone can only centre a row's contents
+   * in a fixed box; this is the space a merchant actually reaches for when
+   * a nav sits too close to the logo above it or the page edge beside it,
+   * and it works on a row that sizes to its content.
+   */
+  padding: HeaderPadding;
+  /**
+   * Clear space under the row, px; 0 for none. A row owns the edge beneath
+   * it — the same reasoning `borderBottom` is stated here — so this is both
+   * the gap BETWEEN two rows and the space under the last one, which is the
+   * air a header needs below it before the page starts.
+   */
+  spaceBelow: number;
+  /**
    * A rule along the row's bottom edge, px; 0 for none. This is both the
    * divider between two rows and the line under the last one — a row owns
    * the edge beneath it, so one setting covers every place a line can go.
@@ -600,6 +670,11 @@ export interface HeaderLayoutRow {
    * for any row.
    */
   returnOn: HeaderRowReturn;
+  /**
+   * Render the row on the home page only — a promo strip or a campaign nav
+   * that belongs on arrival, not over every product page.
+   */
+  homeOnly: boolean;
   columns: HeaderLayoutColumn[];
 }
 
@@ -618,6 +693,13 @@ export const MAX_HEADER_ROWS = 6;
  */
 export const MIN_HEADER_ROW_GAP = 12;
 const DEFAULT_HEADER_ROW_GAP = 24;
+/**
+ * The vertical air a row has always had. It used to be a `py-2` in both
+ * renderers, which meant the padding control could only ever ADD to it and
+ * a merchant could not close a row up. Stated here, every stored row falls
+ * back to exactly what it drew before and the number now goes both ways.
+ */
+const DEFAULT_HEADER_ROW_PADDING_Y = 8;
 export const MAX_HEADER_ITEMS_PER_COLUMN = 6;
 export const MAX_HEADER_NAV_LINKS = 24;
 export const MAX_HEADER_BUTTONS = 4;
@@ -628,6 +710,8 @@ export const MAX_HEADER_BUTTONS = 4;
  */
 const MAX_COLUMNS_KEPT = 3;
 const MAX_PADDING = 120;
+/** The furthest a row's own inset, or the space under it, can go. */
+export const MAX_HEADER_ROW_PADDING = MAX_PADDING;
 const MAX_DIMENSION = 400;
 
 /** A brand item's Size range and default, px. The footer's logo shares them. */
@@ -985,6 +1069,26 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         showCaption: true,
         caption: "",
       };
+    case "language":
+      return {
+        id,
+        type,
+        padding: padding(0),
+        size: 18,
+        foreground: inheritFill(),
+        showFlag: true,
+        display: "code",
+        showChevron: true,
+        textStyle: defaultTextStyle({ fontSize: 13 }),
+      };
+    case "currency":
+      return {
+        id,
+        type,
+        padding: padding(0),
+        display: "code",
+        textStyle: defaultTextStyle({ fontSize: 13 }),
+      };
   }
 }
 
@@ -1218,6 +1322,26 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
         showCaption: readBoolean(value.showCaption, base.showCaption),
         caption: readString(value.caption, base.caption).slice(0, 40),
       };
+    case "language":
+      return {
+        id,
+        type: "language",
+        padding: pad,
+        size: readNumber(value.size, base.size, 12, 40, 2),
+        foreground: normalizeBackgroundValue(value.foreground, base.foreground),
+        showFlag: readBoolean(value.showFlag, base.showFlag),
+        display: readOneOf(value.display, HEADER_LANGUAGE_DISPLAYS, base.display),
+        showChevron: readBoolean(value.showChevron, base.showChevron),
+        textStyle: normalizeTextStyle(value.textStyle, base.textStyle.fill),
+      };
+    case "currency":
+      return {
+        id,
+        type: "currency",
+        padding: pad,
+        display: readOneOf(value.display, HEADER_CURRENCY_DISPLAYS, base.display),
+        textStyle: normalizeTextStyle(value.textStyle, base.textStyle.fill),
+      };
   }
 }
 
@@ -1249,11 +1373,14 @@ export function createHeaderRow(
     foreground: inheritFill(),
     height: 0,
     gap: DEFAULT_HEADER_ROW_GAP,
+    padding: padding(DEFAULT_HEADER_ROW_PADDING_Y, 0),
+    spaceBelow: 0,
     borderBottom: 0,
     borderColor: "#e5e7eb",
     blur: 0,
     hideOnScroll: false,
     returnOn: "auto",
+    homeOnly: false,
     ...overrides,
     columns:
       columns ?? Array.from({ length: columnCount }, () => createHeaderColumn()),
@@ -1316,11 +1443,14 @@ function normalizeRow(value: unknown): HeaderLayoutRow {
     foreground: normalizeBackgroundValue(source.foreground, base.foreground),
     height: readNumber(source.height, base.height, 0, MAX_DIMENSION, 2),
     gap: normalizeRowGap(source.gap, base.gap),
+    padding: normalizePadding(source.padding, base.padding),
+    spaceBelow: readNumber(source.spaceBelow, base.spaceBelow, 0, MAX_PADDING, 2),
     borderBottom: readNumber(source.borderBottom, base.borderBottom, 0, 8, 2),
     borderColor: color(source.borderColor, base.borderColor),
     blur: readNumber(source.blur, base.blur, 0, 40, 2),
     hideOnScroll: readBoolean(source.hideOnScroll, base.hideOnScroll),
     returnOn: readOneOf(source.returnOn, HEADER_ROW_RETURNS, base.returnOn),
+    homeOnly: readBoolean(source.homeOnly, base.homeOnly),
     columns: columns.slice(0, MAX_COLUMNS_KEPT),
   };
 }

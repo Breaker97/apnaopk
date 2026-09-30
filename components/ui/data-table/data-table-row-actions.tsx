@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -157,7 +157,7 @@ export function DataTableRowActions({
             <DropdownMenuContent
               align="end"
               sideOffset={8}
-              className="w-[98px] min-w-[98px] rounded-[9px] border-slate-200 bg-white p-1 shadow-[0_18px_34px_rgba(15,23,42,0.16)] dark:border-slate-700 dark:bg-slate-950"
+              className="w-max min-w-[98px] max-w-60 rounded-[9px] border-slate-200 bg-white p-1 shadow-[0_18px_34px_rgba(15,23,42,0.16)] dark:border-slate-700 dark:bg-slate-950"
             >
               {normalActions.map((action) =>
                 action.href ? (
@@ -165,7 +165,7 @@ export function DataTableRowActions({
                     key={action.id}
                     asChild
                     disabled={action.disabled}
-                    className="h-8 rounded-[5px] px-3 text-[13px] font-normal text-slate-900 focus:bg-slate-50 dark:text-slate-50 dark:focus:bg-slate-800"
+                    className="min-h-8 rounded-[5px] px-3 text-[13px] font-normal text-slate-900 focus:bg-slate-50 dark:text-slate-50 dark:focus:bg-slate-800"
                   >
                     <Link href={action.href}>{action.label}</Link>
                   </DropdownMenuItem>
@@ -174,7 +174,7 @@ export function DataTableRowActions({
                     key={action.id}
                     onClick={action.onClick}
                     disabled={action.disabled}
-                    className="h-8 rounded-[5px] px-3 text-[13px] font-normal text-slate-900 focus:bg-slate-50 dark:text-slate-50 dark:focus:bg-slate-800"
+                    className="min-h-8 rounded-[5px] px-3 text-[13px] font-normal text-slate-900 focus:bg-slate-50 dark:text-slate-50 dark:focus:bg-slate-800"
                   >
                     {action.label}
                   </DropdownMenuItem>
@@ -190,7 +190,7 @@ export function DataTableRowActions({
                   key={action.id}
                   onClick={action.onClick}
                   disabled={action.disabled}
-                  className="h-8 rounded-[5px] px-3 text-[13px] font-normal text-slate-900 focus:bg-slate-50 focus:text-slate-900 dark:text-slate-50 dark:focus:bg-slate-800 dark:focus:text-slate-50"
+                  className="min-h-8 rounded-[5px] px-3 text-[13px] font-normal text-slate-900 focus:bg-slate-50 focus:text-slate-900 dark:text-slate-50 dark:focus:bg-slate-800 dark:focus:text-slate-50"
                 >
                   {action.label}
                 </DropdownMenuItem>
@@ -206,6 +206,26 @@ export function DataTableRowActions({
   const normalActions = actions.filter((a) => a.variant !== "destructive");
   const destructiveActions = actions.filter((a) => a.variant === "destructive");
 
+  // A hint (e.g. why an action is disabled) sits on its own muted line so the
+  // action name stays on one line instead of wrapping inside a narrow menu.
+  const renderMenuLabel = (action: DataTableAction) => (
+    <span
+      className={cn(
+        "flex min-w-0 flex-col",
+        action.icon && "ml-2",
+      )}
+    >
+      <span>{action.label}</span>
+      {action.hint ? (
+        <span className="text-[11.5px] leading-tight text-muted-foreground">
+          {action.hint}
+        </span>
+      ) : null}
+    </span>
+  );
+  const itemClassName = (action: DataTableAction) =>
+    action.hint ? "items-start [&>svg]:mt-0.5" : undefined;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -218,19 +238,21 @@ export function DataTableRowActions({
           <span className="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-max min-w-40 max-w-60">
         {normalActions.map((action) =>
           action.href ? (
             <DropdownMenuItem
               key={action.id}
               asChild
               disabled={action.disabled}
+              className={itemClassName(action)}
             >
-              <Link href={action.href} className="flex items-center">
+              <Link
+                href={action.href}
+                className={cn("flex", action.hint ? "items-start" : "items-center")}
+              >
                 {action.icon}
-                <span className={action.icon ? "ml-2" : ""}>
-                  {action.label}
-                </span>
+                {renderMenuLabel(action)}
               </Link>
             </DropdownMenuItem>
           ) : (
@@ -238,9 +260,10 @@ export function DataTableRowActions({
               key={action.id}
               onClick={action.onClick}
               disabled={action.disabled}
+              className={itemClassName(action)}
             >
               {action.icon}
-              <span className={action.icon ? "ml-2" : ""}>{action.label}</span>
+              {renderMenuLabel(action)}
             </DropdownMenuItem>
           ),
         )}
@@ -254,10 +277,13 @@ export function DataTableRowActions({
             key={action.id}
             onClick={action.onClick}
             disabled={action.disabled}
-            className="text-destructive focus:text-destructive"
+            className={cn(
+              "text-destructive focus:text-destructive",
+              itemClassName(action),
+            )}
           >
             {action.icon}
-            <span className={action.icon ? "ml-2" : ""}>{action.label}</span>
+            {renderMenuLabel(action)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

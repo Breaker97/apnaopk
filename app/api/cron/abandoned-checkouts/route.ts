@@ -12,16 +12,7 @@ import { sweepAbandonedCheckouts } from "@/lib/orders/abandoned-checkouts";
  *
  * Guarded by CRON_SECRET, like every other cron here.
  */
-export const GET = withCronRun("abandoned-checkouts", async (request) => {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
+export const GET = withCronRun("abandoned-checkouts", async () => {
   await connectDB();
   const settings = await getSettings();
   const result = await sweepAbandonedCheckouts({ settings });

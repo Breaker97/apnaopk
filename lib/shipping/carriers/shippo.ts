@@ -24,6 +24,7 @@ import {
   shippoCreateTransaction,
   shippoFindTransactionForRate,
   shippoGetRate,
+  shippoGetRefund,
   shippoGetTransaction,
   shippoMessageText,
   shippoRefundTransaction,
@@ -373,6 +374,154 @@ async function boughtRate(
   return shippoGetRate({ token, rateId }).catch(() => undefined);
 }
 
+type ShippoAddressCheck = {
+  valid: boolean;
+  messages: string[];
+  /** Shippo's corrected form of the address, when it offered one. */
+  normalized?: Pick<CarrierAddress, "street1" | "street2" | "city" | "state" | "postalCode" | "country">;
+};
+
+/**
+ * Ask Shippo whether an address is deliverable. `undefined` when it could not
+ * say — the lookup failed, or it returned no verdict — which is not "valid".
+ *
+ * Exported because the same question is asked at checkout, after an order is
+ * placed, when a customer corrects an address, and here when a label is refused.
+ */
+export async function checkShippoAddress(
+  token: string,
+  address: CarrierAddress,
+): Promise<ShippoAddressCheck | undefined> {
+  try {
+    const result = await shippoValidateAddress({
+      token,
+      address: toShippoAddress(address),
+    });
+    if (typeof result?.validation_results?.is_valid !== "boolean") {
+      return undefined;
+    }
+    return {
+      valid: result.validation_results.is_valid,
+      messages: (result.validation_results.messages || [])
+        // Trailing stops trimmed: these are joined into a sentence of our own.
+        .map((message) =>
+          (message.text || message.code || "").trim().replace(/[.\s]+$/, ""),
+        )
+        .filter(Boolean),
+      normalized: result.street1
+        ? {
+            street1: result.street1,
+            street2: result.street2 || undefined,
+            city: result.city || address.city,
+            state: result.state || address.state,
+            postalCode: result.zip || address.postalCode,
+            country: (result.country || address.country).toUpperCase(),
+          }
+        : undefined,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/** "123 Main St, San Francisco, CA 94111" — what the merchant would recognise. */
+function formatAddress(address: CarrierAddress): string {
+  return [
+    address.street1,
+    address.city,
+    [address.state, address.postalCode].filter(Boolean).join(" "),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+/**
+ * Turn a refused label into a message the merchant can act on.
+ *
+ * Exported for tests. A carrier refuses to create a label almost always
+ * because an address is not deliverable — a street that does not exist, a ZIP
+ * that belongs to another city — and says so in words that point nowhere:
+ * USPS's "An error occurred while processing the response from USPS. Please try
+ * again later." reads like an outage, so a merchant retries a parcel that will
+ * fail the same way every time. Rates never caught it, because pricing a lane
+ * only needs the postcode.
+ *
+ * So the refusal is followed by one validation of each address, only on this
+ * failure path. An address the carrier's own validation rejects is named with
+ * its reasons; when both pass, or validation cannot answer, the message still
+ * says what to check, with the carrier's words kept as the last part.
+ */
+export async function explainLabelRefusal(params: {
+  token: string;
+  request: Pick<CarrierShipmentRequest, "shipFrom" | "shipTo">;
+  carrierName: string;
+  carrierText?: string;
+}): Promise<CarrierError> {
+  const carrier = params.carrierName || "The carrier";
+  const said = params.carrierText
+    ? ` (${carrier} said: ${params.carrierText})`
+    : "";
+
+  const [shipTo, shipFrom] = await Promise.all([
+    checkShippoAddress(params.token, params.request.shipTo),
+    checkShippoAddress(params.token, params.request.shipFrom),
+  ]);
+
+  const refusals: string[] = [];
+  if (shipTo && !shipTo.valid) {
+    refusals.push(
+      `The delivery address "${formatAddress(params.request.shipTo)}" is not deliverable${
+        shipTo.messages.length ? `: ${shipTo.messages.join("; ")}` : ""
+      }. Correct it on the order.`,
+    );
+  }
+  if (shipFrom && !shipFrom.valid) {
+    refusals.push(
+      `The ship-from address "${formatAddress(params.request.shipFrom)}" is not deliverable${
+        shipFrom.messages.length ? `: ${shipFrom.messages.join("; ")}` : ""
+      }. Correct the shipping origin it comes from.`,
+    );
+  }
+
+  if (refusals.length > 0) {
+    return new CarrierError({
+      provider: "shippo",
+      // Only a delivery address the customer gave puts the order on hold; a
+      // bad ship-from is the store's to fix and holds nobody's order.
+      code:
+        shipTo && !shipTo.valid
+          ? CARRIER_ERROR_CODES.ADDRESS_NOT_CARRIER_READY
+          : CARRIER_ERROR_CODES.SHIP_FROM_INCOMPLETE,
+      message: `${carrier} could not create this label. ${refusals.join(" ")} Then fetch rates again.${said}`,
+      permanent: true,
+    });
+  }
+
+  return new CarrierError({
+    provider: "shippo",
+    code: CARRIER_ERROR_CODES.PROVIDER_ERROR,
+    message: `${carrier} could not create this label. This is almost always an address it cannot deliver to — check that the delivery street is real and its ZIP belongs to its city, and the same for the ship-from address — then fetch rates again. If both are right, ${carrier} may be having an outage; try again later.${said}`,
+    // Retrying the same addresses repeats the same refusal.
+    permanent: true,
+  });
+}
+
+/**
+ * Shippo's refund vocabulary, in the three outcomes the books care about.
+ *
+ * Exported for tests. Anything unrecognised is pending rather than rejected:
+ * a status Shippo adds later must leave the refund to be asked about again,
+ * not close it with the cost wrongly kept.
+ */
+export function shippoRefundStatus(
+  status: string | undefined,
+): "pending" | "refunded" | "rejected" {
+  const value = String(status || "").toUpperCase();
+  if (value === "SUCCESS") return "refunded";
+  if (value === "ERROR") return "rejected";
+  return "pending";
+}
+
 export const shippoAdapter: CarrierAdapter = {
   provider: "shippo",
 
@@ -488,6 +637,17 @@ export const shippoAdapter: CarrierAdapter = {
       throw error;
     }
 
+    if (transaction.status === "ERROR") {
+      // Nothing was charged, so there is nothing to checkpoint — only a
+      // refusal to explain in words the merchant can act on.
+      throw await explainLabelRefusal({
+        token,
+        request: params.request,
+        carrierName: quote.carrierName,
+        carrierText: shippoMessageText(transaction.messages),
+      });
+    }
+
     await checkpointTransaction(params, transaction);
     return labelFromTransaction(
       transaction,
@@ -549,10 +709,27 @@ export const shippoAdapter: CarrierAdapter = {
       token,
       transactionId: params.transactionId,
     });
-    // Shippo queues refunds — SUCCESS means accepted, not yet credited.
+    const status = shippoRefundStatus(refund.status);
+    // QUEUED is a request Shippo has not decided, not a refund. It used to be
+    // counted as one, so the label's cost came off the books at once — and
+    // stayed off when Shippo later refused, as it does for a label the courier
+    // already scanned. Only SUCCESS reverses now; a pending refund is handed
+    // back with its id for the tracking sweep to settle.
     return {
-      refunded: refund.status === "SUCCESS" || refund.status === "QUEUED",
+      refunded: status === "refunded",
       state: String(refund.status || "QUEUED"),
+      ...(status === "pending" && refund.object_id
+        ? { refundPending: { refundId: refund.object_id } }
+        : {}),
+    };
+  },
+
+  async refundStatus(ctx, params) {
+    const token = requireToken(ctx);
+    const refund = await shippoGetRefund({ token, refundId: params.refundId });
+    return {
+      status: shippoRefundStatus(refund.status),
+      state: String(refund.status || "UNKNOWN"),
     };
   },
 

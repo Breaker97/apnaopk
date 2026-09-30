@@ -8,7 +8,7 @@ import {
 } from "@/lib/inventory/inventory-location-scope";
 import { escapeRegExp } from "@/lib/strings";
 
-export interface TransferCatalogLine {
+interface TransferCatalogLine {
   productId: string;
   /** Empty for a product without variants, whose stock sits on the product. */
   variantId: string;
@@ -20,7 +20,7 @@ export interface TransferCatalogLine {
   availableAtDestination?: number;
 }
 
-export const TRANSFER_CATALOG_PAGE_SIZE = 50;
+const TRANSFER_CATALOG_PAGE_SIZE = 50;
 
 /** `Array.isArray(x) ? x : []` for a field legacy docs may not carry. */
 function asArray(path: string) {

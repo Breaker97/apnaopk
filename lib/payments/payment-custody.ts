@@ -51,13 +51,17 @@ export const PLATFORM_GATEWAY_PAYMENT_METHODS = [
   "pesapal",
   "iotec",
   // Orange Money settles into the platform's Orange merchant account, so the
-  // platform holds the money and owes the vendor a payout. That it also sits in
-  // refund-settlement's OUT_OF_BAND_METHODS is not a contradiction: this list
-  // answers "who collected it", that one answers "can a gateway push it back".
+  // platform holds the money and owes the vendor a payout. That
+  // refund-settlement's GATEWAY_REFUND_METHODS leaves it out is not a
+  // contradiction: this list answers "who collected it", that one answers
+  // "can a gateway push it back".
   "orange_money",
   // Same custody as Orange Money: requesttopay settles into the platform's
   // MoMo collections account.
   "mtn_momo",
+  // Paid wholly with the shopper's store credit (R8): a debt the platform
+  // owed, settled — so the platform holds the sale and owes the vendor.
+  "store_credit",
 ] as const;
 
 /**
@@ -86,7 +90,20 @@ export type PaymentCustodyOrder = {
   paymentMethod?: string | null;
   channel?: string | null;
   stripePaymentIntentId?: string | null;
+  /** Stamped `"platform"` when the store itself recorded the money. */
+  paymentCustody?: string | null;
 };
+
+/**
+ * The stamp for money the store recorded by hand: an order an admin made in
+ * the dashboard and marked paid (a bank transfer, cash at the office). No
+ * gateway stands behind it, yet it is the store's money, not the vendor's —
+ * so the vendor is paid out their share and the commission comes off that
+ * payout, exactly as for a card sale. Read as the method alone it looked like
+ * the vendor's own cash: the vendor was billed commission on money they never
+ * received and never paid out at all.
+ */
+export const PLATFORM_PAYMENT_CUSTODY = "platform";
 
 /**
  * COD custody is per consignment, so its query half cannot live in the
@@ -120,6 +137,8 @@ export function isPlatformSettled(
    */
   subOrder?: CodCustodySubOrder | null,
 ): boolean {
+  if (order.paymentCustody === PLATFORM_PAYMENT_CUSTODY) return true;
+
   const method = String(order.paymentMethod || "").toLowerCase();
 
   if (String(order.channel || "").toLowerCase() === "pos") {
@@ -176,6 +195,7 @@ export function selfCollectedOrderFilter(): Record<string, unknown> {
 /** The one definition of "the platform received this", as query arms. */
 function platformSettledArms(): Record<string, unknown>[] {
   return [
+    { paymentCustody: PLATFORM_PAYMENT_CUSTODY },
     {
       // `$ne: "pos"` rather than `= "online"`: orders written before the
       // channel field existed carry nothing, and they are all storefront

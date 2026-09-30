@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { withApi } from "@/lib/api/handler";
 import { validateBody } from "@/lib/api/validate";
@@ -12,6 +12,11 @@ const BodySchema = z.object({
   amount: z.number().positive(),
   /** How the money reached the store — free text, shown in the timeline. */
   method: z.string().min(1).max(60),
+  /**
+   * Which account it landed in. Separate from `method` on purpose: that is
+   * prose for a human, this is what the ledger posts against.
+   */
+  paidFrom: z.enum(["bank", "cash", "gateway"]).optional(),
   reference: z.string().min(1).max(120),
   receivedAt: z.coerce.date().optional(),
   note: z.string().max(1000).optional(),
@@ -52,6 +57,7 @@ export const POST = withApi<{ id: string }>(
       orderId: params.id,
       amount: body.amount,
       method: body.method,
+      paidFrom: body.paidFrom,
       reference: body.reference,
       receivedAt: body.receivedAt,
       note: body.note,

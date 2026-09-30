@@ -39,14 +39,17 @@ export function OptionCardGroup({
               aria-checked={selected}
               onClick={() => onChange(option.key)}
               className={cn(
-                "rounded-lg border p-2 text-left transition-colors",
+                // Content-start, so a one-line name in a row with a two-line
+                // one still sits under its own picture rather than centred
+                // against the tallest card.
+                "flex flex-col items-stretch rounded-lg border p-2 text-left transition-colors",
                 selected
                   ? "border-primary bg-primary/5 ring-1 ring-primary"
                   : "border-border hover:border-foreground/30",
               )}
             >
               {option.diagram}
-              <p className="mt-1.5 truncate text-xs font-medium">
+              <p className="mt-1.5 break-words text-xs font-medium leading-snug">
                 {option.label}
               </p>
             </button>

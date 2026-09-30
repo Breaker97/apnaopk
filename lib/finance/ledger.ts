@@ -161,9 +161,15 @@ export function applyPeriodClose(
  * `ordered: false` so one duplicate does not abandon the rest of the batch:
  * a partial replay (three of five entries already posted) must still write the
  * two that are missing, which is exactly the case the recovery path produces.
+ *
+ * `strict` is for the one caller whose record IS its ledger entry — an expense
+ * typed into the admin. There a failed write must reach the person who typed
+ * it, so anything other than an entry already on the books is thrown. Every
+ * other caller keeps the rule above: posting never fails an order.
  */
 export async function postLedgerEntries(
   postings: LedgerPosting[],
+  { strict = false }: { strict?: boolean } = {},
 ): Promise<number> {
   const closedThrough = await getClosedThrough().catch(() => null);
   const rows = postings.filter(usable).map((raw) => {
@@ -190,7 +196,12 @@ export async function postLedgerEntries(
   if (rows.length === 0) return 0;
 
   try {
-    const inserted = await LedgerEntry.insertMany(rows, { ordered: false });
+    const inserted = await LedgerEntry.insertMany(rows, {
+      ordered: false,
+      // Otherwise an entry that fails validation is dropped without a word,
+      // which a strict caller would report as written.
+      throwOnValidationError: strict,
+    });
     return inserted.length;
   } catch (error) {
     const e = error as {
@@ -209,6 +220,7 @@ export async function postLedgerEntries(
       return e.insertedDocs?.length ?? 0;
     }
     console.error("Failed to post ledger entries:", error);
+    if (strict) throw error;
     return e.insertedDocs?.length ?? 0;
   }
 }

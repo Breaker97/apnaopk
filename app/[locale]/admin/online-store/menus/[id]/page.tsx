@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -6,7 +7,5 @@ interface PageProps {
 
 export default async function MenuDetailRedirectPage({ params }: PageProps) {
   const { locale, id } = await params;
-  redirect(
-    `/${locale}/admin/online-store/menus/${encodeURIComponent(id)}/edit`,
-  );
+  redirect(await localeHref(locale, `/admin/online-store/menus/${encodeURIComponent(id)}/edit`));
 }

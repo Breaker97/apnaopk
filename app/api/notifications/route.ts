@@ -8,7 +8,7 @@ import {
   matchesIfNoneMatch,
   notModifiedResponse,
 } from "@/lib/api/etag";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 type NotificationTab = "all" | "unread" | "archived";

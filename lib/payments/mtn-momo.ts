@@ -116,10 +116,6 @@ export const MTN_MOMO_CURRENCIES = new Set([
   "ZAR", // South Africa
 ]);
 
-export function isMtnMomoCurrency(currency?: string | null): boolean {
-  return MTN_MOMO_CURRENCIES.has(String(currency || "").trim().toUpperCase());
-}
-
 /**
  * The currency to quote MTN for an order priced in `orderCurrency`. The mode,
  * not the order, decides — and the finalizer compares against this same
@@ -531,24 +527,6 @@ export async function getMtnMomoRequestToPayStatus(params: {
     { method: "GET" },
     "transaction status",
   );
-}
-
-/**
- * Whether the MSISDN is an active MoMo wallet — a pre-flight UX check so the
- * shopper learns about a wrong number before a prompt is attempted, not after
- * a PENDING that can never resolve.
- */
-export async function isMtnMomoAccountActive(params: {
-  creds: MtnMomoCredentials;
-  msisdn: string;
-}): Promise<boolean> {
-  const data = await mtnMomoAuthorizedRequest<{ result?: boolean }>(
-    params.creds,
-    `/collection/v1_0/accountholder/msisdn/${encodeURIComponent(params.msisdn)}/active`,
-    { method: "GET" },
-    "account holder check",
-  );
-  return data.result === true;
 }
 
 /**

@@ -14,6 +14,7 @@ import { getStripeForSecretKey } from "@/lib/payments/stripe";
 import { fetchRazorpayDispute, listRazorpayDisputes } from "@/lib/payments/razorpay";
 import {
   fetchPaystackDispute,
+  fromPaystackAmountSubunits,
   listPaystackDisputes,
   listPaystackRefunds,
   type PaystackRefund,
@@ -161,7 +162,7 @@ export async function syncPaystackDisputeEvent(params: {
 }
 
 /** What a Paystack `refund.*` event carries. */
-export interface PaystackRefundEventData {
+interface PaystackRefundEventData {
   id?: unknown;
   status?: string;
   amount?: number | string;
@@ -211,7 +212,16 @@ export async function syncPaystackRefundEvent(params: {
   }
 
   if (params.event === "refund.failed") {
-    if (params.refund.id) await reverseFailedGatewayRefund(String(params.refund.id));
+    if (params.refund.id) {
+      const currency = String(params.refund.currency || "");
+      await reverseFailedGatewayRefund(String(params.refund.id), {
+        amount:
+          typeof params.refund.amount === "number" && currency
+            ? fromPaystackAmountSubunits(params.refund.amount, currency)
+            : undefined,
+        currency: currency || undefined,
+      });
+    }
     return 0;
   }
   return reconcileGatewayRefundReading(readPaystackRefund(params.refund));
@@ -246,17 +256,17 @@ export async function syncPayPalDisputeEvent(params: {
  * can take four months to decide, and a decision on an old dispute is exactly
  * what a missed webhook loses.
  */
-export const DISPUTE_SYNC_LOOKBACK_MS = 120 * 24 * 60 * 60 * 1000;
+const DISPUTE_SYNC_LOOKBACK_MS = 120 * 24 * 60 * 60 * 1000;
 
 /** PayPal filters by last update instead, which catches a decision on any dispute. */
-export const PAYPAL_DISPUTE_SYNC_UPDATED_WITHIN_MS = 30 * 24 * 60 * 60 * 1000;
+const PAYPAL_DISPUTE_SYNC_UPDATED_WITHIN_MS = 30 * 24 * 60 * 60 * 1000;
 
 const MAX_PAGES = 10;
 
 /** The sync reads months of disputes; only what changed the books is news. */
 const SYNC_OPTIONS = { quietHistory: true };
 
-export interface GatewayDisputeSync {
+interface GatewayDisputeSync {
   status: "synced" | "not_configured" | "failed";
   checked: number;
   /** Disputes on one of this store's orders. */

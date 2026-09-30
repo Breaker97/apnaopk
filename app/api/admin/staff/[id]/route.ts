@@ -28,7 +28,7 @@ import {
 } from "@/lib/access/team-roles";
 import { STAFF_MANAGED_BY, isVendorOwnedStaff } from "@/lib/access/staff-ownership";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 // Shape check only; role/status transitions and permission grants are

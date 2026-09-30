@@ -15,6 +15,7 @@ import {
   pickupFieldsFromBody,
   requireScope,
   resolveLocationGeo,
+  returnsFieldsFromBody,
 } from "@/lib/locations/location-api";
 
 /**
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
       ...pickupFieldsFromBody(body),
       ...dispatchFieldsFromBody(body),
       ...counterFieldsFromBody(body),
+      ...returnsFieldsFromBody(body),
       ...(await resolveLocationGeo(body, authResult.scope.vendorId)),
     });
 

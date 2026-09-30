@@ -1,6 +1,6 @@
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { getStorefrontCollectionDetail } from "@/lib/storefront/storefront-collections";
-import { z } from "zod";
+import * as z from "zod";
 import type { CollectionSortOrder } from "@/types";
 import { withApi } from "@/lib/api/handler";
 

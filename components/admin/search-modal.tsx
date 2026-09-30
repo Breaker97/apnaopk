@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,10 @@ function useAdminNavItems(t: (key: string) => string): NavItem[] {
     { label: t("admin.sidebar.products"), href: "/admin/products" },
     { label: t("admin.sidebar.collections"), href: "/admin/collections" },
     { label: t("admin.sidebar.inventory"), href: "/admin/inventory" },
-    // { label: t("admin.sidebar.purchaseOrders"), href: "/admin/purchase-orders" },
     { label: t("admin.sidebar.transfers"), href: "/admin/transfers" },
-    // { label: t("admin.sidebar.giftCards"), href: "/admin/gift-cards" },
     { label: t("admin.sidebar.customers"), href: "/admin/users" },
-    { label: t("admin.sidebar.marketing"), href: "/admin/marketing" },
     { label: t("admin.sidebar.discounts"), href: "/admin/discounts" },
-    { label: t("admin.sidebar.content"), href: "/admin/content" },
-    { label: t("admin.sidebar.markets"), href: "/admin/markets" },
+    { label: t("admin.sidebar.content"), href: "/admin/content/blog-posts" },
     { label: t("admin.sidebar.analytics"), href: "/admin/analytics" },
     { label: t("admin.sidebar.searchInsights"), href: "/admin/analytics/search" },
     { label: t("admin.sidebar.onlineStore"), href: "/admin/online-store" },
@@ -59,6 +55,14 @@ function useAdminNavItems(t: (key: string) => string): NavItem[] {
     { label: t("nav.faq"), href: "/admin/online-store/pages/faq" },
     { label: t("admin.sidebar.addPage"), href: "/admin/online-store/pages/new" },
     { label: t("admin.settings.title"), href: "/admin/settings" },
+    // Where "Markets" used to point: there is no /admin/markets screen, and
+    // the sidebar entry for it is commented out. The countries a store sells
+    // into are set in General settings, so send the search there instead of
+    // to a 404.
+    {
+      label: t("admin.sidebar.markets"),
+      href: "/admin/settings/general",
+    },
   ];
   return items;
 }

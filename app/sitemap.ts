@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { unstable_cache } from "next/cache";
 import { PRODUCT_STATUS, VENDOR_STATUS } from "@/config/app.config";
 import type { Locale } from "@/config/i18n.config";
 import {
@@ -14,12 +15,14 @@ import {
 import { connectDB } from "@/lib/db";
 import { getExternalVendorFilter } from "@/lib/vendors/multi-vendor";
 import { getStorefrontProductConstraint } from "@/lib/catalog/product-visibility";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import {
-  getEnabledLocales,
   isIndexablePage,
   resolveStorefrontBaseUrl,
 } from "@/lib/storefront/storefront-metadata";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
+import { withFallback } from "@/lib/storefront/cached-read";
 import {
   BlogPost,
   Brand,
@@ -30,19 +33,20 @@ import {
 } from "@/models";
 
 /**
- * Rebuilt hourly. The catalogue changes far more often than that, but a
- * sitemap is a discovery hint, not a cache — search engines re-crawl it on
- * their own schedule, and rebuilding it per request would run six collection
- * scans for every crawler that pings it.
+ * Drawn per request from a catalogue read at most hourly (`getSitemapEntities`).
+ * The catalogue changes far more often than that, but a sitemap is a discovery
+ * hint, not a cache — search engines re-crawl it on their own schedule, and
+ * querying per request would run six collection scans for every crawler that
+ * pings it.
  *
- * Being cached also means being prerendered: `next build` renders this route
- * once to seed the cache, so an unreachable database at build time used to
- * fail the whole build here. Both readers below degrade instead of throwing,
- * so a build without a database produces a hub-pages-only sitemap and the
- * first revalidation after boot — within the hour, from a server that can
- * reach Mongo — replaces it with the full file.
+ * Never prerendered. A cached route is rendered once by `next build` to seed
+ * the cache, and a build has no database (or, in CI, not the store's): it
+ * produced a hub-pages-only file that was then served as the store's sitemap
+ * until the first refresh. Now nothing is built ahead, and when the database
+ * cannot be read the hub-pages-only answer goes to that one request, never
+ * into the cache.
  */
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 /**
  * The sitemap protocol caps one file at 50,000 URLs, and every entry below is
@@ -58,7 +62,8 @@ export const revalidate = 3600;
 const SITEMAP_URL_BUDGET = 45_000;
 const ENTITY_TYPES = 6;
 
-type SitemapEntity = { slug: string; updatedAt?: Date };
+// `updatedAt` is a string once the entities have been through the cache.
+type SitemapEntity = { slug: string; updatedAt?: Date | string };
 
 /** Paths whose sitemap entry is decided by the admin's visibility toggle. */
 const CONTENT_PAGE_PATHS = new Set(
@@ -85,7 +90,15 @@ function hubRanking(publicPath: string) {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = resolveStorefrontBaseUrl();
-  const { enabled: localeList, storeDefault } = await getEnabledLocales();
+  const { enabled: localeList, storeDefault } = await getLocaleRouting();
+  // The store default is served unprefixed, so the URL a locale owns is not
+  // simply `${baseUrl}/${locale}${page}` — `buildLocalePath` is the one place
+  // that knows which of the two shapes applies.
+  const localeUrl = (locale: Locale, page: string) =>
+    `${baseUrl}${buildLocalePath(locale, page || "/", storeDefault)}`.replace(
+      /\/$/,
+      "",
+    );
   const perEntityLimit = Math.max(
     200,
     Math.floor(SITEMAP_URL_BUDGET / (localeList.length * ENTITY_TYPES)),
@@ -96,7 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // shape every store has: a single-vendor storefront with no vendor
   // directory. Advertising one that 404s is the worse of the two guesses.
   const multiVendor = settings?.isMultiVendorEnabled ?? false;
-  const entities = await loadEntities(perEntityLimit, multiVendor);
+  const entities = await getSitemapEntities(perEntityLimit, multiVendor);
 
   const entries: MetadataRoute.Sitemap = [];
   const seen = new Set<string>();
@@ -104,7 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const push = (
     page: string,
     options: {
-      lastModified?: Date;
+      lastModified?: Date | string;
       changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
       priority: number;
     },
@@ -114,18 +127,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     for (const locale of localeList) {
       entries.push({
-        url: `${baseUrl}/${locale}${page}`,
+        url: localeUrl(locale, page),
         lastModified: options.lastModified ?? new Date(),
         changeFrequency: options.changeFrequency,
         priority: options.priority,
-        alternates: {
-          languages: {
-            ...Object.fromEntries(
-              localeList.map((l: Locale) => [l, `${baseUrl}/${l}${page}`]),
-            ),
-            "x-default": `${baseUrl}/${storeDefault}${page}`,
-          },
-        },
+        // A single-language store has no alternates to declare; listing one
+        // URL as its own alternate is noise in every crawler's parser.
+        alternates:
+          localeList.length < 2
+            ? undefined
+            : {
+                languages: {
+                  ...Object.fromEntries(
+                    localeList.map((l: Locale) => [l, localeUrl(l, page)]),
+                  ),
+                  "x-default": localeUrl(storeDefault, page),
+                },
+              },
       });
     }
   };
@@ -220,14 +238,13 @@ async function loadSettings() {
 }
 
 /**
- * The catalogue half of the sitemap, or empty lists when the database cannot
- * be reached. Same reasoning as `loadSettings`, and the warning keeps a
- * degraded file visible in build and runtime logs rather than silent.
+ * The catalogue half of the sitemap, read at most hourly, or empty lists when
+ * the database cannot be reached. Same reasoning as `loadSettings`, and the
+ * warning keeps a degraded file visible in the logs rather than silent.
  */
-async function loadEntities(limit: number, multiVendor: boolean) {
-  try {
-    return await queryEntities(limit, multiVendor);
-  } catch (error) {
+const getSitemapEntities = withFallback(
+  unstable_cache(queryEntities, ["sitemap-entities"], { revalidate: 3600 }),
+  (error) => {
     console.warn(
       "[sitemap] catalogue unavailable — emitting hub pages only, without product, category, collection, brand, blog or vendor URLs",
       error,
@@ -240,8 +257,8 @@ async function loadEntities(limit: number, multiVendor: boolean) {
       posts: [] as SitemapEntity[],
       vendors: [] as SitemapEntity[],
     };
-  }
-}
+  },
+);
 
 /**
  * Every query reuses the same visibility filter its storefront page uses, so
@@ -295,5 +312,14 @@ async function queryEntities(limit: number, multiVendor: boolean) {
         : Promise.resolve([] as SitemapEntity[]),
     ]);
 
-  return { products, categories, collections, brands, posts, vendors };
+  const slugs = (rows: SitemapEntity[]) =>
+    rows.map(({ slug, updatedAt }) => ({ slug, updatedAt }));
+  return {
+    products: slugs(products),
+    categories: slugs(categories),
+    collections: slugs(collections),
+    brands: slugs(brands),
+    posts: slugs(posts),
+    vendors: slugs(vendors),
+  };
 }

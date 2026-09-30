@@ -104,7 +104,7 @@ export default async function AdminPreordersPage({
       <PreorderBalancePolicyNotice
         autoRelease={preorderPolicy.autoRelease}
         autoReleaseDelayDays={preorderPolicy.autoReleaseDelayDays}
-        settingsHref={`/${locale}/admin/settings/marketplace`}
+        settingsHref="/admin/settings/marketplace"
       />
       <Suspense
         fallback={

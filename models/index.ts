@@ -40,6 +40,10 @@ export { Product } from "./product.model";
 export { BarcodeRegistry } from "./barcode-registry.model";
 export { Cart } from "./cart.model";
 export { AbandonedCheckout } from "./abandoned-checkout.model";
+export {
+  CheckoutAttempt,
+  CHECKOUT_ATTEMPT_STATUS,
+} from "./checkout-attempt.model";
 export { Order } from "./order.model";
 export { OrderComment } from "./order-comment.model";
 export { Shipment } from "./shipment.model";
@@ -53,6 +57,7 @@ export { PushSubscription } from "./push-subscription.model";
 export { Settings, getSettings, getSettingsLean } from "./settings.model";
 export type { ISettingsData } from "./settings.model";
 export { CustomerProfile } from "./customer-profile.model";
+export { MarketingSuppression } from "./marketing-suppression.model";
 export { AdminProfile } from "./admin-profile.model";
 export { StaffProfile } from "./staff-profile.model";
 export { InventoryLocation } from "./inventory-location.model";

@@ -17,6 +17,7 @@ import {
   resolveSlideBackground,
   resolveSlideElements,
   SLIDE_BAND_KEYS,
+  SLIDE_OVERRIDE_BANDS,
   SLIDE_CTA_ATTRS,
   SLIDE_CTA_CLASS,
   SLIDE_PRICE_PX,
@@ -90,7 +91,7 @@ export interface SlideArtBox {
   children: ReactNode;
 }
 
-export interface SlideViewProps {
+interface SlideViewProps {
   slide: SliderSlide;
   /** The bound product's price, resolved by the server; absent hides the line. */
   price?: { amount: number; compareAt?: number } | null;
@@ -213,11 +214,12 @@ export function slideHasContent(
 
 /** The per-band display set that shows a layer in ONE band only. */
 function onlyIn(shape: SlideShape): CSSProperties {
-  return {
-    "--sh-l": shape === "landscape" ? "block" : "none",
-    "--sh-s": shape === "square" ? "block" : "none",
-    "--sh-p": shape === "portrait" ? "block" : "none",
-  } as CSSProperties;
+  return Object.fromEntries(
+    SLIDE_BAND_KEYS.map(([suffix, band]) => [
+      `--sh-${suffix}`,
+      band === shape ? "block" : "none",
+    ]),
+  ) as CSSProperties;
 }
 
 export function SlideView({
@@ -273,9 +275,12 @@ export function SlideView({
     index: number,
   ): CSSProperties =>
     ({
-      "--sh-l": shown.l ? NATURAL_DISPLAY[element] : "none",
-      "--sh-s": shown.s ? NATURAL_DISPLAY[element] : "none",
-      "--sh-p": shown.p ? NATURAL_DISPLAY[element] : "none",
+      ...Object.fromEntries(
+        SLIDE_BAND_KEYS.map(([suffix]) => [
+          `--sh-${suffix}`,
+          shown[suffix] ? NATURAL_DISPLAY[element] : "none",
+        ]),
+      ),
       // Its place in the reveal: elements arrive `--i` stagger steps apart.
       "--i": index,
       display: "var(--sh)",
@@ -381,7 +386,7 @@ export function SlideView({
       style: extra,
       priority,
     });
-  const artLayers = slide.productImages?.square || slide.productImages?.portrait
+  const artLayers = SLIDE_OVERRIDE_BANDS.some((band) => slide.productImages?.[band])
     ? SLIDE_BAND_KEYS.map(([, shape]) => {
         const src = resolveSlideArt(slide, shape);
         return src ? (

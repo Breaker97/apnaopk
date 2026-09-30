@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,14 @@ type CountryValueFormat = "name" | "code";
 
 type CommonProps = {
   id?: string;
+  /**
+   * Accessible name for the control. Most address forms label this field with
+   * a floating `<span>` overlay rather than a `<label>`, which leaves the
+   * trigger reaching screen readers named only by the country that happens to
+   * be selected — or, when the store sells to one country, not announced at
+   * all. Callers that label the field themselves pass the same text here.
+   */
+  ariaLabel?: string;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
@@ -72,11 +81,13 @@ const normalizeCountry = (value: string) => value.trim().toLowerCase();
 const SEARCH_VISIBILITY_THRESHOLD = 7;
 
 export function CountrySelect(props: CountrySelectProps) {
+  const t = useTranslations("common.countryPicker");
   const {
     id,
-    placeholder = "Select country",
-    searchPlaceholder = "Search countries...",
-    emptyText = "No countries found.",
+    ariaLabel,
+    placeholder = t("placeholder"),
+    searchPlaceholder = t("search"),
+    emptyText = t("empty"),
     triggerClassName,
     disabled = false,
     valueFormat = "name",
@@ -84,7 +95,7 @@ export function CountrySelect(props: CountrySelectProps) {
   } = props;
   const isMulti = props.multiple === true;
   const clearable = !isMulti && props.clearable === true;
-  const clearLabel = (!isMulti && props.clearLabel) || "Clear country";
+  const clearLabel = (!isMulti && props.clearLabel) || t("clear");
   const { countryAvailability } = useAppSettings();
 
   const [open, setOpen] = useState(false);
@@ -128,9 +139,14 @@ export function CountrySelect(props: CountrySelectProps) {
    * trigger/search entirely and render the country as a read-only field. Multi
    * pickers keep their popover — the sole country is still a toggle there — and
    * so does the availability editor itself, which opts out of the restriction.
+   *
+   * A caller-disabled field is left alone. It is a read-only view of a record
+   * that already has a country, and the lock both writes to it (see below) and
+   * displays the sole country in place of whatever the record actually holds —
+   * neither of which a view that cannot be edited should do.
    */
   const isLockedToSoleCountry = Boolean(
-    soleCountry && !isMulti && restrictToAvailableCountries,
+    soleCountry && !isMulti && restrictToAvailableCountries && !disabled,
   );
 
   const filteredCountries = useMemo(() => {
@@ -207,7 +223,7 @@ export function CountrySelect(props: CountrySelectProps) {
       ? placeholder
       : selectedCountries.length === 1
         ? displayValue(selectedCountries[0])
-        : `${selectedCountries.length} countries selected`
+        : t("selected", { count: selectedCountries.length })
     : selectedCountries[0]
       ? displayValue(selectedCountries[0])
       : placeholder;
@@ -224,10 +240,18 @@ export function CountrySelect(props: CountrySelectProps) {
       <button
         id={id}
         type="button"
-        disabled
+        /* `aria-disabled` rather than `disabled`: a disabled button is skipped
+           in the tab order and passed over by screen readers, so the one
+           country the store delivers to would never be announced — the shopper
+           would just find a gap where the country field should be. This keeps
+           it reachable and readable while still saying it cannot be changed. */
+        aria-disabled
+        aria-label={
+          ariaLabel ? `${ariaLabel}: ${soleCountry.label}` : soleCountry.label
+        }
+        onClick={(event) => event.preventDefault()}
         className={cn(
-          "flex h-9 w-full cursor-default items-center rounded-md border bg-muted/50 px-4 py-2 text-left text-sm font-normal shadow-xs dark:bg-input/30",
-          disabled && "opacity-50",
+          "flex h-9 w-full cursor-default items-center rounded-md border bg-muted/50 px-4 py-2 text-left text-sm font-normal shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30",
           triggerClassName,
         )}
       >
@@ -256,6 +280,7 @@ export function CountrySelect(props: CountrySelectProps) {
               variant="outline"
               role="combobox"
               aria-expanded={open}
+              aria-label={ariaLabel ? `${ariaLabel}: ${selectedLabel}` : undefined}
               className={cn(
                 "w-full justify-between font-normal",
                 isPlaceholder && "text-muted-foreground",
@@ -372,7 +397,7 @@ export function CountrySelect(props: CountrySelectProps) {
                 type="button"
                 onClick={() => removeCountry(country)}
                 className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
-                aria-label={`Remove ${country}`}
+                aria-label={t("remove", { country: displayValue(country) })}
               >
                 <X className="h-3 w-3" />
               </button>

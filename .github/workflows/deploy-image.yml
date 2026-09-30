@@ -1,6 +1,6 @@
 # Builds Storify on a GitHub-hosted runner and pushes a ready-to-run image to
 # GHCR, so the production server never runs `pnpm build` again. Full setup:
-# docs/DEPLOYMENT_PREBUILT_IMAGE.md
+# docs/RELEASE_2.4.md
 name: Deploy image
 
 on:
@@ -43,32 +43,21 @@ jobs:
           echo "::error::Set NEXT_PUBLIC_APP_URL under Settings -> Secrets and variables -> Actions -> Variables. NEXT_PUBLIC_* values are inlined into the build, so it must equal the store's public URL."
           exit 1
 
-      # The build's static-generation pass renders every locale page once and
-      # dies if the database doesn't respond (docs/UPGRADE.md -> "Build
-      # requirements"), and the sitemap/robots artifacts are baked from its
-      # content. Point this at the same database the deployed store serves —
-      # that is exactly what a build on the server uses today. See
-      # docs/DEPLOYMENT_PREBUILT_IMAGE.md.
-      - name: Require BUILD_MONGODB_URI
-        env:
-          BUILD_MONGODB_URI: ${{ secrets.BUILD_MONGODB_URI }}
-        run: |
-          if [ -z "$BUILD_MONGODB_URI" ]; then
-            echo "::error::Set the BUILD_MONGODB_URI secret to the store's MongoDB connection string (reachable from GitHub runners)."
-            exit 1
-          fi
-
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: NODE_OPTIONS=--max-old-space-size=4096 pnpm lint
 
       # `next build` deliberately skips tsc (see next.config.ts), so CI is
       # the type gate. Delete this step if you'd rather deploy past it.
       - name: Type check
         run: NODE_OPTIONS=--max-old-space-size=8192 pnpm typecheck
 
+      # v2.4 renders database-backed pages on demand; CI needs no database.
       - name: Build
         env:
-          MONGODB_URI: ${{ secrets.BUILD_MONGODB_URI }}
+          NODE_OPTIONS: --max-old-space-size=4096
           # Everything NEXT_PUBLIC_* is inlined at build time; set the repo
           # Variables to the same values your store runs with today.
           NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
@@ -82,7 +71,13 @@ jobs:
           NEXT_PUBLIC_GTM_ID: ${{ vars.NEXT_PUBLIC_GTM_ID || '' }}
           NEXT_PUBLIC_FACEBOOK_PIXEL_ID: ${{ vars.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || '' }}
           NEXT_PUBLIC_TIKTOK_PIXEL_ID: ${{ vars.NEXT_PUBLIC_TIKTOK_PIXEL_ID || '' }}
+          # Public CDN origins are also inlined by next.config.ts in v2.4.
+          STORAGE_PUBLIC_URL: ${{ vars.STORAGE_PUBLIC_URL || '' }}
+          CLOUDFLARE_R2_PUBLIC_URL: ${{ vars.CLOUDFLARE_R2_PUBLIC_URL || '' }}
         run: pnpm build
+
+      - name: Check dynamic chunks
+        run: pnpm check:chunks
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -101,7 +96,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             # Stable tag consumed by the Coolify Docker Image resource.
-            type=raw,value=coolify
+            type=raw,value=coolify,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=branch
             type=sha,prefix=
 
@@ -136,12 +131,13 @@ jobs:
 
       # Optional: asks Coolify to pull the fresh `coolify` tag and restart.
       - name: Trigger Coolify redeploy
+        if: github.ref == 'refs/heads/main'
         env:
           COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
-            echo "Coolify secrets are not configured; skipping redeploy."
+            echo "::warning::Image published, but automatic Coolify redeploy is disabled. Configure both COOLIFY_WEBHOOK and COOLIFY_TOKEN repository Actions secrets, or redeploy the image manually in Coolify."
             exit 0
           fi
           curl --fail-with-body --silent --show-error \

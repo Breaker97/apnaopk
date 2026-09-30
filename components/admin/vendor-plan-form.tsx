@@ -1,6 +1,6 @@
 "use client";
 
-import { z } from "zod";
+import * as z from "zod";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,7 +112,6 @@ const planSchema = z
     packs: z.array(z.string()),
     isDefault: z.boolean(),
     status: z.enum(["active", "archived"]),
-    sortOrder: z.number().int().min(0),
     stripeProductId: z.string().max(120).optional(),
     stripePriceId: z.string().max(120).optional(),
   })
@@ -168,7 +167,6 @@ export function VendorPlanForm({ locale, planId }: VendorPlanFormProps) {
       packs: [...COMMISSION_ONLY_PACKS],
       isDefault: false,
       status: "active",
-      sortOrder: 0,
       stripeProductId: "",
       stripePriceId: "",
     },
@@ -203,7 +201,6 @@ export function VendorPlanForm({ locale, planId }: VendorPlanFormProps) {
             packs: planPacksFrom(plan.capabilities),
             isDefault: Boolean(plan.isDefault),
             status: plan.status || "active",
-            sortOrder: plan.sortOrder ?? 0,
             stripeProductId: plan.stripeProductId || "",
             stripePriceId: plan.stripePriceId || "",
           });
@@ -254,7 +251,6 @@ export function VendorPlanForm({ locale, planId }: VendorPlanFormProps) {
         },
         isDefault: data.isDefault,
         status: data.status,
-        sortOrder: data.sortOrder,
         stripeProductId: data.stripeProductId || undefined,
         stripePriceId: data.stripePriceId || undefined,
       };
@@ -771,8 +767,8 @@ export function VendorPlanForm({ locale, planId }: VendorPlanFormProps) {
                       <div className="space-y-0.5">
                         <FormLabel>Default plan</FormLabel>
                         <FormDescription>
-                          Assigned to new vendors automatically. Only one plan
-                          can be the default.
+                          Shown to new vendors as Recommended and pre-selected
+                          when they sign up. Only one plan can be the default.
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -821,37 +817,6 @@ export function VendorPlanForm({ locale, planId }: VendorPlanFormProps) {
                       <FormDescription>
                         Must match this plan&apos;s price, currency, and billing
                         interval.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="gap-2">
-              <CardHeader>
-                <CardTitle>Organization</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="sortOrder"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sort order</FormLabel>
-                      <FormControl>
-                        <NumberInput
-                          min={0}
-                          step={1}
-                          {...field}
-                          whenEmpty={0}
-                          normalize={Math.trunc}
-                          onValueChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Lower numbers appear first.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

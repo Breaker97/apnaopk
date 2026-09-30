@@ -49,6 +49,7 @@ interface Location {
   pickupEnabled?: boolean;
   fulfillsOnlineOrders?: boolean;
   sellsAtCounter?: boolean;
+  acceptsReturns?: boolean;
   pickupArea?: string;
   instructions?: string;
   weeklyHours?: OpeningHours[];
@@ -85,6 +86,9 @@ export function LocationFormDialog({
   // only ever shown to the merchant's own staff, so it is not a disclosure the
   // way publishing a pickup address is.
   const [sellsAtCounter, setSellsAtCounter] = useState(true);
+  // Off by default: while no location says yes, a return goes back to where
+  // its parcel was dispatched from — see lib/returns/return-destination.ts.
+  const [acceptsReturns, setAcceptsReturns] = useState(false);
   const [pickupArea, setPickupArea] = useState("");
   const [instructions, setInstructions] = useState("");
   const [weeklyHours, setWeeklyHours] = useState<OpeningHours[]>(DEFAULT_HOURS);
@@ -106,6 +110,7 @@ export function LocationFormDialog({
       // of the dispatch order the first time anyone opened its form.
       setFulfillsOnlineOrders(location.fulfillsOnlineOrders !== false);
       setSellsAtCounter(location.sellsAtCounter !== false);
+      setAcceptsReturns(Boolean(location.acceptsReturns));
       setPickupArea(location.pickupArea || "");
       setInstructions(location.instructions || "");
       setWeeklyHours(
@@ -123,6 +128,7 @@ export function LocationFormDialog({
       setPickupEnabled(false);
       setFulfillsOnlineOrders(true);
       setSellsAtCounter(true);
+      setAcceptsReturns(false);
       setPickupArea("");
       setInstructions("");
       setWeeklyHours(DEFAULT_HOURS);
@@ -167,6 +173,7 @@ export function LocationFormDialog({
           pickupEnabled,
           fulfillsOnlineOrders,
           sellsAtCounter,
+          acceptsReturns,
           // Only meaningful for a place the public may walk into; sending them
           // regardless would leave a warehouse carrying collection copy.
           ...(pickupEnabled
@@ -314,6 +321,27 @@ export function LocationFormDialog({
                   id="location-sells-at-counter"
                   checked={sellsAtCounter}
                   onCheckedChange={setSellsAtCounter}
+                />
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-3">
+                <div>
+                  <Label
+                    htmlFor="location-accepts-returns"
+                    className="text-sm font-medium"
+                  >
+                    Receive returns here
+                  </Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Offered as the return address when a return is approved.
+                    With none on, returns go back to where the parcel was sent
+                    from.
+                  </p>
+                </div>
+                <Switch
+                  id="location-accepts-returns"
+                  checked={acceptsReturns}
+                  onCheckedChange={setAcceptsReturns}
                 />
               </div>
 

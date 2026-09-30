@@ -13,6 +13,7 @@ import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { Vendor } from "@/models";
 import type { Address } from "@/types";
 import type { VendorStoreVisibility } from "@/lib/vendors/vendor-address";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -30,10 +31,10 @@ export default async function VendorPosPage({ params }: PageProps) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.pos?.enabled) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
   if (!(await canAccessPOS(session.user))) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
 
   // The receipt must print THIS vendor's store identity, not the platform's

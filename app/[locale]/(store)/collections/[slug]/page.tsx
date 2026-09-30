@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
@@ -37,6 +38,7 @@ export default async function CollectionDetailPage({
   const { locale, slug } = await params;
   const search = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const page = typeof search.page === "string" ? parseInt(search.page) : 1;
   const sort = typeof search.sort === "string" ? search.sort : undefined;
@@ -85,6 +87,7 @@ export default async function CollectionDetailPage({
       <div className="container mx-auto px-4 pt-8">
         <StoreBreadcrumb
           locale={locale}
+          storeDefault={storeDefault}
           items={[
             { label: t("nav.collections"), href: "/collections" },
             { label: detail.collection.title },

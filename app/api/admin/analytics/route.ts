@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
-import { Order, Product, User, Vendor } from "@/models";
+import { getSettings, Order, Product, User, Vendor } from "@/models";
+import { narrowedToStoreCurrency } from "@/lib/intl/currency-scope";
 import { successResponse } from "@/lib/api/response";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
@@ -13,6 +14,10 @@ import {
   getExternalVendorFilter,
 } from "@/lib/vendors/multi-vendor";
 import { withApi } from "@/lib/api/handler";
+import {
+  COLLECTED_ORDER_MATCH,
+  placedOrderMatch,
+} from "@/lib/orders/order-payment-status";
 
 /**
  * GET /api/admin/analytics
@@ -34,6 +39,15 @@ export const GET = withApi(
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(period));
     const orderScope = buildStaffOrderScopeFilter(access.staffScope);
+    // Every money figure below is printed with one symbol, so it may only add
+    // up one currency — see `lib/intl/currency-scope.ts`. The counts beside
+    // them stay whole. Trade in another currency is Finance's to report, in
+    // that currency.
+    const settings = await getSettings();
+    const storeCurrency = settings.general?.defaultCurrency || "USD";
+    /** A money filter, narrowed to the store's own currency. */
+    const money = (filter: Record<string, unknown>) =>
+      narrowedToStoreCurrency(filter, storeCurrency);
     const productScope = buildStaffProductScopeFilter(access.staffScope);
 
     // Get overall stats
@@ -49,23 +63,37 @@ export const GET = withApi(
       topProducts,
       topVendors,
     ] = await Promise.all([
-      // Total revenue
+      // Total revenue. Money collected, not orders written: `status != cancelled`
+      // counted every checkout that was abandoned at a gateway as revenue.
       Order.aggregate([
-        { $match: mergeScopeFilter({ status: { $ne: "cancelled" } }, orderScope) },
+        { $match: mergeScopeFilter(money(COLLECTED_ORDER_MATCH), orderScope) },
         { $group: { _id: null, total: { $sum: "$total" } } },
       ]),
-      // Total orders
-      Order.countDocuments(orderScope),
+      // Total orders — placed, cancellations excluded. This counted everything
+      // in the collection, abandoned gateway attempts and cancellations alike.
+      Order.countDocuments(
+        mergeScopeFilter(
+          { ...placedOrderMatch(), status: { $ne: "cancelled" } },
+          orderScope,
+        ),
+      ),
       // Total products
       Product.countDocuments(mergeScopeFilter({ status: "published" }, productScope)),
       // Total users
       User.countDocuments(),
       // Total vendors
       Vendor.countDocuments({ ...getExternalVendorFilter(), status: "approved" }),
-      // Pending orders
-      Order.countDocuments(mergeScopeFilter({ status: "pending" }, orderScope)),
+      // Pending orders — the ones a person is waiting on. Without the placed
+      // match this was mostly abandoned gateway checkouts, which also sit on
+      // `status: "pending"`.
+      Order.countDocuments(
+        mergeScopeFilter(
+          { ...placedOrderMatch(), status: "pending" },
+          orderScope,
+        ),
+      ),
       // Recent orders
-      Order.find(orderScope)
+      Order.find(mergeScopeFilter(placedOrderMatch(), orderScope))
         .sort({ createdAt: -1 })
         .limit(5)
         .populate("customerId", "name email")
@@ -74,10 +102,7 @@ export const GET = withApi(
       Order.aggregate([
         {
           $match: mergeScopeFilter(
-            {
-              createdAt: { $gte: startDate },
-              status: { $ne: "cancelled" },
-            },
+            money({ createdAt: { $gte: startDate }, ...COLLECTED_ORDER_MATCH }),
             orderScope,
           ),
         },
@@ -92,7 +117,7 @@ export const GET = withApi(
       ]),
       // Top selling products
       Order.aggregate([
-        { $match: mergeScopeFilter({ status: { $ne: "cancelled" } }, orderScope) },
+        { $match: mergeScopeFilter(money(COLLECTED_ORDER_MATCH), orderScope) },
         { $unwind: "$items" },
         {
           $group: {
@@ -109,7 +134,7 @@ export const GET = withApi(
       ]),
       // Top vendors
       Order.aggregate([
-        { $match: mergeScopeFilter({ status: { $ne: "cancelled" } }, orderScope) },
+        { $match: mergeScopeFilter(money(COLLECTED_ORDER_MATCH), orderScope) },
         { $unwind: "$subOrders" },
         {
           $group: {
@@ -154,10 +179,10 @@ export const GET = withApi(
       Order.aggregate([
         {
           $match: mergeScopeFilter(
-            {
+            money({
               createdAt: { $gte: previousStartDate, $lt: startDate },
-              status: { $ne: "cancelled" },
-            },
+              ...COLLECTED_ORDER_MATCH,
+            }),
             orderScope,
           ),
         },
@@ -165,7 +190,11 @@ export const GET = withApi(
       ]),
       Order.countDocuments(
         mergeScopeFilter(
-          { createdAt: { $gte: previousStartDate, $lt: startDate } },
+          {
+            createdAt: { $gte: previousStartDate, $lt: startDate },
+            ...placedOrderMatch(),
+            status: { $ne: "cancelled" },
+          },
           orderScope,
         ),
       ),

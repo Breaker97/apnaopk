@@ -3,12 +3,19 @@
 import { useTranslations } from "next-intl";
 import { ClipboardList } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { OrderCheckoutField } from "@/types";
 
 interface OrderCheckoutAnswersProps {
   customerNote?: string;
   checkoutFields?: OrderCheckoutField[];
   className?: string;
+  /**
+   * `stack` (default) lists the answers down a side column, as the admin and
+   * vendor pages show them. `columns` spreads them across a full-width card,
+   * with the note on its own line underneath.
+   */
+  layout?: "stack" | "columns";
 }
 
 /**
@@ -21,6 +28,7 @@ export function OrderCheckoutAnswers({
   customerNote,
   checkoutFields,
   className,
+  layout = "stack",
 }: OrderCheckoutAnswersProps) {
   const t = useTranslations();
   const tr = (key: string, fallback: string) => (t.has(key) ? t(key) : fallback);
@@ -43,9 +51,16 @@ export function OrderCheckoutAnswers({
           {tr("checkout.additionalInformation", "Additional information")}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+      <CardContent
+        className={cn(
+          "text-sm",
+          layout === "columns"
+            ? "grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3"
+            : "space-y-3",
+        )}
+      >
         {fields.map((field) => (
-          <div key={field.key}>
+          <div key={field.key} className="min-w-0">
             <p className="text-muted-foreground">{field.label}</p>
             <p className="mt-0.5 whitespace-pre-wrap break-words font-medium">
               {display(field)}
@@ -53,7 +68,7 @@ export function OrderCheckoutAnswers({
           </div>
         ))}
         {note ? (
-          <div>
+          <div className={layout === "columns" ? "min-w-0 sm:col-span-full" : undefined}>
             <p className="text-muted-foreground">
               {tr("checkout.orderNote", "Order note")}
             </p>

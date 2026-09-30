@@ -5,7 +5,6 @@ export const AI_AUTHORING_ENTITIES = [
   "brand",
   "blog_post",
   "content_page",
-  "review",
   "review_reply",
 ] as const;
 
@@ -18,7 +17,6 @@ export const AI_AUTHORING_OPERATIONS = [
   "image_edit",
   "icon",
   "logo",
-  "review",
   "reply",
   "tags",
   "alt_text",

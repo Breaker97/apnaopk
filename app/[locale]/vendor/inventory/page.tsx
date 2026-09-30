@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models";
 import { InventoryLocation } from "@/models/inventory-location.model";
+import { offShelfStockTotals } from "@/lib/inventory/stock-breakdown";
 import {
   locationOwnerFilter,
   vendorLocationScope,
@@ -112,13 +113,14 @@ export default async function VendorInventoryPage({
 async function getVendorInventoryStats(vendorId: string): Promise<InventoryStats> {
   await connectDB();
 
-  const [products, activeLocations] = await Promise.all([
+  const [products, activeLocations, offShelf] = await Promise.all([
     Product.find({ vendorId }).select("stock variants.stock").lean(),
     // This vendor's own locations. Counting every location on the platform told
     // a one-warehouse merchant they had five.
     InventoryLocation.countDocuments(
       locationOwnerFilter(vendorLocationScope(vendorId), { isActive: true }),
     ),
+    offShelfStockTotals({ vendorId }),
   ]);
 
   let totalSkus = 0;
@@ -150,7 +152,8 @@ async function getVendorInventoryStats(vendorId: string): Promise<InventoryStats
     totalSkus,
     lowStockSkus,
     outOfStockSkus,
-    onHandUnits,
+    // Physical units, as the table's On hand reads them.
+    onHandUnits: onHandUnits + offShelf.committed + offShelf.unavailable,
     activeLocations,
   };
 }

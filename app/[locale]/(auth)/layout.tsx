@@ -8,6 +8,9 @@ import type { SectionRenderContext } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { compileTheme } from "@/lib/storefront/themes/compile";
 
+// Canonical, hreflang and robots from the URL being served.
+export { generateMetadata } from "@/lib/storefront/request-path-metadata";
+
 interface LayoutProps {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
@@ -27,7 +30,7 @@ export default async function AuthLayout({ children, params }: LayoutProps) {
   setRequestLocale(locale);
 
   const [
-    { theme, brand, defaultLanguage, isMultiVendorEnabled },
+    { theme, brand, defaultLanguage, isMultiVendorEnabled, cartOrderConfig },
     headerGroup,
     footerGroup,
   ] = await Promise.all([
@@ -49,7 +52,7 @@ export default async function AuthLayout({ children, params }: LayoutProps) {
   };
 
   return (
-    <CartProvider>
+    <CartProvider orderConfig={cartOrderConfig}>
       <StoreThemeBodySync
         themeId={theme.id}
         dataAttributes={themeSurface.attributes}

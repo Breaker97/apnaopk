@@ -1,3 +1,4 @@
+import { cartResponse } from "@/lib/cart/cart-response";
 import { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/auth";
@@ -5,9 +6,14 @@ import { connectDB } from "@/lib/db";
 import { Cart } from "@/models";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { handleApiError } from "@/lib/api/errors";
-import { rateLimitByIP, rateLimitByUser } from "@/lib/api/rate-limit-middleware";
+import {
+  SHOPPING_ADDRESS_ALLOWANCE,
+  rateLimitByIP,
+  rateLimitBySession,
+  rateLimitByUser,
+} from "@/lib/api/rate-limit-middleware";
 import { isValidObjectId, validateBody } from "@/lib/api/validate";
-import { z } from "zod";
+import * as z from "zod";
 import { setCartItemQuantity } from "@/lib/cart/cart-item-quantity";
 
 function parseItemId(itemId: string): { productId: string; variantId?: string } {
@@ -45,6 +51,14 @@ export async function PUT(
         "moderate",
         session?.user?.role
       );
+    } else if (sessionId) {
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:updateItem",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
+      );
     } else {
       await rateLimitByIP(request, "moderate");
     }
@@ -69,7 +83,7 @@ export async function PUT(
     if (!updated) return notFoundResponse("Item");
 
     await cart.save();
-    return successResponse(cart);
+    return successResponse(cartResponse(cart));
   } catch (error) {
     return handleApiError(error);
   }
@@ -99,6 +113,14 @@ export async function DELETE(
         "moderate",
         session?.user?.role
       );
+    } else if (sessionId) {
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:removeItem",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
+      );
     } else {
       await rateLimitByIP(request, "moderate");
     }
@@ -127,7 +149,7 @@ export async function DELETE(
     }
 
     await cart.save();
-    return successResponse(cart);
+    return successResponse(cartResponse(cart));
   } catch (error) {
     return handleApiError(error);
   }

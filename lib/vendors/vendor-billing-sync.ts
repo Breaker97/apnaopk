@@ -448,6 +448,10 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
             storeActive: true,
             planId: projection.planId,
             commission: projection.commissionRate,
+            // Without the source a plan rate reads as a default, or stays
+            // "manual" from an earlier admin save, and nothing downstream can
+            // tell it is the subscription's to take back.
+            commissionSource: "plan",
             stripeCustomerId: projection.stripeCustomerId,
           },
         },
@@ -475,6 +479,16 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
     },
 
     async deactivateVendor(context, revokeFinancialAccess = false) {
+      // The plan's rate goes with the plan, as it does on a manual expiry
+      // (`vendor-plans.ts`). Left behind, a vendor whose 3% subscription ended
+      // kept selling at 3% once re-approved, and the settings sweep never
+      // reached them. Loaded lazily to keep this module's import graph small
+      // for the billing-sync tests.
+      const [{ getSettings }, { resolveVendorCommission }] = await Promise.all([
+        import("@/models/settings.model"),
+        import("@/lib/vendors/vendor-commission"),
+      ]);
+      const defaultRate = resolveVendorCommission(null, null, await getSettings());
       const result = await Vendor.updateOne(
         {
           _id: context.subscription.vendorId,
@@ -484,6 +498,8 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
           $set: {
             storeActive: false,
             planId: null,
+            commission: defaultRate,
+            commissionSource: "default",
             ...(revokeFinancialAccess
               ? { status: VENDOR_STATUS.SUSPENDED }
               : {}),

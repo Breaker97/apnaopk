@@ -12,7 +12,7 @@ import {
   SAVED_SECTION_LIMIT,
   SavedSection,
 } from "@/models/saved-section.model";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 /**

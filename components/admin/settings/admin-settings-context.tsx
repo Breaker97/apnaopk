@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useAdminSettings } from "./use-admin-settings";
+import { useUnsavedChangesGuard } from "./use-unsaved-navigation";
+import type { AdminSettingsSectionId } from "./settings-sections";
 
 type AdminSettingsContextValue = ReturnType<typeof useAdminSettings>;
 
@@ -17,6 +19,8 @@ export function AdminSettingsProvider({
   initialSettings?: unknown;
 }) {
   const value = useAdminSettings(initialSettings);
+  // Wherever the settings are edited, leaving asks before it drops the edits.
+  useUnsavedChangesGuard(value.hasUnsaved(), value.discardEdits);
   return (
     <AdminSettingsContext.Provider value={value}>
       {children}
@@ -32,4 +36,22 @@ export function useAdminSettingsContext(): AdminSettingsContextValue {
     );
   }
   return ctx;
+}
+
+/**
+ * For a panel on a settings page that loads and saves on its own, beside the
+ * settings document (Messaging's live chat): its unsaved edits count as the
+ * page's, so leaving asks first and the sidebar marks the page "Unsaved".
+ * Does nothing outside the settings provider.
+ */
+export function useReportUnsavedPanel(
+  sectionId: AdminSettingsSectionId,
+  unsaved: boolean,
+) {
+  const setPanelUnsaved = useContext(AdminSettingsContext)?.setPanelUnsaved;
+  useEffect(() => {
+    if (!setPanelUnsaved) return;
+    setPanelUnsaved(sectionId, unsaved);
+    return () => setPanelUnsaved(sectionId, false);
+  }, [setPanelUnsaved, sectionId, unsaved]);
 }

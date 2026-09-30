@@ -7,9 +7,10 @@
  * as enabled, and enforced nowhere — a merchant could turn all three on and
  * still have `password123` accepted.
  *
- * Every password entry point runs `assertPasswordPolicy`: sign-up and
- * change-password (intercepted in the Better Auth catch-all route) and the
- * custom reset-password route.
+ * Every password entry point runs `checkPasswordPolicy`: sign-up and
+ * change-password (intercepted in the Better Auth catch-all route), the
+ * custom reset-password route, and the account page's
+ * `/api/user/change-password`.
  */
 
 export const MIN_ALLOWED_PASSWORD_LENGTH = 8;

@@ -4,7 +4,11 @@ import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { normalizeGlobalVariantInput } from "@/lib/catalog/global-variants";
+import {
+  GLOBAL_VARIANTS_PLATFORM_ONLY,
+  normalizeGlobalVariantInput,
+} from "@/lib/catalog/global-variants";
+import { assertUnscopedStaff } from "@/lib/access/staff-authz";
 
 type RouteParams = { id: string };
 
@@ -41,7 +45,9 @@ export const PUT = withApi<RouteParams>(
       STAFF_PERMISSIONS.EDIT_PRODUCTS,
     ],
   },
-  async ({ request, params }) => {
+  async ({ request, params, staff }) => {
+    assertUnscopedStaff(staff?.scope, GLOBAL_VARIANTS_PLATFORM_ONLY);
+
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return notFoundResponse("Global variant");
@@ -92,7 +98,9 @@ export const DELETE = withApi<RouteParams>(
       STAFF_PERMISSIONS.DELETE_PRODUCTS,
     ],
   },
-  async ({ params }) => {
+  async ({ params, staff }) => {
+    assertUnscopedStaff(staff?.scope, GLOBAL_VARIANTS_PLATFORM_ONLY);
+
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return notFoundResponse("Global variant");

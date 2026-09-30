@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { ArrowRightLeft, ChevronsUpDown, Download, Plus, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { TransferStatusBadge, type TransferStatus } from "@/components/admin/transfers/transfer-status-badge";

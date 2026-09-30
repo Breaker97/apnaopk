@@ -222,6 +222,7 @@ export function VariantEditModal({
   defaultRequiresShipping,
   defaultWeightUnit,
   preorderLockedReason = null,
+  preordersOff = false,
 }: {
   variant: ProductVariant | null;
   variants: ProductVariant[];
@@ -232,6 +233,11 @@ export function VariantEditModal({
   defaultRequiresShipping: boolean;
   defaultWeightUnit: "g" | "kg" | "lb" | "oz";
   preorderLockedReason?: string | null;
+  /**
+   * The store has switched pre-orders off (Settings → Products). The section
+   * then shows only on a variant already selling one, so it can be turned off.
+   */
+  preordersOff?: boolean;
 }) {
   const { currency } = useCurrency();
   const currencySymbol = currency?.symbol || currency?.code || "USD";
@@ -257,6 +263,16 @@ export function VariantEditModal({
   >(() => variant?.barcodeSource || "unspecified");
   const [requiresShipping, setRequiresShipping] = useState(
     () => variant?.requiresShipping ?? defaultRequiresShipping,
+  );
+  // "product" keeps the variant following the product's final-sale mark, so
+  // changing the product later still reaches it.
+  const [finalSaleChoice, setFinalSaleChoice] = useState<"product" | "yes" | "no">(
+    () =>
+      typeof variant?.finalSale === "boolean"
+        ? variant.finalSale
+          ? "yes"
+          : "no"
+        : "product",
   );
   const [weight, setWeight] = useState(() =>
     typeof variant?.weight === "number" ? String(variant.weight) : "",
@@ -349,6 +365,8 @@ export function VariantEditModal({
       barcodeSource:
         barcodeSource === "unspecified" ? undefined : barcodeSource,
       requiresShipping,
+      finalSale:
+        finalSaleChoice === "product" ? undefined : finalSaleChoice === "yes",
       weight:
         requiresShipping && weight.trim() !== ""
           ? Math.max(0, parseFloat(weight) || 0)
@@ -385,7 +403,7 @@ export function VariantEditModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-[620px] gap-0 overflow-y-auto p-0">
+      <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-[620px]">
         <DialogHeader className="border-b px-4 py-4">
           <DialogTitle className="text-base">
             Edit {variant?.name || "variant"}
@@ -561,6 +579,26 @@ export function VariantEditModal({
               </Label>
             </div>
             {requiresShipping && (
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-sm font-normal">Returns</Label>
+                <Select
+                  value={finalSaleChoice}
+                  onValueChange={(value) =>
+                    setFinalSaleChoice(value as "product" | "yes" | "no")
+                  }
+                >
+                  <SelectTrigger className="h-9 w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">Same as product</SelectItem>
+                    <SelectItem value="yes">Final sale</SelectItem>
+                    <SelectItem value="no">Returnable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {requiresShipping && (
               <div className="grid gap-3 md:grid-cols-[1fr_140px]">
                 <div className="space-y-1.5">
                   <Label htmlFor="variant-weight" className="text-sm font-normal">
@@ -600,163 +638,165 @@ export function VariantEditModal({
             )}
           </div>
 
-          <div className="space-y-4 border-b px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <CalendarClock className="h-4 w-4" />
-                Pre-order
-              </h3>
-              <Label className="flex items-center gap-2 text-sm font-normal">
-                <input
-                  type="checkbox"
-                  checked={preorderEnabled}
-                  disabled={Boolean(preorderLockedReason) && !preorderEnabled}
-                  onChange={(event) => setPreorderEnabled(event.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 accent-foreground"
-                />
-                Enable
-              </Label>
-            </div>
-
-            {preorderLockedReason ? (
-              <p className="text-muted-foreground text-xs">
-                {preorderLockedReason}
-              </p>
-            ) : null}
-
-            {preorderEnabled && (
-              <div className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="variant-preorder-release" className="text-sm font-normal">
-                      Expected ship date
-                    </Label>
-                    <Input
-                      id="variant-preorder-release"
-                      type="date"
-                      value={preorderReleaseDate}
-                      onChange={(event) =>
-                        setPreorderReleaseDate(event.target.value)
-                      }
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="variant-preorder-limit" className="text-sm font-normal">
-                      Pre-order limit
-                    </Label>
-                    <Input
-                      id="variant-preorder-limit"
-                      type="number"
-                      min="0"
-                      value={preorderLimit}
-                      onChange={(event) => setPreorderLimit(event.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-normal">Payment</Label>
-                    <Select
-                      value={preorderPaymentMode}
-                      onValueChange={(value) =>
-                        setPreorderPaymentMode(
-                          value as "full" | "deposit" | "pay_later",
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full">Full payment</SelectItem>
-                        <SelectItem value="deposit">Deposit</SelectItem>
-                        <SelectItem value="pay_later">Pay later</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm font-normal">Deposit type</Label>
-                    <Select
-                      value={preorderDepositType}
-                      onValueChange={(value) =>
-                        setPreorderDepositType(value as "percentage" | "fixed")
-                      }
-                      disabled={preorderPaymentMode !== "deposit"}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentage</SelectItem>
-                        <SelectItem value="fixed">Fixed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="variant-preorder-deposit" className="text-sm font-normal">
-                      Deposit value
-                    </Label>
-                    <Input
-                      id="variant-preorder-deposit"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={preorderDepositValue}
-                      disabled={preorderPaymentMode !== "deposit"}
-                      onChange={(event) =>
-                        setPreorderDepositValue(event.target.value)
-                      }
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="variant-supplier-eta" className="text-sm font-normal">
-                      Supplier ETA
-                    </Label>
-                    <Input
-                      id="variant-supplier-eta"
-                      type="date"
-                      value={preorderSupplierEta}
-                      onChange={(event) =>
-                        setPreorderSupplierEta(event.target.value)
-                      }
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="variant-batch-name" className="text-sm font-normal">
-                      Batch
-                    </Label>
-                    <Input
-                      id="variant-batch-name"
-                      value={preorderBatchName}
-                      onChange={(event) => setPreorderBatchName(event.target.value)}
-                      className="h-9"
-                      placeholder="Spring drop"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="variant-preorder-message" className="text-sm font-normal">
-                    Storefront message
-                  </Label>
-                  <Input
-                    id="variant-preorder-message"
-                    value={preorderMessage}
-                    onChange={(event) => setPreorderMessage(event.target.value)}
-                    className="h-9"
+          {preordersOff && !variant?.preorder?.enabled ? null : (
+            <div className="space-y-4 border-b px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <CalendarClock className="h-4 w-4" />
+                  Pre-order
+                </h3>
+                <Label className="flex items-center gap-2 text-sm font-normal">
+                  <input
+                    type="checkbox"
+                    checked={preorderEnabled}
+                    disabled={Boolean(preorderLockedReason) && !preorderEnabled}
+                    onChange={(event) => setPreorderEnabled(event.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 accent-foreground"
                   />
-                </div>
+                  Enable
+                </Label>
               </div>
-            )}
-          </div>
+
+              {preorderLockedReason ? (
+                <p className="text-muted-foreground text-xs">
+                  {preorderLockedReason}
+                </p>
+              ) : null}
+
+              {preorderEnabled && (
+                <div className="space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="variant-preorder-release" className="text-sm font-normal">
+                        Expected ship date
+                      </Label>
+                      <Input
+                        id="variant-preorder-release"
+                        type="date"
+                        value={preorderReleaseDate}
+                        onChange={(event) =>
+                          setPreorderReleaseDate(event.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="variant-preorder-limit" className="text-sm font-normal">
+                        Pre-order limit
+                      </Label>
+                      <Input
+                        id="variant-preorder-limit"
+                        type="number"
+                        min="0"
+                        value={preorderLimit}
+                        onChange={(event) => setPreorderLimit(event.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-normal">Payment</Label>
+                      <Select
+                        value={preorderPaymentMode}
+                        onValueChange={(value) =>
+                          setPreorderPaymentMode(
+                            value as "full" | "deposit" | "pay_later",
+                          )
+                        }
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="full">Full payment</SelectItem>
+                          <SelectItem value="deposit">Deposit</SelectItem>
+                          <SelectItem value="pay_later">Pay later</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-normal">Deposit type</Label>
+                      <Select
+                        value={preorderDepositType}
+                        onValueChange={(value) =>
+                          setPreorderDepositType(value as "percentage" | "fixed")
+                        }
+                        disabled={preorderPaymentMode !== "deposit"}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                          <SelectItem value="fixed">Fixed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="variant-preorder-deposit" className="text-sm font-normal">
+                        Deposit value
+                      </Label>
+                      <Input
+                        id="variant-preorder-deposit"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={preorderDepositValue}
+                        disabled={preorderPaymentMode !== "deposit"}
+                        onChange={(event) =>
+                          setPreorderDepositValue(event.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="variant-supplier-eta" className="text-sm font-normal">
+                        Supplier ETA
+                      </Label>
+                      <Input
+                        id="variant-supplier-eta"
+                        type="date"
+                        value={preorderSupplierEta}
+                        onChange={(event) =>
+                          setPreorderSupplierEta(event.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="variant-batch-name" className="text-sm font-normal">
+                        Batch
+                      </Label>
+                      <Input
+                        id="variant-batch-name"
+                        value={preorderBatchName}
+                        onChange={(event) => setPreorderBatchName(event.target.value)}
+                        className="h-9"
+                        placeholder="Spring drop"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="variant-preorder-message" className="text-sm font-normal">
+                      Storefront message
+                    </Label>
+                    <Input
+                      id="variant-preorder-message"
+                      value={preorderMessage}
+                      onChange={(event) => setPreorderMessage(event.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="border-b px-4 py-4 text-sm text-muted-foreground">
             Save the product to edit more variant details.

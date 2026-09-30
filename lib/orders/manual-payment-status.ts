@@ -59,7 +59,13 @@ export function assertManualPaymentStatusChange(params: {
     );
   }
   const method = String(order.paymentMethod || "").toLowerCase();
-  if (!isAdmin && method !== "cod" && isPlatformSettled(order)) {
+  // Gateway money only: an order the store recorded by hand (custody
+  // stamped "platform") has no gateway to check, so staff may still mark it.
+  if (
+    !isAdmin &&
+    method !== "cod" &&
+    isPlatformSettled({ ...order, paymentCustody: undefined })
+  ) {
     throw new AuthorizationError(
       "This order is paid through the store's payment gateway, so only an admin can mark it paid after checking the gateway.",
     );

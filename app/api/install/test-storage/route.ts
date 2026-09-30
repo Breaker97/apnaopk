@@ -3,6 +3,7 @@ import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { installStorageSchema } from "@/lib/install/payload";
 import { assertInstallable } from "@/lib/install/status";
+import { assertInstallToken } from "@/lib/install/install-token";
 import { testStorageConnection, type StorageConfig } from "@/lib/storage";
 
 /**
@@ -10,12 +11,13 @@ import { testStorageConnection, type StorageConfig } from "@/lib/storage";
  * `/api/admin/settings/test-storage`, which cannot be used here because no
  * admin exists yet to authenticate as.
  *
- * Unauthenticated by necessity, so `assertInstallable()` is the whole gate:
- * the moment the store has an admin this answers 404 like every other wizard
- * route. That matters more than usual — the MinIO branch dials a host the
- * caller supplies, so leaving it reachable after setup would hand a live
- * store a request-forgery probe. Rate-limited on top, since a buyer fixing
- * their keys retries a handful of times and an attacker would not stop there.
+ * No account exists yet, so the gates are `assertInstallable()` — the moment
+ * the store has an admin this answers 404 like every other wizard route —
+ * and the install token, since the MinIO branch dials a host the caller
+ * supplies: before setup it was a request-forgery probe into the server's
+ * network for anyone who found the address. Rate-limited on top, since a
+ * buyer fixing their keys retries a handful of times and an attacker would
+ * not stop there.
  *
  * Credentials arrive in full: nothing is stored yet, so there is no saved
  * value to fall back to the way the admin route does.
@@ -27,6 +29,7 @@ export const POST = withApi(
   },
   async ({ request }) => {
     await assertInstallable();
+    assertInstallToken(request);
 
     const body = await request.json().catch(() => null);
     const parsed = installStorageSchema.safeParse(body);

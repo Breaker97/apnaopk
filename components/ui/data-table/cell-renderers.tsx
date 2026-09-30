@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { AppImage } from "@/components/ui/app-image";
@@ -110,12 +110,14 @@ export function ProductCell({
                 ? "hover:text-blue-600 hover:underline"
                 : "hover:underline"),
           )}
-          title={displayTitle !== title ? title : undefined}
+          title={title}
         >
           {displayTitle}
         </p>
         {subtitle && (
-          <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+          <p className="text-xs text-muted-foreground truncate" title={subtitle}>
+            {subtitle}
+          </p>
         )}
       </div>
     </div>

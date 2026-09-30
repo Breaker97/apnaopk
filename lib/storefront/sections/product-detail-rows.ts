@@ -25,7 +25,6 @@ export const PRODUCT_DETAIL_ROWS = [
   "quantity-cart",
   "description",
   "details",
-  "faq",
   "info-card",
   "share",
   "chat",
@@ -57,7 +56,6 @@ export const PRODUCT_DETAIL_ROW_LABELS: Record<ProductDetailRow, string> = {
   "quantity-cart": "Add to Cart",
   description: "Description",
   details: "Technical Details",
-  faq: "FAQ",
   "info-card": "Delivery info",
   share: "Share",
   chat: "Chat",
@@ -118,7 +116,6 @@ export const DEFAULT_PRODUCT_DETAIL_GROUPS: ProductDetailRowGroup[] = [
     items: [
       { id: "description", key: "description", on: true },
       { id: "details", key: "details", on: true },
-      { id: "faq", key: "faq", on: true },
     ],
   },
   {

@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/config/i18n.config";
@@ -14,16 +13,6 @@ import {
   CARD_SHELF_GAP,
   PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES,
 } from "@/components/store/product-grid-columns";
-
-// Loaded only when a shopper opens quick view, keeping the modal and its deps
-// out of the initial section bundle.
-const ProductQuickViewModal = dynamic(
-  () =>
-    import("@/components/products/product-quick-view-modal").then(
-      (mod) => mod.ProductQuickViewModal,
-    ),
-  { ssr: false },
-);
 
 interface HomeNewArrivalsCarouselProps {
   products: ModernProduct[];
@@ -56,7 +45,6 @@ export function HomeNewArrivalsCarousel({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [quickViewProduct, setQuickViewProduct] = useState<ModernProduct | null>(null);
   const normalizedDesktopColumns = Number.isFinite(desktopColumns)
     ? Math.floor(desktopColumns)
     : 4;
@@ -64,14 +52,6 @@ export function HomeNewArrivalsCarousel({
     6,
     Math.max(2, normalizedDesktopColumns),
   );
-
-  const handleQuickView = useCallback((product: ModernProduct) => {
-    setQuickViewProduct(product);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setQuickViewProduct(null);
-  }, []);
 
   const updateScrollState = useCallback(() => {
     const el = scrollerRef.current;
@@ -184,20 +164,10 @@ export function HomeNewArrivalsCarousel({
               key={product._id}
               product={product}
               locale={locale}
-              onQuickView={handleQuickView}
               className="min-w-0 snap-start"
             />
           ))}
         </div>
-
-        {quickViewProduct && (
-          <ProductQuickViewModal
-            product={quickViewProduct}
-            locale={locale}
-            open
-            onClose={handleCloseModal}
-          />
-        )}
       </div>
     </section>
   );

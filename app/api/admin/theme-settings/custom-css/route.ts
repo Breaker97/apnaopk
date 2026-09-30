@@ -9,7 +9,7 @@ import {
 } from "@/lib/storefront/themes/custom-css";
 import { getActiveThemeManifest } from "@/lib/storefront/themes/registry";
 import { getSettings, Settings } from "@/models/settings.model";
-import { z } from "zod";
+import * as z from "zod";
 
 /**
  * Save the ACTIVE theme's custom CSS sheet. Same contract as the token

@@ -17,7 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { apiClient } from "@/lib/api/client";
-import { useCurrency } from "@/providers/currency-provider";
+import { useCurrencyFormatter } from "@/providers/currency-provider";
+import { formatCurrency } from "@/lib/intl/money";
+import { resolveCurrency } from "@/lib/intl/currencies";
 
 /**
  * The other direction of the money.
@@ -52,6 +54,12 @@ interface CommissionResponse {
   invoices: CommissionInvoice[];
 }
 
+/** Each invoice in its own currency — the list can hold more than one. */
+function formatInvoiceAmount(invoice: Pick<CommissionInvoice, "amount" | "currency">) {
+  const currency = resolveCurrency(String(invoice.currency || "").toUpperCase());
+  return formatCurrency(invoice.amount, currency.code, currency.locale);
+}
+
 const STATUS_VARIANT = {
   open: "outline",
   paid: "default",
@@ -59,23 +67,30 @@ const STATUS_VARIANT = {
 } as const;
 
 export function CommissionOwedCard({ vendorId }: { vendorId: string }) {
-  const { formatPrice: format } = useCurrency();
   const { confirm } = useConfirmation();
   const [data, setData] = useState<CommissionResponse | null>(null);
+  // Null is the store's own currency; set when the admin switches to another
+  // currency the vendor also owes in.
+  const [currency, setCurrency] = useState<string | null>(null);
+  const format = useCurrencyFormatter(data?.currency);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
 
   const load = useCallback(
     () =>
       apiClient
-        .get<CommissionResponse>(`/api/admin/vendors/${vendorId}/commission`)
+        .get<CommissionResponse>(
+          `/api/admin/vendors/${vendorId}/commission${
+            currency ? `?currency=${encodeURIComponent(currency)}` : ""
+          }`,
+        )
         .then((res) => setData(res))
         .catch((error) => {
           console.error("Failed to load commission balance:", error);
           toast.error("Failed to load the commission balance");
         })
         .finally(() => setIsLoading(false)),
-    [vendorId],
+    [vendorId, currency],
   );
 
   useEffect(() => {
@@ -85,7 +100,10 @@ export function CommissionOwedCard({ vendorId }: { vendorId: string }) {
   const raise = async () => {
     setIsBusy(true);
     try {
-      await apiClient.post(`/api/admin/vendors/${vendorId}/commission`, {});
+      await apiClient.post(
+        `/api/admin/vendors/${vendorId}/commission`,
+        data?.currency ? { currency: data.currency } : {},
+      );
       toast.success("Invoice raised");
       await load();
     } catch (error) {
@@ -182,10 +200,27 @@ export function CommissionOwedCard({ vendorId }: { vendorId: string }) {
               nobody is told about is a balance nobody collects.
             */}
             {owed?.otherCurrencies?.length ? (
-              <p className="text-sm text-muted-foreground">
-                Also owed in {owed.otherCurrencies.join(", ")}, which this
-                invoice cannot bill — currencies are never added together.
-              </p>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  Also owed in {owed.otherCurrencies.join(", ")} — currencies
+                  are never added together. Switch to bill it:
+                </span>
+                {owed.otherCurrencies.map((code) => (
+                  <Button
+                    key={code}
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setIsLoading(true);
+                      setCurrency(code);
+                    }}
+                  >
+                    {code}
+                  </Button>
+                ))}
+              </div>
             ) : null}
 
             {invoices.length > 0 && (
@@ -198,7 +233,7 @@ export function CommissionOwedCard({ vendorId }: { vendorId: string }) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium tabular-nums">
-                          {format(invoice.amount)}
+                          {formatInvoiceAmount(invoice)}
                         </span>
                         <Badge
                           variant={STATUS_VARIANT[invoice.status]}

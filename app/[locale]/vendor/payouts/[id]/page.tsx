@@ -15,5 +15,5 @@ export default async function VendorPayoutDetailsPage({ params }: PageProps) {
     required: [VENDOR_PERMISSIONS.VIEW_PAYOUTS],
   });
 
-  return <VendorPayoutDetails locale={locale} payoutId={id} />;
+  return <VendorPayoutDetails payoutId={id} />;
 }

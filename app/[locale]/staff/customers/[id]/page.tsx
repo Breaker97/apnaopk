@@ -28,6 +28,7 @@ export default async function StaffCustomerDetailsPage({ params }: PageProps) {
       customerId={id}
       readOnly={!canManageCustomers}
       area="staff"
+      emailLocked
     />
   );
 }

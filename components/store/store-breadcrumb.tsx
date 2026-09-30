@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 
 import {
@@ -10,6 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { type Locale } from "@/config/i18n.config";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
 import { JsonLd, generateBreadcrumbJsonLd } from "@/lib/site-config/seo";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +28,14 @@ interface StoreBreadcrumbItem {
 
 interface StoreBreadcrumbProps {
   locale: string;
+  /**
+   * The language served without a URL prefix. Passed in rather than read:
+   * this component renders in the server graph on most pages and in the
+   * client graph on a few (the cart, the admin's page editors), so it can
+   * neither await `getLocaleRouting()` nor call a hook. Callers have one or
+   * the other to hand.
+   */
+  storeDefault: Locale;
   /** The trail below Home. The Home crumb is prepended for you. */
   items: StoreBreadcrumbItem[];
   /** Overrides the default `mb-6` spacing as well as anything else. */
@@ -45,12 +55,17 @@ interface StoreBreadcrumbProps {
   hidden?: boolean;
 }
 
-/** Every storefront href is locale-scoped; external URLs pass through as-is. */
-function toLocalePath(locale: string, href: string) {
+/**
+ * Every storefront href is locale-scoped; external URLs pass through as-is.
+ *
+ * The address-bar form, not the app's `/${locale}/…` spelling: the structured
+ * data below prints these verbatim, and a crumb that names a URL the store
+ * redirects away from is a crumb pointing at the wrong address.
+ */
+function toLocalePath(locale: string, storeDefault: Locale, href: string) {
   if (/^https?:\/\//i.test(href)) return href;
 
-  const path = href.startsWith("/") ? href : `/${href}`;
-  return path === "/" ? `/${locale}` : `/${locale}${path}`;
+  return buildLocalePath(locale, href.startsWith("/") ? href : `/${href}`, storeDefault);
 }
 
 /**
@@ -65,6 +80,7 @@ function toLocalePath(locale: string, href: string) {
  */
 export function StoreBreadcrumb({
   locale,
+  storeDefault,
   items,
   className,
   jsonLd = true,
@@ -93,7 +109,7 @@ export function StoreBreadcrumb({
               url:
                 index === lastIndex || !item.href
                   ? undefined
-                  : `${baseUrl}${toLocalePath(locale, item.href)}`,
+                  : `${baseUrl}${toLocalePath(locale, storeDefault, item.href)}`,
             })),
           )}
         />
@@ -118,7 +134,7 @@ export function StoreBreadcrumb({
                   ) : (
                     <BreadcrumbLink asChild>
                       <Link
-                        href={toLocalePath(locale, item.href as string)}
+                        href={toLocalePath(locale, storeDefault, item.href as string)}
                         className="block max-w-[40vw] truncate sm:max-w-[14rem]"
                       >
                         {item.label}

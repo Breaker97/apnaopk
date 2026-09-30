@@ -149,14 +149,6 @@ export const PAYMENT_REQUIRED_SETUP_PERMISSIONS: VendorPermission[] = [
   VENDOR_PERMISSIONS.EDIT_BRANDS,
 ];
 
-// Seller role (limited vendor staff) - can only manage products and view orders
-export const SELLER_PERMISSIONS: VendorPermission[] = [
-  VENDOR_PERMISSIONS.VIEW_PRODUCTS,
-  VENDOR_PERMISSIONS.VIEW_ORDERS,
-  VENDOR_PERMISSIONS.VIEW_INBOX,
-  VENDOR_PERMISSIONS.REPLY_INBOX,
-];
-
 // ============================================
 // Capability Packs — the unit a plan sells
 // ============================================
@@ -649,6 +641,10 @@ export const STAFF_PERMISSIONS = {
   EDIT_ORDERS: "edit_orders",
   DELETE_ORDERS: "delete_orders",
 
+  // Returns
+  /** Open a return the rules refuse: past the return window, or on a final sale item. */
+  CREATE_INELIGIBLE_RETURNS: "create_ineligible_returns",
+
   // Products
   VIEW_PRODUCTS: "view_products",
   MANAGE_PRODUCTS: "manage_products",
@@ -700,6 +696,49 @@ export const DEFAULT_STAFF_PERMISSIONS: StaffPermission[] = [
 
 // All staff permissions
 export const ALL_STAFF_PERMISSIONS = Object.values(STAFF_PERMISSIONS);
+
+/**
+ * What a vendor's own staff can never hold, whatever the vendor ticked.
+ *
+ * A vendor's staff work in the same staff area, on the same admin routes, as
+ * the platform's — narrowed to the vendor's scope, but still acting on the
+ * store's records. These act on what belongs to the store rather than to the
+ * vendor's shop: customer accounts (shared by every vendor — editing one
+ * could re-point any shopper's login, an admin's included), the admin order
+ * form (it records the money as the store's, so the vendor is paid out for a
+ * sale nobody took) and order-level cancellation and chargeback attribution
+ * (a split order carries other vendors' parcels). A vendor's staff can do no
+ * more than the vendor can.
+ *
+ * Enforced where permissions are read (`effectiveStaffPermissions`), so grants
+ * saved before this list existed stop working too.
+ */
+export const VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS: readonly StaffPermission[] = [
+  STAFF_PERMISSIONS.MANAGE_CUSTOMERS,
+  STAFF_PERMISSIONS.EDIT_CUSTOMERS,
+  STAFF_PERMISSIONS.DELETE_CUSTOMERS,
+  STAFF_PERMISSIONS.MANAGE_ORDERS,
+  STAFF_PERMISSIONS.CREATE_ORDERS,
+  STAFF_PERMISSIONS.DELETE_ORDERS,
+];
+
+/** The staff permissions a vendor may grant its own staff. */
+export const VENDOR_STAFF_PERMISSIONS: StaffPermission[] =
+  ALL_STAFF_PERMISSIONS.filter(
+    (permission) => !VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS.includes(permission),
+  );
+
+/**
+ * What a coarse `manage_*` grant from before the create/edit/delete split
+ * still gives a vendor's staff member. It meant all three; the part a vendor
+ * may grant survives the platform-only filter instead of going with it.
+ */
+export const VENDOR_STAFF_LEGACY_GRANT_PARTS: Partial<
+  Record<StaffPermission, readonly StaffPermission[]>
+> = {
+  [STAFF_PERMISSIONS.MANAGE_ORDERS]: [STAFF_PERMISSIONS.EDIT_ORDERS],
+  [STAFF_PERMISSIONS.MANAGE_CUSTOMERS]: [STAFF_PERMISSIONS.CREATE_CUSTOMERS],
+};
 
 /**
  * Permission presets — starting points for common staff jobs.

@@ -25,7 +25,7 @@ import {
   type VendorAccessSubject,
 } from "@/lib/vendors/vendor-permissions";
 import { notifyAdminsOfAccessRequest } from "@/lib/vendors/vendor-access-requests";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 /** The vendor's own requests, newest first. */

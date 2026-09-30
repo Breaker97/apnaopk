@@ -9,7 +9,7 @@ import {
   type DataTablePaginationType,
 } from "@/components/ui/data-table";
 import { toast } from "@/components/ui/toast-notification";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
@@ -127,7 +127,7 @@ export function BlogCategoriesDataTable({ locale }: { locale: string }) {
         addAction: {
           id: "add",
           label: "Add category",
-          href: `/${locale}/admin/content/blog-categories/new`,
+          href: "/admin/content/blog-categories/new",
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
@@ -141,7 +141,7 @@ export function BlogCategoriesDataTable({ locale }: { locale: string }) {
         id: "edit",
         label: "Edit",
         icon: <Pencil className="h-4 w-4" />,
-        href: `/${locale}/admin/content/blog-categories/${row._id}/edit`,
+        href: `/admin/content/blog-categories/${row._id}/edit`,
       },
       {
         id: "delete",
@@ -179,7 +179,7 @@ export function BlogCategoriesDataTable({ locale }: { locale: string }) {
       rowActionsHeader="Actions"
       rowActionsVariant="inline"
       onRowClick={(row) =>
-        router.push(`/${locale}/admin/content/blog-categories/${row._id}/edit`)
+        router.push(`/admin/content/blog-categories/${row._id}/edit`)
       }
       emptyMessage="No categories yet."
       emptyIcon={<Tags className="h-8 w-8" />}

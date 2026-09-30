@@ -28,22 +28,6 @@ type EmailVerificationPolicyUser = {
   emailVerificationRequiredAt?: Date;
 };
 
-/**
- * Which onboarding flow a user is in — a vendor applicant is still a customer
- * by role until an admin approves them. Used for routing and for keeping the
- * vendor onboarding endpoints reachable, NOT for choosing a verification
- * policy (that lives in `resolveEmailVerificationStatus`, which must not take
- * a client-supplied claim at face value).
- */
-export function resolveEmailVerificationPolicyRole(
-  role: UserRole,
-  audience?: string,
-): UserRole {
-  return role === USER_ROLES.VENDOR || audience === USER_ROLES.VENDOR
-    ? USER_ROLES.VENDOR
-    : role;
-}
-
 /** Higher wins when two policies disagree. */
 const STATUS_STRICTNESS: Record<EmailVerificationStatus, number> = {
   verified: 0,

@@ -74,7 +74,10 @@ import {
 } from "@/lib/email/vendor-emails";
 import { notifyVendorApplicationStatus } from "@/lib/notifications/notifications";
 import { normalizeNotificationSettings } from "@/lib/notifications/notification-settings";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
+import {
+  revalidateCouponContent,
+  revalidateProductContent,
+} from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
 import { cancelVendorApplicationBilling } from "@/lib/vendors/vendor-stripe-billing";
 import { assertStripeBillingReady } from "@/lib/vendors/vendor-plan-stripe";
@@ -90,7 +93,7 @@ import {
   areCountryValuesEquivalent,
   isCountryAllowed,
 } from "@/lib/intl/country-availability";
-import { z } from "zod";
+import * as z from "zod";
 
 interface StoredVendorOverride {
   permission: VendorPermission;
@@ -343,7 +346,9 @@ const AdminVendorUpdateSchema = z.object({
   address: z.any().optional(),
   bankDetails: z.any().optional(),
   documents: z.any().optional(),
-  commission: z.any().optional(),
+  // Validated here because the update below does not run schema validators: a
+  // rate of 500 or -20 would otherwise reach checkout and price every sale.
+  commission: z.number().finite().min(0).max(100).optional(),
   permissionOverrides: z.any().optional(),
 });
 
@@ -663,7 +668,13 @@ export const PUT = withApi<{ id: string }>(
       updates.verified = body.verified === true;
     }
 
-    if (body.commission !== undefined) {
+    // The edit form sends the rate on every save, so only a rate that actually
+    // moved is an admin override. Marking an unchanged number "manual" pinned
+    // every vendor an admin had ever saved out of the settings-rate sweep.
+    if (
+      body.commission !== undefined &&
+      body.commission !== vendorBefore.commission
+    ) {
       updates.commission = body.commission;
       // Typed by an admin for this one vendor, so a later change to the store
       // default must leave it alone. See `lib/commission-reprojection.ts`.
@@ -1327,6 +1338,7 @@ export const DELETE = withApi<{ id: string }>(
     ).catch((err) =>
       console.error("Failed to deactivate coupons for deleted vendor:", err),
     );
+    revalidateCouponContent();
 
     // Messaging connections hold live encrypted Meta access tokens plus the
     // phoneNumberId/pageId the inbound webhook routes on. Leaving them behind

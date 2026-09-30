@@ -57,6 +57,17 @@ export function finalizeIotecOrder(params: FinalizeIotecOrderParams) {
       ) {
         throw new ValidationError("ioTec reference mismatch");
       }
+      // The status response names the collection it belongs to. An order
+      // found by its external id alone must be that collection's, or any
+      // completed ioTec payment of the same amount could settle it.
+      const reportedExternalId = String(params.transaction.externalId || "");
+      if (
+        reportedExternalId &&
+        order.iotecExternalId &&
+        reportedExternalId !== order.iotecExternalId
+      ) {
+        throw new ValidationError("ioTec reference mismatch");
+      }
 
       const transactionState = getIotecTransactionState(params.transaction);
       if (transactionState !== "completed") {

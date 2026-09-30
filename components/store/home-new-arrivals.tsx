@@ -1,5 +1,5 @@
 import { type Locale } from "@/config/i18n.config";
-import { HomeNewArrivalsCarousel } from "@/components/store/home-new-arrivals-carousel";
+import { HomeNewArrivalsCarouselLazy as HomeNewArrivalsCarousel } from "@/components/store/home-new-arrivals-carousel-lazy";
 import { type ModernProduct } from "@/components/products/modern-product-card";
 import {
   getStorefrontProductCards,

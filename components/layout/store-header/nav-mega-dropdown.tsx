@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ChevronDown } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import type { HeaderMenuItem } from "@/lib/site-config/header-config";

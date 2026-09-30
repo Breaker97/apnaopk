@@ -6,7 +6,13 @@ import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import {
   isFreeShippingCouponType,
 } from "@/lib/catalog/discounts";
-import { roundMoney } from "@/lib/intl/money";
+import {
+  currencyPriceScale,
+  formatCurrency,
+  quantizeToCurrency,
+  roundMoney,
+} from "@/lib/intl/money";
+import { splitCouponAcrossLines } from "@/lib/orders/coupon-line-split";
 
 /**
  * How long a checkout that has not been paid yet keeps its use of a limited
@@ -22,6 +28,13 @@ interface CouponCartItem {
   quantity: number;
   categoryId?: string;
   vendorId?: string;
+  /**
+   * Priced by a quote offer (lib/quotes/quote-offer.ts). A negotiated price is
+   * already the discount the merchant chose to give, so a code never comes
+   * off it — the way a Shopify draft-order invoice takes no discount code.
+   * The rest of the cart is discounted as usual.
+   */
+  quoted?: boolean;
 }
 
 interface ValidatedCouponResult {
@@ -45,6 +58,13 @@ interface ValidatedCouponResult {
    * vendor B, who never offered it. See `couponDiscount` on the sub-order.
    */
   vendorShares?: Record<string, number>;
+  /**
+   * The cart's products this coupon's goods discount came off, alongside
+   * `vendorShares` for a scoped coupon. A seller's share lands on these lines
+   * only — spread over all of the seller's lines, a coupon on in-stock X also
+   * cut the balance owed later on the same seller's pre-order P.
+   */
+  eligibleProductIds?: string[];
   /**
    * A free-shipping coupon's discount split by the vendor whose delivery it
    * paid for. One seller's own free-shipping coupon used to wipe out every
@@ -79,6 +99,11 @@ type ValidateCouponParams = {
   userId?: string;
   /** The email the order is placed under, so a guest has a limit too. */
   email?: string;
+  /**
+   * The store currency: the discount and its split are rounded to what it
+   * can hold, and the minimum-order message is written in it. Omitted, cents.
+   */
+  currency?: string | null;
 };
 
 function normalizeObjectId(value?: string) {
@@ -157,6 +182,126 @@ function resolveCouponType(coupon: {
     : coupon.type;
 }
 
+type CouponScope = {
+  vendorId?: unknown;
+  applicableProducts?: unknown[] | null;
+  applicableCategories?: unknown[] | null;
+  excludedProducts?: unknown[] | null;
+};
+
+/**
+ * Whether a coupon's scope reaches one cart line — its seller, its product or
+ * category list, and its exclusions. The one rule both the discount itself and
+ * the per-line record of it (`resolveCouponLineEligibility`) are decided by.
+ */
+function isCartLineInCouponScope(
+  coupon: CouponScope,
+  item: Pick<CouponCartItem, "productId" | "categoryId" | "vendorId">,
+): boolean {
+  const itemProductId = normalizeObjectId(item.productId);
+  const itemCategoryId = normalizeObjectId(item.categoryId);
+  const itemVendorId = normalizeObjectId(item.vendorId);
+  const couponVendorId = normalizeObjectId(String(coupon.vendorId || ""));
+  if (couponVendorId && itemVendorId !== couponVendorId) return false;
+
+  const hasProductOrCategoryScope = Boolean(
+    coupon.applicableProducts?.length || coupon.applicableCategories?.length,
+  );
+  if (hasProductOrCategoryScope) {
+    const isProductApplicable = coupon.applicableProducts?.some(
+      (id) => String(id) === itemProductId,
+    );
+    const isCategoryApplicable = coupon.applicableCategories?.some(
+      (id) => String(id) === itemCategoryId,
+    );
+    if (!isProductApplicable && !isCategoryApplicable) return false;
+  }
+
+  return !coupon.excludedProducts?.some((id) => String(id) === itemProductId);
+}
+
+/**
+ * Which of an order's lines the coupon's discount came off, for recording each
+ * line's share of it (see `splitCouponAcrossLines`). Read from the coupon as
+ * it stands when the order is written — the same moment the discount was just
+ * validated against. A coupon that can no longer be found reaches every line,
+ * which is how its discount was shared before any of this was recorded.
+ */
+async function resolveCouponLineEligibility(
+  couponId: string | null | undefined,
+  lines: Array<Pick<CouponCartItem, "productId" | "categoryId" | "vendorId">>,
+): Promise<boolean[]> {
+  const everyLine = lines.map(() => true);
+  const id = normalizeObjectId(couponId || "");
+  if (!id || lines.length === 0) return everyLine;
+  const coupon = await Coupon.findById(id)
+    .select("vendorId applicableProducts applicableCategories excludedProducts")
+    .lean<CouponScope | null>();
+  if (!coupon) return everyLine;
+  const withRefs = await enrichMissingProductRefs(
+    lines.map((line) => ({ ...line, price: 0, quantity: 0 })),
+  );
+  return withRefs.map((line) => isCartLineInCouponScope(coupon, line));
+}
+
+/**
+ * Each order line's share of the coupon's goods discount, to be written onto
+ * the line as `couponDiscount`. Null where there is nothing to record — no
+ * coupon, or one that discounted delivery rather than goods — which leaves the
+ * lines without the field, exactly as every earlier order has them.
+ */
+export async function resolveCouponLineDiscounts(params: {
+  coupon?: {
+    couponId?: string | null;
+    type?: string | null;
+    vendorShares?: Record<string, number> | null;
+    /** From validation, when known; otherwise read back from the coupon. */
+    eligibleProductIds?: string[] | null;
+  } | null;
+  /** What came off the goods — the order's discount, never a shipping one. */
+  goodsDiscount: number;
+  lines: Array<{
+    productId: string;
+    vendorId?: string | null;
+    price: number;
+    quantity: number;
+  }>;
+  currency: string;
+}): Promise<number[] | null> {
+  const { coupon, lines } = params;
+  const goodsDiscount = Math.max(0, Number(params.goodsDiscount) || 0);
+  if (!coupon || isFreeShippingCouponType(coupon.type) || goodsDiscount <= 0) {
+    return null;
+  }
+  // A whole-cart coupon reaches every line; only a scoped one — the kind that
+  // records `vendorShares` — needs its scope read back.
+  const scoped = Boolean(
+    coupon.vendorShares && Object.keys(coupon.vendorShares).length > 0,
+  );
+  const known = coupon.eligibleProductIds;
+  const eligibility = !scoped
+    ? lines.map(() => true)
+    : known
+    ? lines.map((line) => known.includes(String(line.productId)))
+    : await resolveCouponLineEligibility(
+        coupon.couponId,
+        lines.map((line) => ({
+          productId: line.productId,
+          vendorId: line.vendorId || undefined,
+        })),
+      );
+  return splitCouponAcrossLines(
+    lines.map((line, index) => ({
+      price: line.price,
+      quantity: line.quantity,
+      vendorId: line.vendorId,
+      eligible: eligibility[index],
+    })),
+    { goodsDiscount, vendorShares: scoped ? coupon.vendorShares : null },
+    params.currency,
+  );
+}
+
 export async function validateAndCalculateCoupon(
   params: ValidateCouponParams,
 ): Promise<ValidatedCouponResult> {
@@ -217,7 +362,12 @@ export async function validateAndCalculateCoupon(
 
   if (coupon.minOrderAmount && params.subtotal < coupon.minOrderAmount) {
     throw new ValidationError({
-      code: [`Minimum order amount is $${coupon.minOrderAmount}`],
+      code: [
+        `Minimum order amount is ${formatCurrency(
+          coupon.minOrderAmount,
+          params.currency || "USD",
+        )}`,
+      ],
     });
   }
 
@@ -226,42 +376,29 @@ export async function validateAndCalculateCoupon(
   let applicableAmount = params.subtotal;
   // What each vendor's eligible lines are worth, filled only for a scoped coupon.
   const applicableByVendor = new Map<string, number>();
+  const eligibleProductIds = new Set<string>();
   const couponVendorId = normalizeObjectId(
     String((coupon as { vendorId?: unknown }).vendorId || ""),
   );
   const hasProductOrCategoryScope = Boolean(
     coupon.applicableProducts?.length || coupon.applicableCategories?.length,
   );
+  // A cart holding a quoted line is discounted as if the coupon were scoped
+  // to everything else, so the discount and its record (vendorShares,
+  // eligibleProductIds) both leave the negotiated price out.
+  const hasQuotedLine = cartItems.some((item) => item.quoted);
   if (
     couponVendorId ||
     hasProductOrCategoryScope ||
-    coupon.excludedProducts?.length
+    coupon.excludedProducts?.length ||
+    hasQuotedLine
   ) {
     applicableAmount = cartItems.reduce((sum, item) => {
-      const itemProductId = normalizeObjectId(item.productId);
-      const itemCategoryId = normalizeObjectId(item.categoryId);
+      if (item.quoted || !isCartLineInCouponScope(coupon, item)) return sum;
+
       const itemVendorId = normalizeObjectId(item.vendorId);
-      if (couponVendorId && itemVendorId !== couponVendorId) {
-        return sum;
-      }
-
-      const isProductApplicable = coupon.applicableProducts?.some(
-        (id) => String(id) === itemProductId,
-      );
-      const isCategoryApplicable = coupon.applicableCategories?.some(
-        (id) => String(id) === itemCategoryId,
-      );
-      if (hasProductOrCategoryScope && !isProductApplicable && !isCategoryApplicable) {
-        return sum;
-      }
-
-      const isExcluded = coupon.excludedProducts?.some(
-        (id) => String(id) === itemProductId,
-      );
-      if (isExcluded) {
-        return sum;
-      }
-
+      const itemProductId = normalizeObjectId(item.productId);
+      if (itemProductId) eligibleProductIds.add(itemProductId);
       const lineAmount = item.price * item.quantity;
       const vendorKey = itemVendorId || "";
       applicableByVendor.set(
@@ -274,7 +411,11 @@ export async function validateAndCalculateCoupon(
 
   if (applicableAmount <= 0) {
     throw new ValidationError({
-      code: ["This coupon is not applicable to items in your cart"],
+      code: [
+        hasQuotedLine && cartItems.every((item) => item.quoted)
+          ? "A discount code can't be used on a quoted price"
+          : "This coupon is not applicable to items in your cart",
+      ],
     });
   }
 
@@ -326,7 +467,9 @@ export async function validateAndCalculateCoupon(
     discount = applicableAmount;
   }
 
-  const roundedDiscount = roundMoney(discount);
+  const roundedDiscount = params.currency
+    ? quantizeToCurrency(discount, params.currency)
+    : roundMoney(discount);
   return {
     couponId: String(coupon._id),
     code: coupon.code,
@@ -337,7 +480,13 @@ export async function validateAndCalculateCoupon(
     // Rescaled if a cap brought the discount below what the delivery cost, so
     // the parts always add back up to what comes off the order.
     ...(shippingShares
-      ? { shippingShares: splitCouponDiscount(roundedDiscount, shippingShares) }
+      ? {
+          shippingShares: splitCouponDiscount(
+            roundedDiscount,
+            shippingShares,
+            params.currency,
+          ),
+        }
       : {}),
     ...(couponType === CouponType.FREE_SHIPPING && couponVendorId
       ? { shippingVendorId: couponVendorId }
@@ -347,7 +496,9 @@ export async function validateAndCalculateCoupon(
           vendorShares: splitCouponDiscount(
             roundedDiscount,
             Object.fromEntries(applicableByVendor),
+            params.currency,
           ),
+          eligibleProductIds: [...eligibleProductIds],
         }
       : {}),
     discountTarget,
@@ -603,22 +754,36 @@ export async function reverseCouponUsageForOrder(orderId: string) {
 export function splitCouponDiscount(
   discount: number,
   weights: Record<string, number>,
+  /**
+   * The store currency. Shares are floored to its smallest unit, so a
+   * zero-decimal currency gets whole units — split to the cent, 1001 XOF over
+   * three sellers left 333.66 on each, which the ledger rounded to 334 apiece
+   * and booked one franc of promotion nobody gave. Omitted, cents as before.
+   */
+  currency?: string | null,
 ): Record<string, number> {
   const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
   const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
   if (!(discount > 0) || totalWeight <= 0) return {};
 
+  const factor = currency ? 10 ** currencyPriceScale(currency) : 100;
+  const round = (value: number) =>
+    currency ? quantizeToCurrency(value, currency) : roundMoney(value);
+  const target = round(discount);
   const shares: Record<string, number> = {};
   let assigned = 0;
   for (const [vendorId, weight] of entries) {
-    const share = Math.floor(((discount * weight) / totalWeight) * 100) / 100;
+    // A hair of slack before flooring, so float noise (3.0000000001 units
+    // stored as 2.9999999999) does not lose a whole unit.
+    const share =
+      Math.floor(((target * weight) / totalWeight) * factor + 1e-9) / factor;
     shares[vendorId] = share;
     assigned += share;
   }
-  const remainder = roundMoney(discount - assigned);
+  const remainder = round(target - assigned);
   if (remainder !== 0) {
     const [largest] = [...entries].sort((a, b) => b[1] - a[1])[0];
-    shares[largest] = roundMoney(shares[largest] + remainder);
+    shares[largest] = round(shares[largest] + remainder);
   }
   return shares;
 }

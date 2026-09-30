@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Archive,
@@ -24,6 +24,10 @@ import {
   useLiveResource,
   type LiveResourceError,
 } from "@/hooks/use-live-resource";
+import {
+  invalidateResources,
+  useSuspenseResource,
+} from "@/hooks/use-suspense-resource";
 
 type TabType = "all" | "unread" | "archived";
 type NotificationAction = "read" | "archive" | "unarchive";
@@ -110,13 +114,28 @@ function getNotificationVisual(type: string) {
   return visualMap[type as keyof typeof visualMap] || visualMap.system;
 }
 
+/**
+ * Each tab's first read suspends: the page's `<ClientSuspense>` covers the
+ * first one, and a tab switch runs in a transition, so the current tab stays
+ * up (dimmed) until the next one is in. Every tab's list is kept, so coming
+ * back to the page — or to a tab — shows it at once; the poll picks up from
+ * there and writes new snapshots into the same copy.
+ */
 export function CustomerNotifications({ locale }: CustomerNotificationsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("all");
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-  const [counts, setCounts] = useState<NotificationCounts>(initialCounts);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isSwitchingTab, startTabSwitch] = useTransition();
   const [isMutating, setIsMutating] = useState(false);
   const [pendingId, setPendingId] = useState<string>();
+
+  const snapshotUrl = `/api/notifications?tab=${activeTab}&limit=50`;
+  const {
+    data: snapshot,
+    error: loadError,
+    fetchedAt,
+    mutate: storeSnapshot,
+  } = useSuspenseResource<NotificationSnapshot>(snapshotUrl);
+  const notifications = snapshot?.notifications ?? [];
+  const counts = snapshot?.counts ?? initialCounts;
 
   const tabs = useMemo(
     () =>
@@ -131,12 +150,6 @@ export function CustomerNotifications({ locale }: CustomerNotificationsProps) {
   const emitStatsChanged = () => {
     window.dispatchEvent(new Event("account:stats-changed"));
   };
-
-  const handleSnapshot = useCallback((snapshot: NotificationSnapshot) => {
-    setNotifications(snapshot.notifications || []);
-    setCounts(snapshot.counts || initialCounts);
-    setIsFetching(false);
-  }, []);
 
   const handleSnapshotError = useCallback((error: LiveResourceError) => {
     const expired = error.status === 401 || error.status === 403;
@@ -153,10 +166,13 @@ export function CustomerNotifications({ locale }: CustomerNotificationsProps) {
         id: "customer-notifications-error",
       },
     );
-    // Retire the skeleton either way, so a failure shows the empty state's
-    // explanation rather than a placeholder that never resolves.
-    setIsFetching(false);
   }, []);
+
+  // A first read that failed is reported the way a failed poll is; the list
+  // shows its empty state meanwhile.
+  useEffect(() => {
+    if (loadError) handleSnapshotError(loadError);
+  }, [loadError, handleSnapshotError]);
 
   /**
    * Replaces a flat 15s timer that ran whether or not anyone was looking.
@@ -165,11 +181,26 @@ export function CustomerNotifications({ locale }: CustomerNotificationsProps) {
    * coming back to the tab refetches immediately, and a push refetches at
    * once. Polls that find nothing new are answered 304 (`lib/api/etag.ts`).
    */
-  const { refresh: refreshNotifications } =
-    useLiveResource<NotificationSnapshot>(
-      `/api/notifications?tab=${activeTab}&limit=50`,
-      { onData: handleSnapshot, onError: handleSnapshotError },
+  const { refresh: refreshSnapshot } = useLiveResource<NotificationSnapshot>(
+    snapshotUrl,
+    {
+      onData: storeSnapshot,
+      onError: handleSnapshotError,
+      initialFetchedAt: fetchedAt,
+    },
+  );
+
+  /**
+   * After a read, archive or delete. The change moves the other tabs' lists
+   * and counts too, so their held copies are dropped: a tab opened next reads
+   * afresh instead of showing what was true before.
+   */
+  const refreshNotifications = async () => {
+    invalidateResources(
+      (url) => url.startsWith("/api/notifications?") && url !== snapshotUrl,
     );
+    await refreshSnapshot();
+  };
 
   const updateNotifications = async (
     ids: string[],
@@ -273,7 +304,7 @@ export function CustomerNotifications({ locale }: CustomerNotificationsProps) {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => startTabSwitch(() => setActiveTab(tab.id))}
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-button px-4 py-2 text-sm font-medium transition-colors",
                 activeTab === tab.id
@@ -297,12 +328,14 @@ export function CustomerNotifications({ locale }: CustomerNotificationsProps) {
         </div>
       </div>
 
-      <ScrollArea className="h-[640px] max-h-[calc(100vh-250px)] min-h-96">
-        {isFetching ? (
-          <div className="flex h-60 items-center justify-center text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : notifications.length === 0 ? (
+      <ScrollArea
+        className={cn(
+          "h-[640px] max-h-[calc(100vh-250px)] min-h-96 transition-opacity",
+          isSwitchingTab && "opacity-60",
+        )}
+        aria-busy={isSwitchingTab || undefined}
+      >
+        {notifications.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-2 px-8 text-center text-muted-foreground">
             <BellRing className="h-8 w-8" />
             <p className="text-sm font-medium">No notifications</p>

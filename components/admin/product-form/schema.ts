@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import type { ProductWeightUnit } from "@/lib/catalog/product-shipping";
 
 /**
@@ -28,6 +28,12 @@ export const formSchema = z.object({
   publishing: z.object({
     onlineStore: z.boolean(),
     pointOfSale: z.boolean(),
+  }),
+  // Final sale: the shopper cannot return it — see lib/returns/final-sale.ts.
+  returns: z.object({
+    finalSale: z.boolean(),
+    /** Its own return window in days; null follows the store's. */
+    windowDays: z.number().int().min(1).max(365).nullable().optional(),
   }),
   pricing: z.object({
     price: z.number().min(0, "Price must be positive"),

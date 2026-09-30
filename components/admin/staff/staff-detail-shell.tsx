@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   History,
   Loader2,
@@ -29,6 +29,7 @@ import type { StaffPermission } from "@/config/permissions.config";
 import { StaffDetailHeader } from "./staff-detail-header";
 import {
   GRANTABLE_STAFF_PERMISSIONS,
+  grantableInArea,
   normalizeStaffPermissions,
 } from "./staff-permissions";
 import {
@@ -498,12 +499,16 @@ export function StaffDetailShell({
     }
   }, [fetchStaff, refreshStats]);
 
+  const grantable = useMemo(
+    () => grantableInArea(GRANTABLE_STAFF_PERMISSIONS, area),
+    [area],
+  );
   const grantedCount = useMemo(
     () =>
       normalizeStaffPermissions(form.permissions).filter((permission) =>
-        GRANTABLE_STAFF_PERMISSIONS.includes(permission),
+        grantable.includes(permission),
       ).length,
-    [form.permissions],
+    [form.permissions, grantable],
   );
 
   const scopeCount =
@@ -619,7 +624,7 @@ export function StaffDetailShell({
         data={header ?? LOADING_HEADER}
         stats={stats}
         permissionCount={grantedCount}
-        totalPermissions={GRANTABLE_STAFF_PERMISSIONS.length}
+        totalPermissions={grantable.length}
         accessEnabled={form.isActive}
         hasPosAccess={form.permissions.includes(STAFF_PERMISSIONS.ACCESS_POS)}
         loading={isFetching}
@@ -668,6 +673,7 @@ export function StaffDetailShell({
               permissions={form.permissions}
               onChange={(next) => setField("permissions", next)}
               readOnly={readOnly}
+              area={area}
             />
           )}
         </TabsContent>

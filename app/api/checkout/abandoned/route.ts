@@ -10,7 +10,7 @@ import {
 import { updateCheckoutSnapshot } from "@/lib/orders/abandoned-checkouts";
 import type { Address } from "@/types";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 import { getSettingsLean } from "@/models/settings.model";
 import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
@@ -102,13 +102,7 @@ export const PATCH = withApi(
       request,
       TrackCheckoutSchema,
     );
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
-
     await updateCheckoutSnapshot(cart, {
-      origin,
       locale: body.locale || "en",
       email: body.email || session?.user?.email,
       phone: body.phone,

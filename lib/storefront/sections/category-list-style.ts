@@ -115,7 +115,12 @@ export interface CategoryListStyle {
   shape: CategoryShape;
   /** px; a circle ignores it. 999 is fully round. */
   roundness: number;
-  /** px; 0 = as wide as its column. Carousels only. */
+  /**
+   * px; 0 lets the tile stretch to its share of the row. A number holds it
+   * there, which is what keeps a wide row from spreading a handful of tiles
+   * across it — the gap can only set the space BETWEEN tiles, never the
+   * slack inside one that has grown far past its picture.
+   */
   tileWidth: number;
   /** px; 0 = from the shape. */
   tileHeight: number;

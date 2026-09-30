@@ -22,7 +22,7 @@ export interface RenderSliderSlide extends SliderSlide {
   href2?: string;
 }
 
-export interface BuildRenderOptions {
+interface BuildRenderOptions {
   /** The shopper's locale; the copy falls back to the default language. */
   locale?: string;
   /** The instant the schedule is judged at; defaults to now. */

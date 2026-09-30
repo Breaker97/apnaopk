@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { Star } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { type ModernProduct } from "@/components/products/modern-product-card";
-import { type Locale } from "@/config/i18n.config";
 import { formatProductPrice } from "@/lib/products/price-display";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
@@ -15,10 +14,8 @@ import { cn } from "@/lib/utils";
  * Client-side only for the currency hook the price runs through.
  */
 export function ListingFeaturedProducts({
-  locale,
   products,
 }: {
-  locale: Locale;
   products: ModernProduct[];
 }) {
   const { formatPrice } = useCurrency();
@@ -32,7 +29,7 @@ export function ListingFeaturedProducts({
         return (
           <Link
             key={product._id}
-            href={`/${locale}/products/${product.slug}`}
+            href={`/products/${product.slug}`}
             className="group flex items-center gap-4"
           >
             <span className="grid size-[98px] shrink-0 place-items-center overflow-hidden rounded-lg bg-muted transition-colors group-hover:bg-muted/70">

@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
-import { RelatedProductsCarousel } from "./related-products-carousel";
+import { RelatedProductsCarouselLazy as RelatedProductsCarousel } from "./related-products-carousel-lazy";
 import {
   buildSponsoredLane,
   getSponsoredLadderPool,

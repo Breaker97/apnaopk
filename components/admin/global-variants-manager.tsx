@@ -20,6 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Loader2, Plus, SquarePen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -162,19 +163,21 @@ function SortableValueRow({
       />
 
       {isColor && (
-        <label
-          className="relative size-11 shrink-0 cursor-pointer overflow-hidden rounded-xl border"
-          style={{ backgroundColor: isHex(item.colorCode) ? item.colorCode : "#ffffff" }}
-          title="Pick color"
+        <ColorSwatchPicker
+          value={isHex(item.colorCode) ? item.colorCode : DEFAULT_COLOR}
+          onChange={onColorChange}
+          alpha={false}
+          align="end"
+          ariaLabel={`Pick color for ${item.value || "value"}`}
         >
-          <input
-            type="color"
-            value={isHex(item.colorCode) ? item.colorCode : DEFAULT_COLOR}
-            onChange={(e) => onColorChange(e.target.value)}
-            className="absolute inset-0 cursor-pointer opacity-0"
+          <button
+            type="button"
             aria-label={`Pick color for ${item.value || "value"}`}
+            title="Pick color"
+            className="relative size-11 shrink-0 cursor-pointer overflow-hidden rounded-xl border"
+            style={{ backgroundColor: isHex(item.colorCode) ? item.colorCode : "#ffffff" }}
           />
-        </label>
+        </ColorSwatchPicker>
       )}
 
       <button
@@ -404,19 +407,21 @@ function GlobalVariantEditor({
               className="h-11 flex-1 rounded-xl"
             />
             {isColor && (
-              <label
-                className="relative size-11 shrink-0 cursor-pointer overflow-hidden rounded-xl border"
-                style={{ backgroundColor: isHex(pendingColor) ? pendingColor : "#ffffff" }}
-                title="Pick color"
+              <ColorSwatchPicker
+                value={pendingColor}
+                onChange={setPendingColor}
+                alpha={false}
+                align="end"
+                ariaLabel="Pick color for new value"
               >
-                <input
-                  type="color"
-                  value={pendingColor}
-                  onChange={(e) => setPendingColor(e.target.value)}
-                  className="absolute inset-0 cursor-pointer opacity-0"
+                <button
+                  type="button"
                   aria-label="Pick color for new value"
+                  title="Pick color"
+                  className="relative size-11 shrink-0 cursor-pointer overflow-hidden rounded-xl border"
+                  style={{ backgroundColor: isHex(pendingColor) ? pendingColor : "#ffffff" }}
                 />
-              </label>
+              </ColorSwatchPicker>
             )}
             <button
               type="button"

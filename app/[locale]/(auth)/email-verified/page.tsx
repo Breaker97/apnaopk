@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { CheckCircle2, CircleX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ export default async function Page({
       <CardContent className="text-center text-sm text-muted-foreground">
         {failed
           ? "This link may have expired or already been replaced. Request a new verification email and try again."
-          : "Your email address is verified and your account is ready."}
+          : "Your email address is verified and your account is ready. Continue, and sign in if you are asked to."}
       </CardContent>
       <CardFooter>
         <Button className="w-full" asChild>

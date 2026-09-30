@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import {
@@ -7,12 +8,82 @@ import {
 import {
   getEnvRemoteImageDomains,
   getRemotePatterns,
+  imageOriginsForBundle,
 } from "./lib/remote-image-domains";
 
-const withNextIntl = createNextIntlPlugin("./lib/i18n/request.ts");
+const withNextIntl = createNextIntlPlugin({
+  requestConfig: "./lib/i18n/request.ts",
+  experimental: {
+    // The locale files are compiled at build time: every message becomes a
+    // small structure the browser formats without ICU's parser, which was
+    // ~23 KB of every page's JavaScript, and no message is parsed at runtime.
+    // Every message must therefore be valid ICU — a literal `{`, `}` or `<`
+    // is quoted, as in '{{1}}' — or the build fails
+    // (tests/i18n-messages-icu.test.ts says which). And `t.raw()` returns
+    // the compiled form, not the text: use messageTemplate
+    // (lib/i18n/message-template.ts) for a template another component fills.
+    messages: {
+      path: "./locales",
+      format: "json",
+      locales: "infer",
+      precompile: true,
+    },
+  },
+});
+
+/**
+ * Sent with every response.
+ *
+ * - Framing: only this origin may frame the store. The admin, account pages
+ *   and checkout could be framed by any site, which could then lay invisible
+ *   buttons over them (clickjacking). The theme editor and page builder frame
+ *   same-origin pages, which both rules allow; the maps and videos the store
+ *   itself frames are not affected.
+ * - `nosniff`: a response is only ever used as the type it was sent as.
+ * - Referrer: a cross-site request carries the origin, never the path — order,
+ *   payment and unsubscribe links carry tokens in theirs.
+ * - HSTS in production only: browsers ignore it over plain HTTP, and on an
+ *   https://localhost dev server it would pin localhost to HTTPS for a year.
+ *   No `includeSubDomains`: the buyer's other subdomains are not ours to bind.
+ */
+const SECURITY_HEADERS = [
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  ...(process.env.NODE_ENV === "production"
+    ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }]
+    : []),
+];
+
+/**
+ * A size set in megabytes in the environment, in bytes. Unset, empty,
+ * negative or not a number, `fallback`.
+ */
+function envMegabytes(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  const mb = raw ? Number(raw) : Number.NaN;
+  return Math.round((Number.isFinite(mb) && mb >= 0 ? mb : fallback) * 1024 * 1024);
+}
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
+  // Pages rendered on demand and `unstable_cache` data are kept in memory,
+  // never written to disk — Next's own cache kept every URL it rendered in
+  // `.next` for good, so a crawl could fill the disk. See cache-handler.cjs.
+  // Resolved from the working directory, which is the project for `next
+  // build` and `next start` (and /app in the image).
+  cacheHandler: path.join(process.cwd(), "cache-handler.cjs"),
+  // Memory for those pages and data: PAGE_CACHE_MEMORY_MB, unset 50 (Next's
+  // own default). 0 caches nothing.
+  cacheMaxMemorySize: envMegabytes("PAGE_CACHE_MEMORY_MB", 50),
+  // No React Compiler; it was on through 2.3. Measured on this codebase
+  // (2026-09-28), it spent about a third of the build's CPU in Babel workers
+  // that BUILD_MAX_CPUS does not limit, and added 19–30 KB of compressed
+  // JavaScript to every storefront page, while no interaction responded
+  // noticeably faster (within one 8 ms frame on a 4x-slowed CPU). A build that
+  // still passes on a small server is worth more. To bring it back: add the
+  // babel-plugin-react-compiler devDependency and set `reactCompiler: true`.
+
   // 16.3 upserts a managed AGENTS.md/CLAUDE.md block at the project root
   // whenever `next dev` detects a coding agent. This source ships to buyers,
   // so nothing may write files into the tree on its own; the bundled docs
@@ -24,14 +95,20 @@ const nextConfig: NextConfig = {
   // E2E against a scratch port) needs its own dist dir — Next refuses two
   // servers sharing one .next. Unset, this is exactly the default.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // The storage hosts added to `images.remotePatterns` below (a custom CDN
+  // domain in STORAGE_PUBLIC_URL, a MinIO endpoint), inlined into the server
+  // and browser bundles alike so AppImage sends them through the optimizer
+  // instead of serving the full-size original (lib/remote-image-domains.ts).
+  env: {
+    STORIFY_IMAGE_ORIGINS: imageOriginsForBundle(getEnvRemoteImageDomains()),
+  },
   // No `serverExternalPackages` entry is needed for HTML sanitization any
   // more. It used to carry `isomorphic-dompurify` and `jsdom`, which had to
   // stay unbundled because jsdom resolves files relative to its own package at
   // runtime — and marking them external only moved the problem, since the
   // build then depended on the host's file tracer copying the right tree.
   // `lib/sanitize.ts` now uses `sanitize-html`: pure JavaScript, no DOM, no
-  // disk reads, so it bundles like any other module. jsdom remains only as a
-  // devDependency, for the tests that ask for a DOM environment.
+  // disk reads, so it bundles like any other module.
   // Skip the tsc pass inside `next build`. On a 373k-LOC codebase the type
   // check needs more heap than Node's default ~4GB cap, which is what made
   // buyer builds die with "JavaScript heap out of memory" even on big
@@ -66,21 +143,6 @@ const nextConfig: NextConfig = {
     ...(process.env.BUILD_MAX_CPUS
       ? { cpus: Math.max(1, Number(process.env.BUILD_MAX_CPUS) || 1) }
       : {}),
-    // Bound the memory Turbopack's native (Rust) compiler tries to stay
-    // under, in bytes. BUILD_MAX_CPUS and --max-old-space-size only govern
-    // the Node side; the compiler's module graph lives outside the JS heap
-    // and is otherwise unbounded, which is what's left to spike when a
-    // deploy still OOMs with both of those set. Value is megabytes
-    // (6144 is a good start on a shared host); unset, Turbopack manages
-    // memory itself.
-    ...(process.env.BUILD_TURBOPACK_MEMORY_MB
-      ? {
-          turbopackMemoryLimit:
-            Math.max(1024, Number(process.env.BUILD_TURBOPACK_MEMORY_MB) || 1024) *
-            1024 *
-            1024,
-        }
-      : {}),
     // Turbopack's filesystem cache for builds (`turbopackFileSystemCacheForBuild`)
     // was tried and removed: writing the cache makes the first build the
     // heaviest, and on a production host that also runs the store it pushed
@@ -91,8 +153,8 @@ const nextConfig: NextConfig = {
     // browsing keeps seeing the pre-edit catalog for up to five minutes after
     // an admin publishes a product. 30s is the floor Next accepts here (0 is
     // rejected by config validation) and cuts that window by an order of
-    // magnitude; the refetch is served by the ISR/`unstable_cache` layers, so
-    // it costs a round trip, not a database query.
+    // magnitude; the refetch is a server render from the `unstable_cache`
+    // layer, so it costs a round trip, not a database query.
     staleTimes: {
       dynamic: 0,
       static: 30,
@@ -114,6 +176,9 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // First, so a rule below that sets one of the same keys for its own
+      // paths (the uploads CSP) replaces it there.
+      { source: "/:path*", headers: SECURITY_HEADERS },
       // Stop browsers reusing storefront/admin documents without asking — see
       // lib/http-cache-policy.ts for why Next's default header let them.
       // Overriding Cache-Control here is the supported escape hatch:
@@ -126,8 +191,8 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: PAGE_CACHE_CONTROL }],
       },
       {
-        // `APP_PAGE_HEADER_SOURCE` cannot match the bare root, which next-intl
-        // redirects to the resolved locale.
+        // `APP_PAGE_HEADER_SOURCE` cannot match the bare root — which is the
+        // store default language's own home page, not a redirect to `/en`.
         source: "/",
         headers: [{ key: "Cache-Control", value: PAGE_CACHE_CONTROL }],
       },
@@ -141,11 +206,17 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Chrome asks for the manifest again on every client-side navigation
+        // (the metadata <link> is re-emitted per page) and a route handler
+        // carries no ETag, so `no-cache` meant a full download each time.
+        // Its contents — store name, description, versioned icon paths —
+        // change only when an admin edits branding, and an hour of browser
+        // staleness there is harmless; a hard reload still bypasses it.
         source: "/manifest.webmanifest",
         headers: [
           {
             key: "Cache-Control",
-            value: "no-cache",
+            value: "public, max-age=3600",
           },
         ],
       },
@@ -179,6 +250,10 @@ const nextConfig: NextConfig = {
     // Env-configured custom storage domains (STORAGE_PUBLIC_URL etc.) are
     // appended so self-hosted CDN setups get optimized images too.
     remotePatterns: getRemotePatterns(getEnvRemoteImageDomains()),
+    // Storage never redirects an image. The optimizer checks only the first
+    // URL against remotePatterns: a bucket answering 3xx could send it to any
+    // public host it cares to name.
+    maximumRedirects: 0,
     // Optimized output is cached in .next/cache/images, which most deploys
     // discard — so after every release the whole catalogue is re-encoded by
     // sharp on the first requests, pinning CPU exactly when traffic returns.
@@ -187,6 +262,12 @@ const nextConfig: NextConfig = {
     // re-optimize for a year. Persist .next/cache across deploys (a volume on
     // Coolify/Dokploy) to get the full benefit — see docs/STORAGE_SETUP.md.
     minimumCacheTTL: 31536000,
+    // Those files are capped at IMAGE_CACHE_DISK_MB (unset 1024), the least
+    // recently used going first. Next's own cap is half the free disk, and
+    // the hosts above include whole provider domains (any r2.dev bucket), so
+    // anyone could have a store resize other people's images until that half
+    // was full. 0 keeps none: every request encodes the image again.
+    maximumDiskCacheSize: envMegabytes("IMAGE_CACHE_DISK_MB", 1024),
   },
 };
 

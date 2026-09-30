@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Types } from "mongoose";
 import { Product } from "@/models";
 import { PRODUCT_STATUS } from "@/config/app.config";

@@ -50,7 +50,7 @@ export type PreorderAddressInput = {
   state?: string;
 };
 
-type StoredAddress = {
+export type StoredAddress = {
   fullName?: string;
   firstName?: string;
   lastName?: string;
@@ -111,6 +111,55 @@ export function preorderAddressChangeBlocker(
   return null;
 }
 
+/**
+ * The address an edit may write: the delivery point from the request, the
+ * country and region from the order as stored.
+ *
+ * Shared by every way an address changes after checkout — a pre-order's manage
+ * link, and an undeliverable-address correction on any order — so none of them
+ * can let the country or region move. Both decided the shipping zone, the tax
+ * and any duty, and re-pricing that after the fact is a new sale, not an edit.
+ * The request's country and region are only compared, never written.
+ */
+export function buildNextShippingAddress(
+  current: StoredAddress,
+  input: PreorderAddressInput,
+  noun: "pre-order" | "order",
+): StoredAddress {
+  if (
+    input.country !== undefined &&
+    !areCountryValuesEquivalent(current.country || "", input.country)
+  ) {
+    throw new ValidationError({
+      country: [
+        `The country can't change on a ${noun} — shipping, tax and duties were charged for the original one`,
+      ],
+    });
+  }
+  // A blank region is no attempt to move it — checkout's schema fills an
+  // omitted one in as "" — and what is written is the stored one either way.
+  if (String(input.state || "").trim() && !sameRegion(current.state, input.state)) {
+    throw new ValidationError({
+      state: [
+        `The region can't change on a ${noun} — shipping was priced for the original one`,
+      ],
+    });
+  }
+
+  return {
+    fullName: input.fullName,
+    firstName: input.firstName || undefined,
+    lastName: input.lastName || undefined,
+    street: input.street,
+    apartment: input.apartment || undefined,
+    city: input.city,
+    postalCode: input.postalCode,
+    phone: input.phone || current.phone,
+    state: current.state,
+    country: current.country,
+  };
+}
+
 export async function changePreorderShippingAddress(params: {
   /** Scoped by the caller to whoever proved they may do this. */
   orderFilter: Record<string, unknown>;
@@ -128,42 +177,7 @@ export async function changePreorderShippingAddress(params: {
   if (blocker) throw new ValidationError(blocker);
 
   const current = order.shippingAddress || {};
-  if (
-    params.address.country !== undefined &&
-    !areCountryValuesEquivalent(current.country || "", params.address.country)
-  ) {
-    throw new ValidationError({
-      country: [
-        "The country can't change on a pre-order — shipping, tax and duties were charged for the original one",
-      ],
-    });
-  }
-  // A blank region is no attempt to move it — checkout's schema fills an
-  // omitted one in as "" — and what is written is the stored one either way.
-  if (
-    String(params.address.state || "").trim() &&
-    !sameRegion(current.state, params.address.state)
-  ) {
-    throw new ValidationError({
-      state: [
-        "The region can't change on a pre-order — shipping was priced for the original one",
-      ],
-    });
-  }
-
-  const nextAddress: StoredAddress = {
-    fullName: params.address.fullName,
-    firstName: params.address.firstName || undefined,
-    lastName: params.address.lastName || undefined,
-    street: params.address.street,
-    apartment: params.address.apartment || undefined,
-    city: params.address.city,
-    postalCode: params.address.postalCode,
-    phone: params.address.phone || current.phone,
-    // From the order, never from the request — see the module note.
-    state: current.state,
-    country: current.country,
-  };
+  const nextAddress = buildNextShippingAddress(current, params.address, "pre-order");
 
   // Every rule the pre-check read, again, inside the write: a consignment
   // released between the two must stop this, not be overwritten by it.

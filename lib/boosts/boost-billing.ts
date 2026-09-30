@@ -12,8 +12,12 @@ import {
   NON_TERMINAL_BOOST_CAMPAIGN_STATUSES,
   type IBoostCampaign,
 } from "@/models/boostCampaign.model";
-import type { IPlatformPayment } from "@/models/platformPayment.model";
+import {
+  refundedBelowMatch,
+  type IPlatformPayment,
+} from "@/models/platformPayment.model";
 import { addDays } from "@/lib/boosts/boost-days";
+import { fromStripeAmount } from "@/lib/payments/stripe";
 import { currencyPriceScale } from "@/lib/intl/money";
 import { sendBoostNotification } from "@/lib/boosts/boost-notifications";
 import { isBoostCheckoutSession } from "@/lib/boosts/boost-checkout-binding";
@@ -126,14 +130,53 @@ export async function processPlatformChargeRefunded(
   if (!fullyRefunded) {
     // A flat fee had no per-unit basis, so this used to bail out. pricePerDay
     // supplies one: map the refund onto released days.
+    // In the unit the charge was made in: `toStripeAmount` builds a 3-decimal
+    // currency in thousandths, and dividing it back by 100 booked a 1.000 KWD
+    // refund as 10 — releasing ten times the days that were paid back.
     await applyBoostPartialRefund(
       payment,
-      (charge.amount_refunded ?? 0) / 10 ** currencyPriceScale(payment.currency),
+      fromStripeAmount(charge.amount_refunded ?? 0, payment.currency || "USD"),
     );
     return true;
   }
 
   await markPlatformPaymentReversed(payment);
+  return true;
+}
+
+/**
+ * A platform payment refunded from PayPal, Razorpay or Paystack's own
+ * dashboard, given what that gateway says has been refunded on it IN TOTAL.
+ *
+ * Only Stripe's `charge.refunded` was ever wired to platform payments: a boost
+ * bought through any other gateway and refunded there kept running, and its
+ * income stayed on the books. Driven by the running total exactly as the
+ * Stripe path is, so a replayed or out-of-order delivery recomputes the same
+ * answer rather than counting a refund twice.
+ */
+export async function applyPlatformPaymentRefundTotal(params: {
+  locate: {
+    paypalCaptureId?: string;
+    razorpayPaymentId?: string;
+    paystackTransactionId?: string;
+    reference?: string;
+  };
+  refundedTotalMajor: number;
+}): Promise<boolean> {
+  const clauses = Object.entries(params.locate)
+    .filter(([, value]) => typeof value === "string" && value !== "")
+    .map(([field, value]) => ({ [field]: value }));
+  if (clauses.length === 0) return false;
+  const payment = await PlatformPayment.findOne({ $or: clauses });
+  if (!payment) return false;
+
+  const refunded = Math.max(0, Number(params.refundedTotalMajor) || 0);
+  if (refunded <= 0) return false;
+  if (refunded >= Number(payment.amount || 0) - 0.005) {
+    await markPlatformPaymentReversed(payment);
+    return true;
+  }
+  await applyBoostPartialRefund(payment, refunded);
   return true;
 }
 
@@ -182,10 +225,37 @@ async function applyBoostPartialRefund(
 
   // Record the cash unconditionally — it is the ledger even when it buys no
   // whole day, and the credit formula subtracts it from what is owed.
-  await PlatformPayment.updateOne(
-    { _id: payment._id, refundedAmount: { $lt: refundedTotalMajor } },
+  //
+  // Claimed with `returnDocument: "before"` because the STEP is what the books
+  // take, not the running total: Stripe's figure is cumulative, so posting it
+  // whole on the second webhook would give back the first refund twice. Losing
+  // the claim — a replay, a stale total, the loser of two concurrent webhooks
+  // — means some other call already booked this ground, and there is nothing
+  // to post.
+  const claimedRefund = await PlatformPayment.findOneAndUpdate(
+    { _id: payment._id, ...refundedBelowMatch(refundedTotalMajor) },
     { $set: { refundedAmount: refundedTotalMajor } },
-  );
+    { returnDocument: "before" },
+  )
+    .select("refundedAmount")
+    .lean<{ refundedAmount?: number } | null>();
+
+  if (claimedRefund) {
+    const { postPlatformPaymentRefundSafely } = await import(
+      "@/lib/finance/post-events"
+    );
+    postPlatformPaymentRefundSafely({
+      _id: payment._id,
+      kind: payment.kind,
+      reference: payment.reference,
+      vendorId: payment.vendorId,
+      currency: payment.currency,
+      provider: payment.provider,
+      refundedTotal: refundedTotalMajor,
+      previouslyRefunded: claimedRefund.refundedAmount ?? 0,
+      refundedAt: new Date(),
+    });
+  }
 
   // Claim the INCREASE atomically. A replay, a lower cumulative total arriving
   // late, and the loser of two concurrent webhooks all fail this CAS. The

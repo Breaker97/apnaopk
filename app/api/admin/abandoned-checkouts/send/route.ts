@@ -1,3 +1,4 @@
+import { onAppOrigin } from "@/lib/app-url";
 import { mongoose } from "@/lib/db";
 import { AbandonedCheckout, Cart } from "@/models";
 import { getSettings } from "@/models/settings.model";
@@ -8,7 +9,7 @@ import {
   upsertAbandonedCheckoutSnapshot,
 } from "@/lib/orders/abandoned-checkouts";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 type CheckoutMailTarget = {
@@ -74,16 +75,15 @@ export const POST = withApi(
 
     const target = resolved.target as CheckoutMailTarget;
     const settings = await getSettings();
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
 
-    const sent = await sendAbandonedCheckoutRecoveryEmail({
+    const { outcome, suppression } = await sendAbandonedCheckoutRecoveryEmail({
       cart: target,
       settings,
-      origin,
       locale: body.locale || target.customerLocale || "en",
+      // Asked for by a person, so it goes out even where the automatic ladder
+      // has already sent that rung: "they say it never arrived" is the whole
+      // reason this button exists.
+      dedupe: false,
     });
 
     if (resolved.source === "cart") {
@@ -102,19 +102,37 @@ export const POST = withApi(
         {
           $set: {
             recoveryEmailStatus: target.recoveryEmailStatus,
-            ...(sent ? { emailSentAt: target.emailSentAt || new Date() } : {}),
+            ...(outcome === "sent"
+              ? { emailSentAt: target.emailSentAt || new Date() }
+              : {}),
           },
         },
       ).catch(() => undefined);
     }
 
+    // More answers than sent/failed: a mail the outbox is retrying has not
+    // failed, and telling the merchant it had sent them to check a mail server
+    // that was about to deliver it anyway. Nor has one to a shopper who
+    // unsubscribed — there is nothing for the merchant to fix there.
     return successResponse(
       {
-        sent,
-        checkoutUrl: target.checkoutUrl,
+        sent: outcome === "sent" || outcome === "queued",
+        outcome,
+        ...(suppression ? { suppression } : {}),
+        // Rebuilt only when a mail went out; one stored before recovery links
+        // stopped following the request's origin can name any site.
+        checkoutUrl: onAppOrigin(target.checkoutUrl),
         recoveryEmailStatus: target.recoveryEmailStatus,
       },
-      sent ? "Recovery email sent" : "Recovery email could not be sent",
+      outcome === "sent"
+        ? "Recovery email sent"
+        : outcome === "queued"
+          ? "Recovery email queued — delivery is being retried"
+          : outcome === "suppressed"
+            ? suppression === "pending"
+              ? "Not sent — the shopper has not confirmed their subscription yet"
+              : "Not sent — the shopper unsubscribed from these emails"
+            : "Recovery email could not be sent",
     );
   },
 );

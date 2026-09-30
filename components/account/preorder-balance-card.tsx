@@ -10,7 +10,7 @@ import {
   type StripeCardExpiryElement,
   type StripeCardNumberElement,
 } from "@stripe/stripe-js";
-import { CreditCard, Loader2 } from "lucide-react";
+import { Clock, CreditCard, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,14 +28,24 @@ import { createStripeElementStyle } from "@/components/checkout/checkout-helpers
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
 
 /**
- * The shopper's side of a deposit-mode pre-order: what they have paid, what is
- * still owed, and — the part that did not exist before — a way to pay it.
+ * Money owed on an order that already exists, and a way to pay it.
  *
- * Checkout takes the deposit and the "payment due" notification asks for the
- * rest, so this card is where that request lands. It charges exactly the
- * balance through the same inline card form checkout uses; the order record is
- * updated by the confirm call (and, independently, by the Stripe webhook).
+ * Two flows share this one card, deliberately:
+ *
+ *  - `preorder_balance`, the deposit-mode pre-order it was written for —
+ *    checkout took the deposit, the "payment due" notification asks for the
+ *    rest, and this is where that request lands;
+ *  - `order_pay`, the "pay now" link sent when an order's payment never
+ *    arrived at all (`lib/payments/order-pay.ts`).
+ *
+ * They differ in which routes they call and what the figures are called; the
+ * card form, the PayPal hand-off, the confirm-then-webhook race and the
+ * "still clearing" state are identical, and a second implementation of those
+ * would be a second place for a money bug to live.
  */
+
+/** Which flow this card is collecting for — see the comment above. */
+type BalanceCardMode = "preorder_balance" | "order_pay";
 
 interface PreorderBalanceOrder {
   _id: string;
@@ -63,8 +73,13 @@ interface PreorderBalanceOrder {
   preorderPaidSoFar?: number;
   /** ISO day the unpaid balance is cancelled and refunded on. */
   preorderBalanceDeadline?: string;
+  /** How the order was meant to be paid — the pay-link card offers its retry. */
+  paymentMethod?: string;
   total: number;
 }
+
+/** The gateways where paying means approving a prompt, not typing a card. */
+const PUSH_METHODS = ["iotec", "mtn_momo", "orange_money"];
 
 const ELEMENT_BOX_CLASS =
   "rounded-md border border-input bg-background px-3 py-2.5 focus-within:ring-2 focus-within:ring-ring";
@@ -73,10 +88,13 @@ export function PreorderBalanceCard({
   order,
   locale,
   accessToken,
+  mode = "preorder_balance",
   onPaid,
 }: {
   order: PreorderBalanceOrder;
   locale: string;
+  /** Defaults to the pre-order balance this card was written for. */
+  mode?: BalanceCardMode;
   /**
    * The signed link from the shopper's "balance due" email, when this card is
    * rendered on the public balance page rather than inside their account.
@@ -111,8 +129,37 @@ export function PreorderBalanceCard({
           day: "numeric",
           month: "short",
           year: "numeric",
+          // Counted from the release date, a UTC calendar day — see
+          // `formatPreorderReleaseDate`.
+          timeZone: "UTC",
         }).format(deadline)
       : null;
+
+  // Everything that differs between the two flows, in one place. The routes
+  // are not interchangeable: each one checks a differently-signed link and
+  // collects a different figure.
+  const payingWholeOrder = mode === "order_pay";
+  const intentUrl = payingWholeOrder
+    ? `/api/orders/${order._id}/pay`
+    : `/api/orders/${order._id}/preorder-balance`;
+  const confirmUrl = payingWholeOrder
+    ? `/api/orders/${order._id}/pay/confirm`
+    : `/api/orders/${order._id}/preorder-balance/confirm`;
+  const paypalUrl = payingWholeOrder
+    ? `/api/orders/${order._id}/pay/paypal`
+    : `/api/orders/${order._id}/preorder-balance/paypal`;
+  // PayPal returns to the page it left, so each flow marks its own return
+  // parameter — a balance return must not be mistaken for a pay-link one.
+  const paypalReturnParam = payingWholeOrder
+    ? "paypalOrderPay"
+    : "paypalBalance";
+
+  // A mobile-money order cannot be "paid again" with a card the shopper never
+  // used: what it needs is the prompt resending to the same phone.
+  const canResendPush =
+    payingWholeOrder &&
+    PUSH_METHODS.includes(String(order.paymentMethod || "").toLowerCase());
+  const [resendingPush, setResendingPush] = useState(false);
 
   const [publishableKey, setPublishableKey] = useState<string | null>(null);
   const [cardEnabled, setCardEnabled] = useState<boolean | null>(null);
@@ -127,6 +174,8 @@ export function PreorderBalanceCard({
   const [elementError, setElementError] = useState<string | null>(null);
   const [elementsReady, setElementsReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // The bank is still confirming a payment already made; nothing to pay now.
+  const [processing, setProcessing] = useState(false);
 
   const stripeRef = useRef<Stripe | null>(null);
   const cardNumberRef = useRef<StripeCardNumberElement | null>(null);
@@ -145,7 +194,10 @@ export function PreorderBalanceCard({
   const [expiryEl, setExpiryEl] = useState<HTMLDivElement | null>(null);
   const [cvcEl, setCvcEl] = useState<HTMLDivElement | null>(null);
 
-  const showCard = Boolean(order.hasPreorder) && balanceDue > 0;
+  // A pay link is shown for any order that still owes money; the balance card
+  // only for a pre-order that has one.
+  const showCard =
+    (payingWholeOrder || Boolean(order.hasPreorder)) && balanceDue > 0;
 
   useEffect(() => {
     if (!showCard) return;
@@ -251,7 +303,7 @@ export function PreorderBalanceCard({
   useEffect(() => {
     if (paypalReturnHandled.current) return;
     const url = new URL(window.location.href);
-    const outcome = url.searchParams.get("paypalBalance");
+    const outcome = url.searchParams.get(paypalReturnParam);
     if (!outcome) return;
     paypalReturnHandled.current = true;
     // PayPal appends its own order id as `token` — unrelated to the signed
@@ -259,7 +311,7 @@ export function PreorderBalanceCard({
     const paypalOrderId = url.searchParams.get("token");
 
     const clearParams = () => {
-      url.searchParams.delete("paypalBalance");
+      url.searchParams.delete(paypalReturnParam);
       url.searchParams.delete("token");
       url.searchParams.delete("PayerID");
       window.history.replaceState(window.history.state, "", url.toString());
@@ -314,7 +366,7 @@ export function PreorderBalanceCard({
   const payWithPayPal = async () => {
     setRedirectingToPayPal(true);
     try {
-      const res = await fetch(`/api/orders/${order._id}/preorder-balance/paypal`, {
+      const res = await fetch(paypalUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale, accessToken }),
@@ -339,13 +391,45 @@ export function PreorderBalanceCard({
     }
   };
 
+  const resendPush = async () => {
+    setResendingPush(true);
+    try {
+      const res = await fetch(`/api/orders/${order._id}/pay/push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale, accessToken }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || t("orders.preorderBalance.failed"));
+      }
+      if (json.data?.redirectUrl) {
+        // Orange Money takes the payer to its own page rather than prompting.
+        window.location.assign(String(json.data.redirectUrl));
+        return;
+      }
+      toast.success(
+        tf(
+          "orders.payNow.pushSent",
+          "Check your phone — we have sent the payment request again.",
+        ),
+      );
+      setResendingPush(false);
+    } catch (err) {
+      setResendingPush(false);
+      toast.error(
+        err instanceof Error ? err.message : t("orders.preorderBalance.failed"),
+      );
+    }
+  };
+
   const handlePay = async () => {
     const stripe = stripeRef.current;
     if (!stripe || !cardNumberRef.current || !elementsReady) return;
     setSubmitting(true);
     setElementError(null);
     try {
-      const intentRes = await fetch(`/api/orders/${order._id}/preorder-balance`, {
+      const intentRes = await fetch(intentUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale, accessToken }),
@@ -396,7 +480,7 @@ export function PreorderBalanceCard({
       // idempotent against it, so whichever lands first wins and the other
       // is a no-op.
       const confirmRes = await fetch(
-        `/api/orders/${order._id}/preorder-balance/confirm`,
+        confirmUrl,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -404,9 +488,17 @@ export function PreorderBalanceCard({
         },
       );
       const confirmJson = await confirmRes.json().catch(() => null);
-      if (!confirmRes.ok || !confirmJson?.success) {
-        // The charge went through; the webhook will still record it.
-        toast.success(t("orders.preorderBalance.processing"));
+      if (
+        !confirmRes.ok ||
+        !confirmJson?.success ||
+        status === "processing" ||
+        confirmJson.data?.pending
+      ) {
+        // The charge went through, or is still clearing; the webhook records
+        // it either way. Held on the card until then, so nobody pays twice.
+        setProcessing(true);
+        setOpen(false);
+        return;
       } else if (confirmJson.data?.settled === false) {
         // The money was captured and could not be recorded, so the server
         // refunded it and told the admins. Saying "paid" here would be a lie.
@@ -425,30 +517,44 @@ export function PreorderBalanceCard({
     }
   };
 
-  const hint =
-    order.preorderStatus === "payment_due"
+  const hint = payingWholeOrder
+    ? tf(
+        "orders.payNow.hint",
+        "This order has not been paid for yet. Pay below and we will get it on its way — nothing about the order changes.",
+      )
+    : order.preorderStatus === "payment_due"
       ? t("orders.preorderBalance.readyHint")
       : t("orders.preorderBalance.earlyHint");
+  const title = payingWholeOrder
+    ? tf("orders.payNow.title", "Payment due")
+    : t("orders.preorderBalance.title");
+  const dueLabel = payingWholeOrder
+    ? tf("orders.payNow.amountDue", "Amount due")
+    : t("orders.preorderBalance.balanceDue");
 
   return (
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <CreditCard className="h-4 w-4" />
-          {t("orders.preorderBalance.title")}
+          {title}
         </CardTitle>
         <CardDescription>{hint}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm space-y-1">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">
-              {t("orders.preorderBalance.paidSoFar")}
-            </span>
-            <span>{formatPrice(paidSoFar)}</span>
-          </div>
+          {/* Nothing has been paid on a "pay now" order, so a "paid so far: 0"
+              line would only be a way of saying so twice. */}
+          {payingWholeOrder ? null : (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                {t("orders.preorderBalance.paidSoFar")}
+              </span>
+              <span>{formatPrice(paidSoFar)}</span>
+            </div>
+          )}
           <div className="flex justify-between font-semibold">
-            <span>{t("orders.preorderBalance.balanceDue")}</span>
+            <span>{dueLabel}</span>
             <span>{formatPrice(balanceDue)}</span>
           </div>
           {/* The date the pre-order dies on if nothing arrives. The expiry job
@@ -466,7 +572,27 @@ export function PreorderBalanceCard({
           ) : null}
         </div>
 
-        {cardEnabled === false && !paypalEnabled ? (
+        {processing ? (
+          <div className="space-y-3">
+            <Button disabled>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {tf("orders.preorderBalance.processingButton", "Processing…")}
+            </Button>
+            <div
+              role="status"
+              className="flex gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2.5 text-sm text-foreground"
+            >
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <span>
+                {tf(
+                  "orders.preorderBalance.processingNotice",
+                  "Your bank is still confirming the {amount} payment. We'll email you as soon as it clears — there's no need to pay again.",
+                  { amount: formatPrice(balanceDue) },
+                )}
+              </span>
+            </div>
+          </div>
+        ) : cardEnabled === false && !paypalEnabled && !canResendPush ? (
           <p className="text-sm text-muted-foreground">
             {t("orders.preorderBalance.unavailable")}
           </p>
@@ -478,7 +604,26 @@ export function PreorderBalanceCard({
                 disabled={cardEnabled === null || redirectingToPayPal}
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                {t("orders.preorderBalance.payButton")}
+                {payingWholeOrder
+                  ? tf("orders.payNow.payButton", "Pay now")
+                  : t("orders.preorderBalance.payButton")}
+              </Button>
+            ) : null}
+            {canResendPush ? (
+              <Button
+                variant="outline"
+                onClick={() => void resendPush()}
+                disabled={resendingPush}
+              >
+                {resendingPush ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Smartphone className="mr-2 h-4 w-4" />
+                )}
+                {tf(
+                  "orders.payNow.resendPush",
+                  "Send the payment request to my phone again",
+                )}
               </Button>
             ) : null}
             {paypalEnabled ? (

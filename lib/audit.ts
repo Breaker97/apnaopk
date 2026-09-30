@@ -18,6 +18,7 @@ import {
   IAuditLog,
 } from "@/models/audit-log.model";
 import { connectDB } from "./db";
+import { resolveClientIp } from "@/lib/api/client-ip";
 import { redactCredentialPaths } from "@/lib/settings/credential-fields";
 
 /**
@@ -125,11 +126,7 @@ function extractRequestMetadata(
 ): Record<string, string> {
   if (!request) return {};
 
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    request.headers.get("cf-connecting-ip") ||
-    "unknown";
+  const ip = resolveClientIp(request.headers) ?? "unknown";
 
   return {
     ip,

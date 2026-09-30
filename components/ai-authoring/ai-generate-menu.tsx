@@ -50,6 +50,7 @@ import {
   type AIAuthoringTone,
 } from "@/lib/ai-authoring/types";
 import { useStudioStrings } from "@/components/ai-authoring/studio/use-studio-strings";
+import { useAiEntityAllowed } from "@/components/ai-authoring/ai-availability-provider";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
 // Rainbow frame around the menu. The hue rotates around the border to match
@@ -126,7 +127,20 @@ function toPlainText(value: string): string {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export function AiGenerateMenu<T = string>({
+/**
+ * The surface gate, kept in front of the menu rather than inside it: the
+ * request already names the entity, so every field that drops this menu beside
+ * a label inherits Settings → AI without its form knowing the feature exists.
+ * Returning null (rather than disabling) is deliberate — a store that turned AI
+ * off wants it gone, not greyed out and asking to be re-enabled.
+ */
+export function AiGenerateMenu<T = string>(props: AiGenerateMenuProps<T>) {
+  const allowed = useAiEntityAllowed(props.request.entity);
+  if (!allowed) return null;
+  return <AiGenerateMenuControl<T> {...props} />;
+}
+
+function AiGenerateMenuControl<T = string>({
   label = "Generate",
   iconOnly = true,
   triggerClassName,

@@ -1,7 +1,10 @@
-import { z } from "zod";
+import { withRequestScope } from "@/lib/api/request-scope";
+import { assertWholeQuantities } from "@/lib/cart/cart-item-quantity";
+import * as z from "zod";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Cart, Product, User } from "@/models";
+import { Cart, Product } from "@/models";
+import { findAccountForGuestCheckout } from "@/lib/customers/customer";
 import { getSettings } from "@/models/settings.model";
 import {
   CANONICAL_CART_WEIGHT_UNIT,
@@ -13,6 +16,10 @@ import {
   buildShippingMetadata,
 } from "@/lib/checkout/checkout-shipping";
 import { checkoutCartFingerprint } from "@/lib/checkout/checkout-cart-fingerprint";
+import { checkoutAttemptFingerprint } from "@/lib/checkout/checkout-attempts";
+import { quantizeToCurrency } from "@/lib/intl/money";
+import { checkoutStoreCredit } from "@/lib/store-credit/checkout-credit";
+import { holdCheckoutCredit } from "@/lib/store-credit/store-credit";
 import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
 import {
   pickupCheckoutCharges,
@@ -25,6 +32,10 @@ import {
   isStripeSecretKeyConfigured,
   toStripeAmount,
 } from "@/lib/payments/stripe";
+import {
+  assertPaymentMethodSettles,
+  storeCurrencyCode,
+} from "@/lib/payments/gateway-currencies";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import {
   resolveGuestStripeCustomerId,
@@ -37,7 +48,7 @@ import {
   validateAndCalculateCoupon,
 } from "@/lib/catalog/coupons";
 import { validateBody } from "@/lib/api/validate";
-import { PRODUCT_STATUS } from "@/config/app.config";
+import { MARKETING_CONSENT_STATE, PRODUCT_STATUS } from "@/config/app.config";
 import { isStorefrontProductSourceAllowed } from "@/lib/catalog/product-visibility";
 import {
   PURCHASE_TYPE,
@@ -55,6 +66,7 @@ import {
   assertPreorderMandateAccepted,
 } from "@/lib/payments/deferred-balance";
 import {
+  SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
   rateLimitBySession,
   rateLimitByUser,
@@ -66,6 +78,11 @@ import {
   cartLinePriceChanged,
   type CartPriceChange,
 } from "@/lib/checkout/cart-price-change";
+import {
+  assertCartPreorderQuota,
+  preorderLineCartSet,
+  refreshPreorderCartLine,
+} from "@/lib/checkout/preorder-cart-lines";
 import { updateCheckoutSnapshot } from "@/lib/orders/abandoned-checkouts";
 import { assertStorefrontWriteAllowed } from "@/lib/maintenance";
 import {
@@ -78,6 +95,7 @@ import {
   type ProductShippingData,
 } from "@/lib/catalog/product-shipping";
 import { withApi } from "@/lib/api/handler";
+import { afterResponse } from "@/lib/after-response";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import {
   loadShopperOffers,
@@ -85,8 +103,28 @@ import {
   quoteOfferLineKey,
 } from "@/lib/quotes/quote-offer";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
+import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
 import { enforceCheckoutSubmission } from "@/lib/checkout/checkout-submission";
 import { sumPreorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
+import {
+  carriedEligibleProductIds,
+  encodeEligibleProductIds,
+} from "@/lib/orders/coupon-line-split";
+import { isAttemptGateway } from "@/lib/payments/attempt-gateways";
+import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
+import {
+  openCheckoutAttempt,
+  recordAttemptGatewayRefs,
+  recordAttemptTry,
+  takeOverOpenAttempt,
+} from "@/lib/checkout/checkout-attempt-store";
+import {
+  assessCardTesting,
+  CARD_TESTING_BLOCKED_MESSAGE,
+  CARD_TESTING_CAPTCHA_MESSAGE,
+} from "@/lib/checkout/card-testing-guard";
+import { verifyTurnstileToken } from "@/lib/checkout/turnstile";
+import { getClientIP } from "@/lib/api/rate-limit-middleware";
 
 type CheckoutShippingAddress = {
   fullName: string;
@@ -102,6 +140,12 @@ type CheckoutShippingAddress = {
 };
 
 const CreateStripeIntentBodySchema = z.object({
+  /**
+   * Cloudflare Turnstile's answer, sent only once this checkout has asked for
+   * it. The card path is where card testing actually happens, so the check
+   * matters here more than anywhere else.
+   */
+  turnstileToken: z.string().max(4000).optional(),
   // Optional at the schema level: digital-only carts send billing only. The
   // route enforces presence once item shippability is known.
   shippingAddress: z
@@ -132,9 +176,13 @@ const CreateStripeIntentBodySchema = z.object({
       phone: z.string().optional(),
     })
     .optional(),
-  locale: z.string().optional(),
+  locale: z.string().max(10).optional(),
   email: z.string().email().optional(),
   couponCode: z.string().min(3).max(20).optional(),
+  // "Email me with news and offers" — same rules as the online-checkout route.
+  buyerAcceptsMarketing: z.boolean().optional(),
+  /** "Text me with news and offers" — same rules, the other channel. */
+  smsAcceptsMarketing: z.boolean().optional(),
   preorderAcknowledged: z.boolean().optional(),
   /**
    * The card-on-file authorisation, as a bare boolean. The words it agrees to
@@ -154,6 +202,8 @@ const CreateStripeIntentBodySchema = z.object({
       z.union([z.string().max(2000), z.boolean(), z.number()]),
     )
     .optional(),
+  /** Whether the shopper's store credit pays what it can (R8); on by default. */
+  useStoreCredit: z.boolean().optional(),
 });
 
 interface CartItem {
@@ -202,9 +252,11 @@ type StockCheckProduct = {
  * POST /api/payments/stripe/intent
  * Create Stripe PaymentIntent for inline card payment
  */
+// One read of the store's settings for the whole request — see
+// lib/api/request-scope.ts. This route never writes them.
 export const POST = withApi(
   { auth: "optional" },
-  async ({ request, session }) => {
+  async ({ request, session }) => withRequestScope(async () => {
     const cartSessionId = request.cookies?.get("cart_session")?.value;
 
     if (session?.user?.id) {
@@ -221,6 +273,7 @@ export const POST = withApi(
         cartSessionId,
         "payments:stripe-intent",
         "strict",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "strict");
@@ -234,6 +287,8 @@ export const POST = withApi(
       locale,
       email,
       couponCode,
+      buyerAcceptsMarketing,
+      smsAcceptsMarketing,
       preorderAcknowledged,
       preorderMandateAccepted,
       selectedShippingOptionId,
@@ -243,6 +298,8 @@ export const POST = withApi(
       phone,
       customerNote,
       customFields,
+      turnstileToken,
+      useStoreCredit,
     } = await validateBody(request, CreateStripeIntentBodySchema);
 
     // Card checkout used to refuse collection outright, because confirming an
@@ -305,6 +362,9 @@ export const POST = withApi(
     if (!stripeSettings?.enabled) {
       throw new ValidationError("Stripe is disabled");
     }
+    // The card form is offered only when Stripe settles the store currency; a
+    // page opened before the currency changed can still ask for an intent.
+    assertPaymentMethodSettles("card", storeCurrencyCode(settings));
     const stripeSecretKey = resolveStripeCredentials(stripeSettings).secretKey;
     if (!isStripeSecretKeyConfigured(stripeSecretKey)) {
       throw new ValidationError(
@@ -337,16 +397,15 @@ export const POST = withApi(
     }
 
     const items = cart.items as unknown as CartItem[];
-    // Mirror of the checkout route: a guest paying with an email that already
-    // belongs to a registered account gets the order attached to that account
+    assertWholeQuantities(items);
+    // Mirror of the checkout route: a guest paying with the email of a
+    // shopper's verified account gets the order attached to that account
     // (via the intent metadata the finalizer reads back). The finalizer
     // detects a true guest by userId doubling as the cart id, so this must
     // resolve before the metadata is stamped.
     const guestAccount =
       !session?.user?.id && customerEmail
-        ? await User.findOne({ email: customerEmail.trim().toLowerCase() })
-            .select("_id")
-            .lean()
+        ? await findAccountForGuestCheckout(customerEmail)
         : null;
     const customerId =
       session?.user?.id ||
@@ -373,9 +432,12 @@ export const POST = withApi(
       price: number;
       quantity: number;
       categoryId?: string;
+      /** Priced by a quote offer — a discount code never comes off it. */
+      quoted?: boolean;
     }> = [];
     // Lines whose live price differs from the one the shopper was shown.
     const priceChanges: CartPriceChange[] = [];
+    const preorderQuotaLines: Parameters<typeof assertCartPreorderQuota>[0] = [];
 
     // Accumulate shippable weight overall and per vendor so the shared resolver
     // can rate weight-based and per-vendor shipping (parity with checkout).
@@ -396,6 +458,16 @@ export const POST = withApi(
           item.productId.vendorId ||
           "",
       );
+
+    // A suspended seller, or one whose store went inactive with a lapsed plan,
+    // takes no new orders. The COD and redirect routes have always refused
+    // such a cart; this route did not, so the one way through that charges a
+    // card immediately was also the one way a suspended seller kept selling —
+    // leaving the store to refund by hand and hold a payout it should never
+    // have owed. Placed before any money is asked for, as it is there.
+    if (isMultiVendorEnabled) {
+      await assertCartVendorsSellable(items.map(itemVendorId));
+    }
 
     // Fetch every cart product in one query instead of one round-trip per item.
     const stockCheckProducts = await Product.find({
@@ -443,6 +515,9 @@ export const POST = withApi(
         product,
         variantId: item.variantId,
         requestedQuantity: item.quantity,
+        quoted: quoteOffers.has(
+          quoteOfferLineKey(item.productId._id, item.variantId),
+        ),
       });
       const expectedPurchaseType = item.purchaseType || PURCHASE_TYPE.STANDARD;
       if (!purchase || purchase.purchaseType !== expectedPurchaseType) {
@@ -485,11 +560,32 @@ export const POST = withApi(
         // (GET /api/cart prices quoted lines from it), so this is the figure
         // on their screen.
         item.price = lineOffer.unitPrice;
-      } else if (
-        (item.purchaseType || PURCHASE_TYPE.STANDARD) !== PURCHASE_TYPE.PREORDER
-      ) {
-        // Pre-order lines keep their price: the deposit and balance on the
-        // line were worked out against it when it was reserved.
+      } else if (purchase.purchaseType === PURCHASE_TYPE.PREORDER) {
+        // Priced and termed from the live product, as the checkout route does
+        // — see `refreshPreorderCartLine`.
+        const refreshed = refreshPreorderCartLine({
+          item,
+          product: product as unknown as Parameters<typeof refreshPreorderCartLine>[0]["product"],
+          purchase,
+          currency: settings.general?.defaultCurrency || "USD",
+        });
+        if (refreshed.changed) {
+          priceChanges.push({
+            productId: String(item.productId._id),
+            variantId: item.variantId ? String(item.variantId) : undefined,
+            name: item.productId.name,
+            previousPrice: refreshed.previousPrice,
+            price: refreshed.price,
+          });
+        }
+        preorderQuotaLines.push({
+          productId: String(item.productId._id),
+          product: product as unknown as Parameters<typeof refreshPreorderCartLine>[0]["product"],
+          variantId: item.variantId ? String(item.variantId) : undefined,
+          quantity: item.quantity,
+          name: item.productId.name,
+        });
+      } else {
         const liveVariant = item.variantId
           ? (
               product.variants as
@@ -522,6 +618,7 @@ export const POST = withApi(
         price: item.price,
         quantity: item.quantity,
         categoryId: product.category ? String(product.category) : undefined,
+        quoted: Boolean(lineOffer),
       });
 
       const selectedVariant = item.variantId
@@ -573,7 +670,14 @@ export const POST = withApi(
                 },
               }
             : {
-                $set: { "items.$[el].price": item.price },
+                $set: {
+                  "items.$[el].price": item.price,
+                  // A pre-order line's terms were worked out again with its price.
+                  ...((item.purchaseType || PURCHASE_TYPE.STANDARD) ===
+                  PURCHASE_TYPE.PREORDER
+                    ? preorderLineCartSet(item, (field) => `items.$[el].${field}`)
+                    : {}),
+                },
                 $unset: { "items.$[el].quoteId": "" },
               },
           arrayFilters: [
@@ -581,6 +685,8 @@ export const POST = withApi(
           ],
         },
       }));
+    // Every option of a product sharing one pre-order counter, together.
+    assertCartPreorderQuota(preorderQuotaLines);
     if (repriceOps.length > 0) {
       await Cart.bulkWrite(repriceOps);
     }
@@ -655,6 +761,7 @@ export const POST = withApi(
           discount: number;
           maxDiscount?: number;
           vendorShares?: Record<string, number>;
+          eligibleProductIds?: string[];
           shippingShares?: Record<string, number>;
           shippingVendorId?: string;
           fundedBy: "platform" | "vendor";
@@ -694,6 +801,7 @@ export const POST = withApi(
           isMultiVendorEnabled,
           selectedShippingOptionId,
           vendorShippingSelections,
+          currency: settings.general?.defaultCurrency,
         });
     if (shippingResolution && !shippingResolution.available) {
       throw new ValidationError(SHIPPING_UNAVAILABLE_MESSAGE);
@@ -722,6 +830,7 @@ export const POST = withApi(
         shippingByVendor,
         cartItems: couponCartItems,
         userId: session?.user?.id || (guestAccount ? String(guestAccount._id) : undefined),
+        currency: settings.general?.defaultCurrency,
         email: customerEmail,
       });
     }
@@ -744,14 +853,22 @@ export const POST = withApi(
     const couponVendorShares = appliedCoupon?.vendorShares
       ? discount === appliedCoupon.discount
         ? appliedCoupon.vendorShares
-        : splitCouponDiscount(discount, appliedCoupon.vendorShares)
+        : splitCouponDiscount(
+            discount,
+            appliedCoupon.vendorShares,
+            settings.general?.defaultCurrency,
+          )
       : undefined;
     // The same, for a free-shipping coupon: whose delivery it actually paid
     // for — see `shippingDiscount` on the sub-order.
     const couponShippingShares = appliedCoupon?.shippingShares
       ? discount === appliedCoupon.discount
         ? appliedCoupon.shippingShares
-        : splitCouponDiscount(discount, appliedCoupon.shippingShares)
+        : splitCouponDiscount(
+            discount,
+            appliedCoupon.shippingShares,
+            settings.general?.defaultCurrency,
+          )
       : undefined;
     // For deposit-mode pre-orders only the deposit is due now; the outstanding
     // balance is collected later. Charging the full `total` here (as before)
@@ -760,6 +877,11 @@ export const POST = withApi(
     // After the coupon, which comes off the deposit and the balance in
     // proportion — see `preorderOutstandingAfterCoupon`. The order builder
     // works the same figure out from the same cart and metadata.
+    // The products a scoped coupon applied to, as this payment will carry them
+    // to the order builder — see `carriedEligibleProductIds`.
+    const couponEligibleProductIds = couponVendorShares
+      ? carriedEligibleProductIds(appliedCoupon?.eligibleProductIds)
+      : undefined;
     const preorderOutstandingAmount = sumPreorderOutstandingAfterCoupon(
       items.map((item: CartItem) => {
         const vendor = item.productId.vendorId;
@@ -771,15 +893,38 @@ export const POST = withApi(
           vendorId: vendor
             ? String(typeof vendor === "object" ? vendor._id : vendor)
             : null,
+          productId: String(item.productId._id),
         };
       }),
-      { goodsDiscount: totals.subtotalDiscount, vendorShares: couponVendorShares },
+      {
+        goodsDiscount: totals.subtotalDiscount,
+        vendorShares: couponVendorShares,
+        eligibleProductIds: couponEligibleProductIds,
+      },
       settings.general?.defaultCurrency || "USD",
     );
-    const paymentDueNow = Math.max(0, total - preorderOutstandingAmount);
-
-    /** No user account behind this order — its customer id will be the cart. */
-    const isGuestCheckout = !session?.user?.id && !guestAccount;
+    const dueBeforeStoreCredit = Math.max(0, total - preorderOutstandingAmount);
+    // What the shopper's store credit pays (R8): the card is charged the rest.
+    // Never on a pre-order — see `checkoutStoreCredit`.
+    const storeCreditApplied = await checkoutStoreCredit({
+      userId: session?.user?.id,
+      useStoreCredit,
+      currency: settings.general?.defaultCurrency || "USD",
+      cartId: cart._id,
+      dueNow: dueBeforeStoreCredit,
+      hasPreorder,
+      paymentMethod: "stripe",
+    });
+    const paymentDueNow = quantizeToCurrency(
+      Math.max(0, dueBeforeStoreCredit - storeCreditApplied),
+      settings.general?.defaultCurrency || "USD",
+    );
+    if (storeCreditApplied > 0 && !(paymentDueNow > 0)) {
+      // The checkout places such an order itself, with nothing to charge.
+      throw new ValidationError({
+        paymentMethod: ["Your store credit covers this order. Place it without a card."],
+      });
+    }
 
     // Stripe can collect the balance later either way, so nothing here fails
     // for a card checkout: a guest is reached through the signed balance link
@@ -812,10 +957,6 @@ export const POST = withApi(
 
     const activeLocale =
       typeof locale === "string" && locale.length > 0 ? locale : "en";
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
 
     const stripe = getStripeForSecretKey(stripeSecretKey);
     const currency = (settings.general?.defaultCurrency || "USD").toLowerCase();
@@ -830,13 +971,18 @@ export const POST = withApi(
     // the intent's metadata — minted only when there is a balance to keep a
     // card for, so an ordinary guest sale leaves no Customer behind.
     const stripeCustomerId =
-      (await resolveStripeCustomerId({
-        secretKey: stripeSecretKey,
-        userId: customerId,
-        email: customerEmail,
-        name: session?.user?.name,
-      })) ||
-      (isGuestCheckout && preorderMandateText
+      // The account's own Customer only for its signed-in owner: a guest
+      // checkout filed under an account by its email is still a stranger to
+      // the cards saved on it.
+      (session?.user?.id
+        ? await resolveStripeCustomerId({
+            secretKey: stripeSecretKey,
+            userId: session.user.id,
+            email: customerEmail,
+            name: session.user.name,
+          })
+        : undefined) ||
+      (!session?.user?.id && preorderMandateText
         ? await resolveGuestStripeCustomerId({
             secretKey: stripeSecretKey,
             cartId: String(cart._id),
@@ -908,6 +1054,33 @@ export const POST = withApi(
       );
     }
 
+    // Before Stripe is asked for anything: has this shopper's card been
+    // refused so often that it looks like a script working through a list?
+    // This is the path card testing actually uses, so the check lives here as
+    // well as on the checkout route the other gateways go through.
+    const cardTesting = await assessCardTesting({
+      checkoutToken: cart.checkoutToken,
+      email: customerEmail,
+      clientIp: getClientIP(request),
+    }).catch((err) => {
+      console.error("Failed to assess repeated payment failures:", err);
+      return null;
+    });
+
+    if (cardTesting?.blocked) {
+      throw new ValidationError({ payment: [CARD_TESTING_BLOCKED_MESSAGE] });
+    }
+    if (cardTesting?.requireCaptcha) {
+      const check = await verifyTurnstileToken({
+        settings,
+        token: turnstileToken,
+        clientIp: getClientIP(request),
+      });
+      if (!check.ok) {
+        throw new ValidationError({ turnstile: [CARD_TESTING_CAPTCHA_MESSAGE] });
+      }
+    }
+
     // One use of a limited coupon, kept for this shopper while the card is
     // charged; capture turns it into the use. Refused before Stripe is asked for
     // anything when the coupon has no use to spare.
@@ -917,6 +1090,24 @@ export const POST = withApi(
         holdKey: couponHoldKey(customerId),
       });
     }
+
+    // The shopper's store credit, held while the card is being charged (R8).
+    // The order Stripe's capture builds takes the hold over and spends it.
+    const storeCreditHold =
+      storeCreditApplied > 0 && session?.user?.id
+        ? await holdCheckoutCredit({
+            customerId: session.user.id,
+            currency: settings.general?.defaultCurrency || "USD",
+            amount: storeCreditApplied,
+            cartId: cart._id,
+            method: "card",
+            fingerprint: checkoutAttemptFingerprint({
+              cart: checkoutCartFingerprint(items),
+              total,
+              storeCredit: storeCreditApplied,
+            }),
+          })
+        : null;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: toStripeAmount(paymentDueNow, currency),
@@ -954,6 +1145,7 @@ export const POST = withApi(
         couponVendorShares: couponVendorShares
           ? JSON.stringify(couponVendorShares)
           : "",
+        couponEligibleProducts: encodeEligibleProductIds(couponEligibleProductIds),
         couponShippingShares: couponShippingShares
           ? JSON.stringify(couponShippingShares)
           : "",
@@ -981,6 +1173,13 @@ export const POST = withApi(
             }),
         pickupFulfillment:
           serializePickupFulfillmentMetadata(pickupFulfillment),
+        // The part the shopper's store credit pays, and its hold (R8).
+        ...(storeCreditHold
+          ? {
+              storeCreditApplied: String(storeCreditApplied),
+              storeCreditHoldKey: storeCreditHold.holdKey,
+            }
+          : {}),
       },
     });
 
@@ -988,6 +1187,209 @@ export const POST = withApi(
       return NextResponse.json(
         { success: false, message: "Failed to create payment intent" },
         { status: 500 },
+      );
+    }
+
+    // A record of this card attempt, when the store has switched cards over.
+    //
+    // Stripe already writes no order until the money is captured, so unlike
+    // the redirect gateways there is no order here to replace. What the
+    // attempt adds is a row for the tries that FAIL — a refused card produces
+    // nothing else at all — so the admin can show every try behind one
+    // checkout and the card-testing counters have something to count.
+    //
+    // Its snapshot is what Stripe itself was told: the priced totals and the
+    // addresses. It is not the order payload the other gateways store,
+    // because Stripe builds its order from the cart at capture and refuses a
+    // cart that has changed (`stripeCartMatchesFingerprint`) — the same
+    // protection, by a mechanism that was already there.
+    if (isAttemptGateway(settings, "card")) {
+      // Every press of "pay" mints a fresh PaymentIntent here, so without
+      // this every retry would open another attempt and hold the goods all
+      // over again — three tries on the last two units would empty the shelf
+      // for a shopper who has not paid for anything yet. The cart's own open
+      // attempt is reused where the cart has not changed, and any other is
+      // superseded, which gives back whatever it was holding.
+      const attemptFingerprint = checkoutCartFingerprint(items);
+      const reusable = await takeOverOpenAttempt({
+        cartId: cart._id,
+        paymentMethod: "card",
+        fingerprint: attemptFingerprint,
+      }).catch((err) => {
+        console.error("Failed to look for a reusable card attempt:", err);
+        return null;
+      });
+      if (reusable) await recordAttemptTry(reusable._id);
+
+      const attempt = reusable ?? await openCheckoutAttempt({
+        snapshot: {
+          paymentMethod: "card",
+          currency: (settings.general?.defaultCurrency || "USD").toUpperCase(),
+          subtotal,
+          shippingCost,
+          tax,
+          discount,
+          total,
+          shippingAddress: normalizedShippingAddress,
+          billingAddress: normalizedBillingAddress,
+          items: items.map((item) => ({
+            productId: String(item.productId?._id ?? ""),
+            name: item.productId?.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        } as never,
+        paymentMethod: "card",
+        cartId: cart._id,
+        checkoutToken: cart.checkoutToken,
+        customerId,
+        // `customerId` falls back to the cart for a guest, so it cannot say
+        // whether one is paying — the account lookup above can.
+        guestEmail:
+          session?.user?.id || guestAccount ? undefined : customerEmail || undefined,
+        sessionId: cart.sessionId,
+        fingerprint: attemptFingerprint,
+        clientIp: getClientIP(request),
+        userAgent: request.headers.get("user-agent") || undefined,
+      }).catch((err) => {
+        // Never fails the payment: the shopper has a card in hand and the
+        // capture path does not read this row.
+        console.error("Failed to open a checkout attempt for Stripe:", err);
+        return null;
+      });
+      if (attempt) {
+        await recordAttemptGatewayRefs(attempt._id, {
+          stripePaymentIntentId: paymentIntent.id,
+        });
+
+        // And hold the goods while the card is being entered, the same
+        // quarter of an hour a redirect gateway's shopper gets. A card
+        // checkout is usually quicker than that, but a bank's verification
+        // step is not, and the failure this prevents — two shoppers paying
+        // for the last unit — is the one that has to be refunded afterwards.
+        //
+        // Never fails the payment: a hold that could not be taken means the
+        // capture path takes the stock itself, exactly as it did before.
+        const holdSettings = normalizeCheckoutSettings(settings.checkout).stockHold;
+        // Only for an attempt opened just now: a reused one is already
+        // holding its goods, or its hold has lapsed and the capture path
+        // will take the stock itself.
+        if (!reusable && holdSettings.enabled && !hasPreorder) {
+          const { holdAttemptStock } = await import(
+            "@/lib/checkout/attempt-stock-hold"
+          );
+          const soldOut = await holdAttemptStock({
+            attemptId: attempt._id,
+            items,
+            minutes: holdSettings.minutes,
+            inventoryOpts: pickupFulfillment
+              ? { locationId: pickupFulfillment.pickup.pickupLocationId }
+              : {},
+          }).catch((err) => {
+            console.error("Failed to hold stock for a card checkout:", err);
+            return null;
+          });
+          if (soldOut) {
+            const failedItem = items.find(
+              (item) => String(item.productId?._id) === soldOut.soldOutProductId,
+            );
+            throw new ValidationError({
+              stock: [
+                `${failedItem?.productId?.name || "Product"} is out of stock or has insufficient quantity`,
+              ],
+            });
+          }
+        }
+      }
+    }
+
+    // "Email me with news and offers", recorded on the customer record here
+    // rather than waiting for the finalizer: the order this card pays for is
+    // built from a webhook, which carries none of the checkout's own answers.
+    // Only where the store offers the box, and only ever subscribing — see
+    // `recordCheckoutMarketingConsent`.
+    const marketingConsented =
+      buyerAcceptsMarketing === true &&
+      submission.checkout.contact.marketingOptIn.enabled;
+    if (marketingConsented) {
+      const { recordCheckoutMarketingConsent } = await import(
+        "@/lib/customers/customer"
+      );
+      const doubleOptIn =
+        submission.checkout.contact.marketingOptIn.doubleOptIn;
+      const consent = await recordCheckoutMarketingConsent({
+        accepted: true,
+        // Where they were when they agreed — the country decides whether a
+        // pre-ticked box was lawful, which is the first thing an audit asks.
+        sourceCountry: normalizedShippingAddress?.country,
+        doubleOptIn,
+        userId:
+          session?.user?.id || (guestAccount ? String(guestAccount._id) : null),
+        guestEmail: customerEmail,
+      }).catch((err) => {
+        console.error("Failed to record checkout marketing consent:", err);
+        return null;
+      });
+      // Pending is not a subscriber: ask for the confirmation that makes it
+      // one. Sent after the response, because it is an SMTP round trip and
+      // the shopper is waiting on an order — the comment above used to claim
+      // this and the `await` said otherwise, so a slow mail server delayed
+      // every checkout and a failing one could lose the order to a timeout.
+      const confirmationEmail = customerEmail;
+      // Owed once, on the way INTO pending: a shopper already on the list is
+      // left there (`setMarketingConsent`, rule 4), and one who is still
+      // pending already holds a link that works — a declined card retried
+      // three times must not send three of them.
+      if (
+        doubleOptIn &&
+        confirmationEmail &&
+        consent?.state === MARKETING_CONSENT_STATE.PENDING &&
+        consent.previousState !== MARKETING_CONSENT_STATE.PENDING
+      ) {
+        afterResponse(async () => {
+          const { sendMarketingConfirmationEmail } = await import(
+            "@/lib/customers/marketing-confirmation"
+          );
+          await sendMarketingConfirmationEmail({
+            email: confirmationEmail,
+            settings,
+            locale: activeLocale,
+          });
+        });
+      }
+    }
+
+    // The same for "text me with news and offers", which is shown instead of
+    // the email box when the shopper's contact is a number. The number is
+    // resolved to E.164 here rather than taken from the browser, so a consent
+    // is only ever recorded against something the store can actually text.
+    if (
+      smsAcceptsMarketing === true &&
+      submission.checkout.contact.smsOptIn.enabled
+    ) {
+      const [{ recordCheckoutSmsConsent }, { normalizePhoneNumber }] =
+        await Promise.all([
+          import("@/lib/customers/customer"),
+          import("@/lib/sms/phone"),
+        ]);
+      await recordCheckoutSmsConsent({
+        accepted: true,
+        userId:
+          session?.user?.id || (guestAccount ? String(guestAccount._id) : null),
+        guestEmail: customerEmail,
+        phone:
+          normalizePhoneNumber(
+            submission.contactPhone || normalizedShippingAddress?.phone,
+            {
+              country: normalizedShippingAddress?.country,
+              defaultCountry:
+                settings.sms?.defaultCountry ||
+                settings.shipping?.origin?.country,
+            },
+          ) ?? null,
+        sourceCountry: normalizedShippingAddress?.country,
+      }).catch((err) =>
+        console.error("Failed to record checkout SMS consent:", err),
       );
     }
 
@@ -1002,12 +1404,12 @@ export const POST = withApi(
       };
       await updateCheckoutSnapshot(cartDoc, {
         trackAbandoned: submission.checkout.abandonedCheckouts.enabled,
-        origin,
         locale: activeLocale,
         email: customerEmail,
         phone: normalizedShippingAddress.phone,
         customerName: normalizedShippingAddress.fullName,
         customerLocale: activeLocale,
+        buyerAcceptsMarketing: marketingConsented,
         shippingAddress: normalizedShippingAddress,
         billingAddress: normalizedBillingAddress,
         gateway: "card",
@@ -1034,5 +1436,5 @@ export const POST = withApi(
         clientSecret: paymentIntent.client_secret,
       },
     });
-  },
+  }),
 );

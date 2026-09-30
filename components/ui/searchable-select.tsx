@@ -27,6 +27,12 @@ interface SearchableSelectProps {
   onValueChange: (value: string) => void;
   /** Id for the trigger, so an outer <Label htmlFor> can point at it. */
   id?: string;
+  /**
+   * Accessible name for the trigger. Needed wherever the field's label is
+   * drawn outside the button (e.g. a floating label), which leaves the button
+   * itself named only by whichever option happens to be selected.
+   */
+  ariaLabel?: string;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
@@ -47,6 +53,12 @@ interface SearchableSelectProps {
   trigger?: React.ReactNode;
   /** Popover alignment. Defaults to "start". */
   align?: "start" | "center" | "end";
+  /**
+   * Set inside a Dialog. The list is portaled outside the dialog, whose scroll
+   * lock then swallows the wheel over it — a list longer than its box could
+   * not be scrolled. A modal popover takes the lock over for itself.
+   */
+  modal?: boolean;
 }
 
 /**
@@ -58,6 +70,7 @@ export function SearchableSelect({
   value,
   onValueChange,
   id,
+  ariaLabel,
   placeholder = "Select",
   searchPlaceholder = "Search...",
   emptyText = "No results found",
@@ -68,11 +81,13 @@ export function SearchableSelect({
   renderValue,
   trigger,
   align = "start",
+  modal = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState(0);
   const listboxId = React.useId();
+  const searchRef = React.useRef<HTMLInputElement>(null);
 
   const selected = React.useMemo(
     () => options.find((o) => o.value === value),
@@ -150,13 +165,14 @@ export function SearchableSelect({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={modal}>
       <PopoverTrigger asChild>
         {trigger ?? (
           <button
             id={id}
             type="button"
             disabled={disabled}
+            aria-label={ariaLabel}
             aria-haspopup="listbox"
             aria-expanded={open}
             className={cn(
@@ -190,14 +206,18 @@ export function SearchableSelect({
           contentClassName,
         )}
         onOpenAutoFocus={(e) => {
-          // Focus the search input, not the first item.
+          // Focus the search input, not the first item — here rather than
+          // with `autoFocus`, which fires before this popover's focus scope
+          // exists: inside a Dialog, the dialog's trap took focus straight
+          // back to the trigger and typing went nowhere.
           e.preventDefault();
+          searchRef.current?.focus();
         }}
       >
         <div className="flex items-center gap-2 border-b px-3">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <Input
-            autoFocus
+            ref={searchRef}
             role="combobox"
             aria-expanded={open}
             aria-controls={listboxId}

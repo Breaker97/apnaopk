@@ -24,7 +24,7 @@ import {
 } from "@/models/commissionInvoice.model";
 import { PlatformPayment } from "@/models/platformPayment.model";
 import { getSettings } from "@/models/settings.model";
-import { z } from "zod";
+import * as z from "zod";
 
 /**
  * Commission the platform is owed by one vendor, and the invoices raised for it.
@@ -53,17 +53,35 @@ async function requireBillableVendor(id: string) {
   return { settings };
 }
 
-const CommissionInvoiceSchema = z.object({ note: z.string().max(2000).optional() });
+const CommissionInvoiceSchema = z.object({
+  note: z.string().max(2000).optional(),
+  // Which currency to bill. An invoice is raised in one, and a vendor whose
+  // cash sales were in another had no way to be billed for them at all.
+  currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{3}$/)
+    .optional(),
+});
+
+/** The currency asked for, or the store's own. */
+function billingCurrency(requested: unknown, settings: { general?: { defaultCurrency?: string } }) {
+  const code = typeof requested === "string" ? requested.trim() : "";
+  return (
+    /^[A-Za-z]{3}$/.test(code) ? code : settings.general?.defaultCurrency || "USD"
+  ).toUpperCase();
+}
 
 export const GET = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params }) => {
     const { id } = params;
     const { settings } = await requireBillableVendor(id);
 
-    const storeCurrency = String(
-      settings.general?.defaultCurrency || "USD",
-    ).toUpperCase();
+    const storeCurrency = billingCurrency(
+      new URL(request.url).searchParams.get("currency"),
+      settings,
+    );
     const [owed, invoices] = await Promise.all([
       // Scoped to the currency an invoice would actually be raised in. Owed
       // balances in any other currency ride along in `owed.otherCurrencies`
@@ -108,7 +126,7 @@ export const POST = withApi<{ id: string }>(
     const invoice = await createCommissionInvoice({
       vendorId: id,
       userId: session.user.id,
-      currency: String(settings.general?.defaultCurrency || "USD"),
+      currency: billingCurrency(body.currency, settings),
       note: typeof body.note === "string" ? body.note : undefined,
     });
 
@@ -177,6 +195,12 @@ export const PATCH = withApi<{ id: string }>(
         String(invoice._id),
         "cancelled",
       );
+      // A payment landed between the read above and the release.
+      if (released === null) {
+        throw new ValidationError(
+          "This invoice is no longer open — it may have just been paid. Refresh and check before cancelling.",
+        );
+      }
       return successResponse(
         { released },
         "Invoice cancelled — those sales are owed again",

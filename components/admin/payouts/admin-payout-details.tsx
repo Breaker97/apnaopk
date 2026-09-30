@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Check, Info } from "lucide-react";
@@ -297,7 +297,7 @@ export function AdminPayoutDetails({
   return (
     <div className="space-y-5">
       <Link
-        href={`/${locale}/admin/payouts`}
+        href="/admin/payouts"
         className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" />
@@ -326,7 +326,7 @@ export function AdminPayoutDetails({
             </span>
             {payout.vendorId?._id ? (
               <Link
-                href={`/${locale}/admin/vendors/${payout.vendorId._id}`}
+                href={`/admin/vendors/${payout.vendorId._id}`}
                 className="font-medium text-foreground hover:underline"
               >
                 {payout.vendorId?.storeName || "-"}
@@ -694,7 +694,7 @@ export function AdminPayoutDetails({
                 <tr key={order._id} className="border-b last:border-0">
                   <td className="px-4 py-3">
                     <Link
-                      href={`/${locale}/admin/orders?search=${encodeURIComponent(order.orderNumber)}`}
+                      href={`/admin/orders?search=${encodeURIComponent(order.orderNumber)}`}
                       className="font-medium text-primary hover:underline"
                     >
                       {order.orderNumber}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   Loader2,
   RefreshCw,
@@ -33,7 +33,6 @@ import { cn } from "@/lib/utils";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
 import { DetailFormSkeleton } from "@/components/admin/detail-form-skeleton";
 import { USER_ACCOUNT_STATUS, VENDOR_STATUS } from "@/config/app.config";
-import type { VendorPermission } from "@/config/permissions.config";
 import { VendorDetailHeader } from "./vendor-detail-header";
 import type {
   PackLayerSnapshot,
@@ -74,8 +73,6 @@ interface VendorResponse {
   shipping?: { codCollectedBy?: string };
   status?: string;
   verified?: boolean;
-  /** @deprecated legacy grant list; the server resolves access itself now. */
-  permissions?: VendorPermission[];
   permissionOverrides?: VendorOverrideDraft[];
   /** Policy + entitlement per pack, already resolved by the GET. */
   packLayers?: PackLayerSnapshot[];
@@ -793,7 +790,6 @@ export function VendorDetailShell({
               <VendorPreorderAccessCard
                 vendorId={vendorId}
                 storeName={form.storeName}
-                locale={locale}
                 readOnly={readOnly}
               />
             </div>

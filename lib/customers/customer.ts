@@ -3,15 +3,20 @@ import {
   CustomerProfile,
   Order,
   QuoteRequest,
+  ReturnRequest,
   Review,
   User,
   Wishlist,
+  getSettingsLean,
 } from "@/models";
 import type { CustomerStats } from "@/types";
 import {
+  DEFAULT_LOYALTY_SPEND_PER_POINT,
   LOYALTY_TIER_SWITCH,
   computePointsFromOrder,
   computeRefundPointDelta,
+  normalizeSpendPerPoint,
+  orderSpendPerPoint,
 } from "@/lib/customers/loyalty";
 import { type ClientSession, Types } from "mongoose";
 
@@ -26,6 +31,23 @@ export {
   computeRefundPointDelta,
 } from "@/lib/customers/loyalty";
 import { roundMoney } from "@/lib/intl/money";
+import { isCustomerAccount } from "@/lib/access/customer-account";
+import {
+  setMarketingConsent,
+  type MarketingConsentResult,
+} from "@/lib/customers/marketing-consent";
+import {
+  carryGuestProfileForward,
+  type ProfileLike,
+} from "@/lib/customers/profile-merge";
+import {
+  MARKETING_CHANNEL,
+  MARKETING_CONSENT_SOURCE,
+  MARKETING_CONSENT_STATE,
+  MARKETING_OPT_IN_LEVEL,
+  USER_ROLES,
+} from "@/config/app.config";
+import { COLLECTED_ORDER_MATCH } from "@/lib/orders/order-payment-status";
 
 function isTransactionUnsupported(error: unknown): boolean {
   return (
@@ -76,24 +98,8 @@ function normalizeGuestEmail(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-/**
- * Count money actually collected: unpaid pending orders inflated totalSpent
- * (10 abandoned COD checkouts looked like real revenue), while paid gateway
- * orders were the ones that mattered. COD orders count once delivered even if
- * payment is still marked pending. Shared by the registered and guest stats
- * refreshers so both kinds of customer are measured by the same rule.
- */
-const COLLECTED_ORDER_MATCH: Record<string, unknown> = {
-  status: { $ne: "cancelled" },
-  $or: [
-    {
-      paymentStatus: {
-        $in: ["paid", "partially_paid", "partially_refunded", "refunded"],
-      },
-    },
-    { status: "delivered" },
-  ],
-};
+// The rule this file first wrote now lives in `lib/orders/order-payment-status.ts`,
+// where the dashboard, the analytics page and the order stats strip read it too.
 
 const ORDER_STATS_GROUP = {
   $group: {
@@ -236,14 +242,20 @@ async function applyOrderLoyaltyDelta(
 /**
  * Award an order's whole-number points exactly once after its full payment has
  * been committed. The order's loyalty subdocument is the durable retry claim.
+ *
+ * Earned at the store's current rate, which is stamped on the order with the
+ * points so a later change of rate never re-prices them.
  */
 export async function awardOrderLoyaltyPoints(orderId: string): Promise<number> {
+  const spendPerPoint = normalizeSpendPerPoint(
+    (await getSettingsLean())?.orders?.loyaltySpendPerPoint,
+  );
   return withLoyaltyTransaction(async (session) => {
     const order = await Order.findById(orderId).session(session).lean();
     if (!order?.customerId || order.paymentStatus !== "paid") return 0;
     if (order.loyalty?.pointsAwarded !== undefined) return 0;
 
-    const points = computePointsFromOrder(order.total);
+    const points = computePointsFromOrder(order.total, spendPerPoint);
     const claim = await Order.updateOne(
       {
         _id: order._id,
@@ -254,6 +266,7 @@ export async function awardOrderLoyaltyPoints(orderId: string): Promise<number> 
         $set: {
           "loyalty.pointsAwarded": points,
           "loyalty.pointsReversed": 0,
+          "loyalty.spendPerPoint": spendPerPoint,
           "loyalty.awardedAt": new Date(),
         },
       },
@@ -285,6 +298,9 @@ export async function reverseOrderLoyaltyPoints(orderId: string): Promise<number
       order.loyalty.pointsAwarded,
       pointsReversed,
       order.refundedTotal ?? 0,
+      // The rate the points were given at, not today's: a refund takes back
+      // what the order earned.
+      orderSpendPerPoint(order.loyalty, DEFAULT_LOYALTY_SPEND_PER_POINT),
     );
     if (delta === 0) return 0;
 
@@ -478,6 +494,99 @@ export async function upsertGuestCustomerProfile(params: {
 }
 
 /**
+ * Record a shopper's "email me with news and offers" from checkout.
+ *
+ * The tick-box used to reach nothing but the abandoned-checkout snapshot, so
+ * the one shopper whose consent was kept was the one who walked away — and
+ * with abandoned tracking switched off, the box wrote nowhere at all. This
+ * puts it where the store actually reads consent from: the customer record,
+ * signed in (by userId) or guest (by email, the same row the order's own
+ * guest upsert uses).
+ *
+ * Consent only ever goes ON here. Leaving the box unticked is not a request to
+ * be unsubscribed — a shopper who signed up months ago and buys again without
+ * noticing the box would otherwise be dropped from the list by an order. The
+ * way back out is the unsubscribe link and the account's own preferences.
+ *
+ * The write itself belongs to `setMarketingConsent`, which owns the state
+ * machine; this only says what a ticked checkout box means.
+ */
+export async function recordCheckoutMarketingConsent(params: {
+  accepted?: boolean;
+  /** The signed-in shopper, or the account a guest email resolved to. */
+  userId?: string | null;
+  /** The email a guest checked out under, when there is no account. */
+  guestEmail?: string | null;
+  /** The order the box was ticked on, kept with the consent for audits. */
+  sourceOrderId?: string | null;
+  /** The delivery country — what decides whether a pre-tick was lawful there. */
+  sourceCountry?: string | null;
+  ip?: string | null;
+  /**
+   * The store asks shoppers to confirm by email. They stay `pending` — not a
+   * subscriber, not mailed — until they open the link.
+   */
+  doubleOptIn?: boolean;
+}): Promise<MarketingConsentResult | null> {
+  if (params.accepted !== true) return null;
+
+  return setMarketingConsent({
+    state: params.doubleOptIn
+      ? MARKETING_CONSENT_STATE.PENDING
+      : MARKETING_CONSENT_STATE.SUBSCRIBED,
+    optInLevel: params.doubleOptIn
+      ? MARKETING_OPT_IN_LEVEL.CONFIRMED
+      : MARKETING_OPT_IN_LEVEL.SINGLE,
+    source: MARKETING_CONSENT_SOURCE.CHECKOUT,
+    userId: params.userId,
+    guestEmail: params.guestEmail,
+    sourceOrderId: params.sourceOrderId,
+    sourceCountry: params.sourceCountry,
+    ip: params.ip,
+    // The shopper is becoming a customer with this order, so the row may not
+    // exist yet.
+    createIfMissing: true,
+  });
+}
+
+/**
+ * The text-message twin of the box above: "Text me with news and offers",
+ * shown instead of the email one when the shopper's contact is a number.
+ *
+ * Its own record, because agreeing to email is not agreeing to be texted, and
+ * keyed on the number when that is all the shopper gave — an email-keyed row
+ * cannot hold the consent of someone who left no email.
+ */
+export async function recordCheckoutSmsConsent(params: {
+  accepted?: boolean;
+  userId?: string | null;
+  guestEmail?: string | null;
+  /** E.164, resolved by the caller from the delivery country. */
+  phone?: string | null;
+  sourceOrderId?: string | null;
+  sourceCountry?: string | null;
+  ip?: string | null;
+}) {
+  if (params.accepted !== true) return;
+  // Nothing to text, nothing to record.
+  if (!params.phone) return;
+
+  await setMarketingConsent({
+    channel: MARKETING_CHANNEL.SMS,
+    state: MARKETING_CONSENT_STATE.SUBSCRIBED,
+    optInLevel: MARKETING_OPT_IN_LEVEL.SINGLE,
+    source: MARKETING_CONSENT_SOURCE.CHECKOUT,
+    userId: params.userId,
+    guestEmail: params.guestEmail,
+    phone: params.phone,
+    sourceOrderId: params.sourceOrderId,
+    sourceCountry: params.sourceCountry,
+    ip: params.ip,
+    createIfMissing: true,
+  });
+}
+
+/**
  * Fold a shopper's guest history into their account, keyed by email — the
  * Shopify "account activation" moment. Orders placed as a guest under this
  * email are relinked to the User, quote requests sent while signed out are
@@ -485,8 +594,16 @@ export async function upsertGuestCustomerProfile(params: {
  * profile (userId attached, guest identity cleared) or, when a profile already
  * exists, donates its loyalty balance and is retired.
  *
+ * Only for an account that has PROVEN the email (`emailVerified`) — callers
+ * check. Anyone can sign up under someone else's address; with the claim
+ * behind "not required" or a grace period, doing so handed over that
+ * shopper's orders, addresses and points. For the same reason nothing is
+ * claimed by phone: a number on a profile is typed, never confirmed, so a
+ * guest row keyed on one stays a guest row.
+ *
  * Runs on session creation, so it must be cheap when there is nothing to
- * claim: one indexed profile read and two indexed no-op updateManys.
+ * claim: one indexed read and two indexed no-op updateManys, in one round
+ * trip.
  */
 export async function claimGuestCustomerData(userId: string, email: string) {
   await connectDB();
@@ -519,14 +636,82 @@ export async function claimGuestCustomerData(userId: string, email: string) {
     return;
   }
 
-  if (guestProfile) {
-    const existing = await CustomerProfile.findOne({ userId: userObjectId })
+  // The returns the store opened on those orders go with them: a guest had no
+  // account to see one in. Found by the orders' ids, which are indexed, and
+  // only when orders moved — a session with nothing to claim pays nothing.
+  if (linkedOrders.modifiedCount > 0) {
+    const claimedOrders = await Order.find({ guestEmail, customerId: userObjectId })
       .select("_id")
-      .lean();
+      .lean<Array<{ _id: Types.ObjectId }>>();
+    await ReturnRequest.updateMany(
+      {
+        orderId: { $in: claimedOrders.map((order) => order._id) },
+        customerId: { $ne: userObjectId },
+      },
+      { $set: { customerId: userObjectId } },
+    );
+  }
+
+  if (guestProfile) {
+    await absorbGuestProfile(guestProfile, userObjectId);
+  }
+
+  await refreshCustomerStats(userId);
+}
+
+/**
+ * The account a guest checkout under this email is filed under: a shopper's
+ * account whose owner has proven the address. Anything else — no account, an
+ * unverified one, a seller's or a team member's — keeps the order a guest
+ * order, which the claim above hands over once the address is proven.
+ * Attaching it to whichever account merely carried the address gave the
+ * order, with its delivery address, to whoever registered that address first.
+ */
+export async function findAccountForGuestCheckout(
+  email: string,
+): Promise<{ _id: Types.ObjectId } | null> {
+  const guestEmail = normalizeGuestEmail(email);
+  if (!guestEmail) return null;
+  const account = await User.findOne({
+    email: guestEmail,
+    emailVerified: true,
+    role: USER_ROLES.CUSTOMER,
+  })
+    .select("_id role roles")
+    .lean<{ _id: Types.ObjectId; role?: string; roles?: string[] } | null>();
+  return account && isCustomerAccount(account) ? { _id: account._id } : null;
+}
+
+/**
+ * Fold one guest row into the account: its balance, everything
+ * `carryGuestProfileForward` decides is worth keeping, and then the row
+ * itself. When the account has no profile yet the row simply becomes it.
+ */
+async function absorbGuestProfile(
+  candidate: { _id: Types.ObjectId },
+  userObjectId: Types.ObjectId,
+) {
+  {
+    const existing = await CustomerProfile.findOne({
+      userId: userObjectId,
+    }).lean();
     if (existing) {
       // The signup hook already gave the account a profile — move the guest
       // balance across and retire the guest row, re-deriving the tier from
       // the merged lifetime total.
+      //
+      // The row is taken first, and only its taker moves the balance: two
+      // sign-ins at once (two tabs, a phone and a laptop) both found the row
+      // and both added its points before either deleted it.
+      const guestProfile = await CustomerProfile.findOneAndDelete({
+        _id: candidate._id,
+        isGuest: true,
+      }).lean<{
+        _id: Types.ObjectId;
+        loyaltyPoints?: number;
+        lifetimePoints?: number;
+      } | null>();
+      if (!guestProfile) return;
       await CustomerProfile.updateOne({ _id: existing._id }, [
         {
           $set: {
@@ -547,20 +732,40 @@ export async function claimGuestCustomerData(userId: string, email: string) {
         },
         { $set: { loyaltyTier: LOYALTY_TIER_SWITCH } },
       ]);
-      await CustomerProfile.deleteOne({ _id: guestProfile._id });
+      // The unsubscribe token is unique across the collection, so it could
+      // only follow once the row holding it was gone — which it now is.
+      const { unsubscribeToken, ...carried } = carryGuestProfileForward(
+        guestProfile as unknown as ProfileLike,
+        existing as unknown as ProfileLike,
+      );
+      if (Object.keys(carried).length > 0) {
+        await CustomerProfile.updateOne(
+          { _id: existing._id },
+          { $set: carried },
+        );
+      }
+      if (unsubscribeToken) {
+        // Guarded on the account still having none, so a token it minted in
+        // the meantime is never overwritten by the retiring row's.
+        await CustomerProfile.updateOne(
+          { _id: existing._id, unsubscribeToken: { $exists: false } },
+          { $set: { unsubscribeToken } },
+        );
+      }
     } else {
       // No profile yet — the guest row simply becomes the account's profile,
       // keeping its points, tags, and history. The User is the identity
       // source from here on, so the guest fields come off.
       await CustomerProfile.updateOne(
-        { _id: guestProfile._id },
+        { _id: candidate._id, isGuest: true },
         {
           $set: { userId: userObjectId },
-          $unset: { isGuest: "", email: "", name: "" },
+          // `phone` comes off with the rest of the guest identity: the number
+          // lives on the User from here, and leaving it would keep the row in
+          // the guest phone index.
+          $unset: { isGuest: "", email: "", phone: "", name: "" },
         },
       );
     }
   }
-
-  await refreshCustomerStats(userId);
 }

@@ -49,7 +49,6 @@ export default async function OnlineStoreThemePage({
 
       <AdminSettingsProvider initialSettings={sanitizedSettings}>
         <ThemeGallery
-          locale={locale}
           // Presets are seed data for the activation API, not gallery UI —
           // strip them so the admin payload stays a card list, not templates.
           manifests={THEME_MANIFESTS.map(({ presets, ...manifest }) => ({

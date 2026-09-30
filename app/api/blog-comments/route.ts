@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
+import { resolveClientIp } from "@/lib/api/client-ip";
 import { BlogComment, BlogPost } from "@/models";
 import { auth } from "@/lib/auth/auth";
 import { USER_ROLES } from "@/config/app.config";
@@ -12,6 +13,23 @@ import {
 } from "@/lib/api/errors";
 import { CreateBlogCommentSchema } from "@/lib/validations";
 import { parsePageLimit } from "@/lib/api/list-query";
+import { isValidObjectId } from "@/lib/api/validate";
+import {
+  PUBLIC_BLOG_FILTER,
+  publishedBlogDateCondition,
+} from "@/lib/blog/storefront-blog-posts";
+
+/** Whether the blog shows this post to anyone — what a reader may comment on. */
+async function isShownPost(postId: string): Promise<boolean> {
+  if (!isValidObjectId(postId)) return false;
+  return Boolean(
+    await BlogPost.exists({
+      _id: postId,
+      ...PUBLIC_BLOG_FILTER,
+      ...publishedBlogDateCondition(),
+    }),
+  );
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +46,12 @@ export async function GET(request: NextRequest) {
     const session = await auth.api.getSession({ headers: await headers() });
     const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
 
+    if (!isAdmin && !(await isShownPost(postId))) {
+      // Only the comments under a post the blog shows: a private or
+      // unpublished post's discussion — and, through the populate below, its
+      // title — is not anyone's to read.
+      return paginatedResponse([], page, limit, 0);
+    }
     if (postId) query.postId = postId;
     if (!isAdmin) {
       query.status = "approved";
@@ -37,6 +61,10 @@ export async function GET(request: NextRequest) {
 
     const [items, total] = await Promise.all([
       BlogComment.find(query)
+        // A reader sees who wrote a comment and what it says. The email the
+        // author left, the address they posted from and their browser are
+        // for moderation, and this list is public.
+        .select(isAdmin ? {} : { authorEmail: 0, ipAddress: 0, userAgent: 0 })
         .populate("userId", "name image")
         .populate("postId", "title slug")
         .sort({ createdAt: -1 })
@@ -64,18 +92,21 @@ export async function POST(request: NextRequest) {
     }
     const data = parsed.data;
 
-    const post = await BlogPost.findById(data.postId);
+    const session = await auth.api.getSession({ headers: await headers() });
+    const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    // Anyone but an admin comments only on a post the blog shows.
+    if (!isValidObjectId(data.postId)) throw new NotFoundError("Post");
+    const post = await BlogPost.findOne({
+      _id: data.postId,
+      ...(isAdmin ? {} : { ...PUBLIC_BLOG_FILTER, ...publishedBlogDateCondition() }),
+    });
     if (!post) throw new NotFoundError("Post");
     if (!post.allowComments) {
       throw new ValidationError("Comments are disabled for this post");
     }
 
-    const session = await auth.api.getSession({ headers: await headers() });
     const reqHeaders = await headers();
-    const ipAddress =
-      reqHeaders.get("x-forwarded-for")?.split(",")[0].trim() ||
-      reqHeaders.get("x-real-ip") ||
-      undefined;
+    const ipAddress = resolveClientIp(reqHeaders) ?? undefined;
     const userAgent = reqHeaders.get("user-agent") || undefined;
 
     const comment = await BlogComment.create({

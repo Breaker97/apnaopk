@@ -11,8 +11,8 @@ import {
   LoginFields,
   LoginOAuthButtons,
   TwoFactorFields,
-  demoCredentials,
   useLoginForm,
+  type DemoCredential,
   type OAuthEnabled,
 } from "@/components/auth/login-form";
 import {
@@ -27,7 +27,8 @@ interface AccountDrawerContentProps {
   locale: Locale;
   close: () => void;
   oauthEnabled: OAuthEnabled;
-  demoModeEnabled: boolean;
+  /** Empty unless the deployment runs with DEMO_MODE — see `demoLoginCredentials`. */
+  demoCredentials: DemoCredential[];
   emailVerificationRequired: boolean;
 }
 
@@ -44,7 +45,7 @@ export function AccountDrawerContent({
   locale,
   close,
   oauthEnabled,
-  demoModeEnabled,
+  demoCredentials,
   emailVerificationRequired,
 }: AccountDrawerContentProps) {
   const t = useTranslations();
@@ -56,7 +57,7 @@ export function AccountDrawerContent({
     onSuccess: close,
   });
 
-  const showDemoCredentials = demoModeEnabled && demoCredentials.length > 0;
+  const showDemoCredentials = demoCredentials.length > 0;
 
   return (
     <div className="flex min-h-full flex-col pb-[env(safe-area-inset-bottom)]">
@@ -124,7 +125,10 @@ export function AccountDrawerContent({
                     Select a role to fill the login form.
                   </p>
                 </div>
-                <DemoCredentialsList state={loginState} />
+                <DemoCredentialsList
+                  state={loginState}
+                  credentials={demoCredentials}
+                />
               </>
             )}
           </TabsContent>
@@ -139,7 +143,7 @@ export function AccountDrawerContent({
             />
             <RegisterFields state={registerState} />
             <div className="pt-4">
-              <RegisterTermsNotice locale={locale} />
+              <RegisterTermsNotice />
             </div>
           </TabsContent>
         </Tabs>

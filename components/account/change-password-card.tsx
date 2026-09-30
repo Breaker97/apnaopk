@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { Eye, EyeOff, Loader2, LockKeyhole } from "lucide-react";
@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import {
   DEFAULT_PROFILE_DEMO_MODE,
-  normalizeDemoModeState,
+  type DemoModeState,
 } from "@/lib/demo-mode-shared";
 
 interface PasswordFormData {
@@ -27,7 +28,16 @@ interface PasswordFormData {
   confirmPassword: string;
 }
 
-export function ChangePasswordCard() {
+/**
+ * `demoMode` comes from the page's server render (the env flag). The card used
+ * to fetch /api/user/profile for it and hold the form disabled until that
+ * answered, on every visit to Security.
+ */
+export function ChangePasswordCard({
+  demoMode = DEFAULT_PROFILE_DEMO_MODE,
+}: {
+  demoMode?: DemoModeState;
+} = {}) {
   const t = useTranslations();
   const translateWithFallback = (key: string, fallbackKey: string) =>
     typeof t.has !== "function" || t.has(key) ? t(key) : t(fallbackKey);
@@ -52,11 +62,9 @@ export function ChangePasswordCard() {
     "common.save",
   );
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [isLoadingDemoMode, setIsLoadingDemoMode] = useState(true);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [demoMode, setDemoMode] = useState(DEFAULT_PROFILE_DEMO_MODE);
   const isDemoMode = demoMode.enabled;
 
   const passwordForm = useForm<PasswordFormData>({
@@ -66,31 +74,6 @@ export function ChangePasswordCard() {
       confirmPassword: "",
     },
   });
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadDemoMode() {
-      try {
-        const res = await fetch("/api/user/profile");
-        const json = await res.json();
-
-        if (active && res.ok && json?.success) {
-          setDemoMode(normalizeDemoModeState(json?.data?.demoMode));
-        }
-      } catch {
-        // Keep the existing non-demo fallback if profile state cannot load.
-      } finally {
-        if (active) setIsLoadingDemoMode(false);
-      }
-    }
-
-    loadDemoMode();
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const onPasswordSubmit = async (data: PasswordFormData) => {
     if (isDemoMode) {
@@ -154,12 +137,9 @@ export function ChangePasswordCard() {
       </CardHeader>
       <CardContent>
         {isDemoMode && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="min-w-0 text-sm leading-5 text-amber-800 dark:text-amber-200">
-              {demoMode.message}
-            </p>
-          </div>
+          <WarningBanner icon={LockKeyhole} className="mb-6">
+            {demoMode.message}
+          </WarningBanner>
         )}
 
         <Form {...passwordForm}>
@@ -168,9 +148,7 @@ export function ChangePasswordCard() {
             className="space-y-6"
           >
             <fieldset
-              disabled={
-                isLoadingDemoMode || isDemoMode || isChangingPassword
-              }
+              disabled={isDemoMode || isChangingPassword}
               className="space-y-6"
             >
               <FormField
@@ -314,9 +292,7 @@ export function ChangePasswordCard() {
 
               <Button
                 type="submit"
-                disabled={
-                  isLoadingDemoMode || isDemoMode || isChangingPassword
-                }
+                disabled={isDemoMode || isChangingPassword}
                 className="h-11 w-full sm:w-auto"
               >
                 {isChangingPassword && (

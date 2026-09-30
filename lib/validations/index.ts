@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import {
   BOOST_MAX_POSITIONS,
   USER_ACCOUNT_STATUS,
@@ -6,13 +6,20 @@ import {
   ORDER_STATUS,
   PAYMENT_STATUS,
 } from "@/config/app.config";
-import { RETURN_STATUS } from "@/lib/returns/returns";
+import {
+  RETURN_DECLINE_REASONS,
+  RETURN_ITEM_LISTED_TWICE,
+  RETURN_REASONS,
+  RETURN_STATUS,
+} from "@/lib/returns/returns";
+import { RETURN_METHODS } from "@/lib/returns/return-shipping";
 import { REFUND_DESTINATION_METHODS } from "@/lib/returns/refund-settlement";
 import { isPlatformCustodyMethod } from "@/lib/payments/payment-custody";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
 } from "@/lib/finance/expense-categories";
+import { isExpenseReceiptReference } from "@/lib/finance/expense-receipts";
 import { LEDGER_ACCOUNTS, type LedgerAccount } from "@/lib/finance/accounts";
 import { ALL_VENDOR_PACKS } from "@/config/permissions.config";
 import { hasUnsafeAddressText } from "@/lib/customers/address-text";
@@ -20,6 +27,7 @@ import { parseExternalVideoUrl } from "@/lib/products/external-video";
 import {
   DEFAULT_AUTOPLAY_SECONDS,
   MAX_AUTOPLAY_SECONDS,
+  MAX_SLIDES_PER_SLIDER,
   MIN_AUTOPLAY_SECONDS,
 } from "@/lib/sliders/types";
 
@@ -83,10 +91,12 @@ export const AddressSchema = z.object({
   city: addressTextSchema(100, { value: 1, message: "City is required" }),
   state: addressTextSchema(100).optional(),
   apartment: addressTextSchema(100).optional(),
-  postalCode: addressTextSchema(20, {
-    value: 1,
-    message: "Postal code is required",
-  }),
+  // Optional, like the checkout address this is saved from. Plenty of
+  // countries issue no postal code at all, and the checkout settings let a
+  // store hide the field for exactly that reason — but the address book went
+  // on demanding one, so in such a store an address that had just carried a
+  // real order could not be saved to the account it was ordered from.
+  postalCode: addressTextSchema(20).optional().default(""),
   country: addressTextSchema(100, {
     value: 1,
     message: "Country is required",
@@ -156,7 +166,6 @@ const ProductVariantSchema = z.object({
   price: z.number().min(0),
   comparePrice: z.number().min(0).optional(),
   cost: z.number().min(0).optional(),
-  taxable: z.boolean().optional(),
   stock: z.number().min(0),
   attributes: z.array(ProductAttributeSchema).default([]),
   image: MediaUrlSchema.optional(),
@@ -179,6 +188,8 @@ const ProductVariantSchema = z.object({
     )
     .optional(),
   requiresShipping: z.boolean().optional(),
+  /** Absent follows the product — see lib/returns/final-sale.ts. */
+  finalSale: z.boolean().optional(),
   weight: z.number().min(0).optional(),
   weightUnit: z.enum(["g", "kg", "lb", "oz"]).optional(),
   mediaId: z.string().optional(),
@@ -421,6 +432,15 @@ export const CreateProductSchema = z.object({
       pointOfSale: z.boolean().default(false),
     })
     .optional(),
+  // Final sale: the shopper cannot return it — see lib/returns/final-sale.ts.
+  returns: z
+    .object({
+      finalSale: z.boolean().default(false),
+      // Its own return window; null goes back to the store's — see
+      // lib/returns/return-window.ts.
+      windowDays: z.coerce.number().int().min(1).max(365).nullable().optional(),
+    })
+    .optional(),
   shipping: z
     .object({
       isPhysicalProduct: z.boolean().default(true),
@@ -469,6 +489,18 @@ export const ObjectIdSchema = z
   .string()
   .regex(/^[a-fA-F0-9]{24}$/, "Invalid ID format");
 
+/**
+ * An address as an order stores it. The order model requires a region and
+ * plenty of countries have none, so a blank one is written as "N/A" — what
+ * checkout writes for the same address. Without it, a manual order whose State
+ * was left empty was refused by the database ("Validation failed:
+ * shippingAddress.state").
+ */
+const ManualOrderAddressSchema = AddressSchema.transform((address) => ({
+  ...address,
+  state: address.state || "N/A",
+}));
+
 export const AdminCreateOrderSchema = z.object({
   customerId: ObjectIdSchema,
   items: z
@@ -480,8 +512,8 @@ export const AdminCreateOrderSchema = z.object({
       }),
     )
     .min(1, "Add at least one product"),
-  shippingAddress: AddressSchema,
-  billingAddress: AddressSchema.optional(),
+  shippingAddress: ManualOrderAddressSchema,
+  billingAddress: ManualOrderAddressSchema.optional(),
   // A label for money the store collected itself — "manual", cash, a bank
   // transfer. Never a gateway's name, nor cash on delivery: the payout engine
   // reads those as money the PLATFORM holds, so an order made here "paid by
@@ -547,6 +579,11 @@ export const AdminUpdateOrderSchema = z
     refundAmount: z.number().min(0).optional(),
     refundReason: z.string().max(500).optional(),
     manualRefund: z.boolean().optional(),
+    /**
+     * How much of `refundAmount` goes to the shopper as store credit (R8)
+     * instead of back the way they paid. The rest goes back as before.
+     */
+    storeCreditAmount: z.number().min(0).optional(),
     /**
      * What the money that already went back WAS. A refund sent from the
      * gateway's dashboard is matched to that refund when the gateway reports
@@ -615,14 +652,19 @@ export const AdminUpdateOrderSchema = z
 
 export const CreateReturnRequestSchema = z.object({
   orderId: ObjectIdSchema,
-  reason: z
-    .string()
-    .trim()
-    .min(1, "Select a return reason")
-    .max(100, "Return reason must be 100 characters or less")
-    .refine((reason) => reason !== "other" && reason !== "changed_mind", {
-      message: "Enter a valid return reason",
-    }),
+  /**
+   * One of the store's own reasons, never free text.
+   *
+   * Four of them put the return on the MERCHANT — delivery comes back and
+   * neither fee is charged (see `isMerchantFaultReturn`). While this was a
+   * string, a shopper who picked "Other" and typed `damaged_or_defective` into
+   * the box matched that test exactly and collected the lot. The box is still
+   * there; what they write in it is their description, and it goes to
+   * `customerNote` where a person reads it.
+   */
+  reason: z.enum(RETURN_REASONS as unknown as [string, ...string[]], {
+    message: "Select a return reason",
+  }),
   customerNote: z.string().max(1000).optional(),
   items: z
     .array(
@@ -631,7 +673,24 @@ export const CreateReturnRequestSchema = z.object({
         quantity: z.coerce.number().int().min(1).max(999),
       }),
     )
-    .min(1, "Select at least one item to return"),
+    .min(1, "Select at least one item to return")
+    .max(200)
+    // One entry per line: the planner checks each entry on its own, so a line
+    // listed twice was returnable twice. `planReturnRequest` refuses the same
+    // thing; this says so on the repeated entry, before anything is read.
+    .superRefine((items, ctx) => {
+      const seen = new Set<number>();
+      items.forEach((item, index) => {
+        if (seen.has(item.orderItemIndex)) {
+          ctx.addIssue({
+            code: "custom",
+            path: [index, "orderItemIndex"],
+            message: RETURN_ITEM_LISTED_TWICE,
+          });
+        }
+        seen.add(item.orderItemIndex);
+      });
+    }),
   /**
    * Where to send a refund no gateway can carry — cash on delivery and the
    * other out-of-band methods. Optional here because whether it is REQUIRED
@@ -671,6 +730,36 @@ export const AdminReturnListQuerySchema = AdminListQuerySchema.extend({
   orderId: z.string().optional(),
 });
 
+/**
+ * A return the store or a seller opens for a shopper: the shopper's request,
+ * plus how the parcel comes back — it is approved as it is opened — and, for
+ * the store only, a reason to open it past the return window.
+ */
+export const StaffCreateReturnRequestSchema = CreateReturnRequestSchema.extend({
+  returnMethod: z.enum(RETURN_METHODS).default("customer_ships"),
+  /** For a label: its link. The file can be added once the return exists. */
+  labelUrl: z.string().trim().max(1000).optional(),
+  eligibilityOverride: z
+    .object({
+      note: z
+        .string()
+        .trim()
+        .min(3, "Say why the return is opened outside the return rules")
+        .max(500),
+    })
+    .optional(),
+});
+
+/** The same selection, priced without opening anything. */
+export const StaffPreviewReturnRequestSchema = CreateReturnRequestSchema.pick({
+  orderId: true,
+  reason: true,
+  items: true,
+}).extend({
+  /** Past the window or on a final-sale line — only the store may. */
+  override: z.boolean().optional(),
+});
+
 export const AdminUpdateReturnRequestSchema = z
   .object({
     status: z.enum(Object.values(RETURN_STATUS) as [string, ...string[]]).optional(),
@@ -678,21 +767,40 @@ export const AdminUpdateReturnRequestSchema = z
     rejectionReason: z.string().max(1000).optional(),
     carrier: z.string().max(100).optional(),
     trackingNumber: z.string().max(100).optional(),
+    /**
+     * How much of each line the store agrees to take back.
+     *
+     * `quantityApproved` was written once, at creation, as whatever the shopper
+     * asked for — the model carried the field and nothing could ever change it.
+     * A store that would take one of two back had to reject the whole request
+     * and ask for another.
+     */
+    approvedItems: z
+      .array(
+        z.object({
+          orderItemIndex: z.coerce.number().int().min(0),
+          quantityApproved: z.coerce.number().int().min(0).max(999),
+        }),
+      )
+      .optional(),
     receivedItems: z
       .array(
         z.object({
           orderItemIndex: z.coerce.number().int().min(0),
           quantityReceived: z.coerce.number().int().min(0).max(999),
+          // What goes back on the shelf is decided by the condition — a
+          // separate "restockable" flag was accepted here and then ignored.
           condition: z
             .enum(["new", "opened", "damaged", "missing_parts", "unusable"])
             .optional(),
-          restockable: z.boolean().optional(),
         }),
       )
       .optional(),
     refundAmount: z.coerce.number().min(0).optional(),
     refundReason: z.string().max(500).optional(),
     manualRefund: z.boolean().optional(),
+    /** How much of `refundAmount` is given as store credit (R8); see the order schema. */
+    storeCreditAmount: z.coerce.number().min(0).optional(),
     restoreInventoryOnRefund: z.boolean().optional(),
     /**
      * That a refund no gateway could carry has now actually been paid.
@@ -723,10 +831,68 @@ export const AdminUpdateReturnRequestSchema = z
         note: z.string().trim().max(500).optional(),
       })
       .optional(),
+    /** How the parcel comes back — see lib/returns/return-shipping.ts. */
+    returnMethod: z.enum(RETURN_METHODS).optional(),
+    /** One of the return owner's locations, for the parcel to be sent to. */
+    returnToLocationId: ObjectIdSchema.optional(),
+    /** A label the store links to rather than uploads; empty clears it. */
+    labelUrl: z.string().trim().max(1000).optional(),
+    /**
+     * Where a restock puts the goods back — one of the return owner's own
+     * locations. Absent, each line goes back to the branch it was sold from.
+     */
+    restockLocationId: ObjectIdSchema.optional(),
+    /**
+     * Fees the store lowers or waives on this return — never above what the
+     * policy charges. `null` puts a fee back to the policy's.
+     */
+    feeOverride: z
+      .object({
+        restockingFee: z.coerce.number().min(0).max(1_000_000_000).nullable().optional(),
+        returnShippingFee: z.coerce
+          .number()
+          .min(0)
+          .max(1_000_000_000)
+          .nullable()
+          .optional(),
+      })
+      .optional(),
+    /**
+     * Delivery handed back with this return, named in full — the part a
+     * policy keeps back included. `null` goes back to what the policy gives.
+     */
+    deliveryRefund: z.coerce.number().min(0).max(1_000_000_000).nullable().optional(),
+    /** Why the store declined, for the store alone. */
+    declineReason: z.enum(RETURN_DECLINE_REASONS).optional(),
+    /**
+     * Process the return into its exchange order (R7): what the return is
+     * worth pays for it, and the rest stays to refund. Worked out on the
+     * server from the items chosen — the caller names no amount.
+     */
+    processExchange: z.literal(true).optional(),
   })
   .refine((val) => Object.values(val).some((v) => v !== undefined), {
     message: "No updates provided",
   });
+
+/**
+ * What a return is exchanged for (R7), chosen before it is processed. A price
+ * the store names may only be below the catalog's — checked on the server.
+ */
+export const ReturnExchangeItemsSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: ObjectIdSchema,
+        variantId: ObjectIdSchema.optional(),
+        quantity: z.coerce.number().int().min(1).max(999),
+        unitPrice: z.coerce.number().min(0).max(1_000_000_000).nullable().optional(),
+      }),
+    )
+    .max(20),
+  /** The exchange order's delivery charge; nothing when absent. */
+  delivery: z.coerce.number().min(0).max(1_000_000_000).nullable().optional(),
+});
 
 /**
  * Staff comment on an order. `body` is trimmed before the min check so a
@@ -748,6 +914,9 @@ export const OrderListQuerySchema = AdminListQuerySchema.extend({
       PAYMENT_STATUS.PARTIALLY_PAID,
       PAYMENT_STATUS.REFUNDED,
       PAYMENT_STATUS.PARTIALLY_REFUNDED,
+      // Filterable but not settable: the expiry job writes it, an admin only
+      // ever looks it up. See PAYMENT_STATUS.EXPIRED.
+      PAYMENT_STATUS.EXPIRED,
     ])
     .optional(),
   channel: z.enum(["all", "online", "pos"]).optional(),
@@ -922,28 +1091,92 @@ const BoostPositionBaseSchema = z.object({
   status: z.enum(["active", "archived"]).optional(),
 });
 
+/**
+ * The last day a hand-entered money event may carry: tomorrow, in UTC.
+ *
+ * Not today: a date-only value is stored at midnight UTC of the day picked in
+ * the admin's own calendar, and east of Greenwich that day is already
+ * tomorrow in UTC for part of every day. Anything later is a typo, and it
+ * would post into a period nobody is looking at yet.
+ */
+function latestDayAllowed(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+}
+
+const notInTheFuture = (date: Date) => date.getTime() <= latestDayAllowed();
+
 const ExpenseBaseSchema = z.object({
   // Accepts a date-only string from the form as well as a full instant.
-  date: z.coerce.date(),
+  date: z.coerce
+    .date()
+    .refine(notInTheFuture, "An expense cannot be dated in the future"),
   book: z.enum(["own", "marketplace"]).optional(),
   category: z.enum(
     EXPENSE_CATEGORIES as [ExpenseCategory, ...ExpenseCategory[]],
+    { error: "Choose a category" },
   ),
   // Currency-blind floor; the route quantizes and re-checks against the
   // currency's own minimum, exactly as the boost ladder does.
   amount: z.number().positive("Amount must be greater than zero"),
-  description: z.string().min(2, "Describe what this was for").max(300),
-  payee: z.string().max(200).optional().or(z.literal("")),
+  /**
+   * The currency the bill was paid in. Optional — the store's own is the
+   * default — and it can differ from it: a store selling in taka still pays
+   * its hosting in dollars.
+   */
+  currency: z
+    .string()
+    .regex(/^[A-Za-z]{3}$/, "Choose a currency")
+    .transform((code) => code.toUpperCase())
+    .optional(),
+  description: z
+    .string()
+    .trim()
+    .min(2, "Describe what this was for")
+    .max(300, "Keep the description under 300 characters"),
+  payee: z
+    .string()
+    .max(200, "Keep the payee under 200 characters")
+    .optional()
+    .or(z.literal("")),
   paidFrom: z.enum(["bank", "cash", "gateway", "unpaid"]).optional(),
-  receiptUrl: z.string().max(1000).optional().or(z.literal("")),
+  // A private receipt key, or a public URL saved before receipts went
+  // private. Never a `javascript:` or `data:` link: the list renders it as one.
+  receiptUrl: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .refine(isExpenseReceiptReference, "Attach the receipt again"),
+    ])
+    .optional(),
   vendorId: ObjectIdSchema.optional().or(z.literal("")),
   recurring: z
     .object({
       enabled: z.boolean(),
       interval: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
+      /** No copy after this day. Null or absent: it repeats until stopped. */
+      endsAt: z.coerce.date().nullable().optional(),
+      /**
+       * Switched on for a date in the past: also create the copies already
+       * due. Off, the schedule starts from today.
+       */
+      backfill: z.boolean().optional(),
     })
     .optional(),
-  note: z.string().max(1000).optional().or(z.literal("")),
+  note: z
+    .string()
+    .max(1000, "Keep the note under 1000 characters")
+    .optional()
+    .or(z.literal("")),
+});
+
+/** Recording that a bill entered as not yet paid has now been paid. */
+export const SettleExpenseSchema = z.object({
+  paidAt: z.coerce
+    .date()
+    .refine(notInTheFuture, "A payment cannot be dated in the future"),
+  paidFrom: z.enum(["bank", "cash", "gateway"]),
 });
 
 /**
@@ -993,8 +1226,12 @@ export const ValidateCouponSchema = z.object({
       z.object({
         productId: ObjectIdSchema,
         price: z.coerce.number().min(0),
-        quantity: z.coerce.number().min(1).max(100),
+        // A quoted lot (or a tracked product with deep stock) can run past a
+        // hundred units; the ceiling only has to stop an absurd number.
+        quantity: z.coerce.number().int().min(1).max(1_000_000),
         categoryId: OptionalObjectIdSchema,
+        /** Priced by a quote offer: the coupon leaves the line out. */
+        quoted: z.boolean().optional(),
       }),
     )
     .min(1),
@@ -1031,7 +1268,12 @@ export const CartUpdateItemSchema = z.object({
 export const CartAddByIdSchema = z.object({
   productId: ObjectIdSchema,
   variantId: OptionalObjectIdSchema,
-  quantity: z.coerce.number().min(1).max(100).default(1),
+  quantity: z.coerce
+    .number()
+    .int("Quantity must be a whole number")
+    .min(1)
+    .max(100)
+    .default(1),
 });
 
 // ============================================
@@ -1061,6 +1303,12 @@ export const CheckoutAddressSchema = z.object({
 });
 
 export const CheckoutSchema = z.object({
+  /**
+   * Cloudflare Turnstile's answer, sent only once the checkout has asked for
+   * it — which it does after a shopper's cards have been refused several
+   * times. See `lib/checkout/card-testing-guard.ts`.
+   */
+  turnstileToken: z.string().max(4000).optional(),
   // Optional at the schema level: digital-only carts send billing only. The
   // checkout route enforces presence once item shippability is known.
   shippingAddress: CheckoutAddressSchema.optional(),
@@ -1075,7 +1323,14 @@ export const CheckoutSchema = z.object({
     "iotec",
     "orange_money",
     "mtn_momo",
+    // Store credit covers all of it, and no gateway is asked for anything (R8).
+    "store_credit",
   ]),
+  /**
+   * Whether the shopper's store credit pays what it can of this order (R8).
+   * On unless they untick it; only a signed-in shopper has any.
+   */
+  useStoreCredit: z.boolean().optional(),
   email: z.string().email().optional(),
   // Contact phone, for stores that reach shoppers by phone (checkout
   // settings `contact.mode`). Doubles as the delivery phone when the address
@@ -1093,6 +1348,15 @@ export const CheckoutSchema = z.object({
     .optional(),
   couponCode: z.string().min(3).max(20).optional(),
   locale: z.string().length(2).optional(),
+  // "Email me with news and offers". Only ever subscribes, and only when the
+  // checkout settings actually offer the box — see the routes.
+  buyerAcceptsMarketing: z.boolean().optional(),
+  /**
+   * "Text me with news and offers", shown instead of the email box when the
+   * shopper's contact is a phone number. A separate consent on a separate
+   * record — the server decides which, from the contact it resolves.
+   */
+  smsAcceptsMarketing: z.boolean().optional(),
   preorderAcknowledged: z.boolean().optional(),
   /** Card-on-file authorisation — see `lib/payments/preorder-mandate.ts`. */
   preorderMandateAccepted: z.boolean().optional(),
@@ -1363,8 +1627,7 @@ export const CreateBlogPostSchema = z.object({
   status: z
     .enum(["draft", "scheduled", "published", "archived"])
     .default("draft"),
-  visibility: z.enum(["public", "private", "password"]).default("public"),
-  password: z.string().optional(),
+  visibility: z.enum(["public", "private"]).default("public"),
   publishedAt: z.string().optional(),
   scheduledFor: z.string().optional(),
   allowComments: z.boolean().default(true),
@@ -1457,7 +1720,12 @@ export const CreateSliderSchema = z.object({
     .min(MIN_AUTOPLAY_SECONDS)
     .max(MAX_AUTOPLAY_SECONDS)
     .default(DEFAULT_AUTOPLAY_SECONDS),
-  slides: z.array(z.record(z.string(), z.unknown())).max(30).default([]),
+  // The cap the normalizer enforces, not a looser second number: at .max(30)
+  // a merchant sending 25 slides got a 200 and quietly lost five of them.
+  slides: z
+    .array(z.record(z.string(), z.unknown()))
+    .max(MAX_SLIDES_PER_SLIDER)
+    .default([]),
   /** The carousel's arrows, indicators and pause control; normalized server-side. */
   controls: z.record(z.string(), z.unknown()).optional(),
   /**

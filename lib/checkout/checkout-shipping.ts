@@ -9,6 +9,7 @@ import {
   type ShippingCalculationResult,
   type CustomsEstimate,
 } from "@/lib/shipping/shipping";
+import { quantizeToCurrency } from "@/lib/intl/money";
 
 /**
  * Shared shipping resolution used by every checkout path (online checkout,
@@ -69,7 +70,77 @@ function methodFromResult(
   };
 }
 
-export async function resolveCheckoutShipping(params: {
+/**
+ * Every money figure in the resolution rounded to what the currency can hold.
+ *
+ * Weight rates (`price + perUnit × weight`) and percentage duty came out with
+ * extra decimals — 3.33325 of shipping, 925.875 yen of duty — which were
+ * stored as is. The order's rows then no longer added up to its total, and a
+ * mobile-money gateway refused a whole-yen checkout the shopper could not fix.
+ */
+function quantizeResolution(
+  resolution: ResolvedCheckoutShipping,
+  currency: string,
+): ResolvedCheckoutShipping {
+  const q = (amount: number) => quantizeToCurrency(Number(amount || 0), currency);
+  const quantizeOption = (option: ShippingRateOption): ShippingRateOption => ({
+    ...option,
+    cost: q(option.cost),
+  });
+
+  const vendorShippingCosts = new Map(
+    Array.from(resolution.vendorShippingCosts.entries()).map(
+      ([vendorId, entry]) => [vendorId, { ...entry, cost: q(entry.cost) }],
+    ),
+  );
+  const rawVendorSum = Array.from(resolution.vendorShippingCosts.values()).reduce(
+    (sum, entry) => sum + Number(entry.cost || 0),
+    0,
+  );
+  // The order's charge is the sum of the parcels' charges whenever it was
+  // built from them, so the two can never drift a unit apart after rounding.
+  const shippingCost =
+    vendorShippingCosts.size > 0 &&
+    Math.abs(rawVendorSum - Number(resolution.shippingCost || 0)) < 1e-9
+      ? q(
+          Array.from(vendorShippingCosts.values()).reduce(
+            (sum, entry) => sum + entry.cost,
+            0,
+          ),
+        )
+      : q(resolution.shippingCost);
+
+  return {
+    ...resolution,
+    shippingCost,
+    vendorShippingCosts,
+    singleOptions: resolution.singleOptions.map(quantizeOption),
+    vendorGroups: resolution.vendorGroups.map((group) => ({
+      ...group,
+      cost: q(group.cost),
+      options: group.options.map(quantizeOption),
+    })),
+    customs: {
+      ...resolution.customs,
+      dutyAmount: q(resolution.customs.dutyAmount),
+    },
+  };
+}
+
+export async function resolveCheckoutShipping(
+  params: Parameters<typeof resolveCheckoutShippingUnrounded>[0] & {
+    /** The currency the order is charged in; 2 decimals when absent. */
+    currency?: string;
+  },
+): Promise<ResolvedCheckoutShipping> {
+  const { currency, ...rest } = params;
+  return quantizeResolution(
+    await resolveCheckoutShippingUnrounded(rest),
+    currency || "USD",
+  );
+}
+
+async function resolveCheckoutShippingUnrounded(params: {
   subtotal: number;
   totalWeight: number;
   vendorAgg: VendorAggregate;
@@ -338,8 +409,14 @@ export function allocateSubOrderShipping(
      * their delivery charge.
      */
     shippingDiscountByVendor?: Record<string, number>;
+    /** Rounds each share to this currency; cents when absent. */
+    currency?: string;
   },
 ) {
+  const round = (amount: number) =>
+    params.currency
+      ? quantizeToCurrency(amount, params.currency)
+      : Math.round(amount * 100) / 100;
   const stampDiscount = (sub: { vendorId: { toString: () => string }; shippingCost?: number; shippingDiscount?: number }) => {
     const shares = params.shippingDiscountByVendor;
     if (!shares) return;
@@ -377,13 +454,13 @@ export function allocateSubOrderShipping(
     // The last share absorbs the rounding remainder so the parts always sum
     // back to the order-level cost exactly.
     const share = isLast
-      ? Math.round((total - allocated) * 100) / 100
-      : Math.round(
-          (weightSum > 0
+      ? round(total - allocated)
+      : round(
+          weightSum > 0
             ? (total * weights[index]!) / weightSum
-            : total / subOrders.length) * 100,
-        ) / 100;
-    allocated = Math.round((allocated + share) * 100) / 100;
+            : total / subOrders.length,
+        );
+    allocated = round(allocated + share);
     sub.shippingCost = share;
     sub.shippingMethod = params.orderShippingMethod;
     stampDiscount(sub);

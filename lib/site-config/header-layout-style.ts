@@ -3,7 +3,7 @@ import {
   backgroundAccentColor,
   backgroundCss,
   hasBackground,
-} from "@/lib/sliders/types";
+} from "@/lib/sliders/background";
 import {
   colorTone,
   type ColorTone,
@@ -185,6 +185,10 @@ export function rowGridStyle(row: HeaderLayoutRow): CSSProperties {
     alignItems: ALIGN_ITEMS[row.align.vertical],
     columnGap: row.gap,
     minHeight: row.height || undefined,
+    // The row's own inset. Height can only centre content in a fixed box;
+    // this gives a row that sizes to its content room to breathe, and it is
+    // what a merchant reaches for when a nav crowds the logo above it.
+    ...paddingStyle(row.padding),
   };
 }
 
@@ -192,6 +196,10 @@ export function rowGridStyle(row: HeaderLayoutRow): CSSProperties {
 export function rowStyle(row: HeaderLayoutRow): CSSProperties {
   return {
     ...rowGridStyle(row),
+    // A row owns the edge beneath it, so its line and the clear space under
+    // it are stated together: between two rows this is the gap, under the
+    // last one it is the air before the page starts.
+    ...(row.spaceBelow ? { marginBottom: row.spaceBelow } : {}),
     ...(row.borderBottom
       ? {
           borderBottom: `${row.borderBottom}px solid ${row.borderColor || "currentColor"}`,

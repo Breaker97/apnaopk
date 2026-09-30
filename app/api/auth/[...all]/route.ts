@@ -1,5 +1,7 @@
+import { buildLocalePath, LOCALE_COOKIE_NAME } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { auth, getActivePasswordPolicy } from "@/lib/auth/auth";
-import { defaultLocale, isValidLocale } from "@/config/i18n.config";
+import { isValidLocale } from "@/config/i18n.config";
 import { checkPasswordPolicy } from "@/lib/auth/password-policy";
 import { getClientIP } from "@/lib/api/rate-limit-middleware";
 import {
@@ -221,11 +223,12 @@ async function getOAuthErrorRedirectBaseURL(
   }
 }
 
-function fallbackErrorURL(request: NextRequest): string {
-  const rawLocale = request.cookies.get("NEXT_LOCALE")?.value;
+async function fallbackErrorURL(request: NextRequest): Promise<string> {
+  const { storeDefault } = await getLocaleRouting();
+  const rawLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
   const locale =
-    rawLocale && isValidLocale(rawLocale) ? rawLocale : defaultLocale;
-  return `/${locale}/login`;
+    rawLocale && isValidLocale(rawLocale) ? rawLocale : storeDefault;
+  return buildLocalePath(locale, "/login", storeDefault);
 }
 
 async function redirectOAuthCallbackErrors(
@@ -258,7 +261,8 @@ async function redirectOAuthCallbackErrors(
   }
 
   const baseErrorURL =
-    (await getOAuthErrorRedirectBaseURL(request)) || fallbackErrorURL(request);
+    (await getOAuthErrorRedirectBaseURL(request)) ||
+    (await fallbackErrorURL(request));
   const redirectURL = new URL(baseErrorURL, request.url);
 
   if (code === "OAUTH_ACCOUNT_ROLE_CONFLICT") {

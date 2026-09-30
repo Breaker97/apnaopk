@@ -17,7 +17,7 @@ import { resolveVendorCommission } from "@/lib/vendors/vendor-commission";
 import { withApi } from "@/lib/api/handler";
 import { fetchAdminVendorList } from "@/lib/vendors/vendor-list";
 import { slugify } from "@/lib/strings";
-import { z } from "zod";
+import * as z from "zod";
 
 /**
  * GET /api/admin/vendors
@@ -63,7 +63,7 @@ const AdminVendorCreateSchema = z.object({
   description: z.string().max(5000).optional(),
   logo: z.string().max(2048).optional(),
   banner: z.string().max(2048).optional(),
-  commission: z.any().optional(),
+  commission: z.number().finite().min(0).max(100).optional(),
 });
 
 /**
@@ -81,6 +81,7 @@ export const POST = withApi(
     await syncDefaultVendorWithSettings(session.user.id, settings);
 
     const body = await validateBody(request, AdminVendorCreateSchema);
+    const defaultRate = resolveVendorCommission(null, null, settings);
     const storeName = String(body.storeName || "").trim();
     const ownerName = String(body.ownerName || "").trim();
     const ownerEmail = String(body.ownerEmail || "").trim().toLowerCase();
@@ -163,14 +164,14 @@ export const POST = withApi(
       banner: body.banner ? String(body.banner).trim() : undefined,
       // Admin-entered commission is the deliberate manual override; otherwise
       // fall back through the single commission authority (no plan at create).
-      commission:
-        typeof body.commission === "number"
-          ? Math.max(0, Math.min(100, body.commission))
-          : resolveVendorCommission(null, null, settings),
+      commission: typeof body.commission === "number" ? body.commission : defaultRate,
       // A rate typed on the create form is this vendor's, not the store's, so
-      // a later change to the default must not overwrite it.
+      // a later change to the default must not overwrite it. The form arrives
+      // pre-filled with the default, and that number is not an override.
       commissionSource:
-        typeof body.commission === "number" ? "manual" : "default",
+        typeof body.commission === "number" && body.commission !== defaultRate
+          ? "manual"
+          : "default",
       // Access is not copied onto the vendor any more: it is derived from the
       // plan's packs, or the commission-only baseline when no plan governs
       // them. An explicit empty override list is what marks this row as being

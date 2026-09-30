@@ -287,11 +287,9 @@ function collectModelFields(
       : request.operation === "rich_content" ||
           request.operation === "description"
         ? ["description", "content", "richContent"]
-        : request.operation === "review"
-          ? ["title", "comment"]
-          : request.operation === "reply"
-            ? ["reply", "comment"]
-            : [];
+        : request.operation === "reply"
+          ? ["reply", "comment"]
+          : [];
 
   for (const alias of aliases) {
     if (fields[alias] !== undefined || source[alias] === undefined) continue;

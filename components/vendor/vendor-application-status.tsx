@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { VENDOR_STATUS } from "@/config/app.config";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,7 +71,7 @@ export function VendorApplicationStatus({
         toast.error(body?.message || "Could not open the setup dashboard");
         return;
       }
-      router.replace(`/${locale}/vendor/dashboard`);
+      router.replace("/vendor/dashboard");
       router.refresh();
     } catch {
       toast.error("Could not open the setup dashboard");
@@ -190,7 +191,7 @@ export function VendorApplicationStatus({
             {isRejected ? (
               <div className="mt-6 flex justify-center">
                 <Button asChild>
-                  <a href={`/${locale}/become-vendor`}>Update and apply again</a>
+                  <Link href="/become-vendor">Update and apply again</Link>
                 </Button>
               </div>
             ) : null}

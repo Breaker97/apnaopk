@@ -19,7 +19,7 @@ import {
 } from "@/lib/catalog/brands";
 import { revalidateBrandContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 // Allow-list of what a vendor may set; moderation fields are assigned below.

@@ -12,7 +12,7 @@
  * that leans on it heavily has told you which bucket to add next.
  */
 
-const EXPENSE_CATEGORY = {
+export const EXPENSE_CATEGORY = {
   /** Rent, utilities, insurance — the cost of existing. */
   PREMISES: "premises",
   /** Salaries, contractors, freelancers. */
@@ -57,6 +57,38 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   [EXPENSE_CATEGORY.TRAVEL]: "Travel & meals",
   [EXPENSE_CATEGORY.TAXES]: "Taxes & duties",
   [EXPENSE_CATEGORY.OTHER]: "Other",
+};
+
+/**
+ * Words the category search matches besides the label.
+ *
+ * What people type is what they paid for, and the labels rarely contain it:
+ * "salary" is not a substring of "Salaries", and nobody filing a Meta invoice
+ * types "marketing". English only; a translated label is still matched on its
+ * own words.
+ */
+export const EXPENSE_CATEGORY_KEYWORDS: Record<ExpenseCategory, string> = {
+  [EXPENSE_CATEGORY.PREMISES]:
+    "rent lease office shop warehouse electricity water gas internet insurance",
+  [EXPENSE_CATEGORY.PEOPLE]:
+    "salary wages payroll staff employee contractor freelancer bonus",
+  [EXPENSE_CATEGORY.MARKETING]:
+    "ads facebook meta google instagram tiktok promotion influencer sponsorship seo",
+  [EXPENSE_CATEGORY.SOFTWARE]:
+    "server domain saas subscription licence license app cloud email",
+  [EXPENSE_CATEGORY.INVENTORY_PURCHASE]:
+    "inventory goods products wholesale supplier restock",
+  [EXPENSE_CATEGORY.SHIPPING_SUPPLIES]:
+    "packaging boxes courier postage delivery shipping",
+  [EXPENSE_CATEGORY.BANK_FEES]:
+    "bank charges gateway transfer fee currency exchange",
+  [EXPENSE_CATEGORY.PROFESSIONAL]:
+    "accountant lawyer legal consultant audit bookkeeping",
+  [EXPENSE_CATEGORY.EQUIPMENT]:
+    "laptop computer phone printer furniture device hardware",
+  [EXPENSE_CATEGORY.TRAVEL]: "transport taxi fuel flight hotel food",
+  [EXPENSE_CATEGORY.TAXES]: "tax vat duty customs government trade licence",
+  [EXPENSE_CATEGORY.OTHER]: "misc miscellaneous",
 };
 
 /** How the expense was settled — it decides which asset the money left. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { PreorderBalanceCard } from "@/components/account/preorder-balance-card";
 
 /**

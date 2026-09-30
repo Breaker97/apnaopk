@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   Globe,
@@ -26,6 +26,7 @@ import { signOutAndReload } from "@/lib/auth/auth-client";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { PreferencesDrawer } from "@/components/layout/preferences-drawer";
 import { cn } from "@/lib/utils";
 
 interface StaffHeaderProps {
@@ -171,6 +172,9 @@ export function StaffHeader({ user, locale, posEnabled }: StaffHeaderProps) {
             </Button>
           }
         />
+
+        {/* The viewer's own preferences; nothing in it is store-wide. */}
+        <PreferencesDrawer locale={locale} />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

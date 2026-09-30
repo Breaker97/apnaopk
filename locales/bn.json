@@ -150,7 +150,16 @@
     "increaseQuantity": "পরিমাণ বাড়ান",
     "name": "নাম",
     "email": "ইমেইল",
-    "showingResultsFor": "<q>{query}</q>-এর ফলাফল দেখানো হচ্ছে"
+    "showingResultsFor": "<q>{query}</q>-এর ফলাফল দেখানো হচ্ছে",
+    "all": "সব",
+    "countryPicker": {
+      "placeholder": "দেশ নির্বাচন করুন",
+      "search": "দেশ খুঁজুন...",
+      "empty": "কোনো দেশ পাওয়া যায়নি।",
+      "clear": "দেশ মুছুন",
+      "selected": "{count, plural, one {#টি দেশ নির্বাচিত} other {#টি দেশ নির্বাচিত}}",
+      "remove": "{country} সরান"
+    }
   },
   "ui": {
     "dataTable": {
@@ -173,6 +182,24 @@
       "selectAll": "সব নির্বাচন করুন",
       "selectRow": "{key} সারি নির্বাচন করুন",
       "noResults": "কোনো ফলাফল পাওয়া যায়নি"
+    },
+    "fileUpload": {
+      "failed": "আপলোড ব্যর্থ হয়েছে",
+      "tooLarge": "ফাইলটি {size} MB-এর চেয়ে বড়",
+      "wrongType": "এই ধরনের ফাইল নেওয়া হয় না। PDF, PNG, JPG বা WebP ফাইল দিন।",
+      "uploading": "আপলোড হচ্ছে…",
+      "readOnly": "এই সময়কাল বন্ধ",
+      "attached": "সংযুক্ত",
+      "view": "দেখুন",
+      "replace": "বদলান",
+      "remove": "ফাইল সরান",
+      "notAttached": "কিছু সংযুক্ত হয়নি",
+      "chooseAnother": "অন্য ফাইল বাছুন",
+      "browse": "ব্রাউজ করুন",
+      "dropToAttach": "সংযুক্ত করতে ছেড়ে দিন",
+      "dropHere": "এখানে ফাইল ছেড়ে দিন অথবা",
+      "limits": "PDF, PNG, JPG বা WebP",
+      "upTo": "সর্বোচ্চ {size} MB"
     }
   },
   "wishlist": {
@@ -215,6 +242,26 @@
     "emailInUse": "অন্য একজন ব্যবহারকারী ইতিমধ্যে এই ইমেইল ব্যবহার করছেন"
   },
   "account": {
+    "quotes": "কোটেশন",
+    "quotesDesc": "যেসব পণ্যের মূল্য জানতে চেয়েছেন, আর স্টোর যে মূল্য পাঠিয়েছে।",
+    "quotesList": {
+      "empty": "আপনি এখনো কোনো পণ্যের মূল্য জানতে চাননি। কোটেশনে বিক্রি হওয়া পণ্যে মূল্যের বদলে একটি অনুরোধ বাটন থাকে।",
+      "awaitingPrice": "মূল্যের অপেক্ষায়",
+      "priceReady": "মূল্য তৈরি",
+      "ordered": "অর্ডার হয়েছে",
+      "priceExpired": "মূল্যের মেয়াদ শেষ",
+      "priceWithdrawn": "মূল্য প্রত্যাহার করা হয়েছে",
+      "closed": "বন্ধ",
+      "askedFor": "{date}-এ {quantity}টি চেয়েছেন",
+      "each": "প্রতিটি {price}",
+      "lotTotal": "{quantity}টি = {total}",
+      "beforeShippingTax": "শিপিং ও ট্যাক্স চেকআউটে যোগ হবে।",
+      "heldUntil": "{date} পর্যন্ত থাকবে",
+      "addToCart": "কার্টে যোগ করুন",
+      "viewOrder": "অর্ডার দেখুন",
+      "askAgain": "আবার জানতে চান",
+      "addFailed": "এই মূল্য ব্যবহার করা যায়নি। পেজটি রিফ্রেশ করে আবার চেষ্টা করুন।"
+    },
     "welcome": "স্বাগতম, {name}!",
     "overviewDesc": "এক নজরে আপনার অ্যাকাউন্ট",
     "totalOrders": "মোট অর্ডার",
@@ -304,7 +351,19 @@
         "replySent": "জবাব পাঠানো হয়েছে",
         "sendFailed": "জবাব পাঠানো যায়নি"
       }
-    }
+    },
+    "storeCredit": "স্টোর ক্রেডিট",
+    "storeCreditDesc": "রিফান্ড আর স্টোরের কাছ থেকে পাওয়া ক্রেডিট, যা চেকআউটে খরচ করতে পারবেন।",
+    "storeCreditExpired": "মেয়াদ শেষ",
+    "storeCreditHeld": "পেমেন্ট চলছে এমন অর্ডারের জন্য আটকে রাখা",
+    "storeCreditSpent": "একটি অর্ডারে খরচ হয়েছে",
+    "storeCreditFromReturn": "রিটার্নের রিফান্ড",
+    "storeCreditFromRefund": "রিফান্ড",
+    "storeCreditRestored": "রিফান্ড হওয়া অর্ডার থেকে ফেরত",
+    "storeCreditFromStore": "স্টোরের পক্ষ থেকে",
+    "storeCreditEmpty": "আপনার কোনো স্টোর ক্রেডিট নেই।",
+    "storeCreditBalance": "ব্যবহারযোগ্য",
+    "storeCreditExpires": "{amount} এর মেয়াদ শেষ {date}"
   },
   "customerProfile": {
     "loyaltyPoints": "পয়েন্ট",
@@ -637,7 +696,6 @@
     "shareProduct": "বন্ধু ও পরিবারের সাথে এই পণ্যটি শেয়ার করুন",
     "sizeGuide": "সাইজ গাইড",
     "fabricCare": "ফ্যাব্রিক ও যত্ন",
-    "faq": "FAQ",
     "productDetails": "পণ্যের বিবরণ",
     "returnPolicy": "রিটার্ন নীতি",
     "freeReturns": "৩০ দিনের বিনামূল্যে রিটার্ন",
@@ -664,10 +722,13 @@
     "quoteRequestHelp": "{product} সম্পর্কে আপনার প্রয়োজন জানান, আমরা মূল্য জানিয়ে যোগাযোগ করব।",
     "quoteRequestSent": "অনুরোধ পাঠানো হয়েছে",
     "quoteRequestSentHelp": "ধন্যবাদ — আপনার অনুরোধ আমরা পেয়েছি এবং শীঘ্রই মূল্য জানাব।",
+    "quoteTrackInAccount": "আপনার অ্যাকাউন্টে দেখুন",
+    "quotedForQuantity": "{count}টির জন্য",
     "quotePhoneOptional": "ফোন (ঐচ্ছিক)",
     "quoteCompanyOptional": "প্রতিষ্ঠান (ঐচ্ছিক)",
     "quoteMessageOptional": "বার্তা (ঐচ্ছিক)",
-    "quoteMessagePlaceholder": "পরিমাণ, ডেলিভারির তারিখ, স্পেসিফিকেশন…"
+    "quoteMessagePlaceholder": "পরিমাণ, ডেলিভারির তারিখ, স্পেসিফিকেশন…",
+    "finalSale": "ফাইনাল সেল — এই পণ্য ফেরত দেওয়া যাবে না"
   },
   "cart": {
     "yourCart": "আপনার কার্ট",
@@ -707,7 +768,8 @@
     "reviewItemsBeforeCheckout": "চেকআউটের আগে আপনার নির্বাচিত পণ্যগুলো দেখে নিন।",
     "product": "পণ্য",
     "deliveryEstimate": "স্ট্যান্ডার্ড শিপিংয়ের মাধ্যমে {dateRange} এর মধ্যে ডেলিভারি",
-    "shoppingBag": "শপিং ব্যাগ"
+    "shoppingBag": "শপিং ব্যাগ",
+    "finalSale": "ফাইনাল সেল — ফেরত দেওয়া যাবে না"
   },
   "checkout": {
     "checkout": "চেকআউট",
@@ -786,7 +848,24 @@
       "mtnMomoDetail": "MTN Mobile Money দিয়ে পেমেন্ট করুন। আপনার ফোনে একটি অনুরোধ আসবে, যা MoMo PIN দিয়ে অনুমোদন করবেন।",
       "mtnMomoPhoneLabel": "মোবাইল মানি নম্বর",
       "mtnMomoPhonePlaceholder": "যেমন {example}",
-      "mtnMomoPhoneHint": "যে MTN নম্বর থেকে পেমেন্ট হবে সেটি দিন। সেই ফোনে অনুমোদনের জন্য একটি অনুরোধ যাবে।"
+      "mtnMomoPhoneHint": "যে MTN নম্বর থেকে পেমেন্ট হবে সেটি দিন। সেই ফোনে অনুমোদনের জন্য একটি অনুরোধ যাবে।",
+      "humanCheck": "আপনি রোবট নন — নিচে একবার নিশ্চিত করে আবার চেষ্টা করুন।",
+      "failure": {
+        "insufficient_funds": "এই কার্ডে যথেষ্ট টাকা নেই। অন্য কার্ড দিন, বা অন্য উপায়ে শোধ করুন।",
+        "card_declined": "আপনার ব্যাংক এই পেমেন্টটি ফিরিয়ে দিয়েছে। কারণটা ওরাই বলতে পারবে — নয়তো অন্য একটা কার্ড দিন।",
+        "expired_card": "কার্ডটির মেয়াদ শেষ। অন্য একটা কার্ড দিন।",
+        "incorrect_cvc": "নিরাপত্তা কোডটি কার্ডের সাথে মেলেনি। কার্ডের পিছনের তিনটি সংখ্যা দেখে আবার দিন।",
+        "incorrect_number": "কার্ড নম্বরটি ঠিক মনে হচ্ছে না। দেখে নিয়ে আবার চেষ্টা করুন।",
+        "authentication_failed": "ব্যাংকের যাচাইটি সম্পূর্ণ হয়নি, তাই পেমেন্ট থেমে গেছে। আবার চেষ্টা করুন এবং ব্যাংক যে ধাপটি দেখায় সেটি শেষ করুন।",
+        "address_check_failed": "বিলিং ঠিকানা আপনার ব্যাংকে থাকা ঠিকানার সাথে মিলছে না। ঠিক করে আবার চেষ্টা করুন।",
+        "blocked_by_risk": "নিরাপত্তা যাচাইয়ে পেমেন্টটি আটকে গেছে। অন্য উপায়ে চেষ্টা করুন, বা আমাদের জানান — আমরা সাহায্য করব।",
+        "card_not_supported": "এই কার্ড দিয়ে এই পেমেন্ট করা যাবে না — প্রায়ই কারণ কার্ডটি অন্য দেশের। অন্য কার্ড বা অন্য পেমেন্ট পদ্ধতি দিয়ে চেষ্টা করুন।",
+        "cancelled_by_shopper": "পেমেন্টটি শেষ হওয়ার আগেই বাতিল হয়েছে। কোনো টাকা কাটেনি — আবার চেষ্টা করতে পারেন।",
+        "window_closed": "সময়মতো পেমেন্ট সম্পূর্ণ হয়নি, সেশনটি বন্ধ হয়ে গেছে। কোনো টাকা কাটেনি — আবার শুরু করুন।",
+        "gateway_refused_request": "পেমেন্ট সেবাদাতা এই পেমেন্টটি শুরু করতে পারেনি। আবার চেষ্টা করুন, বা অন্য উপায় বেছে নিন।",
+        "processing_error": "পেমেন্ট সেবাদাতার দিকে সমস্যা হওয়ায় শেষ করা যায়নি। কোনো টাকা কাটেনি — আবার চেষ্টা করুন।",
+        "unknown": "পেমেন্টটি হয়নি। কোনো টাকা কাটেনি — আবার চেষ্টা করুন, বা অন্য উপায় ব্যবহার করুন।"
+      }
     },
     "cod": "COD",
     "card": "কার্ড",
@@ -824,6 +903,7 @@
     "apartment": "অ্যাপার্টমেন্ট, স্যুট, ইত্যাদি (ঐচ্ছিক)",
     "zipCode": "জিপ কোড",
     "searchCountry": "দেশ অনুসন্ধান করুন...",
+    "searchState": "রাজ্য অনুসন্ধান করুন...",
     "cashOnDelivery": "ক্যাশ অন ডেলিভারি",
     "creditDebitCard": "ক্রেডিট/ডেবিট কার্ড",
     "completeOrder": "অর্ডার সম্পন্ন করুন",
@@ -850,7 +930,39 @@
     "expressShipping": "Sep 29",
     "nominatedDay": "নির্ধারিত দিন",
     "billingSame": "শিপিং ঠিকানার মতোই",
-    "billingDifferent": "ভিন্ন একটি বিলিং ঠিকানা ব্যবহার করুন"
+    "billingDifferent": "ভিন্ন একটি বিলিং ঠিকানা ব্যবহার করুন",
+    "deliveryDaysExact": "{max} দিন",
+    "deliveryDaysRange": "{min}-{max} দিন",
+    "shipmentsSummary": "{sellers} জন বিক্রেতার {items}টি পণ্য {shipments}টি আলাদা শিপমেন্টে আসবে।",
+    "deliveryForOrder": "পুরো অর্ডারের ডেলিভারি",
+    "customLabel": "কাস্টম",
+    "presetLowest": "সবচেয়ে কম খরচ",
+    "presetLowestCaption": "সবকিছু {min}-{max} দিনের মধ্যে পৌঁছাবে",
+    "presetFastest": "যত দ্রুত সম্ভব",
+    "presetFastestCaption": "+{amount} · {shipments}টির মধ্যে {changed}টি শিপমেন্ট {gain} দিন আগে",
+    "slowestShipmentNote": "{seller}-এর ডেলিভারি অপশন একটিই, তাই যেটাই বাছুন অর্ডারটি {min}-{max} দিনেই সম্পূর্ণ হবে।",
+    "thisSeller": "এই বিক্রেতা",
+    "shipmentLabel": "শিপমেন্ট {index} · {seller}",
+    "shipmentItemsOne": "{count}টি পণ্য · {names}",
+    "shipmentItemsMany": "{count}টি পণ্য · {names}",
+    "shipmentPreorder": "প্রি-অর্ডার · পরে পাঠানো হবে",
+    "changeMethod": "বদলান",
+    "done": "সম্পন্ন",
+    "onlyOption": "একটিই অপশন",
+    "viewAllShipments": "সবগুলো {count}টি শিপমেন্ট দেখুন",
+    "showFewerShipments": "কম দেখান",
+    "totalShipping": "মোট ডেলিভারি খরচ",
+    "orderCompleteIn": "অর্ডার সম্পূর্ণ হবে {min}-{max} দিনে",
+    "lowestPriceSelected": "সবচেয়ে কম খরচ নির্বাচিত",
+    "fastestSelected": "যত দ্রুত সম্ভব নির্বাচিত",
+    "customDeliveryOne": "কাস্টম ডেলিভারি · {count}টি শিপমেন্ট আপগ্রেড করা হয়েছে",
+    "customDeliveryMany": "কাস্টম ডেলিভারি · {count}টি শিপমেন্ট আপগ্রেড করা হয়েছে",
+    "upgradeHint": "+{amount} দিলে {days} দিন আগে",
+    "sellerNoShippingRates": "{seller} এই ঠিকানায় ডেলিভারি করে না। ঠিকানা বদলান অথবা তাদের পণ্য সরিয়ে ফেলুন।",
+    "shipmentChanged": "পরিবর্তিত",
+    "storeCredit": "স্টোর ক্রেডিট",
+    "useStoreCredit": "আমার স্টোর ক্রেডিট ব্যবহার করুন ({amount} আছে)",
+    "storeCreditCoversOrder": "আপনার স্টোর ক্রেডিটেই এই অর্ডারের পুরো দাম হয়ে যাচ্ছে — আর কিছু দিতে হবে না।"
   },
   "orders": {
     "title": "আমার অর্ডার",
@@ -881,6 +993,7 @@
     "cancelOrderDescription": "আপনি কি এই অর্ডার বাতিল করতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
     "keepOrder": "অর্ডার রাখুন",
     "orderCancelled": "অর্ডার সফলভাবে বাতিল হয়েছে",
+    "orderCancelledRefundFailed": "অর্ডার বাতিল হয়েছে, কিন্তু আপনার রিফান্ড নিজে থেকে পাঠানো যায়নি। স্টোরকে জানানো হয়েছে, তারা আপনাকে টাকা ফেরত পাঠাবে।",
     "orderCancelFailed": "অর্ডার বাতিল করতে ব্যর্থ",
     "orderItems": "অর্ডার আইটেম",
     "orderUpdated": "অর্ডার স্ট্যাটাস আপডেট হয়েছে",
@@ -901,6 +1014,9 @@
     "shipments": "চালান",
     "shipmentsDescription": "বিভিন্ন বিক্রেতার পণ্য আলাদাভাবে পাঠানো ও পরিশোধ করা হয়।",
     "tracking": "ট্র্যাকিং",
+    "trackingNumber": "ট্র্যাকিং নম্বর",
+    "latestFromCarrier": "{carrier} থেকে সর্বশেষ আপডেট",
+    "latestUpdate": "সর্বশেষ আপডেট",
     "payment": {
       "pending": "পেমেন্ট বাকি",
       "paid": "পরিশোধিত",
@@ -908,7 +1024,142 @@
       "refunded": "ফেরত দেওয়া হয়েছে",
       "partially_refunded": "আংশিক ফেরত"
     },
-    "importDuties": "আমদানি শুল্ক"
+    "importDuties": "আমদানি শুল্ক",
+    "payNow": {
+      "title": "পেমেন্ট বাকি",
+      "hint": "এই অর্ডারের টাকা এখনো আসেনি। নিচে পেমেন্ট করলেই আমরা অর্ডারটি পাঠানোর ব্যবস্থা করব — অর্ডারের কিছুই বদলাবে না।",
+      "amountDue": "বাকি টাকা",
+      "payButton": "এখনই পেমেন্ট করুন",
+      "pushSent": "ফোনটা দেখুন — পেমেন্ট রিকোয়েস্ট আবার পাঠানো হয়েছে।",
+      "resendPush": "পেমেন্ট রিকোয়েস্ট আবার আমার ফোনে পাঠান"
+    },
+    "returns": {
+      "request": "রিটার্নের অনুরোধ করুন",
+      "contactStore": "কোনো পণ্য ফেরত দিতে দোকানের সাথে যোগাযোগ করুন।",
+      "title": "রিটার্নের অনুরোধ",
+      "description": "এই অর্ডারের রিটার্ন আর রিফান্ডের অবস্থা।",
+      "rejectionReason": "কারণ: {reason}",
+      "cancelling": "বাতিল হচ্ছে...",
+      "cancel": "এই রিটার্ন বাতিল করুন",
+      "previewFailed": "এই নির্বাচনের জন্য রিফান্ড হিসাব করা গেল না",
+      "toast": {
+        "cancelled": "রিটার্নের অনুরোধ বাতিল হয়েছে",
+        "cancelFailed": "এই রিটার্ন বাতিল করা গেল না",
+        "selectItem": "রিটার্নের জন্য অন্তত একটি পণ্য বেছে নিন",
+        "selectReason": "রিটার্নের একটি কারণ বেছে নিন",
+        "explain": "কী সমস্যা হয়েছে লিখুন",
+        "submitted": "রিটার্নের অনুরোধ পাঠানো হয়েছে",
+        "submitFailed": "রিটার্নের অনুরোধ পাঠানো গেল না"
+      },
+      "status": {
+        "requested": "অনুরোধ করা হয়েছে",
+        "approved": "অনুমোদিত",
+        "rejected": "প্রত্যাখ্যাত",
+        "awaiting_shipment": "পাঠানোর অপেক্ষায়",
+        "in_transit": "পথে আছে",
+        "received": "পৌঁছেছে",
+        "inspected": "পরীক্ষা করা হয়েছে",
+        "refund_pending": "রিফান্ড বাকি",
+        "refunded": "রিফান্ড হয়েছে",
+        "partially_refunded": "আংশিক রিফান্ড হয়েছে",
+        "closed": "বন্ধ",
+        "cancelled": "বাতিল"
+      },
+      "refundStatus": {
+        "pending": "রিফান্ড বাকি",
+        "processing": "রিফান্ডের অনুরোধ পাঠানো হয়েছে",
+        "succeeded": "রিফান্ড হয়েছে",
+        "failed": "রিফান্ড ব্যর্থ হয়েছে",
+        "manual_required": "রিফান্ড পাঠানো হচ্ছে"
+      },
+      "reasons": {
+        "wrong_size_or_variant": "ভুল সাইজ বা ভ্যারিয়েন্ট",
+        "damaged_or_defective": "ক্ষতিগ্রস্ত বা ত্রুটিপূর্ণ",
+        "not_as_described": "বর্ণনার সাথে মেলে না",
+        "wrong_item_received": "ভুল পণ্য এসেছে",
+        "arrived_late": "দেরিতে এসেছে",
+        "changed_mind": "মত বদলেছি",
+        "other": "অন্য কারণ"
+      },
+      "dialog": {
+        "title": "রিটার্নের অনুরোধ করুন",
+        "description": "যে পণ্যগুলো ফেরত দিতে চান সেগুলো বেছে নিন। রিফান্ডের আগে স্টোর টিম অনুরোধটি দেখবে।",
+        "reason": "কারণ",
+        "chooseReason": "একটি কারণ বেছে নিন",
+        "otherReason": "অন্য কারণ",
+        "otherReasonPlaceholder": "ফেরত দেওয়ার কারণ লিখুন",
+        "items": "পণ্য",
+        "returnable": "ফেরতযোগ্য পরিমাণ: {total}টির মধ্যে {count}টি",
+        "quantity": "ফেরতের পরিমাণ",
+        "notes": "নোট",
+        "notesPlaceholder": "স্টোর টিমের জন্য বিস্তারিত লিখুন",
+        "whatYouGetBack": "আপনি কত ফেরত পাবেন",
+        "parcel": "পার্সেল {number}: {items}",
+        "totalParcels": "{count}টি পার্সেল মিলিয়ে মোট",
+        "estimateNote": "এটি একটি আনুমানিক হিসাব। ফেরত আসা পণ্য দেখার পরে স্টোর চূড়ান্ত পরিমাণ নিশ্চিত করবে।",
+        "submitting": "পাঠানো হচ্ছে...",
+        "submit": "রিটার্নের অনুরোধ পাঠান",
+        "finalSale": "ফাইনাল সেল — ফেরত দেওয়া যাবে না"
+      },
+      "breakdown": {
+        "items": "পণ্য",
+        "discount": "চেকআউটে পাওয়া ছাড়",
+        "tax": "ট্যাক্স",
+        "delivery": "ডেলিভারি চার্জ",
+        "restockingFee": "রিস্টকিং ফি",
+        "returnShipping": "ফেরত পাঠানোর খরচ",
+        "notRefunded": "ফেরত দেওয়া হবে না",
+        "estimated": "আনুমানিক রিফান্ড",
+        "refunded": "এখন পর্যন্ত রিফান্ড হয়েছে",
+        "onUs": "এই রিটার্নের দায় আমাদের, তাই কোনো রিস্টকিং ফি বা ফেরত পাঠানোর খরচ নেই।"
+      },
+      "destination": {
+        "notProvided": "দেওয়া হয়নি",
+        "goingTo": "রিফান্ড যাবে: {destination}",
+        "methods": {
+          "bank_transfer": "ব্যাংক ট্রান্সফার",
+          "mobile_money": "মোবাইল মানি",
+          "cash": "সরাসরি নগদ"
+        },
+        "where": "রিফান্ড কোথায় পাঠাব?",
+        "chooseMethod": "একটি মাধ্যম বেছে নিন",
+        "whyCounter": "আপনি স্টোরের কাউন্টারে পেমেন্ট করেছেন, তাই রিফান্ডও সেভাবেই ফেরত দেওয়া হবে। কোথায় পাঠাব জানান।",
+        "whyCod": "আপনি ডেলিভারির সময় পেমেন্ট করেছেন, তাই রিফান্ড করার মতো কোনো কার্ড নেই। টাকা কোথায় পাঠাব জানান।",
+        "whyBankTransfer": "আপনি ব্যাংক ট্রান্সফারে পেমেন্ট করেছেন, তাই রিফান্ড হাতে পাঠানো হবে। কোথায় পাঠাব জানান।",
+        "whyOther": "এই পেমেন্ট নিজে থেকে রিফান্ড করা যায় না, তাই রিফান্ড হাতে পাঠানো হবে। কোথায় পাঠাব জানান।",
+        "mobileProvider": "মোবাইল মানি প্রোভাইডার",
+        "bankName": "ব্যাংকের নাম",
+        "mobileProviderPlaceholder": "বিকাশ, নগদ, …",
+        "bankNamePlaceholder": "আপনার ব্যাংক",
+        "mobileNumber": "মোবাইল মানি নম্বর",
+        "accountNumber": "অ্যাকাউন্ট নম্বর",
+        "accountName": "অ্যাকাউন্টধারীর নাম",
+        "accountNamePlaceholder": "অ্যাকাউন্টে যেভাবে লেখা আছে ঠিক সেভাবে",
+        "cashNote": "স্টোর আপনাকে সরাসরি রিফান্ড হাতে দেওয়ার ব্যবস্থা করবে।"
+      },
+      "shipping": {
+        "nothingToSend": "কিছু ফেরত পাঠাতে হবে না।",
+        "sendTo": "এখানে পাঠান",
+        "defaultInstructions": "সব আনুষঙ্গিকসহ জিনিসগুলো ভালো করে প্যাক করুন, আর parcel-এর গায়ে {returnNumber} লিখুন। উপরের ঠিকানায় পাঠান, তারপর আপনার order page-এ tracking number দিন।",
+        "downloadLabel": "Return label download করুন",
+        "openLabel": "Return label খুলুন",
+        "carrier": "Carrier (ঐচ্ছিক)",
+        "trackingNumber": "Tracking number",
+        "trackingRequired": "Tracking number লিখুন",
+        "save": "Save করুন",
+        "saving": "Save হচ্ছে...",
+        "tracking": "Tracking: {tracking}",
+        "change": "বদলান",
+        "saved": "Tracking number save হয়েছে",
+        "saveFailed": "Tracking number save করা যায়নি"
+      },
+      "refundedAsStoreCredit": "{amount} স্টোর ক্রেডিট হিসেবে রিফান্ড হয়েছে",
+      "exchangedFor": "বদলে পাচ্ছেন অর্ডার",
+      "exchanged": "এক্সচেঞ্জ হয়েছে"
+    },
+    "finalSale": "ফাইনাল সেল",
+    "paidWithStoreCredit": "স্টোর ক্রেডিট দিয়ে পরিশোধ",
+    "paidByReturn": "আপনার রিটার্ন {returnNumber} দিয়ে পরিশোধ"
   },
   "vendor": {
     "vendorDashboard": "বিক্রেতা ড্যাশবোর্ড",
@@ -1133,7 +1384,8 @@
       "paid": "পরিশোধিত",
       "partially_paid": "আংশিক পরিশোধিত",
       "refunded": "রিফান্ড হয়েছে",
-      "partially_refunded": "আংশিক রিফান্ড হয়েছে"
+      "partially_refunded": "আংশিক রিফান্ড হয়েছে",
+      "expired": "মেয়াদ শেষ"
     },
     "fulfillmentStatus": {
       "preordered": "প্রি-অর্ডার",
@@ -1305,7 +1557,10 @@
       }
     },
     "boosts": "বুস্ট",
-    "planBilling": "প্ল্যান ও বিলিং"
+    "planBilling": "প্ল্যান ও বিলিং",
+    "finance": "অর্থব্যবস্থা",
+    "owedToPlatform": "প্ল্যাটফর্মের পাওনা",
+    "statements": "স্টেটমেন্ট"
   },
   "adminProfile": {
     "title": "প্রোফাইল",
@@ -1324,6 +1579,226 @@
     "avatarError": "অবতার আপলোড করতে ব্যর্থ"
   },
   "admin": {
+    "quotesPage": {
+      "title": "কোটেশন",
+      "searchPlaceholder": "গ্রাহক, প্রতিষ্ঠান, ইমেইল বা পণ্য খুঁজুন",
+      "export": "এক্সপোর্ট",
+      "stats": {
+        "needsReply": {
+          "title": "উত্তর বাকি",
+          "description": "এখনো মূল্য পাঠানো হয়নি"
+        },
+        "offersOpen": {
+          "title": "খোলা অফার",
+          "description": "{value} গ্রাহকের সিদ্ধান্তের অপেক্ষায়"
+        },
+        "expired": {
+          "title": "মেয়াদ শেষ, অর্ডার নেই",
+          "description": "ফলো-আপ করুন বা বন্ধ করুন"
+        },
+        "ordered": {
+          "title": "অর্ডার হয়েছে",
+          "description": "কোটেশনের মূল্যে অর্ডার {value}"
+        }
+      },
+      "stage": {
+        "needs_reply": "উত্তর বাকি",
+        "offer_sent": "অফার পাঠানো",
+        "expired": "মেয়াদ শেষ",
+        "ordered": "অর্ডার হয়েছে",
+        "won": "সফল",
+        "closed": "বন্ধ"
+      },
+      "tabs": {
+        "all": "সব",
+        "needsReply": "উত্তর বাকি",
+        "offerSent": "অফার পাঠানো",
+        "expired": "মেয়াদ শেষ",
+        "ordered": "অর্ডার হয়েছে",
+        "closed": "বন্ধ"
+      },
+      "columns": {
+        "requested": "অনুরোধের তারিখ",
+        "customer": "গ্রাহক",
+        "product": "পণ্য",
+        "offer": "অফার",
+        "status": "অবস্থা"
+      },
+      "filters": {
+        "requested": "অনুরোধের সময়",
+        "anyTime": "যেকোনো সময়",
+        "last7": "গত ৭ দিন",
+        "last30": "গত ৩০ দিন",
+        "last90": "গত ৯০ দিন",
+        "customer": "গ্রাহক",
+        "everyone": "সবাই",
+        "withAccount": "অ্যাকাউন্ট আছে",
+        "guests": "অতিথি"
+      },
+      "table": {
+        "qty": "পরিমাণ {count}",
+        "message": "বার্তা",
+        "expires": "মেয়াদ {date} পর্যন্ত",
+        "noExpiry": "মেয়াদ নেই",
+        "expiredOn": "{date}-এ মেয়াদ শেষ",
+        "lost": "হারানো হিসেবে বন্ধ",
+        "withdrawnOn": "{date}-এ প্রত্যাহার",
+        "keptWithOrder": "অর্ডারের সাথে রাখা থাকে"
+      },
+      "empty": {
+        "all": "এখনো কোনো কোটেশন অনুরোধ নেই। “মূল্য অনুরোধের ভিত্তিতে” চালু থাকা পণ্যে কেউ দাম জানতে চাইলে এখানে আসবে।",
+        "tab": "এই মুহূর্তে এখানে কোনো কোটেশন নেই।",
+        "filtered": "আপনার খোঁজ বা ফিল্টারের সাথে কোনো কোটেশন মেলেনি।"
+      },
+      "actions": {
+        "sendPrice": "মূল্য পাঠান",
+        "sendNewPrice": "নতুন মূল্য পাঠান",
+        "reopen": "আবার খুলুন",
+        "withdraw": "মূল্য প্রত্যাহার করুন",
+        "openOrder": "অর্ডার দেখুন",
+        "email": "গ্রাহককে ইমেইল করুন",
+        "call": "কল করুন {phone}",
+        "markLost": "হারানো হিসেবে চিহ্নিত করুন"
+      },
+      "confirm": {
+        "markLost": {
+          "title": "এই কোটেশনটি হারানো হিসেবে চিহ্নিত করবেন?",
+          "description": "এটি “বন্ধ”-এ চলে যাবে। পরে আবার খুলতে পারবেন।",
+          "descriptionLive": "এটি “বন্ধ”-এ চলে যাবে, আর পাঠানো মূল্যটি আর কাজ করবে না — গ্রাহক ওই দামে কিনতে পারবেন না।"
+        },
+        "withdraw": {
+          "title": "এই মূল্য প্রত্যাহার করবেন?",
+          "description": "{name} আর এই দামে কিনতে পারবেন না। কার্টে থাকলে সেটিও সরে যাবে।"
+        },
+        "delete": {
+          "title": "এই কোটেশন অনুরোধ মুছে ফেলবেন?",
+          "description": "{product}-এর জন্য {name}-এর অনুরোধ স্থায়ীভাবে মুছে যাবে। রেকর্ড রাখতে চাইলে বরং হারানো হিসেবে চিহ্নিত করুন।"
+        }
+      },
+      "toast": {
+        "failed": "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।",
+        "loadFailed": "কোটেশনটি লোড করা যায়নি",
+        "markedLost": "কোটেশন হারানো হিসেবে চিহ্নিত হয়েছে",
+        "reopened": "কোটেশন আবার খোলা হয়েছে",
+        "withdrawn": "মূল্য প্রত্যাহার করা হয়েছে",
+        "deleted": "কোটেশন অনুরোধ মুছে ফেলা হয়েছে",
+        "noteSaved": "নোট সংরক্ষিত হয়েছে",
+        "emailCopied": "ইমেইল কপি হয়েছে",
+        "exported": "কোটেশন এক্সপোর্ট হয়েছে"
+      },
+      "lot": {
+        "stockShort": "স্টকে {max}টি",
+        "preorderShort": "প্রি-অর্ডারে জায়গা {max}",
+        "needsVariantShort": "ভ্যারিয়েন্ট বাছুন",
+        "unavailableShort": "বিক্রিতে নেই",
+        "stock": "স্টকে মাত্র {max}টি আছে আর ওভারসেলিং বন্ধ — গ্রাহক {quantity}টি চেকআউট করতে পারবেন না।",
+        "preorder": "প্রি-অর্ডারে আর {max}টির জায়গা আছে — গ্রাহক {quantity}টি চেকআউট করতে পারবেন না।",
+        "needsVariant": "কোনো ভ্যারিয়েন্ট বাছা হয়নি, আর ভ্যারিয়েন্ট ছাড়া কার্ট এই পণ্য নেয় না।",
+        "unavailable": "পণ্যটি এখন স্টোরে বিক্রিতে নেই, তাই এই মূল্য ব্যবহার করা যাবে না।",
+        "inStock": "স্টকে {max}টি",
+        "untracked": "স্টক ট্র্যাক হয় না",
+        "preorderOpen": "প্রি-অর্ডার খোলা"
+      },
+      "sheet": {
+        "loading": "কোটেশন লোড হচ্ছে",
+        "requestedOn": "অনুরোধ {date}",
+        "customer": "গ্রাহক",
+        "phone": "ফোন",
+        "account": "অ্যাকাউন্ট",
+        "hasAccount": "অ্যাকাউন্ট আছে",
+        "guestBuys": "কিনতে এই ইমেইলে সাইন ইন করবেন",
+        "copyEmail": "ইমেইল কপি করুন",
+        "request": "অনুরোধ",
+        "quantityAsked": "চাওয়া পরিমাণ",
+        "noMessage": "কোনো বার্তা নেই।",
+        "price": "মূল্য",
+        "history": "ইতিহাস",
+        "internalNote": "অভ্যন্তরীণ নোট",
+        "internalNotePlaceholder": "শুধু স্টাফরা এই নোট দেখতে পান",
+        "saveNote": "নোট সংরক্ষণ করুন"
+      },
+      "price": {
+        "openUntil": "{date} পর্যন্ত খোলা",
+        "openNoExpiry": "খোলা, মেয়াদ নেই",
+        "expiredOn": "{date}-এ মেয়াদ শেষ",
+        "onOrderUnpaid": "অর্ডারে আছে, এখনো পেমেন্ট হয়নি",
+        "onOrderPaid": "পেমেন্ট হওয়া অর্ডারে",
+        "withdrawnOn": "{date}-এ প্রত্যাহার",
+        "closed": "বন্ধ",
+        "beforeShippingTax": "শিপিং ও ট্যাক্স চেকআউটে যোগ হবে",
+        "none": "এখনো মূল্য পাঠানো হয়নি।"
+      },
+      "history": {
+        "requested": "অনুরোধ এসেছে · পরিমাণ {quantity}",
+        "fromAccount": "অ্যাকাউন্ট থেকে",
+        "fromGuest": "সাইন ইন ছাড়া",
+        "priceSent": "মূল্য পাঠানো হয়েছে",
+        "newPriceSent": "নতুন মূল্য পাঠানো হয়েছে",
+        "withdrawn": "মূল্য প্রত্যাহার",
+        "expired": "মূল্যের মেয়াদ শেষ",
+        "ordered": "অর্ডার · {order}",
+        "paid": "পেমেন্ট হয়েছে",
+        "unpaid": "পেমেন্টের অপেক্ষায়",
+        "markedLost": "হারানো হিসেবে চিহ্নিত",
+        "heldDays": "{count} দিনের জন্য",
+        "noExpiry": "মেয়াদ নেই"
+      },
+      "dialog": {
+        "titleSend": "মূল্য পাঠান",
+        "titleUpdate": "নতুন মূল্য পাঠান",
+        "description": "{product} · {name} চেয়েছেন {quantity}টি",
+        "loading": "কোটেশন লোড হচ্ছে…",
+        "lastPrice": "আগের মূল্য",
+        "lastPriceExpired": "{date}-এ মেয়াদ শেষ",
+        "lastPriceWithdrawn": "{date}-এ প্রত্যাহার",
+        "lastPriceOpenUntil": "{date} পর্যন্ত খোলা",
+        "lastPriceOpen": "খোলা, মেয়াদ নেই",
+        "variant": "ভ্যারিয়েন্ট",
+        "variantPlaceholder": "ভ্যারিয়েন্ট বাছুন",
+        "variantHelp": "গ্রাহক কোনো ভ্যারিয়েন্ট বাছেননি, আর ভ্যারিয়েন্ট ছাড়া কার্ট এই পণ্য নেয় না।",
+        "priceEach": "প্রতিটির মূল্য",
+        "useMax": "{max} ব্যবহার করুন",
+        "customerPays": "গ্রাহক দেবেন",
+        "beforeShippingTax": "শিপিং ও ট্যাক্স চেকআউটে যোগ হবে",
+        "validFor": "মূল্য কতদিন থাকবে",
+        "noExpiry": "মেয়াদ নেই",
+        "days": "{count} দিন",
+        "heldUntil": "{date} পর্যন্ত থাকবে",
+        "heldForever": "আপনি প্রত্যাহার না করা পর্যন্ত মূল্য খোলা থাকবে",
+        "note": "গ্রাহকের জন্য নোট",
+        "notePlaceholder": "ডেলিভারির সময়, মূল্যে কী কী আছে, শর্তাবলি…",
+        "guestNote": "{name} অতিথি। মূল্য {email} ঠিকানায় ইমেইল করা হবে; কিনতে ওই ঠিকানায় সাইন ইন করবেন।",
+        "send": "মূল্য পাঠান",
+        "sendNew": "নতুন মূল্য পাঠান",
+        "sent": "{name}-কে মূল্য পাঠানো হয়েছে",
+        "sentReplaced": "{name}-কে মূল্য পাঠানো হয়েছে। একই পণ্যে এই গ্রাহকের আগের {count}টি খোলা মূল্য এর ফলে প্রত্যাহার হয়েছে।",
+        "sendFailed": "মূল্য পাঠানো যায়নি",
+        "chooseVariantError": "মূল্যটি কোন ভ্যারিয়েন্টের জন্য তা বাছুন",
+        "priceError": "শূন্যের বেশি মূল্য লিখুন",
+        "quantityError": "এই মূল্য কত পরিমাণের জন্য তা লিখুন"
+      }
+    },
+    "returnsPage": {
+      "stats": {
+        "needsReview": {
+          "title": "রিভিউ বাকি",
+          "description": "অনুমোদন বা বাতিল করুন"
+        },
+        "onTheWayBack": {
+          "title": "ফেরত আসছে",
+          "description": "অনুমোদিত, এখনো পৌঁছায়নি"
+        },
+        "refundDue": {
+          "title": "রিফান্ড বাকি",
+          "description": "ফেরত এসেছে, রিফান্ড হয়নি",
+          "problems": "ব্যর্থ বা ম্যানুয়াল: {count}"
+        },
+        "refunded": {
+          "title": "রিফান্ড হয়েছে (৩০ দিন)",
+          "description": "{value} ফেরত দেওয়া হয়েছে"
+        }
+      }
+    },
     "adminDashboard": "অ্যাডমিন ড্যাশবোর্ড",
     "browseWebsite": "ওয়েবসাইট দেখুন",
     "ordersPage": {
@@ -1346,7 +1821,8 @@
       "paymentStatus": {
         "paid": "পরিশোধিত",
         "partiallyPaid": "আংশিক পরিশোধিত",
-        "partiallyRefunded": "আংশিক ফেরত"
+        "partiallyRefunded": "আংশিক ফেরত",
+        "expired": "মেয়াদ শেষ"
       },
       "fulfillment": {
         "unfulfilled": "ফুলফিল হয়নি",
@@ -1409,6 +1885,8 @@
       "exportSuccess": "{count}টি অর্ডার এক্সপোর্ট হয়েছে"
     },
     "orderDetails": {
+      "quotedPrice": "কোটেশনের মূল্যে বিক্রি",
+      "paymentPendingLock": "মোবাইল মানি পেমেন্টটি এখনো প্রক্রিয়াধীন। নিষ্পত্তি না হওয়া পর্যন্ত এই অর্ডার সম্পাদনা, বাতিল বা পরিশোধিত চিহ্নিত করা যাবে না — কয়েক মিনিট পরপর পেমেন্টটি আবার দেখা হচ্ছে।",
       "orderNumber": "অর্ডার #{number}",
       "placedOn": "অর্ডার করা হয়েছে",
       "tracking": "ট্র্যাকিং",
@@ -1433,7 +1911,17 @@
       "refundNotAvailable": "রিফান্ড শুধুমাত্র পেমেন্ট করা অর্ডারের জন্য উপলব্ধ",
       "enterRefundAmount": "আংশিক রিফান্ড পরিমাণ লিখুন",
       "invalidRefundAmount": "সঠিক রিফান্ড পরিমাণ লিখুন",
+      "orderCancelledNoRefund": "অর্ডার বাতিল হয়েছে। কোনো রিফান্ড পাঠানো হয়নি: {reason}",
+      "refundMatchedToGateway": "পেমেন্ট গেটওয়ে এই রিফান্ডটি আগেই জানিয়েছিল, তাই এটি আবার গোনা হয়নি — আগের রেকর্ডের সাথে যুক্ত করা হয়েছে।",
+      "refundOwedBySeller": "রিফান্ড লেখা হয়েছে। এই অর্ডারের ক্যাশ সেলার নিজে ডেলিভারির সময় নিয়েছেন, তাই তাকে শপারকে টাকা ফেরত পাঠাতে বলা হয়েছে।",
+      "refundRecordedLate": "রিফান্ড চলে গেছে, কিন্তু এখনো রেকর্ড করা যায়নি। পেমেন্ট গেটওয়ে জানালে এটা অর্ডারে দেখা যাবে — আবার পাঠাবেন না।",
       "refundReasonOptional": "রিফান্ড কারণ (ঐচ্ছিক)",
+      "refundCoversLabel": "এই রিফান্ডে কী কী ধরা হচ্ছে (ঐচ্ছিক)",
+      "refundClosesReturns": "{count, plural, one {রিটার্ন {returns} এই রিফান্ডের সাথে বন্ধ হয়ে যাবে — এর আইটেমের টাকাও এতে ফেরত যাচ্ছে।} other {রিটার্ন {returns} এই রিফান্ডের সাথে বন্ধ হয়ে যাবে — এগুলোর আইটেমের টাকাও এতে ফেরত যাচ্ছে।}}",
+      "refundConfirmAmount": "{amount} নিশ্চিত করুন",
+      "refundNothingLeft": "এই অর্ডারে ফেরত দেওয়ার মতো আর কিছু বাকি নেই।",
+      "refundableRemaining": "রিফান্ডযোগ্য: {amount}",
+      "refundableLessDelivery": "রিফান্ডযোগ্য: {amount} — পার্সেল পাঠানোর সময় {delivery} ডেলিভারি চার্জ কুরিয়ারকে দেওয়া হয়ে গেছে, তাই এটা ধরা হয়নি। তবুও ফেরত দিতে চাইলে নিচে শিপিং-এ লিখুন।",
       "refundRecorded": "রিফান্ড রেকর্ড করা হয়েছে",
       "refundFailed": "রিফান্ড ব্যর্থ হয়েছে",
       "orderItems": "অর্ডার আইটেম",
@@ -1475,7 +1963,8 @@
         "paid": "পেমেন্ট হয়েছে",
         "partially_paid": "আংশিক পেমেন্ট",
         "refunded": "রিফান্ড হয়েছে",
-        "partially_refunded": "আংশিক রিফান্ড"
+        "partially_refunded": "আংশিক রিফান্ড",
+        "expired": "মেয়াদ শেষ"
       },
       "downloadInvoice": "ইনভয়েস ডাউনলোড করুন",
       "invoiceDownloadFailed": "ইনভয়েস ডাউনলোড করতে ব্যর্থ হয়েছে",
@@ -1488,6 +1977,7 @@
       "markAsPaid": "পরিশোধিত হিসেবে চিহ্নিত করুন",
       "markAsPaidConfirm": "এই অর্ডারটি পরিশোধিত হিসেবে চিহ্নিত করবেন? পেমেন্ট প্রকৃতপক্ষে পাওয়ার পরেই কেবল এটি করুন।",
       "markAsPaidSuccess": "অর্ডার পরিশোধিত হিসেবে চিহ্নিত করা হয়েছে",
+      "openReturn": "রিটার্ন খুলুন",
       "returnRequestApprovedAction": "অনুরোধ অনুমোদিত",
       "returnRequestReceivedAction": "রিটার্ন অনুরোধ গৃহীত",
       "returnRequestUpdated": "রিটার্ন অনুরোধ আপডেট হয়েছে",
@@ -1519,7 +2009,20 @@
       "overrideStatusDescription": "স্বাভাবিক ওয়ার্কফ্লো এড়িয়ে এই অর্ডারকে যেকোনো স্ট্যাটাসে নিন। আপনার কারণসহ টাইমলাইনে নথিভুক্ত হবে।",
       "overrideNewStatus": "নতুন স্ট্যাটাস",
       "overrideReasonPlaceholder": "এই ওভাররাইড কেন প্রয়োজন?",
-      "overrideReinstateWarning": "বাতিল হওয়া অর্ডার পুনর্বহাল করলে তার স্টক আবার তুলে নেওয়া হয়। ইতিমধ্যে কোনো পণ্য ফুরিয়ে গেলে ওভাররাইড প্রত্যাখ্যাত হবে।"
+      "overrideReinstateWarning": "বাতিল হওয়া অর্ডার পুনর্বহাল করলে তার স্টক আবার তুলে নেওয়া হয়। ইতিমধ্যে কোনো পণ্য ফুরিয়ে গেলে ওভাররাইড প্রত্যাখ্যাত হবে।",
+      "sendPaymentLink": "পেমেন্ট লিংক পাঠান",
+      "sendPaymentLinkSuccess": "কাস্টমারকে পেমেন্ট লিংক পাঠানো হয়েছে।",
+      "paidWithStoreCredit": "স্টোর ক্রেডিট দিয়ে পরিশোধ",
+      "paidByReturn": "রিটার্ন {returnNumber} দিয়ে পরিশোধ",
+      "refundToLabel": "রিফান্ড যাবে",
+      "refundToOriginal": "আগের পেমেন্টে",
+      "refundToStoreCredit": "স্টোর ক্রেডিট",
+      "refundToStoreCreditHint": "গ্রাহকের অ্যাকাউন্টে যোগ হবে, চেকআউটে খরচ করা যাবে। এর মেয়াদ শেষ হয় না।",
+      "refundStoreCreditAmount": "স্টোর ক্রেডিটের পরিমাণ",
+      "refundStoreCreditAll": "পুরোটাই",
+      "refundStoreCreditRest": "ক্রেডিট হিসেবে না দেওয়া অংশ আগের পেমেন্টে ফেরত যাবে।",
+      "refundStoreCreditInvalid": "কত স্টোর ক্রেডিট দেবেন লিখুন, অথবা পুরোটার জন্য খালি রাখুন।",
+      "refundToOriginalCreditFirst": "স্টোর ক্রেডিট দিয়ে দেওয়া {amount} আগে স্টোর ক্রেডিট হিসেবেই ফেরত যাবে।"
     },
     "analyticsPage": {
       "subtitle": "স্টোর পারফরম্যান্স ও ওয়েবসাইট ট্রাফিক",
@@ -1601,6 +2104,8 @@
       "subtitle": "আজ আপনার স্টোরে কী ঘটছে, তা দেখুন।",
       "orders": "অর্ডার",
       "cases": "কেস",
+      "refundsCount": "রিফান্ড",
+      "salesBasis": "স্টোরের currency-তে আদায় হওয়া অর্ডারের মোট অঙ্ক, tax সহ। Finance ledger থেকে revenue দেখায়, refund বাদ দিয়ে।",
       "ordersTitle": "অর্ডার",
       "dateRange": "২৫ জুলাই - ২৫ আগস্ট",
       "addActivity": "কার্যক্রম যোগ করুন",
@@ -1670,12 +2175,9 @@
       "collections": "সংগ্রহ",
       "categories": "বিভাগসমূহ",
       "inventory": "ইনভেন্টরি",
-      "purchaseOrders": "ক্রয় আদেশ",
       "transfers": "স্থানান্তর",
-      "giftCards": "গিফট কার্ড",
       "customers": "গ্রাহক",
       "vendors": "বিক্রেতা",
-      "marketing": "মার্কেটিং",
       "discounts": "ছাড়",
       "content": "বিষয়বস্তু",
       "markets": "মার্কেট",
@@ -1683,15 +2185,11 @@
       "aiSalesAgent": "সেলস এজেন্ট",
       "salesChannels": "বিক্রয় চ্যানেল",
       "onlineStore": "অনলাইন স্টোর",
-      "homePage": "হোম পেজ",
-      "theme": "থিম",
       "themes": "থিমসমূহ",
       "pages": "পেজসমূহ",
       "pos": "পয়েন্ট অফ সেল",
       "posStaff": "স্টাফ",
       "posLocations": "লোকেশন",
-      "apps": "অ্যাপস",
-      "addApp": "যোগ করুন",
       "addPage": "পৃষ্ঠা যোগ করুন",
       "dashboard": "ড্যাশবোর্ড",
       "navigation": "নেভিগেশন",
@@ -1702,9 +2200,6 @@
       "transactions": "লেনদেন",
       "reviews": "রিভিউ",
       "blogPosts": "ব্লগ পোস্ট",
-      "blogCategories": "ব্লগ ক্যাটাগরি",
-      "blogComments": "মন্তব্য",
-      "allPosts": "সব পোস্ট",
       "aiStudio": "AI স্টুডিও",
       "allOrders": "সব অর্ডার",
       "returns": "রিটার্ন",
@@ -1717,7 +2212,7 @@
       "boosts": "বুস্টিং",
       "boostCampaigns": "বুস্ট ক্যাম্পেইন",
       "boostPositions": "বুস্ট পজিশন",
-      "customize": "Customize",
+      "customize": "কাস্টমাইজ",
       "finance": "অর্থব্যবস্থা",
       "financeOverview": "সংক্ষিপ্ত বিবরণ",
       "expenses": "খরচ",
@@ -1725,7 +2220,17 @@
       "financeReports": "প্রতিবেদন",
       "quotes": "কোটেশন",
       "traffic": "ট্রাফিক",
-      "searchInsights": "সার্চ ইনসাইটস"
+      "searchInsights": "সার্চ ইনসাইটস",
+      "accessRequests": "অ্যাক্সেস অনুরোধ",
+      "landmark": "প্রধান মেনু",
+      "mobileTitle": "মেনু",
+      "mobileDescription": "ড্যাশবোর্ডের প্রতিটি অংশের লিংক।",
+      "sliders": "স্লাইডার",
+      "staff": "টিম",
+      "toggle": "সাইডবার দেখান বা লুকান",
+      "vendorConfiguration": "কনফিগারেশন",
+      "vendorOnboarding": "অনবোর্ডিং ফ্লো",
+      "vendorPlans": "বিক্রেতা প্ল্যান"
     },
     "dashboardSubtitle": "স্বাগতম! এখানে কি হচ্ছে দেখুন।",
     "totalRevenue": "মোট আয়",
@@ -1784,7 +2289,8 @@
         "variants": "ভ্যারিয়েন্ট",
         "status": "স্ট্যাটাস",
         "publishing": "প্রকাশনা",
-        "organization": "সংগঠন"
+        "organization": "সংগঠন",
+        "returns": "রিটার্ন"
       },
       "tabs": {
         "description": "বিবরণ",
@@ -1850,7 +2356,8 @@
         "brand": "ব্র্যান্ড",
         "clearCountryOfOrigin": "কোনো উৎপত্তির দেশ নেই",
         "priceOnRequest": "মূল্য অনুরোধের ভিত্তিতে",
-        "quoteButtonLabel": "কোটেশন বাটনের লেখা"
+        "quoteButtonLabel": "কোটেশন বাটনের লেখা",
+        "finalSale": "ফাইনাল সেল"
       },
       "placeholders": {
         "title": "শর্ট স্লিভ টি-শার্ট",
@@ -1902,7 +2409,8 @@
         "priceOnRequestHelp": "মূল্য লুকিয়ে তার জায়গায় “মূল্য জানতে চান” বাটন দেখান।",
         "hiddenPricingTitle": "মূল্য অনুরোধের ভিত্তিতে",
         "hiddenPricingHelp": "ক্রেতারা মূল্যের বদলে “মূল্য জানতে যোগাযোগ করুন” ও একটি কোটেশন বাটন দেখবেন, এবং এই পণ্যটি কার্টে যোগ করা যাবে না। সাধারণভাবে দাম দিতে নিচের সুইচটি বন্ধ করুন।"
-      }
+      },
+      "finalSaleHelp": "ক্রেতা এটি ফেরত দিতে পারবেন না। প্রতিটি variant আলাদাভাবে ঠিক করা যায়।"
     },
     "inventory": {
       "title": "ইনভেন্টরি",
@@ -1925,6 +2433,8 @@
         "barcode": "বারকোড",
         "unavailable": "অনুপলব্ধ",
         "committed": "সংরক্ষিত",
+        "unavailableHint": "নষ্ট, অসম্পূর্ণ বা অব্যবহারযোগ্য অবস্থায় ফেরত এসেছে — এখনো আবার বিক্রিতে তোলা বা রাইট অফ করা হয়নি",
+        "committedHint": "বিক্রি হয়েছে, এখনো এখানে আছে — পাঠানো, সংগ্রহ বা বাতিল হয়নি",
         "available": "উপলভ্য",
         "onHand": "মজুদ"
       },
@@ -1950,8 +2460,36 @@
         "variant": "ভ্যারিয়েন্ট",
         "sku": "SKU",
         "barcode": "বারকোড",
+        "unavailable": "অনুপলব্ধ",
+        "committed": "সংরক্ষিত",
         "available": "উপলভ্য",
         "onHand": "মজুদ"
+      },
+      "breakdown": {
+        "committed": "{count} সংরক্ষিত",
+        "unavailable": "{count} অনুপলব্ধ"
+      },
+      "unavailableDialog": {
+        "title": "অনুপলব্ধ ইউনিট",
+        "description": "রিটার্নে নষ্ট, অসম্পূর্ণ বা অব্যবহারযোগ্য অবস্থায় ফেরত আসা ইউনিট। আবার বিক্রিতে না তোলা বা রাইট অফ না করা পর্যন্ত এগুলো স্টকের বাইরে থাকে।",
+        "fromReturn": "রিটার্ন {returnNumber} · অর্ডার {orderNumber}",
+        "countedOn": "গণনা: {date}",
+        "held": "{count, plural, other {#টি ইউনিট আটকে আছে}}",
+        "quantity": "ইউনিট",
+        "restock": "উপলভ্যতে ফেরত",
+        "writeOff": "রাইট অফ",
+        "cancel": "বাতিল",
+        "confirmWriteOff": "{count, plural, other {#টি ইউনিট}} রাইট অফ করবেন? এগুলো আপনার ইনভেন্টরি থেকে চিরতরে সরে যাবে।",
+        "restocked": "{count, plural, other {#টি ইউনিট}} আবার বিক্রিতে ফিরেছে",
+        "writtenOff": "{count, plural, other {#টি ইউনিট}} রাইট অফ হয়েছে",
+        "actionError": "এই ইউনিটগুলো আপডেট করা যায়নি।",
+        "loadError": "এই ইউনিটগুলো লোড করা যায়নি। বন্ধ করে আবার চেষ্টা করুন।",
+        "empty": "এই আইটেমের জন্য আর কিছু আটকে নেই।",
+        "conditions": {
+          "damaged": "নষ্ট",
+          "missing_parts": "যন্ত্রাংশ অনুপস্থিত",
+          "unusable": "অব্যবহারযোগ্য"
+        }
       },
       "stats": {
         "trackedSkus": "ট্র্যাক করা SKU",
@@ -2036,37 +2574,8 @@
     },
     "settings": {
       "title": "সেটিংস",
-      "description": "আপনার স্টোর কনফিগারেশন পরিচালনা করুন",
-      "tabs": {
-        "general": "সাধারণ",
-        "security": "নিরাপত্তা",
-        "appearance": "উপস্থিতি",
-        "payment": "পেমেন্ট",
-        "email": "ইমেল",
-        "orders": "অর্ডার",
-        "seo": "এসইও",
-        "social": "সামাজিক",
-        "maintenance": "রক্ষণাবেক্ষণ",
-        "storage": "স্টোরেজ",
-        "notifications": "বিজ্ঞপ্তি"
-      },
       "search": "সেটিংস খুঁজুন",
-      "close": "সেটিংস বন্ধ করুন",
-      "openMenu": "সেটিংস মেনু খুলুন",
-      "closeMenu": "সেটিংস মেনু বন্ধ করুন",
-      "attention": "করণীয়",
-      "disabled": "নিষ্ক্রিয়",
       "unsaved": "সংরক্ষিত নয়",
-      "session": {
-        "duration": "সেশন সময়কাল (দিন)",
-        "maxAttempts": "সর্বোচ্চ লগইন প্রচেষ্টা",
-        "lockout": "লকআউট সময়কাল (মিনিট)"
-      },
-      "passwordPolicy": {
-        "uppercase": "বড় অক্ষর প্রয়োজন",
-        "numbers": "সংখ্যা প্রয়োজন",
-        "specialChars": "বিশেষ অক্ষর প্রয়োজন"
-      },
       "general": {
         "title": "সাধারণ সেটিংস",
         "description": "আপনার স্টোরের প্রাথমিক তথ্য কনফিগার করুন",
@@ -2077,89 +2586,161 @@
         "address": "ঠিকানা",
         "storeDescription": "স্টোরের বিবরণ",
         "defaultLanguage": "ডিফল্ট ভাষা",
-        "defaultCurrency": "ডিফল্ট মুদ্রা",
-        "logoUrl": "লোগো URL",
-        "faviconUrl": "ফেভিকন URL",
+        "defaultCurrency": "স্টোরের মুদ্রা",
         "save": "পরিবর্তনগুলি সংরক্ষণ করুন",
-        "timezone": "টাইমজোন",
-        "timezonePlaceholder": "UTC",
         "supportedLanguages": "সমর্থিত ভাষাসমূহ",
         "supportedLanguagesDesc": "আপনার স্টোরফ্রন্টে উপলব্ধ ভাষাসমূহ।",
-        "supportedCurrencies": "সমর্থিত মুদ্রাসমূহ",
-        "supportedCurrenciesDesc": "মূল্য নির্ধারণ ও প্রদর্শনের জন্য অনুমোদিত মুদ্রা কোডসমূহ।"
+        "storeInfoTitle": "স্টোরের তথ্য",
+        "storeInfoDescription": "আপনার স্টোরের মৌলিক তথ্য",
+        "languageCurrencyTitle": "ভাষা ও মুদ্রা",
+        "languageCurrencyDescription": "যে ভাষায় আপনার স্টোর খোলে, আর যে একটি মুদ্রায় এটি বিক্রি করে",
+        "searchLanguage": "ভাষা খুঁজুন...",
+        "searchCurrency": "মুদ্রা খুঁজুন...",
+        "storeCurrencyHint": "সব দাম, অর্ডার ও পেআউট এই মুদ্রায় হয়। এটি বদলালে দামের লেবেল বদলায়; দাম রূপান্তরিত হয় না।",
+        "countries": {
+          "title": "উপলব্ধ দেশ",
+          "description": "চেকআউট, ভেন্ডর অনবোর্ডিং, ঠিকানা, শিপিং ও প্রোডাক্ট ফর্মে কোন দেশগুলো দেখাবে তা নিয়ন্ত্রণ করুন।",
+          "all": "সব দেশ",
+          "allHint": "সব দেশ বাছাইয়ের তালিকায় সমর্থিত প্রতিটি দেশ ({count}) দেখান।",
+          "specific": "নির্দিষ্ট দেশ",
+          "specificHint": "শুধু নিচে বেছে নেওয়া দেশগুলো দেখান।",
+          "label": "দেশ",
+          "placeholder": "দেশ বেছে নিন",
+          "search": "দেশ বা ISO কোড খুঁজুন...",
+          "empty": "কোনো দেশ পাওয়া যায়নি।",
+          "required": "সংরক্ষণের আগে অন্তত একটি দেশ বেছে নিন।",
+          "selected": "{count, plural, one {#টি দেশ বাছাই করা হয়েছে।} other {#টি দেশ বাছাই করা হয়েছে।}}"
+        },
+        "defaultBadge": "ডিফল্ট",
+        "countryRequired": "অন্তত একটি দেশ বেছে নিন, অথবা সব দেশ নির্বাচন করুন।"
       },
       "appearance": {
-        "title": "উপস্থিতি",
-        "description": "আপনার স্টোরের লুক এবং ফিল কাস্টমাইজ করুন",
+        "title": "ব্র্যান্ডিং",
         "primaryColor": "প্রাথমিক রঙ",
         "secondaryColor": "মাধ্যমিক রঙ",
         "accentColor": "অ্যাকসেন্ট রঙ",
-        "theme": "ডিফল্ট থিম",
         "themes": {
           "light": "হালকা",
-          "dark": "অন্ধকার",
-          "system": "সিস্টেম"
+          "dark": "অন্ধকার"
         },
-        "save": "পরিবর্তনগুলি সংরক্ষণ করুন",
-        "borderRadius": "বর্ডার রেডিয়াস",
-        "mode": "মোড",
-        "contrast": "কনট্রাস্ট",
-        "rtl": "ডান থেকে বাম",
-        "collapsedSidebar": "সংকুচিত সাইডবার",
-        "nav": "নেভিগেশন",
-        "layout": "লেআউট",
-        "color": "রঙ",
-        "navColor": {
-          "integrate": "একীভূত",
-          "apparent": "স্পষ্ট"
-        },
-        "presets": "প্রিসেট"
+        "presets": "প্রিসেট",
+        "skeletonColor": "স্কেলেটনের রং",
+        "skeletonColorHint": "লোডিং প্লেসহোল্ডার। খালি রাখলে নিরপেক্ষ ধূসর থাকে।"
       },
       "payment": {
         "stripe": {
           "title": "স্ট্রাইপ",
-          "description": "স্ট্রাইপ পেমেন্ট গেটওয়ে কনফিগার করুন",
-          "enable": "স্ট্রাইপ পেমেন্ট চালু করুন",
-          "publishableKey": "পাবলিশেবল কী",
+          "description": "বিশ্বজুড়ে ক্রেডিট ও ডেবিট কার্ড গ্রহণ করুন",
           "secretKey": "গোপন কী",
-          "webhookSecret": "ওয়েবহুক সিক্রেট",
           "webhookSecretHint": "পেমেন্ট ইভেন্ট পরিচালনার জন্য প্রয়োজন। Stripe ড্যাশবোর্ড → ডেভেলপার্স → ওয়েবহুক থেকে নিন"
         },
         "cod": {
           "title": "ক্যাশ অন ডেলিভারি",
-          "description": "সিওডি পেমেন্ট বিকল্প কনফিগার করুন",
-          "enable": "ক্যাশ অন ডেলিভারি চালু করুন",
-          "instructions": "সিওডি নির্দেশাবলী",
-          "placeholder": "গ্রাহকদের দেখানো নির্দেশাবলী...",
-          "codMinOrder": "ন্যূনতম অর্ডারের পরিমাণ",
-          "codMaxOrder": "সর্বোচ্চ অর্ডারের পরিমাণ"
+          "description": "অর্ডার পৌঁছালে গ্রাহকদের পেমেন্ট করতে দিন",
+          "placeholder": "যেমন: কুরিয়ার এলে দয়া করে খুচরা টাকা প্রস্তুত রাখুন।",
+          "offline": "অফলাইন"
         },
-        "save": "পেমেন্ট সেটিংস সংরক্ষণ করুন",
+        "turnstile": {
+          "title": "কার্ড-টেস্টিং যাচাই",
+          "description": "Cloudflare Turnstile — বারবার কার্ড প্রত্যাখ্যাত হলেই শুধু চাওয়া হয়",
+          "explainer": "আধা ঘণ্টার মধ্যে কোনো ক্রেতার কার্ড তিনবার প্রত্যাখ্যাত হলে চেকআউট একটি মানব-যাচাই চায়, আর ছয়বার হলে চেকআউট সাময়িক বন্ধ রাখে। সাময়িক বন্ধ এটি ছাড়াই কাজ করে; যাচাইয়ের জন্য আপনার নিজের Cloudflare Turnstile কী লাগবে। বেশিরভাগ ক্রেতা এটি কখনো দেখেন না।",
+          "siteKey": "সাইট কী",
+          "secretKey": "সিক্রেট কী",
+          "missingKeys": "দুটি কী ছাড়াই চালু করা হয়েছে, তাই কোনো যাচাই চাওয়া হবে না — শুধু সাময়িক বন্ধ প্রযোজ্য।"
+        },
         "title": "পেমেন্ট সেটিংস",
         "description": "পেমেন্ট গেটওয়ে ও অপশন কনফিগার করুন",
-        "enableStripe": "Stripe সক্রিয় করুন",
         "stripePublishableKey": "পাবলিশেবল কী",
         "stripeWebhookSecret": "ওয়েবহুক সিক্রেট",
-        "enablePayPal": "PayPal সক্রিয় করুন",
         "paypalClientId": "ক্লায়েন্ট আইডি",
         "paypalMode": "মোড",
         "paypalSandbox": "স্যান্ডবক্স",
         "paypalLive": "লাইভ",
         "paypalWebhookId": "ওয়েবহুক আইডি",
-        "enableCOD": "ক্যাশ অন ডেলিভারি সক্রিয় করুন",
         "codInstructions": "সিওডি নির্দেশাবলী",
         "codMinOrder": "ন্যূনতম অর্ডারের পরিমাণ",
         "codMaxOrder": "সর্বোচ্চ অর্ডারের পরিমাণ",
         "paypal": {
           "title": "PayPal",
-          "description": "PayPal পেমেন্ট গেটওয়ে কনফিগার করুন",
-          "enablePayPal": "PayPal সক্রিয় করুন",
-          "paypalClientId": "ক্লায়েন্ট আইডি",
+          "description": "বিশ্বস্ত বৈশ্বিক চেকআউট ও ওয়ালেট",
           "clientSecret": "ক্লায়েন্ট সিক্রেট",
-          "paypalMode": "মোড",
-          "paypalSandbox": "স্যান্ডবক্স",
-          "paypalLive": "লাইভ",
-          "paypalWebhookId": "ওয়েবহুক আইডি"
+          "clientIdPlaceholder": "PayPal ক্লায়েন্ট আইডি",
+          "webhookIdPlaceholder": "PayPal ওয়েবহুক আইডি"
+        },
+        "pesapal": {
+          "ipnRegistered": "Pesapal IPN নিবন্ধিত হয়েছে",
+          "ipnFailed": "Pesapal IPN নিবন্ধন করা যায়নি",
+          "description": "পূর্ব আফ্রিকাজুড়ে মোবাইল মানি ও কার্ড পেমেন্ট",
+          "registerIpn": "IPN নিবন্ধন করুন",
+          "consumerKeyPlaceholder": "Pesapal consumer key",
+          "consumerSecretPlaceholder": "Pesapal consumer secret",
+          "ipnId": "IPN আইডি",
+          "ipnIdPlaceholder": "নিবন্ধিত Pesapal IPN আইডি",
+          "ipnHint": "<code>{path}</code>-কে POST IPN URL হিসেবে নিবন্ধন করুন, তারপর ফেরত আসা আইডিটি লিখুন।"
+        },
+        "testConnection": "সংযোগ পরীক্ষা করুন",
+        "activeCount": "{count}টি সক্রিয়",
+        "checkout": {
+          "currencyListed": "চেকআউটে লুকানো: এটি স্টোরের মুদ্রা {currency} নিতে পারে না। এটি শুধু {currencies} নেয়। এটি দেখাতে জেনারেল সেটিংসে মুদ্রা বদলান।",
+          "currency": "চেকআউটে লুকানো: এটি স্টোরের মুদ্রা {currency} নিতে পারে না। এটি দেখাতে জেনারেল সেটিংসে মুদ্রা বদলান।",
+          "keys": "কী সংরক্ষণ না করা পর্যন্ত চেকআউটে লুকানো।"
+        },
+        "fields": {
+          "keyId": "Key ID",
+          "keySecret": "Key Secret",
+          "webhookSecret": "ওয়েবহুক সিক্রেট",
+          "webhookUrl": "ওয়েবহুক URL",
+          "publicKey": "পাবলিক কী",
+          "secretKey": "গোপন কী",
+          "consumerKey": "Consumer Key",
+          "consumerSecret": "Consumer Secret",
+          "clientId": "ক্লায়েন্ট আইডি",
+          "clientSecret": "ক্লায়েন্ট সিক্রেট",
+          "walletId": "ওয়ালেট আইডি",
+          "merchantKey": "মার্চেন্ট কী",
+          "countryCode": "দেশের কোড",
+          "subscriptionKey": "সাবস্ক্রিপশন কী",
+          "apiUser": "API ইউজার",
+          "apiKey": "API কী",
+          "targetEnvironment": "টার্গেট এনভায়রনমেন্ট",
+          "callbackHost": "কলব্যাক হোস্ট (ঐচ্ছিক)"
+        },
+        "razorpay": {
+          "description": "ভারতের জন্য পেমেন্ট, আর Razorpay Curlec-এর মাধ্যমে মালয়েশিয়ার জন্য",
+          "internationalNote": "আপনার Razorpay অ্যাকাউন্টে International Payments চালু থাকলেই কেবল {currency} নেয়।",
+          "keySecretPlaceholder": "Key secret",
+          "webhookSecretPlaceholder": "ওয়েবহুক সিক্রেট",
+          "webhookSecretHint": "ওই ওয়েবহুকে আপনি যে সিক্রেট সেট করেছেন। নিরাপত্তার জন্য সংরক্ষিত সিক্রেট আর দেখানো হয় না।",
+          "webhookUrlHint": "এটি Razorpay Dashboard → Account & Settings → Webhooks-এ যোগ করুন, payment.captured, order.paid, refund.created, refund.processed ও refund.failed ইভেন্টসহ। ক্রেতা আপনার স্টোরে ফিরে না এলেও এটি পেমেন্ট নিশ্চিত করে, যা FPX ও অন্যান্য ব্যাংক রিডাইরেক্টে প্রায়ই ঘটে।"
+        },
+        "paystack": {
+          "description": "আফ্রিকার জন্য আধুনিক পেমেন্ট"
+        },
+        "iotec": {
+          "description": "MTN ও Airtel মোবাইল মানি এবং কার্ড পেমেন্ট (উগান্ডা)",
+          "clientIdPlaceholder": "ioTec ক্লায়েন্ট আইডি",
+          "clientSecretPlaceholder": "ioTec ক্লায়েন্ট সিক্রেট",
+          "walletIdPlaceholder": "ioTec Pay ওয়ালেট UUID",
+          "walletIdHint": "ioTec Pay পোর্টালে আপনার ওয়ালেট সেটিংসে পাবেন।",
+          "callbackHint": "ঐচ্ছিক: তাৎক্ষণিক অবস্থা জানতে ioTec Pay পোর্টালে কালেকশন কলব্যাক URL হিসেবে <code>{path}</code> সেট করুন। এটি ছাড়াও পোলিংয়ের মাধ্যমে পেমেন্ট নিশ্চিত হয়।"
+        },
+        "orangeMoney": {
+          "description": "পশ্চিম ও মধ্য আফ্রিকাজুড়ে Orange মোবাইল মানি",
+          "clientIdPlaceholder": "Orange ডেভেলপার ক্লায়েন্ট আইডি",
+          "clientSecretPlaceholder": "Orange ডেভেলপার ক্লায়েন্ট সিক্রেট",
+          "merchantKeyPlaceholder": "Orange Money মার্চেন্ট কী",
+          "merchantKeyHint": "মার্চেন্ট চুক্তি সই হলে আপনার স্থানীয় Orange অপারেটর এটি দেয় — ডেভেলপার পোর্টালে পাওয়া যায় না।",
+          "countryHint": "যে দেশের Orange অপারেটর আপনার মার্চেন্ট কী দিয়েছে, তার দুই অক্ষরের কোড (ci, sn, cm, ml, mg…)। লাইভে আবশ্যক; স্যান্ডবক্সে উপেক্ষিত, যেখানে সবসময় Orange-এর <code>{endpoint}</code> এন্ডপয়েন্ট ব্যবহৃত হয়।",
+          "callbackHint": "Orange ডেভেলপার পোর্টালে নোটিফিকেশন URL হিসেবে <code>{path}</code> সেট করুন। চেকআউট সফল পেজে পোলিংয়ের মাধ্যমেও পেমেন্ট নিশ্চিত হয়।"
+        },
+        "mtnMomo": {
+          "description": "আফ্রিকাজুড়ে MTN MoMo-র PIN-নির্ভর পেমেন্ট",
+          "subscriptionKeyHint": "আপনার Collections প্রোডাক্ট সাবস্ক্রিপশনের প্রাইমারি কী।",
+          "apiUserPlaceholder": "API ইউজার UUID",
+          "apiKeyPlaceholder": "ইউজারের সঙ্গে যুক্ত API কী",
+          "targetEnvironmentHint": "অনবোর্ডিংয়ের সময় আপনার MTN OpCo যে X-Target-Environment দিয়েছে (mtnuganda, mtnghana, …)। লাইভে আবশ্যক; স্যান্ডবক্সে উপেক্ষিত, যেখানে সবসময় <code>{value}</code> পাঠানো হয়।",
+          "callbackHostHint": "MTN-এ প্রোভাইডার কলব্যাক হোস্ট হিসেবে যে ডোমেইন নিবন্ধন করেছেন, <code>{scheme}</code> ও পাথ ছাড়া। কলব্যাক URL-এ অন্য কোনো হোস্ট থাকলে MTN পেমেন্ট প্রত্যাখ্যান করে, তাই হুবহু না মিললে এটি ফাঁকা রাখুন — যেকোনো অবস্থায় পোলিং ও ১৫ মিনিট অন্তর মিলিয়ে দেখার মাধ্যমে পেমেন্ট নিশ্চিত হয়।",
+          "callbackHint": "সেট করা থাকলে MTN-কে <code>{path}</code>-এ জানাতে বলা হয় — একবারই, পুনরায় চেষ্টা ছাড়া; তাই এটিই কখনো একমাত্র নিশ্চিতকরণ নয়।"
         }
       },
       "email": {
@@ -2172,7 +2753,6 @@
         "password": "এসএমটিপি পাসওয়ার্ড",
         "fromEmail": "থেকে ইমেল",
         "fromName": "নাম থেকে",
-        "secure": "SSL/TLS ব্যবহার করুন (৪৮৫ পোর্টের জন্য)",
         "test": {
           "label": "টেস্ট ইমেল",
           "placeholder": "test@example.com",
@@ -2180,32 +2760,26 @@
           "success": "টেস্ট ইমেল সফলভাবে পাঠানো হয়েছে!",
           "error": "টেস্ট ইমেল পাঠাতে ব্যর্থ"
         },
-        "save": "ইমেল সেটিংস সংরক্ষণ করুন"
+        "save": "ইমেল সেটিংস সংরক্ষণ করুন",
+        "passwordPlaceholder": "পাসওয়ার্ড লিখুন",
+        "fromNamePlaceholder": "আপনার স্টোরের নাম",
+        "encryptionNote": "এনক্রিপশন স্বয়ংক্রিয়: পোর্ট 465 সরাসরি TLS ব্যবহার করে আর পোর্ট 587-এ STARTTLS লাগে।"
       },
       "security": {
         "title": "নিরাপত্তা ও অ্যাক্সেস নিয়ন্ত্রণ",
         "description": "মাল্টি-ভেন্ডর মোড, সেশন নিরাপত্তা এবং পাসওয়ার্ড নীতি কনফিগার করুন",
-        "tabs": {
-          "general": "সাধারণ",
-          "2fa": "টু-ফ্যাক্টর অথ",
-          "oauth": "OAuth",
-          "pos": "POS অ্যাক্সেস",
-          "vendor": "ভেন্ডর অনুমতি"
-        },
         "multiVendor": {
-          "title": "স্টোর মোড",
           "label": "মাল্টি-ভেন্ডর মোড",
-          "description": "মার্কেটপ্লেস ফিচার চালু করুন: ভেন্ডর রেজিস্ট্রেশন, একাধিক স্টোর, ভেন্ডর ড্যাশবোর্ড"
+          "description": "মার্কেটপ্লেস ফিচার চালু করুন: ভেন্ডর রেজিস্ট্রেশন, একাধিক স্টোর, ভেন্ডর ড্যাশবোর্ড",
+          "manageLink": "ভেন্ডর নিবন্ধন, প্ল্যান ও নীতি পরিচালনা করুন"
         },
         "emailVerification": {
           "title": "ইমেইল যাচাইকরণ",
           "required": "ইমেইল যাচাইকরণ আবশ্যক করুন",
           "requiredDesc": "স্টোরে প্রবেশের আগে ব্যবহারকারীদের অবশ্যই ইমেইল যাচাই করতে হবে",
-          "vendorRequired": "বিক্রেতাদের জন্য আবশ্যক করুন",
-          "vendorRequiredDesc": "পণ্য তালিকাভুক্ত করার আগে বিক্রেতাদের অবশ্যই ইমেইল যাচাই করতে হবে"
+          "vendorRequired": "বিক্রেতাদের জন্য আবশ্যক করুন"
         },
         "session": {
-          "title": "সেশন নিরাপত্তা",
           "duration": "সেশনের সময়কাল (দিন)",
           "maxAttempts": "সর্বোচ্চ লগইন প্রচেষ্টা",
           "lockout": "লকআউট সময়কাল (মিনিট)"
@@ -2218,10 +2792,15 @@
           "cartPreset": "কার্ট",
           "couponPreset": "কুপন",
           "authPreset": "প্রমাণীকরণ / লগইন",
-          "ipPreset": "গেস্ট / পাবলিক (আইপি ভিত্তিক)"
+          "ipPreset": "গেস্ট / পাবলিক (আইপি ভিত্তিক)",
+          "presets": {
+            "default": "ডিফল্ট",
+            "lenient": "শিথিল (১০০/১৫ মি.)",
+            "moderate": "মাঝারি (২০/১৫ মি.)",
+            "strict": "কঠোর (৫/১৫ মি.)"
+          }
         },
         "passwordPolicy": {
-          "title": "পাসওয়ার্ড নীতি",
           "minLength": "সর্বনিম্ন পাসওয়ার্ড দৈর্ঘ্য",
           "uppercase": "বড় হাতের অক্ষর আবশ্যক করুন",
           "numbers": "সংখ্যা আবশ্যক করুন",
@@ -2231,18 +2810,21 @@
         "unlock": {
           "label": "একটি অ্যাকাউন্ট আনলক করুন",
           "action": "আনলক",
-          "hint": "এই ঠিকানার ব্যর্থ লগইনের গণনা সব ডিভাইস থেকে মুছে দেয়। সাথে সাথেই কার্যকর — সেভ করার দরকার নেই।"
+          "hint": "এই ঠিকানার ব্যর্থ লগইনের গণনা সব ডিভাইস থেকে মুছে দেয়। সাথে সাথেই কার্যকর — সেভ করার দরকার নেই।",
+          "done": "অ্যাকাউন্ট আনলক হয়েছে। তারা এখন আবার সাইন ইন করতে পারবেন।",
+          "notLocked": "এই ঠিকানাটি লক করা ছিল না। মোছার মতো কিছু নেই।",
+          "failed": "অ্যাকাউন্টটি আনলক করা যায়নি"
         }
       },
       "seo": {
         "title": "SEO সেটিংস",
         "description": "সার্চ ইঞ্জিন অপটিমাইজেশন কনফিগার করুন",
         "metaTitle": "মেটা টাইটেল",
-        "metaTitlePlaceholder": "Your Store - Online Marketplace",
+        "metaTitlePlaceholder": "আপনার স্টোর - অনলাইন মার্কেটপ্লেস",
         "metaDescription": "মেটা বিবরণ",
         "metaDescriptionPlaceholder": "আপনার স্টোরকে 150-160 অক্ষরে বর্ণনা করুন...",
         "metaKeywords": "মেটা কীওয়ার্ড",
-        "metaKeywordsPlaceholder": "ecommerce, online shopping, marketplace",
+        "metaKeywordsPlaceholder": "ই-কমার্স, অনলাইন শপিং, মার্কেটপ্লেস",
         "save": "এসইও সেটিংস সংরক্ষণ করুন",
         "ogImage": "OG ইমেজ URL",
         "ogImagePlaceholder": "https://example.com/og-image.jpg"
@@ -2298,10 +2880,8 @@
         "enable": "রক্ষণাবেক্ষণ মোড চালু করুন",
         "enableDesc": "চালু থাকলে দর্শকরা রক্ষণাবেক্ষণ বার্তা দেখবেন",
         "message": "রক্ষণাবেক্ষণ বার্তা",
-        "messagePlaceholder": "আমরা বর্তমানে রক্ষণাবেক্ষণে আছি। অনুগ্রহ করে কিছুক্ষণ পরে ফিরে আসুন!",
         "save": "রক্ষণাবেক্ষণ সেটিংস সংরক্ষণ করুন",
         "titleLabel": "শিরোনাম",
-        "titlePlaceholder": "আমরা শীঘ্রই ফিরে আসব",
         "backgroundImage": "ব্যাকগ্রাউন্ড ছবি",
         "backgroundImageHint": "কোনো ছবি সেট করা থাকলে দর্শকরা কার্ড ছাড়াই মেইনটেন্যান্স টেক্সটের পেছনে সেটি ম্লান অবস্থায় দেখতে পাবেন।",
         "backgroundImagePreviewAlt": "মেইনটেন্যান্স ব্যাকগ্রাউন্ড প্রিভিউ",
@@ -2310,22 +2890,24 @@
         "countdownEndsAt": "যখন আবার অনলাইনে আসবে",
         "countdownEndsAtHint": "গ্রাহকরা যে স্থানীয় তারিখ ও সময় পর্যন্ত কাউন্টডাউন করবেন সেটি সেট করুন।",
         "allowedIPs": "অনুমোদিত IP অ্যাড্রেস",
-        "allowedIPsHint": "প্রতি লাইনে একটি IP। মেইনটেন্যান্স মোড চালু থাকা অবস্থাতেও এই দর্শকরা স্টোরফ্রন্টে প্রবেশ করতে পারবেন।"
+        "allowedIPsHint": "প্রতি লাইনে একটি IP। মেইনটেন্যান্স মোড চালু থাকা অবস্থাতেও এই দর্শকরা স্টোরফ্রন্টে প্রবেশ করতে পারবেন।",
+        "preview": {
+          "label": "লাইভ প্রিভিউ",
+          "countdownEmpty": "কাউন্টডাউন শুরু করতে ফেরার সময় বেছে নিন।",
+          "countdownHidden": "কাউন্টডাউন লুকানো। ভিজিটররা শুধু শিরোনাম ও বার্তা দেখবেন।",
+          "bypassTitle": "প্রবেশের ছাড়",
+          "bypassCount": "{count, plural, one {#টি IP এখনও স্টোরফ্রন্টে ঢুকতে পারবে।} other {#টি IP এখনও স্টোরফ্রন্টে ঢুকতে পারবে।}}"
+        }
       },
       "twoFactor": {
         "title": "টু-ফ্যাক্টর অথেনটিকেশন",
         "description": "টু-ফ্যাক্টর প্রমাণীকরণ সক্রিয় করুন এবং কোন ভূমিকাগুলো এটি সেট আপ করতে পারবে তা নির্বাচন করুন",
         "enable": "টু-ফ্যাক্টর প্রমাণীকরণ সক্রিয় করুন",
-        "enableDesc": "ব্যবহারকারীদের তাদের অ্যাকাউন্টের জন্য 2FA সেট আপ করার অনুমতি দিন",
-        "requirements": "যেসব ভূমিকা 2FA ব্যবহার করতে পারবে",
         "admin": "প্রশাসকদের জন্য সক্রিয় করুন",
-        "adminDesc": "প্রশাসক অ্যাকাউন্টগুলোকে টু-ফ্যাক্টর প্রমাণীকরণ সেট আপ করতে দিন",
         "vendor": "বিক্রেতাদের জন্য সক্রিয় করুন",
-        "vendorDesc": "বিক্রেতা অ্যাকাউন্টগুলোকে টু-ফ্যাক্টর প্রমাণীকরণ সেট আপ করতে দিন",
         "save": "2FA সেটিংস সংরক্ষণ করুন",
-        "enableFirstHint": "প্রশাসক বা বিক্রেতাদের জন্য আবশ্যক করতে আগে টু-ফ্যাক্টর অথেনটিকেশন চালু করুন।",
-        "staff": "স্টাফদের জন্য চালু করুন",
-        "staffDesc": "স্টাফ অ্যাকাউন্টগুলোকে টু-ফ্যাক্টর অথেনটিকেশন সেট আপ করতে দিন"
+        "enableFirstHint": "প্রশাসক, বিক্রেতা বা স্টাফদের এটি দিতে আগে টু-ফ্যাক্টর অথেনটিকেশন চালু করুন।",
+        "staff": "স্টাফদের জন্য চালু করুন"
       },
       "oauth": {
         "title": "OAuth / সামাজিক লগইন",
@@ -2356,7 +2938,8 @@
           "step4b": "এবং যোগ করুন",
           "step4c": "App domains-এ। অ্যাপ লাইভ করার আগে Meta একটি Privacy Policy URL-ও চায়।",
           "step5": "App ID ও App Secret উপরের ঘরে বসিয়ে সেভ করুন, তারপর Verify credentials চাপুন।",
-          "step6": "অ্যাপটি Development থেকে Live-এ পরিবর্তন করুন। তার আগ পর্যন্ত শুধু অ্যাপে রোল আছে এমন ব্যক্তিরাই Facebook দিয়ে সাইন-ইন করতে পারবেন।"
+          "step6": "অ্যাপটি Development থেকে Live-এ পরিবর্তন করুন। তার আগ পর্যন্ত শুধু অ্যাপে রোল আছে এমন ব্যক্তিরাই Facebook দিয়ে সাইন-ইন করতে পারবেন।",
+          "appIdPlaceholder": "Facebook অ্যাপ আইডি"
         },
         "save": "OAuth সেটিংস সংরক্ষণ করুন",
         "activeCount": "{count}টি সক্রিয়",
@@ -2371,7 +2954,9 @@
         "copyFailed": "URL কপি করা যায়নি",
         "setupGuide": "কীভাবে সেটআপ করবেন (ধাপে ধাপে)",
         "verify": "ক্রেডেনশিয়াল যাচাই করুন",
-        "verifyHint": "যাচাই করলে প্রোভাইডারের কাছে ID ও সিক্রেট পরীক্ষা করা হয়। রিডাইরেক্ট URI রেজিস্টার হয়েছে কি না, তা কেবল সত্যিকারের সাইন-ইনেই প্রমাণিত হয়।"
+        "verifyHint": "যাচাই করলে প্রোভাইডারের কাছে ID ও সিক্রেট পরীক্ষা করা হয়। রিডাইরেক্ট URI রেজিস্টার হয়েছে কি না, তা কেবল সত্যিকারের সাইন-ইনেই প্রমাণিত হয়।",
+        "verified": "ক্রেডেনশিয়াল যাচাই হয়েছে",
+        "verifyFailed": "যাচাই ব্যর্থ হয়েছে"
       },
       "pos": {
         "title": "পয়েন্ট অফ সেল (POS) অ্যাক্সেস",
@@ -2385,7 +2970,6 @@
         "vendorDesc": "ভেন্ডরদের তাদের পণ্য POS এর মাধ্যমে বিক্রয় করতে দিন",
         "save": "POS সেটিংস সংরক্ষণ করুন",
         "general": "সাধারণ",
-        "language": "ভাষা",
         "defaultLocation": "ডিফল্ট POS লোকেশন ID",
         "customize": "কাস্টমাইজ করুন",
         "printedReceipts": "মুদ্রিত রসিদ",
@@ -2398,7 +2982,6 @@
         "disabled": "নিষ্ক্রিয়",
         "accessDesc": "কোন ব্যবহারকারী রোল POS টার্মিনাল অ্যাক্সেস করতে পারবে তা নিয়ন্ত্রণ করুন",
         "generalDesc": "POS-এর জন্য ডিফল্ট ভাষা এবং লোকেশন কনফিগার করুন",
-        "languageHint": "POS টার্মিনাল ইন্টারফেসে ব্যবহৃত ভাষা",
         "selectLocation": "একটি লোকেশন নির্বাচন করুন",
         "noLocation": "কোনো ডিফল্ট লোকেশন নেই",
         "defaultBadge": "ডিফল্ট",
@@ -2408,18 +2991,16 @@
         "paymentMethods": "গৃহীত পেমেন্ট পদ্ধতি",
         "paymentCash": "নগদ",
         "paymentCashDesc": "নগদ পেমেন্ট গ্রহণ করুন",
-        "paymentCard": "কার্ড",
-        "paymentCardDesc": "ক্রেডিট/ডেবিট কার্ড পেমেন্ট গ্রহণ করুন",
+        "paymentCard": "কার্ড (Stripe)",
+        "paymentCardDesc": "Stripe-এর মাধ্যমে ক্রেডিট/ডেবিট কার্ড পেমেন্ট গ্রহণ করুন",
         "paymentManual": "ম্যানুয়াল",
         "paymentManualDesc": "কাস্টম পেমেন্ট পদ্ধতি",
         "offlinePaymentsDesc": "ডিভাইস অফলাইন থাকলে পেমেন্ট প্রক্রিয়া করুন",
         "customizeDesc": "POS টার্মিনালের চেহারা এবং আচরণ কাস্টমাইজ করুন",
         "printedReceiptsDesc": "প্রতিটি লেনদেনের পরে রসিদ প্রিন্ট করুন",
-        "minutes": "মিনিট",
         "receiptPrinter": "রসিদ প্রিন্টার",
         "receiptPrinterPlaceholder": "যেমন: Star TSP143",
         "ordersDesc": "POS অর্ডারের জন্য রিটার্ন নীতি কনফিগার করুন",
-        "days": "দিন",
         "sound": "সাউন্ড ইফেক্ট",
         "soundDesc": "POS টার্মিনাল ইন্টারঅ্যাকশনের জন্য অডিও ফিডব্যাক কনফিগার করুন",
         "soundEnable": "সাউন্ড ইফেক্ট সক্রিয় করুন",
@@ -2434,21 +3015,26 @@
         "soundError": "ত্রুটি সতর্কতা",
         "soundErrorDesc": "ত্রুটি এবং স্টক সতর্কতার জন্য সতর্কতা শব্দ",
         "paymentBank": "ব্যাংক ট্রান্সফার",
-        "paymentBankDesc": "রেফারেন্সসহ ব্যাংক ট্রান্সফার গ্রহণ করুন"
+        "paymentBankDesc": "রেফারেন্সসহ ব্যাংক ট্রান্সফার গ্রহণ করুন",
+        "seller": "স্টাফ",
+        "sellerDesc": "স্টাফ সদস্যদের POS দিয়ে বিক্রি করতে দিন"
       },
       "vendorPermissions": {
-        "title": "ভেন্ডর অনুমতির ডিফল্ট",
-        "description": "নতুন ভেন্ডরদের জন্য ডিফল্ট অনুমতি কনফিগার করুন",
-        "warning": "ভেন্ডর অনুমতি কনফিগার করতে মাল্টি-ভেন্ডর মোড চালু করুন।",
-        "manageProducts": "পণ্য পরিচালনা",
-        "viewOrders": "অর্ডার দেখুন",
-        "manageOrders": "অর্ডার পরিচালনা",
-        "manageSettings": "স্টোর সেটিংস পরিচালনা",
-        "viewAnalytics": "অ্যানালিটিক্স দেখুন",
-        "manageDiscounts": "ছাড় পরিচালনা করুন",
-        "managePayouts": "পেআউট পরিচালনা",
-        "accessPOS": "POS অ্যাক্সেস",
-        "save": "ভেন্ডর অনুমতি সংরক্ষণ করুন"
+        "title": "মার্কেটপ্লেস নীতি",
+        "description": "প্রতিটি সক্ষমতার জন্য একটি সুইচ, পুরো প্ল্যাটফর্মজুড়ে। এগুলো নতুন ভেন্ডরদের ডিফল্ট নয় — প্রতিটি সুইচ সঙ্গে সঙ্গে প্রতিটি বিদ্যমান স্টোরে প্রযোজ্য হয়।",
+        "warning": "মার্কেটপ্লেস নীতি কনফিগার করতে মাল্টি-ভেন্ডর মোড চালু করুন।",
+        "liveWarning": "একটি বন্ধ করলে এই মার্কেটপ্লেসের প্রতিটি ভেন্ডরের কাছ থেকে সেই ক্ষমতা সঙ্গে সঙ্গে সরে যায়, শুধু নতুনদের নয়। কোনো ভেন্ডর সেখানে গেলে একটি পাতা দেখেন, যেখানে কারণ হিসেবে এই সেটিংয়ের নাম থাকে।",
+        "packAiStudio": "লিস্টিং ও মিডিয়ার জন্য AI দিয়ে লেখা",
+        "packAnalytics": "বিক্রি ও ট্রাফিকের রিপোর্ট",
+        "packBoosts": "স্পনসর্ড প্লেসমেন্ট কেনা",
+        "packCatalog": "পণ্য ও ব্র্যান্ড",
+        "packDiscounts": "কুপন ও ডিসকাউন্ট ক্যাম্পেইন",
+        "packInbox": "অমনিচ্যানেল মেসেজিং ও চ্যানেল সেটআপ",
+        "packOrders": "অর্ডার তালিকা, ফুলফিলমেন্ট, রিটার্ন",
+        "packPayouts": "ব্যালেন্স ও নিজে উত্তোলনের অনুরোধ",
+        "packPos": "সরাসরি দোকানে বিক্রি",
+        "packStaff": "স্টোরের সিট আমন্ত্রণ ও পরিচালনা",
+        "packStorefront": "স্টোর পেজ, ব্র্যান্ডিং, শিপিং সেটিংস"
       },
       "orders": {
         "title": "অর্ডার সেটিংস",
@@ -2457,12 +3043,55 @@
         "taxRate": "ট্যাক্স রেট (%)",
         "shippingCost": "ডিফল্ট শিপিং খরচ ($)",
         "freeShippingThreshold": "ফ্রি শিপিং থ্রেশোল্ড ($)",
-        "freeShippingPlaceholder": "বন্ধ করতে খালি রাখুন",
+        "freeShippingPlaceholder": "বন্ধ করতে 0 দিন",
         "shippingHandledByZones": "শিপিং জোন চালু আছে, তাই এই দুটি মান ব্যবহার হচ্ছে না। রেট আসে শিপিং ও ডেলিভারি সেটিংস থেকে।",
-        "vendorCommission": "ভেন্ডর কমিশন",
         "commissionRate": "কমিশন রেট (%)",
         "minWithdrawal": "ন্যূনতম উত্তোলন পরিমাণ ($)",
-        "save": "অর্ডার সেটিংস সংরক্ষণ করুন"
+        "loyaltyHeading": "লয়্যালটি পয়েন্ট",
+        "loyaltySpendPerPoint": "প্রতি লয়্যালটি পয়েন্টে খরচ",
+        "loyaltySpendPerPointHint": "গ্রাহক এই পরিমাণ খরচ করলে ১ পয়েন্ট পান। Silver শুরু {silver, number} পয়েন্টে, Gold {gold, number}-এ, Platinum {platinum, number}-এ। নতুন rate পরের paid order থেকে খাটে; আগে দেওয়া পয়েন্ট যে rate-এ পাওয়া, সেটাই থাকে।",
+        "returnInstructions": "Return-এর নির্দেশনা",
+        "returnInstructionsHint": "Return approve হলে return-এর ঠিকানার সাথে customer-কে পাঠানো হয়। Return number বসাতে {returnNumber} লিখুন। খালি রাখলে দেখানো লেখাটাই যাবে।",
+        "finalSaleCollections": "ফাইনাল সেল কালেকশন",
+        "finalSaleCollectionsSearch": "কালেকশন খুঁজুন",
+        "finalSaleCollectionsNone": "কোনো কালেকশন পাওয়া যায়নি",
+        "finalSaleCollectionMissing": "মুছে ফেলা কালেকশন",
+        "finalSaleCollectionUnnamed": "কালেকশন",
+        "finalSaleCollectionsHint": "এই কালেকশনের পণ্যগুলো ফাইনাল সেল: ক্রেতা এগুলো ফেরত দিতে পারবেন না। আগে দেওয়া অর্ডার যে নিয়মে বিক্রি হয়েছিল, সেই নিয়মেই থাকবে।",
+        "billVendorCodShipping": "ক্যাশ-অন-ডেলিভারির শিপিং খরচ ভেন্ডরদের বিল করুন",
+        "billVendorCodShippingHint": "ভেন্ডর দরজায় নগদ নিলে ডেলিভারি চার্জও তাদের কাছে থাকে। আপনার নিজের কুরিয়ার যে পার্সেলগুলো বহন করেছে, সেগুলোর জন্য তাদের পাওনা কমিশনের সঙ্গে বিল করতে এটি চালু করুন।",
+        "refundAdminFee": "রিফান্ডের প্রশাসনিক ফি (%)",
+        "refundAdminFeeCap": "প্রতি রিটার্নে ফি-এর সর্বোচ্চ সীমা ({currency})",
+        "refundAdminFeeCapHint": "কোনো সীমা না রাখতে 0 দিন।",
+        "refundAdminFeeHint": "কোনো বিক্রি ফেরত এলে আপনার কমিশনের যে অংশ আপনি রাখেন। ক্রেতা যেকোনো অবস্থাতেই পুরো টাকা ফেরত পান; খরচটা ভেন্ডরের কাছে যায়।",
+        "restockingFee": "রিস্টকিং ফি (%)",
+        "restockingFeeHint": "ফেরত আসা পণ্যের দাম থেকে কাটা হয়, কখনো ট্যাক্স থেকে নয়।",
+        "returnShippingFee": "রিটার্ন শিপিং ফি ({currency})",
+        "returnShippingFeeHint": "ক্রেতা যে প্রতিটি বিক্রেতার কাছে পণ্য ফেরত পাঠান, তার জন্য একবার নেওয়া হয়।",
+        "returnWindowDays": "রিটার্নের সময়সীমা (দিন)",
+        "returnWindowDaysHint": "ডেলিভারির পর কত দিন পর্যন্ত একজন ক্রেতা অর্ডার ফেরতের অনুরোধ করতে পারবেন। প্রতিটি পণ্যের পাতায় দেখানো হয়।",
+        "windowUnlimited": "কোনো সময়সীমা নেই",
+        "windowStart": "সময়সীমা শুরু হয়",
+        "windowStartParcel": "প্রতিটি পার্সেল ডেলিভারি হলে",
+        "windowStartLast": "অর্ডারের শেষ পার্সেল ডেলিভারি হলে",
+        "windowStartHint": "শেষ পার্সেল থেকে গুনলে প্রতি অর্ডারে একটিই সময়সীমা থাকে, আর শেষ পার্সেল না পৌঁছানো পর্যন্ত প্রত্যেক বিক্রেতার পেআউট আটকে থাকে।",
+        "payoutHoldMaxDays": "পেআউট আটকে রাখার সর্বোচ্চ সময় (দিন)",
+        "payoutHoldMaxDaysHint": "সময়সীমা না থাকলে ডেলিভারির এত দিন পর বিক্রেতার বিক্রির টাকা পেআউট হয়। এর পরে কোনো রিফান্ড হলে তা তাঁর পরের পেআউট থেকে কাটা যায়।",
+        "windowOverrides": "কালেকশন অনুযায়ী রিটার্নের সময়সীমা",
+        "windowOverrideDays": "দিন",
+        "windowOverrideDaysUnit": "দিন",
+        "windowOverrideRemove": "সরান",
+        "windowOverridesSearch": "একটি কালেকশন যোগ করুন",
+        "windowOverridesHint": "এই কালেকশনের পণ্যগুলো এর বদলে এত দিনের মধ্যে ফেরত দেওয়া যাবে। কোনো পণ্য নিজের সময়সীমাও ঠিক করতে পারে; একাধিক প্রযোজ্য হলে সবচেয়ে ছোটটি খাটে।",
+        "returnsHeading": "রিটার্ন ও রিফান্ড",
+        "returnsHint": "এগুলো সেটিংস হওয়ার আগে Storify যেভাবে চলত সেখান থেকেই শুরু হয়, তাই আপনি না বদলানো পর্যন্ত কিছুই বদলায় না।",
+        "selfServe": "ক্রেতারা রিটার্নের অনুরোধ করতে পারবেন",
+        "selfServeHint": "বন্ধ থাকলে ক্রেতারা আপনার সাথে যোগাযোগ করবেন, আর আপনি অর্ডার থেকে তাঁদের জন্য রিটার্ন খুলবেন। নিজেদের রিটার্ন তাঁরা তখনও দেখতে ও বাতিল করতে পারবেন।",
+        "shippingRefund": "রিটার্নে ডেলিভারি চার্জ ফেরত",
+        "shippingRefundAlways": "সবসময়",
+        "shippingRefundHint": "আমাদের দোষ মানে ক্ষতিগ্রস্ত বা ত্রুটিপূর্ণ, বর্ণনার সঙ্গে না মেলা, অথবা ভুল পণ্য পাঠানো।",
+        "shippingRefundMerchantFault": "শুধু রিটার্নটি আমাদের দোষে হলে",
+        "shippingRefundNever": "কখনো না — ক্রেতা ডেলিভারি পেয়েছেন"
       },
       "storage": {
         "title": "স্টোরেজ সেটিংস",
@@ -2493,6 +3122,7 @@
           "cancel": "বাতিল"
         },
         "placeholder": {
+          "privateBucket": "my-store-private",
           "bucket": "my-bucket",
           "region": "রিজিওন নির্বাচন করুন",
           "accessKeyId": "AKIA...",
@@ -2504,12 +3134,15 @@
           "r2Url": "https://pub-xxxx.r2.dev"
         },
         "help": {
+          "privateBucket": "পরিচয়পত্র, ডিজিটাল প্রোডাক্ট আর খরচের রসিদ এখানে থাকে, আর শুধু সাইন করা লিংক দিয়েই খোলা যায়। একই অ্যাকাউন্টে বাকেটটা বানান — পাবলিক অ্যাক্সেস বন্ধ রাখুন, কোনো ডোমেইন যুক্ত করবেন না; ওপরের কী-গুলোর যেন এটা ব্যবহারের অনুমতি থাকে।",
           "cloudfront": "আপলোড করা ফাইল পরিবেশনের জন্য CloudFront বা কাস্টম ডোমেইন",
-          "r2Domain": "আপলোড করা ফাইল পরিবেশনের জন্য R2.dev সাবডোমেইন বা কাস্টম ডোমেইন",
+          "r2Domain": "আপনার বাকেটের R2.dev সাবডোমেইন বা যুক্ত করা নিজস্ব ডোমেইন — আপলোড করা ফাইল সবার জন্য পরিবেশন করতে এটি আবশ্যক",
           "r2FindOverview": "এটি Cloudflare ড্যাশবোর্ড → R2 → ওভারভিউ-এ খুঁজুন"
         },
         "publicUrlR2": "পাবলিক URL / CDN (আবশ্যক)",
         "r2PublicUrlMissing": "পাবলিক URL ছাড়া আপলোড করা ফাইল আপনার স্টোরে প্রদর্শিত হবে না — ছবি ও ভিডিওর URL প্রাইভেট R2 এন্ডপয়েন্টের দিকে নির্দেশ করবে এবং লোড হতে ব্যর্থ হবে। Cloudflare Dashboard → R2 → আপনার bucket → Settings → Public access-এ গিয়ে R2.dev সাবডোমেইন চালু করুন (অথবা একটি কাস্টম ডোমেইন সংযুক্ত করুন) এবং সেই URL এখানে পেস্ট করুন।",
+        "privateBucketName": "প্রাইভেট বাকেট",
+        "privateBucketMissing": "কোনো প্রাইভেট বাকেট নেই: পরিচয়পত্র, ডিজিটাল প্রোডাক্ট আর খরচের রসিদ ওপরের পাবলিক বাকেটে থাকছে, যেখানে ফাইলের ঠিকানা জানা যে-কেউ সেটা খুলতে পারে। একটা প্রাইভেট বাকেট যোগ করুন, তারপর আগে থেকে রাখা ফাইলগুলো সরাতে pnpm db:migrate private-storage চালান।",
         "minio": "MinIO",
         "minioDesc": "আপনার নিজের সার্ভারে সেলফ-হোস্টেড S3 — কোনো ক্লাউড অ্যাকাউন্ট লাগবে না",
         "digitalocean": "DigitalOcean Spaces",
@@ -2534,46 +3167,53 @@
             "digitalocean": "DigitalOcean Spaces খুলুন"
           },
           "cloudflare_r2": {
-            "bucket": "Cloudflare ড্যাশবোর্ডে R2 → Create bucket খুলুন। বাকেটের নামটি উপরের Bucket Name ঘরে বসবে।",
+            "bucket": "Cloudflare ড্যাশবোর্ডে R2 → Create bucket খুলুন। বাকেটের নামটি উপরের “বাকেটের নাম” ঘরে বসবে।",
             "token": "R2 → Manage R2 API Tokens → Create API token, অনুমতি Object Read & Write, শুধু ওই বাকেটের জন্য। দুটি অংশ উপরের Access Key ID ও Secret Access Key ঘরে বসান — সিক্রেটটি একবারই দেখানো হয়।",
             "account": "R2 ওভারভিউ সাইডবার থেকে ৩২ অক্ষরের Account ID কপি করে R2 Account ID ঘরে বসান।",
-            "public": "বাকেট → Settings → Public access: r2.dev সাবডোমেইন চালু করুন বা নিজের ডোমেইন যুক্ত করুন, তারপর সেই ঠিকানাটি Public URL ঘরে বসান।",
-            "test": "Test connection চাপুন, তারপর সেভ করুন। পরীক্ষাটি একটি নমুনা ফাইল আপলোড করে পাবলিক URL দিয়ে আবার পড়ে, তাই আগের ধাপ বাদ দিলে এটি ব্যর্থ হবে।",
-            "caution": "Public URL ছাড়া ব্রাউজারে প্রতিটি পণ্যের ছবি 403 দেখাবে, যদিও ক্রেডেনশিয়াল ঠিকই মনে হবে — ফাইলগুলো তখন R2-এর প্রাইভেট এন্ডপয়েন্ট থেকে আসে, যা কখনও অ্যানোনিমাসভাবে পড়া যায় না। r2.dev-এর চেয়ে নিজের ডোমেইন ভালো: তখন Cloudflare-এর CDN ক্যাশ করা অনুরোধ সামলায় এবং বাকেটে খরচ ধরা পড়ে না।"
+            "public": "বাকেট → Settings → Public access: r2.dev সাবডোমেইন চালু করুন বা নিজের ডোমেইন যুক্ত করুন, তারপর সেই ঠিকানাটি “পাবলিক URL” ঘরে বসান।",
+            "test": "“সংযোগ পরীক্ষা করুন” চাপুন, তারপর সেভ করুন। পরীক্ষাটি একটি নমুনা ফাইল আপলোড করে পাবলিক URL দিয়ে আবার পড়ে, তাই আগের ধাপ বাদ দিলে এটি ব্যর্থ হবে।",
+            "caution": "“পাবলিক URL” ছাড়া ব্রাউজারে প্রতিটি পণ্যের ছবি 403 দেখাবে, যদিও ক্রেডেনশিয়াল ঠিকই মনে হবে — ফাইলগুলো তখন R2-এর প্রাইভেট এন্ডপয়েন্ট থেকে আসে, যা কখনও অ্যানোনিমাসভাবে পড়া যায় না। r2.dev-এর চেয়ে নিজের ডোমেইন ভালো: তখন Cloudflare-এর CDN ক্যাশ করা অনুরোধ সামলায় এবং বাকেটে খরচ ধরা পড়ে না।"
           },
           "s3": {
             "bucket": "S3 কনসোলে একটি বাকেট তৈরি করুন এবং তার রিজিয়ন মনে রাখুন — উপরে বেছে নেওয়া রিজিয়নের সঙ্গে মিলতে হবে।",
             "iam": "IAM → প্রোগ্রাম্যাটিক অ্যাক্সেসসহ একজন ইউজার তৈরি করুন এবং ওই বাকেটে এই কাজগুলোর অনুমতি দিন:",
-            "public": "বাকেট পলিসি দিয়ে পাবলিক রিড চালু করুন, অথবা সামনে CloudFront বসান, এবং প্রাপ্ত ঠিকানাটি Public URL ঘরে বসান।",
-            "test": "উপরে কী-জোড়া বসিয়ে Test connection চাপুন, তারপর সেভ করুন।",
+            "public": "বাকেট পলিসি দিয়ে পাবলিক রিড চালু করুন, অথবা সামনে CloudFront বসান, এবং প্রাপ্ত ঠিকানাটি “পাবলিক URL” ঘরে বসান।",
+            "test": "উপরে কী-জোড়া বসিয়ে “সংযোগ পরীক্ষা করুন” চাপুন, তারপর সেভ করুন।",
             "caution": "নতুন বাকেটে Block all public access চালু থাকে। কেবল CloudFront দিয়ে সার্ভ করলে এটি চালু রাখুন — নাহলে দোকানের প্রতিটি ছবি 403 দেবে।"
           },
           "minio": {
             "run": "অ্যাপের পাশেই MinIO চালান — Coolify ও Dokploy দুটোতেই এক ক্লিকের টেমপ্লেট আছে। /data-তে একটি ভলিউম মাউন্ট করুন, নাহলে পরের ডিপ্লয় সব আপলোড করা ফাইল নিয়ে যাবে।",
             "keys": "MinIO কনসোল খুলুন (ডিফল্ট পোর্ট 9001), একটি বাকেট তৈরি করুন, তারপর Access Keys → Create access key।",
             "public": "ব্রাউজারকে বাকেট পড়ার অনুমতি দিন:",
-            "fields": "Endpoint URL হলো API-এর ঠিকানা (পোর্ট 9000), কনসোল নয়। রিজিয়ন us-east-1 রেখে দিলেই চলে — MinIO সেটি উপেক্ষা করে। Public URL হলো যে ঠিকানা দিয়ে ব্রাউজার বাকেটে পৌঁছায়।",
-            "test": "Test connection চাপুন, তারপর সেভ করুন।",
+            "fields": "Endpoint URL হলো API-এর ঠিকানা (পোর্ট 9000), কনসোল নয়। রিজিয়ন us-east-1 রেখে দিলেই চলে — MinIO সেটি উপেক্ষা করে। “পাবলিক URL” হলো যে ঠিকানা দিয়ে ব্রাউজার বাকেটে পৌঁছায়।",
+            "test": "“সংযোগ পরীক্ষা করুন” চাপুন, তারপর সেভ করুন।",
             "caution": "MinIO নিজের সাবডোমেইনে HTTPS দিয়ে চালান। ব্রাউজার মিক্সড কনটেন্ট আটকে দেয়, তাই http:// এন্ডপয়েন্ট HTTPS দোকানের সব ছবি নষ্ট করে।"
           },
           "digitalocean": {
             "space": "Spaces Object Storage → Create a Space। যে ডেটাসেন্টার বাছবেন সেটিই এন্ডপয়েন্ট (nyc3, fra1, sgp1…), তাই ক্রেতাদের কাছাকাছি একটি বাছুন এবং উপরে একই রিজিয়ন নির্বাচন করুন।",
             "keys": "API → Spaces Keys → Generate New Key, এবং দুটি অংশ Access Key ID ও Secret Access Key ঘরে বসান।",
             "public": "Space → Settings → File Listing পাবলিক করুন, অথবা CDN চালু করুন।",
-            "test": "Space থেকেই সার্ভ করতে Public URL ফাঁকা রাখুন, অথবা এজ থেকে সার্ভ করতে CDN এন্ডপয়েন্ট (…cdn.digitaloceanspaces.com) বসান। তারপর Test connection চেপে সেভ করুন।",
-            "caution": "Space-এর নামই উপরের Bucket Name, আর পরে Space অন্য ডেটাসেন্টারে সরানো যায় না — তৈরির সময়েই রিজিয়ন ঠিক হয়ে যায়।"
+            "test": "Space থেকেই সার্ভ করতে “পাবলিক URL” ফাঁকা রাখুন, অথবা এজ থেকে সার্ভ করতে CDN এন্ডপয়েন্ট (…cdn.digitaloceanspaces.com) বসান। তারপর “সংযোগ পরীক্ষা করুন” চেপে সেভ করুন।",
+            "caution": "Space-এর নামই উপরের “বাকেটের নাম”, আর পরে Space অন্য ডেটাসেন্টারে সরানো যায় না — তৈরির সময়েই রিজিয়ন ঠিক হয়ে যায়।"
           }
         },
         "migration": {
           "title": "আগে থেকে থাকা ফাইলগুলো সরান",
           "intro": "প্রোভাইডার বাছাই শুধু নতুন আপলোড কোথায় যাবে সেটাই বদলায়। আগে আপলোড করা সবকিছু যেখানে ছিল সেখানেই থাকে এবং যতক্ষণ না সরাচ্ছেন ততক্ষণ সেখান থেকেই লোড হয়।",
-          "step1": "উপরে একটি প্রোভাইডার কনফিগার করে Test connection চাপুন — মাইগ্রেশন এখানে সেভ করা সেটিংসেই আপলোড করে।",
+          "step1": "উপরে একটি প্রোভাইডার কনফিগার করে “সংযোগ পরীক্ষা করুন” চাপুন — মাইগ্রেশন এখানে সেভ করা সেটিংসেই আপলোড করে।",
           "step2": "সংরক্ষিত ক্রেডেনশিয়াল প্রতি-প্রোভাইডার ফরম্যাটে নিয়ে যান। যেকোনো ভার্সনে নিরাপদ, একবার চললে পরে আর কিছু করে না।",
           "step3": "লোকাল ফাইলগুলো আপলোড করুন এবং ডেটাবেস জুড়ে তাদের URL বদলে দিন। ড্রাই রান প্রতিটি ফাইলের তালিকা দেখায়, কিছুই লেখে না।",
           "step4": "স্টোরফ্রন্ট ও মিডিয়া লাইব্রেরি দেখে নিন। ডিস্ক থেকে কখনও কিছু মোছা হয় না, তাই ছবি ঠিকঠাক এলে লোকাল কপিগুলো নিজে মুছুন।",
           "backup": "পরের ডিপ্লয়ের আগে: আপনার আপডেট পদ্ধতি যদি অ্যাপ ফোল্ডার বদলে দেয় — cPanel আপলোড, zip দিয়ে ওভাররাইট, ভলিউমবিহীন কনটেইনার — তাহলে আগে মিডিয়া সার্ভার থেকে কপি করে রাখুন। ফোল্ডার বদলালে সেগুলো মুছে যায়।",
           "note": "যে ফাইল আপলোড হতে ব্যর্থ হয় সেটি নিজের লোকাল URL ধরে রাখে, তাই আংশিক রান দোকানকে অর্ধেক ভাঙা নয়, চালু অবস্থাতেই রাখে। আবার চালানো নিরাপদ।"
-        }
+        },
+        "testSucceeded": "স্টোরেজ সংযোগ সফল হয়েছে!",
+        "testRejected": "সংযোগ ব্যর্থ হয়েছে",
+        "testFailed": "সংযোগ পরীক্ষা করা যায়নি",
+        "statusFailed": "স্টোরেজের অবস্থা যাচাই করা যায়নি",
+        "maxImageSize": "ছবির সর্বোচ্চ আকার (MB)",
+        "maxVideoSize": "ভিডিওর সর্বোচ্চ আকার (MB)",
+        "maxModelSize": "3D মডেলের সর্বোচ্চ আকার (MB)"
       },
       "analytics": {
         "title": "অ্যানালিটিক্স ইন্টিগ্রেশন",
@@ -2605,28 +3245,6 @@
         "confirm": "বাতিল করুন",
         "cancel": "থাকুন"
       },
-      "locations": {
-        "title": "ইনভেন্টরি লোকেশন",
-        "description": "ইনভেন্টরি ট্র্যাকিংয়ের জন্য ওয়্যারহাউস ও স্টোর লোকেশন পরিচালনা করুন",
-        "add": "নতুন লোকেশন যোগ করুন",
-        "new": "নতুন লোকেশন",
-        "name": "লোকেশনের নাম",
-        "address": "ঠিকানা",
-        "setAsDefault": "ডিফল্ট লোকেশন হিসেবে সেট করুন",
-        "create": "লোকেশন তৈরি করুন",
-        "existing": "বিদ্যমান লোকেশন",
-        "empty": "এখনও কোনো লোকেশন কনফিগার করা হয়নি",
-        "emptyHint": "একাধিক জায়গায় ইনভেন্টরি ট্র্যাক করা শুরু করতে আপনার প্রথম লোকেশন যোগ করুন",
-        "active": "সক্রিয়",
-        "default": "ডিফল্ট",
-        "defaultBadge": "ডিফল্ট",
-        "inactive": "নিষ্ক্রিয়",
-        "infoTitle": "লোকেশন সম্পর্কে",
-        "info1": "একাধিক ওয়্যারহাউস বা স্টোরে ইনভেন্টরি ট্র্যাক করতে লোকেশন ব্যবহার করা হয়",
-        "info2": "ডিফল্ট লোকেশন POS বিক্রয় ও নতুন ইনভেন্টরির জন্য ব্যবহৃত হয়",
-        "info3": "নিষ্ক্রিয় লোকেশন পণ্যের ইনভেন্টরি ফর্মে দেখা যাবে না",
-        "info4": "ডিফল্ট হিসেবে সেট করা লোকেশন আপনি মুছতে পারবেন না"
-      },
       "shipping": {
         "title": "শিপিং ও ডেলিভারি",
         "description": "Shopify-এর মতো শিপিং জোন, রেট এবং ডেলিভারির আনুমানিক সময় কনফিগার করুন।",
@@ -2644,7 +3262,6 @@
           "title": "শিপিংয়ের উৎস",
           "description": "অপারেশনাল রেফারেন্স এবং ভবিষ্যতের ক্যারিয়ার ইন্টিগ্রেশনের জন্য ব্যবহৃত।",
           "country": "দেশ",
-          "countryPlaceholder": "United States",
           "state": "রাজ্য / প্রদেশ",
           "statePlaceholder": "CA",
           "city": "শহর",
@@ -2694,7 +3311,7 @@
         },
         "rate": {
           "name": "রেটের নাম",
-          "namePlaceholder": "Standard",
+          "namePlaceholder": "স্ট্যান্ডার্ড",
           "typeLabel": "ধরন",
           "type": {
             "flat": "ফ্ল্যাট রেট",
@@ -2724,14 +3341,6 @@
           "minDays": "সর্বনিম্ন দিন",
           "maxDays": "সর্বোচ্চ দিন"
         },
-        "pickup": {
-          "title": "লোকাল পিকআপ",
-          "description": "বিকল্প ফুলফিলমেন্ট পদ্ধতি হিসেবে লোকাল পিকআপ অফার করুন।",
-          "address": "পিকআপ ঠিকানা",
-          "instructions": "নির্দেশনা",
-          "readyMin": "প্রস্তুত হবে (সর্বনিম্ন দিন)",
-          "readyMax": "প্রস্তুত হবে (সর্বোচ্চ দিন)"
-        },
         "vendorShipping": {
           "title": "প্রতি-বিক্রেতা শিপিং",
           "description": "চালু থাকলে, একটি মাল্টি-ভেন্ডর কার্টে প্রতিটি বিক্রেতার পণ্যের জন্য সেই বিক্রেতার নিজস্ব শিপিং প্রোফাইল অনুযায়ী রেট নির্ধারণ করা হয় (এই প্ল্যাটফর্ম প্রোফাইলে ফলব্যাক হয়)। শিপিং প্রতি বিক্রেতা অনুযায়ী চার্জ ও বরাদ্দ করা হয়।"
@@ -2750,6 +3359,125 @@
           "description": "বিক্রেতা নিজের বহরে ডেলিভারি করলে তিনি নগদ নেন এবং আপনাকে কমিশন দেন। আপনার কুরিয়ার ডেলিভারি করলে আপনি নগদ নেন এবং বিক্রেতাকে তার আয় দেন — সেসব অর্ডার কেবল অ্যাডমিন পরিশোধিত চিহ্নিত করতে পারেন। নতুন অর্ডারে প্রযোজ্য।",
           "vendor": "বিক্রেতা",
           "platform": "স্টোর"
+        },
+        "carriers": {
+          "saveFirst": {
+            "test": "সংযোগ পরীক্ষার আগে শিপিং সেটিংস সংরক্ষণ করুন",
+            "webhook": "ওয়েবহুক URL তৈরির আগে শিপিং সেটিংস সংরক্ষণ করুন",
+            "disconnect": "ক্যারিয়ারের সংযোগ বিচ্ছিন্ন করার আগে শিপিং সেটিংস সংরক্ষণ করুন",
+            "pickupLocations": "পিকআপ লোকেশন লোড করার আগে শিপিং সেটিংস সংরক্ষণ করুন"
+          },
+          "webhookGenerated": "ওয়েবহুক URL তৈরি হয়েছে",
+          "webhookFailed": "ওয়েবহুক URL তৈরি করা যায়নি",
+          "disconnected": "ক্যারিয়ারের সংযোগ বিচ্ছিন্ন হয়েছে",
+          "disconnectFailed": "ক্যারিয়ারের সংযোগ বিচ্ছিন্ন করা যায়নি",
+          "pickupLocationsFailed": "পিকআপ লোকেশন লোড করা যায়নি",
+          "shippo": {
+            "labelFormats": {
+              "pdf4x6": "PDF 4×6 (থার্মাল)",
+              "pdf": "PDF (A4 / Letter)"
+            },
+            "description": "USPS, UPS, FedEx, DHL এবং বিশ্বজুড়ে 40+ ক্যারিয়ার।",
+            "labelFormat": "লেবেলের ফরম্যাট",
+            "liveToken": "লাইভ API টোকেন",
+            "modeHint": "Shippo-র আলাদা স্যান্ডবক্স নেই — কোন টোকেন ব্যবহার করছেন তা-ই ঠিক করে লেবেলটি আসল কিনা। দুটোই সংরক্ষণ করে এখানে বদলান।",
+            "testToken": "টেস্ট API টোকেন"
+          },
+          "shiprocket": {
+            "pickupPlaceholder": "একটি পিকআপ লোকেশন বেছে নিন",
+            "description": "ভারতীয় কুরিয়ার অ্যাগ্রিগেটর — Delhivery, Bluedart, Ekart এবং আরও অনেক।",
+            "email": "API ব্যবহারকারীর ইমেইল",
+            "password": "API ব্যবহারকারীর পাসওয়ার্ড",
+            "pickupHint": "Shiprocket তাদের ড্যাশবোর্ডে আপনার নিবন্ধিত একটি ডাকনাম থেকে পাঠায়, যেকোনো লেখা ঠিকানা থেকে নয়। একটি বেছে না নেওয়া পর্যন্ত কিছুই পাঠানো যাবে না।",
+            "webhookHint": "Shiprocket-এর ওয়েবহুক সেটিংসে একই মান দিন; যে ট্র্যাকিং আপডেটে এটি থাকে না সেগুলো প্রত্যাখ্যাত হয়।",
+            "webhookToken": "ওয়েবহুক টোকেন (x-api-key)"
+          },
+          "authFailed": "এই ক্যারিয়ার আপনার ক্রেডেনশিয়াল প্রত্যাখ্যান করছে — এর মাধ্যমে কিছুই পাঠানো যাবে না।",
+          "authFailedHint": "নিচের ক্রেডেনশিয়াল হালনাগাদ করুন, তারপর কানেকশন পরীক্ষা করুন চাপুন। ক্যারিয়ার সেগুলো গ্রহণ করলে সতর্কবার্তা নিজে থেকেই সরে যায়।",
+          "description": "আসল লেবেল কিনতে ও পার্সেল স্বয়ংক্রিয়ভাবে ট্র্যাক করতে একটি ক্যারিয়ার অ্যাকাউন্ট সংযুক্ত করুন। চেকআউট আপনার নিজের শিপিং রেটই ব্যবহার করে যায়।",
+          "disconnect": "সংযোগ বিচ্ছিন্ন করুন",
+          "enable": "ক্যারিয়ার চালু করুন",
+          "mode": "পরিবেশ",
+          "modeLive": "লাইভ",
+          "modeTest": "টেস্ট",
+          "originNotSupported": "Shiprocket শুধু ভারত থেকে পাঠায়। এটি চালু করতে আপনার শিপিং অরিজিনের দেশ ভারত করুন।",
+          "pickupLocation": "পিকআপ লোকেশন",
+          "refreshPickupLocations": "পিকআপ লোকেশন রিফ্রেশ করুন",
+          "registerWebhook": "ওয়েবহুক URL তৈরি করুন",
+          "testConnection": "কানেকশন পরীক্ষা করুন",
+          "title": "শিপিং ক্যারিয়ার",
+          "webhookUrl": "ওয়েবহুক URL — এটি ক্যারিয়ারের ড্যাশবোর্ডে পেস্ট করুন"
+        },
+        "addressHold": {
+          "title": "ডেলিভারি অযোগ্য ঠিকানা",
+          "description": "কুরিয়ার কোনো অর্ডারের ঠিকানায় পৌঁছাতে না পারলে শিপিং থেমে যায় এবং গ্রাহককে ঠিকানা সংশোধন করতে বলা হয়।",
+          "suggestAtCheckout": "চেকআউটে ঠিকানা যাচাই করুন",
+          "suggestAtCheckoutHint": "অর্ডার দেওয়ার আগে সংশোধনের পরামর্শ দিন। ক্রেতা চাইলে নিজের লেখাটিই রাখতে পারেন। একটি সংযুক্ত Shippo অ্যাকাউন্ট লাগে।",
+          "checkAfterOrder": "নতুন অর্ডারের ঠিকানা যাচাই করুন",
+          "checkAfterOrderHint": "কুরিয়ার লেবেল প্রত্যাখ্যান করার অপেক্ষা না করে, ঠিকানা যাচাইয়ে ব্যর্থ হওয়া মাত্র অর্ডারটি আটকে রাখুন।",
+          "autoRequest": "গ্রাহকের কাছে স্বয়ংক্রিয়ভাবে জানতে চান",
+          "autoRequestHint": "অর্ডার আটকে যাওয়া মাত্র গ্রাহককে ঠিকানা সংশোধনের লিংক ইমেল করুন। বন্ধ থাকলে স্টাফ এটি করবে।",
+          "reminderDays": "রিমাইন্ডার (দিন পর)",
+          "reminderDaysHint": "প্রথম অনুরোধের পর কত দিন, কমা দিয়ে আলাদা করে লিখুন। রিমাইন্ডার না চাইলে ফাঁকা রাখুন।",
+          "deadlineDays": "শেষ সময় (দিন)",
+          "deadlineDaysHint": "প্রথম অনুরোধ থেকে গ্রাহক কত দিনের মধ্যে উত্তর দেবেন।",
+          "onDeadline": "শেষ সময় পেরিয়ে গেলে",
+          "onDeadlineNotify": "স্টোরকে জানান এবং অর্ডার আটকে রাখুন",
+          "onDeadlineCancel": "অর্ডার বাতিল করে পুরো টাকা ফেরত দিন",
+          "keepReturnShipping": "পার্সেল ফেরত এলে রিটার্ন শিপিংয়ের খরচ রাখুন",
+          "keepReturnShippingHint": "ভুল ঠিকানার কারণে পার্সেল প্রেরকের কাছে ফেরত এলে প্রস্তাবিত রিফান্ড থেকে লেবেলের খরচ বাদ যায়। আটকে থাকা অর্ডার কখনো পাঠানো হয়নি, তাই সেগুলোর সবসময় পুরো টাকা ফেরত দেওয়া হয়।"
+        },
+        "automation": {
+          "buyLabel": "স্বয়ংক্রিয়ভাবে লেবেল কিনুন",
+          "buyLabelHint": "বন্ধ থাকলে রেট যাচাই করা একটি খসড়া তৈরি হয় এবং সেখানেই থামে; কেনার কাজটা একজন মানুষের হাতে থাকে।",
+          "description": "কোনো অর্ডারের পেমেন্ট হয়ে প্রসেসিং-এ গেলেই শিপমেন্ট তৈরি করুন। চাইলে যেকোনো অর্ডার হাতে কুরিয়ারে পাঠাতেও পারেন।",
+          "enable": "স্বয়ংক্রিয় শিপিং চালু করুন",
+          "fixedServiceHint": "ক্যারিয়ারের নিজস্ব সার্ভিস আইডেন্টিফায়ার। আপনার অ্যাকাউন্ট কোন টোকেন ফেরত দেয় দেখতে একটি অর্ডার হাতে কুরিয়ারে পাঠান।",
+          "fixedServiceToken": "সার্ভিস টোকেন",
+          "includeCod": "ক্যাশ-অন-ডেলিভারি অর্ডারও রাখুন",
+          "includeCodHint": "COD অর্ডার কখনো পেইড হিসেবে চিহ্নিত হয় না, তাই এটি চালু থাকলেই কেবল স্বয়ংক্রিয়ভাবে পাঠানো হয়।",
+          "markShipped": "লেবেল কেনা হলে অর্ডারটি শিপড হিসেবে চিহ্নিত করুন",
+          "markShippedHint": "ক্রেতাকে তাদের ট্র্যাকিং নম্বর পাঠায়।",
+          "maxLabelCost": "লেবেলের খরচ এর বেশি হলে বাতিল করুন",
+          "maxLabelCostHint": "আপনার ক্যারিয়ার অ্যাকাউন্টের মুদ্রায়, স্টোরের মুদ্রায় নয়।",
+          "maxOrderValue": "সর্বোচ্চ অর্ডার মূল্য",
+          "minOrderValue": "সর্বনিম্ন অর্ডার মূল্য",
+          "noLimit": "কোনো সীমা নেই",
+          "rateChoice": "কোন রেট কিনবেন",
+          "rateChoiceCheapest": "সবচেয়ে সস্তা",
+          "rateChoiceFastest": "সবচেয়ে দ্রুত",
+          "rateChoiceFixed": "একটি নির্দিষ্ট সার্ভিস",
+          "requiresCarrier": "প্রথমে একটি ক্যারিয়ার সংযুক্ত করুন — না হলে অটোমেশন কোথা থেকেও লেবেল কিনতে পারবে না।",
+          "restrictCountries": "শুধু এই গন্তব্যগুলো স্বয়ংক্রিয় করুন",
+          "restrictCountriesHint": "সব গন্তব্য স্বয়ংক্রিয় করতে খালি রাখুন।",
+          "title": "স্বয়ংক্রিয় শিপিং"
+        },
+        "courierLinks": {
+          "add": "কুরিয়ার যোগ করুন",
+          "builtIn": "কোনো সেটআপ ছাড়াই আগে থেকে যুক্ত:",
+          "carrier": "কুরিয়ারের নাম",
+          "description": "যে পার্সেল আপনি হাতে যোগ করেন তার জন্য। ট্র্যাকিং নম্বর যেখানে বসবে সেখানে {tracking} লিখুন; প্লেসহোল্ডার ছাড়া লিংকের শেষে নম্বরটি জুড়ে দেওয়া হয়।",
+          "remove": "কুরিয়ার লিংক সরান",
+          "title": "কুরিয়ার ট্র্যাকিং লিংক",
+          "urlTemplate": "ট্র্যাকিং URL"
+        },
+        "packages": {
+          "active": "সক্রিয়",
+          "add": "প্যাকেজ যোগ করুন",
+          "default": "ডিফল্ট বাক্স",
+          "description": "যেসব বাক্সের ভিত্তিতে ক্যারিয়ারের দর হিসাব করা যায়। কোনো অর্ডারের পণ্যের নিজস্ব মাপ না থাকলে ডিফল্টটি ব্যবহৃত হয়।",
+          "empty": "এখনো কোনো প্যাকেজ নেই। ক্যারিয়ার রেটের জন্য অন্তত একটি বাক্স দরকার।",
+          "emptyWeight": "খালি অবস্থায় ওজন",
+          "height": "উচ্চতা",
+          "length": "দৈর্ঘ্য",
+          "maxWeight": "সর্বোচ্চ ওজন",
+          "name": "নাম",
+          "newName": "নতুন বাক্স",
+          "noLimit": "কোনো সীমা নেই",
+          "remove": "প্যাকেজ সরান",
+          "title": "সংরক্ষিত প্যাকেজ",
+          "unit": "একক",
+          "width": "প্রস্থ"
         }
       },
       "ai": {
@@ -2757,8 +3485,8 @@
         "description": "AI স্টুডিও কন্টেন্ট, SEO এবং ইমেজ জেনারেশন কনফিগার করার একটি জায়গা।",
         "statusConfigured": "কনফিগার করা হয়েছে",
         "statusNotConfigured": "কনফিগার করা নেই",
-        "enabled": "AI ফিচার চালু করুন",
-        "enabledHint": "ড্যাশবোর্ড জুড়ে AI স্টুডিও এবং প্রতিটি AI বোতাম চালু বা বন্ধ করে।",
+        "enabled": "AI স্টুডিও চালু করুন",
+        "enabledHint": "ড্যাশবোর্ড জুড়ে AI স্টুডিও এবং প্রতিটি AI বোতাম চালু বা বন্ধ করে। AI সেলস এজেন্টের নিজের পেজে আলাদা সুইচ আছে।",
         "apiKey": "OpenAI API কী",
         "apiKeySetPlaceholder": "••••••••  (সংরক্ষিত — পরিবর্তন করতে নতুন কী লিখুন)",
         "apiKeyHint": "AI স্টুডিও এবং AI সেলস এজেন্ট এটি ব্যবহার করে। OPENAI_API_KEY এনভায়রনমেন্ট ভ্যারিয়েবল ব্যবহার চালিয়ে যেতে খালি রাখুন।",
@@ -2803,16 +3531,124 @@
         "primaryColor": "প্রাথমিক ব্র্যান্ড রঙ",
         "secondaryColor": "মাধ্যমিক ব্র্যান্ড রঙ",
         "logoUrl": "ব্র্যান্ড লোগো URL",
-        "logoUrlHint": "আপনার লোগো স্টোরে আপলোড করুন, তারপর এখানে এর URL পেস্ট করুন। এটি সোশ্যাল এক্সপোর্টে ঐচ্ছিক লোগো প্লেসমেন্ট হিসেবে ব্যবহৃত হয়।"
+        "logoUrlHint": "আপনার লোগো স্টোরে আপলোড করুন, তারপর এখানে এর URL পেস্ট করুন। এটি সোশ্যাল এক্সপোর্টে ঐচ্ছিক লোগো প্লেসমেন্ট হিসেবে ব্যবহৃত হয়।",
+        "modelNotes": {
+          "fastLowCost": "দ্রুত, কম খরচ",
+          "higherQuality": "উন্নত মান",
+          "bestQuality": "সেরা মান",
+          "lowerCost": "কম খরচ"
+        }
       },
       "saveChanges": "পরিবর্তন সংরক্ষণ করুন",
-      "storeNameFallback": "আপনার স্টোর",
       "notifications": {
         "title": "নোটিফিকেশন সেটিংস",
-        "description": "কোন ইভেন্টগুলো ড্যাশবোর্ড নোটিফিকেশন, ইমেইল এবং ব্রাউজার পুশ অ্যালার্ট তৈরি করবে তা বেছে নিন।"
-      },
-      "abandonedCarts": {
-        "title": "পরিত্যক্ত কার্ট"
+        "description": "কোন ঘটনায় ড্যাশবোর্ড নোটিফিকেশন, ইমেল, পুশ অ্যালার্ট ও SMS তৈরি হবে তা বেছে নিন।",
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "নতুন অর্ডার",
+              "description": "অর্ডার দেওয়া হলে অ্যাডমিনদের জানান।"
+            },
+            "newCustomers": {
+              "title": "নতুন গ্রাহক",
+              "description": "গ্রাহকের প্রোফাইল তৈরি হলে অ্যাডমিনদের জানান।"
+            },
+            "newVendors": {
+              "title": "নতুন ভেন্ডর আবেদন",
+              "description": "ভেন্ডরের আবেদন অপেক্ষমাণ থাকলে অ্যাডমিনদের জানান।"
+            },
+            "returns": {
+              "title": "রিটার্নের অনুরোধ",
+              "description": "রিটার্নের অনুরোধ পর্যালোচনার প্রয়োজন হলে অ্যাডমিনদের জানান।"
+            },
+            "payments": {
+              "title": "পেমেন্ট",
+              "description": "পেমেন্ট কার্যকলাপ রেকর্ড হলে অ্যাডমিনদের জানান।"
+            },
+            "preorderAccessRequests": {
+              "title": "প্রি-অর্ডারের অনুমতির অনুরোধ",
+              "description": "কোনো ভেন্ডর প্রি-অর্ডার বিক্রির অনুমতি চাইলে অ্যাডমিনদের জানান।"
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "ভেন্ডর আবেদনের অবস্থা",
+              "description": "ভেন্ডরের অ্যাকাউন্ট অনুমোদিত বা প্রত্যাখ্যাত হলে তাদের জানান।"
+            },
+            "newOrders": {
+              "title": "ভেন্ডরের নতুন অর্ডার",
+              "description": "ভেন্ডর নতুন অর্ডার পেলে তাদের জানান।"
+            },
+            "returns": {
+              "title": "ভেন্ডরের রিটার্নের অনুরোধ",
+              "description": "রিটার্নের অনুরোধ কোনো ভেন্ডরের হলে তাদের জানান।"
+            },
+            "preorderAccess": {
+              "title": "ভেন্ডরের প্রি-অর্ডারের অনুমতি",
+              "description": "ভেন্ডরের প্রি-অর্ডারের অনুমতি অনুমোদিত, প্রত্যাখ্যাত বা প্রত্যাহার হলে তাদের জানান।"
+            }
+          },
+          "staff": {
+            "newOrders": {
+              "title": "স্টাফের জন্য নতুন অর্ডার",
+              "description": "অর্ডার দেওয়া হলে অর্ডারের অনুমতি থাকা স্টাফদের জানান।"
+            },
+            "newCustomers": {
+              "title": "স্টাফের জন্য নতুন গ্রাহক",
+              "description": "গ্রাহকের প্রোফাইল তৈরি হলে গ্রাহকের অনুমতি থাকা স্টাফদের জানান।"
+            },
+            "returns": {
+              "title": "স্টাফের জন্য রিটার্নের অনুরোধ",
+              "description": "রিটার্নের অনুরোধ পর্যালোচনার প্রয়োজন হলে অর্ডারের অনুমতি থাকা স্টাফদের জানান।"
+            },
+            "payments": {
+              "title": "স্টাফের জন্য পেমেন্ট",
+              "description": "পেমেন্ট কার্যকলাপ রেকর্ড হলে POS ও অর্ডার স্টাফদের জানান।"
+            },
+            "lowStock": {
+              "title": "স্টাফের জন্য কম স্টক",
+              "description": "প্রোডাক্টে নতুন করে স্টক ভরার প্রয়োজন হলে ইনভেন্টরি স্টাফদের জানান।"
+            }
+          },
+          "customer": {
+            "orderUpdates": {
+              "title": "গ্রাহকের অর্ডার আপডেট",
+              "description": "অর্ডারের অবস্থা বদলালে গ্রাহকদের জানান।"
+            },
+            "returnUpdates": {
+              "title": "গ্রাহকের রিটার্ন আপডেট",
+              "description": "রিটার্নের অবস্থা বদলালে গ্রাহকদের জানান।"
+            }
+          }
+        },
+        "event": "ঘটনা",
+        "channels": {
+          "inApp": "অ্যাপে",
+          "email": "ইমেল",
+          "browserPush": "পুশ",
+          "sms": "SMS"
+        },
+        "smsSettingsLink": "SMS সেটিংস",
+        "smsOffWarning": "কিছু ঘটনায় SMS পাঠানো সেট করা আছে, কিন্তু SMS বন্ধ বা পুরোপুরি সেট আপ করা নেই, তাই কোনোটিই যাবে না।",
+        "smsSetupHint": "SMS পাঠাতে আগে Twilio সেট আপ করুন।",
+        "groups": {
+          "admin": {
+            "title": "অ্যাডমিন নোটিফিকেশন",
+            "description": "যেসব ঘটনায় স্টোরের অ্যাডমিন টিমকে সতর্ক করা উচিত।"
+          },
+          "vendor": {
+            "title": "ভেন্ডর নোটিফিকেশন",
+            "description": "ভেন্ডর অ্যাকাউন্টে পাঠানো ঘটনা।"
+          },
+          "staff": {
+            "title": "স্টাফ নোটিফিকেশন",
+            "description": "মডিউলের অনুমতি অনুযায়ী সক্রিয় স্টাফদের পাঠানো ঘটনা।"
+          },
+          "customer": {
+            "title": "গ্রাহক নোটিফিকেশন",
+            "description": "গ্রাহক অ্যাকাউন্টে পাঠানো ঘটনা।"
+          }
+        }
       },
       "messaging": {
         "title": "অমনিচ্যানেল মেসেজিং",
@@ -2856,6 +3692,282 @@
         "authentication": "অথেনটিকেশন",
         "growth": "গ্রোথ",
         "advanced": "অ্যাডভান্সড"
+      },
+      "fields": {
+        "envSourceHint": "এনভায়রনমেন্ট ভেরিয়েবল থেকে সেট করা। এখানে সংরক্ষিত মান সেটিকে ছাপিয়ে যায়।",
+        "configured": "কনফিগার করা হয়েছে",
+        "notConfigured": "কনফিগার করা হয়নি",
+        "mode": {
+          "live": "লাইভ",
+          "sandbox": "স্যান্ডবক্স",
+          "test": "টেস্ট"
+        },
+        "savedPlaceholder": "সংরক্ষিত আছে (রাখতে ফাঁকা রাখুন)",
+        "savedKeysHint": "নিরাপত্তার জন্য সংরক্ষিত কী আর দেখানো হয় না।",
+        "savedSecretsHint": "নিরাপত্তার জন্য সংরক্ষিত সিক্রেট আর দেখানো হয় না।",
+        "savedPasswordsHint": "নিরাপত্তার জন্য সংরক্ষিত পাসওয়ার্ড আর দেখানো হয় না।",
+        "enableProvider": "{name} চালু করুন"
+      },
+      "demoMode": "ডেমো মোড",
+      "vendorConfig": {
+        "paymentMethods": {
+          "description": "ভেন্ডররা কোন গেটওয়ে দিয়ে প্ল্যানের সাবস্ক্রিপশন পরিশোধ করতে পারবেন। Stripe নিজে থেকে নবায়ন করে; অন্য গেটওয়েগুলো নবায়নের রিমাইন্ডারসহ একবারে এক মেয়াদের বিল করে। ক্রেডেনশিয়াল পেমেন্ট সেটিংসে কনফিগার করা হয়।",
+          "title": "সাবস্ক্রিপশন পেমেন্ট পদ্ধতি"
+        },
+        "allowRegistration": {
+          "description": "স্টোরফ্রন্ট থেকে ভেন্ডর হওয়ার জন্য আবেদন করতে দিন।",
+          "label": "ভেন্ডর রেজিস্ট্রেশন চালু রাখুন"
+        },
+        "commission": {
+          "byCurrencyAdd": "মুদ্রা যোগ করুন",
+          "byCurrencyAmount": "{currency}-এ সর্বনিম্ন পেআউট",
+          "byCurrencyCode": "মুদ্রার কোড",
+          "byCurrencyDescription": "{currency} ছাড়া অন্য মুদ্রার পেআউটে সেই মুদ্রার নিজস্ব সর্বনিম্ন সীমা খাটে। এখানে তালিকায় নেই এমন মুদ্রার কোনো সর্বনিম্ন সীমা নেই।",
+          "byCurrencyLabel": "অন্যান্য মুদ্রায় সর্বনিম্ন",
+          "byCurrencyRemove": "{currency}-এর সর্বনিম্ন সীমা সরান",
+          "description": "প্ল্যান নেই এমন ভেন্ডরদের ক্ষেত্রে প্রযোজ্য। অর্ডার সেটিংসেও সম্পাদনা করা যায়।",
+          "minWithdrawalDescription": "একজন ভেন্ডর পেআউট হিসেবে সবচেয়ে কম যে ব্যালেন্স চাইতে পারেন, আপনার স্টোরের মুদ্রায়।",
+          "minWithdrawalLabel": "সর্বনিম্ন উত্তোলনের পরিমাণ",
+          "rateDescription": "প্রতিটি ভেন্ডর বিক্রিতে প্ল্যাটফর্ম যে শতাংশ রাখে।",
+          "rateLabel": "কমিশনের হার",
+          "title": "ডিফল্ট কমিশন"
+        },
+        "description": "ভেন্ডরদের রেজিস্ট্রেশন, অনুমোদন ও সাবস্ক্রিপশন প্ল্যানের নীতি।",
+        "documents": {
+          "manageLink": "অনবোর্ডিং ফ্লো খুলুন",
+          "movedDescription": "প্রয়োজনীয় ডকুমেন্ট — এবং অনবোর্ডিংয়ের প্রতিটি ফিল্ড — এখন অনবোর্ডিং ফ্লো বিল্ডারে পরিচালিত হয়, যেখানে যেকোনো ফিল্ড আবশ্যক করা, লুকানো, ধাপের ক্রম বদলানো বা কাস্টম ফিল্ড যোগ করা যায়।",
+          "title": "প্রয়োজনীয় ডকুমেন্ট ও ফিল্ড"
+        },
+        "marketplaceOff": "ভেন্ডর নীতি কনফিগার করতে মাল্টি-ভেন্ডর ম্যানেজমেন্ট চালু করুন।",
+        "plans": {
+          "title": "প্ল্যান ও সাবস্ক্রিপশন"
+        },
+        "plansEnabled": {
+          "description": "অনবোর্ডিংয়ের সময় ভেন্ডরদের একটি প্ল্যানের ধাপ দেখান। বন্ধ থাকলে ভেন্ডররা ডিফল্ট কমিশনে চলেন।",
+          "label": "সাবস্ক্রিপশন প্ল্যান চালু করুন"
+        },
+        "registration": {
+          "title": "রেজিস্ট্রেশন ও অনুমোদন"
+        },
+        "requirePlanSelection": {
+          "description": "আবেদনকারীদের শেষ করার আগে একটি প্ল্যান বেছে নিতে হবে। না হলে একটি ডিফল্ট প্ল্যান ব্যবহৃত হয়।",
+          "label": "সাইনআপে প্ল্যান বাধ্যতামূলক করুন"
+        },
+        "title": "ভেন্ডর কনফিগারেশন"
+      },
+      "sms": {
+        "authTokenPlaceholder": "Auth Token লিখুন",
+        "authTokenHint": "Twilio-র ডেলিভারি রসিদও যাচাই করে। সংরক্ষিত টোকেন আর দেখানো হয় না।",
+        "messagingServiceSidHint": "প্রস্তাবিত। Twilio প্রতিটি গন্তব্যের জন্য ঠিক প্রেরক বেছে নেয় এবং STOP উত্তর সামলায়।",
+        "fromNumberHint": "কোনো Messaging Service সেট না থাকলে ব্যবহৃত হয়: একটি Twilio নম্বর, অথবা যেখানে গন্তব্য অনুমতি দেয় সেখানে অক্ষর-সংখ্যার প্রেরক আইডি।",
+        "defaultCountryPlaceholder": "শিপিংয়ের উৎস দেশ ব্যবহার করুন",
+        "defaultCountryHint": "দেশের কোড ছাড়া সংরক্ষিত প্রোফাইল নম্বর এই দেশ ধরে পড়া হয়। অর্ডারের ফোন নম্বর সবসময় তার শিপিং দেশ ধরে পড়া হয়।",
+        "includeLinksHint": "অর্ডার বা ট্র্যাকিং পেজের লিংক যোগ করে। লিংক প্রায়ই মেসেজকে দ্বিতীয় সেগমেন্টে ঠেলে দেয়, যার বিল দ্বিতীয় SMS হিসেবে হয়।",
+        "consentNote": "গ্রাহকদের অর্ডারে দেওয়া ফোনে SMS পাঠানো হয়; তারা অ্যাকাউন্ট → পছন্দসমূহ থেকে বা STOP লিখে উত্তর দিয়ে বন্ধ করতে পারেন। অ্যাডমিন, স্টাফ ও ভেন্ডরদের প্রোফাইল বা স্টোরের ফোনে পাঠানো হয়। কোন ঘটনায় পাঠানো হবে তা <link>নোটিফিকেশন সেটিংস</link>-এ বেছে নিন। শুধু যারা আপনার কাছ থেকে মেসেজ পেতে সম্মত হয়েছেন, তাদেরই পাঠান।",
+        "testSent": "টেস্ট SMS পাঠানো হয়েছে",
+        "testFailed": "টেস্ট SMS পাঠানো যায়নি",
+        "accountSid": "Account SID",
+        "authToken": "Auth Token",
+        "defaultCountry": "ফোন নম্বরের ডিফল্ট দেশ",
+        "description": "আপনার Twilio অ্যাকাউন্টের মাধ্যমে অর্ডার, রিটার্ন ও পেমেন্টের আপডেট টেক্সট মেসেজে পাঠান।",
+        "enable": "SMS নোটিফিকেশন চালু করুন",
+        "enableHint": "Twilio প্রতিটি মেসেজের জন্য চার্জ করে। নোটিফিকেশন সেটিংসে ইভেন্ট বেছে না নেওয়া পর্যন্ত কোনো মেসেজ যায় না।",
+        "fromNumber": "প্রেরকের নম্বর বা সেন্ডার আইডি",
+        "includeLinks": "একটি লিংক যোগ করুন",
+        "messagingServiceSid": "Messaging Service SID",
+        "save": "SMS সেটিংস সংরক্ষণ করুন",
+        "testButton": "টেস্ট SMS পাঠান",
+        "testLabel": "টেস্ট মেসেজ পাঠানোর নম্বর",
+        "title": "SMS (Twilio)"
+      },
+      "brandAssets": {
+        "wrongFormat": "{formats} ফাইল হতে হবে",
+        "tooLarge": "{max} MB-এর কম হতে হবে — এই ফাইলটি {size} MB",
+        "tooSmall": "{dimension}x{dimension}px-এর চেয়ে ছোট ({width}x{height}px) — বড় করে দেখানো হবে, ঝাপসা লাগতে পারে",
+        "uploadingProgress": "আপলোড হচ্ছে… {progress}%",
+        "dropHint": "টেনে এনে ছাড়ুন বা বেছে নিতে ক্লিক করুন",
+        "maxSize": "সর্বোচ্চ আকার:",
+        "formats": "ফরম্যাট:",
+        "recommended": "প্রস্তাবিত:",
+        "lightLogo": {
+          "label": "লাইট থিমের লোগো",
+          "alt": "লাইট থিমের লোগো",
+          "upload": "লাইট থিমের লোগো আপলোড করুন",
+          "replace": "লাইট লোগো বদলান"
+        },
+        "darkLogo": {
+          "label": "ডার্ক থিমের লোগো",
+          "alt": "ডার্ক থিমের লোগো",
+          "upload": "ডার্ক থিমের লোগো আপলোড করুন",
+          "replace": "ডার্ক লোগো বদলান"
+        },
+        "favicon": {
+          "label": "ফেভিকন",
+          "alt": "স্টোরের ফেভিকন",
+          "upload": "ফেভিকন আপলোড করুন",
+          "replace": "ফেভিকন বদলান"
+        },
+        "appIcon": {
+          "label": "অ্যাপ আইকন",
+          "alt": "ইনস্টল করা অ্যাপের আইকন",
+          "upload": "অ্যাপ আইকন আপলোড করুন",
+          "replace": "অ্যাপ আইকন বদলান",
+          "recommended": "512x512px বর্গাকার",
+          "note": "কেউ আপনার স্টোর নিজের ডিভাইসে ইনস্টল করলে ব্রাউজার এই অ্যাপ আইকনটিই দেখায়। এটি 512x512px-এ দেখানো হয়, তাই ছোট ছবিও চলে — শুধু একটু ঝাপসা লাগে। ফাঁকা রাখলে বিকল্প হিসেবে ফেভিকন ব্যবহৃত হয়।"
+        }
+      },
+      "preorder": {
+        "title": "প্রি-অর্ডার",
+        "description": "কোনো পণ্য তৈরির আগেই বিক্রি করলে ভেন্ডর কী প্রতিশ্রুতি দিতে পারবে — আর কারা তা করতে পারবে।",
+        "storeOff": "পুরো স্টোরে প্রি-অর্ডার বন্ধ। ভেন্ডররা কী প্রতিশ্রুতি দিতে পারবে তা সেট করতে <link>সেটিংস → পণ্য</link>-এ চালু করুন।",
+        "requireApproval": {
+          "title": "প্রি-অর্ডার বিক্রির আগে ভেন্ডরদের পর্যালোচনা করুন",
+          "description": "চালু থাকলে প্রথম প্রি-অর্ডার খোলার আগে ভেন্ডরের আপনার অনুমোদন লাগে। বিদ্যমান লিস্টিং যেকোনো অবস্থায় বিক্রি হতে থাকে।"
+        },
+        "maxLead": {
+          "label": "সবচেয়ে দূরের রিলিজ তারিখ",
+          "unit": "দিন পর পর্যন্ত",
+          "hint": "অপেক্ষা যত দীর্ঘ, ক্রেতা তত দিন চার্জ নিয়ে আপত্তি তুলতে পারেন।"
+        },
+        "maxDeposit": {
+          "label": "সর্বোচ্চ ডিপোজিট",
+          "unit": "দামের %",
+          "hint": "নির্দিষ্ট অঙ্কের ডিপোজিটেও প্রযোজ্য, দামের সাপেক্ষে হিসাব করা হয়।"
+        },
+        "expiry": {
+          "label": "অপরিশোধিত বাকি টাকার অপেক্ষা ছেড়ে দিন",
+          "unit": "দিন রিলিজ তারিখ পেরোনোর পর",
+          "hint": "অর্ডারটি বাতিল হয়, কোটা মুক্ত হয় এবং ডিপোজিট পুরো ফেরত দেওয়া হয়।"
+        },
+        "autoRelease": {
+          "title": "বাকি টাকা স্বয়ংক্রিয়ভাবে চান",
+          "description": "রিলিজের দিনে প্রতিটি প্রি-অর্ডারের বাকি টাকা চাওয়া হয় এবং যেগুলো পুরো পরিশোধিত সেগুলো ছেড়ে দেওয়া হয়। আপনার তারিখ পিছিয়ে যাওয়ার সম্ভাবনা থাকলে এটি বন্ধ রাখুন — টাকা চাওয়া মানে পণ্য প্রস্তুত।",
+          "unit": "দিন রিলিজ তারিখের পর",
+          "hint": "পুরো পরিশোধিত প্রি-অর্ডারও কেবল তখনই ছাড়া হয় যখন তার স্টক আসলে রেকর্ড করা হয় — শুধু ক্যালেন্ডার দেখে কিছুই পাঠানো হয় না।"
+        },
+        "reserve": {
+          "label": "প্রি-অর্ডারের পেআউট থেকে আটকে রাখুন",
+          "percentUnit": "%, সময়কাল",
+          "daysUnit": "দিন",
+          "hint": "কার্ডের আপত্তি প্রত্যাশিত ডেলিভারির তারিখ থেকে গোনা হয়, তাই ভেন্ডর টাকা পাওয়ার অনেক পরেও প্রি-অর্ডারে চার্জব্যাক হতে পারে। শূন্য দিলে রিজার্ভ বন্ধ হয়।"
+        },
+        "access": {
+          "title": "ভেন্ডরের অনুমতি",
+          "waiting": "{count}টি অপেক্ষায়",
+          "reviewOff": "পর্যালোচনা বন্ধ, তাই প্রতিটি ভেন্ডর ইতিমধ্যে প্রি-অর্ডার খুলতে পারে। উপরে পর্যালোচনা চালু না করা পর্যন্ত এখানে অনুমোদন দিলে কিছুই বদলায় না, আর ভেন্ডরকে তা জানানো হয় না।",
+          "empty": "এখনও কোনো ভেন্ডর প্রি-অর্ডারের অনুমতি চায়নি।",
+          "revokeNote": "প্রত্যাহার করলে পরের প্রি-অর্ডার বন্ধ হয়। যেসব লিস্টিং ইতিমধ্যে বিক্রি হচ্ছে সেগুলোর প্রতিশ্রুতি বহাল থাকে — ক্রেতারা সেগুলোর জন্য ডিপোজিট দিয়েছেন।"
+        }
+      },
+      "deliveryLogs": {
+        "email": {
+          "title": "ইমেল ডেলিভারি লগ",
+          "description": "পাঠানো কনটেন্ট সঙ্গে সঙ্গে মুছে ফেলা হয়; শুধু ডেলিভারির মেটাডেটা রাখা হয়। সংরক্ষণকাল বদলানোর পর ইমেল সেটিংস সংরক্ষণ করুন।",
+          "summaryLabel": "বিষয়",
+          "searchPlaceholder": "প্রাপক, বিষয় বা ক্যাটাগরি",
+          "clearTitle": "পাঠানো ইমেলের লগ মুছবেন?",
+          "deleteTitle": "বাছাই করা ইমেল লগ মুছবেন?",
+          "clearDescription": "{count, plural, one {এটি পাঠানো #টি ইমেল লগ স্থায়ীভাবে মুছে ফেলবে। এটি আর ফেরানো যাবে না।} other {এটি পাঠানো সব #টি ইমেল লগ স্থায়ীভাবে মুছে ফেলবে। এটি আর ফেরানো যাবে না।}}",
+          "deleteDescription": "{count, plural, one {এটি বাছাই করা #টি সম্পন্ন লগ স্থায়ীভাবে মুছে ফেলবে। কিউতে থাকা বা পাঠানো হচ্ছে এমন ইমেল কখনো মোছা হয় না।} other {এটি বাছাই করা #টি সম্পন্ন লগ স্থায়ীভাবে মুছে ফেলবে। কিউতে থাকা বা পাঠানো হচ্ছে এমন ইমেল কখনো মোছা হয় না।}}",
+          "queuedForRetry": "{count, plural, one {ব্যর্থ #টি ইমেল আবার পাঠানোর জন্য কিউতে রাখা হয়েছে।} other {ব্যর্থ #টি ইমেল আবার পাঠানোর জন্য কিউতে রাখা হয়েছে।}}"
+        },
+        "sms": {
+          "title": "SMS ডেলিভারি লগ",
+          "description": "সংরক্ষণকাল শেষ না হওয়া পর্যন্ত প্রতিটি SMS ক্যারিয়ারের ফলাফলসহ রাখা হয়। সংরক্ষণকাল বদলানোর পর SMS সেটিংস সংরক্ষণ করুন।",
+          "summaryLabel": "বার্তা",
+          "searchPlaceholder": "ফোন নম্বর, বার্তা বা ক্যাটাগরি",
+          "clearTitle": "পাঠানো SMS-এর লগ মুছবেন?",
+          "deleteTitle": "বাছাই করা SMS লগ মুছবেন?",
+          "clearDescription": "{count, plural, one {এটি পাঠানো #টি SMS লগ স্থায়ীভাবে মুছে ফেলবে। এটি আর ফেরানো যাবে না।} other {এটি পাঠানো সব #টি SMS লগ স্থায়ীভাবে মুছে ফেলবে। এটি আর ফেরানো যাবে না।}}",
+          "deleteDescription": "{count, plural, one {এটি বাছাই করা #টি সম্পন্ন লগ স্থায়ীভাবে মুছে ফেলবে। কিউতে থাকা বা পাঠানো হচ্ছে এমন SMS কখনো মোছা হয় না।} other {এটি বাছাই করা #টি সম্পন্ন লগ স্থায়ীভাবে মুছে ফেলবে। কিউতে থাকা বা পাঠানো হচ্ছে এমন SMS কখনো মোছা হয় না।}}",
+          "queuedForRetry": "{count, plural, one {ব্যর্থ #টি SMS আবার পাঠানোর জন্য কিউতে রাখা হয়েছে।} other {ব্যর্থ #টি SMS আবার পাঠানোর জন্য কিউতে রাখা হয়েছে।}}"
+        },
+        "status": {
+          "sent": "পাঠানো হয়েছে",
+          "delivered": "পৌঁছেছে",
+          "undelivered": "পৌঁছায়নি",
+          "failed": "ব্যর্থ",
+          "queued": "কিউতে",
+          "retrying": "আবার চেষ্টা হচ্ছে",
+          "sending": "পাঠানো হচ্ছে"
+        },
+        "keepSentLogs": "পাঠানো লগ রাখুন",
+        "retentionDays": "{count, plural, one {# দিন} other {# দিন}}",
+        "refresh": "রিফ্রেশ",
+        "stats": {
+          "total": "মোট",
+          "sent": "পাঠানো",
+          "failed": "ব্যর্থ",
+          "pending": "অপেক্ষমাণ"
+        },
+        "allStatuses": "সব অবস্থা",
+        "range": {
+          "today": "আজ",
+          "last7": "শেষ ৭ দিন",
+          "last30": "শেষ ৩০ দিন",
+          "last90": "শেষ ৯০ দিন",
+          "all": "সব সময়"
+        },
+        "deleteSelected": "বাছাই করা মুছুন",
+        "retrySelectedFailed": "বাছাই করা ব্যর্থগুলো আবার চেষ্টা করুন",
+        "retryAllFailed": "সব ব্যর্থ আবার চেষ্টা করুন",
+        "clearSent": "পাঠানো লগ মুছুন",
+        "deleteLogs": "লগ মুছুন",
+        "selectPage": "এই পেজের সম্পন্ন লগগুলো বাছাই করুন",
+        "selectRow": "{name} বাছাই করুন",
+        "columns": {
+          "created": "তৈরি",
+          "recipient": "প্রাপক",
+          "status": "অবস্থা",
+          "tries": "চেষ্টা",
+          "action": "অ্যাকশন"
+        },
+        "empty": "মিলে যায় এমন কোনো ডেলিভারি নেই।",
+        "segments": "{count, plural, one {#টি সেগমেন্ট} other {#টি সেগমেন্ট}}",
+        "retryNow": "এখনই আবার চেষ্টা করুন",
+        "retryFailed": "আবার চেষ্টা ব্যর্থ হয়েছে",
+        "retrySent": "সফলভাবে পাঠানো হয়েছে",
+        "actionFailed": "কাজটি ব্যর্থ হয়েছে",
+        "updated": "ডেলিভারি লগ আপডেট হয়েছে",
+        "deleted": "{count, plural, one {#টি লগ মোছা হয়েছে।} other {#টি লগ মোছা হয়েছে।}}"
+      },
+      "demoModeMessage": "ডেমো মোড চালু আছে। এই ডেমো সাইটে সেটিংস বদলানো বন্ধ।",
+      "toasts": {
+        "connected": "সংযুক্ত",
+        "connectionFailed": "সংযোগ ব্যর্থ হয়েছে",
+        "saveEmailFirst": "টেস্ট ইমেল পাঠানোর আগে ইমেল সেটিংস সংরক্ষণ করুন",
+        "savePaymentBeforeTest": "সংযোগ পরীক্ষার আগে পেমেন্ট সেটিংস সংরক্ষণ করুন",
+        "deliveryLogsLoadFailed": "ডেলিভারি লগ লোড করা যায়নি",
+        "loadFailed": "সেটিংস লোড করা যায়নি",
+        "saveFailed": "সেটিংস সংরক্ষণ করা যায়নি",
+        "saveOauthFirst": "ক্রেডেনশিয়াল যাচাইয়ের আগে OAuth সেটিংস সংরক্ষণ করুন",
+        "savePaymentFirst": "Pesapal IPN URL নিবন্ধনের আগে পেমেন্ট সেটিংস সংরক্ষণ করুন",
+        "saveSmsFirst": "টেস্ট মেসেজ পাঠানোর আগে SMS সেটিংস সংরক্ষণ করুন",
+        "saved": "সেটিংস সংরক্ষিত হয়েছে"
+      },
+      "conflict": {
+        "description": "আপনি খোলার পর অন্য কেউ এই সেটিংস বদলেছেন। সর্বশেষটি দেখতে রিলোড করুন, অথবা ওভাররাইট করতে আবার সংরক্ষণ করুন।",
+        "overwrite": "তবুও সংরক্ষণ করুন",
+        "reload": "রিলোড করুন",
+        "title": "সেটিংস অন্য কোথাও বদলানো হয়েছে"
+      },
+      "needsAttention": "মনোযোগ দরকার",
+      "noResults": "কোনো সেটিংস পাওয়া যায়নি",
+      "products": {
+        "description": "প্রোডাক্ট এডিটর কী কী দেখাবে তা বেছে নিন। যা বন্ধ করবেন তা এডিটর থেকে সরে যায় এবং কোনো পণ্যের জন্য আর চালু করা যায় না।",
+        "digital": "ডিজিটাল পণ্য ও সেবা",
+        "digitalDesc": "ই-বুক ও লাইসেন্স কী-এর মতো ডাউনলোড, অথবা যেসব সেবায় কিছু পাঠাতে হয় না।",
+        "existingNote": "কোনো ফিচার বন্ধ করলে চালু থাকা পণ্য কখনো বদলায় না: চলমান প্রি-অর্ডার বিক্রি চালিয়ে যায়, শুধু-কোটেশনের পণ্য তার কোটেশন বোতাম রাখে, আর ডিজিটাল পণ্য ডিজিটালই থাকে।",
+        "physical": "ফিজিক্যাল পণ্য",
+        "physicalDesc": "স্টক, ওজন ও কাস্টমসের তথ্যসহ ক্রেতার কাছে পাঠানো হয়।",
+        "preorders": "প্রি-অর্ডার",
+        "preordersDesc": "স্টক আসার আগেই অর্ডার নিন, রিলিজের তারিখ ও ঐচ্ছিক ডিপোজিটসহ। ভেন্ডরের অনুমোদন ও সীমা মাল্টি-ভেন্ডর ম্যানেজমেন্টে আছে।",
+        "priceOnRequest": "অনুরোধে মূল্য",
+        "priceOnRequestDesc": "পণ্যের দাম লুকিয়ে তার বদলে “কোটেশন চান” বোতাম দেখান।",
+        "sellingHeading": "বিক্রির বিকল্প",
+        "title": "পণ্য",
+        "typesHeading": "পণ্যের ধরন",
+        "typesHint": "অন্তত একটি পণ্যের ধরন চালু থাকে।"
       }
     },
     "addToCart": "কার্টে যোগ করুন",
@@ -3514,7 +4626,13 @@
       "add_team_member": "টিম সদস্য যোগ করুন",
       "suspend": "স্থগিত করুন",
       "remove_from_team": "টিম থেকে অপসারণ",
-      "no_team_members_found": "কোনো টিম সদস্য পাওয়া যায়নি"
+      "no_team_members_found": "কোনো টিম সদস্য পাওয়া যায়নি",
+      "email_subscription": "ইমেইল সাবস্ক্রিপশন",
+      "subscribed": "সাবস্ক্রাইবড",
+      "unsubscribed": "আনসাবস্ক্রাইবড",
+      "not_subscribed": "সাবস্ক্রাইব করেনি",
+      "invalid": "অকার্যকর ঠিকানা",
+      "redacted": "মুছে ফেলা"
     },
     "customersPage": {
       "stats": {
@@ -3542,7 +4660,6 @@
     },
     "staffPage": {
       "stats": {
-        "totalStaff": {},
         "activeStaff": {
           "description": "বর্তমানে সক্রিয়"
         },
@@ -3608,7 +4725,6 @@
       "updateSuccess": "{count} জন গ্রাহক আপডেট হয়েছে",
       "updateError": "{count} জন গ্রাহক আপডেট করা যায়নি"
     },
-    "staffDataTable": {},
     "discountsDataTable": {
       "deleteBulkDescription": "আপনি কি {count}টি ডিসকাউন্ট মুছতে চান? এই কাজটি ফিরিয়ে আনা যাবে না।",
       "deleteBulkSuccess": "{count}টি ডিসকাউন্ট মুছে ফেলা হয়েছে",
@@ -4424,7 +5540,6 @@
         "publishOn": "প্রকাশের সময়",
         "publishedAt": "প্রকাশিত হয়েছে",
         "visibility": "দৃশ্যমানতা",
-        "password": "পাসওয়ার্ড",
         "featuredPost": "ফিচার্ড পোস্ট",
         "allowComments": "মন্তব্যের অনুমতি দিন",
         "categories": "ক্যাটাগরি",
@@ -4445,8 +5560,7 @@
       },
       "visibility": {
         "public": "পাবলিক",
-        "private": "প্রাইভেট (শুধু অ্যাডমিন)",
-        "password": "পাসওয়ার্ড সুরক্ষিত"
+        "private": "প্রাইভেট (শুধু অ্যাডমিন)"
       },
       "placeholders": {
         "title": "আকর্ষণীয় একটি শিরোনাম",
@@ -4506,13 +5620,13 @@
           "description": "তুলনা-বান্ধব কার্ড ও পারফরম্যান্স কলআউটসহ উচ্চ-স্পেক পণ্যের স্টোরিটেলিং।",
           "styleNote": "টেকনিক্যাল পণ্য, অ্যাকসেসরিজ এবং ফিচার-সমৃদ্ধ PDP ফ্লোর জন্য অপ্টিমাইজড।"
         },
-        "luxe": {
-          "name": "ফ্যাশন",
-          "description": "প্রিমিয়াম ফ্যাশন, বিউটি ও লাইফস্টাইল ব্র্যান্ডের জন্য এডিটোরিয়াল-স্টাইল ভিজুয়াল উপস্থাপনা।",
-          "styleNote": "ইমেজ-ফার্স্ট মার্চেন্ডাইজিং এবং পরিশীলিত কালেকশন ন্যারেটিভে ফোকাস করে।"
+        "furniture": {
+          "name": "Furniture",
+          "description": "ঘর ধরে বিক্রি হওয়া গৃহসামগ্রী: পূর্ণ-প্রস্থ অন্দরসজ্জার ছবি, ঘরভিত্তিক বিভাগ, উপকরণের গল্প এবং পুরো ঘর একসাথে কেনার সেট।",
+          "styleNote": "সোফা, খাট ও ডাইনিং সেটের জন্য তৈরি — ঘর আগে, পণ্য পরে।"
         },
         "women-fashion": {
-          "name": "Women Fashion",
+          "name": "Fashion",
           "description": "এডিটোরিয়াল পোশাক মার্চেন্ডাইজিং: পূর্ণ-প্রস্থ ক্যাম্পেইন ছবি, লুকবুক টাইল এবং মৌসুমি সংগ্রহ।",
           "styleNote": "পোশাক, জুতা ও অ্যাকসেসরিজের জন্য তৈরি — ছবিই প্রধান, বাকি সব পেছনে।"
         }
@@ -4960,7 +6074,8 @@
           "gross": "গ্রস",
           "net": "নেট",
           "date": "তারিখ",
-          "details": "বিস্তারিত"
+          "details": "বিস্তারিত",
+          "reason": "কেন ব্যর্থ"
         },
         "viewOrder": "অর্ডার দেখুন",
         "empty": "কোনো লেনদেন পাওয়া যায়নি।"
@@ -4995,7 +6110,42 @@
         "iotec": "ioTec Pay",
         "pesapal": "Pesapal",
         "orange_money": "Orange Money",
-        "manual_pending": "ম্যানুয়াল (মুলতুবি)"
+        "manual_pending": "ম্যানুয়াল (মুলতুবি)",
+        "store_credit": "স্টোর ক্রেডিট"
+      },
+      "settlement": {
+        "filter": "সেটেলমেন্ট",
+        "all": "সব",
+        "awaiting": "সেটেলমেন্ট বাকি",
+        "sellerSends": "সেলার পাঠাবেন",
+        "record": "রিফান্ড পাঠানো হয়েছে লিখুন",
+        "method": "কীভাবে পাঠানো হয়েছে",
+        "reference": "রেফারেন্স",
+        "note": "নোট",
+        "submit": "সেভ করুন",
+        "recorded": "রিফান্ড পাঠানো হিসেবে লেখা হয়েছে",
+        "void": "রিফান্ড বাতিল করুন (পাঠানো হয়নি)",
+        "voidDescription": "শুধু এমন রিফান্ডের জন্য যা কেউ পাঠায়নি। অর্ডারে আর রিফান্ড দেখাবে না, আর এর সাথে যুক্ত return আবার খুলে যাবে।",
+        "voidReason": "কারণ",
+        "voidSubmit": "রিফান্ড বাতিল করুন",
+        "voided": "রিফান্ড বাতিল হয়েছে",
+        "voidedBadge": "বাতিল"
+      },
+      "failureCodes": {
+        "insufficient_funds": "পর্যাপ্ত টাকা নেই",
+        "card_declined": "কার্ড প্রত্যাখ্যাত",
+        "expired_card": "মেয়াদোত্তীর্ণ কার্ড",
+        "incorrect_cvc": "ভুল নিরাপত্তা কোড",
+        "incorrect_number": "ভুল কার্ড নম্বর",
+        "authentication_failed": "3-D Secure সম্পূর্ণ হয়নি",
+        "address_check_failed": "ঠিকানা যাচাই ব্যর্থ",
+        "blocked_by_risk": "ঝুঁকি যাচাইয়ে আটকানো",
+        "card_not_supported": "কার্ড গ্রহণযোগ্য নয়",
+        "cancelled_by_shopper": "ক্রেতা বাতিল করেছেন",
+        "window_closed": "পেমেন্টের সময় শেষ",
+        "gateway_refused_request": "সেবাদাতা অনুরোধ ফিরিয়ে দিয়েছে",
+        "processing_error": "সেবাদাতার ত্রুটি",
+        "unknown": "চেনা যায়নি"
       }
     },
     "seoChecklist": {
@@ -5048,9 +6198,13 @@
       "modified": "পরিবর্তিত",
       "key": "স্টোরেজ কী",
       "open": "খুলুন",
-      "deleteTitle": "ফাইল মুছবেন?",
-      "deleteDescription": "ফাইলটি স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে। এই URL যেখানেই এখনও ব্যবহৃত হচ্ছে (পণ্য, পৃষ্ঠা, ইমেইল) সেখানে একটি ভাঙা ফাইল দেখাবে।",
-      "deleted": "{count}টি ফাইল মুছে ফেলা হয়েছে"
+      "deleteTitle": "{count, plural, one {ফাইলটি মুছবেন?} other {#টি ফাইল মুছবেন?}}",
+      "deleteDescription": "{count, plural, one {ফাইলটি স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে। এর URL যেখানেই এখনও ব্যবহৃত হচ্ছে (পণ্য, পৃষ্ঠা, ইমেইল) সেখানে একটি ভাঙা ফাইল দেখাবে।} other {ফাইলগুলো স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে। এদের URL যেখানেই এখনও ব্যবহৃত হচ্ছে (পণ্য, পৃষ্ঠা, ইমেইল) সেখানে ভাঙা ফাইল দেখাবে।}}",
+      "deleted": "{count}টি ফাইল মুছে ফেলা হয়েছে",
+      "loadFailed": "মিডিয়া লোড করা যায়নি",
+      "copyFailed": "URL কপি করা যায়নি",
+      "demoDeleteBlocked": "ডেমো মোড চালু আছে। এই ডেমো সাইটে ফাইল মোছা বন্ধ।",
+      "deleteFailed": "মোছা যায়নি"
     },
     "editProduct": "পণ্য সম্পাদনা",
     "updateProductInfo": "পণ্যের তথ্য আপডেট করুন",
@@ -5623,7 +6777,13 @@
       "starterPublish": "থিমের স্টার্টার লেআউট ব্যবহার করো (প্রস্তাবিত)",
       "starterPublishHint": "আপনার স্টোরফ্রন্ট সাথে সাথে বদলে যায়; থিমের সেকশনগুলো আপনার নিজের কালেকশন ও পণ্যে যুক্ত হয়। আগের লেআউট সংস্করণ ইতিহাসে থাকে।",
       "subtitle": "সক্রিয় থিমের ডিজাইন অপশন। এগুলো স্টোরফ্রন্টের সাজ বদলায় — পেজের কনটেন্ট থাকে হোম ও পেজ বিল্ডারে।",
-      "title": "থিম সেটিংস"
+      "title": "থিম সেটিংস",
+      "tabs": {
+        "theme": "থিম বাছুন",
+        "branding": "ব্র্যান্ডিং",
+        "settings": "থিম সেটিংস",
+        "css": "কাস্টম CSS"
+      }
     },
     "productCardStudio": {
       "outOfStock": {
@@ -5662,6 +6822,104 @@
         "description": "গত {count, plural, one {# দিনে} other {# দিনে}} কোনো সার্চ খালি হাতে ফেরেনি।"
       },
       "footnote": "হেডারের সার্চ, সার্চ ফলাফলের পেজ ও এআই অ্যাসিস্ট্যান্ট থেকে গণনা করা হয়। ফিল্টার (দাম, ক্যাটাগরি, স্টক) দিয়ে সংকুচিত সার্চ গণনা হয় না, কারণ সেখানে ক্যাটালগ নয়, ফিল্টারই কারণ। {retention} দিন রাখা হয়।"
+    },
+    "preferences": {
+      "title": "পছন্দসমূহ",
+      "fullscreenUnavailable": "এই ব্রাউজারে ফুলস্ক্রিন পাওয়া যায় না",
+      "enterFullscreen": "ফুলস্ক্রিনে যান",
+      "exitFullscreen": "ফুলস্ক্রিন থেকে বের হন",
+      "reset": "ডিফল্টে ফিরিয়ে নিন",
+      "personalNote": "শুধু আপনার জন্য, এই ব্রাউজারে। আপনার স্টোরের লোগো, রং ও ডিফল্ট চেহারা অনলাইন স্টোর → থিমসমূহ → ব্র্যান্ডিং-এ সেট করা হয়।",
+      "darkMode": "ডার্ক মোড",
+      "contrast": "কনট্রাস্ট",
+      "rtl": "ডান থেকে বাম",
+      "collapsedSidebar": "গুটানো সাইডবার",
+      "sidebar": "সাইডবার",
+      "sidebarColor": "রং",
+      "sidebarIntegrate": "মিশে থাকা",
+      "sidebarApparent": "স্পষ্ট"
+    },
+    "preorderAccess": {
+      "vendorFallback": "ভেন্ডর",
+      "thisVendor": "এই ভেন্ডর",
+      "unnamedStore": "নামহীন স্টোর",
+      "approvedToast": "{name} এখন প্রি-অর্ডার খুলতে পারবে",
+      "declinedToast": "{name}-এর প্রি-অর্ডারের অনুরোধ প্রত্যাখ্যান করা হয়েছে",
+      "revokedToast": "{name} আর নতুন প্রি-অর্ডার খুলতে পারবে না",
+      "updateFailed": "প্রি-অর্ডারের অনুমতি আপডেট করা যায়নি",
+      "revokeTitle": "{name}-এর প্রি-অর্ডারের অনুমতি প্রত্যাহার করবেন?",
+      "declineTitle": "{name}-এর প্রি-অর্ডারের অনুরোধ প্রত্যাখ্যান করবেন?",
+      "revokeDescription": "তারা আর নতুন প্রি-অর্ডার খুলতে পারবে না। যেসব প্রি-অর্ডার ইতিমধ্যে বিক্রি হচ্ছে সেগুলো চলবে — ক্রেতারা সেগুলোর জন্য ডিপোজিট দিয়েছেন।",
+      "declineDescription": "তারা পরে আবার অনুরোধ পাঠাতে পারবে।",
+      "reasonLabel": "কারণ (ভেন্ডরকে পাঠানো হবে)",
+      "reasonPlaceholder": "ঐচ্ছিক",
+      "reasonTooLong": "কারণ {max} অক্ষরের মধ্যে রাখুন।",
+      "revokeSubmit": "অনুমতি প্রত্যাহার করুন",
+      "declineSubmit": "প্রত্যাখ্যান করুন",
+      "approve": "অনুমোদন দিন",
+      "grant": "অনুমতি দিন",
+      "revoke": "প্রত্যাহার করুন",
+      "since": "{date} থেকে",
+      "asked": "অনুরোধ করেছে {date}",
+      "askedRecently": "সম্প্রতি অনুরোধ করেছে",
+      "notAsked": "অনুমতির জন্য অনুরোধ করেনি",
+      "approvedBadge": "অনুমোদিত",
+      "waitingBadge": "পর্যালোচনার অপেক্ষায়",
+      "noAccessBadge": "অনুমতি নেই",
+      "lastNote": "সর্বশেষ নোট: {note}",
+      "card": {
+        "title": "প্রি-অর্ডারের অনুমতি",
+        "description": "এই ভেন্ডর প্রি-অর্ডার খুলতে পারবে কি না। প্রি-অর্ডারে পণ্য তৈরির আগেই ক্রেতার টাকা নেওয়া হয়, তাই কারা এটি করতে পারবে তা স্টোর পর্যালোচনা করতে পারে।",
+        "rulesLink": "প্রি-অর্ডারের নিয়ম",
+        "loadFailed": "প্রি-অর্ডারের অনুমতি লোড করা যায়নি।",
+        "storeOff": "পুরো স্টোরে প্রি-অর্ডার বন্ধ, তাই এখন কেউ প্রি-অর্ডার খুলতে পারবে না। এখানে যা সেট করবেন তা আবার চালু হলে প্রযোজ্য হবে, আর ভেন্ডরকে এটি জানানো হয় না।",
+        "reviewOff": "পর্যালোচনা বন্ধ, তাই এই ভেন্ডর ইতিমধ্যে প্রি-অর্ডার খুলতে পারে। এখানে যা সেট করবেন তা পর্যালোচনা চালু হলে প্রযোজ্য হবে, আর ভেন্ডরকে এটি জানানো হয় না।",
+        "limits": "অনুমোদনের পর রিলিজের তারিখ সর্বোচ্চ {days, plural, one {# দিন} other {# দিন}} পরে এবং ডিপোজিট দামের সর্বোচ্চ {percent}% পর্যন্ত হতে পারে। অনুমতি প্রত্যাহার করলে ইতিমধ্যে বিক্রি হওয়া লিস্টিং কখনো সরানো হয় না।"
+      }
+    },
+    "branding": {
+      "colorPicker": "{label} বেছে নিন",
+      "removePreset": "প্রিসেট সরান",
+      "removeNamedPreset": "{name} প্রিসেট সরান",
+      "savePreset": "বর্তমান রংগুলো প্রিসেট হিসেবে সংরক্ষণ করুন",
+      "customPresetName": "কাস্টম {number}",
+      "preview": {
+        "title": "প্রিভিউ",
+        "subtitle": "পুরো অ্যাপে আপনার রংগুলো কীভাবে দেখায়",
+        "primary": "প্রাথমিক",
+        "secondary": "মাধ্যমিক",
+        "accent": "অ্যাকসেন্ট",
+        "outline": "আউটলাইন",
+        "link": "লিংক",
+        "accentSurface": "অ্যাকসেন্ট সারফেস"
+      },
+      "appearanceMode": "মোড",
+      "appearanceSubtitle": "ভিজিটর নিজে লাইট বা ডার্ক বেছে নেওয়ার আগে স্টোর কীভাবে খুলবে।",
+      "appearanceTitle": "ডিফল্ট চেহারা",
+      "assetsSubtitle": "আপনার স্টোরফ্রন্ট ও ড্যাশবোর্ড জুড়ে ব্যবহৃত লোগো, ফেভিকন ও অ্যাপ আইকন।",
+      "assetsTitle": "ব্র্যান্ড অ্যাসেট",
+      "colorsSubtitle": "স্টোরফ্রন্টের বোতাম, লিংক ও হাইলাইট, এবং ড্যাশবোর্ড, চেকআউট ও ইমেইল। একটি প্রিসেট বেছে নিন, অথবা কালার পিকার, hex বা rgb() দিয়ে নিজের রং দিন।",
+      "colorsTitle": "ব্র্যান্ডের রং",
+      "globalHint": "আপনার ব্র্যান্ড সব জায়গার — থিম বদলালেও থেকে যায়, আর স্টোরফ্রন্ট, ড্যাশবোর্ড, চেকআউট ও ইমেইলে ব্যবহৃত হয়।",
+      "save": "ব্র্যান্ডিং সংরক্ষণ করুন"
+    },
+    "mediaPicker": {
+      "uploadFailed": "আপলোড ব্যর্থ হয়েছে",
+      "uploading": "আপলোড হচ্ছে…",
+      "addVideoUrl": "URL থেকে ভিডিও যোগ করুন",
+      "added": "যোগ হয়েছে",
+      "description": "আপনার মিডিয়া লাইব্রেরি থেকে বেছে নিন, অথবা সেখানে নতুন ফাইল আপলোড করুন।",
+      "dropToUpload": "আপলোড করতে ফাইল এখানে ছাড়ুন",
+      "empty": "আপনার মিডিয়া লাইব্রেরি খালি",
+      "emptyHint": "এখানে ফাইল আপলোড করুন; সেগুলো লাইব্রেরিতে থেকে যাবে, আবার ব্যবহারের জন্য তৈরি।",
+      "forbidden": "আপনার অ্যাকাউন্ট মিডিয়া লাইব্রেরি দেখতে পারে না। তবে নতুন ফাইল আপলোড করতে পারবেন।",
+      "loadFailed": "মিডিয়া লাইব্রেরি লোড করা যায়নি",
+      "noMatches": "কোনো ফাইল মেলেনি",
+      "retry": "আবার চেষ্টা করুন",
+      "searchPlaceholder": "ফাইল খুঁজুন…",
+      "selectUpTo": "{max, plural, one {সর্বোচ্চ #টি ফাইল বেছে নিন} other {সর্বোচ্চ #টি ফাইল বেছে নিন}}",
+      "selectedCount": "{max}টির মধ্যে {count}টি নির্বাচিত",
+      "title": "ফাইল বেছে নিন"
     }
   },
   "footer": {
@@ -5691,6 +6949,8 @@
     "unauthorizedDescription": "এই পেজটি অ্যাক্সেস করার অনুমতি নেই।",
     "networkError": "নেটওয়ার্ক ত্রুটি",
     "networkErrorDescription": "অনুগ্রহ করে আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।",
+    "tooManyRequestsIn": "অনেক বেশি অনুরোধ হয়েছে। {duration} অপেক্ষা করে আবার চেষ্টা করুন।",
+    "tooManyRequests": "অনেক বেশি অনুরোধ হয়েছে। একটু অপেক্ষা করে আবার চেষ্টা করুন।",
     "redirectMessage": "আমরা আপনাকে হোমপেজে ফিরে যাওয়ার পথ খুঁজে পেতে সাহায্য করব।",
     "needAccessTitle": "অ্যাক্সেস প্রয়োজন?",
     "needAccessDescription": "{email} এ যোগাযোগ করুন।",
@@ -6429,6 +7689,7 @@
   "coupon": {
     "enterCode": "অনুগ্রহ করে একটি কুপন কোড লিখুন",
     "applied": "কুপন প্রয়োগ করা হয়েছে!",
+    "appliedWithSavings": "কুপন প্রয়োগ করা হয়েছে! আপনি সাশ্রয় করলেন {amount}",
     "invalid": "অবৈধ কুপন কোড",
     "removed": "কুপন সরানো হয়েছে",
     "placeholder": "কুপন কোড লিখুন",
@@ -6528,9 +7789,9 @@
       "submitForReview": "Meta পর্যালোচনার জন্য জমা দিন",
       "bodyExampleLabel": "মূল অংশের {variable} উদাহরণ",
       "authenticationNote": "অথেনটিকেশন টেমপ্লেটের লেখা Meta নিয়ন্ত্রণ করে এবং প্রয়োজনীয় কোড কপি করার বাটন যোগ করে।",
-      "placeholderHint": "ক্রমানুসারে প্লেসহোল্ডার ব্যবহার করুন: {{1}}, {{2}}, এভাবে।",
-      "bodyPlaceholder": "হ্যালো {{1}}, আপনার অর্ডার এখন {{2}}।",
-      "headerPlaceholder": "অর্ডার {{1}} আপডেট"
+      "placeholderHint": "ক্রমানুসারে প্লেসহোল্ডার ব্যবহার করুন: '{{1}}', '{{2}}', এভাবে।",
+      "bodyPlaceholder": "হ্যালো '{{1}}', আপনার অর্ডার এখন '{{2}}'।",
+      "headerPlaceholder": "অর্ডার '{{1}}' আপডেট"
     },
     "signup": {
       "whatsappTitle": "প্রস্তাবিত: Meta Embedded Signup",
@@ -6767,7 +8028,7 @@
     "title": "বুস্ট",
     "empty": "এখনও কোনো বুস্ট নেই। আরও ক্রেতার কাছে পৌঁছাতে একটি পণ্য প্রচার করুন।",
     "addAction": "পণ্য বুস্ট করুন",
-    "searchPlaceholder": "পজিশন বা লেবেল দিয়ে খুঁজুন",
+    "searchPlaceholder": "প্রোডাক্ট, পজিশন বা লেবেল দিয়ে খুঁজুন",
     "tabs": {
       "all": "সব",
       "active": "চলমান",
@@ -6775,7 +8036,8 @@
       "paused": "বিরতিতে",
       "expired": "মেয়াদোত্তীর্ণ",
       "canceled": "বাতিল",
-      "scheduled": "আসন্ন"
+      "scheduled": "আসন্ন",
+      "creditOwed": "বকেয়া ক্রেডিট"
     },
     "status": {
       "active": "চলমান",
@@ -6797,7 +8059,8 @@
       "actions": "কার্যক্রম",
       "position": "স্লট",
       "startsIn": "{days} দিনে শুরু",
-      "startsToday": "আজ শুরু"
+      "startsToday": "আজ শুরু",
+      "credit": "বকেয়া ক্রেডিট"
     },
     "stats": {
       "active": "চলমান বুস্ট",
@@ -6811,13 +8074,16 @@
       "revenue": "বুস্ট আয়",
       "revenueDescription": "পেইড বুকিং থেকে রিফান্ড বাদে, সর্বকালের (স্টোর মুদ্রায়)",
       "upcoming": "আসন্ন",
-      "upcomingDescription": "বুক করা, শুরু হয়নি"
+      "upcomingDescription": "বুক করা, শুরু হয়নি",
+      "creditOwed": "বকেয়া ক্রেডিট",
+      "creditOwedDescription": "টি বুকিং নিষ্পত্তি বাকি",
+      "creditOwedNone": "কিছুই বকেয়া নেই"
     },
     "admin": {
       "title": "বুস্ট ক্যাম্পেইন",
       "empty": "এখনও কোনো বুস্ট ক্যাম্পেইন নেই",
+      "searchPlaceholder": "স্টোর, প্রোডাক্ট, পজিশন বা লেবেল দিয়ে খুঁজুন",
       "create": "বুকিং তৈরি",
-      "createTitle": "বুকিং তৈরি করুন (অফলাইন পেমেন্ট)",
       "createDescription": "গেটওয়ের বাইরে নেওয়া পেমেন্টের জন্য, বা কোনো প্লেসমেন্ট বিনামূল্যে দিতে। দিনগুলো সঙ্গে সঙ্গে বুক হয়ে যায় এবং আর কারও কাছে বিক্রি করা যায় না।",
       "createConfirm": "বুকিং তৈরি করুন",
       "created": "বুকিং তৈরি হয়েছে",
@@ -6829,34 +8095,24 @@
       "cancelDescription": "আগামীকাল থেকে বুক করা প্রতিটি দিন সঙ্গে সঙ্গে ক্যালেন্ডারে ফিরে যায় এবং আবার বিক্রি করা যায়। যে দিনগুলো ইতিমধ্যে চলে গেছে সেগুলোর বিল থাকবে; ছেড়ে দেওয়া দিনগুলো বিক্রেতার ক্রেডিটে যোগ হবে, যা আপনি গেটওয়েতে ফেরত দেবেন।",
       "pause": "বিরতি",
       "resume": "পুনরায় শুরু",
-      "product": "পণ্য",
-      "vendor": "বিক্রেতা",
-      "selectVendor": "একজন বিক্রেতা বাছুন…",
-      "selectVendorFirst": "পণ্য দেখতে আগে একজন বিক্রেতা বাছুন",
-      "searchProducts": "পণ্য খুঁজুন…",
       "updated": "ক্যাম্পেইন হালনাগাদ হয়েছে",
       "updateFailed": "ক্যাম্পেইন হালনাগাদ করা যায়নি",
       "position": "পজিশন",
       "dates": "তারিখ (UTC)",
-      "heldBy": "এই পজিশনে বুক করা:",
-      "amountOverride": "যে পরিমাণ রেকর্ড হবে",
-      "amountOverrideHint": "তালিকামূল্য {amount} নিতে ফাঁকা রাখুন। কম দিলে বাকিটা ছাড় হিসেবে যাবে; 0 দিলে বিনামূল্যে। তালিকামূল্যের বেশি দেওয়া যাবে না।",
-      "recordingBooking": "পজিশন {position} · {days} দিন · {amount} পেইড হিসেবে রেকর্ড",
       "markRefunded": "রিফান্ডেড চিহ্নিত করুন",
       "markRefundedTitle": "রিফান্ডেড হিসেবে চিহ্নিত করবেন?",
-      "markRefundedDescription": "আপনি যে বকেয়া ক্রেডিট পেমেন্ট প্রোভাইডারে ইতিমধ্যেই ফেরত দিয়েছেন তা রেকর্ড করে। এটি শুধু হিসাব হালনাগাদ করে — কোনো টাকা সরায় না।"
+      "markRefundedDescription": "আপনি যে বকেয়া ক্রেডিট পেমেন্ট প্রোভাইডারে ইতিমধ্যেই ফেরত দিয়েছেন তা রেকর্ড করে। এটি শুধু হিসাব হালনাগাদ করে — কোনো টাকা সরায় না।",
+      "creditLedger": "ক্রেডিট লেজার",
+      "outstanding": "বকেয়া",
+      "paymentAttempts": "পেমেন্ট প্রচেষ্টা"
     },
     "purchase": {
       "subtitle": "স্পনসর্ড ল্যাডারে একটি নম্বরযুক্ত স্লট আপনার বেছে নেওয়া দিনগুলোর জন্য বুক করুন।",
-      "pickProduct": "একটি পণ্য বাছুন",
-      "pickPayment": "একটি পেমেন্ট পদ্ধতি বাছুন",
       "stepProduct": "পণ্য",
       "stepPayment": "পেমেন্ট",
       "searchProducts": "আপনার পণ্য খুঁজুন…",
       "noProducts": "কোনো সক্রিয় পণ্য পাওয়া যায়নি",
       "noMethods": "কোনো পেমেন্ট পদ্ধতি নেই। মার্কেটপ্লেস অ্যাডমিনের সঙ্গে যোগাযোগ করুন।",
-      "boosting": "বুস্ট করা হচ্ছে:",
-      "days": "{days} দিন",
       "payNow": "পে করে বুক করুন",
       "card": "কার্ড",
       "mobileMoney": "মোবাইল মানি",
@@ -6870,34 +8126,68 @@
       "failed": "পেমেন্ট শুরু করা যায়নি",
       "loadFailed": "বুস্ট ল্যাডার লোড করা যায়নি",
       "pollTimeout": "আমরা এখনও পেমেন্ট নিশ্চিত করতে পারিনি। নিশ্চিত হওয়ামাত্র এটি স্বয়ংক্রিয়ভাবে সক্রিয় হবে।",
-      "stepSlot": "স্লট ও তারিখ",
-      "pickSlot": "একটি পজিশন ও তারিখ বাছুন",
       "perDay": "/দিন",
       "noPositions": "এখনো কোনো স্পনসর্ড পজিশন বিক্রির জন্য নেই",
       "pickPositionFirst": "কোন দিনগুলো খালি দেখতে একটি পজিশন বাছুন।",
-      "legendFree": "খালি",
       "legendBooked": "বুক করা",
       "legendYours": "আপনার",
-      "conflictInline": "এই পজিশনে ওই তারিখগুলো খালি নেই — আবার বাছুন।",
       "slotTaken": "কেউ এইমাত্র এই পজিশনে {days} বুক করেছে।",
       "slotTakenRetry": "আপনি বাছাই করার সময়ে কেউ {days} বুক করে ফেলেছে। আবার বাছুন।",
       "productBusy": "এই পণ্যটি ইতিমধ্যেই {days} তারিখে নির্ধারিত। অন্য তারিখ বা অন্য পণ্য বাছুন।",
-      "strictIndexNote": "আপনি {position} নম্বর ভিজ্যুয়াল স্লটটি কিনছেন। ওই দিনে আপনার উপরের কোনো পজিশন অবিক্রীত থাকলে সেখানে একটি সাধারণ পণ্য দেখাবে — আপনার স্লট উপরে উঠবে না।",
-      "reachDetail": "লিস্টিং পেজে আপনার পণ্য মূল শপ পেজে ও তার নিজস্ব ক্যাটাগরি পেজে দেখা যাবে। ফিল্টার করা ও সার্চ ফলাফলে স্পনসর্ড পণ্য কখনো দেখানো হয় না।",
-      "refundPolicy": "যে দিনগুলো ইতিমধ্যে চলে গেছে সেগুলো ফেরতযোগ্য নয়। ভবিষ্যতের দিন ছেড়ে দেওয়া যায় — মার্কেটপ্লেস সেগুলো দৈনিক হারে ক্রেডিট করে এবং আপনার পেমেন্ট প্রোভাইডারের মাধ্যমে ফেরত দেয়। আপনার পণ্য স্টক-আউট বা আনপাবলিশ হলে সেই দিনটি অনুপাতে ক্রেডিট করা হয়।",
-      "utcNote": "দিন গণনা হয় UTC মধ্যরাত থেকে মধ্যরাত পর্যন্ত।",
-      "utcShort": "UTC দিন",
-      "oneCheckout": "প্রতি পণ্যে একটি করে খোলা চেকআউট রাখা যায়। পজিশন বা তারিখ বদলালে আপনার হোল্ড নতুন নির্বাচনে সরে যায়।",
       "holdExpires": "এই তারিখগুলো আপনার জন্য {clock} ধরে রাখা আছে",
       "holdExpired": "আপনার হোল্ডের মেয়াদ শেষ, তারিখগুলো আবার বিক্রির জন্য খুলে গেছে।",
-      "observedReach": "গত ৩০ দিনে গড়ে দৈনিক {n} ইম্প্রেশন",
       "positionStale": "অন্য মুদ্রায় দাম দেওয়া — মার্কেটপ্লেসকে নতুন করে দাম দিতে বলুন।",
-      "summaryLine": "পজিশন {position}",
       "overMaxDays": "একটি বুকিং {days} দিনের বেশি হতে পারে না।",
-      "alreadyBooked": "{count}টি বুকিং আছে",
       "availabilityFailed": "বুকিং ক্যালেন্ডার লোড করা যায়নি",
       "booked": "আপনার বুকিং নিশ্চিত হয়েছে।",
-      "tooManyHolds": "আপনার ইতিমধ্যেই অনেকগুলো চেকআউট খোলা আছে। আগে একটি শেষ করুন বা বাতিল করুন।"
+      "tooManyHolds": "আপনার ইতিমধ্যেই অনেকগুলো চেকআউট খোলা আছে। আগে একটি শেষ করুন বা বাতিল করুন।",
+      "gatewayUnavailable": "{gateway} পেমেন্ট শুরু করতে পারেনি। আবার চেষ্টা করুন, অথবা অন্য পেমেন্ট মাধ্যম বাছুন।"
+    },
+    "booking": {
+      "vendorTitle": "পণ্য বুস্ট করুন",
+      "offlinePayment": "অফলাইন পেমেন্ট",
+      "steps": "বুকিংয়ের ধাপ",
+      "stepPositionDates": "পজিশন ও তারিখ",
+      "stepRecordPayment": "পেমেন্ট রেকর্ড",
+      "searchAll": "পণ্য বা স্টোরের নাম দিয়ে খুঁজুন…",
+      "allStores": "সব স্টোর",
+      "filterByStore": "স্টোর অনুযায়ী ফিল্টার",
+      "showingSome": "{total}টির মধ্যে {shown}টি দেখানো হচ্ছে — বাকিগুলো সার্চ করে খুঁজুন",
+      "notOnHome": "হোম পেজে দেখায় না",
+      "notOnListings": "তালিকার পেজে দেখায় না",
+      "notOnProductPages": "পণ্যের পেজে দেখায় না",
+      "daysTaken": "{total} দিনের মধ্যে {taken} দিন বুক হয়ে গেছে",
+      "noFreeDays": "সামনের {days} দিনে কোনো খালি দিন নেই",
+      "blockedNowhere": "এখন কোনো পেজেই দেখায় না — আগে কোনো প্লেসমেন্টের স্লট সংখ্যা বাড়ান।",
+      "blockedStale": "অন্য কারেন্সিতে দাম দেওয়া — আগে ল্যাডারে দাম আবার ঠিক করুন।",
+      "pickFirstDay": "প্রথম দিনে ক্লিক করুন, তারপর শেষ দিনে।",
+      "pickLastDay": "এবার শেষ দিনে ক্লিক করুন।",
+      "datesTaken": "এই পজিশনে ইতিমধ্যে বুক করা: {days}। অন্য তারিখ বা অন্য পজিশন বাছুন।",
+      "legendThisProduct": "এই পণ্য আগেই বুস্ট করা",
+      "dayCount": "{count, plural, one {# দিন} other {# দিন}}",
+      "total": "মোট",
+      "summary": "সারসংক্ষেপ",
+      "dates": "তারিখ",
+      "price": "দাম",
+      "recordedAsPaid": "পেইড হিসেবে রেকর্ড হবে",
+      "totalDue": "মোট পরিশোধযোগ্য",
+      "amountReceived": "প্রাপ্ত টাকা",
+      "fullPrice": "পুরো দাম",
+      "partPayment": "আংশিক পেমেন্ট বা ছাড়",
+      "free": "বিনামূল্যে",
+      "amountYouReceived": "আপনি যত টাকা পেয়েছেন",
+      "comped": "{amount} ছাড়",
+      "sameAsFullPrice": "পুরো দামের সমান",
+      "enterAmountRange": "{min} থেকে {max} লিখুন",
+      "note": "নোট",
+      "optional": "ঐচ্ছিক",
+      "notePlaceholder": "ব্যাংক ট্রান্সফার আইডি, রসিদ নম্বর…",
+      "bookedAtOnce": "তৈরি করার সঙ্গে সঙ্গেই দিনগুলো বুক হয়ে যায় — আর কেউ সেগুলো কিনতে পারবে না।",
+      "payWith": "পেমেন্টের মাধ্যম",
+      "termSlot": "আপনি স্লট #{position} কিনছেন। উপরের কোনো স্লট বিক্রি না হলেও আপনার স্লট উপরে উঠবে না।",
+      "termListings": "তালিকায় এটি শপ ও ক্যাটাগরি পেজে দেখায়, সার্চ রেজাল্টে কখনো নয়।",
+      "termRefund": "যে দিনগুলো চলে গেছে সেগুলোর টাকা ফেরত হয় না। সামনের দিনগুলো ছেড়ে দিলে ক্রেডিট পাবেন।",
+      "termHold": "পেমেন্ট করার সময় আপনার তারিখগুলো {minutes} মিনিট ধরে রাখা হয়।"
     },
     "performance": {
       "back": "সব বুস্ট",
@@ -6930,41 +8220,80 @@
       "deleteFailed": "মোছা যায়নি",
       "deleteTitle": "এই পজিশন মুছে ফেলবেন?",
       "deleted": "পজিশন মুছে ফেলা হয়েছে",
-      "derivedPrices": "৭ দিন {week} · ৩০ দিন {month}",
       "description": "বিবরণ (ঐচ্ছিক)",
       "dialogDescription": "এই পজিশনে বুক করা প্রতিটি দিনের জন্য বিক্রেতারা এই দাম দেবেন।",
       "editTitle": "পজিশন সম্পাদনা",
       "empty": "এখনও কোনো পজিশন নেই",
       "emptyHint": "সবচেয়ে উপরের স্পনসর্ড স্লট বিক্রির জন্য পজিশন ১ তৈরি করুন।",
-      "horizonDays": "{days} দিন",
       "label": "লেবেল",
       "labelPlaceholder": "শীর্ষ স্থান",
       "labelRequired": "একটি লেবেল লিখুন",
       "ladderGap": "{positions} পজিশনগুলো নির্ধারিত নয় — ওই স্লটগুলোতে সবসময় সাধারণ পণ্য দেখানো হবে।",
-      "occupancy": "দখল",
-      "occupancyBooked": "{total} দিনের মধ্যে {booked} দিন বুক করা",
-      "occupancyFull": "সম্পূর্ণ বুক",
-      "occupancyNextFree": "পরবর্তী খালি দিন {day}",
-      "perDay": "/ দিন",
       "position": "পজিশন",
       "positionLocked": "তৈরির পর পজিশন বদলানো যায় না — এটি আর্কাইভ করে নতুন একটি তৈরি করুন।",
       "positionRequired": "পজিশন ১ থেকে ৫০-এর মধ্যে হতে হবে",
       "pricePerDay": "প্রতিদিনের দাম",
       "pricePerDayHint": "৭ দিন = {week} · ৩০ দিন = {month}",
       "priceRequired": "প্রতিদিনের দাম শূন্যের বেশি হতে হবে",
-      "reach": "দেখা যায়",
       "reachHome": "হোম (শীর্ষ {n})",
       "reachListing": "তালিকা (শীর্ষ {n})",
       "reachProductPage": "পণ্যের পাতা (শীর্ষ {n})",
-      "reachesNothing": "পজিশন {position} কোথাও দেখা যায় না। কোনো প্লেসমেন্টের স্লট সংখ্যা বাড়ান অথবা এই ধাপটি আর্কাইভ করুন।",
       "saveFailed": "পজিশন সংরক্ষণ করা যায়নি",
       "status": "স্ট্যাটাস",
-      "subtitle": "বিক্রেতারা নির্দিষ্ট কয়েক দিনের জন্য একটি পজিশন বুক করেন। পজিশন N দেখা যায় N নম্বর স্লটে; অবিক্রীত পজিশনে সাধারণ পণ্য দেখানো হয় এবং নিচের পজিশনগুলো কখনও উপরে ওঠে না।",
+      "subtitle": "ভেন্ডররা কয়েক দিনের জন্য একটা নম্বরযুক্ত স্লট বুক করেন। বিক্রি না হওয়া স্লটে সাধারণ পণ্য দেখায় — তার নিচের স্লটগুলো কখনো উপরে ওঠে না।",
       "title": "পজিশন ল্যাডার",
       "unarchive": "আর্কাইভ থেকে ফেরান",
       "updated": "পজিশন হালনাগাদ হয়েছে",
-      "delivery": "গত ৩০ দিনে গড়ে দৈনিক {n} ইম্প্রেশন",
-      "deliveryNone": "এখনো কোনো ডেলিভারি রেকর্ড হয়নি"
+      "ladderGapOne": "{positions} পজিশন নির্ধারিত নয় — ওই স্লটে সবসময় সাধারণ পণ্য দেখানো হবে।",
+      "defineGap": "#{position} নির্ধারণ করুন",
+      "windowLabel": "সামনের দিন",
+      "ladderSummary": "ল্যাডারের {percent}% বুক হয়েছে · {total} দিনের মধ্যে {booked} দিন",
+      "slotsPerSurface": "প্রতি পাতায় স্পনসরড স্লট:",
+      "surfaceHome": "হোম",
+      "surfaceListing": "তালিকা",
+      "surfaceProductPage": "পণ্যের পাতা",
+      "surfaceOff": "বন্ধ",
+      "settingsLink": "সেটিংস",
+      "colPrice": "দাম",
+      "colPerDay": "প্রতি দিন",
+      "colBooked": "বুক হয়েছে",
+      "colNextDays": "সামনের {days} দিন",
+      "colImpressions": "ইমপ্রেশন",
+      "colImpressionsHint": "প্রতি দিন · ৩০ দিনের গড়",
+      "axisToday": "আজ",
+      "statusNowhere": "কোথাও দেখায় না",
+      "statusReprice": "নতুন দাম দিতে হবে",
+      "chipOn": "{surface}-এ শীর্ষ {n}টি পজিশন দেখায় — এটিও আছে",
+      "chipOff": "{surface}-এ শুধু শীর্ষ {n}টি পজিশন দেখায়",
+      "chipDisabled": "{surface}-এ এখন কোনো স্পনসরড পণ্য দেখায় না",
+      "freeFrom": "{day} থেকে খালি",
+      "freeToday": "আজ খালি",
+      "freeWindow": "খালি — সামনের {days} দিনে কোনো বুকিং নেই",
+      "freeShort": "খালি",
+      "notForSale": "বিক্রির জন্য নয়",
+      "nowhereTrack": "কোনো পাতায় দেখায় না — ভেন্ডররা এটা বুক করতে পারবেন না।",
+      "nowhereFix": "স্লট সংখ্যা বদলান",
+      "staleTrack": "নতুন দাম না দেওয়া পর্যন্ত ভেন্ডররা চেকআউট করতে পারবেন না",
+      "segmentUntil": "{day} পর্যন্ত",
+      "segmentHold": "হোল্ডে · অপরিশোধিত",
+      "segmentRange": "{from} – {to} · {count, plural, one {# দিন} other {# দিন}}",
+      "segmentOpen": "বুকিং খুলুন",
+      "segmentHoldHint": "অপরিশোধিত চেকআউট — পেমেন্ট না এলে দিনগুলো খালি হয়ে যাবে",
+      "bookedOf": "{total} দিনের মধ্যে {booked} দিন",
+      "bookedOfHeld": "{total} দিনের মধ্যে {booked} দিন, {held} দিন হোল্ডে",
+      "freeFromShort": "{day} থেকে খালি",
+      "noFreeDay": "সামনের {days} দিনে কোনো খালি দিন নেই",
+      "noNewBookings": "নতুন বুকিং নেই",
+      "noData": "এখনো ডেটা নেই",
+      "storeCurrency": "স্টোরের মুদ্রা {currency}",
+      "editAria": "{position} নম্বর পজিশন এডিট করুন",
+      "moreActions": "{position} নম্বর পজিশনের আরো অপশন",
+      "viewBookings": "বুকিং দেখুন",
+      "deleteBlockedBooked": "আজ থেকে সামনের বুকিং আছে — এর বদলে আর্কাইভ করুন।",
+      "deleteBlockedClaimed": "একটা পজড, শিডিউলড বা অপরিশোধিত বুকিং এখনো এটা ধরে রেখেছে — এর বদলে আর্কাইভ করুন।",
+      "gapTitle": "নির্ধারিত নয়",
+      "gapHint": "{position} নম্বর স্লটে প্রতিদিন সাধারণ পণ্য দেখায় — নিচের কোনো স্লট উপরে উঠে আসে না।",
+      "gapRangeHint": "{from}–{to} নম্বর স্লটে প্রতিদিন সাধারণ পণ্য দেখায় — নিচের কোনো স্লট উপরে উঠে আসে না।"
     },
     "cancel": {
       "action": "বুকিং বাতিল",
@@ -6973,9 +8302,22 @@
       "confirm": "বুকিং বাতিল করুন",
       "done": "বুকিং বাতিল হয়েছে",
       "failed": "বুকিং বাতিল করা যায়নি"
+    },
+    "disabled": {
+      "title": "প্রোডাক্ট বুস্টিং বন্ধ আছে",
+      "campaigns": "ভেন্ডরদের কাছে স্পনসর্ড প্লেসমেন্ট বিক্রি করতে সেটিংস → প্রোডাক্ট বুস্টিং থেকে বুস্টিং চালু করুন।",
+      "positions": "পজিশন ল্যাডার পরিচালনা করতে সেটিংস → প্রোডাক্ট বুস্টিং থেকে বুস্টিং চালু করুন।"
+    },
+    "filters": {
+      "allVendors": "সব ভেন্ডর",
+      "allPositions": "সব পজিশন"
     }
   },
   "install": {
+    "installToken": "ইনস্টলেশন টোকেন",
+    "tokenLabel": "ইনস্টলেশন টোকেন",
+    "tokenHint": "সার্ভারের .env ফাইলের INSTALL_TOKEN-এর মানটা এখানে দিন। এতে বোঝা যায় যিনি সার্ভারের মালিক, তিনিই স্টোর সেটআপ করছেন।",
+    "tokenRejected": "এই ইনস্টলেশন টোকেন সার্ভারের .env ফাইলের INSTALL_TOKEN-এর সাথে মেলে না।",
     "adminEmail": "ইমেইল",
     "adminName": "আপনার নাম",
     "adminPassword": "পাসওয়ার্ড",
@@ -7117,7 +8459,64 @@
       "quarterly": "প্রতি ত্রৈমাসিকে",
       "yearly": "প্রতি বছরে",
       "mine": "আপনার খরচ",
-      "mineSubtitle": "আপনি নিজে যা পরিশোধ করেছেন। কেবল আপনার নিজের রেকর্ডের জন্য — মার্কেটপ্লেস আপনাকে যা দেবে তাতে এর কোনো প্রভাব নেই।"
+      "mineSubtitle": "আপনি নিজে যা পরিশোধ করেছেন। কেবল আপনার নিজের রেকর্ডের জন্য — মার্কেটপ্লেস আপনাকে যা দেবে তাতে এর কোনো প্রভাব নেই।",
+      "subtitle": "অ্যাপের আর কিছুই যে খরচ দেখতে পায় না — ভাড়া, বেতন, বিজ্ঞাপন। এখানের সবকিছু কেউ হাতে লিখে যোগ করেছেন।",
+      "deleteLedgerNote": "এর খতিয়ান এন্ট্রি মুছে ফেলা হয় না, উল্টে দেওয়া হয়। মাসটি খোলা থাকলে সেখানে আর এটি দেখাবে না; বন্ধ মাস তার সংখ্যা অপরিবর্তিত রাখে, আর উল্টানো এন্ট্রি বন্ধ করার পরের তারিখে বসে।",
+      "deletePaidNote": "এর রেকর্ড করা পরিশোধও উল্টে দেওয়া হবে।",
+      "deleteTemplateNote": "এতে পুনরাবৃত্তির সূচিও বন্ধ হবে। আগে তৈরি হওয়া কপিগুলো থেকে যাবে।",
+      "markUnpaidTitle": "অপরিশোধিত হিসেবে চিহ্নিত করবেন?",
+      "markUnpaidDescription": "রেকর্ড করা পরিশোধটি তার নিজের তারিখেই উল্টে দেওয়া হবে, আর বিলটি আবার বকেয়া হবে।",
+      "markUnpaid": "অপরিশোধিত হিসেবে চিহ্নিত করুন",
+      "markedUnpaid": "অপরিশোধিত হিসেবে চিহ্নিত হয়েছে",
+      "settleFailed": "পরিশোধ রেকর্ড করা যায়নি",
+      "generatedBadge": "স্বয়ংক্রিয়",
+      "scheduleEndedBadge": "শেষ",
+      "pausedBadge": "স্থগিত",
+      "paidOnFrom": "{account} · পরিশোধ {date}",
+      "viewReceipt": "দেখুন",
+      "outstandingTitle": "এখনো পরিশোধ হয়নি এমন বিল",
+      "showOutstanding": "সেগুলো দেখুন",
+      "markPaid": "পরিশোধিত হিসেবে চিহ্নিত করুন",
+      "entryCount": "{count, number}টি এন্ট্রি",
+      "unpaidTotal": "এর মধ্যে {amount} রেকর্ড হয়েছে কিন্তু এখনো পরিশোধ হয়নি",
+      "stockTotal": "এর মধ্যে {amount} কেনা স্টক — ইনভেন্টরি হিসেবে রাখা, খরচ হিসেবে গণ্য নয়",
+      "closedPeriodNote": "{closed} পর্যন্ত সবকিছু বন্ধ করা হয়েছে। এটি {booked} তারিখে হিসাবে বসবে, যাতে বন্ধ সময়ের সংখ্যা না বদলায়।",
+      "amountWholeUnits": "{currency}-এ দশমিক হয় না — পূর্ণ সংখ্যা দিন",
+      "amountDecimals": "দশমিকের পরে সর্বোচ্চ {count, number} ঘর ব্যবহার করুন",
+      "categoryRequired": "একটি ক্যাটাগরি বেছে নিন",
+      "dateRequired": "একটি তারিখ বেছে নিন",
+      "endsBeforeStart": "শেষ কপি প্রথমটির আগে হতে পারে না",
+      "discardTitle": "এই খরচটি বাদ দেবেন?",
+      "discardUploading": "রসিদ এখনো আপলোড হচ্ছে, আর আপনার লেখা সবকিছু হারিয়ে যাবে।",
+      "discardDescription": "আপনার লেখা সংরক্ষণ করা হয়নি, এটি হারিয়ে যাবে।",
+      "discard": "বাদ দিন",
+      "keepEditing": "লিখতে থাকুন",
+      "currency": "মুদ্রা",
+      "categoryPlaceholder": "একটি ক্যাটাগরি বেছে নিন",
+      "bookOwnHint": "আপনার নিজের দোকানের খরচ — যে পণ্য আপনি নিজে বিক্রি করেন।",
+      "bookMarketplaceHint": "মার্কেটপ্লেস চালানোর খরচ — কোনো একটি দোকানের নয়।",
+      "stockNote": "স্টক খরচ হিসেবে নয়, ইনভেন্টরি হিসেবে রেকর্ড হয়। পণ্য বিক্রি হলে তা বিক্রীত পণ্যের খরচ হিসেবে আপনার লাভে আসে।",
+      "stockNoCostNote": "আপনার কোনো পণ্যে এখনো ক্রয়মূল্য দেওয়া নেই, তাই এটি লাভে একদমই দেখাবে না। আগে পণ্যগুলোতে ক্রয়মূল্য যোগ করুন।",
+      "payeePlaceholder": "বাড়িওয়ালা, সরবরাহকারী, Meta…",
+      "paidLockedNote": "এই বিলটি পরিশোধিত হিসেবে চিহ্নিত। পরিমাণ, মুদ্রা, হিসাব বা পরিশোধের উৎস বদলাতে আগে তালিকা থেকে এটি অপরিশোধিত হিসেবে চিহ্নিত করুন।",
+      "unpaidNote": "বকেয়া হিসেবে রেকর্ড হচ্ছে। পরিশোধ করলে তালিকা থেকে “পরিশোধিত হিসেবে চিহ্নিত করুন” ব্যবহার করুন, যাতে টাকা যেদিন গেছে সেই তারিখেই পরিশোধটি বসে।",
+      "receiptHint": "ঐচ্ছিক, তবে সংখ্যাটির প্রমাণ এটিই।",
+      "generatedCopyNote": "একটি পুনরাবৃত্ত খরচ থেকে আপনাআপনি তৈরি হয়েছে। সূচি বদলাতে মূল খরচটি সম্পাদনা করুন।",
+      "every": "কত দিন পরপর",
+      "endsOn": "শেষ কপি",
+      "noEnd": "শেষ তারিখ নেই",
+      "clearEnd": "শেষ তারিখ সরান",
+      "backfillPrompt": "ইতিমধ্যে বকেয়া {count, number}টি কপিও যোগ করুন ({first} – {last})",
+      "backfillPace": "দৈনিক কাজটি একবারে {count, number}টি করে যোগ করে, তাই কয়েক দিন লাগবে।",
+      "scheduleEnded": "আর কোনো কপি হবে না — শেষ তারিখ পেরিয়ে গেছে।",
+      "nextCopy": "পরের কপি: {date}।",
+      "futureCopiesOnly": "পরিবর্তন শুধু এখন থেকে তৈরি কপিতে লাগবে; আগেরগুলো যেমন আছে তেমনই থাকবে।",
+      "waitingForReceipt": "রসিদ আপলোড হচ্ছে…",
+      "saving": "সংরক্ষণ হচ্ছে…",
+      "markedPaid": "পরিশোধিত হিসেবে চিহ্নিত হয়েছে",
+      "markPaidTitle": "পরিশোধিত হিসেবে চিহ্নিত করুন",
+      "markPaidDescription": "{description} · {amount}, তারিখ {date}। খরচটি সেই তারিখেই থাকবে; পরিশোধটি রেকর্ড হবে যেদিন টাকা গেছে সেদিন।",
+      "paidOn": "পরিশোধের তারিখ"
     },
     "period": {
       "7d": "গত ৭ দিন",
@@ -7146,22 +8545,24 @@
       "processing_fees": "পেমেন্ট ফি",
       "shipping_cost": "শিপিং লেবেল",
       "cost_of_goods": "বিক্রীত পণ্যের ব্যয়",
-      "promotions": "স্টোরের বহন করা ছাড়",
-      "operating_expense": "পরিচালন ব্যয়"
+      "promotions": "স্টোরের বহন করা ছাড় ও ক্রেডিট",
+      "operating_expense": "পরিচালন ব্যয়",
+      "store_credit_payable": "গ্রাহকদের কাছে থাকা স্টোর ক্রেডিট"
     },
     "overview": {
       "title": "অর্থব্যবস্থা",
-      "subtitle": "ব্যবসা কত আয় করল, কত খরচ করল, আর এখন কত ধরে আছে।",
+      "subtitle": "ব্যবসা কী আয় করল, কী খরচ করল, আর কী ধরে রেখেছে। বিক্রি গোনা হয় টাকা আসার দিন — ডিপোজিট প্রি-অর্ডার পুরো দামে ডিপোজিটের দিনেই, বাকিটা দেখানো হয় ক্রেতাদের কাছে পাওনা হিসেবে।",
       "income": "আয়",
       "expenses": "খরচ",
       "net": "নিট",
       "netHint": "আয় থেকে খরচ বাদ",
       "gmv": "অর্ডারের পরিমাণ",
-      "gmvHint": "যা কিছু বিক্রি হয়েছে, খরচের আগে",
-      "gmvHintMarketplace": "স্টোরের মাধ্যমে বিক্রি হওয়া সবকিছু — যার বেশিরভাগই বিক্রেতাদের",
+      "gmvHint": "সব অর্ডার, খরচ বাদ দেওয়ার আগে আর কর ছাড়া — অর্ডার যেদিন হয়েছে সেই হিসেবে গোনা",
+      "gmvHintMarketplace": "স্টোরের মাধ্যমে হওয়া সব অর্ডার, বিক্রেতাদের বিক্রিসহ, কর ছাড়া — অর্ডার যেদিন হয়েছে সেই হিসেবে গোনা",
       "whereItCameFrom": "কোথা থেকে এলো",
       "whereItWent": "কোথায় গেল",
       "noCosts": "এই সময়ে কোনো খরচ নথিভুক্ত হয়নি। পেমেন্ট ফি আর শিপিং লেবেল নিজেরাই আসে; ভাড়া আর বেতন হাতে লিখতে হয়।",
+      "noIncome": "এই currency-তে কিছু বিক্রি হয়নি। তবুও খরচ আসতে পারে — gateway বা carrier তাদের নিজের currency-তে চার্জ করে, আর প্রতিটি যেভাবে চার্জ হয়েছে সেভাবেই লেখা হয়।",
       "gateway": "গেটওয়েতে",
       "bank": "ব্যাংকে",
       "onHand": "হাতে নগদ",
@@ -7169,11 +8570,11 @@
       "shippingMargin": "শিপিং মার্জিন",
       "shippingMarginHint": "ক্রেতার কাছ থেকে নেওয়া, লেবেলের খরচ বাদে",
       "owedToVendors": "বিক্রেতাদের প্রাপ্য",
-      "owedToVendorsHint": "পেআউট নিষ্পত্তি না হওয়া পর্যন্ত তাদের হয়ে ধরে রাখা",
+      "owedToVendorsHint": "বইয়ে তাদের পাওনা সবটুকু — যেসব বিক্রির payout এখনো due হয়নি সেগুলোসহ",
       "owedByVendors": "আপনার প্রাপ্য কমিশন",
       "owedByVendorsHint": "যেসব বিক্রিতে বিক্রেতা নিজেই টাকা নিয়েছে",
       "taxPayable": "আদায়কৃত কর",
-      "taxPayableHint": "ক্রেতার কাছ থেকে নেওয়া এবং সরকারকে দেয়",
+      "taxPayableHint": "ক্রেতার কাছ থেকে নেওয়া এবং সরকারকে দেয় — জমা দিলে “ব্যালেন্স সমন্বয়”-এ লিখে রাখুন",
       "dutyPayable": "আদায়কৃত শুল্ক",
       "dutyPayableHint": "শুল্ক-পরিশোধিত ডেলিভারি অর্ডারে কাস্টমসকে দেয়",
       "accountsPayable": "অপরিশোধিত বিল",
@@ -7186,10 +8587,36 @@
       "anomalyTitle": "এই ব্যালেন্সগুলো সঠিক হতে পারে না",
       "anomalyLiability": "যত দেনা ছিল তার চেয়ে বেশি হস্তান্তর করা হয়েছে",
       "anomalyCash": "অ্যাকাউন্টে শূন্যের চেয়েও কম আছে",
+      "anomalyReceivable": "যত পাওনা ছিল তার চেয়ে বেশি আদায় হয়েছে",
       "anomalyHint": "এন্ট্রি কখনো সম্পাদনা করা হয় না, তাই একটি সংশোধনী এন্ট্রি দিয়েই এটি ঠিক করতে হয় — উপরের “ব্যালেন্স সমন্বয়” ব্যবহার করুন।",
       "inventory": "মজুদ পণ্য",
       "inventoryHint": "অবিক্রীত স্টকে যত খরচ হয়েছে, নথিভুক্ত ক্রয় অনুযায়ী",
-      "balancesNotFiltered": "গেটওয়ে, ব্যাংক, ক্যাশ ড্রয়ার আর বিক্রেতাদের ব্যালেন্স পুরো ব্যবসার — দুই হিসাবের পেছনে একটাই ব্যাংক অ্যাকাউন্ট, একটাই গেটওয়ে আর একটাই ক্যাশ ড্রয়ার।"
+      "balancesNotFiltered": "গেটওয়ে, ব্যাংক, ক্যাশ ড্রয়ার আর বিক্রেতাদের ব্যালেন্স পুরো ব্যবসার — দুই হিসাবের পেছনে একটাই ব্যাংক অ্যাকাউন্ট, একটাই গেটওয়ে আর একটাই ক্যাশ ড্রয়ার।",
+      "orders": "{count}টি অর্ডার",
+      "currency": "মুদ্রা",
+      "currencyHint": "কখনো একসাথে যোগ হয় না — প্রতিটি আলাদা হিসাব",
+      "gatewayHint": "ব্যাংকে টাকা যাওয়া “ব্যালেন্স সমন্বয়”-এ লেখা না হওয়া পর্যন্ত",
+      "cancelledBalances": "বাতিল প্রি-অর্ডারের বকেয়া",
+      "cancelledBalancesHint": "কখনো পরিশোধ হয়নি, তাই কিছু ফেরতও যায়নি",
+      "costGapShort": "পণ্য বিক্রির {share}-এর কোনো ক্রয়মূল্য নথিভুক্ত নেই — নিট তাদের পণ্যের খরচ বাদ দেওয়ার আগের",
+      "costGapTitle": "{amount} পণ্য বিক্রির ({share}) পণ্যের খরচ নেই",
+      "costGapBody": "ওই পণ্যগুলোর কোনো ক্রয়মূল্য নথিভুক্ত নেই, তাই সেগুলোর খরচ “খরচ”-এ নেই আর নিট আসল লাভের চেয়ে বেশি দেখাচ্ছে। পণ্যে ক্রয়মূল্য যোগ করলে পরের বিক্রি থেকে গোনা হবে।",
+      "holding": "ব্যবসা কী ধরে রেখেছে",
+      "holdingHint": "এই মুহূর্তের অবস্থা",
+      "holdingAsOf": "{date} অনুযায়ী",
+      "cashTotal": "সব অ্যাকাউন্ট মিলিয়ে নগদ",
+      "anomalyElsewhere": "অন্য মুদ্রায় এমন ব্যালেন্স আছে যা সঠিক হতে পারে না:",
+      "owed": "দেনা-পাওনা",
+      "owedHint": "স্টোর অন্যদের কত দেনা, আর অন্যদের কাছে স্টোরের কত পাওনা",
+      "youOwe": "আপনার দেনা",
+      "youOweHint": "উপরের অ্যাকাউন্টগুলোতে আছে, কিন্তু স্টোরের খরচ করার টাকা নয়",
+      "owedToYou": "আপনার পাওনা",
+      "owedToYouHint": "এখনো আসেনি, তাই উপরের অ্যাকাউন্টগুলোতে নেই",
+      "commissionCredit": "বিক্রেতাদের প্রাপ্য কমিশন ক্রেডিট",
+      "commissionCreditHint": "কমিশনের ইনভয়েস হওয়ার পরে ফেরত হয়েছে — তাদের পরের ইনভয়েস থেকে কাটা যাবে",
+      "costsHint": "পেমেন্ট ফি আর শিপিং লেবেল নিজেরাই আসে। ভাড়া আর বেতন “খরচ”-এ হাতে লিখতে হয়।",
+      "storeCredit": "গ্রাহকদের কাছে থাকা স্টোর ক্রেডিট",
+      "storeCreditHint": "রিফান্ড আর স্টোরের দেওয়া, এখনো খরচ হয়নি"
     },
     "receivables": {
       "title": "বিক্রেতাদের সঙ্গে দেনা-পাওনা",
@@ -7198,7 +8625,7 @@
       "net": "নিষ্পত্তির নিট",
       "emptyTitle": "কোনো বকেয়া নেই",
       "emptyBody": "অর্ডার পরিশোধ হওয়ার সঙ্গে সঙ্গে ব্যালেন্স আসে: পেআউট নিষ্পত্তি না হওয়া পর্যন্ত প্ল্যাটফর্ম বিক্রেতার অংশ ধরে রাখে, আর যে বিক্রেতা নিজে নগদ নেয় তার কমিশন দেয় থাকে।",
-      "collectNote": "অ্যাপের ভেতরেই কমিশন আদায় করার সুবিধা পরে আসছে; আজ এই ব্যালেন্সগুলোই সেই রেকর্ড যার বিপরীতে পেআউট বা চালান নিষ্পত্তি হয়।",
+      "collectNote": "এটি ledger থেকে পড়া, তাই টাকা আসামাত্রই বিক্রিটি গণনায় ধরা হয়। আজ কতটা payout দেওয়া যাবে তা Payouts পেজে দেখুন।",
       "overpaidTitle": "যত ধরে রাখা হয়েছিল তার চেয়ে বেশি পরিশোধ করা হয়েছে",
       "overpaidHint": "একটি পেআউট এমন বিক্রির নিষ্পত্তি করেছে যার টাকা বিক্রেতা নিজেই নিয়েছিল। নতুন পেআউট আর এটি করতে পারে না; ইতিমধ্যে নথিভুক্ত ব্যালেন্সটি অর্থব্যবস্থার সংক্ষিপ্ত বিবরণে একটি সমন্বয় দিয়ে নিষ্পত্তি করা হয়।"
     },
@@ -7211,7 +8638,7 @@
       "earnedHint": "কমিশন বাদে বিক্রিতে আপনার অংশ",
       "paidOut": "পরিশোধিত",
       "closing": "আপনার জন্য রাখা",
-      "closingHint": "পরবর্তী পেআউটের অপেক্ষায়",
+      "closingHint": "বইয়ে আপনার ব্যালেন্স — উপরের কার্ডে দেখুন payout-এ আসলে কতটা পাঠানো যাবে",
       "owed": "আপনার দেয়",
       "owedHint": "যেসব অর্ডারের টাকা আপনি নিজে নিয়েছেন তার কমিশন",
       "activity": "কার্যকলাপ",
@@ -7299,7 +8726,21 @@
       "vendorPlaceholder": "একজন বিক্রেতা বাছুন",
       "vendorHint": "আবশ্যক: এই ব্যালেন্স মোট হিসাবের পাশাপাশি প্রতিটি বিক্রেতার জন্যও দেখানো হয়, আর দুটোকেই একসঙ্গে নড়তে হবে।",
       "currency": "মুদ্রা",
-      "currencyHint": "ব্যালেন্সটি যে মুদ্রায় নথিভুক্ত হয়েছিল — অন্য মুদ্রায় সংশোধন করলে এটি ঠিক না হয়ে নতুন একটি ব্যালেন্স তৈরি হয়।"
+      "currencyHint": "ব্যালেন্সটি যে মুদ্রায় নথিভুক্ত হয়েছিল — অন্য মুদ্রায় সংশোধন করলে এটি ঠিক না হয়ে নতুন একটি ব্যালেন্স তৈরি হয়।",
+      "taxPaid": "আদায়কৃত কর কর কর্তৃপক্ষকে জমা দেওয়া হয়েছে"
     }
+  },
+  "permissionPacks": {
+    "aiStudio": "AI স্টুডিও",
+    "analytics": "অ্যানালিটিক্স",
+    "boosts": "বুস্ট",
+    "catalog": "ক্যাটালগ",
+    "discounts": "ডিসকাউন্ট",
+    "inbox": "ইনবক্স",
+    "orders": "অর্ডার",
+    "payouts": "পেআউট",
+    "pos": "পয়েন্ট অফ সেল",
+    "staff": "স্টাফ",
+    "storefront": "স্টোরফ্রন্ট"
   }
 }

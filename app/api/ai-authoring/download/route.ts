@@ -3,13 +3,15 @@
  * Streams an image from this store's own storage back with a
  * Content-Disposition attachment header so the browser downloads it directly
  * instead of opening it in a new tab. The URL is SSRF-guarded to the store's
- * storage origin, and a session is required to avoid an open proxy.
+ * storage origin — no redirect away from it is followed — and a session is
+ * required to avoid an open proxy.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { assertOwnStorageUrl } from "@/lib/ai-authoring/media";
+import { fetchStoredFile } from "@/lib/storage/fetch-stored-file";
 
 function safeName(name: string | null): string {
   const base = (name || "image")
@@ -58,8 +60,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const upstream = await fetch(url.toString());
-  if (!upstream.ok || !upstream.body) {
+  const upstream = await fetchStoredFile(url).catch(() => null);
+  if (!upstream?.ok || !upstream.body) {
+    await upstream?.body?.cancel().catch(() => undefined);
     return NextResponse.json(
       { success: false, message: "Could not fetch the image" },
       { status: 502 },

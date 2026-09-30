@@ -1,17 +1,16 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/intl/money";
-import { resolveCurrency } from "@/lib/intl/currencies";
 import { useCurrency } from "@/providers/currency-provider";
+import { planPriceParts } from "@/components/vendor-plans/plan-copy";
 
 type PlanBillingInterval = "monthly" | "yearly" | "none";
 
 /**
- * Minimal shape both the admin catalog and the onboarding wizard can satisfy.
- * Optional fields degrade gracefully when a surface doesn't provide them.
+ * Minimal shape the onboarding wizard, its admin preview and the admin's
+ * "Vendor view" can all satisfy.
  */
 interface PricingPlanData {
   id: string;
@@ -22,172 +21,122 @@ interface PricingPlanData {
   billingInterval: PlanBillingInterval;
   commissionRate: number;
   trialDays?: number;
-  features?: string[];
+  /** The checklist, already trimmed to what sets this plan apart. */
+  lines?: string[];
 }
 
 interface PricingPlanCardProps {
   plan: PricingPlanData;
-  /** Gradient emphasis treatment (used for the default plan). */
-  highlighted?: boolean;
-  /** Dim + non-interactive look (e.g. archived plans in the admin catalog). */
-  muted?: boolean;
-  /** Ring + selected state (onboarding). */
+  /** The store's default plan. Only worth saying beside other plans. */
+  recommended?: boolean;
   selected?: boolean;
-  /** Makes the whole card a button (onboarding selection). */
   onSelect?: () => void;
-  /** Extra badges shown top-right (e.g. Default / Archived in admin). */
-  badges?: ReactNode;
-  /** Footer action area (admin: Edit/Delete; onboarding: none). */
-  footer?: ReactNode;
+  /** Shows the choice without letting it change (admin previews). */
+  disabled?: boolean;
   className?: string;
 }
 
 /**
- * Plan prices carry no currency of their own — `VendorPlan.price` is charged in
- * the store currency (see `lib/vendor-plan-stripe.ts`), so the card falls back
- * to the store default rather than to a hardcoded USD that would mislabel every
- * plan on a non-dollar marketplace.
+ * One plan as a vendor weighs it. The choose button sits right under the
+ * price, so every card's button lines up whatever the length of its list, and
+ * the list below only carries what differs from the plans beside it.
  */
-function priceParts(
-  plan: PricingPlanData,
-  storeCurrencyCode: string,
-): { amount: string; cadence: string } {
-  if (plan.billingInterval === "none" || plan.price <= 0) {
-    return { amount: "Free", cadence: "" };
-  }
-  const currency = resolveCurrency(plan.currency || storeCurrencyCode);
-  return {
-    amount: formatCurrency(plan.price, currency.code, currency.locale, {
-      minimumFractionDigits: plan.price % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 2,
-    }),
-    cadence: plan.billingInterval === "yearly" ? "/yr" : "/mo",
-  };
-}
-
 export function PricingPlanCard({
   plan,
-  highlighted = false,
-  muted = false,
+  recommended = false,
   selected = false,
   onSelect,
-  badges,
-  footer,
+  disabled = false,
   className,
 }: PricingPlanCardProps) {
   const { currency: storeCurrency } = useCurrency();
-  const { amount, cadence } = priceParts(plan, storeCurrency.code);
-  const interactive = Boolean(onSelect);
+  const { amount, cadence } = planPriceParts(plan, storeCurrency.code);
+  const paid = plan.billingInterval !== "none" && plan.price > 0;
+  const trialDays = paid ? Math.max(0, Math.floor(plan.trialDays ?? 0)) : 0;
+  const lines = plan.lines ?? [];
 
-  const body = (
+  return (
     <div
+      data-selected={selected || undefined}
       className={cn(
-        "relative flex h-full flex-col rounded-2xl border p-6 text-left transition-all",
-        highlighted
-          ? // Storify theme gradient: primary blue (#2065D1 → a deeper shade of
-            // the same hue) instead of the old violet/indigo. Uses the primary
-            // token so it tracks any theme recolor.
-            "border-transparent bg-gradient-to-br from-primary to-[oklch(0.45_0.2_255)] text-white shadow-lg shadow-primary/20"
-          : "border-border bg-card text-card-foreground",
-        interactive && !highlighted && "hover:border-primary/50 hover:shadow-sm",
-        interactive && "cursor-pointer",
-        selected &&
-          (highlighted
-            ? "ring-2 ring-white/70 ring-offset-2 ring-offset-background"
-            : "border-primary ring-2 ring-primary/40"),
-        muted && "opacity-60",
+        "relative flex h-full flex-col gap-4 rounded-2xl border bg-card p-5 pt-6 text-left text-card-foreground shadow-xs transition-[border-color,box-shadow]",
+        selected
+          ? "border-primary shadow-md shadow-primary/10 ring-1 ring-primary"
+          : "border-border",
         className,
       )}
     >
-      {badges && (
-        <div className="mb-3 flex items-center justify-end gap-1.5">{badges}</div>
-      )}
+      {recommended ? (
+        <span className="absolute -top-2.5 left-5 inline-flex h-5 items-center rounded-full bg-primary px-2.5 text-[11px] font-semibold text-primary-foreground">
+          Recommended
+        </span>
+      ) : null}
 
-      {/* Name + description */}
-      <div className="space-y-1">
-        <h3
-          className={cn(
-            "text-lg font-semibold",
-            !highlighted && "text-foreground",
-          )}
-        >
-          {plan.name}
-        </h3>
+      <div className="min-h-[68px] space-y-1">
+        <h3 className="text-base font-semibold text-foreground">{plan.name}</h3>
         {plan.description ? (
-          <p
-            className={cn(
-              "text-sm",
-              highlighted ? "text-white/80" : "text-muted-foreground",
-            )}
-          >
+          <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
             {plan.description}
           </p>
         ) : null}
       </div>
 
-      {/* Price */}
-      <div className="mt-5 flex items-baseline gap-1">
-        <span className="text-4xl font-bold tracking-tight">{amount}</span>
-        {cadence && (
-          <span
-            className={cn(
-              "text-sm font-medium",
-              highlighted ? "text-white/70" : "text-muted-foreground",
-            )}
-          >
-            {cadence}
+      <div className="space-y-1">
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-bold tracking-tight text-foreground">
+            {amount}
           </span>
-        )}
+          {cadence ? (
+            <span className="text-[13px] text-muted-foreground">{cadence}</span>
+          ) : null}
+        </div>
+        <p className="text-[13px] text-muted-foreground">
+          {paid ? "+ " : ""}
+          {plan.commissionRate}% commission per sale
+        </p>
       </div>
-      <p
-        className={cn(
-          "mt-1 text-xs",
-          highlighted ? "text-white/70" : "text-muted-foreground",
-        )}
-      >
-        {plan.commissionRate}% commission per sale
-        {plan.billingInterval !== "none" &&
-        plan.trialDays &&
-        plan.trialDays > 0
-          ? ` · ${plan.trialDays} days free, no card needed`
-          : ""}
-      </p>
 
-      {/* Features */}
-      {plan.features && plan.features.length > 0 && (
-        <ul className="mt-5 space-y-2.5 text-sm">
-          {plan.features.map((feature, i) => (
-            <li key={i} className="flex items-start gap-2.5">
-              <CheckCircle2
-                className={cn(
-                  "mt-0.5 h-4 w-4 shrink-0",
-                  highlighted ? "text-white" : "text-primary",
-                )}
-              />
-              <span className={highlighted ? "text-white/90" : undefined}>
-                {feature}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant={selected ? "default" : "outline"}
+          aria-pressed={selected}
+          disabled={disabled}
+          onClick={onSelect}
+          className="h-10 w-full font-semibold"
+        >
+          {selected ? (
+            <>
+              <Check className="size-4" />
+              Selected
+            </>
+          ) : (
+            <span className="truncate">Choose {plan.name}</span>
+          )}
+        </Button>
+        {trialDays > 0 ? (
+          <p className="text-center text-xs text-muted-foreground">
+            {trialDays} days free · no card needed
+          </p>
+        ) : null}
+      </div>
 
-      {footer ? <div className="mt-auto pt-6">{footer}</div> : null}
+      {lines.length > 0 ? (
+        <>
+          <div className="h-px bg-border" />
+          <ul className="space-y-2.5 text-[13px] text-foreground">
+            {lines.map((line, i) => (
+              <li key={`${i}-${line}`} className="flex items-start gap-2.5">
+                <Check
+                  className="mt-0.5 size-4 shrink-0 text-primary"
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 break-words">{line}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </div>
   );
-
-  if (interactive) {
-    return (
-      <button
-        type="button"
-        onClick={onSelect}
-        aria-pressed={selected}
-        className="block h-full w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 rounded-2xl"
-      >
-        {body}
-      </button>
-    );
-  }
-
-  return body;
 }

@@ -26,8 +26,13 @@ const scanStatusLabels: Record<string, string> = {
   unknown: "Update",
 };
 
-function formatScanDate(value: string) {
+export function formatScanDate(value: string) {
   return format(new Date(value), "MMM d, yyyy 'at' h:mm a");
+}
+
+/** The carrier's own words when it sent any, else ours. */
+export function describeScan(event: ScanEvent) {
+  return event.description || scanStatusLabels[event.status] || event.status;
 }
 
 /**
@@ -40,9 +45,15 @@ function formatScanDate(value: string) {
 export function ScanHistory({
   events,
   className,
+  highlightLatest = true,
 }: {
   events?: ScanEvent[];
   className?: string;
+  /**
+   * Marks the first scan as the newest. Off when the list is only the older
+   * scans under a `LatestScan`, whose own dot already marks the newest one.
+   */
+  highlightLatest?: boolean;
 }) {
   if (!events?.length) return null;
 
@@ -53,15 +64,11 @@ export function ScanHistory({
           <span
             className={cn(
               "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-              index === 0 ? "bg-primary" : "bg-muted-foreground/40",
+              index === 0 && highlightLatest ? "bg-primary" : "bg-muted-foreground/40",
             )}
           />
           <div className="min-w-0">
-            <p className="text-xs font-medium">
-              {event.description ||
-                scanStatusLabels[event.status] ||
-                event.status}
-            </p>
+            <p className="text-xs font-medium">{describeScan(event)}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {formatScanDate(event.at)}
               {event.location ? ` • ${event.location}` : ""}

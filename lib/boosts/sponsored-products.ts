@@ -45,35 +45,23 @@ const BOOSTING_OFF: StorefrontBoostingSettings = {
 };
 
 /**
- * Boosting config for the three placements, cached and projected.
+ * Boosting config for the three placements, cached and tagged `settings`, so
+ * saving busts it immediately.
  *
- * Projected rather than loaded whole: the placements previously pulled the
- * entire settings singleton on every render, BEFORE the feature gate, so
- * installs with boosting off paid for it too. Tagged `settings`, so saving
- * busts it immediately.
+ * Read from the request's shared settings read (`getSettingsLean`) rather than
+ * a query of its own: the page's layout has already read the document, and
+ * the sponsored rail asked for this and then for its depths — two more round
+ * trips, one after the other, before its products could be looked up.
  */
 export const getStorefrontBoostingSettings = unstable_cache(
   async (): Promise<StorefrontBoostingSettings> => {
-    const { Settings } = await import("@/models/settings.model");
-    const doc = await Settings.findOne()
-      .select("boosting multiVendorMode.enabled")
-      .lean<{
-        multiVendorMode?: { enabled?: boolean };
-        boosting?: {
-          enabled?: boolean;
-          placements?: {
-            home?: boolean;
-            listing?: boolean;
-            productPage?: boolean;
-          };
-          hideOutOfStock?: boolean;
-        };
-      } | null>();
+    const { getSettingsLean } = await import("@/models/settings.model");
+    const settings = await getSettingsLean();
 
-    if (!doc?.multiVendorMode?.enabled || !doc.boosting?.enabled) {
+    if (!settings.multiVendorMode?.enabled || !settings.boosting?.enabled) {
       return BOOSTING_OFF;
     }
-    const boosting = doc.boosting;
+    const boosting = settings.boosting;
     return {
       enabled: true,
       placements: {
@@ -96,22 +84,18 @@ export const getStorefrontBoostingSettings = unstable_cache(
  */
 export const getSponsoredPlacementDepths = unstable_cache(
   async (): Promise<SponsoredPlacementDepths> => {
-    const [{ Settings }, { StorePage, HOME_TEMPLATE_KEY }, { buildTemplateKey }] =
-      await Promise.all([
-        import("@/models/settings.model"),
-        import("@/models/store-page.model"),
-        import("@/lib/storefront/pages/handles"),
-      ]);
+    const [
+      { getSettingsLean },
+      { StorePage, HOME_TEMPLATE_KEY },
+      { buildTemplateKey },
+    ] = await Promise.all([
+      import("@/models/settings.model"),
+      import("@/models/store-page.model"),
+      import("@/lib/storefront/pages/handles"),
+    ]);
     const productTemplateKey = buildTemplateKey("product");
-    const [doc, templatePages] = await Promise.all([
-      Settings.findOne()
-        .select(
-          "boosting.listingSlots boosting.productPageSlots homePage.sections.sponsoredProducts.limit",
-        )
-        .lean<{
-          boosting?: { listingSlots?: number; productPageSlots?: number };
-          homePage?: { sections?: { sponsoredProducts?: { limit?: number } } };
-        } | null>(),
+    const [settings, templatePages] = await Promise.all([
+      getSettingsLean(),
       StorePage.find({ key: { $in: [HOME_TEMPLATE_KEY, productTemplateKey] } })
         .select("key published.sections")
         .lean(),
@@ -127,7 +111,7 @@ export const getSponsoredPlacementDepths = unstable_cache(
     // positions marketed by these numbers. After each template's cutover
     // that is its published StorePage's sponsored section; the settings
     // values only stand in until a first publish exists.
-    let homeLimit = doc?.homePage?.sections?.sponsoredProducts?.limit;
+    let homeLimit = settings.homePage?.sections?.sponsoredProducts?.limit;
     let homeRailMissing = false;
     let productRailMissing = false;
     if (
@@ -165,8 +149,8 @@ export const getSponsoredPlacementDepths = unstable_cache(
 
     const depths = resolvePlacementDepths({
       homeLimit,
-      listingSlots: doc?.boosting?.listingSlots,
-      productPageSlots: doc?.boosting?.productPageSlots,
+      listingSlots: settings.boosting?.listingSlots,
+      productPageSlots: settings.boosting?.productPageSlots,
     });
     // A published template with no (visible) sponsored section renders zero
     // sponsored slots on that surface — the ladder must say so instead of

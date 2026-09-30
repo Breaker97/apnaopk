@@ -20,6 +20,8 @@ export type CheckoutIssueCode =
   | "required"
   | "invalid_email"
   | "invalid_phone"
+  /** A number the store cannot resolve to a real one — see `resolvePhone`. */
+  | "unresolvable_phone"
   | "invalid_number"
   | "invalid_date"
   | "invalid_option"
@@ -169,6 +171,19 @@ export function evaluateCheckoutSubmission(input: {
   billingAddress?: AddressInput;
   customerNote?: string;
   customFields?: Record<string, unknown>;
+  /**
+   * Turns a number as typed into the E.164 the store would actually text, or
+   * null. Supplied by the caller rather than imported here so this module
+   * stays free of the phone-metadata dependency; both the form and the
+   * payment routes pass the same resolver, so they agree on what counts.
+   *
+   * Only consulted where the contact step offers one field for either an
+   * email or a number: there, a number nobody can dial is not a contact at
+   * all, and the marketing consent the shopper ticked beside it would be
+   * recorded against nothing. The modes with a field of their own keep the
+   * looser rule they have always had.
+   */
+  resolvePhone?: (value: string) => string | null | undefined;
 }): {
   issues: CheckoutIssue[];
   customerNote?: string;
@@ -195,6 +210,17 @@ export function evaluateCheckoutSubmission(input: {
   }
   if (clean(input.phone) && !isPlausiblePhone(clean(input.phone))) {
     issues.push({ scope: "contact", field: "phone", code: "invalid_phone" });
+  } else if (
+    clean(input.phone) &&
+    settings.contact.mode === "email_or_phone" &&
+    input.resolvePhone &&
+    !input.resolvePhone(clean(input.phone))
+  ) {
+    issues.push({
+      scope: "contact",
+      field: "phone",
+      code: "unresolvable_phone",
+    });
   }
 
   switch (settings.contact.mode) {
@@ -280,6 +306,8 @@ const ISSUE_MESSAGES: Record<CheckoutIssueCode, string> = {
   required: "This field is required",
   invalid_email: "Enter a valid email address",
   invalid_phone: "Enter a valid phone number",
+  unresolvable_phone:
+    "Enter a full mobile number with its country code, or an email address",
   invalid_number: "Enter a number",
   invalid_date: "Enter a valid date",
   invalid_option: "Choose one of the options",

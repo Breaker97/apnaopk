@@ -3,8 +3,8 @@
 # (.github/workflows/deploy-image.yml) and the resulting .next/ arrives via
 # the build context — this file only assembles the runtime, it NEVER
 # compiles. Compiling inside `docker build` is deliberately avoided: the
-# compile needs several GB of RAM and a reachable MongoDB, neither of which
-# belongs on the server that also runs the store.
+# compile needs several GB of RAM, which does not belong on the server that
+# also runs the store. v2.4 builds without a database connection.
 #
 # It lives under deploy/ (not the repo root) on purpose: some deploy panels
 # auto-prefer a root Dockerfile over their source build, and this one is only
@@ -27,7 +27,7 @@ WORKDIR /app
 # NODE_ENV is set only after installing: the dev dependencies (tsx above all)
 # must be present at runtime for `pnpm create-admin` and the `pnpm db:migrate`
 # commands to work from a container terminal, exactly as on a source deploy.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs .npmrc ./
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Full source plus the prebuilt .next from the runner (.dockerignore keeps

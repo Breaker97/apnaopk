@@ -1,6 +1,6 @@
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { getStorefrontBrandDetail } from "@/lib/brands/storefront-brands";
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 
 const BrandProductsQuerySchema = z.object({

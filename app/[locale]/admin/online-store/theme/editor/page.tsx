@@ -2,6 +2,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { resolveBrand } from "@/lib/branding/brand";
 import { connectDB } from "@/lib/db";
+import { getSanitizedSettings } from "@/lib/settings/sanitize-settings";
+import { AdminSettingsProvider } from "@/components/admin/settings/admin-settings-context";
 import {
   getActiveThemeManifest,
   resolveActiveTheme,
@@ -26,7 +28,13 @@ export default async function ThemeEditorPage({ params }: PageProps) {
   await requireAdminPageAccess(locale);
 
   await connectDB();
-  const settings = await getSettings();
+  // The editor's Colors group edits the BRAND through the same settings
+  // store the Settings area uses; seeding it server-side means no skeleton
+  // flash where the brand fields belong.
+  const [settings, sanitizedSettings] = await Promise.all([
+    getSettings(),
+    getSanitizedSettings(),
+  ]);
   const theme = resolveActiveTheme(settings.onlineStore);
   const manifest = getActiveThemeManifest(theme.id);
   const brand = resolveBrand(settings);
@@ -35,13 +43,15 @@ export default async function ThemeEditorPage({ params }: PageProps) {
   const themeName = t.has(nameKey) ? t(nameKey) : manifest.name;
 
   return (
-    <ThemeEditor
-      locale={locale}
-      themeId={theme.id}
-      themeName={themeName}
-      defaults={theme.defaults}
-      initialTokens={theme.tokens}
-      brand={brand.colors}
-    />
+    <AdminSettingsProvider initialSettings={sanitizedSettings}>
+      <ThemeEditor
+        locale={locale}
+        themeId={theme.id}
+        themeName={themeName}
+        defaults={theme.defaults}
+        initialTokens={theme.tokens}
+        brand={brand.colors}
+      />
+    </AdminSettingsProvider>
   );
 }

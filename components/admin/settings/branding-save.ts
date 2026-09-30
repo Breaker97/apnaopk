@@ -26,8 +26,6 @@ const GENERAL_SAVE_KEYS: Array<keyof Settings["general"]> = [
   "defaultLanguage",
   "defaultCurrency",
   "supportedLanguages",
-  "supportedCurrencies",
-  "timezone",
 ];
 
 function pickGeneralForSave(general: Settings["general"]) {
@@ -44,7 +42,7 @@ function pickGeneralForSave(general: Settings["general"]) {
  * before blur could otherwise store a raw rgb string the color pipeline
  * can't read).
  */
-export function normalizeAppearanceForSave(
+function normalizeAppearanceForSave(
   appearance: Settings["appearance"],
 ) {
   const normalize = (value: string | undefined) =>

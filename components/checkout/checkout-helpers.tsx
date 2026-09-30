@@ -5,8 +5,10 @@ import type { CartItem } from "@/types";
 import type { Address } from "@/types";
 import type { ShippingRateOption } from "@/lib/shipping/shipping";
 import { isSafeAddressText } from "@/lib/customers/address-text";
+import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { cn } from "@/lib/utils";
 import { FLOATING_INPUT_CLASS, FLOATING_LABEL_CLASS } from "@/lib/constants";
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
 
 export type CheckoutFormData = {
   firstName: string;
@@ -87,22 +89,35 @@ export type SavedCheckoutAddress = Pick<
 /**
  * Legacy addresses predate the server-side text validation. Keep malformed
  * records out of checkout so they cannot be selected as a delivery address.
+ *
+ * An address in a country the store has since stopped delivering to goes the
+ * same way. The country picker is locked to what the store sells into, so
+ * filling the form from one would keep its street and city and quietly swap
+ * its country — an address the shopper never lived at, priced for a country
+ * they are not in. They enter a deliverable one instead.
  */
 export function filterUsableSavedCheckoutAddresses(
   addresses: SavedCheckoutAddress[],
+  countryAvailability?: unknown,
 ): SavedCheckoutAddress[] {
   return addresses.filter((address) => {
-    const requiredValues = [
-      address.street,
-      address.city,
-      address.postalCode,
-      address.country,
-    ];
+    if (
+      countryAvailability !== undefined &&
+      !isCountryAllowed(address.country, countryAvailability)
+    ) {
+      return false;
+    }
+
+    // The three a delivery cannot do without. The postal code is not one of
+    // them — a country that issues none would otherwise have every saved
+    // address filtered out of checkout.
+    const requiredValues = [address.street, address.city, address.country];
     const optionalValues = [
       address.firstName,
       address.lastName,
       address.apartment,
       address.state,
+      address.postalCode,
       address.phone,
     ];
 
@@ -154,10 +169,13 @@ export function canOfferToSaveAddress(input: {
 }): boolean {
   if (!input.isAuthenticated || !input.address) return false;
 
+  // Street, city and country: the fields checkout always collects. The postal
+  // code is configurable — a store may hide it, or make it optional — and
+  // requiring it here meant the checkbox silently never appeared in those
+  // stores, so the address could never be saved from checkout at all.
   const required = [
     input.address.street,
     input.address.city,
-    input.address.postalCode,
     input.address.country,
   ];
   if (!required.every((value) => (value ?? "").trim().length > 0)) return false;
@@ -245,42 +263,6 @@ export function savedAddressFormValues(
     country: address.country,
     phone: address.phone || "",
   };
-}
-
-type DeliveryAddressQuoteFields = Pick<
-  CheckoutFormData,
-  | "firstName"
-  | "lastName"
-  | "address"
-  | "apartment"
-  | "city"
-  | "state"
-  | "postalCode"
-  | "country"
-  | "phone"
->;
-
-/**
- * Creates a stable value for the entire fulfilment address. A quote must be
- * refreshed even if a shopper changes only the apartment, recipient, or
- * phone number, because those fields travel with the delivery instruction.
- */
-export function deliveryAddressQuoteKey(
-  address: DeliveryAddressQuoteFields,
-): string {
-  return [
-    address.firstName,
-    address.lastName,
-    address.address,
-    address.apartment,
-    address.city,
-    address.state,
-    address.postalCode,
-    address.country,
-    address.phone,
-  ]
-    .map((value) => value?.trim() || "")
-    .join("\u001f");
 }
 
 /** Concise destination copy that differentiates saved-address choices. */
@@ -378,7 +360,6 @@ export type CheckoutCartProductRef = CartItem["productId"] | { _id?: unknown };
 export type CheckoutCartItem = Omit<CartItem, "productId"> & {
   productId: CheckoutCartProductRef;
   categoryId?: unknown;
-  variantLabel?: string;
   compareAtPrice?: number;
 };
 
@@ -390,6 +371,8 @@ export type AppliedCoupon = {
   maxDiscount?: number;
   /** A scoped coupon's goods discount by seller. */
   vendorShares?: Record<string, number>;
+  /** The products a scoped coupon applied to. */
+  eligibleProductIds?: string[];
   /** The seller whose delivery a seller's own free-shipping coupon covers. */
   shippingVendorId?: string;
 };
@@ -573,14 +556,7 @@ function cleanCheckoutField(value: unknown) {
 }
 
 export function formatPreorderDate(value?: unknown) {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return formatPreorderReleaseDate(value);
 }
 
 export function getCouponErrorMessage(payload: unknown, fallback: string) {

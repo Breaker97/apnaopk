@@ -19,6 +19,19 @@ import {
 import { readableForegroundColor } from "@/lib/site-config/appearance-colors";
 import { isTrustedRemoteUrl } from "@/lib/remote-image-domains";
 import type { CSSProperties } from "react";
+import { color, hexChannels, oneOf, str } from "./normalize-values";
+import {
+  backgroundAccentColor,
+  backgroundFilterCss,
+  buildGradientCss,
+  focalPositionCss,
+  hasBackground,
+  isArtwork,
+  normalizeBackground,
+  type SlideBackground,
+} from "./background";
+
+export * from "./background";
 
 /**
  * A slide is arranged per SHAPE, not per device.
@@ -30,8 +43,32 @@ import type { CSSProperties } from "react";
  * wide cell wants the landscape arrangement; a tall cell on a desktop wants
  * the portrait one. Keying off the device would get both backwards.
  */
-export const SLIDE_SHAPES = ["landscape", "square", "portrait"] as const;
+export const SLIDE_SHAPES = ["landscape", "tile", "square", "portrait"] as const;
 export type SlideShape = (typeof SLIDE_SHAPES)[number];
+
+/**
+ * The bands that hold OVERRIDES. Landscape is the base every other band
+ * falls through to, so it is the one band that stores a complete design.
+ */
+export const SLIDE_OVERRIDE_BANDS = ["tile", "square", "portrait"] as const;
+export type SlideOverrideBand = (typeof SLIDE_OVERRIDE_BANDS)[number];
+
+/**
+ * What each band reads before its own overrides, nearest last.
+ *
+ * TILE follows SQUARE because the two wear the same arrangement — copy
+ * stacked over artwork — so a shop that tuned the square band for its bento
+ * cells keeps exactly what it had. What tile does not share is the size it
+ * is authored at: its lengths are stated against a 640px frame, not a 390px
+ * one, so a half-width desktop cell can carry desktop-sized type without
+ * touching the phone.
+ */
+export const SLIDE_BAND_CHAIN: Record<SlideShape, readonly SlideShape[]> = {
+  landscape: ["landscape"],
+  tile: ["landscape", "square", "tile"],
+  square: ["landscape", "square"],
+  portrait: ["landscape", "portrait"],
+};
 
 /**
  * Where one shape ends and the next begins, as a width/height ratio.
@@ -57,16 +94,38 @@ export const SLIDE_WIDE_FRAME_MIN_WIDTH = 900;
 const SLIDE_WIDE_FRAME_MIN_RATIO = 5 / 4;
 
 /**
+ * A square-ish frame this wide is a TILE, not a phone.
+ *
+ * The same roughly-square proportions arrive at two sizes with nothing in
+ * common: a 639x450 half-width cell on a desktop bento, and a 358x224 hero
+ * on a phone. One band covered both, so a headline sized for the desktop
+ * cell was the same number of pixels on the phone, and a merchant could only
+ * ever get one of the two right. 560px is the cut: above it sit the desktop
+ * and tablet cells (610-640 wide in every grid the shop ships), below it the
+ * phone hero and the narrow masonry cell (358-390).
+ */
+export const SLIDE_TILE_MIN_WIDTH = 560;
+
+/**
  * The container queries the stylesheet selects the bands with — stated
  * here so a test can pin globals.css to the contract's own numbers. Square
  * is what is left, so it needs no query.
  */
 export const SLIDE_BAND_QUERIES = {
+  // Tile is stated as a RANGE, and the stylesheet places its block before the
+  // other two: CSS has no strict ratio comparison, so a frame sitting exactly
+  // on 7/4 or 5/7 matches tile as well, and the later block is the one that
+  // wins — which is the answer `shapeForFrame` gives too.
+  tile: `@container slide ((min-width: ${SLIDE_TILE_MIN_WIDTH}px) and (min-aspect-ratio: 5/7) and (max-aspect-ratio: 7/4))`,
   landscape: `@container slide ((min-aspect-ratio: 7/4) or ((min-width: ${SLIDE_WIDE_FRAME_MIN_WIDTH}px) and (min-aspect-ratio: 5/4)))`,
   portrait: "@container slide (max-aspect-ratio: 5/7)",
 } as const;
 
-/** Which arrangement a container of this width/height ratio should wear. */
+/**
+ * Which arrangement a container of this ratio wears, KNOWING NOTHING OF ITS
+ * SIZE — so it can never answer `tile`, which is a size as much as a shape.
+ * Anything holding a frame wants `shapeForFrame`.
+ */
 export function shapeForAspect(ratio: number): SlideShape {
   if (!Number.isFinite(ratio) || ratio <= 0) return "landscape";
   if (ratio >= SLIDE_SHAPE_MIN_LANDSCAPE) return "landscape";
@@ -81,7 +140,8 @@ export function shapeForFrame(width: number, height: number): SlideShape {
   if (width >= SLIDE_WIDE_FRAME_MIN_WIDTH && ratio >= SLIDE_WIDE_FRAME_MIN_RATIO) {
     return "landscape";
   }
-  return shapeForAspect(ratio);
+  const shape = shapeForAspect(ratio);
+  return shape === "square" && width >= SLIDE_TILE_MIN_WIDTH ? "tile" : shape;
 }
 
 /**
@@ -112,15 +172,11 @@ export const HERO_FRAMES = {
  */
 export const SLIDE_FRAMES: Record<SlideShape, { width: number; height: number }> = {
   landscape: { width: HERO_FRAMES.desktop.width, height: HERO_FRAMES.desktop.height },
+  // The half-width desktop cell, to the pixel: `leftCategoryBar3`'s stage
+  // (639x450) and `bento4`'s wide cell (610x450) both land on this.
+  tile: { width: 640, height: 450 },
   square: { width: 390, height: 244 },
   portrait: { width: 390, height: 693 },
-};
-
-/** The proportion each band is previewed at — its frame's. */
-export const SLIDE_SHAPE_RATIO: Record<SlideShape, number> = {
-  landscape: SLIDE_FRAMES.landscape.width / SLIDE_FRAMES.landscape.height,
-  square: SLIDE_FRAMES.square.width / SLIDE_FRAMES.square.height,
-  portrait: SLIDE_FRAMES.portrait.width / SLIDE_FRAMES.portrait.height,
 };
 
 /** Elements the toolbar can toggle on a slide. */
@@ -187,7 +243,7 @@ export const SLIDE_HIGHLIGHT_STYLES = ["color", "italic", "underline", "marker"]
 export type SlideHighlightStyle = (typeof SLIDE_HIGHLIGHT_STYLES)[number];
 
 /** One run of a text: highlighted or not. */
-export interface TextSegment {
+interface TextSegment {
   text: string;
   highlight: boolean;
 }
@@ -284,7 +340,7 @@ export interface SlideLayout {
 }
 
 /** A band's layout with every default filled in — what a surface renders. */
-export type ResolvedSlideLayout = Required<SlideLayout>;
+type ResolvedSlideLayout = Required<SlideLayout>;
 
 /**
  * How the product artwork sits inside the slide, for one device.
@@ -388,123 +444,7 @@ export const REVEAL_EASING_CSS: Record<SlideRevealEasing, string> = {
 export const SLIDER_TRANSITIONS = ["slide", "fade"] as const;
 export type SliderTransition = (typeof SLIDER_TRANSITIONS)[number];
 
-export interface SlideGradient {
-  /** "linear" uses `angle`; "radial" is the direction pad's centre dot. */
-  type: "linear" | "radial";
-  /** CSS angle in degrees (0 = to top), for linear gradients. */
-  angle: number;
-  /** 2..6 stops, `at` in 0..100, kept sorted by `at`. */
-  stops: { color: string; at: number }[];
-}
 
-/**
- * What the background does under the pointer. "zoom" is for artwork — a
- * colour scaled up is the same colour; the picker offers it only there.
- */
-export const SLIDE_BACKGROUND_HOVERS = ["none", "zoom", "darken", "brighten"] as const;
-export type SlideBackgroundHover = (typeof SLIDE_BACKGROUND_HOVERS)[number];
-
-export interface SlideBackground {
-  type: "solid" | "gradient" | "image" | "video";
-  color?: string;
-  gradient?: SlideGradient;
-  /** The picture, and — under a video — its poster. */
-  image?: string;
-  /** Video only: the file that plays, muted and looping, behind the content. */
-  video?: string;
-  /**
-   * Artwork only (a picture or a video): darkening laid over it, 0–80 (%),
-   * for copy that needs the contrast. Absent or 0 shows it as uploaded.
-   */
-  overlay?: number;
-  /** The darkening's shape: a flat wash (default) or a scrim fading from an edge. */
-  overlayKind?: (typeof SLIDE_OVERLAY_KINDS)[number];
-  /** Which edge a gradient scrim starts from; default bottom. */
-  overlayFrom?: (typeof SLIDE_OVERLAY_EDGES)[number];
-  /** The wash's colour — a tint instead of black; default black. */
-  overlayColor?: string;
-  /** Artwork only: a blur of the picture, 0–30px. */
-  blur?: number;
-  /** Artwork only: a slow drift and zoom while the slide shows. */
-  motion?: Exclude<SlideBackgroundMotion, "none">;
-  /** A hover effect on the plate; absent means none. */
-  hover?: Exclude<SlideBackgroundHover, "none">;
-  /**
-   * The point of interest, percent of the picture's width and height. A
-   * frame that crops the picture keeps this point in view — a face near the
-   * top of a tall photo survives a 16:10 phone crop. Absent means centre.
-   */
-  focal?: { x: number; y: number };
-  /** The picture's pixel width, noted at upload, so the editor can say when it is narrower than a hero. */
-  imageWidth?: number;
-  /** The video's size in bytes, noted at upload, so the editor can say when it is heavy. */
-  videoSize?: number;
-}
-
-/** CSS object-position / background-position for a background's focal point. */
-export function focalPositionCss(background: SlideBackground): string {
-  const { focal } = background;
-  return focal ? `${focal.x}% ${focal.y}%` : "center";
-}
-
-export const MAX_BACKGROUND_OVERLAY = 80;
-export const MAX_BACKGROUND_BLUR = 30;
-/** A flat wash, or a scrim that fades from one edge. */
-export const SLIDE_OVERLAY_KINDS = ["flat", "gradient"] as const;
-export const SLIDE_OVERLAY_EDGES = ["bottom", "top", "left", "right"] as const;
-/**
- * What the picture does while the slide shows — a slow drift and zoom, a
- * pan across, a settle from a zoom, a gentle float. Off under reduced motion.
- */
-export const SLIDE_BACKGROUND_MOTIONS = ["none", "kenburns", "pan", "zoom-out", "float"] as const;
-export type SlideBackgroundMotion = (typeof SLIDE_BACKGROUND_MOTIONS)[number];
-
-/** Whether this background is artwork the darkening applies to. */
-function isArtwork(background: SlideBackground): boolean {
-  return background.type === "image" || background.type === "video";
-}
-
-/** A hex colour with an alpha, as rgba(); black when the hex is unreadable. */
-function rgba(hex: string | undefined, alpha: number): string {
-  const channels = hexChannels(hex ?? "#000000") ?? { r: 0, g: 0, b: 0 };
-  return `rgba(${channels.r},${channels.g},${channels.b},${alpha})`;
-}
-
-const OPPOSITE_EDGE = { bottom: "top", top: "bottom", left: "right", right: "left" } as const;
-
-/**
- * The darkening as a layer's inline style; null when there is none. A flat
- * wash tints the whole picture; a gradient scrim starts at one edge — where
- * the copy sits — and fades out, so the rest of the picture keeps its light.
- */
-export function backgroundOverlayCss(
-  background: SlideBackground,
-): CSSProperties | null {
-  if (!isArtwork(background) || !background.overlay) return null;
-  const alpha = background.overlay / 100;
-  if (background.overlayKind === "gradient") {
-    const from = background.overlayFrom ?? "bottom";
-    return {
-      backgroundImage: `linear-gradient(to ${OPPOSITE_EDGE[from]}, ${rgba(background.overlayColor, alpha)}, ${rgba(background.overlayColor, 0)})`,
-    };
-  }
-  return { backgroundColor: rgba(background.overlayColor, alpha) };
-}
-
-/** The picture's blur as a filter; "none" when it has none. */
-export function backgroundFilterCss(background: SlideBackground): string {
-  return isArtwork(background) && background.blur ? `blur(${background.blur}px)` : "none";
-}
-
-/**
- * The file a video background plays; "" for every other kind. A surface
- * paints `backgroundCss` (the poster, where there is one) and lays
- * `<BackgroundVideo>` over it — so a browser that cannot play the file, or
- * a visitor who asked for less motion, still sees the still.
- */
-export function backgroundVideoSrc(background: SlideBackground): string {
-  return background.type === "video" ? (background.video ?? "") : "";
-}
 
 export interface SliderSlide {
   id: string;
@@ -516,10 +456,9 @@ export interface SliderSlide {
    * description. Only what a band CHANGES is stored; the rest follows
    * `elements`. Resolve with `resolveSlideElements`.
    */
-  elementsByShape?: {
-    square?: Partial<Record<SlideElement, boolean>>;
-    portrait?: Partial<Record<SlideElement, boolean>>;
-  };
+  elementsByShape?: Partial<
+    Record<SlideOverrideBand, Partial<Record<SlideElement, boolean>>>
+  >;
   /** The stacking order of the elements; every element appears exactly once. */
   order: SlideElement[];
   texts: {
@@ -546,11 +485,7 @@ export interface SliderSlide {
    * falls through to landscape on its own, so overriding the size in portrait
    * keeps the weight and colour you set once.
    */
-  styles: {
-    landscape: SlideStyleMap;
-    square?: SlideStyleMap;
-    portrait?: SlideStyleMap;
-  };
+  styles: { landscape: SlideStyleMap } & Partial<Record<SlideOverrideBand, SlideStyleMap>>;
   /** Explicit link; a bound product supplies the fallback destination. */
   link: string;
   /** The second button's link; nothing falls back to it. */
@@ -578,24 +513,18 @@ export interface SliderSlide {
    * would crop badly or a different shot suits a phone. Resolve with
    * `resolveSlideBackground`; a band without one shows the landscape's.
    */
-  backgrounds?: { square?: SlideBackground; portrait?: SlideBackground };
+  backgrounds?: Partial<Record<SlideOverrideBand, SlideBackground>>;
   /** The same for the artwork: a band's own cutout. */
-  productImages?: { square?: string; portrait?: string };
+  productImages?: Partial<Record<SlideOverrideBand, string>>;
   /** A plate behind the copy column, for legibility over a busy picture. */
   plate?: SlidePlate;
   /** When the slide shows; outside the window it is skipped like a hidden one. */
   schedule?: SlideSchedule;
-  layout: {
-    landscape: SlideLayout;
-    square?: Partial<SlideLayout>;
-    portrait?: Partial<SlideLayout>;
-  };
+  layout: { landscape: SlideLayout } & Partial<Record<SlideOverrideBand, Partial<SlideLayout>>>;
   /** The artwork layer's own placement, same per-device fallthrough. */
-  image: {
-    landscape: SlideImageLayout;
-    square?: Partial<SlideImageLayout>;
-    portrait?: Partial<SlideImageLayout>;
-  };
+  image: { landscape: SlideImageLayout } & Partial<
+    Record<SlideOverrideBand, Partial<SlideImageLayout>>
+  >;
   alt: string;
 }
 
@@ -733,6 +662,7 @@ export function clampAutoplaySeconds(value: unknown): number {
  */
 export const SLIDE_SHAPE_ASPECT_CLASS: Record<SlideShape, string> = {
   landscape: "aspect-[1248/450]",
+  tile: "aspect-[640/450]",
   square: "aspect-[390/244]",
   portrait: "aspect-[390/693]",
 };
@@ -740,6 +670,7 @@ export const SLIDE_SHAPE_ASPECT_CLASS: Record<SlideShape, string> = {
 /** The width each band's lengths are stated at: its frame's. */
 export const SLIDE_SHAPE_REFERENCE_WIDTH: Record<SlideShape, number> = {
   landscape: SLIDE_FRAMES.landscape.width,
+  tile: SLIDE_FRAMES.tile.width,
   square: SLIDE_FRAMES.square.width,
   portrait: SLIDE_FRAMES.portrait.width,
 };
@@ -824,11 +755,12 @@ export function textSizeCss(
  * slide, so it is stated per band like everything else.
  */
 export function fixedSizeVars(px: number): Record<string, string> {
-  return {
-    "--fs-l": slideLength(px, "landscape", FLUID_TEXT_BASE_PX),
-    "--fs-s": slideLength(px, "square", FLUID_TEXT_BASE_PX),
-    "--fs-p": slideLength(px, "portrait", FLUID_TEXT_BASE_PX),
-  };
+  return Object.fromEntries(
+    SLIDE_BAND_KEYS.map(([suffix, shape]) => [
+      `--fs-${suffix}`,
+      slideLength(px, shape, FLUID_TEXT_BASE_PX),
+    ]),
+  );
 }
 
 /**
@@ -841,6 +773,8 @@ export function fixedSizeVars(px: number): Record<string, string> {
 export const SLIDE_COPY_PADDING: Record<SlideShape, number> = {
   portrait: 24,
   square: 24,
+  // A tile has half a hero's width and all of its height: between the two.
+  tile: 32,
   landscape: 48,
 };
 export const MAX_COPY_PADDING = 200;
@@ -848,6 +782,7 @@ export const MAX_COPY_PADDING = 200;
 const SLIDE_ART_PADDING: Record<SlideShape, number> = {
   portrait: 16,
   square: 16,
+  tile: 20,
   landscape: 24,
 };
 
@@ -1014,28 +949,7 @@ export function createSlide(id: string): SliderSlide {
 /* value the contract doesn't allow.                                   */
 /* ------------------------------------------------------------------ */
 
-/**
- * Three, six or eight hex digits: the eight-digit form carries an alpha
- * channel, which is how a background says "60% white" — one value, painted
- * by the browser, no separate opacity to keep in step with the colour.
- */
-const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
-function str(value: unknown, max = 2000): string {
-  return typeof value === "string" ? value.slice(0, max) : "";
-}
-
-function color(value: unknown): string | undefined {
-  return typeof value === "string" && HEX_COLOR.test(value) ? value : undefined;
-}
-
-function oneOf<T extends string>(
-  value: unknown,
-  options: readonly T[],
-  fallback: T,
-): T {
-  return options.includes(value as T) ? (value as T) : fallback;
-}
 
 function normalizeTextStyle(raw: unknown): SlideTextStyle | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
@@ -1116,6 +1030,18 @@ function normalizeLayout(raw: unknown): SlideLayout {
   return layout;
 }
 
+/**
+ * Documents written against the device model carry desktop/tablet/mobile.
+ * The reading is the one a designer would make — a desktop hero is wide, a
+ * phone is tall — so the old keys map straight onto the bands and an
+ * existing slider keeps its arrangement without anyone re-doing it. Tile
+ * post-dates that model and has no old name.
+ */
+const LEGACY_BAND_KEY: Partial<Record<SlideOverrideBand, string>> = {
+  square: "tablet",
+  portrait: "mobile",
+};
+
 function normalizePartialLayout(raw: unknown): Partial<SlideLayout> | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const source = raw as Record<string, unknown>;
@@ -1174,105 +1100,7 @@ function normalizePartialImageLayout(
   return Object.keys(layout).length > 0 ? layout : undefined;
 }
 
-function normalizeGradient(raw: unknown): SlideGradient | undefined {
-  if (typeof raw !== "object" || raw === null) return undefined;
-  const source = raw as Record<string, unknown>;
-  const stops = (Array.isArray(source.stops) ? source.stops : [])
-    .map((stop) => {
-      const entry =
-        typeof stop === "object" && stop !== null
-          ? (stop as Record<string, unknown>)
-          : {};
-      const c = color(entry.color);
-      if (!c) return null;
-      return { color: c, at: readNumber(entry.at, 0, 0, 100) };
-    })
-    .filter((stop): stop is { color: string; at: number } => stop !== null)
-    .sort((a, b) => a.at - b.at)
-    .slice(0, 6);
-  if (stops.length < 2) return undefined;
-  return {
-    type: source.type === "radial" ? "radial" : "linear",
-    angle: readNumber(source.angle, 0, 0, 359),
-    stops,
-  };
-}
 
-/**
- * Exported because the same contract now backs every "background" the
- * admin edits — the header studio's rows and items and the section field
- * type of that name — not just a slide.
- */
-export function normalizeBackground(raw: unknown): SlideBackground {
-  const source =
-    typeof raw === "object" && raw !== null
-      ? (raw as Record<string, unknown>)
-      : {};
-  const type = oneOf(
-    source.type,
-    ["solid", "gradient", "image", "video"] as const,
-    "solid",
-  );
-  const background: SlideBackground = { type };
-  const solid = color(source.color);
-  if (solid) background.color = solid;
-  const gradient = normalizeGradient(source.gradient);
-  if (gradient) background.gradient = gradient;
-  const image = str(source.image, 1000);
-  if (image) background.image = image;
-  const video = str(source.video, 1000);
-  if (video) background.video = video;
-  const overlay = source.overlay;
-  if (typeof overlay === "number" && Number.isFinite(overlay) && overlay > 0) {
-    background.overlay = Math.min(MAX_BACKGROUND_OVERLAY, Math.round(overlay));
-  }
-  const hover = source.hover;
-  if (
-    SLIDE_BACKGROUND_HOVERS.includes(hover as SlideBackgroundHover) &&
-    hover !== "none"
-  ) {
-    background.hover = hover as Exclude<SlideBackgroundHover, "none">;
-  }
-  const focal = source.focal;
-  if (typeof focal === "object" && focal !== null) {
-    const point = focal as Record<string, unknown>;
-    if (typeof point.x === "number" && typeof point.y === "number") {
-      background.focal = {
-        x: readNumber(point.x, 50, 0, 100, 1),
-        y: readNumber(point.y, 50, 0, 100, 1),
-      };
-    }
-  }
-  if (typeof source.imageWidth === "number" && source.imageWidth > 0) {
-    background.imageWidth = Math.round(source.imageWidth);
-  }
-  if (typeof source.videoSize === "number" && source.videoSize > 0) {
-    background.videoSize = Math.round(source.videoSize);
-  }
-  if (source.overlayKind === "gradient") background.overlayKind = "gradient";
-  if (SLIDE_OVERLAY_EDGES.includes(source.overlayFrom as (typeof SLIDE_OVERLAY_EDGES)[number])) {
-    background.overlayFrom = source.overlayFrom as (typeof SLIDE_OVERLAY_EDGES)[number];
-  }
-  const overlayColor = color(source.overlayColor);
-  if (overlayColor) background.overlayColor = overlayColor;
-  if (typeof source.blur === "number" && Number.isFinite(source.blur) && source.blur > 0) {
-    background.blur = Math.min(MAX_BACKGROUND_BLUR, Math.round(source.blur));
-  }
-  if (
-    SLIDE_BACKGROUND_MOTIONS.includes(source.motion as SlideBackgroundMotion) &&
-    source.motion !== "none"
-  ) {
-    background.motion = source.motion as Exclude<SlideBackgroundMotion, "none">;
-  }
-  // A background whose chosen type has no value falls back to solid so the
-  // slide never renders as a hole.
-  if (type === "gradient" && !gradient) background.type = "solid";
-  if (type === "image" && !image) background.type = "solid";
-  // A video with nothing to play falls back to its poster, and to solid
-  // without one — the same rule every other empty mode follows.
-  if (type === "video" && !video) background.type = image ? "image" : "solid";
-  return background;
-}
 
 function record(raw: unknown): Record<string, unknown> {
   return typeof raw === "object" && raw !== null
@@ -1380,7 +1208,7 @@ function normalizeSlide(raw: unknown, index: number): SliderSlide {
     landscape: styleMapAt(legacyFlat ? stylesSource : stylesSource.landscape),
   };
   if (!legacyFlat) {
-    for (const shape of ["square", "portrait"] as const) {
+    for (const shape of SLIDE_OVERRIDE_BANDS) {
       const map = styleMapAt(stylesSource[shape]);
       if (Object.keys(map).length > 0) styles[shape] = map;
     }
@@ -1439,7 +1267,7 @@ function normalizeSlide(raw: unknown, index: number): SliderSlide {
     alt: str(source.alt, 300),
   };
   const byShape = record(source.elementsByShape);
-  for (const shape of ["square", "portrait"] as const) {
+  for (const shape of SLIDE_OVERRIDE_BANDS) {
     const flags = normalizeElementFlags(byShape[shape]);
     if (Object.keys(flags).length > 0) {
       slide.elementsByShape = { ...(slide.elementsByShape ?? {}), [shape]: flags };
@@ -1450,14 +1278,14 @@ function normalizeSlide(raw: unknown, index: number): SliderSlide {
   const plate = normalizePlate(source.plate);
   if (plate) slide.plate = plate;
   const backgrounds = record(source.backgrounds);
-  for (const shape of ["square", "portrait"] as const) {
+  for (const shape of SLIDE_OVERRIDE_BANDS) {
     if (typeof backgrounds[shape] !== "object" || backgrounds[shape] === null) continue;
     const own = normalizeBackground(backgrounds[shape]);
     if (!hasBackground(own)) continue;
     slide.backgrounds = { ...(slide.backgrounds ?? {}), [shape]: own };
   }
   const productImages = record(source.productImages);
-  for (const shape of ["square", "portrait"] as const) {
+  for (const shape of SLIDE_OVERRIDE_BANDS) {
     const image = str(productImages[shape], 1000);
     if (image) slide.productImages = { ...(slide.productImages ?? {}), [shape]: image };
   }
@@ -1475,26 +1303,21 @@ function normalizeSlide(raw: unknown, index: number): SliderSlide {
   }
   const schedule = normalizeSchedule(source.schedule);
   if (schedule) slide.schedule = schedule;
-  // Documents written against the device model carry desktop/tablet/mobile.
-  // The reading is the same one a designer would make — a desktop hero is
-  // wide, a phone is tall — so the old keys map straight onto the bands and
-  // an existing slider keeps its arrangement without anyone re-doing it.
-  const square = normalizePartialLayout(
-    layoutSource.square ?? layoutSource.tablet,
-  );
-  if (square) slide.layout.square = square;
-  const portrait = normalizePartialLayout(
-    layoutSource.portrait ?? layoutSource.mobile,
-  );
-  if (portrait) slide.layout.portrait = portrait;
-  const imageSquare = normalizePartialImageLayout(
-    imageSource.square ?? imageSource.tablet,
-  );
-  if (imageSquare) slide.image.square = imageSquare;
-  const imagePortrait = normalizePartialImageLayout(
-    imageSource.portrait ?? imageSource.mobile,
-  );
-  if (imagePortrait) slide.image.portrait = imagePortrait;
+  // Every band that can override, read the same way. Spelling two of them
+  // out here is how a band added to the contract was silently dropped on
+  // every write: the editor showed the change, Publish round-tripped it
+  // through this function, and the override was simply not carried across.
+  for (const band of SLIDE_OVERRIDE_BANDS) {
+    const legacy = LEGACY_BAND_KEY[band];
+    const own = normalizePartialLayout(
+      layoutSource[band] ?? (legacy ? layoutSource[legacy] : undefined),
+    );
+    if (own) slide.layout[band] = own;
+    const art = normalizePartialImageLayout(
+      imageSource[band] ?? (legacy ? imageSource[legacy] : undefined),
+    );
+    if (art) slide.image[band] = art;
+  }
   return slide;
 }
 
@@ -1517,89 +1340,39 @@ export function normalizeSlides(raw: unknown): SliderSlide[] {
 /* ------------------------------------------------------------------ */
 
 /**
- * Square and portrait fall through to landscape for anything unset — except
- * the inset, which each band states for itself or takes its own default.
+ * Every band falls through its chain to landscape for anything unset —
+ * except the INSET, which landscape never hands down: a 48px desktop inset
+ * would swallow a phone. Each band states its own or takes its default,
+ * and tile may take the one square states.
  */
 export function resolveSlideLayout(
   slide: SliderSlide,
   shape: SlideShape,
 ): ResolvedSlideLayout {
-  const base = slide.layout.landscape;
-  const own = shape === "landscape" ? base : slide.layout[shape];
-  const merged = shape === "landscape" ? base : { ...base, ...(own ?? {}) };
-  return { ...merged, padding: own?.padding ?? SLIDE_COPY_PADDING[shape] };
+  const merged: SlideLayout = { ...slide.layout.landscape };
+  let padding = shape === "landscape" ? slide.layout.landscape.padding : undefined;
+  for (const band of SLIDE_BAND_CHAIN[shape]) {
+    if (band === "landscape") continue;
+    const own = slide.layout[band];
+    if (!own) continue;
+    Object.assign(merged, own);
+    if (own.padding !== undefined) padding = own.padding;
+  }
+  return { ...merged, padding: padding ?? SLIDE_COPY_PADDING[shape] };
 }
 
 export function resolveImageLayout(
   slide: SliderSlide,
   shape: SlideShape,
 ): SlideImageLayout {
-  const base = slide.image.landscape;
-  if (shape === "landscape") return base;
-  return { ...base, ...(slide.image[shape] ?? {}) };
+  const merged: SlideImageLayout = { ...slide.image.landscape };
+  for (const band of SLIDE_BAND_CHAIN[shape]) {
+    if (band === "landscape") continue;
+    Object.assign(merged, slide.image[band] ?? {});
+  }
+  return merged;
 }
 
-/** Whether the chosen mode actually has something to paint. */
-export function hasBackground(background: SlideBackground): boolean {
-  switch (background.type) {
-    case "solid":
-      return Boolean(background.color);
-    case "gradient":
-      return Boolean(background.gradient);
-    case "image":
-      return Boolean(background.image);
-    case "video":
-      return Boolean(background.video);
-  }
-}
-
-/**
- * The background as inline style. Empty when nothing is set, so a caller
- * can spread it and let the surface's own paint show through. Images are
- * covered and centred — a header row is wide and short, and a stretched
- * photo reads as broken where a cropped one reads as a banner.
- */
-export function backgroundCss(background: SlideBackground): CSSProperties {
-  if (background.type === "gradient" && background.gradient) {
-    return { backgroundImage: buildGradientCss(background.gradient) };
-  }
-  // A video paints its POSTER here; `<BackgroundVideo>` plays over it.
-  if (
-    (background.type === "image" || background.type === "video") &&
-    background.image
-  ) {
-    return {
-      backgroundImage: `url("${background.image.replace(/["\\]/g, "")}")`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    };
-  }
-  if (background.type === "solid" && background.color) {
-    return { backgroundColor: background.color };
-  }
-  return {};
-}
-
-/**
- * One colour standing in for the whole background — what a border or an
- * outline takes when the fill itself is a gradient or a photo.
- */
-export function backgroundAccentColor(
-  background: SlideBackground,
-): string | undefined {
-  if (background.type === "gradient") return background.gradient?.stops[0]?.color;
-  if (isArtwork(background)) return undefined;
-  return background.color;
-}
-
-export function buildGradientCss(gradient: SlideGradient): string {
-  const stops = gradient.stops
-    .map((stop) => `${stop.color} ${stop.at}%`)
-    .join(", ");
-  return gradient.type === "radial"
-    ? `radial-gradient(circle at center, ${stops})`
-    : `linear-gradient(${gradient.angle}deg, ${stops})`;
-}
 
 /** What a band actually STORES for one text — the override, not the result. */
 export function ownTextStyle(
@@ -1624,10 +1397,11 @@ export function resolveTextStyle(
   element: SlideTextElement,
   shape: SlideShape = "landscape",
 ): Required<Pick<SlideTextStyle, "size" | "width">> & SlideTextStyle {
-  const style = {
-    ...slide.styles.landscape[element],
-    ...(shape === "landscape" ? {} : slide.styles[shape]?.[element]),
-  };
+  const style: SlideTextStyle = { ...slide.styles.landscape[element] };
+  for (const band of SLIDE_BAND_CHAIN[shape]) {
+    if (band === "landscape") continue;
+    Object.assign(style, slide.styles[band]?.[element]);
+  }
   return {
     ...style,
     size: style.size ?? DEFAULT_TEXT_SIZES[element],
@@ -1635,9 +1409,10 @@ export function resolveTextStyle(
   };
 }
 
-/** The three bands and the suffix each one's custom properties carry. */
+/** Every band and the suffix its custom properties carry. */
 export const SLIDE_BAND_KEYS = [
   ["l", "landscape"],
+  ["t", "tile"],
   ["s", "square"],
   ["p", "portrait"],
 ] as const;
@@ -1705,7 +1480,7 @@ function bandTextVars(
  * element itself.
  *
  * Declaring them on the element is what keeps the stylesheet small: one
- * generic `.sl-text` rule per band aliases `--fs-l|s|p` down to `--fs`, and
+ * generic `.sl-text` rule per band aliases `--fs-l|t|s|p` down to `--fs`, and
  * that same rule then serves every text on every slide — on the storefront
  * AND on the editor's artboard, which is a real `.sl-frame` too. The
  * alternative — naming each element in the CSS — would be twenty
@@ -1865,25 +1640,32 @@ export function slideLayoutVars(slide: SliderSlide): Record<string, string> {
   return vars;
 }
 
-/** The background a band shows: its own, or the landscape's. */
-export function resolveSlideBackground(slide: SliderSlide, shape: SlideShape): SlideBackground {
-  if (shape === "landscape") return slide.background;
-  return slide.backgrounds?.[shape] ?? slide.background;
+/** The nearest band in a chain that states something, nearest first. */
+function nearest<T>(shape: SlideShape, at: (band: SlideOverrideBand) => T | undefined): T | undefined {
+  const chain = SLIDE_BAND_CHAIN[shape];
+  for (let i = chain.length - 1; i >= 0; i -= 1) {
+    const band = chain[i];
+    if (band === "landscape") break;
+    const own = at(band);
+    if (own) return own;
+  }
+  return undefined;
 }
 
-/** The artwork a band shows: its own cutout, or the landscape's. */
+/** The background a band shows: its own, its chain's, or the landscape's. */
+export function resolveSlideBackground(slide: SliderSlide, shape: SlideShape): SlideBackground {
+  return nearest(shape, (band) => slide.backgrounds?.[band]) ?? slide.background;
+}
+
+/** The artwork a band shows: its own cutout, its chain's, or the landscape's. */
 export function resolveSlideArt(slide: SliderSlide, shape: SlideShape): string {
-  if (shape === "landscape") return slide.productImage;
-  return slide.productImages?.[shape] ?? slide.productImage;
+  return nearest(shape, (band) => slide.productImages?.[band]) ?? slide.productImage;
 }
 
 /** Whether any band has a picture or a cutout of its own. */
 export function slideHasArtDirection(slide: SliderSlide): boolean {
-  return Boolean(
-    slide.backgrounds?.square ||
-      slide.backgrounds?.portrait ||
-      slide.productImages?.square ||
-      slide.productImages?.portrait,
+  return SLIDE_OVERRIDE_BANDS.some(
+    (band) => slide.backgrounds?.[band] || slide.productImages?.[band],
   );
 }
 
@@ -1904,6 +1686,7 @@ export function optimizedImageUrl(src: string, width: number): string {
 /** The width the optimiser is asked for per band: the frame, at 2× for sharp screens, capped. */
 const BAND_IMAGE_WIDTH: Record<SlideShape, number> = {
   landscape: 1920,
+  tile: 1280,
   square: 828,
   portrait: 828,
 };
@@ -1946,7 +1729,12 @@ export function resolveSlideElements(
   shape: SlideShape,
 ): Record<SlideElement, boolean> {
   if (shape === "landscape") return slide.elements;
-  return { ...slide.elements, ...(slide.elementsByShape?.[shape] ?? {}) };
+  const flags = { ...slide.elements };
+  for (const band of SLIDE_BAND_CHAIN[shape]) {
+    if (band === "landscape") continue;
+    Object.assign(flags, slide.elementsByShape?.[band] ?? {});
+  }
+  return flags;
 }
 
 /** The artwork layer's per-band placement, the same way. */
@@ -1965,11 +1753,6 @@ export function slideArtVars(slide: SliderSlide): Record<string, string> {
 
 /** The price line's own size, in the same width-relative terms. */
 export const SLIDE_PRICE_PX = 26;
-
-/** A text box's width as a percent string; `0` (shrink-to-fit) becomes `auto`. */
-export function textBoxWidth(width: number): string {
-  return width > 0 ? `${width}%` : "auto";
-}
 
 /**
  * A text box's width as CSS: its share of the PADDED SLIDE, computed from
@@ -2034,6 +1817,11 @@ export function normalizeSliderControls(raw: unknown): SliderControls {
 /** The width each band's lengths were stated at before version 2. */
 const V1_REFERENCE_WIDTH: Record<SlideShape, number> = {
   landscape: 983,
+  // Tile did not exist in version 1: a frame that is a tile now rendered
+  // under the SQUARE rules then, against the square reference. Baking that
+  // reference keeps a migrated slider drawing the same pixels on the cells
+  // that have just changed band.
+  tile: 430,
   square: 430,
   portrait: 242,
 };
@@ -2322,16 +2110,6 @@ export type SlideWarning =
 /** A background video heavier than this is flagged; the shop still plays it. */
 export const MAX_SLIDE_VIDEO_BYTES = 8 * 1024 * 1024;
 
-function hexChannels(hex: string): { r: number; g: number; b: number; a: number } | null {
-  const digits = hex.trim().replace(/^#/, "");
-  const full =
-    digits.length === 3 || digits.length === 4
-      ? digits.split("").map((d) => d + d).join("")
-      : digits;
-  if (!/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(full)) return null;
-  const n = (at: number) => parseInt(full.slice(at, at + 2), 16);
-  return { r: n(0), g: n(2), b: n(4), a: full.length === 8 ? n(6) / 255 : 1 };
-}
 
 function luminance({ r, g, b }: { r: number; g: number; b: number }): number {
   const channel = (v: number) => {

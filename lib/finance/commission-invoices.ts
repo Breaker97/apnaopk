@@ -35,7 +35,7 @@ import {
   PAYABLE_ORDER_PROJECTION,
   buildCommissionOwedOrderFilter,
   fetchRefundTotalsByOrder,
-  fetchVendorCommissionCredit,
+  fetchVendorCommissionCreditBalance,
   isCommissionOwedSubOrder,
   payableInCurrency,
   sumVendorPayable,
@@ -79,6 +79,22 @@ type CommissionOwed = {
    */
   otherCurrencies: string[];
 };
+
+/**
+ * How much of a signed commission credit a bill of `afterPromotions` takes.
+ *
+ * A positive credit comes off only as far as the bill can absorb it. A negative
+ * one — credit earlier invoices took for a refund that was later undone — is
+ * commission owed again, and is carried whole: it adds to the bill, or eats
+ * into what the store would otherwise owe on balance.
+ */
+export function applyCommissionCredit(
+  credit: number,
+  afterPromotions: number,
+): number {
+  if (credit < 0) return roundMoney(credit);
+  return roundMoney(Math.min(credit, Math.max(0, afterPromotions)));
+}
 
 /**
  * What `vendorId` currently owes IN `currency`, ignoring anything an open
@@ -130,23 +146,27 @@ export async function commissionOwedForVendor(
   // Commission the vendor has already paid on sales that were refunded after
   // they paid it. The platform owes it back; netting it off the next bill is
   // how it gets back without needing a payment rail of its own.
-  const credit = await fetchVendorCommissionCredit({ vendorId, currency: wanted });
+  const credit = await fetchVendorCommissionCreditBalance({
+    vendorId,
+    currency: wanted,
+  });
   const grossOwed = roundMoney(totals.commissionAmount);
   // The store's promotions on these sales come off first: the vendor collected
   // the discounted price of goods they are owed the full price for.
   const promotionCredit = roundMoney(totals.promotionCredit);
   const afterPromotions = roundMoney(grossOwed - promotionCredit);
-  const creditApplied = roundMoney(Math.min(credit, Math.max(0, afterPromotions)));
+  const creditApplied = applyCommissionCredit(credit, afterPromotions);
+  const billed = roundMoney(afterPromotions - creditApplied);
 
   return {
     currency: wanted,
     // Only the commission column is meaningful — `netAmount` is what the
     // platform would owe the vendor, and on these sales it owes them nothing.
-    amount: Math.max(0, roundMoney(afterPromotions - creditApplied)),
+    amount: Math.max(0, billed),
     creditApplied,
     grossOwed,
     promotionCredit,
-    storeOwes: Math.max(0, roundMoney(-afterPromotions)),
+    storeOwes: Math.max(0, roundMoney(-billed)),
     grossSales: roundMoney(totals.grossSales),
     orderCount: totals.orderIds.length,
     orderIds: totals.orderIds,
@@ -343,13 +363,15 @@ async function billedOnClaim(params: {
   const afterPromotions = roundMoney(
     totals.commissionAmount - totals.promotionCredit,
   );
-  const creditApplied = roundMoney(
-    Math.min(params.creditAvailable, Math.max(0, afterPromotions)),
+  const creditApplied = applyCommissionCredit(
+    params.creditAvailable,
+    afterPromotions,
   );
+  const billed = roundMoney(afterPromotions - creditApplied);
   return {
-    amount: Math.max(0, roundMoney(afterPromotions - creditApplied)),
+    amount: Math.max(0, billed),
     creditApplied,
-    storeOwes: Math.max(0, roundMoney(-afterPromotions)),
+    storeOwes: Math.max(0, roundMoney(-billed)),
     orderIds: totals.orderIds,
   };
 }
@@ -515,14 +537,48 @@ export async function discardCommissionInvoice(
  * Both stamps are cleared, so the sales return to the owed balance and can be
  * billed again. Leaving `commissionSettledAt` behind after a chargeback would
  * write the debt off permanently on money that came back.
+ *
+ * The invoice moves FIRST, and only from the status the reason implies: a
+ * cancel only from open, a reversal only from paid. An admin cancel reads the
+ * invoice as open, and a gateway payment settling it a moment later used to be
+ * wiped by the release that followed — paid flipped to cancelled, its sales
+ * owed again, and the same commission collected twice. Null when the invoice
+ * was no longer in that status, and nothing is released.
+ *
+ * A retry of a release that already cancelled the invoice still clears any
+ * stamps a crash left behind.
  */
 export async function releaseCommissionInvoice(
   invoiceId: Types.ObjectId | string,
   reason: "cancelled" | "reversed",
-): Promise<number> {
+): Promise<number | null> {
   await connectDB();
 
   const settlementId = new Types.ObjectId(String(invoiceId));
+  const from =
+    reason === "cancelled"
+      ? COMMISSION_INVOICE_STATUS.OPEN
+      : COMMISSION_INVOICE_STATUS.PAID;
+  const moved = await CommissionInvoice.updateOne(
+    { _id: settlementId, status: from },
+    {
+      $set: {
+        status: COMMISSION_INVOICE_STATUS.CANCELLED,
+        // A reversed invoice keeps the attempt that paid it, as history; a
+        // cancelled one never had one.
+        ...(reason === "cancelled" ? { paymentId: null, paidAt: null } : {}),
+      },
+    },
+  );
+  if ((moved.modifiedCount ?? 0) === 0) {
+    const current = await CommissionInvoice.findById(settlementId)
+      .select("status")
+      .lean<{ status?: string } | null>();
+    if (current && current.status !== COMMISSION_INVOICE_STATUS.CANCELLED) {
+      return null;
+    }
+  }
+
   const result = await Order.updateMany(
     { "subOrders.commissionSettlementId": settlementId },
     {
@@ -533,18 +589,6 @@ export async function releaseCommissionInvoice(
       },
     },
     { arrayFilters: [{ "so.commissionSettlementId": settlementId }] },
-  );
-
-  await CommissionInvoice.updateOne(
-    { _id: settlementId },
-    {
-      $set: {
-        status: COMMISSION_INVOICE_STATUS.CANCELLED,
-        // A reversed invoice keeps the attempt that paid it, as history; a
-        // cancelled one never had one.
-        ...(reason === "cancelled" ? { paymentId: null, paidAt: null } : {}),
-      },
-    },
   );
 
   return result.modifiedCount;

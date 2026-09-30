@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   Plus,
@@ -293,7 +293,7 @@ export function CollectionsDataTable({
             image={row.image?.url}
             title={row.title}
             subtitle={`/${row.slug}`}
-            href={`/${locale}/admin/collections/${row._id}`}
+            href={`/admin/collections/${row._id}`}
           />
         ),
         className: "w-[400px]",
@@ -409,7 +409,7 @@ export function CollectionsDataTable({
         addAction: {
           id: "add",
           label: t("admin.collectionsDataTable.actions.addCollection"),
-          href: `/${locale}/admin/collections/new`,
+          href: "/admin/collections/new",
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
@@ -470,7 +470,7 @@ export function CollectionsDataTable({
         id: "edit",
         label: t("admin.collectionsDataTable.rowActions.edit"),
         icon: <Pencil className="h-4 w-4" />,
-        href: `/${locale}/admin/collections/${row._id}`,
+        href: `/admin/collections/${row._id}`,
       },
       {
         id: "delete",
@@ -531,7 +531,7 @@ export function CollectionsDataTable({
         rowActionsHeader={t("admin.collectionsDataTable.rowActionsHeader")}
         rowActionsVariant="inline"
         onRowClick={(row) =>
-          router.push(`/${locale}/admin/collections/${row._id}`)
+          router.push(`/admin/collections/${row._id}`)
         }
         emptyMessage={t("admin.collectionsDataTable.empty")}
         emptyIcon={<Layers className="h-8 w-8" />}

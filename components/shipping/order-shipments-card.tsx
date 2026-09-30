@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -9,6 +10,7 @@ import {
   Printer,
   RefreshCw,
   Truck,
+  Undo2,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,6 +90,50 @@ interface ShipmentsResponse {
   packages: CourierPackagePreset[];
   storeCurrency?: string;
   courierTrackingLinks?: CourierTrackingLink[];
+  /** Present while shipping waits on an undeliverable address. */
+  addressHold?: { state: "open"; message?: string };
+  /** Store staff only: what a returned parcel's refund starts from. */
+  refund?: {
+    refundable: number;
+    paymentStatus?: string;
+    currency?: string;
+    keepReturnShipping: boolean;
+  };
+}
+
+/**
+ * The return shipping a refund keeps, in the order's currency. Only when the
+ * label was bought in that currency: a USD label on an INR order has no honest
+ * figure to subtract, so nothing is kept rather than a made-up conversion.
+ */
+function returnShippingDeduction(
+  shipment: { rate?: { amount: number; currency: string } },
+  refund: { currency?: string },
+  keep: boolean,
+): number {
+  if (!keep || !shipment.rate || !refund.currency) return 0;
+  if (shipment.rate.currency.toUpperCase() !== refund.currency.toUpperCase()) return 0;
+  return Math.max(0, Number(shipment.rate.amount) || 0);
+}
+
+/** A parcel the courier brought back — undeliverable, refused, unclaimed. */
+function isReturnedToSender(shipment: { exception?: { code: string } }): boolean {
+  return shipment.exception?.code === "returned";
+}
+
+/**
+ * Whether this row has a label worth printing.
+ *
+ * A hand-entered parcel always does — its label is generated. A carrier parcel
+ * only once one is bought and while it is live: a rate-shopped draft has none,
+ * and a voided one's was cancelled by the carrier. The server refuses both too;
+ * hiding the buttons is what stops a merchant being offered them at all.
+ */
+function hasPrintableLabel(shipment: ShipmentRow): boolean {
+  if (!shipment.provider) return true;
+  return (
+    shipment.purchase?.state === "purchased" && shipment.status !== "cancelled"
+  );
 }
 
 const STATUS_TONE: Record<string, string> = {
@@ -152,10 +198,17 @@ export function OrderShipmentsCard(props: {
     void load();
   }, [load, props.hidden]);
 
+  const router = useRouter();
+  const [refundTarget, setRefundTarget] = useState<ShipmentRow | null>(null);
+  const [keepReturnShipping, setKeepReturnShipping] = useState(false);
+
+  // The order page around this card is server-rendered, and an address hold a
+  // refused label just placed shows in its banner — so it is refreshed too.
   const refresh = useCallback(async () => {
     await load();
     props.onChanged?.();
-  }, [load, props]);
+    router.refresh();
+  }, [load, props, router]);
 
   const withLabel = async (
     shipment: ShipmentRow,
@@ -213,16 +266,69 @@ export function OrderShipmentsCard(props: {
         `${props.apiBase}/orders/${props.orderId}/shipments/${shipment._id}/void`,
       );
       await refresh();
-      toast.success(result.message || "Label voided");
+      toast.success(result.message || "Shipping label cancelled");
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : tSafe("admin.orderDetails.courier.voidFailed", "Could not void the label"),
+          : tSafe("admin.orderDetails.courier.voidFailed", "Could not cancel the label"),
       );
     } finally {
       setBusyId(null);
       setVoidTarget(null);
+    }
+  };
+
+  const holdForNewAddress = async (shipment: ShipmentRow) => {
+    setBusyId(shipment._id);
+    try {
+      await apiClient.post(`${props.apiBase}/orders/${props.orderId}/address-hold`, {
+        action: "hold",
+        message: "The courier returned the parcel as undeliverable",
+      });
+      toast.success(
+        tSafe("admin.orderDetails.courier.heldForAddress", "Order put on hold — the customer was asked for a new address"),
+      );
+      await refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : tSafe("admin.orderDetails.courier.holdFailed", "Could not put the order on hold"),
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const refundReturned = async () => {
+    const target = refundTarget;
+    const refund = data?.refund;
+    if (!target || !refund) return;
+    const deduction = returnShippingDeduction(target, refund, keepReturnShipping);
+    const amount = Math.max(0, Math.round((refund.refundable - deduction) * 100) / 100);
+    if (amount <= 0) return;
+    setBusyId(target._id);
+    try {
+      await apiClient.put(`/api/admin/orders/${props.orderId}`, {
+        paymentStatus: amount >= refund.refundable ? "refunded" : "partially_refunded",
+        refundAmount: amount,
+        refundReason:
+          deduction > 0
+            ? `Parcel returned as undeliverable — return shipping of ${formatCurrency(deduction, refund.currency || "USD")} kept`
+            : "Parcel returned as undeliverable",
+      });
+      toast.success(tSafe("admin.orderDetails.courier.refunded", "Refund recorded"));
+      setRefundTarget(null);
+      await refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : tSafe("admin.orderDetails.refundFailed", "Refund failed"),
+      );
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -234,7 +340,9 @@ export function OrderShipmentsCard(props: {
     shipments,
   });
 
+  const addressHoldOpen = data?.addressHold?.state === "open";
   const canSendToCourier =
+    !addressHoldOpen &&
     Boolean(data?.carriersEnabled) &&
     // The master switch is not a connected carrier. Without this the button sat
     // on every order of a store that had turned carriers on and configured
@@ -258,6 +366,13 @@ export function OrderShipmentsCard(props: {
             <Truck className="h-4 w-4" />
             {tSafe("admin.orderDetails.courier.sendToCourier", "Send to courier")}
           </Button>
+        ) : addressHoldOpen && !props.readOnly ? (
+          <span className="text-xs text-amber-700 dark:text-amber-400">
+            {tSafe(
+              "admin.orderDetails.courier.waitingForAddress",
+              "Waiting for a deliverable address",
+            )}
+          </span>
         ) : null}
       </CardHeader>
 
@@ -332,6 +447,42 @@ export function OrderShipmentsCard(props: {
                 </p>
               ) : null}
 
+              {isReturnedToSender(shipment) && props.apiBase === "/api/admin" && !props.readOnly ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="gap-1 bg-destructive/10 text-destructive">
+                    <Undo2 className="h-3 w-3" aria-hidden />
+                    {tSafe("admin.orderDetails.courier.returned", "Returned to sender")}
+                  </Badge>
+                  {data?.refund &&
+                  ["paid", "partially_paid", "partially_refunded"].includes(
+                    String(data.refund.paymentStatus || ""),
+                  ) &&
+                  data.refund.refundable > 0 ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === shipment._id}
+                      onClick={() => {
+                        setKeepReturnShipping(Boolean(data.refund?.keepReturnShipping));
+                        setRefundTarget(shipment);
+                      }}
+                    >
+                      {tSafe("admin.orderDetails.courier.refundReturned", "Refund order")}
+                    </Button>
+                  ) : null}
+                  {!addressHoldOpen ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === shipment._id}
+                      onClick={() => void holdForNewAddress(shipment)}
+                    >
+                      {tSafe("admin.orderDetails.courier.holdForAddress", "Hold for a new address")}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+
               {shipment.exception ? (
                 <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
@@ -347,30 +498,34 @@ export function OrderShipmentsCard(props: {
               ) : null}
 
               <div className="flex flex-wrap gap-2 pt-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busyId === shipment._id}
-                  onClick={() =>
-                    void withLabel(shipment, (blob) =>
-                      downloadBlob(blob, `shipping-label-${props.orderNumber}.pdf`),
-                    )
-                  }
-                >
-                  {busyId === shipment._id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
-                  {tSafe("admin.orderDetails.shippingLabelDownload", "Download")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busyId === shipment._id}
-                  onClick={() => void withLabel(shipment, printLabelBlob)}
-                >
-                  <Printer className="h-4 w-4" />
-                  {tSafe("admin.orderDetails.printThermalLabel", "Print")}
-                </Button>
+                {hasPrintableLabel(shipment) ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === shipment._id}
+                      onClick={() =>
+                        void withLabel(shipment, (blob) =>
+                          downloadBlob(blob, `shipping-label-${props.orderNumber}.pdf`),
+                        )
+                      }
+                    >
+                      {busyId === shipment._id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null}
+                      {tSafe("admin.orderDetails.shippingLabelDownload", "Download")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === shipment._id}
+                      onClick={() => void withLabel(shipment, printLabelBlob)}
+                    >
+                      <Printer className="h-4 w-4" />
+                      {tSafe("admin.orderDetails.printThermalLabel", "Print")}
+                    </Button>
+                  </>
+                ) : null}
 
                 {shipment.provider && shipment.trackingNumber ? (
                   <Button
@@ -410,7 +565,7 @@ export function OrderShipmentsCard(props: {
                     onClick={() => setVoidTarget(shipment)}
                   >
                     <XCircle className="h-4 w-4" />
-                    {tSafe("admin.orderDetails.courier.void", "Void")}
+                    {tSafe("admin.orderDetails.courier.void", "Cancel label")}
                   </Button>
                 ) : null}
               </div>
@@ -424,6 +579,8 @@ export function OrderShipmentsCard(props: {
       <SendToCourierDialog
         open={courierOpen}
         onOpenChange={setCourierOpen}
+        addressHoldOpen={addressHoldOpen}
+        onFailed={() => void refresh()}
         apiBase={props.apiBase}
         orderId={props.orderId}
         orderNumber={props.orderNumber}
@@ -435,29 +592,99 @@ export function OrderShipmentsCard(props: {
       />
 
       <AlertDialog
+        open={Boolean(refundTarget)}
+        onOpenChange={(open) => !open && setRefundTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {tSafe("admin.orderDetails.courier.refundReturnedTitle", "Refund a returned parcel")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {tSafe(
+                "admin.orderDetails.courier.refundReturnedBody",
+                "The courier brought this parcel back. Put the items back in stock separately if they are resellable.",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {refundTarget && data?.refund ? (() => {
+            const refund = data.refund;
+            const currency = refund.currency || "USD";
+            const canKeep =
+              Boolean(refundTarget.rate) &&
+              refundTarget.rate!.currency.toUpperCase() === currency.toUpperCase();
+            const deduction = returnShippingDeduction(refundTarget, refund, keepReturnShipping);
+            const amount = Math.max(0, refund.refundable - deduction);
+            return (
+              <div className="space-y-3 text-sm">
+                <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 tabular-nums">
+                  <dt className="text-muted-foreground">
+                    {tSafe("admin.orderDetails.courier.refundable", "Still refundable")}
+                  </dt>
+                  <dd className="text-right">{formatCurrency(refund.refundable, currency)}</dd>
+                  <dt className="text-muted-foreground">
+                    {tSafe("admin.orderDetails.courier.returnShippingKept", "Return shipping kept")}
+                  </dt>
+                  <dd className="text-right">{deduction > 0 ? `−${formatCurrency(deduction, currency)}` : "—"}</dd>
+                  <dt className="font-medium">{tSafe("admin.orderDetails.courier.refundTotal", "Refund")}</dt>
+                  <dd className="text-right font-medium">{formatCurrency(amount, currency)}</dd>
+                </dl>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={keepReturnShipping && canKeep}
+                    disabled={!canKeep}
+                    onChange={(event) => setKeepReturnShipping(event.target.checked)}
+                  />
+                  <span>
+                    {tSafe("admin.orderDetails.courier.keepReturnShipping", "Keep the return shipping")}
+                    {!canKeep ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {tSafe(
+                          "admin.orderDetails.courier.keepReturnShippingCurrency",
+                          "The label was paid in another currency, so it can't be taken off this refund.",
+                        )}
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              </div>
+            );
+          })() : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tSafe("admin.orderDetails.keepOrder", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void refundReturned()}>
+              {tSafe("admin.orderDetails.courier.refundConfirm", "Refund")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
         open={Boolean(voidTarget)}
         onOpenChange={(open) => !open && setVoidTarget(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {tSafe("admin.orderDetails.courier.void", "Void label")}
+              {tSafe("admin.orderDetails.courier.voidTitle", "Cancel this shipping label?")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {tSafe(
                 "admin.orderDetails.courier.voidConfirm",
-                "The carrier will cancel this consignment. Refunds depend on the carrier and are not guaranteed.",
+                "The label will stop working and can't be used to ship. Whether the label cost is refunded depends on the carrier.",
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              {tSafe("admin.orderDetails.keepOrder", "Cancel")}
+              {tSafe("admin.orderDetails.courier.keepLabel", "Keep label")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => voidTarget && void voidLabel(voidTarget)}
             >
-              {tSafe("admin.orderDetails.courier.void", "Void")}
+              {tSafe("admin.orderDetails.courier.voidAction", "Yes, cancel label")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

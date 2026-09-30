@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ReceivablesTable } from "@/components/admin/finance/receivables-table";
 import { formatCurrency } from "@/lib/intl/money";
 import { getVendorLedgerBalances } from "@/lib/finance/reports";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -35,7 +36,7 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.multiVendorMode?.enabled) {
-    redirect(`/${locale}/admin/finance`);
+    redirect(await localeHref(locale, "/admin/finance"));
   }
 
   const balances = await getVendorLedgerBalances();
@@ -84,8 +85,8 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
       */}
       <div className="space-y-4">
         {Object.entries(totals).map(([currency, sums]) => (
-          <Card key={currency} className="gap-0 py-6">
-            <CardContent className="flex flex-wrap items-stretch gap-x-8 gap-y-6 px-6">
+          <Card key={currency} className="gap-0 py-4">
+            <CardContent className="flex flex-wrap items-stretch gap-x-6 gap-y-4 px-6">
               <SettlementFigure
                 label={label(
                   "finance.receivables.heldForVendors",
@@ -94,7 +95,7 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
                 value={formatCurrency(sums.payable, currency)}
                 hint={label(
                   "finance.overview.owedToVendorsHint",
-                  "Held on their behalf until a payout clears",
+                  "Everything the books owe them, including sales not yet due for payout",
                 )}
               />
               <Operator symbol="−" />
@@ -117,9 +118,14 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
                   "Net still to settle",
                 )}
                 value={formatCurrency(sums.payable - sums.receivable, currency)}
+                // NOT what the next payout run sends, which is what this used
+                // to claim. A sale credits the seller the moment its money
+                // arrives; a payout pays only what has been delivered and is
+                // past the return window. The gap between the two is most of
+                // this figure on any store that ships more than it settles.
                 hint={label(
                   "finance.receivables.netHint",
-                  "Leaves the business when the next payouts run",
+                  "What the books owe on balance — a payout sends only the delivered part",
                 )}
                 divided
               />
@@ -179,7 +185,7 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
       <p className="text-xs text-muted-foreground">
         {label(
           "finance.receivables.collectNote",
-          "Collecting commission in the app comes next; today these balances are the record a payout or an invoice is settled against.",
+          "Read from the ledger, so a sale counts from the moment its money arrives. Payouts shows what is payable today.",
         )}
       </p>
     </div>
@@ -202,18 +208,18 @@ function SettlementFigure({
 }) {
   return (
     <div
-      className={cn("min-w-[13rem] flex-1", divided && "lg:border-s lg:ps-8")}
+      className={cn("min-w-[13rem] flex-1", divided && "lg:border-s lg:ps-6")}
     >
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
         className={cn(
-          "mt-2 text-[28px] font-semibold leading-8 tracking-tight tabular-nums",
+          "mt-1 text-xl font-semibold tracking-tight tabular-nums",
           tone === "amber" && "text-amber-700 dark:text-amber-400",
         )}
       >
         {value}
       </p>
-      <p className="mt-1 text-[13px] text-muted-foreground">{hint}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -222,7 +228,7 @@ function Operator({ symbol }: { symbol: string }) {
   return (
     <span
       aria-hidden
-      className="hidden items-center text-2xl text-muted-foreground/40 lg:flex"
+      className="hidden items-center text-lg text-muted-foreground/40 lg:flex"
     >
       {symbol}
     </span>

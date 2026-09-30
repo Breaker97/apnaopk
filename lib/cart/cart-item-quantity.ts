@@ -2,6 +2,7 @@ import "server-only";
 
 import { Product } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
+import { getSettings } from "@/models/settings.model";
 import {
   calculatePreorderDeposit,
   getPreorderSettings,
@@ -55,6 +56,19 @@ type MutableCartLine = {
   preorderBatchName?: string;
 };
 
+/**
+ * Every line a whole number of units, at least one. The cart routes take only
+ * whole numbers now; a line written before could still hold 1.5 — priced at
+ * one and a half, and shipped as one or two.
+ */
+export function assertWholeQuantities(items: Array<{ quantity?: unknown }>): void {
+  if (items.some((item) => !Number.isInteger(item.quantity) || Number(item.quantity) < 1)) {
+    throw new ValidationError({
+      cart: ["Each item's quantity must be a whole number"],
+    });
+  }
+}
+
 export async function setCartItemQuantity(
   cart: { items: MutableCartLine[] },
   line: { productId: string; variantId?: string; quantity: number },
@@ -101,6 +115,7 @@ export async function setCartItemQuantity(
           unitPrice: Number(item.price || 0),
           quantity,
           settings: getPreorderSettings(product, variantId),
+          currency: await storeCurrency(),
         })
       : undefined;
 
@@ -117,4 +132,13 @@ export async function setCartItemQuantity(
   item.preorderBatchName =
     "preorderBatchName" in purchase ? purchase.preorderBatchName : undefined;
   return true;
+}
+
+/**
+ * The currency a cart line's pre-order deposit is rounded in — the store's,
+ * which is the one checkout charges it in.
+ */
+export async function storeCurrency(): Promise<string> {
+  const settings = await getSettings();
+  return String(settings.general?.defaultCurrency || "USD").toUpperCase();
 }

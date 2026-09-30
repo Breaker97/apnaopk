@@ -1,11 +1,16 @@
+import { cartResponse } from "@/lib/cart/cart-response";
+import { cartSessionCookie } from "@/lib/cart/cart-session-cookie";
 import { Cart, Product } from "@/models";
+import { storeCurrency } from "@/lib/cart/cart-item-quantity";
 import {
   cartLineKey,
-  resolveCartProducts,
+  cartProductFacts,
+  readCartProducts,
 } from "@/lib/cart/cart-products";
 import { createdResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import {
+  SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitBySession,
   rateLimitByUser,
 } from "@/lib/api/rate-limit-middleware";
@@ -72,12 +77,24 @@ export const POST = withApi(
         session?.user?.role
       );
     } else if (sessionId) {
-      await rateLimitBySession(request, sessionId, "cart:addItem", "moderate");
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:addItem",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
+      );
     } else {
       // Create a guest session id before rate limiting to avoid shared
       // "ip:unknown" buckets in local/proxied environments.
       sessionId = crypto.randomUUID();
-      await rateLimitBySession(request, sessionId, "cart:addItem", "moderate");
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:addItem",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
+      );
     }
 
     const { productId, variantId, quantity } = await validateBody(
@@ -141,6 +158,7 @@ export const POST = withApi(
       product,
       variantId,
       requestedQuantity: quantity,
+      quoted: Boolean(quoteOffer),
     });
     if (!purchase) {
       throw new ValidationError("Insufficient stock");
@@ -220,6 +238,7 @@ export const POST = withApi(
         product,
         variantId,
         requestedQuantity: newQuantity,
+        quoted: Boolean(quoteOffer),
       });
       if (!nextPurchase || nextPurchase.purchaseType !== requestedPurchaseType) {
         throw new ValidationError("Insufficient stock");
@@ -230,6 +249,7 @@ export const POST = withApi(
               unitPrice: price,
               quantity: newQuantity,
               settings: getPreorderSettings(product, variantId),
+              currency: await storeCurrency(),
             })
           : undefined;
       cart.items[existingItemIndex].quantity = newQuantity;
@@ -268,6 +288,7 @@ export const POST = withApi(
               unitPrice: price,
               quantity,
               settings: getPreorderSettings(product, variantId),
+              currency: await storeCurrency(),
             })
           : undefined;
       cart.items.push({
@@ -316,37 +337,37 @@ export const POST = withApi(
       variantId: item.variantId,
       quantity: Number(item.quantity ?? 0),
     }));
-    const quotedLineKeys = new Set(
-      matchOffersToLines(
-        savedLines,
-        await loadShopperOffers(userId, {
-          productIds: savedLines
-            .map((line) => String(line.productId ?? ""))
-            .filter(Boolean),
-        }),
-      ).keys(),
-    );
-    const productFacts = await resolveCartProducts(savedItems, {
-      quotedLineKeys,
+    const [shopperOffers, productRows] = await Promise.all([
+      loadShopperOffers(userId, {
+        productIds: savedLines
+          .map((line) => String(line.productId ?? ""))
+          .filter(Boolean),
+      }),
+      readCartProducts(savedItems),
+    ]);
+    const productFacts = cartProductFacts(savedItems, productRows, {
+      quotedLineKeys: new Set(
+        matchOffersToLines(savedLines, shopperOffers).keys(),
+      ),
     });
 
     const response = createdResponse({
-      ...cart.toObject(),
+      ...cartResponse(cart),
       items: savedItems.map((item) => {
         const fact = productFacts.get(cartLineKey(item));
         return {
           ...item,
           vendorId: fact?.vendorId,
           vendorName: fact?.vendorName,
+          variantOptions: fact?.variantOptions,
+          finalSale: fact?.finalSale || undefined,
         };
       }),
     });
     if (!userId && sessionId) {
       response.headers.set(
         "Set-Cookie",
-        `cart_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
-          60 * 60 * 24 * 30
-        }`
+        cartSessionCookie(request, sessionId),
       );
     }
 

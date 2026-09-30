@@ -41,6 +41,8 @@ export interface ProductVariant {
   mediaId?: string;
   locationInventory?: LocationInventory[];
   requiresShipping?: boolean;
+  /** Absent follows the product's final-sale mark and collections. */
+  finalSale?: boolean;
   weight?: number;
   weightUnit?: "g" | "kg" | "lb" | "oz";
   preorder?: {
@@ -97,6 +99,8 @@ export interface VariantsManagerProps {
    * be switched off.
    */
   preorderLockedReason?: string | null;
+  /** Pre-orders are switched off store-wide — see VariantEditModal. */
+  preordersOff?: boolean;
 }
 
 export const MAX_OPTION_COUNT = 5;

@@ -7,7 +7,7 @@ import { addDays } from "@/lib/boosts/boost-days";
 /** How a booked day actually delivered. Absent on the admin ladder strip. */
 type OccupancyDayState = "served" | "partial" | "credited";
 
-export type OccupancyDay = {
+type OccupancyDay = {
   day: string;
   /** Empty on the vendor's own campaign strip, where the holder is the viewer. */
   store?: string;
@@ -108,7 +108,12 @@ export function BoostOccupancyStrip({
       </div>
       <p className="text-xs text-muted-foreground">
         {labels.summary(bookedCount, total)}
-        {nextFree ? ` · ${labels.nextFree(nextFree)}` : ` · ${labels.fullyBooked}`}
+        {/* Campaign mode passes neither label — every day shown belongs to the
+            booking, so "next free" means nothing there. Appending the
+            separator unconditionally left a dangling "·" on that screen. */}
+        {(nextFree ? labels.nextFree(nextFree) : labels.fullyBooked)
+          ? ` · ${nextFree ? labels.nextFree(nextFree) : labels.fullyBooked}`
+          : ""}
       </p>
     </div>
   );

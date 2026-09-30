@@ -15,6 +15,8 @@ import {
   markInstalled,
   releaseInstallClaim,
 } from "@/lib/install/status";
+import { revalidateAllStorefrontContent } from "@/lib/cache-invalidation";
+import { assertInstallToken } from "@/lib/install/install-token";
 import { clearStorageConfigCache } from "@/lib/storage";
 import { applyThemeStarter } from "@/lib/storefront/themes/apply-starter";
 import { THEME_MANIFESTS } from "@/lib/storefront/themes/registry";
@@ -70,6 +72,9 @@ export const POST = withApi(
   },
   async ({ request }) => {
     await assertInstallable();
+    // Whoever finishes the wizard becomes the super-admin: only the owner,
+    // who can read INSTALL_TOKEN from the server's .env, may.
+    assertInstallToken(request);
 
     const body = await request.json().catch(() => null);
     const parsed = installPayloadSchema.safeParse(body);
@@ -189,6 +194,12 @@ export const POST = withApi(
 
     // 6. Lock the wizard for good.
     await markInstalled();
+
+    // 7. Serve the store just written, not what was cached before it. The
+    //    theme starter expires the settings, but only when it succeeds (step
+    //    5 carries on without it), and a reinstall on a running server still
+    //    holds the previous store's catalog, menus, sliders and coupons.
+    revalidateAllStorefrontContent();
 
     return successResponse({ ok: true, warnings });
   },

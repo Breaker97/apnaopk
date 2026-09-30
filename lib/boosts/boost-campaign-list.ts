@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
-import { BoostCampaign } from "@/models";
+import { BoostCampaign, Product, Vendor } from "@/models";
+import { BOOST_CREDIT_OWED_TAB } from "@/config/app.config";
 import { connectDB } from "@/lib/db";
 import {
   countForQuery,
@@ -21,7 +22,31 @@ interface BoostCampaignListParams {
   limit: number;
   search?: string;
   status?: string;
+  /** Admin only: narrow to one seller. Ignored when the context is a vendor. */
+  vendor?: string;
+  /** One ladder rung, by the number the booking was sold at. */
+  position?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
+
+/**
+ * Column id -> the field it actually sorts on. A whitelist, not a passthrough:
+ * `sortBy` arrives from the query string, and an unindexed or nonexistent path
+ * is a full collection scan at best.
+ */
+const SORTABLE_FIELDS: Record<string, string> = {
+  createdAt: "createdAt",
+  position: "positionSnapshot.position",
+  amount: "amount",
+  credit: "refundableAmount",
+  status: "status",
+  window: "startDay",
+  impressions: "totalImpressions",
+};
+
+/** Bounds the `$in` a name search builds. */
+const SEARCH_MATCH_CAP = 200;
 
 interface BoostCampaignListContext {
   /** Present for the vendor dashboard; absent lists every campaign. */
@@ -60,21 +85,46 @@ export interface BoostCampaignListRow {
   vendor: { _id: string; storeName: string } | null;
 }
 
-function buildBoostCampaignListFilter(
-  { search, status }: Pick<BoostCampaignListParams, "search" | "status">,
+async function buildBoostCampaignListFilter(
+  {
+    search,
+    status,
+    vendor,
+    position,
+  }: Pick<BoostCampaignListParams, "search" | "status" | "vendor" | "position">,
   { vendorId }: BoostCampaignListContext = {},
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const query: Record<string, unknown> = {};
 
   if (vendorId) query.vendorId = vendorId;
-  if (status && status !== "all") query.status = status;
+  else if (vendor && vendor !== "all") query.vendorId = vendor;
+
+  // The ladder's "View bookings" lands here. The snapshot, not the live rung:
+  // a booking belongs to the number it was sold at, even after that rung was
+  // deleted and its number reused.
+  const rung = Number(position);
+  if (position && position !== "all" && Number.isInteger(rung) && rung > 0) {
+    query["positionSnapshot.position"] = rung;
+  }
+
+  // The tab that is not a status: everything with an unsettled obligation,
+  // whatever state it ended in. A credit outlives the booking that created it
+  // — most sit on cancelled and expired rows — so no status filter can find
+  // them, and it is the one queue here that costs the marketplace money for as
+  // long as it goes unseen.
+  if (status === BOOST_CREDIT_OWED_TAB) query.refundableAmount = { $gt: 0 };
+  else if (status && status !== "all") query.status = status;
 
   // `search` arrives regex-escaped from SafeSearchSchema. It matches the frozen
   // rung label, and — when the query is a bare integer — the rung number too:
   // typing "2" must find Position 2, which is how anyone actually refers to a
-  // booking. Product names are deliberately NOT searched — they live on another
-  // collection and the UI says "position or label" rather than implying they
-  // are.
+  // booking.
+  //
+  // Product and store names live on other collections, so they are resolved to
+  // ids first and matched by `$in`. That is two extra capped queries, and it is
+  // what makes the search answer the question the screen actually asks: the
+  // product and the seller are both COLUMNS here, and a table you cannot search
+  // by its own columns sends an admin to the database instead.
   if (search) {
     const or: Record<string, unknown>[] = [
       { "positionSnapshot.label": { $regex: search, $options: "i" } },
@@ -82,6 +132,31 @@ function buildBoostCampaignListFilter(
     const asNumber = Number(search);
     if (Number.isInteger(asNumber) && asNumber > 0) {
       or.push({ "positionSnapshot.position": asNumber });
+    }
+
+    const [products, vendors] = await Promise.all([
+      Product.find({
+        name: { $regex: search, $options: "i" },
+        ...(vendorId ? { vendorId } : {}),
+      })
+        .select("_id")
+        .limit(SEARCH_MATCH_CAP)
+        .lean<Array<{ _id: Types.ObjectId }>>(),
+      // A vendor looking at their own list has one store name, and it is the
+      // one on every row: searching it would match everything or nothing.
+      vendorId
+        ? Promise.resolve([])
+        : Vendor.find({ storeName: { $regex: search, $options: "i" } })
+            .select("_id")
+            .limit(SEARCH_MATCH_CAP)
+            .lean<Array<{ _id: Types.ObjectId }>>(),
+    ]);
+
+    if (products.length > 0) {
+      or.push({ productId: { $in: products.map((row) => row._id) } });
+    }
+    if (vendors.length > 0) {
+      or.push({ vendorId: { $in: vendors.map((row) => row._id) } });
     }
     query.$or = or;
   }
@@ -169,11 +244,15 @@ export async function fetchBoostCampaignList(
   await connectDB();
 
   const { page, limit } = params;
-  const query = buildBoostCampaignListFilter(params, context);
+  const query = await buildBoostCampaignListFilter(params, context);
+  const sortField = SORTABLE_FIELDS[params.sortBy ?? ""] ?? "createdAt";
+  const direction = params.sortOrder === "asc" ? 1 : -1;
 
   const [campaigns, total] = await Promise.all([
     BoostCampaign.find(query)
-      .sort({ createdAt: -1 })
+      // `_id` breaks every tie: without it two rows with the same amount can
+      // swap places between pages and one of them is never shown.
+      .sort({ [sortField]: direction, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate("productId", "name slug images")

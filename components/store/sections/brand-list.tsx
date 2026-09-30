@@ -10,10 +10,11 @@ import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { STOREFRONT_BRAND_FILTER } from "@/lib/catalog/brands";
 import { connectDB } from "@/lib/db";
 import { Brand } from "@/models";
+import { withFallback } from "@/lib/storefront/cached-read";
 
-const fetchBrands = unstable_cache(
-  async (featuredOnly: boolean, limit: number) => {
-    try {
+const fetchBrands = withFallback(
+  unstable_cache(
+    async (featuredOnly: boolean, limit: number) => {
       await connectDB();
       const query: Record<string, unknown> = { isActive: true };
       if (featuredOnly) query.featured = true;
@@ -28,21 +29,20 @@ const fetchBrands = unstable_cache(
         slug: string;
         logo?: string;
       }[];
-    } catch {
-      return [];
-    }
-  },
-  ["section-brand-list"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.brands],
-  },
+    },
+    ["section-brand-list"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.brands],
+    },
+  ),
+  () => [],
 );
 
 /** Curated picks resolved by id, public-storefront brands only. */
-const fetchBrandsByIds = unstable_cache(
-  async (ids: string[]) => {
-    try {
+const fetchBrandsByIds = withFallback(
+  unstable_cache(
+    async (ids: string[]) => {
       await connectDB();
       const brands = await Brand.find({
         _id: { $in: ids },
@@ -56,15 +56,14 @@ const fetchBrandsByIds = unstable_cache(
         slug: string;
         logo?: string;
       }[];
-    } catch {
-      return [];
-    }
-  },
-  ["section-brand-list-picks"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.brands],
-  },
+    },
+    ["section-brand-list-picks"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.brands],
+    },
+  ),
+  () => [],
 );
 
 interface BrandListProps {
@@ -94,7 +93,7 @@ async function resolveTiles(
         key: brand._id,
         image: brand.logo ?? "",
         name: brand.name,
-        href: `/${locale}/brands/${brand.slug}`,
+        href: `/brands/${brand.slug}`,
       }));
   }
 
@@ -107,7 +106,7 @@ async function resolveTiles(
     key: brand._id,
     image: brand.logo ?? "",
     name: brand.name,
-    href: `/${locale}/products?brand=${encodeURIComponent(brand.slug)}`,
+    href: `/products?brand=${encodeURIComponent(brand.slug)}`,
   }));
 }
 

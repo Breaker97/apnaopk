@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useForm, type Resolver , useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -32,13 +32,7 @@ import { buildLoginUrl } from "@/lib/auth/return-path";
 import { VENDOR_STATUS } from "@/config/app.config";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { ONBOARDING_STEP_KINDS } from "@/lib/vendors/vendor-onboarding-fields";
-import { PricingPlanCard } from "@/components/vendor-plans/pricing-plan-card";
-import { PlanGrid } from "@/components/vendor-plans/plan-grid";
-import {
-  PlanBillingToggle,
-  type BillingView,
-} from "@/components/vendor-plans/plan-billing-toggle";
-import { planFeatureLines } from "@/components/vendor-plans/plan-feature-lines";
+import { VendorPlanPicker } from "@/components/vendor-plans/vendor-plan-picker";
 import { formatCurrency } from "@/lib/intl/money";
 import { resolveCurrency } from "@/lib/intl/currencies";
 import { cn } from "@/lib/utils";
@@ -121,16 +115,8 @@ export function VendorRegistrationForm({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [currentKey, setCurrentKey] = useState<string>(stepKeys[0] ?? "");
+  // Starts on the plan marked Default, which the wizard shows as Recommended.
   const [planId, setPlanId] = useState<string>(config.defaultPlanId ?? "");
-  // Which billing interval the plan grid shows. Seeded from the default plan's
-  // interval (falling back to whichever interval the catalog actually offers)
-  // so the pre-selected plan is visible on first render.
-  const [billingView, setBillingView] = useState<BillingView>(() => {
-    const seed =
-      config.plans.find((p) => p.id === (config.defaultPlanId ?? "")) ??
-      config.plans.find((p) => p.billingInterval !== "none");
-    return seed?.billingInterval === "yearly" ? "yearly" : "monthly";
-  });
   const [phoneCode, setPhoneCode] = useState("+91");
   const [existingApplication, setExistingApplication] = useState<{
     hasApplication: boolean;
@@ -525,7 +511,6 @@ export function VendorRegistrationForm({
     }
     setIsSubmitting(true);
     try {
-      const str = (k: string) => String(data[k] ?? "");
       const payload = buildApplicationPayload(data);
 
       const res = await fetch("/api/vendor/apply", {
@@ -604,10 +589,10 @@ export function VendorRegistrationForm({
                 {t("applicationApprovedDesc")}
               </p>
               <Button asChild>
-                <a href={`/${locale}/vendor/dashboard`}>
+                <Link href="/vendor/dashboard">
                   {tVendor("goToDashboard")}{" "}
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             </>
           )}
@@ -624,9 +609,9 @@ export function VendorRegistrationForm({
                 activate your store.
               </p>
               <Button asChild>
-                <a href={`/${locale}/vendor/dashboard`}>
+                <Link href="/vendor/dashboard">
                   Complete payment <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             </>
           )}
@@ -798,117 +783,52 @@ export function VendorRegistrationForm({
           )}
 
         {/* ---------- Subscription step (plan selection) ---------- */}
-        {kind === ONBOARDING_STEP_KINDS.SUBSCRIPTION &&
-          (() => {
-            const hasMonthly = config.plans.some(
-              (p) => p.billingInterval === "monthly",
-            );
-            const hasYearly = config.plans.some(
-              (p) => p.billingInterval === "yearly",
-            );
-            const showToggle = hasMonthly && hasYearly;
-            // A billing view shows plans of that interval plus always-relevant
-            // free plans (interval "none").
-            const visiblePlans = config.plans.filter(
-              (p) =>
-                p.billingInterval === "none" ||
-                p.billingInterval === billingView,
-            );
+        {kind === ONBOARDING_STEP_KINDS.SUBSCRIPTION && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">
+                Choose your plan
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pick the subscription you want the admin to review with your
+                application.
+              </p>
+            </div>
 
-            return (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground">
-                    Choose your plan
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Pick the subscription you want the admin to review with your
-                    application.
-                  </p>
-                </div>
+            <VendorPlanPicker
+              plans={config.plans}
+              selectedId={planId || null}
+              onSelect={selectPlan}
+            />
 
-                {showToggle && (
-                  <div className="flex justify-center">
-                    <PlanBillingToggle
-                      value={billingView}
-                      onChange={setBillingView}
-                    />
-                  </div>
-                )}
+            {config.requirePlanSelection && !selectedPlan && (
+              <p className="text-xs text-muted-foreground">
+                Please select a plan to continue.
+              </p>
+            )}
 
-                <PlanGrid count={visiblePlans.length}>
-                  {visiblePlans.map((plan) => {
-                    const isSelected = plan.id === planId;
-                    return (
-                      <PricingPlanCard
-                        key={plan.id}
-                        plan={{
-                          id: plan.id,
-                          name: plan.name,
-                          description: plan.description,
-                          price: plan.price,
-                          currency: plan.currency,
-                          billingInterval: plan.billingInterval,
-                          commissionRate: plan.commissionRate,
-                          trialDays: plan.trialDays,
-                          features: planFeatureLines(plan.features, plan.limits),
-                        }}
-                        highlighted={plan.isDefault}
-                        selected={isSelected}
-                        footer={
-                          <Button
-                            type="button"
-                            onClick={() => selectPlan(plan.id)}
-                            variant={
-                              plan.isDefault
-                                ? "secondary"
-                                : isSelected
-                                  ? "default"
-                                  : "outline"
-                            }
-                            className="w-full"
-                          >
-                            {isSelected ? (
-                              "Selected"
-                            ) : (
-                              "Select"
-                            )}
-                          </Button>
-                        }
-                      />
-                    );
-                  })}
-                </PlanGrid>
-
-                {config.requirePlanSelection && !selectedPlan && (
-                  <p className="text-xs text-muted-foreground">
-                    Please select a plan to continue.
-                  </p>
-                )}
-
-                <div className="flex gap-3">
-                  {canGoBack && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={goBackAndSave}
-                      className="h-11 rounded-xl"
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                    </Button>
-                  )}
+            <div className="flex gap-3">
+              {canGoBack && (
                 <Button
                   type="button"
-                  onClick={handleSubscriptionStep}
-                  disabled={config.requirePlanSelection && !selectedPlan}
-                  className="h-11 flex-1 rounded-xl text-base font-semibold"
+                  variant="outline"
+                  onClick={goBackAndSave}
+                  className="h-11 rounded-xl"
                 >
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                </div>
-              </div>
-            );
-          })()}
+              )}
+              <Button
+                type="button"
+                onClick={handleSubscriptionStep}
+                disabled={config.requirePlanSelection && !selectedPlan}
+                className="h-11 flex-1 rounded-xl text-base font-semibold"
+              >
+                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ---------- Review step (preview + submit) ---------- */}
         {kind === ONBOARDING_STEP_KINDS.REVIEW && (
@@ -997,7 +917,7 @@ export function VendorRegistrationForm({
               >
                 I agree to the{" "}
                 <Link
-                  href={`/${locale}/terms`}
+                  href="/terms"
                   target="_blank"
                   className="font-medium text-primary hover:underline"
                 >

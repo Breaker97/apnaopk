@@ -1,7 +1,7 @@
-import Link from "next/link";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import Link from "@/components/language/link";
 import { ArrowRight, ImageOff, Package, PackageSearch, Search } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
-import { type Locale } from "@/config/i18n.config";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import { ElectronicsPager } from "@/components/store/electronics-pager";
@@ -42,6 +42,7 @@ export default async function CategoriesPage({
 }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
   const [t, search, settings] = await Promise.all([
     getTranslations({ locale }),
     searchParams,
@@ -79,6 +80,7 @@ export default async function CategoriesPage({
       <StoreBreadcrumb
         className={twoTone ? "mb-8" : "mb-4"}
         locale={locale}
+        storeDefault={storeDefault}
         items={[{ label: t("nav.categories") }]}
       />
 
@@ -128,7 +130,7 @@ export default async function CategoriesPage({
           tiles === "tiles" ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 lg:gap-[26px]">
               {categories.map((category) => (
-                <CategoryTile key={category._id} locale={locale} category={category} />
+                <CategoryTile key={category._id} category={category} />
               ))}
             </div>
           ) : (
@@ -136,7 +138,6 @@ export default async function CategoriesPage({
               {categories.map((category) => (
                 <CategoryCard
                   key={category._id}
-                  locale={locale}
                   category={category}
                   countLabel={t("storeCategoryDetailPage.productsCount", {
                     count: category.productCount || 0,
@@ -177,16 +178,14 @@ export default async function CategoriesPage({
 
 /** A square picture tile with the name under it. */
 function CategoryTile({
-  locale,
   category,
 }: {
-  locale: string;
   category: StorefrontCategory;
 }) {
   const image = category.image || category.icon;
   return (
     <Link
-      href={`/${locale}/categories/${encodeURIComponent(category.slug)}`}
+      href={`/categories/${encodeURIComponent(category.slug)}`}
       className="group flex flex-col"
     >
       <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-xl bg-muted transition-colors group-hover:bg-muted/70">
@@ -213,12 +212,10 @@ function CategoryTile({
 
 /** A bordered card: picture, name, description (or count), and a link line. */
 function CategoryCard({
-  locale,
   category,
   countLabel,
   viewLabel,
 }: {
-  locale: string;
   category: StorefrontCategory;
   countLabel: string;
   viewLabel: string;
@@ -226,7 +223,7 @@ function CategoryCard({
   const image = category.image || category.icon;
   return (
     <Link
-      href={`/${locale}/categories/${encodeURIComponent(category.slug)}`}
+      href={`/categories/${encodeURIComponent(category.slug)}`}
       className="group overflow-hidden rounded-md border bg-background transition-colors hover:border-primary/45"
     >
       <div className="relative aspect-4/3 bg-muted/45">

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStorageConfig } from "@/lib/storage";
 import type { StorageConfig } from "@/lib/storage";
 import {
-  getEnvRemoteImageDomains,
-  isTrustedRemoteUrl,
-} from "@/lib/remote-image-domains";
+  StoredFileFetchError,
+  fetchStoredFile,
+} from "@/lib/storage/fetch-stored-file";
+import { getEnvRemoteImageDomains } from "@/lib/remote-image-domains";
+import { DEMO_ASSET_ORIGINS } from "@/lib/seed-assets";
 
 function normalizeBaseUrl(value?: string | null) {
   if (!value) return null;
@@ -66,13 +68,14 @@ function isAllowedStorageUrl(target: URL, config: StorageConfig) {
     return true;
   }
 
-  // Cross-provider continuity: models uploaded under a previous storage
-  // provider keep their absolute URLs (e.g. pub-*.r2.dev) after the admin
-  // switches providers, so the active config's base URLs no longer cover
-  // them. Known storage/CDN hosts — the same trust class next/image proxies
-  // via remotePatterns — stay allowed, as do env-configured custom domains.
-  if (isTrustedRemoteUrl(href)) return true;
+  // The demo catalogue's own bucket, so a seeded store's 3D models preview.
+  if (DEMO_ASSET_ORIGINS.includes(target.origin)) return true;
 
+  // Only this store's storage — never "any bucket on a known storage host".
+  // Anyone can create a bucket on r2.dev, S3 or CloudFront, and trusting those
+  // hosts wholesale made this route serve an attacker's file from the store's
+  // own domain. Models kept under a previous provider stop previewing until
+  // they are re-uploaded; see docs/UPGRADE.md.
   return getEnvRemoteImageDomains().some(
     (domain) =>
       domain.hostname === target.hostname &&
@@ -80,11 +83,31 @@ function isAllowedStorageUrl(target: URL, config: StorageConfig) {
   );
 }
 
-function inferModelContentType(target: URL) {
+/**
+ * The Content-Type is decided here, from the extension, never taken from the
+ * upstream: a bucket answers with whatever type the uploader chose, and an
+ * HTML or SVG file served from this origin would run as the store's own page.
+ * Anything that is not a model is refused outright.
+ */
+const MODEL_CONTENT_TYPES: Record<string, string> = {
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
+  ".usdz": "model/vnd.usdz+zip",
+};
+
+function modelContentType(target: URL): string | null {
   const pathname = target.pathname.toLowerCase();
-  if (pathname.endsWith(".gltf")) return "model/gltf+json";
-  return "model/gltf-binary";
+  const extension = Object.keys(MODEL_CONTENT_TYPES).find((ext) =>
+    pathname.endsWith(ext),
+  );
+  return extension ? MODEL_CONTENT_TYPES[extension] : null;
 }
+
+/** Even if a model file were read as a document, it could run nothing. */
+const LOCKED_DOWN_HEADERS = {
+  "Content-Security-Policy": "default-src 'none'; sandbox",
+  "X-Content-Type-Options": "nosniff",
+};
 
 function allowedOrigin() {
   // Restrict to the app's own origin instead of a wildcard. The 3D viewer
@@ -100,6 +123,13 @@ function corsHeaders() {
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": "Range, Content-Type",
   };
+}
+
+function loadFailure(message: string, status: number) {
+  return NextResponse.json(
+    { success: false, message },
+    { status, headers: { ...corsHeaders(), "Cache-Control": "no-store" } },
+  );
 }
 
 async function proxyModel(request: NextRequest, method: "GET" | "HEAD") {
@@ -121,6 +151,14 @@ async function proxyModel(request: NextRequest, method: "GET" | "HEAD") {
     );
   }
 
+  const contentType = modelContentType(target);
+  if (!contentType) {
+    return NextResponse.json(
+      { success: false, message: "Only .glb, .gltf and .usdz models can be previewed" },
+      { status: 400, headers: corsHeaders() },
+    );
+  }
+
   const config = await getStorageConfig();
   if (!isAllowedStorageUrl(target, config)) {
     return NextResponse.json(
@@ -130,30 +168,33 @@ async function proxyModel(request: NextRequest, method: "GET" | "HEAD") {
   }
 
   const range = request.headers.get("range");
-  const upstream = await fetch(target, {
-    method,
-    headers: range ? { Range: range } : undefined,
-  });
-
-  if (!upstream.ok) {
-    return new NextResponse(method === "HEAD" ? null : upstream.body, {
-      status: upstream.status,
-      headers: {
-        ...corsHeaders(),
-        "Cache-Control": "no-store",
-      },
+  let upstream: Response;
+  try {
+    // A redirect is never followed: the allow-list above vouches for this URL
+    // only, and following one let a trusted host send the server to any
+    // address it can reach — cloud metadata included.
+    upstream = await fetchStoredFile(target, {
+      method,
+      headers: range ? { Range: range } : undefined,
     });
+  } catch (error) {
+    const redirected =
+      error instanceof StoredFileFetchError && error.failure === "redirect";
+    return loadFailure(
+      redirected ? "Model URL redirects elsewhere" : "Model could not be loaded",
+      502,
+    );
   }
 
-  const upstreamType = upstream.headers.get("content-type");
-  const contentType =
-    upstreamType && upstreamType !== "application/octet-stream"
-      ? upstreamType
-      : inferModelContentType(target);
+  if (!upstream.ok) {
+    // The upstream's own error page is not passed on: its body and type are
+    // the bucket's, not ours.
+    await upstream.body?.cancel().catch(() => undefined);
+    return loadFailure("Model could not be loaded", upstream.status);
+  }
 
-  const headers = new Headers(corsHeaders());
+  const headers = new Headers({ ...corsHeaders(), ...LOCKED_DOWN_HEADERS });
   headers.set("Content-Type", contentType);
-  headers.set("X-Content-Type-Options", "nosniff");
   headers.set(
     "Cache-Control",
     upstream.headers.get("cache-control") ||

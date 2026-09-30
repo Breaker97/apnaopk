@@ -1,4 +1,5 @@
-import { BoostPosition, BoostSlotDay } from "@/models";
+import { BoostCampaign, BoostPosition, BoostSlotDay } from "@/models";
+import { NON_TERMINAL_BOOST_CAMPAIGN_STATUSES } from "@/models/boostCampaign.model";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
@@ -31,14 +32,15 @@ export const PUT = withApi<RouteParams>(
     const update = body as Record<string, unknown>;
     // `position` is the visual slot a vendor bought; renumbering it after the
     // fact relocates every booked day and reprices a delivered good. Reordering
-    // the ladder is archive + create, not an edit. `currency` follows the store
-    // default and provenance is server-managed.
+    // the ladder is archive + create, not an edit. `currency` is never taken
+    // from the client — it follows the store default, and a price edit
+    // restamps it below.
     delete update.position;
     delete update.currency;
     delete update.createdBy;
 
     if (typeof update.pricePerDay === "number") {
-      const currency = settings.general?.defaultCurrency || "USD";
+      const currency = (settings.general?.defaultCurrency || "USD").toUpperCase();
       const pricePerDay = quantizeToCurrency(update.pricePerDay, currency);
       if (pricePerDay <= 0) {
         throw new ValidationError({
@@ -48,6 +50,15 @@ export const PUT = withApi<RouteParams>(
         });
       }
       update.pricePerDay = pricePerDay;
+      // Re-pricing RE-DENOMINATES. A rung left over from a previous store
+      // currency is refused at checkout ("ask the marketplace to re-price it"),
+      // and stripping `currency` from every edit made that instruction
+      // impossible to carry out: the price changed, the stale code stayed, and
+      // the rung was unsellable forever with no screen able to fix it. The new
+      // figure is typed in today's currency, so it is stamped with today's.
+      // Days already sold are unaffected — their terms are frozen in each
+      // campaign's positionSnapshot.
+      update.currency = currency;
     }
 
     const before = await BoostPosition.findById(id).lean();
@@ -76,11 +87,10 @@ export const PUT = withApi<RouteParams>(
 /**
  * DELETE /api/admin/boosts/positions/[id]
  *
- * Refuses on booked inventory rather than on campaign status. That is strictly
- * stronger: a live-campaign check would happily delete a rung whose days are
- * all sold three weeks out. It is also sufficient — every non-terminal campaign
- * holds a BoostSlotDay row for each remaining day of its range, so "no future
- * rows" means "nothing is depending on this rung".
+ * Refuses on booked inventory FIRST: a live-campaign check alone would happily
+ * delete a rung whose days are all sold three weeks out. It is not sufficient
+ * on its own, though — a paused booking holds no future rows at all — so a
+ * non-terminal campaign pointing at the rung refuses too.
  *
  * Deleting is the only way to reclaim a rung number, because `position` is
  * unique across all statuses. Archiving takes a rung off sale and keeps it.
@@ -106,6 +116,22 @@ export const DELETE = withApi<RouteParams>(
     if (booked) {
       throw new ValidationError(
         "This position has bookings from today onward. Archive it instead of deleting.",
+      );
+    }
+
+    // Booked days are not the whole dependency. A PAUSED booking has already
+    // handed its future days back — that is what pausing does — so it holds no
+    // BoostSlotDay row while still pointing at this rung, and resuming re-books
+    // at `positionSnapshot.position`. Delete the rung and someone recreates the
+    // number at another price, and that resume lands on a rung its vendor never
+    // bought. A pending checkout is the same story from the other end.
+    const claimed = await BoostCampaign.exists({
+      positionId: before._id,
+      status: { $in: NON_TERMINAL_BOOST_CAMPAIGN_STATUSES },
+    });
+    if (claimed) {
+      throw new ValidationError(
+        "A paused, scheduled or unpaid booking still holds this position. Archive it instead of deleting.",
       );
     }
 

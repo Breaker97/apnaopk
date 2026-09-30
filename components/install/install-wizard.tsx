@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -22,10 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FlagIcon } from "@/components/ui/flag-icon";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { StorageProviderToggle } from "@/components/admin/storage-provider-toggle";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { apiClient, ApiClientError } from "@/lib/api/client";
 import {
+  INSTALL_TOKEN_HEADER,
   findAppUrlProblem,
   isPreflightBlocking,
   type AppUrlProblem,
@@ -50,11 +52,14 @@ interface InstallStatus {
     nodeOk: boolean;
     databaseOk: boolean;
     authSecretProblem: string | null;
+    installTokenProblem: string | null;
     authUrl: string | null;
   };
   passwordHint?: string;
   /** `.env` already carries a usable credential set — see the storage step. */
   storageFromEnv?: boolean;
+  /** Present when the request carried a token: whether it matched. */
+  tokenAccepted?: boolean;
 }
 
 /** Every language the app ships, by native name; the English name is searchable too. */
@@ -200,6 +205,11 @@ export function InstallWizard({
   const [step, setStep] = useState<Step>("check");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // INSTALL_TOKEN from the server's .env: the proof that the person running
+  // this owns the server. Sent with every request that writes or reaches out.
+  const [installToken, setInstallToken] = useState("");
+  const [checkingToken, setCheckingToken] = useState(false);
+  const tokenHeaders = { headers: { [INSTALL_TOKEN_HEADER]: installToken.trim() } };
   const [warnings, setWarnings] = useState<string[]>([]);
 
   const [admin, setAdmin] = useState({ name: "", email: "", password: "" });
@@ -261,6 +271,7 @@ export function InstallWizard({
       const result = await apiClient.post<{ ok: boolean; message: string }>(
         "/api/install/test-storage",
         buildStorage(),
+        tokenHeaders,
       );
       setStorageTest(result);
     } catch (err) {
@@ -317,6 +328,7 @@ export function InstallWizard({
           template,
           sampleData,
         },
+        tokenHeaders,
       );
       setWarnings(result.warnings ?? []);
       setStep("done");
@@ -331,7 +343,41 @@ export function InstallWizard({
     }
   };
 
+  /**
+   * The first step's Continue: the token is checked here, so a mistyped one
+   * is said at once rather than after the last step.
+   */
+  const continueFromCheck = async () => {
+    setCheckingToken(true);
+    setError(null);
+    try {
+      const next = await apiClient.get<InstallStatus>(
+        "/api/install/status",
+        tokenHeaders,
+      );
+      if (next.tokenAccepted) {
+        setStep("admin");
+      } else {
+        setError(
+          tSafe(
+            "install.tokenRejected",
+            "That installation token does not match INSTALL_TOKEN in the server's .env file.",
+          ),
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : tSafe("install.failed", "Installation failed — please try again"),
+      );
+    } finally {
+      setCheckingToken(false);
+    }
+  };
+
   const stepIndex = STEPS.indexOf(step);
+  const threeUp = templates.length === 3 || templates.length > 4;
   const preflight = status?.preflight;
   const blocked = isPreflightBlocking(preflight);
   // Status only ever loads in the browser, so `window` is there whenever a
@@ -380,7 +426,8 @@ export function InstallWizard({
 
   const canContinue =
     step === "check"
-      ? Boolean(status && !status.installed && !blocked)
+      ? Boolean(status && !status.installed && !blocked) &&
+        installToken.trim().length > 0
       : step === "admin"
         ? admin.name.trim().length > 0 &&
           /.+@.+\..+/.test(admin.email) &&
@@ -469,6 +516,13 @@ export function InstallWizard({
                     }
                   />
                   <CheckRow
+                    state={checkState(preflight && !preflight.installTokenProblem)}
+                    label={tSafe("install.installToken", "Installation token")}
+                    detail={
+                      preflight ? (preflight.installTokenProblem ?? "") : notChecked
+                    }
+                  />
+                  <CheckRow
                     state={checkState(preflight && !appUrlProblem)}
                     label={tSafe("install.appUrl", "Application URL")}
                     detail={
@@ -479,25 +533,49 @@ export function InstallWizard({
                           : ""
                     }
                   />
-                  {blocked ? (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                  {!blocked ? (
+                    <div className="space-y-1.5 pt-2">
+                      <Label htmlFor="install-token">
+                        {tSafe("install.tokenLabel", "Installation token")}
+                      </Label>
+                      <Input
+                        id="install-token"
+                        type="password"
+                        autoComplete="off"
+                        value={installToken}
+                        onChange={(event) => {
+                          setInstallToken(event.target.value);
+                          setError(null);
+                        }}
+                      />
                       <p className="text-xs text-muted-foreground">
                         {tSafe(
-                          "install.blockedHint",
-                          "Fix the items above — restart the app after editing .env — then check again. Installation cannot continue until they pass.",
+                          "install.tokenHint",
+                          "Paste the INSTALL_TOKEN value from the server's .env file. It shows the store is being set up by whoever owns the server.",
                         )}
                       </p>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        onClick={loadStatus}
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        {tSafe("install.retry", "Check again")}
-                      </Button>
                     </div>
+                  ) : null}
+                  {blocked ? (
+                    <WarningBanner
+                      action={
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={loadStatus}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          {tSafe("install.retry", "Check again")}
+                        </Button>
+                      }
+                    >
+                      {tSafe(
+                        "install.blockedHint",
+                        "Fix the items above — restart the app after editing .env — then check again. Installation cannot continue until they pass.",
+                      )}
+                    </WarningBanner>
                   ) : null}
                 </div>
               )
@@ -800,12 +878,12 @@ export function InstallWizard({
                 <h2 className="text-base font-semibold">
                   {tSafe("install.templateTitle", "Choose your storefront template")}
                 </h2>
-                {/* Columns follow the roster, so two templates split the row
-                    instead of leaving a third-card gap. */}
+                {/* Columns follow the roster, so two or four templates fill
+                    their rows instead of leaving one card on a row of its own. */}
                 <div
                   className={cn(
                     "grid gap-3",
-                    templates.length >= 3 ? "sm:grid-cols-3" : "sm:grid-cols-2",
+                    threeUp ? "sm:grid-cols-3" : "sm:grid-cols-2",
                   )}
                 >
                   {templates.map((option) => (
@@ -828,7 +906,7 @@ export function InstallWizard({
                             fill
                             unoptimized
                             sizes={
-                              templates.length >= 3
+                              threeUp
                                 ? "(min-width: 640px) 33vw, 100vw"
                                 : "(min-width: 640px) 50vw, 100vw"
                             }
@@ -908,7 +986,7 @@ export function InstallWizard({
                   </div>
                 ) : null}
                 <Button asChild className="gap-1.5">
-                  <Link href={`/${locale}/login`}>
+                  <Link href="/login">
                     {tSafe("install.goToLogin", "Go to sign in")}
                     <ArrowRight className="h-4 w-4 rtl:rotate-180" />
                   </Link>
@@ -951,9 +1029,16 @@ export function InstallWizard({
                   <Button
                     type="button"
                     className="gap-1.5"
-                    disabled={!canContinue}
-                    onClick={() => setStep(STEPS[stepIndex + 1])}
+                    disabled={!canContinue || checkingToken}
+                    onClick={() =>
+                      step === "check"
+                        ? void continueFromCheck()
+                        : setStep(STEPS[stepIndex + 1])
+                    }
                   >
+                    {checkingToken ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : null}
                     {tSafe("install.continue", "Continue")}
                     <ArrowRight className="h-4 w-4 rtl:rotate-180" />
                   </Button>

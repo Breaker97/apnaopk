@@ -81,6 +81,10 @@ export const categoryList: SectionDefinition = {
     // the template's preset. Empty: the template exactly as designed.
     { key: "style", type: "text", default: "" },
   ],
+  // Hand-picked with nothing picked: fetchFeaturedCategories returns none.
+  isEmpty: ({ settings }) =>
+    settings.source === "manual" &&
+    !(Array.isArray(settings.categoryIds) && settings.categoryIds.some(Boolean)),
   Render: cards,
   Skeleton: FeaturedCategoriesSkeleton,
 };

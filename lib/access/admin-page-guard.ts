@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/access/rbac";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 /**
  * `cache()` because the admin layout and the page it wraps both guard: without
@@ -15,9 +16,12 @@ export const requireAdminPageAccess = cache(async (locale: string) => {
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session || !isAdmin(session.user)) {
     redirect(
-      buildLoginUrl(
+      await localeHref(
         locale,
-        returnPathFromHeaders(requestHeaders) ?? `/${locale}/admin/dashboard`,
+        buildLoginUrl(
+          locale,
+          returnPathFromHeaders(requestHeaders) ?? "/admin/dashboard",
+        ),
       ),
     );
   }

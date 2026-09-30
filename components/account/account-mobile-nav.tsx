@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { ArrowLeft, Loader2, Pencil, Star } from "lucide-react";
 
 import type { LoyaltyTier } from "@/types";
 import { cn } from "@/lib/utils";
+import type { DemoModeState } from "@/lib/demo-mode-shared";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -28,6 +29,8 @@ const tierColors: Record<LoyaltyTier, string> = {
 interface AccountMobileNavProps {
   locale: string;
   stats?: AccountStats;
+  /** Server-resolved; the avatar picker refuses uploads on the profile page in demo mode. */
+  demoMode?: DemoModeState;
 }
 
 // Title lookup only — the strip names whichever section the visitor is in.
@@ -51,11 +54,12 @@ const TITLE_SECTIONS = [...dashboardLinks, ...settingsLinks];
 export function AccountMobileNav({
   locale,
   stats = {},
+  demoMode,
 }: AccountMobileNavProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const { user } = useAuth();
-  const [avatar, fileInputRef] = useAvatarUpload(locale);
+  const [avatar, fileInputRef] = useAvatarUpload(locale, demoMode);
 
   const isOverview = pathname === `/${locale}/account`;
 

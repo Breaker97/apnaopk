@@ -1,7 +1,9 @@
 import { type Locale } from "@/config/i18n.config";
 import { type ModernProduct } from "@/components/products/modern-product-card";
-import { HomeProductsSectionClient } from "./home-products-section-client";
-import { HomeProductsSectionInfinite } from "./home-products-section-infinite";
+import {
+  HomeProductsSectionClientLazy as HomeProductsSectionClient,
+  HomeProductsSectionInfiniteLazy as HomeProductsSectionInfinite,
+} from "./home-products-section-lazy";
 import { PlainProductGrid } from "./sections/plain-product-grid";
 import {
   getStorefrontProductCards,

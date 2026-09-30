@@ -2,27 +2,16 @@ import {
   COUNTRIES as COUNTRY_OPTIONS,
   type RegionOption,
 } from "@/lib/intl/country-options";
+import {
+  COUNTRY_AVAILABILITY_MODES,
+  DEFAULT_COUNTRY_AVAILABILITY,
+  type CountryAvailability,
+} from "@/lib/intl/country-availability-policy";
 
-export const COUNTRY_AVAILABILITY_MODES = {
-  ALL: "all",
-  SELECTED: "selected",
-} as const;
-
-type CountryAvailabilityMode =
-  (typeof COUNTRY_AVAILABILITY_MODES)[keyof typeof COUNTRY_AVAILABILITY_MODES];
-
-/**
- * Store-wide country policy. ISO alpha-2 codes are used here even though some
- * legacy forms persist the country name; the helpers below bridge both shapes.
- */
-export interface CountryAvailability {
-  mode: CountryAvailabilityMode;
-  countryCodes: string[];
-}
-
-export const DEFAULT_COUNTRY_AVAILABILITY: CountryAvailability = {
-  mode: COUNTRY_AVAILABILITY_MODES.ALL,
-  countryCodes: [],
+export {
+  COUNTRY_AVAILABILITY_MODES,
+  DEFAULT_COUNTRY_AVAILABILITY,
+  type CountryAvailability,
 };
 
 const COUNTRY_BY_CODE = new Map(
@@ -166,23 +155,29 @@ export function getAllowedCountryOptions(
 }
 
 /**
- * Filter a names-based legacy catalog without changing the emitted values.
- * Names we cannot map are retained only in `all` mode.
+ * The country an address form should open on.
+ *
+ * The store's shipping origin first — the country a store operates from is the
+ * one most of its shoppers are in, and for a single-country store it is the
+ * only answer. Failing that the United States, which is what every one of
+ * these forms used to hardcode, and only then the first country on offer:
+ * under `all` that is alphabetical ("Afghanistan"), a worse guess than the
+ * status quo. Returns the country *name*, which is what address forms store.
  */
-export function getAllowedCountryNames(
+export function defaultCountryForAddressForms(
   availability: unknown,
-  countryNames: readonly string[],
-): string[] {
-  const normalized = normalizeCountryAvailability(availability);
-  if (normalized.mode === COUNTRY_AVAILABILITY_MODES.ALL) {
-    return [...countryNames];
-  }
+  shippingOriginCountry?: string,
+): string {
+  const options = getAllowedCountryOptions(availability);
+  if (options.length === 0) return "";
 
-  const allowed = new Set(normalized.countryCodes);
-  return countryNames.filter((country) => {
-    const code = countryCodeForValue(country);
-    return Boolean(code && allowed.has(code));
-  });
+  const originCode = countryCodeForValue(shippingOriginCountry);
+  const origin =
+    originCode && options.find((country) => country.value === originCode);
+  if (origin) return origin.label;
+
+  const unitedStates = options.find((country) => country.value === "US");
+  return (unitedStates ?? options[0]).label;
 }
 
 /**

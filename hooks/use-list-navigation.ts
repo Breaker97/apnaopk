@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import type { DataTablePaginationType } from "@/components/ui/data-table";
 
 /**

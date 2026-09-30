@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { Star, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AppImage } from "@/components/ui/app-image";
@@ -98,7 +98,7 @@ export function CompareTable({
                   </Link>
 
                   <Link
-                    href={`/${locale}/products/${product.slug}`}
+                    href={`/products/${product.slug}`}
                     className="group flex flex-col gap-3"
                   >
                     <span className="relative block h-[180px] w-full overflow-hidden rounded-xl bg-muted/50">

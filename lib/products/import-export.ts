@@ -35,10 +35,6 @@ import {
 import { ValidationError } from "@/lib/api/errors";
 import { audit, createAuditContext } from "@/lib/audit";
 import {
-  areCountryValuesEquivalent,
-  isCountryAllowed,
-} from "@/lib/intl/country-availability";
-import {
   normalizeAdvancedProduct,
   parseAdvancedProductCatalog,
   toImportValues,
@@ -48,6 +44,8 @@ import {
   sanitizeOptionsForMongoose,
   sanitizeVariantsForMongoose,
 } from "@/lib/products/sanitize";
+import { carryPreorderCounters } from "@/lib/products/preorder-counters";
+import type { ProductFeatures } from "@/lib/products/product-features";
 import { mergeScopeFilter } from "@/lib/access/staff-scope";
 import { releaseBoostInventoryIfProductWentDark } from "@/lib/boosts/boosts";
 import { MediaUrlSchema } from "@/lib/validations";
@@ -327,7 +325,12 @@ export type ProductImportContext = {
   createMissingCategories?: boolean;
   /** The vendor plan's product cap, when one applies. */
   productLimit?: { limit: number; current: number };
-  countryAvailability: unknown;
+  /**
+   * Settings → Products. A new product takes a format the store sells: a blank
+   * isPhysicalProduct cell means physical unless physical products are off,
+   * and a row naming a switched-off format fails.
+   */
+  productFeatures?: ProductFeatures;
 };
 
 type ImportRecord =
@@ -626,20 +629,6 @@ async function uniqueProductSlug(base: string, excludeId?: unknown): Promise<str
   let suffix = 2;
   while (used.has(`${base}-${suffix}`)) suffix++;
   return `${base}-${suffix}`;
-}
-
-function assertCountryAllowed(
-  country: string | undefined,
-  current: string | undefined,
-  context: ProductImportContext,
-) {
-  if (!country) return;
-  if (current && areCountryValuesEquivalent(country, current)) return;
-  if (!isCountryAllowed(country, context.countryAvailability)) {
-    throw new Error(
-      `countryOfOrigin "${country}" is not one of the countries this store sells from.`,
-    );
-  }
 }
 
 /**
@@ -983,7 +972,18 @@ async function createProduct(
     throw new Error("No product matches this row's id, slug or SKU, and a new product needs a title.");
   }
 
-  const isPhysicalProduct = row.isPhysicalProduct !== false;
+  const formats = context.productFeatures;
+  const isPhysicalProduct = row.isPhysicalProduct ?? formats?.physical ?? true;
+  if (formats && isPhysicalProduct && !formats.physical) {
+    throw new Error(
+      "Physical products are switched off for this store. Set isPhysicalProduct to false, or turn physical products on in Settings → Products.",
+    );
+  }
+  if (formats && !isPhysicalProduct && !formats.digital) {
+    throw new Error(
+      "Digital products are switched off for this store. Set isPhysicalProduct to true, or turn digital products on in Settings → Products.",
+    );
+  }
   const variants = row.variants ? prepareVariants(row.variants, isPhysicalProduct) : [];
   if (row.price === undefined && variants.length === 0) {
     throw new Error("price is required for a new product.");
@@ -996,7 +996,6 @@ async function createProduct(
   if (context.allowVendorColumn && vendorId !== context.defaultVendorId) {
     await run.assertVendorExists(vendorId);
   }
-  assertCountryAllowed(row.countryOfOrigin, undefined, context);
   const categoryId = await run.resolveCategory(row);
   await run.assertLeafCategory(categoryId);
   const brandId = row.brand || row.brandId ? await run.resolveBrand(row) : null;
@@ -1123,7 +1122,6 @@ async function updateProduct(
     );
   }
   const isPhysicalProduct = existing.shipping?.isPhysicalProduct !== false;
-  assertCountryAllowed(row.countryOfOrigin, existing.shipping?.countryOfOrigin, context);
 
   // Only what the row actually fills in is written, and nested objects by
   // path: `$set: { shipping: {...} }` would replace the whole object and wipe
@@ -1222,6 +1220,10 @@ async function updateProduct(
   await assertProductBarcodesAreUnique(Product, barcodePayload, {
     excludeProductId: productId,
   });
+
+  // The row's variants replace the stored ones whole; their reservation
+  // counters must not reset with them.
+  await carryPreorderCounters({ filter: { _id: existing._id }, updateSet: set });
 
   let updated: ExistingProduct | null;
   try {

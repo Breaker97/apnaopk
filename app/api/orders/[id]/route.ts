@@ -5,7 +5,14 @@ import { customerActor } from "@/lib/orders/audit-order";
 import { cancelOrderForCustomer } from "@/lib/orders/customer-cancel";
 import { withApi } from "@/lib/api/handler";
 import { sanitizeOrderForCustomer } from "@/lib/orders/order-customer-view";
+import {
+  nonReturnableItemIndexes as loadNonReturnableItemIndexes,
+  refundedQuantitiesByIndex,
+  returnWindowClosedItemIndexes,
+} from "@/lib/returns/return-plan";
 import { loadOrderShipmentTracking } from "@/lib/orders/order-shipment-view";
+import { finalSaleItemIndexes } from "@/lib/returns/final-sale";
+import { resolveReturnPolicy } from "@/lib/returns/return-policy";
 import { getOrderReviewStates } from "@/lib/catalog/review-eligibility";
 import {
   getPreorderBalanceDeadline,
@@ -14,7 +21,7 @@ import {
 } from "@/lib/orders/order-payment-status";
 import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
 import { getSettings } from "@/models/settings.model";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 /**
@@ -44,7 +51,14 @@ export const GET = withApi<{ id: string }>(
     // it printed nothing at all: the signed-in customer saw strictly less
     // about their own parcel than someone typing the order number into the
     // public form.
-    const [sanitized, tracking, reviewStates] = await Promise.all([
+    const [
+      sanitized,
+      tracking,
+      reviewStates,
+      nonReturnableItemIndexes,
+      refundedByIndex,
+      settings,
+    ] = await Promise.all([
       sanitizeOrderForCustomer(order),
       loadOrderShipmentTracking({
         orderId: order._id,
@@ -52,6 +66,13 @@ export const GET = withApi<{ id: string }>(
         carrier: order.carrier,
       }),
       getOrderReviewStates(session.user.id, order),
+      // Digital lines never come back, so the return form leaves them out.
+      loadNonReturnableItemIndexes(order.items),
+      // Nor units already refunded from the store's order screen, nor lines
+      // whose window has closed: the form offered both, and the server
+      // refused every one.
+      refundedQuantitiesByIndex(order._id),
+      getSettings(),
     ]);
 
     // These are computed here rather than in the browser because the
@@ -60,7 +81,6 @@ export const GET = withApi<{ id: string }>(
     // grace period lives in store settings the shopper never sees.
     const preorderBalance = order.hasPreorder
       ? await (async () => {
-          const settings = await getSettings();
           const deadline = getPreorderBalanceDeadline(
             order,
             resolvePreorderPolicy(settings.preorder).expiryGraceDays,
@@ -77,6 +97,17 @@ export const GET = withApi<{ id: string }>(
       ...sanitized,
       ...(preorderBalance ?? {}),
       reviewStates,
+      nonReturnableItemIndexes,
+      // Sold as final sale: shown, and never offered for a return.
+      finalSaleItemIndexes: finalSaleItemIndexes(order.items),
+      refundedQuantities: Object.fromEntries(refundedByIndex),
+      returnClosedItemIndexes: returnWindowClosedItemIndexes(
+        order as Parameters<typeof returnWindowClosedItemIndexes>[0],
+        settings,
+      ),
+      // Off, the store takes returns through its team (R6): the page says so
+      // instead of offering the form.
+      returnsSelfServe: resolveReturnPolicy(settings).selfServe,
       trackingUrl: tracking.primary.trackingUrl,
       trackingEvents: tracking.primary.events,
       trackingException: tracking.primary.exception,

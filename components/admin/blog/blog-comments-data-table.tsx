@@ -175,7 +175,7 @@ export function BlogCommentsDataTable({ locale }: { locale: string }) {
           if (typeof p === "string") return <span>—</span>;
           return (
             <a
-              href={`/${locale}/blog/${p.slug || ""}`}
+              href={`/blog/${p.slug || ""}`}
               className="inline-flex items-center gap-1 text-sm text-primary"
               target="_blank"
               rel="noreferrer"

@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "@/components/language/link";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowRight, Minus, Plus, X } from "lucide-react";

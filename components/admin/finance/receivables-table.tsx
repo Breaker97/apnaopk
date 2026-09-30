@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeftRight } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -72,7 +72,7 @@ export function ReceivablesTable({
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                "flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
                 row.payable < 0
                   ? "bg-destructive/10 text-destructive"
                   : "bg-accent text-accent-foreground",
@@ -170,20 +170,30 @@ export function ReceivablesTable({
           row.payable < 0 ? (
             // Nothing to pay: the balance is impossible and is cleared with a
             // correcting entry, which lives on the overview.
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/${locale}/admin/finance`}>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+            >
+              <Link href="/admin/finance">
                 {label("finance.receivables.postAdjustment", "Post adjustment")}
               </Link>
             </Button>
           ) : row.payable > 0 ? (
-            <Button asChild size="sm">
-              <Link href={`/${locale}/admin/payouts?vendorId=${row.vendorId}`}>
+            <Button asChild size="sm" className="h-7 px-2.5 text-xs">
+              <Link href={`/admin/payouts?vendorId=${row.vendorId}`}>
                 {label("finance.receivables.payOut", "Pay out")}
               </Link>
             </Button>
           ) : (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/${locale}/admin/vendors/${row.vendorId}`}>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+            >
+              <Link href={`/admin/vendors/${row.vendorId}`}>
                 {label("finance.receivables.viewVendor", "View vendor")}
               </Link>
             </Button>
@@ -198,6 +208,8 @@ export function ReceivablesTable({
       data={visible}
       columns={columns}
       keyField="id"
+      // The Orders table's type size, so admin lists read at one scale.
+      className="[&_thead_th]:text-xs [&_tbody_td]:text-xs"
       searchable
       searchValue={search}
       onSearchChange={setSearch}

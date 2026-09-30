@@ -37,7 +37,7 @@ const { Schema, models, model } = mongoose;
  * lib/quotes/quote-offer.ts, which derives all of that from `expiresAt`,
  * `withdrawnAt` and the quote's `orderId`.
  */
-export interface IQuoteOffer {
+interface IQuoteOffer {
   /** Price of one unit, in the store currency. */
   unitPrice: number;
   /** The exact quantity this price is good for. */
@@ -53,7 +53,7 @@ export interface IQuoteOffer {
   withdrawnAt?: Date;
 }
 
-export interface IQuoteRequest {
+interface IQuoteRequest {
   _id: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   vendorId?: mongoose.Types.ObjectId;

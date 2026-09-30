@@ -8,8 +8,10 @@ import {
   cardButtonCss,
   cardChromeCss,
   cardDiscountChipCss,
+  cardPreviewBorderCss,
   cardPreviewStageCss,
   cardTypographyCss,
+  PRODUCT_CARD_PREVIEW_BORDER_CLASS,
   visibleProductCardGroups,
   productCardElementOn,
   type ProductCardConfig,
@@ -121,10 +123,14 @@ export function ProductCardPreview({
           <div
             key={key}
             className={cn(
-              "relative overflow-hidden ring-1 ring-black/5 dark:ring-white/10",
+              "relative overflow-hidden",
+              !style.previewBorder && PRODUCT_CARD_PREVIEW_BORDER_CLASS,
               !style.previewBackground && "bg-[#f3f4f6] dark:bg-zinc-800/50",
             )}
-            style={cardPreviewStageCss(style)}
+            style={{
+              ...cardPreviewStageCss(style),
+              ...cardPreviewBorderCss(style),
+            }}
           >
             {contained ? (
               <div

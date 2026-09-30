@@ -1,4 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
+import { RouteMessages } from "@/components/language/route-messages";
 import { ProductCardConfigProvider } from "@/components/products/product-card-config-context";
 import { getCardBrandDirectory } from "@/lib/brands/card-brand-directory";
 import {
@@ -8,6 +9,9 @@ import {
 import { CartProvider } from "@/hooks/use-cart";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { compileTheme } from "@/lib/storefront/themes/compile";
+
+// Canonical, hreflang and robots from the URL being served.
+export { generateMetadata } from "@/lib/storefront/request-path-metadata";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,10 +30,12 @@ interface LayoutProps {
  * storefront (session, cart, profile, assistant config, analytics pageview)
  * and did it again after every autosave.
  *
- * The cart provider is inert here: cards call `useCart()` at render, but a
- * frame is `pointer-events: none` and never adds anything, so it has no
+ * The cart provider is inert here: cards call `useCartActions()` at render,
+ * but a frame is `pointer-events: none` and never adds anything, so it has no
  * reason to fetch the cart. The root providers skip the session and PWA
- * work for this route as well (see `isSectionPreviewPath`).
+ * work for this route as well (see `isSectionPreviewPath`). The cart
+ * template's bag reads `checkout` messages, which pages outside checkout and
+ * the cart do not carry.
  */
 export default async function SectionPreviewLayout({
   children,
@@ -38,7 +44,8 @@ export default async function SectionPreviewLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const { theme, brand, productCardConfig } = await getStorefrontSettings();
+  const { theme, brand, productCardConfig, cartOrderConfig } =
+    await getStorefrontSettings();
   const themeSurface = compileTheme(theme.tokens, brand.colors);
 
   // The card's Brand element resolves brand ids through this directory; a
@@ -49,7 +56,7 @@ export default async function SectionPreviewLayout({
 
   return (
     <ProductCardConfigProvider config={productCardConfig} brands={cardBrands}>
-      <CartProvider inert>
+      <CartProvider inert orderConfig={cartOrderConfig}>
         <div
           className="store-surface bg-background"
           data-store-theme={theme.id}
@@ -61,7 +68,7 @@ export default async function SectionPreviewLayout({
             } as React.CSSProperties
           }
         >
-          {children}
+          <RouteMessages namespaces={["checkout"]}>{children}</RouteMessages>
         </div>
       </CartProvider>
     </ProductCardConfigProvider>

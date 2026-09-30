@@ -47,6 +47,7 @@ interface StorageProviderCredentials {
   endpoint?: string;
   region?: string;
   bucketName?: string;
+  privateBucketName?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
   publicUrl?: string;
@@ -67,9 +68,7 @@ export interface Settings {
     defaultLanguage: string;
     defaultCurrency: string;
     supportedLanguages: string[];
-    supportedCurrencies: string[];
     countryAvailability: CountryAvailability;
-    timezone: string;
   };
   appearance: {
     primaryColor: string;
@@ -79,16 +78,8 @@ export interface Settings {
     skeletonColor?: string;
     /** Legacy documents may still hold `"system"`; read via `normalizeThemeMode`. */
     theme: "light" | "dark" | "system";
-
-    contrast: boolean;
-    rtl: boolean;
-    collapsedSidebar: boolean;
-    navLayout: "vertical" | "horizontal" | "mini";
-    navColor: "integrate" | "apparent";
     presetColor: "default" | "cyan" | "purple" | "blue" | "orange" | "red";
     customPresets?: CustomColorPreset[];
-    fontFamily?: string;
-    borderRadius?: string;
   };
   payment: {
     stripe: {
@@ -152,6 +143,12 @@ export interface Settings {
       minOrderAmount?: number;
       maxOrderAmount?: number;
     };
+    /** The human check behind the card-testing guard (`lib/checkout/turnstile.ts`). */
+    turnstile?: {
+      enabled: boolean;
+      siteKey?: string;
+      secretKey?: string;
+    };
   };
   _meta?: {
     /**
@@ -188,7 +185,6 @@ export interface Settings {
     authBaseUrl?: string;
   };
   email: {
-    provider: "smtp" | "sendgrid" | "ses" | "mailgun";
     enabled: boolean;
     smtp: {
       host?: string;
@@ -200,7 +196,6 @@ export interface Settings {
     fromEmail?: string;
     fromName?: string;
     replyTo?: string;
-    apiKey?: string;
     logRetentionDays?: 7 | 30 | 90;
   };
   sms: {
@@ -223,6 +218,7 @@ export interface Settings {
     prefix: string;
     taxRate: number;
     freeShippingThreshold?: number;
+    loyaltySpendPerPoint?: number;
     defaultShippingCost: number;
     commission: {
       vendorRate: number;
@@ -239,6 +235,19 @@ export interface Settings {
       refundAdminFeePercent?: number;
       refundAdminFeeCap?: number;
       billVendorCodShipping?: boolean;
+      instructions?: string;
+      /** Collections sold as final sale. */
+      finalSaleCollectionIds?: string[];
+      /** No time limit on returns. */
+      windowUnlimited?: boolean;
+      /** When the window starts counting. */
+      windowStart?: "parcel_delivery" | "last_delivery";
+      /** Shoppers ask for returns from their account. */
+      selfServe?: boolean;
+      /** The most a seller's payout waits on a window with no time limit. */
+      payoutHoldMaxDays?: number;
+      /** Collections with a return window of their own. */
+      windowOverrides?: Array<{ collectionId: string; windowDays: number }>;
     };
   };
   shipping: {
@@ -349,6 +358,15 @@ export interface Settings {
       carrier: string;
       urlTemplate: string;
     }>;
+    addressHold?: {
+      suggestAtCheckout?: boolean;
+      checkAfterOrder?: boolean;
+      autoRequest?: boolean;
+      reminderDays?: number[];
+      deadlineDays?: number;
+      onDeadline?: "notify" | "cancel";
+      keepReturnShipping?: boolean;
+    };
     automation?: {
       enabled: boolean;
       includeCod: boolean;
@@ -436,7 +454,6 @@ export interface Settings {
     allowAdminSales: boolean;
     allowVendorSales: boolean;
     allowSellerSales: boolean;
-    language?: string;
     defaultPosLocationId?: string;
     customize?: {
       printedReceiptsEnabled: boolean;
@@ -467,6 +484,13 @@ export interface Settings {
     canManagePayouts: boolean;
     canAccessPOS: boolean;
   };
+  /** Settings → Products (the feature switches) and the product card studio. */
+  catalog?: {
+    outOfStockDisplay?: string;
+    physicalProducts?: boolean;
+    digitalProducts?: boolean;
+    priceOnRequest?: boolean;
+  };
   preorder: {
     enabled: boolean;
     requireVendorApproval: boolean;
@@ -481,8 +505,6 @@ export interface Settings {
   vendorConfig: {
     plansEnabled: boolean;
     allowRegistration: boolean;
-    autoApprove: boolean;
-    freeTrialDays: number;
     requirePlanSelection: boolean;
     requiredDocuments: string[];
     defaultPlanId?: string;

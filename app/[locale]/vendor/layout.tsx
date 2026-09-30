@@ -1,3 +1,4 @@
+import "@/app/dashboard.css";
 import { connectDB } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -25,6 +26,14 @@ import { RENEWAL_REMINDER_WINDOW_MS } from "@/lib/vendors/vendor-subscription-pa
 import { VendorPlanChangeAlert } from "@/components/vendor/vendor-plan-change-alert";
 import { VendorPaymentRequiredAlert } from "@/components/vendor/vendor-payment-required-alert";
 import { VENDOR_SETUP_ACCESS_COOKIE } from "@/lib/vendors/vendor-payment-access";
+import { localeHref } from "@/lib/i18n/locale-routing";
+import { AiAvailabilityProvider } from "@/components/ai-authoring/ai-availability-provider";
+import { getAIAuthoringAvailability } from "@/lib/ai-authoring/runtime";
+import { vendorAuthoringDenial } from "@/lib/ai-authoring/permissions";
+import { NO_AI_AUTHORING_AVAILABILITY } from "@/lib/ai-authoring/access";
+
+// Canonical, hreflang and robots from the URL being served.
+export { generateMetadata } from "@/lib/storefront/request-path-metadata";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,7 +50,7 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.multiVendorMode?.enabled) {
-    redirect(`/${locale}`);
+    redirect(await localeHref(locale, "/"));
   }
 
   const {
@@ -149,6 +158,27 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
         } | null>()
     : null;
 
+  // The same two gates the vendor AI routes apply — the store's AI settings
+  // (feature switch, key, surface, "Allow vendor accounts") and this vendor's
+  // own entitlement (the `aiStudio` plan pack plus ACCESS_AI_STUDIO). Resolved
+  // here so a form never offers a button the route would refuse. The permission
+  // set is the one the area guard already resolved, so this costs at most the
+  // plan lookup.
+  const aiAvailability = isApproved
+    ? await getAIAuthoringAvailability({
+        caller: "vendor",
+        vendorGranted:
+          (await vendorAuthoringDenial({
+            hasStudioPermission: vendorPermissions.includes(
+              VENDOR_PERMISSIONS.ACCESS_AI_STUDIO,
+            ),
+            vendorId,
+            planId: vendor.planId ? String(vendor.planId) : null,
+            settings,
+          })) === null,
+      })
+    : NO_AI_AUTHORING_AVAILABILITY;
+
   // Get vendor store name
   let storeName: string | undefined;
   let storeLogo: string | undefined;
@@ -161,79 +191,81 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <SidebarProvider>
-        <VendorPaymentReturnVerifier locale={locale} />
-        <SidebarStateSync />
-        <DashboardSidebar
-          locale={locale as Locale}
-          user={{
-            name: session.user.name,
-            email: session.user.email,
-            image: session.user.image || undefined,
-            role: session.user.role as string,
-          }}
-          vendorPermissions={vendorPermissions}
-        />
-        <SidebarInset className="[--dashboard-header-height:5rem]">
-          <VendorHeader
+      <AiAvailabilityProvider value={aiAvailability}>
+        <SidebarProvider>
+          <VendorPaymentReturnVerifier locale={locale} />
+          <SidebarStateSync />
+          <DashboardSidebar
+            locale={locale as Locale}
             user={{
               name: session.user.name,
               email: session.user.email,
               image: session.user.image || undefined,
+              role: session.user.role as string,
             }}
-            locale={locale as Locale}
-            storeName={storeName}
-            storeLogo={storeLogo}
-            posEnabled={canAccessPos}
+            vendorPermissions={vendorPermissions}
           />
-          <main className="isolate flex-1 space-y-8 p-6 md:p-6">
-            <EmailVerificationNotice
-              email={session.user.email}
-              status={session.user.emailVerificationStatus}
-              locale={locale}
+          <SidebarInset className="[--dashboard-header-height:5rem]">
+            <VendorHeader
+              user={{
+                name: session.user.name,
+                email: session.user.email,
+                image: session.user.image || undefined,
+              }}
+              locale={locale as Locale}
+              storeName={storeName}
+              storeLogo={storeLogo}
+              posEnabled={canAccessPos}
             />
-            {isSetupAccess ? (
-              <VendorPaymentRequiredAlert
+            <main className="isolate flex-1 space-y-8 p-6 md:p-6">
+              <EmailVerificationNotice
+                email={session.user.email}
+                status={session.user.emailVerificationStatus}
                 locale={locale}
-                paymentDueAt={payment?.dueAt}
               />
-            ) : null}
-            {billingSubscription?.status ===
-            VENDOR_SUBSCRIPTION_STATUS.PAST_DUE ? (
-              <VendorBillingAlert
-                locale={locale}
-                provider={billingSubscription.provider ?? null}
-                gracePeriodEnd={
-                  billingSubscription.gracePeriodEnd?.toISOString() ?? null
-                }
-              />
-            ) : null}
-            {/* Re-check the branch that matched, not just "active with a period":
-                the $or above also returns pending-upgrade rows, which are ACTIVE
-                and have a period end — including Stripe ones, whose renewal this
-                dialog cannot collect. */}
-            {billingSubscription?.status === VENDOR_SUBSCRIPTION_STATUS.ACTIVE &&
-            billingSubscription.provider !== "stripe" &&
-            billingSubscription.currentPeriodEnd &&
-            billingSubscription.currentPeriodEnd > now &&
-            billingSubscription.currentPeriodEnd <= renewalWindowEnd ? (
-              <VendorRenewalDueAlert
-                locale={locale}
-                currentPeriodEnd={billingSubscription.currentPeriodEnd.toISOString()}
-              />
-            ) : null}
-            {billingSubscription?.pendingChangeStatus === "awaiting_vendor" ||
-            billingSubscription?.pendingChangeStatus === "awaiting_payment" ? (
-              <VendorPlanChangeAlert
-                locale={locale}
-                planName={billingSubscription.pendingPlanSnapshot?.name}
-                status={billingSubscription.pendingChangeStatus}
-              />
-            ) : null}
-            {children}
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+              {isSetupAccess ? (
+                <VendorPaymentRequiredAlert
+                  locale={locale}
+                  paymentDueAt={payment?.dueAt}
+                />
+              ) : null}
+              {billingSubscription?.status ===
+              VENDOR_SUBSCRIPTION_STATUS.PAST_DUE ? (
+                <VendorBillingAlert
+                  locale={locale}
+                  provider={billingSubscription.provider ?? null}
+                  gracePeriodEnd={
+                    billingSubscription.gracePeriodEnd?.toISOString() ?? null
+                  }
+                />
+              ) : null}
+              {/* Re-check the branch that matched, not just "active with a period":
+                  the $or above also returns pending-upgrade rows, which are ACTIVE
+                  and have a period end — including Stripe ones, whose renewal this
+                  dialog cannot collect. */}
+              {billingSubscription?.status === VENDOR_SUBSCRIPTION_STATUS.ACTIVE &&
+              billingSubscription.provider !== "stripe" &&
+              billingSubscription.currentPeriodEnd &&
+              billingSubscription.currentPeriodEnd > now &&
+              billingSubscription.currentPeriodEnd <= renewalWindowEnd ? (
+                <VendorRenewalDueAlert
+                  locale={locale}
+                  currentPeriodEnd={billingSubscription.currentPeriodEnd.toISOString()}
+                />
+              ) : null}
+              {billingSubscription?.pendingChangeStatus === "awaiting_vendor" ||
+              billingSubscription?.pendingChangeStatus === "awaiting_payment" ? (
+                <VendorPlanChangeAlert
+                  locale={locale}
+                  planName={billingSubscription.pendingPlanSnapshot?.name}
+                  status={billingSubscription.pendingChangeStatus}
+                />
+              ) : null}
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </AiAvailabilityProvider>
     </NextIntlClientProvider>
   );
 }

@@ -4,6 +4,7 @@ import { withApi } from "@/lib/api/handler";
 import { validatePartialBody, isValidObjectId } from "@/lib/api/validate";
 import { UpdateCouponSchema } from "@/lib/validations";
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
+import { revalidateCouponContent } from "@/lib/cache-invalidation";
 
 type RouteParams = { id: string };
 
@@ -75,6 +76,7 @@ export const PUT = withApi<RouteParams>(
     if (!coupon) {
       return notFoundResponse("Coupon");
     }
+    revalidateCouponContent();
 
     const auditContext = createAuditContext(request, session);
     await auditUpdate(
@@ -108,6 +110,7 @@ export const DELETE = withApi<RouteParams>(
     if (!coupon) {
       return notFoundResponse("Coupon");
     }
+    revalidateCouponContent();
 
     const auditContext = createAuditContext(request, session);
     await auditDelete(

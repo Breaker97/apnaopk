@@ -69,6 +69,8 @@ export const HEADER_ITEM_META: HeaderItemMeta[] = [
   { type: "searchBar", label: "Search Bar", icon: Search },
   { type: "searchIcon", label: "Search icon", icon: ScanSearch },
   { type: "location", label: "Location", icon: MapPin },
+  { type: "language", label: "Language", icon: Globe },
+  { type: "currency", label: "Currency", icon: DollarSign },
   { type: "buttons", label: "Buttons", icon: RectangleHorizontal },
   { type: "text", label: "Text", icon: Type },
   { type: "icons", label: "Icons", icon: Shapes },

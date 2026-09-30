@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { type Locale } from "@/config/i18n.config";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import Link from "@/components/language/link";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { MoveRight } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
@@ -53,6 +53,7 @@ export default async function BlogIndexPage({
   const { locale } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const page = typeof sp.page === "string" ? parseInt(sp.page, 10) || 1 : 1;
   const search = typeof sp.search === "string" ? sp.search : "";
@@ -89,6 +90,7 @@ export default async function BlogIndexPage({
         <StoreBreadcrumb
           className="mb-6 md:mb-8"
           locale={locale}
+          storeDefault={storeDefault}
           items={[{ label: t("nav.blog") }]}
         />
 
@@ -107,7 +109,7 @@ export default async function BlogIndexPage({
             aria-label="Blog categories"
             className="scrollbar-hide -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 [mask-image:linear-gradient(90deg,#000_92%,transparent)] md:mx-0 md:mt-7 md:flex-wrap md:justify-center md:gap-3 md:overflow-visible md:px-0 md:[mask-image:none]"
           >
-            <Link href={`/${locale}/blog`} className={chipClass(!categorySlug)}>
+            <Link href="/blog" className={chipClass(!categorySlug)}>
               All
             </Link>
             {categories.slice(0, 7).map((category) => {
@@ -115,7 +117,7 @@ export default async function BlogIndexPage({
               return (
                 <Link
                   key={category._id}
-                  href={`/${locale}/blog?category=${category.slug}`}
+                  href={`/blog?category=${category.slug}`}
                   className={chipClass(isActive)}
                 >
                   {category.name}
@@ -132,7 +134,7 @@ export default async function BlogIndexPage({
         ) : (
           <>
             {featuredPost ? (
-              <FeaturedPost post={featuredPost} locale={locale as Locale} />
+              <FeaturedPost post={featuredPost} />
             ) : null}
 
             {gridPosts.length > 0 ? (
@@ -151,7 +153,6 @@ export default async function BlogIndexPage({
                     <BlogArticleCard
                       key={post._id}
                       article={toBlogArticleCard(post)}
-                      locale={locale as Locale}
                     />
                   ))}
                 </div>
@@ -255,12 +256,10 @@ function ReadMoreLink({ href }: { href: string }) {
 
 function FeaturedPost({
   post,
-  locale,
 }: {
   post: BlogListItem;
-  locale: Locale;
 }) {
-  const href = `/${locale}/blog/${post.slug}`;
+  const href = `/blog/${post.slug}`;
 
   return (
     <article className="mt-8 grid items-center gap-3.5 md:mt-20 md:grid-cols-[1.3fr_1fr] md:gap-10 lg:gap-[60px]">

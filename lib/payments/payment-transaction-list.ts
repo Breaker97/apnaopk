@@ -48,6 +48,9 @@ function buildPaymentTransactionFilter({
   if (normalize(settlement) === "pending") {
     query["metadata.settlement.required"] = true;
     query["metadata.settlement.settledAt"] = { $exists: false };
+    // Still standing: a refund cancelled before it was sent, or one that
+    // failed, is owed to nobody.
+    if (!query.status) query.status = "succeeded";
   }
 
   if (search) {

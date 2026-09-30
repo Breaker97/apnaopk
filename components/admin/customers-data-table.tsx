@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   ChevronsUpDown,
+  Circle,
   Download,
   Eye,
   Pencil,
@@ -21,7 +22,6 @@ import {
   CurrencyCell,
   DateCell,
   NumberCell,
-  StatusCell,
   TextCell,
   type DataTableAction,
   type DataTableBulkAction,
@@ -37,6 +37,10 @@ import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useAdminPhrase } from "@/hooks/use-admin-phrase";
+import {
+  MARKETING_CONSENT_STATE,
+  type MarketingConsentState,
+} from "@/config/app.config";
 
 interface CustomerListItem {
   _id: string;
@@ -57,6 +61,14 @@ interface CustomerListItem {
   };
   lastActiveAt?: string;
   createdAt: string;
+  /** Email marketing consent; absent on rows written before it existed. */
+  emailMarketing?: {
+    state?: MarketingConsentState;
+    consentUpdatedAt?: string;
+    source?: string;
+  };
+  /** The boolean the consent record replaced — still read for unmigrated rows. */
+  marketingOptIn?: boolean;
   /** Guest rows: customer records with no account — identity lives on the profile. */
   isGuest?: boolean;
   email?: string;
@@ -93,7 +105,63 @@ interface CustomersDataTableProps {
   };
 }
 
-const CUSTOMER_FILTER_IDS = ["tier", "tag"];
+const CUSTOMER_FILTER_IDS = ["tier", "tag", "subscription"];
+
+/**
+ * The consent state to show for a row. A profile written before the consent
+ * record exists carries only the boolean, and reading those as "not
+ * subscribed" would blank out every subscriber a store has until the
+ * migration runs.
+ */
+function readSubscriptionState(row: CustomerListItem): MarketingConsentState {
+  return (
+    row.emailMarketing?.state ??
+    (row.marketingOptIn
+      ? MARKETING_CONSENT_STATE.SUBSCRIBED
+      : MARKETING_CONSENT_STATE.NOT_SUBSCRIBED)
+  );
+}
+
+function escapeCsvValue(value: unknown) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** The Orders list's badge: 12px, soft fill, square corners. */
+const BADGE_CLASS =
+  "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-[12px] font-medium";
+
+const SLATE_BADGE =
+  "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200";
+
+const ACCOUNT_STYLES = {
+  active:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+  inactive:
+    "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  banned: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
+  guest: SLATE_BADGE,
+};
+
+const SUBSCRIPTION_STYLES: Record<MarketingConsentState, string> = {
+  subscribed:
+    "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
+  pending:
+    "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  unsubscribed: SLATE_BADGE,
+  not_subscribed: SLATE_BADGE,
+  invalid: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
+  redacted: SLATE_BADGE,
+};
+
+const TIER_STYLES = {
+  bronze:
+    "bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300",
+  silver: SLATE_BADGE,
+  gold: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  platinum:
+    "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300",
+};
 
 function getInitials(name?: string) {
   if (!name) return "CU";
@@ -140,6 +208,21 @@ export function CustomersDataTable({
       ...tags.map((tag) => ({ label: tag, value: tag })),
     ];
   }, [list.items, tr]);
+
+  // `unsubscribed` stays grey rather than red: leaving a list is a shopper
+  // exercising a right, not a fault. Only `invalid` — an address that bounced
+  // or reported spam — is an actual problem to fix.
+  const subscriptionLabels = useMemo<Record<MarketingConsentState, string>>(
+    () => ({
+      subscribed: tr("Subscribed", "সাবস্ক্রাইবড"),
+      pending: tr("Pending", "নিশ্চিতকরণ বাকি"),
+      unsubscribed: tr("Unsubscribed", "আনসাবস্ক্রাইবড"),
+      not_subscribed: tr("Not subscribed", "সাবস্ক্রাইব করেনি"),
+      invalid: tr("Invalid", "অকার্যকর ঠিকানা"),
+      redacted: tr("Redacted", "মুছে ফেলা"),
+    }),
+    [tr],
+  );
 
   const handleDelete = useCallback(
     async (customer: CustomerListItem) => {
@@ -263,11 +346,11 @@ export function CustomersDataTable({
         cell: (row) => {
           const identity = (
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar>
                 <AvatarImage src={row.user?.image} alt={row.user?.name || row.name || tr("Customer", "গ্রাহক")} />
                 <AvatarFallback>{getInitials(row.user?.name || row.name)}</AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
+              <div className="min-w-0 max-w-[200px]">
                 <p className={cn("font-medium truncate", !isVendorArea && "hover:underline")}>{row.user?.name || row.name || tr("Unknown", "অজানা")}</p>
                 <p className="text-xs text-muted-foreground truncate">{row.user?.email || row.email}</p>
               </div>
@@ -281,38 +364,76 @@ export function CustomersDataTable({
             </Link>
           );
         },
-        className: "w-[320px]",
+        className: "w-[240px]",
       },
       {
         id: "accountStatus",
         header: tr("Account", "অ্যাকাউন্ট"),
-        cell: (row) => (
-          <StatusCell
-            status={row.isGuest ? "guest" : row.user?.status || "active"}
-            statusMap={{
-              active: { label: tr("Active", "সক্রিয়"), variant: "default" },
-              inactive: { label: tr("Inactive", "নিষ্ক্রিয়"), variant: "outline" },
-              banned: { label: tr("Banned", "নিষিদ্ধ"), variant: "destructive" },
-              guest: { label: tr("Guest", "অতিথি"), variant: "secondary" },
-            }}
-          />
-        ),
+        cell: (row) => {
+          const status = row.isGuest ? "guest" : row.user?.status || "active";
+          const labels = {
+            active: tr("Active", "সক্রিয়"),
+            inactive: tr("Inactive", "নিষ্ক্রিয়"),
+            banned: tr("Banned", "নিষিদ্ধ"),
+            guest: tr("Guest", "অতিথি"),
+          };
+          return (
+            <span className={`${BADGE_CLASS} ${ACCOUNT_STYLES[status]}`}>
+              <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
+              {labels[status]}
+            </span>
+          );
+        },
         className: "w-[120px]",
+      },
+      {
+        // Consent as a state, not a tick: "unsubscribed" (they left) and
+        // "not subscribed" (never asked) are different facts about a shopper,
+        // and a merchant picking who to email needs to see which is which.
+        id: "emailSubscription",
+        header: tr("Email subscription", "ইমেইল সাবস্ক্রিপশন"),
+        cell: (row) => {
+          const state = readSubscriptionState(row);
+          return (
+            // The date sits beside the badge, not under it, so the row
+            // stays the Orders list's height.
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className={`${BADGE_CLASS} shrink-0 ${SUBSCRIPTION_STYLES[state]}`}
+              >
+                {subscriptionLabels[state]}
+              </span>
+              {row.emailMarketing?.consentUpdatedAt ? (
+                <span className="truncate text-muted-foreground">
+                  <DateCell
+                    date={row.emailMarketing.consentUpdatedAt}
+                    format="relative"
+                  />
+                </span>
+              ) : null}
+            </div>
+          );
+        },
+        className: "w-[180px] hidden lg:table-cell",
+        headerClassName: "hidden lg:table-cell",
       },
       {
         id: "tier",
         header: tr("Loyalty tier", "লয়্যালটি টিয়ার"),
-        cell: (row) => (
-          <StatusCell
-            status={row.loyaltyTier || "bronze"}
-            statusMap={{
-              bronze: { label: tr("Bronze", "ব্রোঞ্জ"), variant: "secondary" },
-              silver: { label: tr("Silver", "সিলভার"), variant: "outline" },
-              gold: { label: tr("Gold", "গোল্ড"), variant: "default" },
-              platinum: { label: tr("Platinum", "প্লাটিনাম"), variant: "default" },
-            }}
-          />
-        ),
+        cell: (row) => {
+          const tier = row.loyaltyTier || "bronze";
+          const labels = {
+            bronze: tr("Bronze", "ব্রোঞ্জ"),
+            silver: tr("Silver", "সিলভার"),
+            gold: tr("Gold", "গোল্ড"),
+            platinum: tr("Platinum", "প্লাটিনাম"),
+          };
+          return (
+            <span className={`${BADGE_CLASS} ${TIER_STYLES[tier]}`}>
+              {labels[tier]}
+            </span>
+          );
+        },
         className: "w-[140px]",
       },
       {
@@ -350,7 +471,8 @@ export function CustomersDataTable({
         id: "points",
         header: tr("Points", "পয়েন্ট"),
         cell: (row) => <NumberCell value={row.loyaltyPoints ?? 0} />,
-        className: "w-[110px]",
+        className: "w-[110px] hidden 2xl:table-cell",
+        headerClassName: "hidden 2xl:table-cell",
       },
       {
         id: "tags",
@@ -359,13 +481,16 @@ export function CustomersDataTable({
           <TextCell
             value={row.tags?.length ? row.tags.slice(0, 2).join(", ") : tr("-", "-")}
             truncate
-            maxWidth="200px"
+            maxWidth="140px"
           />
         ),
-        className: "w-[220px]",
+        // Points and tags are the least-read columns, so they go first on a
+        // narrower screen.
+        className: "w-[160px] hidden 2xl:table-cell",
+        headerClassName: "hidden 2xl:table-cell",
       },
     ],
-    [tr, isVendorArea, basePath],
+    [tr, isVendorArea, basePath, subscriptionLabels],
   );
 
   // Loyalty tier, points, and tags are platform CRM — the vendor list's API
@@ -409,6 +534,25 @@ export function CustomersDataTable({
         ],
       },
       {
+        id: "subscription",
+        label: tr("Email subscription", "ইমেইল সাবস্ক্রিপশন"),
+        type: "select",
+        options: [
+          { label: tr("All", "সব"), value: "all" },
+          { label: tr("Subscribed", "সাবস্ক্রাইবড"), value: "subscribed" },
+          { label: tr("Pending", "নিশ্চিতকরণ বাকি"), value: "pending" },
+          {
+            label: tr("Unsubscribed", "আনসাবস্ক্রাইবড"),
+            value: "unsubscribed",
+          },
+          {
+            label: tr("Not subscribed", "সাবস্ক্রাইব করেনি"),
+            value: "not_subscribed",
+          },
+          { label: tr("Invalid", "অকার্যকর ঠিকানা"), value: "invalid" },
+        ],
+      },
+      {
         id: "tag",
         label: tr("Tag", "ট্যাগ"),
         type: "select",
@@ -417,6 +561,45 @@ export function CustomersDataTable({
     ],
     [isVendorArea, tr, tagOptions],
   );
+
+  /**
+   * The rows on screen, as a file. With the Email subscription filter on,
+   * this is the subscriber list a merchant is actually asking for — the
+   * export button offered nothing at all before.
+   */
+  const handleExportCurrentView = useCallback(() => {
+    const headers = [
+      "Name",
+      "Email",
+      "Account",
+      "Email subscription",
+      "Consent updated",
+      "Loyalty tier",
+      "Orders",
+      "Spent",
+    ];
+    const rows = list.items.map((customer) => [
+      customer.user?.name || customer.name || "",
+      customer.user?.email || customer.email || "",
+      customer.isGuest ? "guest" : customer.user?.status || "active",
+      readSubscriptionState(customer),
+      customer.emailMarketing?.consentUpdatedAt || "",
+      customer.loyaltyTier || "",
+      customer.stats?.totalOrders ?? 0,
+      customer.stats?.totalSpent ?? 0,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `customers-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [list.items]);
 
   const tableHeader = useMemo(
     () =>
@@ -443,6 +626,7 @@ export function CustomersDataTable({
                   id: "toolbar-export",
                   label: tr("Export", "এক্সপোর্ট"),
                   icon: <Download className="h-4 w-4" />,
+                  onClick: handleExportCurrentView,
                 },
                 {
                   id: "toolbar-import",
@@ -453,7 +637,7 @@ export function CustomersDataTable({
               ],
             },
       }),
-    [tr, readOnly, basePath, isVendorArea, t],
+    [tr, readOnly, basePath, isVendorArea, t, handleExportCurrentView],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<CustomerListItem>[]>(
@@ -565,7 +749,8 @@ export function CustomersDataTable({
       onPageSizeChange={list.handlePageSizeChange}
       rowActions={rowActions}
       rowActionsHeader={tr("Actions", "অ্যাকশন")}
-      rowActionsVariant="inline"
+      rowActionsVariant="dropdown"
+      className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
       onRowClick={(row) => router.push(`${basePath}/customers/${row._id}`)}
       emptyMessage={tr("No customers found", "কোনো গ্রাহক পাওয়া যায়নি")}
     />

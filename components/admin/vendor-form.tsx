@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,6 @@ import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { slugify } from "@/lib/strings";
 
 interface VendorFormProps {
-  locale: string;
   vendorId?: string;
 }
 
@@ -66,7 +65,7 @@ const defaultValues: VendorFormValues = {
 const VENDOR_IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp";
 const VENDOR_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 
-export function VendorForm({ locale, vendorId }: VendorFormProps) {
+export function VendorForm({ vendorId }: VendorFormProps) {
   const router = useRouter();
   const { confirm } = useConfirmation();
 
@@ -206,7 +205,7 @@ export function VendorForm({ locale, vendorId }: VendorFormProps) {
       if (isEdit) {
         router.refresh();
       } else {
-        router.push(`/${locale}/admin/vendors`);
+        router.push("/admin/vendors");
       }
     } catch (error) {
       toast.error(
@@ -238,7 +237,7 @@ export function VendorForm({ locale, vendorId }: VendorFormProps) {
         throw new Error(data.message || "Failed to delete vendor");
       }
       toast.success("Vendor deleted successfully");
-      router.push(`/${locale}/admin/vendors`);
+      router.push("/admin/vendors");
       router.refresh();
     } catch (error) {
       toast.error(
@@ -276,7 +275,7 @@ export function VendorForm({ locale, vendorId }: VendorFormProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/${locale}/admin/vendors`)}
+              onClick={() => router.push("/admin/vendors")}
             >
               Back to vendors
             </Button>

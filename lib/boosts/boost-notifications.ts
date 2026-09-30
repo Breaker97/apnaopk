@@ -14,6 +14,7 @@ import { getSettings } from "@/models/settings.model";
 import { createNotification } from "@/lib/notifications/notifications";
 import { buildEmailShell } from "@/lib/email/vendor-emails";
 import { sendEmail, isEmailDeliveryConfigured } from "@/lib/email/email";
+import { escapeHtml } from "@/lib/email/escape-html";
 
 export type BoostNotificationEvent =
   | "activated"
@@ -146,8 +147,10 @@ export async function sendBoostNotification(
       subject: copy.title,
       html: buildEmailShell({
         title: copy.title,
-        intro: `Hi ${user.name || vendor?.storeName || "there"},`,
-        body: `<p style="margin:0 0 12px;">${copy.message}</p>`,
+        // The shell prints both as HTML; the names in them were typed by the
+        // vendor.
+        intro: `Hi ${escapeHtml(user.name || vendor?.storeName || "there")},`,
+        body: `<p style="margin:0 0 12px;">${escapeHtml(copy.message)}</p>`,
         settings,
         cta: {
           label: "View your boosts",

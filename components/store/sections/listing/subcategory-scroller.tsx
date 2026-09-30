@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight, Package } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { useRailEdges } from "@/components/store/scroll-rail";
-import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
 
 interface ScrollerCategory {
@@ -31,10 +30,8 @@ interface ScrollerCategory {
  * edge still hides a department.
  */
 export function SubcategoryScroller({
-  locale,
   categories,
 }: {
-  locale: Locale;
   categories: ScrollerCategory[];
 }) {
   const t = useTranslations();
@@ -70,7 +67,7 @@ export function SubcategoryScroller({
         {categories.map((category) => (
           <Link
             key={category.id}
-            href={`/${locale}/categories/${category.slug}`}
+            href={`/categories/${category.slug}`}
             // 112px tiles fitted two and a half departments on a 360px
             // screen — a row that looks half-empty and cut. At 84px three
             // sit whole with the fourth peeking, which is what reads as a

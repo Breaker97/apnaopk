@@ -12,8 +12,10 @@ import {
   RefreshCw,
   Settings2,
   Upload,
-  AlertTriangle,
+  Lock,
 } from "lucide-react";
+import { WarningBanner } from "@/components/ui/warning-banner";
+import { EnvSourceHint } from "@/components/admin/settings/fields/env-source-hint";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,7 +26,7 @@ import {
   StorageProviderToggle,
   type StorageProvider,
 } from "@/components/admin/storage-provider-toggle";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   S3CompatibleConfigPanel,
   AWS_REGIONS,
@@ -45,6 +47,7 @@ interface ProviderCredentials {
   endpoint?: string;
   region?: string;
   bucketName?: string;
+  privateBucketName?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
   publicUrl?: string;
@@ -98,6 +101,7 @@ interface StorageSettingsSectionProps {
   onUpdate: (storage: StorageSettings) => void;
   onSave: () => void;
   isSaving: boolean;
+  isDirty: boolean;
   envSources?: CredentialEnvSources["storage"];
   credentialHints?: Partial<Record<CredentialBlock, CredentialHints>>;
 }
@@ -146,6 +150,7 @@ export function StorageSettingsSection({
   onUpdate,
   onSave,
   isSaving,
+  isDirty,
   envSources,
   credentialHints,
 }: StorageSettingsSectionProps) {
@@ -217,17 +222,19 @@ export function StorageSettingsSection({
         message: data.message,
       });
 
+      // The box under the button keeps the server's own words; the toast is
+      // the verdict, in the admin's language.
       if (data.success) {
-        toast.success(data.message || "Storage connection successful!");
+        toast.success(t("admin.settings.storage.testSucceeded"));
       } else {
-        toast.error(data.message || "Connection failed");
+        toast.error(data.message || t("admin.settings.storage.testRejected"));
       }
     } catch (error: unknown) {
       setTestResult({
         success: false,
-        message: getErrorMessage(error, "Failed to test connection"),
+        message: getErrorMessage(error, t("admin.settings.storage.testFailed")),
       });
-      toast.error("Failed to test connection");
+      toast.error(t("admin.settings.storage.testFailed"));
     } finally {
       setIsTesting(false);
     }
@@ -268,7 +275,9 @@ export function StorageSettingsSection({
       const res = await fetch("/api/admin/storage/status");
       const json = await res.json();
       if (!res.ok || !json?.success) {
-        throw new Error(json?.message || "Failed to check storage status");
+        throw new Error(
+          json?.message || t("admin.settings.storage.statusFailed"),
+        );
       }
       return json?.data?.connection as
         | { success?: boolean; message?: string }
@@ -286,7 +295,9 @@ export function StorageSettingsSection({
         setStatusSuccess(isConnected ?? null);
       })
       .catch((error: unknown) => {
-        setStatusMessage(getErrorMessage(error, "Failed to check storage status"));
+        setStatusMessage(
+          getErrorMessage(error, t("admin.settings.storage.statusFailed")),
+        );
         setStatusSuccess(false);
       })
       .finally(() => setIsCheckingStatus(false));
@@ -340,8 +351,12 @@ export function StorageSettingsSection({
         title={t("admin.settings.storage.title")}
         description={t("admin.settings.storage.description")}
         meta={
+          /* A chip, so it says only whether storage works. The reason a check
+             failed is a sentence or three — an SDK error, or the public-URL
+             hint — which belongs in the banner below, not in a pill that would
+             stretch until it pushed the title off the card. */
           <div
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${
               statusSuccess === true
                 ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
                 : statusSuccess === false
@@ -358,7 +373,11 @@ export function StorageSettingsSection({
             ) : null}
             {isCheckingStatus
               ? t("admin.settings.storage.checking")
-              : statusMessage || "—"}
+              : statusSuccess === true
+                ? t("admin.settings.storage.connected")
+                : statusSuccess === false
+                  ? t("admin.settings.storage.notConnected")
+                  : "—"}
           </div>
         }
       />
@@ -368,19 +387,24 @@ export function StorageSettingsSection({
         {/* An install still on the retired local provider. Say plainly what
             happens to the files already on disk, because "your storage option
             is gone" is otherwise read as "my media is gone". */}
-        {isLegacyLocal && (
-          <div className="flex gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3 text-sm dark:border-amber-900/60 dark:bg-amber-950/30">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
-            <div className="space-y-1 text-amber-900 dark:text-amber-200">
-              <p className="font-medium">
-                {t("admin.settings.storage.localRetired.title")}
-              </p>
-              <p className="text-xs leading-relaxed text-amber-800/90 dark:text-amber-200/80">
-                {t("admin.settings.storage.localRetired.body")}
-              </p>
-            </div>
-          </div>
-        )}
+        {isLegacyLocal ? (
+          <WarningBanner
+            title={t("admin.settings.storage.localRetired.title")}
+          >
+            {t("admin.settings.storage.localRetired.body")}
+          </WarningBanner>
+        ) : statusSuccess === false && statusMessage && canTest ? (
+          /* Why the saved configuration is failing — a wrong bucket, a revoked
+             key, a bucket that is not public. Only once something is actually
+             configured: on a fresh install everything fails by definition, and
+             the setup guide below is the answer there. */
+          <WarningBanner
+            tone="danger"
+            title={t("admin.settings.storage.notConnected")}
+          >
+            {statusMessage}
+          </WarningBanner>
+        ) : null}
 
         {/* Provider Selection Cards */}
         <StorageProviderToggle
@@ -473,6 +497,42 @@ export function StorageSettingsSection({
                 }
               />
             )}
+
+            {/* The same question for every provider, so asked once, below
+                whichever panel is showing, and kept in that provider's block. */}
+            <div className="space-y-1.5 md:col-span-2">
+              <div className="h-px bg-border my-1" />
+              <Label
+                htmlFor="privateBucketName"
+                className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide"
+              >
+                <Lock className="h-3 w-3" />
+                {t("admin.settings.storage.privateBucketName")}
+              </Label>
+              <Input
+                id="privateBucketName"
+                value={activeBlock.privateBucketName || ""}
+                onChange={(e) =>
+                  updateCredential(
+                    BLOCK_OF[activeProvider],
+                    "privateBucketName",
+                    e.target.value,
+                  )
+                }
+                placeholder={t("admin.settings.storage.placeholder.privateBucket")}
+                className="bg-background"
+              />
+              <p className="text-[11px] text-muted-foreground/70">
+                {t("admin.settings.storage.help.privateBucket")}
+              </p>
+              <EnvSourceHint show={Boolean(envSources?.privateBucketName)} />
+              {!activeBlock.privateBucketName?.trim() &&
+                !envSources?.privateBucketName && (
+                  <WarningBanner>
+                    {t("admin.settings.storage.privateBucketMissing")}
+                  </WarningBanner>
+                )}
+            </div>
           </div>
 
           {/* Test result banner */}
@@ -551,7 +611,7 @@ export function StorageSettingsSection({
                 htmlFor="maxImageSizeMB"
                 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide"
               >
-                Max Image Size (MB)
+                {t("admin.settings.storage.maxImageSize")}
               </Label>
               <NumberInput
                 id="maxImageSizeMB"
@@ -571,7 +631,7 @@ export function StorageSettingsSection({
                 htmlFor="maxVideoSizeMB"
                 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide"
               >
-                Max Video Size (MB)
+                {t("admin.settings.storage.maxVideoSize")}
               </Label>
               <NumberInput
                 id="maxVideoSizeMB"
@@ -591,7 +651,7 @@ export function StorageSettingsSection({
                 htmlFor="maxModelSizeMB"
                 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide"
               >
-                Max 3D Model Size (MB)
+                {t("admin.settings.storage.maxModelSize")}
               </Label>
               <NumberInput
                 id="maxModelSizeMB"
@@ -629,6 +689,7 @@ export function StorageSettingsSection({
           <StickySaveFooter
             label={t("admin.settings.storage.save")}
             isSaving={isSaving}
+            isDirty={isDirty}
             onSave={onSave}
           />
         </CardContent>

@@ -5,6 +5,7 @@ import { getSanitizedSettings } from "@/lib/settings/sanitize-settings";
 import { isMultiVendorEnabled } from "@/lib/vendors/multi-vendor";
 import { AdminSettingsProvider } from "@/components/admin/settings/admin-settings-context";
 import { VendorConfigurationScreen } from "@/components/admin/vendor-configuration-screen";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -20,7 +21,7 @@ export default async function AdminVendorConfigurationPage({
   // Vendor features live entirely under multi-vendor mode; in single-vendor
   // mode this surface does not exist (the Vendors nav group is hidden too).
   if (!(await isMultiVendorEnabled())) {
-    redirect(`/${locale}/admin`);
+    redirect(await localeHref(locale, "/admin"));
   }
 
   // Seed the settings client store server-side (same as the settings layout) so

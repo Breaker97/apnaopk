@@ -7,7 +7,8 @@ import { SectionLoader } from "@/components/admin/settings/section-loader";
 /**
  * Vendor Configuration screen. Lives under Admin → Vendors (not Settings)
  * because the whole vendor feature set is gated on multi-vendor mode; it reuses
- * the settings data layer via AdminSettingsProvider, which the route wraps it in.
+ * the settings data layer via AdminSettingsProvider, which the route wraps it in
+ * (and with it the prompt before leaving unsaved edits behind).
  */
 export function VendorConfigurationScreen() {
   const { isSaving, dirtySections, updateFieldInSection, saveSections } =
@@ -32,10 +33,8 @@ export function VendorConfigurationScreen() {
               updateFieldInSection("orders", path, value)
             }
             onSave={() => {
-              // One atomic PUT for both sections. Sequential per-section saves
-              // would each overwrite the client with a full-document response
-              // carrying the other section's old values, silently reverting an
-              // edit if the second save failed.
+              // One atomic PUT for both sections, so a failure cannot leave
+              // one of them saved and the other not.
               const payload: Record<string, unknown> = {};
               if (configDirty) payload.vendorConfig = loadedSettings.vendorConfig;
               if (commissionDirty) payload.orders = loadedSettings.orders;

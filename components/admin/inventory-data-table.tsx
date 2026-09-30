@@ -24,6 +24,16 @@ import {
   type BarcodeLabelInventoryItem,
 } from "@/components/barcode/barcode-label-studio";
 import type { BarcodeFormat } from "@/lib/barcode/standards";
+import {
+  figuresForStock,
+  stockAdjustment,
+  targetStockForEdit,
+  type StockEditField,
+} from "@/lib/inventory/stock-edit";
+import {
+  InventoryUnavailableDialog,
+  type UnavailableStockTarget,
+} from "@/components/admin/inventory-unavailable-dialog";
 
 interface InventoryItem {
   id: string; // Added unique key for DataTable
@@ -37,9 +47,13 @@ interface InventoryItem {
   barcodeFormat?: BarcodeFormat;
   barcodeSource?: "manufacturer" | "gs1" | "internal";
   price: number;
-  unavailable: number;
-  committed: number;
+  /** What the store can still sell. */
   available: number;
+  /** Sold and still on the premises — not shipped, collected or called off. */
+  committed: number;
+  /** Returned damaged, incomplete or unusable, not yet restocked or written off. */
+  unavailable: number;
+  /** Available + committed + unavailable: what a shelf count finds. */
   onHand: number;
   /** Shipped on a transfer and not yet received. */
   incoming?: number;
@@ -88,9 +102,13 @@ export function InventoryDataTable({
   const [selectedItems, setSelectedItems] = useState<InventoryItem[]>([]);
   const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
   const [labelStudioOpen, setLabelStudioOpen] = useState(false);
-  const [pendingUpdates, setPendingUpdates] = useState<
-    Map<string, { available: number; onHand: number }>
-  >(new Map());
+  // Unsaved edits, as the stock each edited row asks for (see
+  // lib/inventory/stock-edit.ts — Available and On hand are one number).
+  const [pendingStock, setPendingStock] = useState<Map<string, number>>(
+    new Map(),
+  );
+  const [unavailableTarget, setUnavailableTarget] =
+    useState<UnavailableStockTarget | null>(null);
 
   const list = useListNavigation<InventoryItem>({
     // Rows are variant-level, so the table's key has to combine both ids.
@@ -109,20 +127,37 @@ export function InventoryDataTable({
     defaultPageSize: 50,
   });
 
+  // The rows as fetched, which every edit and save measures against.
+  const fetchedRows = useMemo(
+    () => new Map(list.items.map((item) => [item.id, item])),
+    [list.items],
+  );
+
   // Overlay unsaved quantity edits on top of the fetched rows.
   const displayItems = useMemo(
     () =>
       list.items.map((item) => {
-        const pending = pendingUpdates.get(item.id);
-        return pending ? { ...item, ...pending } : item;
+        const pending = pendingStock.get(item.id);
+        return pending === undefined
+          ? item
+          : { ...item, ...figuresForStock(item, pending) };
       }),
-    [list.items, pendingUpdates],
+    [list.items, pendingStock],
   );
 
   const selectedLocationId =
     list.filters.location && list.filters.location !== "all"
       ? list.filters.location
       : undefined;
+
+  const openUnavailable = useCallback((row: InventoryItem) => {
+    setUnavailableTarget({
+      productId: row.productId,
+      variantId: row.variantId,
+      productName: row.productName,
+      variantName: row.variantName,
+    });
+  }, []);
 
   const openLabelStudio = useCallback((items: InventoryItem[]) => {
     setLabelItems(items);
@@ -135,49 +170,57 @@ export function InventoryDataTable({
   }, []);
 
   const handleQuantityChange = useCallback(
-    (item: InventoryItem, field: "available" | "onHand", value: number) => {
+    (item: InventoryItem, field: StockEditField, value: number) => {
       if (readOnly) return;
-      const key = `${item.productId}-${item.variantId || "main"}`;
+      const fetched = fetchedRows.get(item.id) || item;
+      const target = targetStockForEdit(fetched, field, value);
 
-      setPendingUpdates((prev) => {
-        const existing = prev.get(key) || {
-          available: item.available,
-          onHand: item.onHand,
-        };
+      setPendingStock((prev) => {
         const next = new Map(prev);
-        next.set(key, { ...existing, [field]: value });
+        // Typing the figure back to what it was leaves nothing to save.
+        if (stockAdjustment(fetched, target) === 0) next.delete(item.id);
+        else next.set(item.id, target);
         return next;
       });
     },
-    [readOnly],
+    [fetchedRows, readOnly],
   );
 
   const discardChanges = useCallback(() => {
-    setPendingUpdates(new Map());
+    setPendingStock(new Map());
     list.refetch();
   }, [list]);
 
   const saveChanges = async () => {
-    if (pendingUpdates.size === 0) return;
+    if (pendingStock.size === 0) return;
 
     setIsSaving(true);
     try {
-      const updates = Array.from(pendingUpdates.entries()).map(
-        ([key, values]) => {
-          const [productId, variantId] = key.split("-");
-          return {
-            productId,
-            variantId: variantId === "main" ? undefined : variantId,
-            quantity: values.onHand,
-            locationId: selectedLocationId,
-          };
+      // Sent as adjustments: a sale that landed since the page loaded is kept,
+      // and with a location selected the change lands on that location rather
+      // than writing the store-wide figure into it.
+      const updates = Array.from(pendingStock.entries()).flatMap(
+        ([key, target]) => {
+          const row = fetchedRows.get(key);
+          if (!row) return [];
+          const adjustment = stockAdjustment(row, target);
+          if (adjustment === 0) return [];
+          return [
+            {
+              productId: row.productId,
+              variantId: row.variantId || undefined,
+              quantity: adjustment,
+              adjustment: true,
+              locationId: selectedLocationId,
+            },
+          ];
         },
       );
 
-      await apiClient.patch(apiEndpoint, { updates });
+      if (updates.length > 0) await apiClient.patch(apiEndpoint, { updates });
 
       toast.success(t("admin.inventory.updateSuccess"));
-      setPendingUpdates(new Map());
+      setPendingStock(new Map());
       list.refetch();
     } catch (error) {
       console.error("Failed to save inventory:", error);
@@ -209,6 +252,8 @@ export function InventoryDataTable({
       t("admin.inventory.csvHeaders.variant"),
       t("admin.inventory.csvHeaders.sku"),
       t("admin.inventory.csvHeaders.barcode"),
+      t("admin.inventory.csvHeaders.unavailable"),
+      t("admin.inventory.csvHeaders.committed"),
       t("admin.inventory.csvHeaders.available"),
       t("admin.inventory.csvHeaders.onHand"),
     ];
@@ -217,6 +262,8 @@ export function InventoryDataTable({
       item.variantName || "",
       item.sku,
       item.barcode,
+      String(item.unavailable),
+      String(item.committed),
       String(item.available),
       String(item.onHand),
     ]);
@@ -249,14 +296,25 @@ export function InventoryDataTable({
             }
           />
         ),
+        // Takes the width the fixed columns leave; ProductCell truncates the
+        // title to it, so a long name no longer pushes the table sideways.
+        className: "w-full max-w-0",
       },
       {
         id: "sku",
         header: t("admin.inventory.columns.sku"),
         cell: (row) => (
-          <TextCell value={row.sku} className="font-mono text-sm" />
+          <TextCell
+            value={row.sku}
+            truncate
+            maxWidth="160px"
+            className="font-mono text-sm"
+          />
         ),
-        className: "w-[150px]",
+        // Column visibility steps with the viewport, like the Orders table,
+        // so the Product column always keeps ~270px without a sideways scroll.
+        className: "w-[208px] hidden xl:table-cell",
+        headerClassName: "hidden xl:table-cell",
       },
       {
         id: "barcode",
@@ -264,44 +322,42 @@ export function InventoryDataTable({
         cell: (row) => (
           <TextCell value={row.barcode || "--"} className="font-mono text-sm" />
         ),
-        className: "w-[170px]",
+        // Wide screens only: the stock breakdown columns come first.
+        className: "w-[170px] hidden min-[1700px]:table-cell",
+        headerClassName: "hidden min-[1700px]:table-cell",
       },
       {
         id: "unavailable",
-        header: t("admin.inventory.columns.unavailable"),
-        cell: (row) => (
-          <TextCell
-            value={row.unavailable}
-            className="text-center text-muted-foreground"
-          />
+        header: (
+          <span title={t("admin.inventory.columns.unavailableHint")}>
+            {t("admin.inventory.columns.unavailable")}
+          </span>
         ),
-        className: "text-center w-[100px]",
+        cell: (row) => (
+          <UnavailableCount row={row} onOpen={openUnavailable} />
+        ),
+        className: "text-center w-[100px] hidden min-[1400px]:table-cell",
+        headerClassName: "text-center hidden min-[1400px]:table-cell",
       },
       {
         id: "committed",
-        header: t("admin.inventory.columns.committed"),
+        header: (
+          <span title={t("admin.inventory.columns.committedHint")}>
+            {t("admin.inventory.columns.committed")}
+          </span>
+        ),
         cell: (row) => (
           <TextCell
             value={row.committed}
-            className="text-center text-muted-foreground"
-          />
-        ),
-        className: "text-center w-[100px]",
-      },
-      {
-        id: "incoming",
-        header: t("admin.inventory.columns.incoming"),
-        cell: (row) => (
-          <TextCell
-            value={row.incoming || 0}
             className={
-              row.incoming
-                ? "text-center font-medium text-blue-600 dark:text-blue-400"
+              row.committed
+                ? "text-center font-medium"
                 : "text-center text-muted-foreground"
             }
           />
         ),
-        className: "text-center w-[100px]",
+        className: "text-center w-[100px] hidden min-[1400px]:table-cell",
+        headerClassName: "text-center hidden min-[1400px]:table-cell",
       },
       {
         id: "available",
@@ -326,21 +382,59 @@ export function InventoryDataTable({
         id: "onHand",
         header: t("admin.inventory.columns.onHand"),
         cell: (row) => (
-          <NumberInput
-            min={0}
-            step={1}
-            value={row.onHand}
-            disabled={readOnly}
-            whenEmpty={0}
-            normalize={Math.trunc}
-            onValueChange={(next) => handleQuantityChange(row, "onHand", next ?? 0)}
-            className="h-8 w-20 text-center mx-auto"
-          />
+          <div className="flex flex-col items-center gap-1">
+            <NumberInput
+              // Committed and unavailable units are on the shelf whatever the
+              // stock is, so On hand never goes below them.
+              min={row.committed + row.unavailable}
+              step={1}
+              value={row.onHand}
+              disabled={readOnly}
+              whenEmpty={row.committed + row.unavailable}
+              normalize={Math.trunc}
+              onValueChange={(next) => handleQuantityChange(row, "onHand", next ?? 0)}
+              className="h-8 w-20 text-center mx-auto"
+            />
+            {/* Below the width that shows the breakdown columns, the parts of
+                On hand that are not Available are named under it. */}
+            {row.committed > 0 || row.unavailable > 0 ? (
+              <span className="flex flex-wrap justify-center gap-x-1.5 text-[11px] leading-tight text-muted-foreground min-[1400px]:hidden">
+                {row.committed > 0 ? (
+                  <span>{t("admin.inventory.breakdown.committed", { count: row.committed })}</span>
+                ) : null}
+                {row.unavailable > 0 ? (
+                  <button
+                    type="button"
+                    className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                    onClick={() => openUnavailable(row)}
+                  >
+                    {t("admin.inventory.breakdown.unavailable", { count: row.unavailable })}
+                  </button>
+                ) : null}
+              </span>
+            ) : null}
+          </div>
         ),
         className: "text-center w-[120px]",
       },
+      {
+        id: "incoming",
+        header: t("admin.inventory.columns.incoming"),
+        cell: (row) => (
+          <TextCell
+            value={row.incoming || 0}
+            className={
+              row.incoming
+                ? "text-center font-medium text-blue-600 dark:text-blue-400"
+                : "text-center text-muted-foreground"
+            }
+          />
+        ),
+        className: "text-center w-[100px] hidden 2xl:table-cell",
+        headerClassName: "text-center hidden 2xl:table-cell",
+      },
     ],
-    [locale, productHrefBase, t, handleQuantityChange, readOnly],
+    [locale, productHrefBase, t, handleQuantityChange, readOnly, openUnavailable],
   );
 
   // Tabs (Stock status)
@@ -452,7 +546,7 @@ export function InventoryDataTable({
     [openLabelStudio, printBarcodeLabelsLabel],
   );
 
-  const hasChanges = pendingUpdates.size > 0;
+  const hasChanges = pendingStock.size > 0;
 
   return (
     <div className="space-y-4">
@@ -498,9 +592,19 @@ export function InventoryDataTable({
         // Row actions
         rowActions={rowActions}
         rowActionsHeader={t("common.actions")}
-        rowActionsVariant="inline"
+        rowActionsVariant="dropdown"
         // Empty state
         emptyMessage={t("admin.inventory.empty")}
+      />
+
+      <InventoryUnavailableDialog
+        target={unavailableTarget}
+        onOpenChange={(open) => {
+          if (!open) setUnavailableTarget(null);
+        }}
+        apiEndpoint={apiEndpoint}
+        readOnly={readOnly}
+        onChanged={list.refetch}
       />
 
       <BarcodeLabelStudio
@@ -512,11 +616,33 @@ export function InventoryDataTable({
       {/* Unsaved-changes bar */}
       <InventorySaveBar
         open={hasChanges && !readOnly}
-        count={pendingUpdates.size}
+        count={pendingStock.size}
         isSaving={isSaving}
         onDiscard={discardChanges}
         onSave={saveChanges}
       />
     </div>
+  );
+}
+
+/** The Unavailable figure; a count above zero opens what makes it up. */
+function UnavailableCount({
+  row,
+  onOpen,
+}: {
+  row: InventoryItem;
+  onOpen: (row: InventoryItem) => void;
+}) {
+  if (!row.unavailable) {
+    return <TextCell value={0} className="text-center text-muted-foreground" />;
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(row)}
+      className="mx-auto block font-medium text-amber-700 underline decoration-dotted underline-offset-4 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+    >
+      {row.unavailable}
+    </button>
   );
 }

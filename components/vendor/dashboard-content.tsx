@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { AppImage } from "@/components/ui/app-image";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -85,21 +85,21 @@ export function VendorDashboardContent({
   if (setupMode) {
     const setupActions = [
       {
-        href: `/${locale}/vendor/products/new`,
+        href: "/vendor/products/new",
         icon: <Plus className="size-5" />,
         title: "Add a product",
         description:
           "Create product drafts now. They stay hidden from customers until subscription payment activates your store.",
       },
       {
-        href: `/${locale}/vendor/products`,
+        href: "/vendor/products",
         icon: <Package className="size-5" />,
         title: "Prepare your catalog",
         description:
           "Review products, inventory, categories, collections, and brands.",
       },
       {
-        href: `/${locale}/vendor/settings`,
+        href: "/vendor/settings",
         icon: <Settings className="size-5" />,
         title: "Configure your store",
         description:
@@ -218,13 +218,13 @@ export function VendorDashboardContent({
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href={`/${locale}/vendor/orders`}>
+            <Link href="/vendor/orders">
               <ShoppingCart className="mr-2 h-4 w-4" />
               {t("vendor.viewOrders")}
             </Link>
           </Button>
           <Button asChild>
-            <Link href={`/${locale}/vendor/products/new`}>
+            <Link href="/vendor/products/new">
               <Plus className="mr-2 h-4 w-4" />
               {t("vendor.addProduct")}
             </Link>
@@ -242,7 +242,7 @@ export function VendorDashboardContent({
             {t("vendor.recentOrders")}
           </h3>
           <Link
-            href={`/${locale}/vendor/orders`}
+            href="/vendor/orders"
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             {t("admin.dashboardPage.viewAllOrders")}
@@ -259,7 +259,6 @@ export function VendorDashboardContent({
               <VendorRecentOrderCard
                 key={order._id}
                 order={order}
-                locale={locale}
                 formatPrice={formatPrice}
               />
             ))
@@ -277,11 +276,9 @@ export function VendorDashboardContent({
  */
 export function VendorRecentOrderCard({
   order,
-  locale,
   formatPrice,
 }: {
   order: VendorRecentOrder;
-  locale: string;
   formatPrice: (amount: number) => string;
 }) {
   const t = useTranslations();
@@ -308,7 +305,7 @@ export function VendorRecentOrderCard({
 
   return (
     <Link
-      href={`/${locale}/vendor/orders/${order._id}`}
+      href={`/vendor/orders/${order._id}`}
       className="block rounded-sm border border-border px-4 py-3 transition-colors hover:bg-muted/40 active:bg-muted/60 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-[minmax(260px,2.1fr)_1.1fr_0.6fr_0.8fr_1fr_0.7fr]"
     >
       {/* Mobile: compact summary — image + name + price on one row, then a

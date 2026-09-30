@@ -212,9 +212,11 @@ export const SLIDER_HEIGHTS = [
 export const DEFAULT_SLIDER_HEIGHT = "half";
 
 /**
- * Sentinel width/height value meaning "inherit the theme's global slider
- * settings" (Themes → Theme settings). Sections keep their own explicit
- * choices; only instances set to this follow the theme.
+ * Sentinel width/height value meaning "use the size this theme ships with".
+ * Each theme states one (`registry.ts`); it is the theme's own design, not
+ * a merchant setting, since a slider is sized on the section that holds it,
+ * beside the cell being sized. Sections keep their own explicit choices;
+ * only instances set to this follow the theme.
  */
 export const THEME_SLIDER_INHERIT = "theme";
 
@@ -311,7 +313,7 @@ export const SECTION_GRID_SPACING_FIELDS: Field[] = [
   },
 ];
 
-export interface SectionGridSpacing {
+interface SectionGridSpacing {
   /** px between cells on desktop; phones take a little less. */
   gap: number;
   /** px at the sides of the grid; the edge-to-edge widths ignore it. */
@@ -368,8 +370,39 @@ export function readSliderCell(
 }
 
 /** True when the cell actually renders something. */
-export function sliderCellIsFilled(cell: SliderCellContent): boolean {
+function sliderCellIsFilled(cell: SliderCellContent): boolean {
   return cell.kind === "image" ? Boolean(cell.image) : Boolean(cell.slider);
+}
+
+/**
+ * A grid's cells in slot order: `blocks[i]` fills `slots[i]`, and a slot
+ * with no block, or a hidden one, is `null`.
+ */
+export function readGridCells(
+  grid: SliderGrid,
+  blocks: BlockInstance[],
+): (SliderCellContent | null)[] {
+  return grid.slots.map((_, index) => {
+    const block = blocks[index];
+    return block && block.visible ? readSliderCell(block.settings) : null;
+  });
+}
+
+/**
+ * Nothing assigned: no visible cell holds a slider or an image, and the
+ * grid carries no category rail. The Slider and the Promotion Grid render
+ * nothing then, and — this being known from the blocks alone — the
+ * storefront skips their loading skeleton as well.
+ */
+export function sliderGridIsUnassigned(
+  settings: Record<string, unknown>,
+  blocks: BlockInstance[],
+): boolean {
+  const grid = getSliderGrid(settings.grid);
+  return (
+    !grid.category &&
+    !readGridCells(grid, blocks).some((cell) => cell && sliderCellIsFilled(cell))
+  );
 }
 
 const emptyCellSettings = (): Record<string, unknown> => ({

@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,6 +7,7 @@ import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import { VendorRegistrationForm } from "@/components/vendor/vendor-registration-form";
 import { isMultiVendorEnabled } from "@/lib/vendors/multi-vendor";
 import { resolveOnboardingConfig } from "@/lib/vendors/vendor-onboarding";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -14,10 +16,11 @@ interface PageProps {
 export default async function BecomeVendorPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const multiVendorEnabled = await isMultiVendorEnabled();
   if (!multiVendorEnabled) {
-    redirect(`/${locale}`);
+    redirect(await localeHref(locale, "/"));
   }
 
   // Seeded server-side so the wizard renders the right number of steps with no
@@ -32,6 +35,7 @@ export default async function BecomeVendorPage({ params }: PageProps) {
         <StoreBreadcrumb
           className="mb-8"
           locale={locale}
+          storeDefault={storeDefault}
           items={[{ label: t("vendor.becomeVendor") }]}
         />
 

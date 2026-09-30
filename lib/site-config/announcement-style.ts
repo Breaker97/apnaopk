@@ -1,17 +1,20 @@
 import type { CSSProperties } from "react";
-import { normalizeBackground } from "@/lib/sliders/types";
+import { normalizeBackground } from "@/lib/sliders/background";
 import {
   HEADER_ALIGNMENTS,
   HEADER_TEXT_TRANSFORMS,
   inheritFill,
+  MAX_HEADER_ROW_PADDING,
   type HeaderAlignment,
   type HeaderFill,
+  type HeaderPadding,
   type HeaderTextStyle,
 } from "@/lib/site-config/header-layout";
 import {
   alignItemsValue,
   fillTextCss,
   justifyContentValue,
+  paddingStyle,
   textAlignValue,
   textStyleCss,
 } from "@/lib/site-config/header-layout-style";
@@ -36,6 +39,19 @@ export interface AnnouncementStyle {
   height: number;
   align: HeaderAlignment;
   textStyle: HeaderTextStyle;
+  /**
+   * The bar's own inset. It used to be a `px-4 py-2` in the component, so
+   * the strip's thickness could only be pushed UP with a height and never
+   * closed in — and the 8px under the message read as a gap before the nav
+   * that nothing could reach.
+   */
+  padding: HeaderPadding;
+  /**
+   * Clear space between the bar and the header under it, px. Stated on the
+   * bar for the same reason a header row states its own: the thing above
+   * owns the edge beneath it.
+   */
+  spaceBelow: number;
 }
 
 export function defaultAnnouncementStyle(): AnnouncementStyle {
@@ -53,6 +69,10 @@ export function defaultAnnouncementStyle(): AnnouncementStyle {
       underline: false,
       fill: inheritFill(),
     },
+    // Exactly the `px-4 py-2` the component used to hard-code, so a bar
+    // saved before it had a padding draws what it always drew.
+    padding: { top: 8, right: 16, bottom: 8, left: 16 },
+    spaceBelow: 0,
   };
 }
 
@@ -99,6 +119,13 @@ export function readAnnouncementStyle(
       underline: settings.underline === true,
       fill: readTextFill(settings),
     },
+    padding: {
+      top: readNumber(settings.paddingTop, base.padding.top, 0, MAX_HEADER_ROW_PADDING),
+      right: readNumber(settings.paddingRight, base.padding.right, 0, MAX_HEADER_ROW_PADDING),
+      bottom: readNumber(settings.paddingBottom, base.padding.bottom, 0, MAX_HEADER_ROW_PADDING),
+      left: readNumber(settings.paddingLeft, base.padding.left, 0, MAX_HEADER_ROW_PADDING),
+    },
+    spaceBelow: readNumber(settings.spaceBelow, base.spaceBelow, 0, MAX_HEADER_ROW_PADDING),
   };
 }
 
@@ -122,6 +149,11 @@ export function writeAnnouncementStyle(
     textTransform: style.textStyle.transform,
     italic: style.textStyle.italic,
     underline: style.textStyle.underline,
+    paddingTop: Math.round(style.padding.top),
+    paddingRight: Math.round(style.padding.right),
+    paddingBottom: Math.round(style.padding.bottom),
+    paddingLeft: Math.round(style.padding.left),
+    spaceBelow: Math.round(style.spaceBelow),
   };
 }
 
@@ -133,6 +165,8 @@ export function announcementBarCss(style: AnnouncementStyle): CSSProperties {
     justifyContent: justifyContentValue(style.align.horizontal),
     alignItems: alignItemsValue(style.align.vertical),
     textAlign: textAlignValue(style.align.horizontal),
+    ...paddingStyle(style.padding),
+    ...(style.spaceBelow ? { marginBottom: style.spaceBelow } : {}),
   };
 }
 

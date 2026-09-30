@@ -12,6 +12,7 @@
  * The fallback keeps small uploads working rather than failing outright.
  */
 
+import { isVectorImageType } from "@/lib/storage/content-type";
 import {
   prepareImageForUpload,
   type PreparedImage,
@@ -191,17 +192,15 @@ export async function uploadFile(
   const file = prepared?.file ?? original;
   const contentType = resolveContentType(file);
 
-  // A vector the caller has NOT asked to keep has to be rasterized, and only
-  // the server can do that — a canvas cannot decode an SVG safely, so the
-  // browser pipeline always hands it back untouched. Not presigning is what
-  // sends it down /api/upload, where sharp re-encodes it like any other
-  // image; the direct path would store the original bytes by default.
-  const mustRasterize =
-    contentType.toLowerCase() === "image/svg+xml" && !options.keepVector;
+  // A vector never goes straight to the bucket: the server rasterizes it, or
+  // keeps it raw for someone who manages store media (keepVector), and the
+  // presign route refuses one either way — so do not ask. A canvas cannot
+  // decode an SVG safely, so the browser pipeline hands it back untouched.
+  const serverOnly = isVectorImageType(contentType);
 
   let presigned: PresignResponse | null = null;
   try {
-    const response = mustRasterize
+    const response = serverOnly
       ? null
       : await fetch("/api/upload/presigned", {
           method: "POST",

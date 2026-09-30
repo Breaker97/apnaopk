@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   CheckCircle2,
   Clock,
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/data-table";
 import { useTranslations } from "next-intl";
 import { toast } from "@/components/ui/toast-notification";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useMemo, useState } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";

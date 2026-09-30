@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, ImageOff, Loader2, PackageSearch } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type Locale } from "@/config/i18n.config";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
 type StoreBrand = {
@@ -27,7 +26,6 @@ type Pagination = {
 };
 
 interface BrandsPageClientProps {
-  locale: Locale;
   initialBrands: StoreBrand[];
   initialPagination: Pagination;
 }
@@ -35,7 +33,6 @@ interface BrandsPageClientProps {
 const PAGE_SIZE = 20;
 
 export function BrandsPageClient({
-  locale,
   initialBrands,
   initialPagination,
 }: BrandsPageClientProps) {
@@ -141,7 +138,7 @@ export function BrandsPageClient({
         {brands.map((brand) => (
           <Link
             key={brand._id}
-            href={`/${locale}/brands/${encodeURIComponent(brand.slug)}`}
+            href={`/brands/${encodeURIComponent(brand.slug)}`}
             className="group overflow-hidden rounded-md border bg-background transition-colors hover:border-primary/45"
           >
             <div className="relative aspect-4/3 bg-muted/45">

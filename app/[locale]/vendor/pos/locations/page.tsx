@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -13,5 +14,5 @@ interface PageProps {
  */
 export default async function VendorPosLocationsPage({ params }: PageProps) {
   const { locale } = await params;
-  redirect(`/${locale}/vendor/locations`);
+  redirect(await localeHref(locale, "/vendor/locations"));
 }

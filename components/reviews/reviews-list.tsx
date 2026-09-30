@@ -10,6 +10,7 @@ import {
   MoreVertical,
   Star,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { formatDistanceToNow } from "date-fns";
@@ -23,19 +24,24 @@ import {
 import { cn } from "@/lib/utils";
 import { buildLoginUrl, currentBrowserPath } from "@/lib/auth/return-path";
 import { useAuth } from "@/hooks/use-auth";
-import { ReviewForm } from "./review-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppImage } from "@/components/ui/app-image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+
+// The write-a-review dialog, with the dialog code it brings, loads when the
+// shopper reaches for its button — pointer or focus — or opens it, and not
+// with every product page. `ssr: false` gives it a Suspense boundary of its
+// own, so the thread never blanks while it arrives.
+const loadWriteReviewDialog = () => import("./write-review-dialog");
+const WriteReviewDialog = dynamic(
+  () => loadWriteReviewDialog().then((module) => module.WriteReviewDialog),
+  { ssr: false },
+);
+const preloadWriteReviewDialog = () => {
+  void loadWriteReviewDialog().catch(() => undefined);
+};
 
 interface Review {
   _id: string;
@@ -122,6 +128,8 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [isWriteReviewOpen, setIsWriteReviewOpen] = useState(false);
+  // Mounted on the first open and kept, so later opens and closes animate.
+  const [hasOpenedWriteReview, setHasOpenedWriteReview] = useState(false);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [eligibleOrderId, setEligibleOrderId] = useState<string | null>(null);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
@@ -209,6 +217,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
   }, [productId]);
 
   const openWriteReview = async () => {
+    setHasOpenedWriteReview(true);
     setIsWriteReviewOpen(true);
     setReviewEligibilityError(null);
     setEligibleOrderId(null);
@@ -216,6 +225,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
 
     if (!isAuthenticated) return;
 
+    void import("./review-form");
     setIsCheckingEligibility(true);
     try {
       const eligibility = await resolveEligibility();
@@ -289,6 +299,8 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
             size="sm"
             className="rounded-sm border-foreground font-semibold"
             onClick={() => void openWriteReview()}
+            onPointerEnter={preloadWriteReviewDialog}
+            onFocus={preloadWriteReviewDialog}
           >
             {tf("reviews.writeReviewCta", "Write a review!")}
           </Button>
@@ -356,67 +368,23 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
         </div>
       </div>
 
-      <Dialog open={isWriteReviewOpen} onOpenChange={setIsWriteReviewOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {tf("reviews.writeReview", "Write a review")}
-            </DialogTitle>
-            <DialogDescription>
-              {tf(
-                "reviews.writeReviewHint",
-                "Your email address will not be published. Required fields are marked with an asterisk (*).",
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          {!isAuthenticated ? (
-            <div className="space-y-4 rounded-xl border border-border/70 p-4">
-              <p className="text-sm text-muted-foreground">
-                {tf(
-                  "reviews.loginToReview",
-                  "Please sign in to write a review for this product.",
-                )}
-              </p>
-              <Button
-                className="rounded-full"
-                onClick={() =>
-                  router.push(
-                    buildLoginUrl(locale, currentBrowserPath() ?? pathname),
-                  )
-                }
-              >
-                {tf("common.login", "Login")}
-              </Button>
-            </div>
-          ) : isCheckingEligibility ? (
-            <div className="rounded-xl border border-border/70 p-4 text-sm text-muted-foreground">
-              {tf(
-                "reviews.checkingEligibility",
-                "Checking your eligible orders...",
-              )}
-            </div>
-          ) : alreadyReviewed ? (
-            <div className="rounded-xl border border-border/70 p-4 text-sm text-muted-foreground">
-              {tf(
-                "reviews.alreadyReviewed",
-                "You have already reviewed this product. Thank you for sharing your experience!",
-              )}
-            </div>
-          ) : reviewEligibilityError ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-              {reviewEligibilityError}
-            </div>
-          ) : eligibleOrderId ? (
-            <ReviewForm
-              productId={productId}
-              orderId={eligibleOrderId}
-              onSuccess={() => void handleReviewSuccess()}
-              onCancel={() => setIsWriteReviewOpen(false)}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      {hasOpenedWriteReview ? (
+        <WriteReviewDialog
+          open={isWriteReviewOpen}
+          onOpenChange={setIsWriteReviewOpen}
+          isAuthenticated={isAuthenticated}
+          isCheckingEligibility={isCheckingEligibility}
+          alreadyReviewed={alreadyReviewed}
+          eligibilityError={reviewEligibilityError}
+          eligibleOrderId={eligibleOrderId}
+          productId={productId}
+          onLogin={() =>
+            router.push(buildLoginUrl(locale, currentBrowserPath() ?? pathname))
+          }
+          onSuccess={() => void handleReviewSuccess()}
+          tf={tf}
+        />
+      ) : null}
 
       {reviews.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border px-6 py-10 text-center text-muted-foreground sm:p-10">

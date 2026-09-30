@@ -108,12 +108,18 @@ export function buildCustomShareUrl(
 ): string {
   const trimmed = template.trim();
   if (!trimmed) return "";
-  if (/\{(url|title|image)\}/.test(trimmed)) {
-    return trimmed
-      .replace(/\{url\}/g, encodeURIComponent(values.url))
-      .replace(/\{title\}/g, encodeURIComponent(values.title))
-      .replace(/\{image\}/g, encodeURIComponent(values.image ?? ""));
+  const built = /\{(url|title|image)\}/.test(trimmed)
+    ? trimmed
+        .replace(/\{url\}/g, encodeURIComponent(values.url))
+        .replace(/\{title\}/g, encodeURIComponent(values.title))
+        .replace(/\{image\}/g, encodeURIComponent(values.image ?? ""))
+    : `${trimmed}${trimmed.includes("?") ? "&" : "?"}url=${encodeURIComponent(values.url)}`;
+  // Opened in a new window on a shopper's click: only a web address, never a
+  // `javascript:` or `data:` one a template could carry.
+  try {
+    const { protocol } = new URL(built);
+    return protocol === "https:" || protocol === "http:" ? built : "";
+  } catch {
+    return "";
   }
-  const sep = trimmed.includes("?") ? "&" : "?";
-  return `${trimmed}${sep}url=${encodeURIComponent(values.url)}`;
 }

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getTranslations } from "next-intl/server";
 import { Lock, ShoppingBag, Store } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
@@ -51,7 +51,7 @@ export async function CheckoutChrome({
       <div className="border-b border-border bg-background">
         <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
           <Link
-            href={`/${locale}`}
+            href="/"
             className="flex min-w-0 items-center gap-2"
             aria-label={storeName}
           >
@@ -96,7 +96,7 @@ export async function CheckoutChrome({
               </span>
             ) : null}
             <Link
-              href={`/${locale}/cart`}
+              href="/cart"
               aria-label={t("checkout.editCart")}
               title={t("checkout.editCart")}
               className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

@@ -1,7 +1,9 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
+import { messageTemplate } from "@/lib/i18n/message-template";
 import { appConfig } from "@/config/app.config";
 import { type Locale } from "@/config/i18n.config";
 import { Separator } from "@/components/ui/separator";
@@ -44,6 +46,7 @@ import {
   getStorefrontIcons,
   getStorefrontMetadataSettings,
   buildStorefrontAlternates,
+  buildStorefrontUrl,
   normalizeMetadataText,
   truncateMetadataText,
 } from "@/lib/storefront/storefront-metadata";
@@ -56,6 +59,7 @@ import {
   formatVendorAddress,
 } from "@/lib/vendors/vendor-address";
 import { resolveRequestLocation } from "@/lib/locations/resolve-request-location";
+import { JsonLd } from "@/lib/site-config/seo";
 import { normalizeRequestSortBy } from "@/lib/locations/shopper-location";
 
 interface PageProps {
@@ -121,7 +125,7 @@ export async function generateMetadata({
       type: "website",
       title,
       description,
-      url: `${baseUrl}/${locale}${page}`,
+      url: await buildStorefrontUrl(locale, page),
       siteName: storeMetadata.storeName,
       images:
         images.length > 0
@@ -227,6 +231,7 @@ export default async function VendorStorefrontPage({
   const { locale, slug } = await params;
   const search = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const location = resolveRequestLocation(search);
   const [t, vendor, filters, { headerSettings }] = await Promise.all([
@@ -269,11 +274,11 @@ export default async function VendorStorefrontPage({
 
   /**
    * For templates whose {placeholders} are substituted by the component that
-   * receives them, rather than here: `t.raw` returns the message unformatted,
-   * where `t(key)` would raise MISSING_FORMAT_VALUE and render the key path.
+   * receives them, rather than here, where `t(key)` would raise
+   * MISSING_FORMAT_VALUE and render the key path.
    */
   const traw = (key: string, fallback: string) =>
-    t.has(key) ? String(t.raw(key)) : fallback;
+    messageTemplate(t, key, fallback);
 
   const category =
     typeof search.category === "string" ? search.category : undefined;
@@ -377,17 +382,17 @@ export default async function VendorStorefrontPage({
 
   const jsonLd = buildStoreJsonLd({
     vendor,
-    url: `${resolveBaseUrl()}/${locale}/vendors/${vendor.slug}`,
+    url: await buildStorefrontUrl(locale, `/vendors/${vendor.slug}`),
     locale,
   });
 
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8">
-      <script
-        type="application/ld+json"
-        // Serialized server-side from our own gated data; no user HTML involved.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {/* The store name, description and address are the vendor's own text, so
+          they go through JsonLd, which escapes "<" — a bare JSON.stringify let
+          "</script>" in a description end the tag and run script on the store's
+          own domain. */}
+      <JsonLd data={jsonLd} />
 
       {/* There is no /vendors index to link to, so the trail is short by
           design — its job here is the way back out of a seller's storefront,
@@ -395,6 +400,7 @@ export default async function VendorStorefrontPage({
       <StoreBreadcrumb
         className="mb-4"
         locale={locale}
+        storeDefault={storeDefault}
         items={[{ label: vendor.storeName }]}
       />
 
@@ -621,7 +627,6 @@ export default async function VendorStorefrontPage({
           <Separator />
 
           <ProductFiltersLazy
-            locale={locale as Locale}
             categories={filters.categories}
             collections={filters.collections}
             priceRange={filters.priceRange}
@@ -639,7 +644,6 @@ export default async function VendorStorefrontPage({
 
         <div className="min-w-0">
           <ProductFiltersMobileLazy
-            locale={locale as Locale}
             categories={filters.categories}
             collections={filters.collections}
             priceRange={filters.priceRange}

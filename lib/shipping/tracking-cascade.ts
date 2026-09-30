@@ -193,6 +193,15 @@ export async function applyShipmentTrackingToOrder(params: {
     currentStatus = step.to;
   }
 
+  // A carrier scan saying "delivered" on a cash order is the courier telling
+  // the store the money changed hands, and it is as good a record of that as a
+  // person clicking the same button. Guarded inside the helper on the order
+  // being an unpaid COD one. See `settleCodOnDelivery`.
+  if (currentStatus === ORDER_STATUS.DELIVERED) {
+    const { settleCodOnDelivery } = await import("@/lib/orders/cod-collection");
+    await settleCodOnDelivery(refreshed._id);
+  }
+
   // `notifyOrderStatus` dedupes on {type, orderNumber, status, role}, so a
   // webhook racing a manual mark-shipped cannot notify the customer twice.
   await notifyOrderStatus({

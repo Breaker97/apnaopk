@@ -1,13 +1,15 @@
 "use client";
 
+import { useLocaleHref } from "@/hooks/use-locale-navigation";
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { MailCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function VerifyEmailPanel({ email, locale }: { email: string; locale: string }) {
+  const localeHref = useLocaleHref();
   const [address, setAddress] = useState(email);
   const [isSending, setIsSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function VerifyEmailPanel({ email, locale }: { email: string; locale: str
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: address,
-          callbackURL: `/${locale}/email-verified`,
+          callbackURL: localeHref(`/${locale}/email-verified`),
         }),
       });
       if (!response.ok) throw new Error();
@@ -60,7 +62,7 @@ export function VerifyEmailPanel({ email, locale }: { email: string; locale: str
           Resend verification email
         </Button>
         <Button className="w-full" variant="outline" asChild>
-          <Link href={`/${locale}/login`}>Back to sign in</Link>
+          <Link href="/login">Back to sign in</Link>
         </Button>
       </CardFooter>
     </Card>

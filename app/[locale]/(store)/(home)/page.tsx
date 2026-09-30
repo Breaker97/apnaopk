@@ -1,20 +1,36 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
-import { DEFAULT_LANGUAGE } from "@/config/branding.config";
 import { StoreSections } from "@/components/store/store-sections";
-import {
-  getDefaultHomeSections,
-  getHomePageSections,
-} from "@/lib/storefront/pages/get-home-page";
-import type {
-  SectionInstance,
-  SectionRenderContext,
-} from "@/lib/storefront/sections/types";
-import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
-import { getActiveThemeManifest } from "@/lib/storefront/themes/registry";
+import { getHomePageRender } from "@/lib/storefront/pages/get-home-page";
+import { storefrontPageMetadata } from "@/lib/storefront/storefront-metadata";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
+}
+
+/**
+ * Served from the cache. Nothing is built ahead (no database at build time):
+ * each language's home page is rendered on its first visit, kept, and
+ * rendered again when an admin edit expires a tag it read
+ * (lib/cache-invalidation.ts) or when the shortest-lived data it read runs
+ * out (a minute, the store settings), whichever comes first. Content switched
+ * on and off by a schedule — a slide's window, a coupon's dates, a boost — is
+ * therefore decided when the page is rendered, up to that minute late.
+ *
+ * Everything in the page and the layouts above it must stay out of the
+ * request: a `headers()`, `cookies()` or search-param read anywhere turns
+ * this back into a per-request render, silently. tests/storefront-isr-home.test.ts
+ * guards the files it can.
+ */
+export function generateStaticParams() {
+  return [];
+}
+
+// The layout above cannot know which page it wraps; this one is the store root.
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return storefrontPageMetadata(locale, "");
 }
 
 /**
@@ -43,34 +59,6 @@ export default async function HomePage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  let sections: SectionInstance[];
-  let ctx: SectionRenderContext;
-
-  try {
-    const [settings, page] = await Promise.all([
-      getStorefrontSettings(),
-      getHomePageSections(),
-    ]);
-    sections = page.sections;
-    ctx = {
-      locale: locale as Locale,
-      defaultLanguage: settings.defaultLanguage,
-      isMultiVendorEnabled: settings.isMultiVendorEnabled,
-      themeId: settings.theme.id,
-      themeSettings: settings.theme.settings,
-      templateType: "home",
-    };
-  } catch {
-    sections = getDefaultHomeSections();
-    ctx = {
-      locale: locale as Locale,
-      defaultLanguage: DEFAULT_LANGUAGE,
-      isMultiVendorEnabled: false,
-      // With the settings unreadable, the store's default template.
-      themeId: getActiveThemeManifest(undefined).id,
-      templateType: "home",
-    };
-  }
-
+  const { sections, ctx } = await getHomePageRender(locale as Locale);
   return <StoreSections sections={sections} ctx={ctx} />;
 }

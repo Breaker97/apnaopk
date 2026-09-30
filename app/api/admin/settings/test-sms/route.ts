@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import * as z from "zod";
 import { getSettings } from "@/models";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { withApi } from "@/lib/api/handler";

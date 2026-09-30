@@ -19,6 +19,7 @@ import type {
   VendorOrderTotals,
   VendorRecentOrder,
 } from "@/lib/vendors/vendor-dashboard-types";
+import { placedOrderMatch } from "@/lib/orders/order-payment-status";
 
 /**
  * A vendor's order numbers, defined once.
@@ -82,9 +83,16 @@ async function loadVendorOrderMetrics(
   return Order.aggregate<VendorOrderMetricRow>([
     // Index-backed by { "subOrders.vendorId": 1, createdAt: -1 }.
     { $match: { "subOrders.vendorId": vendorId } },
+    // A checkout abandoned at a gateway is not one of this vendor's orders.
+    // Their money columns already ignored it (nothing is `collected` while the
+    // payment is pending), but the order and open-order COUNTS did not, so a
+    // vendor's dashboard showed work waiting that nobody had ever ordered.
+    { $match: placedOrderMatch() },
     {
       $project: {
-        _id: 0,
+        // Kept for the refund lookup below; the grouping replaces it.
+        _id: 1,
+        total: 1,
         createdAt: 1,
         channel: 1,
         status: 1,
@@ -122,6 +130,86 @@ async function loadVendorOrderMetrics(
           ],
         },
         subtotal: { $ifNull: ["$consignment.subtotal", 0] },
+      },
+    },
+    // What of THIS vendor's goods has been refunded. A part-refunded order
+    // still counts as collected, and counted whole, a split order whose other
+    // seller refunded a sock showed this seller's fully returned goods as
+    // revenue. Each refund row names its split per seller; one that recorded
+    // none is shared by what each consignment sold for.
+    {
+      $lookup: {
+        from: "paymenttransactions",
+        localField: "_id",
+        foreignField: "orderId",
+        pipeline: [
+          { $match: { type: "refund", status: "succeeded" } },
+          { $project: { _id: 0, grossAmount: 1, refundAllocation: 1 } },
+        ],
+        as: "refunds",
+      },
+    },
+    {
+      $addFields: {
+        refundedGoods: {
+          $sum: {
+            $map: {
+              input: "$refunds",
+              as: "refund",
+              in: {
+                $cond: [
+                  {
+                    $gt: [{ $size: { $ifNull: ["$$refund.refundAllocation", []] } }, 0],
+                  },
+                  {
+                    $sum: {
+                      $map: {
+                        input: {
+                          $filter: {
+                            input: "$$refund.refundAllocation",
+                            as: "share",
+                            cond: { $eq: ["$$share.vendorId", vendorId] },
+                          },
+                        },
+                        as: "share",
+                        in: { $ifNull: ["$$share.merchandise", 0] },
+                      },
+                    },
+                  },
+                  {
+                    $multiply: [
+                      { $ifNull: ["$$refund.grossAmount", 0] },
+                      {
+                        $cond: [
+                          { $gt: [{ $ifNull: ["$total", 0] }, 0] },
+                          { $divide: ["$subtotal", "$total"] },
+                          0,
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        keptGoods: { $max: [0, { $subtract: ["$subtotal", "$refundedGoods"] }] },
+        keptShare: {
+          $cond: [
+            { $gt: ["$subtotal", 0] },
+            {
+              $max: [
+                0,
+                { $subtract: [1, { $divide: ["$refundedGoods", "$subtotal"] }] },
+              ],
+            },
+            0,
+          ],
+        },
       },
     },
     {
@@ -163,12 +251,17 @@ async function loadVendorOrderMetrics(
         },
         paidOrders: { $sum: { $cond: ["$collected", 1, 0] } },
         sales: { $sum: { $cond: ["$live", "$subtotal", 0] } },
-        revenue: { $sum: { $cond: ["$collected", "$subtotal", 0] } },
+        revenue: { $sum: { $cond: ["$collected", "$keptGoods", 0] } },
         earnings: {
           $sum: {
             $cond: [
               "$collected",
-              { $ifNull: ["$consignment.vendorEarnings", 0] },
+              {
+                $multiply: [
+                  { $ifNull: ["$consignment.vendorEarnings", 0] },
+                  "$keptShare",
+                ],
+              },
               0,
             ],
           },

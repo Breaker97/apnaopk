@@ -1,6 +1,6 @@
 import { type Locale } from "@/config/i18n.config";
 import { fetchFeaturedCategories } from "@/components/store/home-featured-categories";
-import { CategoryTiles } from "@/components/store/sections/category-tiles";
+import { CategoryTilesLazy as CategoryTiles } from "@/components/store/sections/category-tiles-lazy";
 import { type FeaturedCategoriesSource } from "@/lib/site-config/home-page-config";
 import type { CategoryListStyle } from "@/lib/storefront/sections/category-list-style";
 

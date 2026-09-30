@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -46,7 +46,7 @@ import { useCurrency } from "@/providers/currency-provider";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import { CountrySelect } from "@/components/common/country-multi-select";
 import {
-  getAllowedCountryOptions,
+  defaultCountryForAddressForms,
   isCountryAllowed,
 } from "@/lib/intl/country-availability";
 import { cn } from "@/lib/utils";
@@ -133,6 +133,29 @@ interface OrderCreateFormProps {
    * (`/api/admin/*` vs `/api/vendor/*`) and post-save redirects.
    */
   variant: OrderCreateFormVariant;
+  /**
+   * Whether the address needs a postcode: the store's checkout requires one,
+   * or a carrier is connected (`isPostcodeRequired`). The server takes an order
+   * without one, so a store that ships by hand and hid the field can too.
+   */
+  postalCodeRequired: boolean;
+}
+
+/** What a delivery address still lacks, as a toast, or null when nothing does. */
+function missingAddressMessage(
+  address: { street: string; city: string; postalCode: string; country: string },
+  postalCodeRequired: boolean,
+): string | null {
+  const checks: Array<[part: string, isMissing: boolean]> = [
+    ["street", !address.street.trim()],
+    ["city", !address.city.trim()],
+    ["postal code", postalCodeRequired && !address.postalCode.trim()],
+    ["country", !address.country.trim()],
+  ];
+  const missing = checks.filter(([, isMissing]) => isMissing).map(([part]) => part);
+  if (missing.length === 0) return null;
+  const parts = new Intl.ListFormat("en", { type: "conjunction" }).format(missing);
+  return `Add the ${parts} to the shipping address`;
 }
 
 function emptyAddress(country: string): ShippingAddress {
@@ -275,16 +298,20 @@ function splitName(name: string) {
   };
 }
 
-export function OrderCreateForm({ locale, variant }: OrderCreateFormProps) {
+export function OrderCreateForm({
+  locale,
+  variant,
+  postalCodeRequired,
+}: OrderCreateFormProps) {
   const router = useRouter();
   const { formatPrice, currency } = useCurrency();
-  const { countryAvailability } = useAppSettings();
+  const { countryAvailability, shippingOriginCountry } = useAppSettings();
   const defaultCountry = useMemo(() => {
-    if (isCountryAllowed("United States", countryAvailability)) {
-      return "United States";
-    }
-    return getAllowedCountryOptions(countryAvailability)[0]?.label || "";
-  }, [countryAvailability]);
+    return defaultCountryForAddressForms(
+      countryAvailability,
+      shippingOriginCountry,
+    );
+  }, [countryAvailability, shippingOriginCountry]);
   const apiBase = `/api/${variant}`;
   const ordersPath = `/${locale}/${variant}/orders`;
 
@@ -524,8 +551,17 @@ export function OrderCreateForm({ locale, variant }: OrderCreateFormProps) {
       toast.error("Email is required");
       return;
     }
-    if (!shippingStreet || !shippingCity || !shippingPostalCode || !shippingCountry) {
-      toast.error("Shipping street, city, postal code, and country are required");
+    const addressProblem = missingAddressMessage(
+      {
+        street: shippingStreet,
+        city: shippingCity,
+        postalCode: shippingPostalCode,
+        country: shippingCountry,
+      },
+      postalCodeRequired,
+    );
+    if (addressProblem) {
+      toast.error(addressProblem);
       return;
     }
 
@@ -626,13 +662,9 @@ export function OrderCreateForm({ locale, variant }: OrderCreateFormProps) {
       toast.error("Add at least one product");
       return;
     }
-    if (
-      !shippingAddress.street.trim() ||
-      !shippingAddress.city.trim() ||
-      !shippingAddress.postalCode.trim() ||
-      !shippingAddress.country.trim()
-    ) {
-      toast.error("Add a shipping address for this order");
+    const addressProblem = missingAddressMessage(shippingAddress, postalCodeRequired);
+    if (addressProblem) {
+      toast.error(addressProblem);
       return;
     }
 
@@ -1216,7 +1248,7 @@ export function OrderCreateForm({ locale, variant }: OrderCreateFormProps) {
                     onChange={(event) =>
                       setCreateCustomerField("shippingPostalCode", event.target.value)
                     }
-                    placeholder="Postal code"
+                    placeholder={postalCodeRequired ? "Postal code" : "Optional"}
                     disabled={isCreatingCustomer}
                   />
                 </div>

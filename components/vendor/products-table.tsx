@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   ChevronsUpDown,
@@ -191,7 +191,7 @@ export function VendorProductsTable({
           ? {
               id: "add-product",
               label: t("vendor.addProduct"),
-              href: `/${locale}/vendor/products/new`,
+              href: "/vendor/products/new",
               icon: <Plus className="h-4 w-4" />,
               variant: "default",
             }
@@ -274,7 +274,7 @@ export function VendorProductsTable({
               image={row.images?.[0] || row.media?.[0]?.url}
               title={row.title || row.name}
               titleWordLimit={4}
-              href={`/${locale}/vendor/products/${row._id}/edit`}
+              href={`/vendor/products/${row._id}/edit`}
               hoverStyle="blueUnderline"
             />
           </div>
@@ -352,7 +352,7 @@ export function VendorProductsTable({
           id: "view",
           label: t("admin.productsDataTable.rowActions.view"),
           icon: <Eye className="h-4 w-4" />,
-          href: `/${locale}/products/${row.slug}`,
+          href: `/products/${row.slug}`,
         },
       ];
 
@@ -361,7 +361,7 @@ export function VendorProductsTable({
           id: "edit",
           label: t("admin.productsDataTable.rowActions.edit"),
           icon: <Pencil className="h-4 w-4" />,
-          href: `/${locale}/vendor/products/${row._id}/edit`,
+          href: `/vendor/products/${row._id}/edit`,
         });
       }
 

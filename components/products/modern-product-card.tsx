@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   Heart,
@@ -19,24 +19,27 @@ import { memo, useRef, useState, useCallback } from "react";
 import { useSponsoredTracking } from "@/components/store/sponsored-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppImage } from "@/components/ui/app-image";
-import { CardBrandLogo } from "@/components/products/card-brand-logo";
+// Keep the wrapper static: Next 16.3 can emit a missing preload chunk for
+// this dynamic boundary on the wishlist page. The heavy 3D library still
+// loads lazily inside ModelViewer when the model enters the viewport.
 import { ModelViewer } from "@/components/ui/model-viewer";
+import { CardBrandLogo } from "@/components/products/card-brand-logo";
 import { useCurrency } from "@/providers/currency-provider";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useCompare } from "@/hooks/use-compare";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { getSession } from "@/lib/auth/auth-client";
 import { toast } from "@/components/ui/toast-notification";
+import { refusalMessage } from "@/lib/api/client";
 import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
 import { buildLoginUrl, currentBrowserPath } from "@/lib/auth/return-path";
+import { formatProductCompareAtPrice, formatProductPrice, getProductDiscountPercentage, getProductPriceRange } from "@/lib/products/price-display";
 import {
-  formatProductCompareAtPrice,
-  formatProductPrice,
-  getProductDiscountPercentage,
-  getProductPriceRange,
+  productOnlyVariant,
   productRequiresVariantSelection,
-} from "@/lib/products/price-display";
+} from "@/lib/products/variant-selection";
 import { findColorOption, getSwatchColor } from "@/lib/products/color-swatch";
 import {
   getPurchasableQuantity,
@@ -51,14 +54,20 @@ import {
   useCardBrandDirectory,
   useProductCardConfig,
 } from "@/components/products/product-card-config-context";
-import { useQuickViewOpener } from "@/components/products/quick-view-context";
+import {
+  preloadQuickViewModal,
+  useQuickViewOpener,
+} from "@/components/products/quick-view-context";
+import { preloadQuickViewProduct } from "@/components/products/quick-view-product";
 import { useListingView } from "@/components/products/listing-view";
 import {
   cardButtonCss,
   cardChromeCss,
   cardDiscountChipCss,
+  cardPreviewBorderCss,
   cardPreviewStageCss,
   cardTypographyCss,
+  PRODUCT_CARD_PREVIEW_BORDER_CLASS,
   visibleProductCardGroups,
   productCardElementOn,
   resolveCardBrand,
@@ -71,6 +80,8 @@ import type {
   ProductMediaKind,
   ProductPreorder,
 } from "@/lib/products/modern-product";
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
+import { useRenderNow } from "@/components/store/render-clock";
 
 // Re-exported so the many card consumers that import the product shape from
 // here keep working; the definition lives in lib/products/modern-product.ts.
@@ -88,7 +99,6 @@ interface ModernProductCardProps {
   showColorSwatches?: boolean;
   showRating?: boolean;
   showBadges?: boolean;
-  onQuickView?: (product: ModernProduct) => void;
   className?: string;
   /**
    * Eager-load and preload the shot. For the first row of a listing: those
@@ -157,7 +167,11 @@ function getPreorderRemaining(preorder?: ProductPreorder) {
   return Math.max(0, limit - Number(preorder?.reservedQuantity || 0));
 }
 
-function isPreorderOpen(preorder?: ProductPreorder) {
+/**
+ * `now` is the render's clock (useRenderNow), so a cached page hydrates to
+ * the answer its HTML was drawn with.
+ */
+function isPreorderOpen(preorder: ProductPreorder | undefined, now: number) {
   if (!preorder?.enabled) return false;
   const releaseDate = preorder.releaseDate
     ? new Date(preorder.releaseDate)
@@ -167,7 +181,7 @@ function isPreorderOpen(preorder?: ProductPreorder) {
     preorder.autoConvert !== false &&
     releaseDate &&
     !Number.isNaN(releaseDate.getTime()) &&
-    releaseDate.getTime() < Date.now()
+    releaseDate.getTime() < now
   ) {
     return false;
   }
@@ -175,28 +189,46 @@ function isPreorderOpen(preorder?: ProductPreorder) {
   return getPreorderRemaining(preorder) > 0;
 }
 
-function hasActivePreorder(product: ModernProduct) {
-  if (isPreorderOpen(product.preorder)) return true;
-  return (product.variants || []).some((variant) =>
-    isPreorderOpen(variant.preorder),
-  );
+/**
+ * The pre-order a purchase of this product (or one of its variants) would
+ * actually be — the checkout's own rule (`resolvePurchaseType`): the
+ * variant's settings when it has its own, else the product's, and only while
+ * the window is open AND the item cannot be sold from stock (or is pre-order
+ * only). An open pre-order alone put "Pre-order · Ships Oct 1" on a card
+ * whose 50 units in stock were then sold, and shipped, as a normal order.
+ */
+function getPrimaryPreorder(product: ModernProduct, now: number) {
+  const sellsAsPreorder = (
+    settings: ProductPreorder | undefined,
+    stock: number | undefined,
+  ) =>
+    isPreorderOpen(settings, now) &&
+    (Boolean(settings?.preorderOnly) ||
+      getPurchasableQuantity(product, stock ?? product.stock) <= 0);
+  const variants = product.variants || [];
+  if (variants.length === 0) {
+    return sellsAsPreorder(product.preorder, product.stock)
+      ? product.preorder
+      : undefined;
+  }
+  for (const variant of variants) {
+    const settings = variant.preorder?.enabled ? variant.preorder : product.preorder;
+    if (sellsAsPreorder(settings, variant.stock)) return settings;
+  }
+  return undefined;
 }
 
-function getPrimaryPreorder(product: ModernProduct) {
-  if (isPreorderOpen(product.preorder)) return product.preorder;
-  return (product.variants || []).find((variant) =>
-    isPreorderOpen(variant.preorder),
-  )?.preorder;
-}
-
-function formatPreorderDate(value?: ProductPreorder["releaseDate"]) {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(date);
+/**
+ * In the page's language, not the browser's (which the server cannot know:
+ * the two disagreeing is a hydration mismatch), and against the render's
+ * clock for the same reason.
+ */
+function formatPreorderDate(
+  value: ProductPreorder["releaseDate"] | undefined,
+  locale: Locale,
+  now: number,
+) {
+  return formatPreorderReleaseDate(value, { year: "auto", locale, now });
 }
 
 function getPreorderReserveLabel(preorder?: ProductPreorder) {
@@ -300,13 +332,13 @@ export const ModernProductCard = memo(function ModernProductCard({
   showColorSwatches = true,
   showRating = true,
   showBadges = true,
-  onQuickView,
   className,
 }: ModernProductCardProps) {
   const t = useTranslations();
   const router = useRouter();
   const { currency, formatPrice } = useCurrency();
-  const { addItem } = useCart();
+  // Actions only, so a cart change does not re-render every card on the page.
+  const { addItem } = useCartActions();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const {
     isComparing,
@@ -316,6 +348,7 @@ export const ModernProductCard = memo(function ModernProductCard({
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
+  const now = useRenderNow();
 
   // Paid placements report impressions (≥50% visible for 1s, deduped per
   // session) and clicks. A no-op for organic cards.
@@ -328,8 +361,8 @@ export const ModernProductCard = memo(function ModernProductCard({
   const inWishlist = isInWishlist(product._id);
   const inCompare = isComparing(product.slug);
   const isOutOfStock = !isProductAvailable(product, product.stock);
-  const primaryPreorder = getPrimaryPreorder(product);
-  const preorderAvailable = hasActivePreorder(product);
+  const primaryPreorder = getPrimaryPreorder(product, now);
+  const preorderAvailable = Boolean(primaryPreorder);
   const isUnavailable = isOutOfStock && !preorderAvailable;
   // Sold by quote: the card prints no money at all — not the price, not a
   // compare-at, not a "% OFF" chip, since a discount off a price nobody is
@@ -350,10 +383,7 @@ export const ModernProductCard = memo(function ModernProductCard({
     primaryMedia?.type === "image"
       ? primaryMedia.url
       : primaryMedia?.thumbnailUrl || product.images[0];
-  const onlyVariant =
-    Array.isArray(product.variants) && product.variants.length === 1
-      ? product.variants[0]
-      : null;
+  const onlyVariant = productOnlyVariant(product);
   const clickPreorderSettings = onlyVariant?.preorder?.enabled
     ? onlyVariant.preorder
     : product.preorder;
@@ -362,9 +392,13 @@ export const ModernProductCard = memo(function ModernProductCard({
     onlyVariant?.stock ?? product.stock,
   );
   const preorderPurchaseAvailable =
-    isPreorderOpen(clickPreorderSettings) &&
+    isPreorderOpen(clickPreorderSettings, now) &&
     (clickPreorderSettings?.preorderOnly || clickStock <= 0);
-  const preorderDateLabel = formatPreorderDate(primaryPreorder?.releaseDate);
+  const preorderDateLabel = formatPreorderDate(
+    primaryPreorder?.releaseDate,
+    locale,
+    now,
+  );
   const preorderReserveLabel = getPreorderReserveLabel(primaryPreorder);
   const discountPercentage = quoteOnly
     ? 0
@@ -407,12 +441,23 @@ export const ModernProductCard = memo(function ModernProductCard({
     ? t("product.preorderNow")
     : "Pre-order now";
 
-  // A surface's own handler wins; otherwise the layout's shared modal, so
-  // quick view exists on every storefront card, not only where a section
-  // mounted a modal. Null outside the provider (admin previews) — the
-  // control then hides, as it always did without a handler.
-  const quickViewOpener = useQuickViewOpener();
-  const openQuickView = onQuickView ?? quickViewOpener ?? undefined;
+  // The layout's one shared modal. Null outside the provider (admin
+  // previews) — the control then hides.
+  const openQuickView = useQuickViewOpener() ?? undefined;
+  // Quick view loads the full product (the card carries no picker data) and
+  // its own code, so a control that opens it starts both when it is pointed
+  // at or touched.
+  const preloadQuickView = () => {
+    preloadQuickViewModal();
+    void preloadQuickViewProduct(product.slug);
+  };
+  const quickViewIntent = openQuickView
+    ? {
+        onMouseEnter: preloadQuickView,
+        onFocus: preloadQuickView,
+        onTouchStart: preloadQuickView,
+      }
+    : {};
 
   // Get color options for swatches
   const colorOption = findColorOption(product.options);
@@ -473,6 +518,12 @@ export const ModernProductCard = memo(function ModernProductCard({
     cartOn &&
     !quoteOnly &&
     !(persistentCart && cardAction.cart === "add-to-cart");
+  // The hover bar exists only where a pointer can hover. A phone never shows
+  // it — the corner button stands in — yet rendering it there put fourteen
+  // invisible elements per card into the HTML and into hydration: a fifth of
+  // the home page's DOM. False on the server and while hydrating, so a
+  // desktop adds the bars right after, well before a hover can reach one.
+  const canHover = useMediaQuery("(hover: hover)");
   const secondImageUrl =
     cardStyle.previewHover === "second-image"
       ? (product.images ?? []).filter(Boolean)[1]
@@ -490,7 +541,7 @@ export const ModernProductCard = memo(function ModernProductCard({
         if (openQuickView) {
           openQuickView(product);
         } else {
-          router.push(`/${locale}/products/${product.slug}`);
+          router.push(`/products/${product.slug}`);
         }
         return;
       }
@@ -521,8 +572,8 @@ export const ModernProductCard = memo(function ModernProductCard({
           ],
         });
         toast.success(t("cart.itemAdded"));
-      } catch {
-        toast.error(t("common.error"));
+      } catch (error) {
+        toast.error(refusalMessage(error) ?? t("common.error"));
       } finally {
         setIsAddingToCart(false);
       }
@@ -533,7 +584,6 @@ export const ModernProductCard = memo(function ModernProductCard({
       currency.code,
       isAddingToCart,
       isUnavailable,
-      locale,
       quoteOnly,
       needsVariantSelection,
       openQuickView,
@@ -682,11 +732,15 @@ export const ModernProductCard = memo(function ModernProductCard({
           <div
             key={key}
             className={cn(
-              "relative overflow-hidden ring-1 ring-black/5 dark:ring-white/10",
+              "relative overflow-hidden",
+              !cardStyle.previewBorder && PRODUCT_CARD_PREVIEW_BORDER_CLASS,
               !cardStyle.previewBackground &&
                 "bg-[#f3f4f6] dark:bg-zinc-800/50",
             )}
-            style={cardPreviewStageCss(cardStyle)}
+            style={{
+              ...cardPreviewStageCss(cardStyle),
+              ...cardPreviewBorderCss(cardStyle),
+            }}
           >
             {primaryMedia ? (
               contained ? (
@@ -855,6 +909,7 @@ export const ModernProductCard = memo(function ModernProductCard({
             {overlayCart && !isUnavailable && (
               <button
                 onClick={handleAddToCart}
+                {...(needsVariantSelection ? quickViewIntent : {})}
                 disabled={isAddingToCart}
                 aria-label={
                   needsVariantSelection
@@ -880,10 +935,10 @@ export const ModernProductCard = memo(function ModernProductCard({
                 card ~110-150px per button, so the pills stay at one small
                 size instead of growing at `sm` and truncating their own
                 labels. */}
-            {(overlayCart || showQuickView) && !isUnavailable && (
+            {canHover && (overlayCart || showQuickView) && !isUnavailable && (
               <div
                 className={cn(
-                  "absolute inset-x-2 bottom-2 hidden gap-1.5 opacity-0 transition-all duration-300 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 [@media(hover:hover)]:grid",
+                  "absolute inset-x-2 bottom-2 grid gap-1.5 opacity-0 transition-all duration-300 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0",
                   overlayCart && showQuickView && openQuickView
                     ? "grid-cols-2"
                     : "grid-cols-1",
@@ -892,6 +947,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                 {overlayCart && (
                   <button
                     onClick={handleAddToCart}
+                    {...(needsVariantSelection ? quickViewIntent : {})}
                     disabled={isAddingToCart}
                     style={buttonRadius}
                     className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-full bg-foreground px-2 text-[11px] font-semibold leading-none text-background shadow-lg transition-colors hover:bg-foreground/90"
@@ -913,6 +969,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                 {showQuickView && openQuickView && (
                   <button
                     onClick={handleQuickView}
+                    {...quickViewIntent}
                     style={buttonRadius}
                     className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-full border border-border/60 bg-background/95 px-2 text-[11px] font-semibold leading-none text-foreground shadow-lg transition-colors hover:bg-background"
                   >
@@ -1214,6 +1271,7 @@ export const ModernProductCard = memo(function ModernProductCard({
               key={key}
               type="button"
               onClick={openQuickView ? handleQuickView : undefined}
+              {...quickViewIntent}
               className={buttonClass}
               style={buttonStyle}
             >
@@ -1229,6 +1287,7 @@ export const ModernProductCard = memo(function ModernProductCard({
             key={key}
             type="button"
             onClick={handleAddToCart}
+            {...(needsVariantSelection ? quickViewIntent : {})}
             disabled={isAddingToCart || isUnavailable}
             className={cn(
               buttonClass,
@@ -1293,7 +1352,7 @@ export const ModernProductCard = memo(function ModernProductCard({
   return (
     <Link
       ref={cardRef}
-      href={`/${locale}/products/${product.slug}`}
+      href={`/products/${product.slug}`}
       // Paid placements are marked for crawlers, per Google's guidance on
       // sponsored links.
       rel={product.sponsored ? "sponsored" : undefined}

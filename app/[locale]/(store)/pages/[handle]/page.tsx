@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
@@ -26,6 +27,7 @@ interface PageProps {
 export default async function StoreCustomPage({ params }: PageProps) {
   const { locale, handle } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const [settings, landing] = await Promise.all([
     getStorefrontSettings(),
@@ -52,7 +54,7 @@ export default async function StoreCustomPage({ params }: PageProps) {
   }
 
   return (
-    <ContentPageView locale={locale} title={page.title} content={page.content} />
+    <ContentPageView locale={locale} storeDefault={storeDefault} title={page.title} content={page.content} />
   );
 }
 

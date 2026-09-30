@@ -79,17 +79,28 @@ export function resolvePlacementDepths(raw: {
 }
 
 /**
+ * The Settings → Product Boosting switches, one per surface. The storefront
+ * honours them, so a surface switched off shows no sponsored slot at any depth.
+ */
+export type SponsoredPlacementsEnabled = PositionVisibility;
+
+/**
  * Where a rung actually appears. A rung visible on no placement is unsellable
  * and must be flagged rather than quietly sold.
+ *
+ * `enabled` is optional so callers that only reason about depth keep working;
+ * without it every surface counts as switched on.
  */
 export function getPositionVisibility(
   position: number,
   depths: SponsoredPlacementDepths,
+  enabled?: SponsoredPlacementsEnabled,
 ): PositionVisibility {
   return {
-    home: position <= depths.home,
-    listing: position <= depths.listing,
-    productPage: position <= depths.productPage,
+    home: enabled?.home !== false && position <= depths.home,
+    listing: enabled?.listing !== false && position <= depths.listing,
+    productPage:
+      enabled?.productPage !== false && position <= depths.productPage,
   };
 }
 
@@ -97,7 +108,8 @@ export function getPositionVisibility(
 export function isPositionUnreachable(
   position: number,
   depths: SponsoredPlacementDepths,
+  enabled?: SponsoredPlacementsEnabled,
 ): boolean {
-  const reach = getPositionVisibility(position, depths);
+  const reach = getPositionVisibility(position, depths, enabled);
   return !reach.home && !reach.listing && !reach.productPage;
 }

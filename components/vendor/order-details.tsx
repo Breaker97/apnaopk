@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ import {
   Package,
   Printer,
   Truck,
+  Undo2,
   User,
   XCircle,
 } from "lucide-react";
@@ -60,8 +61,11 @@ import {
   printPdfBlobWithQz,
 } from "@/lib/printing/qz-client";
 import { formatPickupWindow } from "@/lib/checkout/pickup-fulfillment-shared";
+import { OrderAddressHoldBanner } from "@/components/orders/order-address-hold-banner";
+import type { AddressHold } from "@/lib/orders/address-hold-policy";
 import { OrderShipmentsCard } from "@/components/shipping/order-shipments-card";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
+import { OpenReturnDialog } from "@/components/admin/returns/open-return-dialog";
 
 interface VendorOrderItem {
   name: string;
@@ -124,6 +128,8 @@ interface VendorOrder {
   /** This vendor's own payment state, resolved by the API — not the order's. */
   paymentStatus: string;
   paymentMethod?: string;
+  /** The server refuses a fulfilment move until the payment arrives. */
+  fulfillmentBlocked?: boolean;
   createdAt: string;
   shippingAddress?: {
     fullName?: string;
@@ -139,6 +145,8 @@ interface VendorOrder {
     name?: string;
     email?: string;
   };
+  /** Shipping paused on an undeliverable address; see address-hold-policy. */
+  addressHold?: AddressHold;
   /** The shopper's note and checkout-field answers — they may be instructions for this shipment. */
   customerNote?: string;
   checkoutFields?: OrderCheckoutField[];
@@ -200,6 +208,7 @@ function paymentBadge(paymentStatus: string) {
     partially_paid: "outline",
     refunded: "outline",
     partially_refunded: "outline",
+    expired: "destructive",
   };
 
   const labels: Record<string, string> = {
@@ -208,6 +217,7 @@ function paymentBadge(paymentStatus: string) {
     partially_paid: "Partially paid",
     refunded: "Refunded",
     partially_refunded: "Partially refunded",
+    expired: "Expired",
   };
 
   return (
@@ -227,6 +237,26 @@ function returnStatusVariant(
   if (status === "received" || status === "refunded") return "default";
   if (status === "requested" || status === "refund_pending") return "secondary";
   return "outline";
+}
+
+/** An action's name, with "Payment not received" under it when it is refused. */
+function PaymentBlockedLabel({
+  blocked,
+  children,
+}: {
+  blocked: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="flex min-w-0 flex-col">
+      <span>{children}</span>
+      {blocked ? (
+        <span className="text-[11.5px] leading-tight text-muted-foreground">
+          Payment not received
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function isAllowedTransition(from: string, to: string) {
@@ -257,6 +287,7 @@ export function VendorOrderDetails({
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [shipDialog, setShipDialog] = useState(false);
+  const [openReturnDialog, setOpenReturnDialog] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [carrier, setCarrier] = useState("");
   const [isShippingLabelLoading, setIsShippingLabelLoading] = useState(false);
@@ -315,11 +346,14 @@ export function VendorOrderDetails({
     async (status: string, tracking?: string, shipmentCarrier?: string) => {
       setIsUpdating(true);
       try {
-        await apiClient.put(`/api/vendor/orders/${orderId}`, {
-          status,
-          trackingNumber: tracking,
-          carrier: shipmentCarrier?.trim() || undefined,
-        });
+        const updated = await apiClient.put<{ refund?: { failed?: boolean } }>(
+          `/api/vendor/orders/${orderId}`,
+          {
+            status,
+            trackingNumber: tracking,
+            carrier: shipmentCarrier?.trim() || undefined,
+          },
+        );
 
         if (status === "shipped") {
           await apiClient.post(`/api/vendor/orders/${orderId}/shipments`, {
@@ -328,7 +362,15 @@ export function VendorOrderDetails({
           });
         }
 
-        toast.success("Order updated");
+        // Cancelled, but the shopper's money did not go back. Only the store
+        // can send it, and it has been told.
+        if (updated?.refund?.failed) {
+          toast.warning(
+            "Order cancelled, but the shopper's refund could not be sent automatically. The store admin has been told.",
+          );
+        } else {
+          toast.success("Order updated");
+        }
         setShipDialog(false);
         setTrackingNumber("");
         fetchOrder();
@@ -489,7 +531,7 @@ export function VendorOrderDetails({
     return (
       <div className="space-y-4">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/${locale}/vendor/orders`}>
+          <Link href="/vendor/orders">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to orders
           </Link>
@@ -552,8 +594,14 @@ export function VendorOrderDetails({
     subOrder.status === "processing";
   const canCancel =
     canDeleteOrder && isAllowedTransition(subOrder.status, "cancelled");
+  // Refused by the server until the customer's payment arrives; shown greyed
+  // with the reason rather than failing on click.
+  const paymentBlocked = Boolean(order.fulfillmentBlocked);
+  // A return the shopper asked for by phone, email or chat.
+  const canOpenReturn = canEditOrder && subOrder.status === "delivered";
   const canShowMoreActions =
     canMarkPaid ||
+    canOpenReturn ||
     requestedReturns.length > 0 ||
     receivableReturns.length > 0 ||
     canStartProcessing ||
@@ -659,7 +707,8 @@ export function VendorOrderDetails({
               <DropdownMenuContent align="end">
                 {canStartProcessing ? (
                   <DropdownMenuItem
-                    disabled={isUpdating}
+                    disabled={isUpdating || paymentBlocked}
+                    className={paymentBlocked ? "items-start [&>svg]:mt-0.5" : undefined}
                     onClick={() => void updateStatus("processing")}
                   >
                     {isUpdating ? (
@@ -667,25 +716,33 @@ export function VendorOrderDetails({
                     ) : (
                       <Package className="h-4 w-4" />
                     )}
-                    Start processing
+                    <PaymentBlockedLabel blocked={paymentBlocked}>
+                      Start processing
+                    </PaymentBlockedLabel>
                   </DropdownMenuItem>
                 ) : null}
                 {canMarkShipped ? (
                   <DropdownMenuItem
-                    disabled={isUpdating}
+                    disabled={isUpdating || paymentBlocked}
+                    className={paymentBlocked ? "items-start [&>svg]:mt-0.5" : undefined}
                     onClick={() => setShipDialog(true)}
                   >
                     <Truck className="h-4 w-4" />
-                    Mark shipped
+                    <PaymentBlockedLabel blocked={paymentBlocked}>
+                      Mark shipped
+                    </PaymentBlockedLabel>
                   </DropdownMenuItem>
                 ) : null}
                 {canMarkDelivered ? (
                   <DropdownMenuItem
-                    disabled={isUpdating}
+                    disabled={isUpdating || paymentBlocked}
+                    className={paymentBlocked ? "items-start [&>svg]:mt-0.5" : undefined}
                     onClick={() => void updateStatus("delivered")}
                   >
                     <CheckCircle className="h-4 w-4" />
-                    Mark delivered
+                    <PaymentBlockedLabel blocked={paymentBlocked}>
+                      Mark delivered
+                    </PaymentBlockedLabel>
                   </DropdownMenuItem>
                 ) : null}
                 {canMarkPickupReady ? (
@@ -723,6 +780,7 @@ export function VendorOrderDetails({
                   canMarkPickupCollected ||
                   canCancel) &&
                 (canMarkPaid ||
+                  canOpenReturn ||
                   requestedReturns.length > 0 ||
                   receivableReturns.length > 0) ? (
                   <DropdownMenuSeparator />
@@ -734,6 +792,12 @@ export function VendorOrderDetails({
                   >
                     <CircleDollarSign className="h-4 w-4" />
                     Mark as paid
+                  </DropdownMenuItem>
+                ) : null}
+                {canOpenReturn ? (
+                  <DropdownMenuItem onClick={() => setOpenReturnDialog(true)}>
+                    <Undo2 className="h-4 w-4" />
+                    Open a return
                   </DropdownMenuItem>
                 ) : null}
                 {requestedReturns.map((request) => (
@@ -760,13 +824,23 @@ export function VendorOrderDetails({
             </DropdownMenu>
           ) : null}
           <Button variant="outline" size="sm" asChild className="shrink-0">
-            <Link href={`/${locale}/vendor/orders`}>
+            <Link href="/vendor/orders">
               <ArrowLeft className="h-4 w-4" />
               Back
             </Link>
           </Button>
         </div>
       </div>
+
+      <OrderAddressHoldBanner
+        orderId={order._id}
+        orderNumber={order.orderNumber}
+        address={order.shippingAddress || {}}
+        hold={order.addressHold}
+        apiBase="/api/vendor"
+        readOnly={!canEditOrder}
+        onChanged={fetchOrder}
+      />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2 space-y-6">
@@ -1148,6 +1222,17 @@ export function VendorOrderDetails({
         </DialogContent>
       </Dialog>
 
+      {canOpenReturn ? (
+        <OpenReturnDialog
+          scope="vendor"
+          orderId={orderId}
+          open={openReturnDialog}
+          onOpenChange={setOpenReturnDialog}
+          onOpened={() => {
+            void fetchReturns().then(() => fetchOrder());
+          }}
+        />
+      ) : null}
     </div>
   );
 }

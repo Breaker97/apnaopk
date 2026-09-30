@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { z } from "zod";
+import * as z from "zod";
 import { LedgerEntry, LEDGER_SOURCE_KIND } from "@/models/ledger-entry.model";
 import { getSettings } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";

@@ -1,7 +1,10 @@
 import "server-only";
 
 import { STAFF_PERMISSIONS, VENDOR_PERMISSIONS } from "@/config/permissions.config";
-import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import {
+  assertAdminOrStaffPermissions,
+  assertVendorStaffMayChangeOrder,
+} from "@/lib/access/staff-authz";
 import { buildStaffOrderScopeFilter } from "@/lib/access/staff-scope";
 import { hasVendorPermission, isAdmin } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -36,12 +39,15 @@ export const adminShipmentScope: ScopeResolver = async ({
       : [STAFF_PERMISSIONS.VIEW_ORDERS],
   );
 
-  return loadShipmentScope({
+  const scope = await loadShipmentScope({
     orderId,
     subOrderId,
     requireSubOrder,
     orderFilter: buildStaffOrderScopeFilter(access.staffScope),
   });
+  // Buying or voiding a label spends from the store's carrier account.
+  if (intent === "write") assertVendorStaffMayChangeOrder(access, scope.order);
+  return scope;
 };
 
 /**

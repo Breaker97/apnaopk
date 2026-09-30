@@ -9,10 +9,12 @@ import {
 } from "@/config/permissions.config.js";
 import { ORDER_STATUS } from "@/config/app.config.js";
 import { DEMO_ACCOUNTS } from "@/config/demo-credentials";
+import { assertNotRealStore } from "@/lib/install/demo-seed-guard";
 import { buildBarcodeRegistryEntries } from "@/lib/products/barcode-registry";
 import { backfillProductSearchIndex } from "@/lib/products/search-index";
 import { LOCAL_ASSET_PATHS } from "@/lib/seed-assets";
 import { sanitizeSectionInstances } from "@/lib/storefront/sections/instances";
+import { rebaseCountdownSections } from "@/lib/install/countdown-window";
 import { buildStorePageIdentity } from "@/models/store-page.model";
 import {
   DEFAULT_SEED_TEMPLATE,
@@ -865,11 +867,20 @@ async function createOrders(
       },
       paymentMethod: isPos ? "cash" : pickOne(["stripe", "cod", "paypal"]),
       paymentStatus,
+      // The store's own currency, stamped like a real checkout stamps it.
+      // Left off, every seeded sale posts to the ledger under the "currency
+      // assumed" rule and the Finance screens open on a warning banner about
+      // demo data.
+      currency: SEED_CURRENCY,
       subtotal,
       shippingCost,
       tax,
       discount: 0,
       total,
+      // When the money arrived. The posting rules date a sale by this and fall
+      // back to `createdAt`; stamping it keeps a seeded month's revenue where
+      // the seeded orders actually are.
+      paidAt: PAID_PAYMENT_STATUSES.has(paymentStatus) ? createdAt : undefined,
       channel: isPos ? "pos" : "online",
       posLocationId: isPos ? String(defaultLocation._id) : undefined,
       staffId: isPos ? String(staffUser._id) : undefined,
@@ -889,7 +900,59 @@ async function createOrders(
     console.log(`   ✓ Created order: ${orderNumber} (${status})`);
   }
 
+  await postSeededOrdersToLedger(orders);
   return orders;
+}
+
+/** Payment states that mean money actually arrived. */
+const PAID_PAYMENT_STATUSES = new Set([
+  "paid",
+  "partially_paid",
+  "partially_refunded",
+  "refunded",
+]);
+
+const SEED_CURRENCY = "USD";
+
+/**
+ * Put the seeded sales on the books.
+ *
+ * A seeded order is written straight into the collection: it never passes a
+ * gateway, so nothing calls `ensureChargeTransaction` and nothing posts it.
+ * The result was a demo store whose Dashboard showed hundreds of thousands in
+ * sales while Finance → Overview showed an empty profit and loss — the two
+ * screens disagreeing by everything, on a fresh install, which is the first
+ * thing anyone evaluating the finance module would see.
+ *
+ * Posted through `postOrderPaid`, the same rule every live path uses, so the
+ * demo books are built by the code under test rather than by a second set of
+ * numbers written here. Keys are derived from the order, so re-seeding on top
+ * of an existing ledger writes nothing twice.
+ *
+ * Best-effort: a seed that could not write the books should still leave a
+ * usable store, and `pnpm db:migrate ledger` replays exactly this.
+ */
+async function postSeededOrdersToLedger(orders) {
+  const payable = orders.filter((order) =>
+    PAID_PAYMENT_STATUSES.has(String(order.paymentStatus)),
+  );
+  if (payable.length === 0) return;
+
+  try {
+    const { postOrderPaid } = await import("../lib/finance/post-events.ts");
+    let written = 0;
+    for (const order of payable) {
+      written += await postOrderPaid(order._id);
+    }
+    console.log(
+      `   ✓ Posted ${payable.length} paid order(s) to the ledger (${written} entries)`,
+    );
+  } catch (error) {
+    console.warn(
+      `   ! Could not post seeded orders to the ledger: ${error.message}`,
+    );
+    console.warn("     Run `pnpm db:migrate ledger` to build the books.");
+  }
 }
 
 async function createCoupons(Coupon, categories, adminId) {
@@ -1407,6 +1470,9 @@ async function createStorefrontTemplate(StorePage, admin) {
   const pages = loadSnapshot("store-pages");
   const now = new Date();
   const by = String(admin._id);
+  // Countdown offers run from today, as the coupons do: the exported ones had
+  // ended (lib/install/countdown-window.ts).
+  const exportedAt = loadSnapshot("manifest", { optional: true })?.exportedAt;
 
   for (const page of pages) {
     const draftRaw = Array.isArray(page.draft?.sections)
@@ -1415,8 +1481,12 @@ async function createStorefrontTemplate(StorePage, admin) {
     const publishedRaw = Array.isArray(page.published?.sections)
       ? page.published.sections
       : [];
-    const draft = sanitizeSectionInstances(draftRaw);
-    const published = sanitizeSectionInstances(publishedRaw);
+    const draft = sanitizeSectionInstances(
+      rebaseCountdownSections(draftRaw, exportedAt, now),
+    );
+    const published = sanitizeSectionInstances(
+      rebaseCountdownSections(publishedRaw, exportedAt, now),
+    );
     if (draft.length < draftRaw.length || published.length < publishedRaw.length) {
       console.warn(
         `   ⚠️  ${page.key}: dropped ${draftRaw.length - draft.length} draft / ${publishedRaw.length - published.length} published section(s) that no longer match the section schema — re-export the snapshot`,
@@ -1488,23 +1558,15 @@ async function createSettings(Settings) {
         "hi",
         "zh",
         "ja",
-        "ko",
         "fr",
         "es",
       ],
-      supportedCurrencies: ["USD", "EUR", "GBP", "BDT", "INR", "UGX"],
-      timezone: "America/New_York",
     },
     appearance: {
       primaryColor: "#2065D1",
       secondaryColor: "#8b5cf6",
       accentColor: "#f59e0b",
       theme: "system",
-      contrast: false,
-      rtl: false,
-      compact: false,
-      navLayout: "mini",
-      navColor: "integrate",
       presetColor: "default",
     },
     payment: {
@@ -1543,7 +1605,6 @@ async function createSettings(Settings) {
       },
     },
     email: {
-      provider: "smtp",
       enabled: false,
       smtp: { port: 587, secure: false },
       fromEmail: "no-reply@storify.com",
@@ -1663,7 +1724,6 @@ async function createSettings(Settings) {
       allowAdminSales: true,
       allowVendorSales: true,
       allowSellerSales: true,
-      language: "en",
       customize: {
         printedReceiptsEnabled: false,
         soundEnabled: true,
@@ -1907,6 +1967,8 @@ async function seed() {
       socketTimeoutMS: 45000,
     });
     console.log("✓ Connected to MongoDB");
+    // Writes the published demo logins — never into a real store.
+    await assertNotRealStore(mongoose.connection.db, "seed the demo store");
     console.log(`✓ Seeding the "${SEED_TEMPLATE.id}" template snapshot`);
 
     await import("@/models");

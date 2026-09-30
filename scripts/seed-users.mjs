@@ -8,6 +8,7 @@ import {
 } from "@/config/permissions.config.js";
 import { VENDOR_STATUS } from "@/config/app.config.js";
 import { DEMO_ACCOUNTS } from "@/config/demo-credentials";
+import { assertNotRealStore } from "@/lib/install/demo-seed-guard";
 import { LOCAL_ASSET_PATHS } from "@/lib/seed-assets";
 
 const ROLES = {
@@ -505,6 +506,8 @@ async function main() {
     if (!db) {
       throw new Error("MongoDB connection not available.");
     }
+    // Writes the published demo logins — never into a real store.
+    await assertNotRealStore(db, "create the demo accounts");
 
     const auth = createBetterAuthInstance(db, mongoose.connection.getClient());
     const { User, AdminProfile, Vendor, StaffProfile, CustomerProfile } =

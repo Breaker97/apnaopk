@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
-import { HomeNewArrivalsCarousel } from "@/components/store/home-new-arrivals-carousel";
+import { HomeNewArrivalsCarouselLazy as HomeNewArrivalsCarousel } from "@/components/store/home-new-arrivals-carousel-lazy";
 import {
   buildSponsoredLane,
   getSponsoredLadderPool,

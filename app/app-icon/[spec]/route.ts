@@ -1,3 +1,5 @@
+import { fetchStoredFile, readCappedBody } from "@/lib/storage/fetch-stored-file";
+import { appBaseUrl } from "@/lib/app-url";
 import { NextResponse } from "next/server";
 import { renderAppIcon } from "@/lib/pwa/pwa-icon-render";
 import { parseAppIconSpec } from "@/lib/pwa/pwa-icons";
@@ -14,6 +16,9 @@ export const dynamic = "force-dynamic";
 
 const NOT_FOUND = { status: 404 } as const;
 
+/** An icon source far past this is not an icon. */
+const MAX_ICON_SOURCE_BYTES = 10 * 1024 * 1024;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ spec: string }> },
@@ -24,12 +29,14 @@ export async function GET(
   const { appIconUrl } = await getStorefrontMetadataSettings();
   if (!appIconUrl) return new NextResponse(null, NOT_FOUND);
 
-  // The source may be a storage path ("/uploads/...") or an absolute CDN URL;
-  // resolving against the request covers both. Only http(s) is followed — the
-  // value is admin-supplied, and this fetch runs from inside the server.
+  // The source may be a storage path ("/uploads/...") or an absolute CDN URL.
+  // A path resolves against the store's own address — never the request's,
+  // whose Host header the caller chooses and whose answer is cached for a
+  // year. Only http(s) is followed — the value is admin-supplied, and this
+  // fetch runs from inside the server.
   let source: URL;
   try {
-    source = new URL(appIconUrl, request.url);
+    source = new URL(appIconUrl, `${appBaseUrl()}/`);
   } catch {
     return new NextResponse(null, NOT_FOUND);
   }
@@ -38,11 +45,18 @@ export async function GET(
   }
 
   try {
-    const response = await fetch(source, { cache: "no-store" });
-    if (!response.ok) return new NextResponse(null, NOT_FOUND);
+    // No redirect followed, a deadline and a size cap
+    // (lib/storage/fetch-stored-file.ts).
+    const response = await fetchStoredFile(source, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
+      return new NextResponse(null, NOT_FOUND);
+    }
 
     const rendered = await renderAppIcon(
-      Buffer.from(await response.arrayBuffer()),
+      await readCappedBody(response, MAX_ICON_SOURCE_BYTES),
       spec,
     );
 

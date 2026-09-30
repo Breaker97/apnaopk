@@ -83,7 +83,8 @@ const CommissionInvoiceSchema = new Schema<ICommissionInvoice>(
     },
     amount: { type: Number, required: true, min: 0 },
     // No default: an absent value marks an invoice raised before it existed.
-    creditApplied: { type: Number, min: 0 },
+    // Negative when the bill carried back a credit the vendor no longer had.
+    creditApplied: { type: Number },
     // What the store owed the vendor on balance for these sales — its own
     // promotions outweighing the commission. Only a payout carries such a bill,
     // and pays it; nothing is ever collected on it.

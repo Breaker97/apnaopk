@@ -40,6 +40,16 @@ interface CheckoutPolicyLink {
  *   - "email_or_phone":  one of the two, the shopper's choice
  *   - "email_and_phone": both required
  */
+/** Where a marketing checkbox may arrive already ticked. */
+export type MarketingPreselectMode = "never" | "auto" | "countries" | "always";
+
+const MARKETING_PRESELECT_MODES: readonly MarketingPreselectMode[] = [
+  "never",
+  "auto",
+  "countries",
+  "always",
+];
+
 export type CheckoutContactMode =
   | "email"
   | "phone"
@@ -155,6 +165,32 @@ export interface CheckoutSettings {
       label: string;
       /** Pre-ticked. Off by default: consent is opt-in, not opt-out. */
       defaultChecked: boolean;
+      /**
+       * Where the box may arrive pre-ticked. `always` is what a store that
+       * ticked the old `defaultChecked` chose; `auto` follows the shopper's
+       * delivery country, which is the only way to be right in both a
+       * jurisdiction that allows opt-out and one that does not.
+       */
+      preselect: MarketingPreselectMode;
+      /** ISO-2 codes for `preselect: "countries"`. */
+      preselectCountries: string[];
+      /**
+       * Ask the shopper to confirm by email before anything is sent. They sit
+       * at `pending` until they follow the link; the confirmation itself
+       * carries no marketing.
+       */
+      doubleOptIn: boolean;
+    };
+    /**
+     * The text-message twin of the box above, shown instead of it when the
+     * shopper gives a phone number rather than an email. Never pre-ticked —
+     * text marketing is consent the shopper has to give themselves.
+     */
+    smsOptIn: {
+      enabled: boolean;
+      label: string;
+      /** The small print under it: rates, and how to stop. */
+      fineprint: string;
     };
   };
   fields: Record<ConfigurableAddressField, CheckoutBuiltInField> &
@@ -176,10 +212,38 @@ export interface CheckoutSettings {
     enabled: boolean;
     /** Email the recovery link automatically once a checkout is abandoned. */
     autoRecoveryEmail: boolean;
-    /** Minutes of inactivity before the recovery email goes out. */
+    /**
+     * Minutes of inactivity before the FIRST recovery email goes out.
+     *
+     * Kept as its own field because every store already has one and the editor
+     * still shows it as "when to send". The rungs after it live in `schedule`.
+     */
     delayMinutes: number;
+    /**
+     * The whole ladder, in minutes from the moment the checkout was abandoned
+     * — the first entry included, so one list describes the schedule.
+     *
+     * Three at most, which is Shopify's limit and roughly where a reminder
+     * stops being a reminder. A store that wants only one email keeps one
+     * entry; `[]` means "just the first", for the stores that had one before
+     * this existed.
+     */
+    schedule: number[];
     /** Only email shoppers who ticked the marketing checkbox. */
     marketingConsentOnly: boolean;
+  };
+  /**
+   * Holding the goods while a shopper is at the gateway — see
+   * `lib/checkout/attempt-stock-hold.ts`.
+   */
+  stockHold: {
+    /** Off = nothing is held until the payment lands, as it used to be. */
+    enabled: boolean;
+    /**
+     * Minutes. Long enough for a 3-D Secure detour and a fumbled card, short
+     * enough that a shop is not emptied by people who never paid.
+     */
+    minutes: number;
   };
 }
 
@@ -209,7 +273,15 @@ const DEFAULT_CHECKOUT_SETTINGS: CheckoutSettings = {
     mode: "email",
     emailLabel: "",
     phoneLabel: "",
-    marketingOptIn: { enabled: true, label: "", defaultChecked: false },
+    marketingOptIn: {
+      enabled: true,
+      label: "",
+      defaultChecked: false,
+      preselect: "never",
+      preselectCountries: [],
+      doubleOptIn: false,
+    },
+    smsOptIn: { enabled: false, label: "", fineprint: "" },
   },
   // What checkout collected before these were configurable: surname, street,
   // city, postcode and country required; the rest optional; no delivery phone.
@@ -234,7 +306,17 @@ const DEFAULT_CHECKOUT_SETTINGS: CheckoutSettings = {
     enabled: true,
     autoRecoveryEmail: false,
     delayMinutes: 60,
+    // An hour, six hours, a day. The first while the shopper may still be at
+    // their desk, the second that evening, the third the next day — after
+    // which another email is not a reminder, it is a nuisance.
+    schedule: [60, 360, 1440],
     marketingConsentOnly: false,
+  },
+  stockHold: {
+    // On, but inert until a gateway is moved onto the attempt path: the hold
+    // belongs to an attempt, and there are none until then.
+    enabled: true,
+    minutes: 15,
   },
 };
 
@@ -242,6 +324,31 @@ function cloneDefaults(): CheckoutSettings {
   return JSON.parse(
     JSON.stringify(DEFAULT_CHECKOUT_SETTINGS),
   ) as CheckoutSettings;
+}
+
+/**
+ * The ladder, cleaned up: known delays only, in order, no repeats, at most
+ * three — and always starting with the first email's own delay, so the two
+ * settings can never disagree about when the first one goes.
+ *
+ * A store that has never seen this setting gets a single-rung ladder rather
+ * than the default three: switching a store to three emails is a decision its
+ * merchant makes, not one an upgrade makes for them.
+ */
+function normalizeRecoverySchedule(
+  value: unknown,
+  firstDelayMinutes: number,
+): number[] {
+  const allowed = new Set<number>(ABANDONED_RECOVERY_DELAYS);
+  const rest = Array.isArray(value)
+    ? value
+        .map((entry) => Number(entry))
+        .filter((minutes) => allowed.has(minutes as never))
+        .filter((minutes) => minutes > firstDelayMinutes)
+    : [];
+  return [...new Set([firstDelayMinutes, ...rest])]
+    .sort((a, b) => a - b)
+    .slice(0, 3);
 }
 
 function normalizeString(value: unknown, fallback: string): string {
@@ -266,6 +373,15 @@ function normalizeEnum<T extends string>(
   fallback: T,
 ): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+/** ISO-2 country codes, upper-cased and de-duplicated; anything else dropped. */
+function normalizeCountryCodes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const codes = value
+    .map((entry) => (typeof entry === "string" ? entry.trim().toUpperCase() : ""))
+    .filter((code) => /^[A-Z]{2}$/.test(code));
+  return Array.from(new Set(codes)).slice(0, 250);
 }
 
 function normalizePolicyLinks(value: unknown): CheckoutPolicyLink[] {
@@ -407,8 +523,10 @@ export function normalizeCheckoutSettings(value: unknown): CheckoutSettings {
   const marketing = isRecord(contact.marketingOptIn)
     ? contact.marketingOptIn
     : {};
+  const sms = isRecord(contact.smsOptIn) ? contact.smsOptIn : {};
   const orderNote = isRecord(source.orderNote) ? source.orderNote : {};
   const accounts = isRecord(source.accounts) ? source.accounts : {};
+  const stockHold = isRecord(source.stockHold) ? source.stockHold : {};
   const abandoned = isRecord(source.abandonedCheckouts)
     ? source.abandonedCheckouts
     : {};
@@ -455,6 +573,29 @@ export function normalizeCheckoutSettings(value: unknown): CheckoutSettings {
           marketing.defaultChecked,
           defaults.contact.marketingOptIn.defaultChecked,
         ),
+        // A store saved before this setting existed said only yes or no, and
+        // "yes" meant everywhere — so that is what it keeps meaning until the
+        // merchant picks a narrower rule.
+        preselect: normalizeEnum(
+          marketing.preselect,
+          MARKETING_PRESELECT_MODES,
+          normalizeBoolean(
+            marketing.defaultChecked,
+            defaults.contact.marketingOptIn.defaultChecked,
+          )
+            ? "always"
+            : defaults.contact.marketingOptIn.preselect,
+        ),
+        preselectCountries: normalizeCountryCodes(marketing.preselectCountries),
+        doubleOptIn: normalizeBoolean(
+          marketing.doubleOptIn,
+          defaults.contact.marketingOptIn.doubleOptIn,
+        ),
+      },
+      smsOptIn: {
+        enabled: normalizeBoolean(sms.enabled, defaults.contact.smsOptIn.enabled),
+        label: normalizeText(sms.label, CHECKOUT_HELP_MAX),
+        fineprint: normalizeText(sms.fineprint, CHECKOUT_HELP_MAX),
       },
     },
     fields: normalizeFields(source.fields),
@@ -492,9 +633,28 @@ export function normalizeCheckoutSettings(value: unknown): CheckoutSettings {
         abandoned.delayMinutes,
         defaults.abandonedCheckouts.delayMinutes,
       ),
+      schedule: normalizeRecoverySchedule(
+        abandoned.schedule,
+        normalizeDelayMinutes(
+          abandoned.delayMinutes,
+          defaults.abandonedCheckouts.delayMinutes,
+        ),
+      ),
       marketingConsentOnly: normalizeBoolean(
         abandoned.marketingConsentOnly,
         defaults.abandonedCheckouts.marketingConsentOnly,
+      ),
+    },
+    stockHold: {
+      enabled: normalizeBoolean(stockHold.enabled, defaults.stockHold.enabled),
+      // Bounded rather than free: an hour of held stock is a merchant
+      // mistyping, and a minute is not a payment window.
+      minutes: Math.min(
+        60,
+        Math.max(
+          1,
+          Math.round(Number(stockHold.minutes) || defaults.stockHold.minutes),
+        ),
       ),
     },
   };

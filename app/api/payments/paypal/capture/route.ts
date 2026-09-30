@@ -1,26 +1,38 @@
 import { auth } from "@/lib/auth/auth";
-import { connectDB } from "@/lib/db";
 import { headers } from "next/headers";
 import { resolvePayPalCredentials } from "@/lib/settings/credentials";
 import { systemActor } from "@/lib/orders/audit-order";
 import { getSettings } from "@/models/settings.model";
-import { NextRequest, NextResponse } from "next/server";
-import { handleApiError, ValidationError } from "@/lib/api/errors";
+import { NextResponse } from "next/server";
+import { ValidationError } from "@/lib/api/errors";
+import { withApi } from "@/lib/api/handler";
 import { finalizePayPalOrder } from "@/lib/payments/paypal-orders";
 import { settlePreorderBalanceFromPayPal } from "@/lib/payments/preorder-balance-paypal";
+import { settleOrderPayFromPayPal } from "@/lib/payments/order-pay";
 import {
   findPlatformPaymentByPayPalOrderId,
   verifyPlatformPayment,
 } from "@/lib/payments/platform-payments";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const PayPalCaptureSchema = z.object({
   orderId: z.string().max(200).optional(),
 });
 
-export async function POST(request: NextRequest) {
-  try {
+/**
+ * Captures a PayPal order the shopper has just approved.
+ *
+ * Through `withApi` for its rate limit. This route takes money and is open to
+ * guests, so a caller who can loop it is a caller who can hammer PayPal's API
+ * with somebody else's order ids; lenient, because a shopper whose first
+ * capture times out does legitimately try again.
+ */
+export const POST = withApi(
+  {
+    rateLimit: { action: "payments:paypal-capture", preset: "lenient" },
+  },
+  async ({ request }) => {
     const session = await auth.api.getSession({ headers: await headers() });
     const cartSessionId = request.cookies?.get("cart_session")?.value;
 
@@ -28,7 +40,6 @@ export async function POST(request: NextRequest) {
     const orderId = body?.orderId;
     if (!orderId) throw new ValidationError("PayPal orderId is required");
 
-    await connectDB();
     const settings = await getSettings();
 
     const paypal = settings.payment?.paypal;
@@ -53,6 +64,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: { platformPayment: true, paid },
+      });
+    }
+
+    // A "pay now" link paid with PayPal lands here as well, and is asked
+    // before checkout's finalizer for the same reason the balance is: the
+    // order already exists, so the finalizer would find no pending checkout
+    // for it and fail a payment the shopper has already approved.
+    const payLink = await settleOrderPayFromPayPal({
+      paypalOrderId: orderId,
+      settings,
+      sessionUserId: session?.user?.id,
+      customerEmail: session?.user?.email || undefined,
+    });
+    if (!payLink.notOurs) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          orderPayLink: true,
+          settled: true,
+          alreadyPaid: payLink.alreadyPaid,
+          orderId: payLink.orderId,
+          orderNumber: payLink.orderNumber,
+        },
       });
     }
 
@@ -99,7 +133,5 @@ export async function POST(request: NextRequest) {
       success: true,
       data: { orderNumber: result.orderNumber },
     });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+);

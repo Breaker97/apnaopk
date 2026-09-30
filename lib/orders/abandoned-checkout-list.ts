@@ -1,3 +1,4 @@
+import { onAppOrigin } from "@/lib/app-url";
 import { AbandonedCheckout, Cart } from "@/models";
 import { connectDB } from "@/lib/db";
 import { getCheckoutSubtotal } from "@/lib/orders/abandoned-checkouts";
@@ -94,6 +95,9 @@ export async function fetchAbandonedCheckoutList(
       return {
         ...checkout,
         _id: String(checkout._id),
+        // Stored recovery links were built from the shopper's `Origin`
+        // header, so one saved before that stopped can name any site.
+        checkoutUrl: onAppOrigin(checkout.checkoutUrl),
         subtotalPrice: checkout.subtotalPrice ?? 0,
         totalPrice: checkout.totalPrice ?? checkout.subtotalPrice ?? 0,
         itemCount: getItemCount(checkout.items),
@@ -108,6 +112,7 @@ export async function fetchAbandonedCheckoutList(
         ...cart,
         _id: String(cart._id),
         cartId: String(cart._id),
+        checkoutUrl: onAppOrigin(cart.checkoutUrl),
         status: cart.recoveryStatus === "recovered" ? "recovered" : "open",
         recoveryStatus: cart.recoveryStatus || "not_recovered",
         recoveryEmailStatus: cart.recoveryEmailStatus || "not_sent",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Control } from "react-hook-form";
 import {
   User,
@@ -30,10 +30,64 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { PhoneNumberField } from "@/components/ui/phone-number-field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { DocumentUploadField } from "@/components/vendor/document-upload-field";
-import { getAllowedCountryOptions } from "@/lib/intl/country-availability";
+import {
+  areCountryValuesEquivalent,
+  getAllowedCountryOptions,
+} from "@/lib/intl/country-availability";
+import type { RegionOption } from "@/lib/intl/country-options";
 import { cn } from "@/lib/utils";
 import type { ResolvedField } from "@/lib/vendors/vendor-onboarding";
 import { useAppSettings } from "@/providers/app-settings-provider";
+
+/**
+ * The country field for a store that sells into exactly one country.
+ *
+ * A one-option dropdown is a choice the applicant does not have: it still
+ * reads "Select country" until it is opened, and it fails validation until
+ * they open it. Mirrors what `CountrySelect` does on the shopper's side —
+ * render the country read-only and write it into the form.
+ */
+function SoleCountryField({
+  id,
+  label,
+  country,
+  value,
+  onChange,
+}: {
+  id?: string;
+  label: string;
+  country: RegionOption;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  // Read through a ref: a field rendered inside react-hook-form's render prop
+  // gets a fresh `onChange` identity every render, which as a dependency would
+  // re-run this effect forever.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+  useEffect(() => {
+    if (areCountryValuesEquivalent(value, country.value)) return;
+    onChangeRef.current(country.value);
+  }, [country, value]);
+
+  return (
+    <button
+      id={id}
+      type="button"
+      // Focusable and announced rather than `disabled`, which screen readers
+      // skip: the applicant would find nothing where the country belongs.
+      aria-disabled
+      aria-label={`${label}: ${country.label}`}
+      onClick={(event) => event.preventDefault()}
+      className="flex h-10 w-full cursor-default items-center gap-2 rounded-md border bg-muted/50 px-3 text-left text-sm shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+    >
+      <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 truncate">{country.label}</span>
+    </button>
+  );
+}
 
 /** Left-aligned input icon for known system fields (cosmetic parity with the
  * original hardcoded wizard). Custom fields render without an icon. */
@@ -93,6 +147,13 @@ export function OnboardingField({
     () => getAllowedCountryOptions(countryAvailability),
     [countryAvailability],
   );
+  // Nothing to pick from when the store sells into one country. A disabled
+  // field keeps its picker: it is showing a saved application, not collecting
+  // one, so it must show what was submitted rather than the policy.
+  const soleCountry =
+    !disabled && availableCountries.length === 1
+      ? availableCountries[0]
+      : null;
   const Icon = FIELD_ICONS[field.key];
   const requiredMark = field.required ? (
     <span className="text-destructive"> *</span>
@@ -209,22 +270,31 @@ export function OnboardingField({
                 value={(f.value as string) ?? ""}
               />
             ) : field.widget === "country" ? (
-              <SearchableSelect
-                options={availableCountries}
-                value={(f.value as string) ?? ""}
-                disabled={disabled}
-                onValueChange={(value) => {
-                  f.onChange(value);
-                  onCountryChange?.(value);
-                }}
-                placeholder={placeholder || "Select country"}
-                searchPlaceholder="Search country..."
-                emptyText="No countries found"
-                className="h-10"
-                icon={
-                  <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
-                }
-              />
+              soleCountry ? (
+                <SoleCountryField
+                  label={label}
+                  country={soleCountry}
+                  value={(f.value as string) ?? ""}
+                  onChange={f.onChange}
+                />
+              ) : (
+                <SearchableSelect
+                  options={availableCountries}
+                  value={(f.value as string) ?? ""}
+                  disabled={disabled}
+                  onValueChange={(value) => {
+                    f.onChange(value);
+                    onCountryChange?.(value);
+                  }}
+                  placeholder={placeholder || "Select country"}
+                  searchPlaceholder="Search country..."
+                  emptyText="No countries found"
+                  className="h-10"
+                  icon={
+                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  }
+                />
+              )
             ) : field.widget === "state" ? (
               // Only countries with a region list (US, IN, …) get the dropdown;
               // every other country falls back to a free-text input so the field

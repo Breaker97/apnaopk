@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Scale } from "lucide-react";
@@ -51,6 +52,7 @@ export async function generateMetadata({
 export default async function ComparePage({ params, searchParams }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const [query, t, settings] = await Promise.all([
     searchParams,
@@ -116,6 +118,7 @@ export default async function ComparePage({ params, searchParams }: PageProps) {
       <CompareUrlSync slugs={liveSelection} />
       <StoreBreadcrumb
         locale={locale as Locale}
+        storeDefault={storeDefault}
         items={[{ label: t("compare.title") }]}
         className="mb-8"
         // noindex page — the trail is navigation here, not site hierarchy

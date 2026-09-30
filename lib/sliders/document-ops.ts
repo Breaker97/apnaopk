@@ -30,7 +30,7 @@ export function sliderContentFromInput(raw: unknown): SliderContent {
 }
 
 /** The live content of a document, without its name, handle or bookkeeping. */
-export function liveContent(doc: SliderDocument): SliderContent {
+function liveContent(doc: SliderDocument): SliderContent {
   return {
     transition: doc.transition,
     autoplaySeconds: doc.autoplaySeconds,
@@ -85,11 +85,4 @@ export function restoreSliderVersion(
     controls: entry.controls,
     slides: entry.slides,
   };
-}
-
-/** Whether a draft differs from what is live — what "unpublished changes" means. */
-export function sliderHasUnpublishedChanges(doc: SliderDocument): boolean {
-  if (!doc.draft) return false;
-  const strip = (content: SliderContent) => JSON.stringify(liveContent({ ...doc, ...content }));
-  return strip(doc.draft) !== strip(doc);
 }

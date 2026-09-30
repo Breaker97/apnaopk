@@ -10,6 +10,12 @@ import {
 import { checkoutCartFingerprint } from "@/lib/checkout/checkout-cart-fingerprint";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
 import { preorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
+import {
+  couponVendorKey,
+  decodeEligibleProductIds,
+  remapVendorShares,
+} from "@/lib/orders/coupon-line-split";
+import { resolveCouponLineDiscounts } from "@/lib/catalog/coupons";
 import { gatewayFeeUpdate } from "@/lib/payments/gateway-fee";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
@@ -231,7 +237,12 @@ function parseCouponVendorShares(
  */
 function preorderOutstandingByLine(
   items: StripeOrderCartItem[],
-  metadata: { discount?: string; couponType?: string; couponVendorShares?: string },
+  metadata: {
+    discount?: string;
+    couponType?: string;
+    couponVendorShares?: string;
+    couponEligibleProducts?: string;
+  },
   currency: string,
 ): (item: StripeOrderCartItem) => number | undefined {
   const adjusted = preorderOutstandingAfterCoupon(
@@ -242,6 +253,7 @@ function preorderOutstandingByLine(
         quantity: item.quantity,
         purchaseType: item.purchaseType,
         preorderOutstandingAmount: item.preorderOutstandingAmount,
+        productId: String(item.productId._id),
         vendorId: vendor
           ? String(typeof vendor === "object" ? (vendor as { _id: unknown })._id : vendor)
           : null,
@@ -252,6 +264,9 @@ function preorderOutstandingByLine(
         ? 0
         : parseFloat(metadata.discount || "0") || 0,
       vendorShares: parseCouponVendorShares(metadata.couponVendorShares),
+      // Absent on a payment quoted before it was carried, which then shares
+      // the coupon the way that payment was charged.
+      eligibleProductIds: decodeEligibleProductIds(metadata.couponEligibleProducts),
     },
     currency,
   );
@@ -286,11 +301,19 @@ function preorderOutstandingOf(
  * rounds each deposit per unit, so its total is not an exact mirror of the
  * order's; its cart is held to the fingerprint instead.
  */
+/** The store credit the checkout said pays part of this card payment (R8). */
+function storeCreditOf(metadata: Record<string, string | undefined>): number {
+  const value = Number(metadata.storeCreditApplied);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 function stripeChargeMatchesOrder(params: {
   amountReceived: number | null | undefined;
   chargedCurrency: string | null | undefined;
   total: number;
   outstanding: number;
+  /** What the shopper's store credit paid, which the card never saw (R8). */
+  storeCredit?: number;
   currency: string;
 }): boolean {
   if (
@@ -301,7 +324,10 @@ function stripeChargeMatchesOrder(params: {
   }
   if (typeof params.amountReceived !== "number") return false;
   const dueNow = toStripeAmount(
-    Math.max(0, params.total - params.outstanding),
+    Math.max(
+      0,
+      params.total - params.outstanding - Math.max(0, Number(params.storeCredit) || 0),
+    ),
     params.currency,
   );
   // One minor unit of slack for float residue; a real mismatch is a deposit.
@@ -637,6 +663,30 @@ async function createStripeOrderFromCart(
     metadata,
     settings.general?.defaultCurrency || "USD",
   );
+  // Each line's share of the coupon — see `splitCouponAcrossLines`.
+  const couponLineShares = couponCode?.trim()
+    ? await resolveCouponLineDiscounts({
+        coupon: {
+          couponId: couponId || null,
+          type: couponType || null,
+          vendorShares: parseCouponVendorShares(metadata.couponVendorShares),
+          eligibleProductIds: decodeEligibleProductIds(
+            metadata.couponEligibleProducts,
+          ),
+        },
+        goodsDiscount: parseFloat(discount || "0") || 0,
+        lines: items.map((item) => ({
+          productId: String(item.productId._id),
+          vendorId: couponVendorKey(item.productId.vendorId),
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        currency: settings.general?.defaultCurrency || "USD",
+      })
+    : null;
+  const couponShareByLine = new Map(
+    items.map((item, index) => [item, couponLineShares?.[index]]),
+  );
 
   // A previously tamper-rejected (and refunded) intent must never fulfil an
   // order, even if the cart has since been edited back to the quoted sum.
@@ -666,6 +716,7 @@ async function createStripeOrderFromCart(
         chargedCurrency: source.intent?.currency,
         total: parseFloat(total || "0"),
         outstanding: preorderOutstandingOf(items, outstandingOf),
+        storeCredit: storeCreditOf(metadata),
         currency: settings.general?.defaultCurrency || "USD",
       }))
   ) {
@@ -699,6 +750,7 @@ async function createStripeOrderFromCart(
     (item) => item.productId.vendorId,
   );
   const subOrders = await buildVendorSubOrders(vendorGroups, {
+    currency: settings.general?.defaultCurrency || "USD",
     getProductId: (item) => item.productId._id,
     getVariantId: (item) => item.variantId,
     getName: (item) => item.productId.name,
@@ -723,6 +775,7 @@ async function createStripeOrderFromCart(
     getPreorderOutstandingAmount: (item) => outstandingOf(item),
     getPreorderSupplierEta: (item) => item.preorderSupplierEta,
     getPreorderBatchName: (item) => item.preorderBatchName,
+    getCouponDiscount: (item) => couponShareByLine.get(item),
     getCustoms: (item) => buildOrderItemCustomsSnapshot({
       productShipping: item.productId.shipping,
       variantShipping: item.variantId
@@ -733,7 +786,16 @@ async function createStripeOrderFromCart(
     }),
     fallbackCommissionPercent:
       settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
-    couponDiscountByVendor: parseCouponVendorShares(metadata.couponVendorShares),
+    // Keyed by the consignments the order is split into — see
+    // `remapVendorShares`.
+    couponDiscountByVendor: remapVendorShares(
+      parseCouponVendorShares(metadata.couponVendorShares),
+      items.map((item) => ({
+        from: couponVendorKey(item.productId.vendorId),
+        to: getOrderItemVendorId(item.productId.vendorId, vendorContext),
+      })),
+      settings.general?.defaultCurrency || "USD",
+    ),
     // This order is only ever written once Stripe has taken the money, and it
     // is written `processing` — its consignments have to say the same, or the
     // first vendor to touch theirs re-derives the paid order back to `pending`.
@@ -757,6 +819,7 @@ async function createStripeOrderFromCart(
       vendorShippingCosts: parsedShipping.vendorShippingCosts,
       orderShippingCost: parseFloat(shipping || "0"),
       orderShippingMethod: parsedShipping.shippingMethod,
+      currency: settings.general?.defaultCurrency || "USD",
       shippingDiscountByVendor: parseCouponVendorShares(
         metadata.couponShippingShares,
       ),
@@ -847,6 +910,7 @@ async function createStripeOrderFromCart(
         preorderOutstandingAmount: outstandingOf(item),
         preorderSupplierEta: item.preorderSupplierEta,
         preorderBatchName: item.preorderBatchName,
+        couponDiscount: couponShareByLine.get(item),
         customs: buildOrderItemCustomsSnapshot({
           productShipping: item.productId.shipping,
           variantShipping: item.variantId
@@ -926,6 +990,17 @@ async function createStripeOrderFromCart(
       preorderPaymentMode,
       preorderDepositAmount,
       preorderOutstandingAmount,
+      // The part the shopper's store credit paid, and its hold — spent as the
+      // order is settled below (R8).
+      ...(storeCreditOf(metadata) > 0 && metadata.storeCreditHoldKey
+        ? {
+            storeCredit: {
+              applied: storeCreditOf(metadata),
+              holdKey: metadata.storeCreditHoldKey,
+              state: "held",
+            },
+          }
+        : {}),
       status: hasPreorder ? ORDER_STATUS.PREORDERED : ORDER_STATUS.PROCESSING,
       // Stashed on the cart when the payment was quoted (the intent and
       // online-checkout routes); already validated against the checkout
@@ -975,6 +1050,15 @@ async function settleStripeOrder(params: {
   if (!creation.created) return creation;
   const { order } = creation;
 
+  // Before the settler, not after: it decides whether to take the stock from
+  // the flags on the document it is handed, so a hold claimed afterwards would
+  // arrive too late and the same units would be taken twice.
+  await takeAttemptStockHoldForOrder({
+    stripePaymentIntentId: order.stripePaymentIntentId,
+    stripeSessionId: order.stripeSessionId,
+    order,
+  });
+
   const settled = await settleCapturedOrder({
     order,
     provider: { label: "Stripe", recoveryGateway: "stripe" },
@@ -1002,13 +1086,126 @@ async function settleStripeOrder(params: {
     };
   }
 
-  console.log("Order created successfully:", order.orderNumber);
+  // Close the card attempt this order came out of, where the store keeps one.
+  // Stripe's order is built from the cart rather than from the attempt's
+  // snapshot, so the attempt is completed here rather than promoted — what it
+  // records is the tries, and this is the one that worked.
+  await completeAttemptForOrder({
+    stripePaymentIntentId: order.stripePaymentIntentId,
+    stripeSessionId: order.stripeSessionId,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+  });
 
   return {
     created: true,
     orderId: String(order._id),
     orderNumber: order.orderNumber,
   };
+}
+
+/**
+ * Hand the goods an unpaid card attempt was holding to the order it became.
+ *
+ * Stripe's order is built from the cart rather than promoted from the
+ * attempt's snapshot, so it never passes through `createOrderFromAttempt` and
+ * needs its own hand-off. The claim is the same one the release sweep uses, so
+ * only one of the two wins: winning here means the goods are the order's and
+ * the capture path must not take them again; losing means the hold had already
+ * lapsed and the capture path takes them as it always did.
+ *
+ * Best-effort, like everything else on this path: an order must not fail to
+ * exist because a flag could not be written.
+ */
+async function takeAttemptStockHoldForOrder(params: {
+  stripePaymentIntentId?: string | null;
+  stripeSessionId?: string | null;
+  order: { _id: unknown; subOrders?: Array<{ status?: string; inventoryReserved?: boolean }> };
+}): Promise<void> {
+  const refs = [
+    ["gateway.stripePaymentIntentId", params.stripePaymentIntentId],
+    ["gateway.stripeSessionId", params.stripeSessionId],
+  ].filter(([, value]) => Boolean(value)) as Array<[string, string]>;
+  if (refs.length === 0) return;
+
+  try {
+    const { CheckoutAttempt } = await import("@/models");
+    const attempt = await CheckoutAttempt.findOne({
+      $or: refs.map(([field, value]) => ({ [field]: value })),
+    })
+      .select("_id")
+      .lean<{ _id: unknown } | null>();
+    if (!attempt) return;
+
+    const { markAttemptHoldTaken } = await import(
+      "@/lib/checkout/attempt-stock-hold"
+    );
+    if (!(await markAttemptHoldTaken(attempt._id))) return;
+
+    const { markOrderInventoryReserved } = await import(
+      "@/lib/orders/order-inventory"
+    );
+    await markOrderInventoryReserved(String(params.order._id));
+    // The copy in hand as well as the row: the settler reads these.
+    for (const consignment of params.order.subOrders ?? []) {
+      if (consignment.status !== ORDER_STATUS.CANCELLED) {
+        consignment.inventoryReserved = true;
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Failed to hand a card attempt's held stock to its order:",
+      error,
+    );
+  }
+}
+
+/**
+ * Mark the card attempt behind a Stripe order completed, and point the order
+ * back at it.
+ *
+ * Best-effort on both sides: a store that has not switched cards over has no
+ * attempt to find, and an order that exists with an unlinked attempt is a
+ * paperwork gap, never a payment problem.
+ */
+async function completeAttemptForOrder(params: {
+  stripePaymentIntentId?: string | null;
+  stripeSessionId?: string | null;
+  orderId: unknown;
+  orderNumber?: string;
+}): Promise<void> {
+  const refs = [
+    ["gateway.stripePaymentIntentId", params.stripePaymentIntentId],
+    ["gateway.stripeSessionId", params.stripeSessionId],
+  ].filter(([, value]) => Boolean(value)) as Array<[string, string]>;
+  if (refs.length === 0) return;
+
+  try {
+    const { CheckoutAttempt, CHECKOUT_ATTEMPT_STATUS, Order } = await import(
+      "@/models"
+    );
+    const attempt = await CheckoutAttempt.findOneAndUpdate(
+      { $or: refs.map(([field, value]) => ({ [field]: value })) },
+      {
+        $set: {
+          status: CHECKOUT_ATTEMPT_STATUS.COMPLETED,
+          "finalize.orderId": params.orderId,
+          "finalize.orderNumber": params.orderNumber,
+        },
+        $unset: { purgeAt: "" },
+      },
+      { new: true },
+    )
+      .select("_id")
+      .lean<{ _id: unknown } | null>();
+    if (!attempt) return;
+    await Order.updateOne(
+      { _id: params.orderId },
+      { $set: { checkoutAttemptId: attempt._id } },
+    );
+  } catch (error) {
+    console.error("Failed to close the card attempt behind an order:", error);
+  }
 }
 
 /**

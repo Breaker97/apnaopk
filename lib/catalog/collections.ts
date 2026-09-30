@@ -194,6 +194,96 @@ async function buildConditionQueryAsync(
   }
 }
 
+/**
+ * A collection that takes products in by its rules, in the plain form
+ * `productsJoiningByRule` matches against — and that a cached reader can keep
+ * (no ObjectIds or subdocument ids).
+ */
+export type CollectionRules = {
+  id: string;
+  conditions: CollectionCondition[];
+  conditionMatch: "all" | "any";
+};
+
+/**
+ * The named collections that take products in by their rules: automated, with
+ * at least one condition. A collection with no rules takes in nothing here,
+ * rather than everything.
+ */
+export async function automatedCollectionRules(
+  collectionIds: ReadonlyArray<unknown>,
+): Promise<CollectionRules[]> {
+  const named = Array.from(new Set(collectionIds.map(String))).filter(isObjectIdString);
+  if (named.length === 0) return [];
+  const automated = await Collection.find({
+    _id: { $in: named },
+    collectionType: "automated",
+    "conditions.0": { $exists: true },
+  })
+    .select("_id conditions conditionMatch")
+    .lean<
+      Array<{
+        _id: unknown;
+        conditions: CollectionCondition[];
+        conditionMatch?: "all" | "any";
+      }>
+    >();
+  return automated.map((collection) => ({
+    id: String(collection._id),
+    conditions: collection.conditions.map(({ field, operator, value }) => ({
+      field,
+      operator,
+      value,
+    })),
+    conditionMatch: collection.conditionMatch === "any" ? "any" : "all",
+  }));
+}
+
+/**
+ * Which of `rules`' collections each product joins. One query per collection,
+ * all at once, over the products asked about only.
+ */
+export async function productsJoiningByRule(
+  productIds: ReadonlyArray<unknown>,
+  rules: ReadonlyArray<CollectionRules>,
+): Promise<Map<string, string[]>> {
+  const byProduct = new Map<string, string[]>();
+  const products = Array.from(new Set(productIds.map(String))).filter(isObjectIdString);
+  if (products.length === 0 || rules.length === 0) return byProduct;
+  const matched = await Promise.all(
+    rules.map(async (rule) => {
+      const query = await buildConditionQueryAsync(rule.conditions, rule.conditionMatch);
+      return Product.find({ _id: { $in: products }, ...query })
+        .select("_id")
+        .lean<Array<{ _id: unknown }>>();
+    }),
+  );
+  rules.forEach((rule, index) => {
+    for (const product of matched[index]) {
+      const key = String(product._id);
+      byProduct.set(key, [...(byProduct.get(key) || []), rule.id]);
+    }
+  });
+  return byProduct;
+}
+
+/**
+ * Which of the named collections each product belongs to by an automated
+ * collection's rules. `product.collectionIds` mirrors hand-picked membership
+ * only, so a setting that names collections — final sale, a return window —
+ * never matched a product that joins one by its rules.
+ *
+ * Reads the rules afresh; the storefront's cached copy is
+ * lib/returns/final-sale-collections.ts.
+ */
+export async function ruleCollectionsOf(
+  productIds: ReadonlyArray<unknown>,
+  collectionIds: ReadonlyArray<unknown>,
+): Promise<Map<string, string[]>> {
+  if (productIds.length === 0) return new Map();
+  return productsJoiningByRule(productIds, await automatedCollectionRules(collectionIds));
+}
+
 export async function normalizeCollectionConditions(
   conditions: CollectionCondition[]
 ): Promise<CollectionCondition[]> {

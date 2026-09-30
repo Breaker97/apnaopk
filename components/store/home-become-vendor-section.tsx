@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/config/i18n.config";

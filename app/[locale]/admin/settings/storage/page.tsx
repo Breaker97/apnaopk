@@ -114,6 +114,7 @@ function storageCredentialHints(settings: Settings) {
 export default function Page() {
   const {
     isSaving,
+    dirtySections,
     updateNestedField,
     saveSection,
     refetch,
@@ -181,6 +182,7 @@ export default function Page() {
                 }}
                 onSave={() => saveSection("storage", loadedSettings.storage)}
                 isSaving={isSaving}
+                isDirty={dirtySections.has("storage")}
                 envSources={loadedSettings._meta?.envSources?.storage}
                 credentialHints={storageCredentialHints(loadedSettings)}
               />

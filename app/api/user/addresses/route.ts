@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { ObjectId } from "mongodb";
 import { mongoose } from "@/lib/db";
 import { successResponse } from "@/lib/api/response";

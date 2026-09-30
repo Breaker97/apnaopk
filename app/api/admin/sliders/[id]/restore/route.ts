@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Slider } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";

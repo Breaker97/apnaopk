@@ -14,7 +14,7 @@ import {
 } from "@/lib/catalog/brands";
 import { revalidateBrandContent } from "@/lib/cache-invalidation";
 import { fetchBrandList } from "@/lib/catalog/brand-list";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const BrandSeoSchema = z.record(z.string(), z.unknown());

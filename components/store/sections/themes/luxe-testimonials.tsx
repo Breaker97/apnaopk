@@ -13,10 +13,12 @@ interface LuxeTestimonialsProps {
 }
 
 /**
- * Luxe's take on the testimonials contract: the same approved reviews,
- * restyled as editorial pull quotes — serif, generous whitespace, no star
- * chrome. Same props, same data, different voice; that's what a theme
- * override is.
+ * The "Editorial" take on the testimonials contract: the same approved
+ * reviews, restyled as pull quotes — serif, generous whitespace, no star
+ * chrome. Same props, same data, different voice; that's what a design is.
+ *
+ * Named for the retired `luxe` template it was drawn for; the design key is
+ * stored on every instance that picked it, so the name stays.
  */
 export async function LuxeTestimonials({
   locale,

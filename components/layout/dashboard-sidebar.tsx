@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import {
   ListOrdered,
   LayoutDashboard,
@@ -75,6 +75,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAppSettings, presetColors } from "@/stores/app-settings";
+import { useAiAvailability } from "@/components/ai-authoring/ai-availability-provider";
 import {
   useMultiVendorMode,
   useAppSettings as usePublicAppSettings,
@@ -85,6 +86,8 @@ import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
 import { useInboxUnreadCount } from "@/hooks/use-inbox-unread-count";
 import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
+import { adminSettingsSectionFromPath } from "@/components/admin/settings/settings-sections";
+import { AdminSettingsSidebarNav } from "@/components/admin/settings/settings-sidebar-nav";
 
 // Icon mapping
 const iconMap: Record<string, LucideIcon> = {
@@ -916,11 +919,17 @@ function CollapsedHoverSubmenu({
                   : "text-foreground/70 hover:bg-muted/60 hover:text-foreground font-semibold",
             )}
           >
-            <Icon className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-3.5 group-data-[collapsible=icon]:-translate-x-1" />
-            <ChevronRight
+            <Icon className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-5" />
+            {/* The flyout cue: a small chevron at the tile's edge, level with
+                the icon, so the icon keeps the size and axis of the entries
+                without a submenu. The span keeps it out of the menu button's
+                `[&>svg]:size-5`, which would otherwise enlarge it. */}
+            <span
               className={cn(
-                "absolute top-2.5 h-2.5 w-2.5 opacity-70",
-                isRTL ? "left-2 rotate-180" : "right-2",
+                "pointer-events-none absolute top-2 flex h-5 items-center opacity-60 transition duration-200 group-data-[state=open]/btn:opacity-100",
+                isRTL
+                  ? "left-1.5 group-data-[state=open]/btn:-translate-x-0.5"
+                  : "right-1.5 group-data-[state=open]/btn:translate-x-0.5",
                 isApparent
                   ? "text-white/70"
                   : isActive
@@ -928,10 +937,14 @@ function CollapsedHoverSubmenu({
                     : "text-muted-foreground",
               )}
               aria-hidden="true"
-            />
+            >
+              <ChevronRight
+                className={cn("size-3 stroke-[2.5]", isRTL && "rotate-180")}
+              />
+            </span>
             <span
               className={cn(
-                "hidden text-[10px] leading-tight group-data-[collapsible=icon]:block text-center wrap-break-word whitespace-normal overflow-visible",
+                "hidden text-[11px] leading-tight group-data-[collapsible=icon]:block text-center wrap-break-word whitespace-normal overflow-visible",
                 isApparent
                   ? "text-white"
                   : isActive
@@ -1036,12 +1049,24 @@ export function DashboardSidebar({
     basePath.startsWith("/vendor/pos/") ||
     basePath.startsWith("/staff/pos/");
 
+  // Settings open inside the dashboard: while one of its pages is showing, the
+  // settings menu takes the main menu's place, with a way back out on top.
+  const settingsSectionId =
+    user.role === USER_ROLES.ADMIN
+      ? adminSettingsSectionFromPath(basePath)
+      : null;
+
   // Keyed off the path, not the role: an admin browsing the vendor area must
   // still be offered the vendor links they are actually looking at.
   const posNavItems = React.useMemo(
     () => buildPosNavItems(dashboardAreaFromPath(basePath)),
     [basePath],
   );
+
+  // Settings → AI also governs the hub entry: the page behind it exists to
+  // launch generation, so offering it while AI is off sends the user to a
+  // warning banner instead of a tool.
+  const { available: aiAvailable } = useAiAvailability();
 
   const navGroups = React.useMemo(() => {
     // Only two areas mount this component — `app/[locale]/admin/layout.tsx`
@@ -1081,6 +1106,13 @@ export function DashboardSidebar({
       );
     }
 
+    if (!aiAvailable) {
+      nextGroups = filterNavGroupsByHref(
+        nextGroups,
+        new Set(["/admin/ai-studio"]),
+      );
+    }
+
     if (user.role === USER_ROLES.ADMIN && !posEnabled) {
       nextGroups = nextGroups.map((group) => {
         if (group.label === "admin.sidebar.salesChannels") {
@@ -1099,6 +1131,7 @@ export function DashboardSidebar({
     isMultiVendor,
     posEnabled,
     boostingEnabled,
+    aiAvailable,
     vendorPlansEnabled,
     vendorPermissions,
   ]);
@@ -1108,7 +1141,9 @@ export function DashboardSidebar({
   const hasInboxEntry = navGroups.some((group) =>
     group.items.some((item) => item.countKey === "inboxUnread"),
   );
-  const inboxUnread = useInboxUnreadCount(hasInboxEntry && !isPosPage);
+  const inboxUnread = useInboxUnreadCount(
+    hasInboxEntry && !isPosPage && !settingsSectionId,
+  );
   const navCounts: Record<NavCountKey, number> = { inboxUnread };
 
   // RTL detection based on locale OR manual setting
@@ -1263,6 +1298,9 @@ export function DashboardSidebar({
     if (user.role === USER_ROLES.ADMIN) {
       return {
         path: "/admin/settings",
+        // Straight to the first section: `/admin/settings` only redirects
+        // there, at the cost of a second round trip through its layout.
+        href: "/admin/settings/general",
         label: t("common.settings"),
       };
     }
@@ -1270,6 +1308,7 @@ export function DashboardSidebar({
     if (canAccessVendorSettings) {
       return {
         path: "/vendor/settings",
+        href: "/vendor/settings",
         label: tLabel("vendor.settings"),
       };
     }
@@ -1324,7 +1363,7 @@ export function DashboardSidebar({
         <SidebarHeader className="border-b-0 px-3 py-3 relative group-data-[collapsible=icon]:px-2">
           <Link
             prefetch={false}
-            href={`/${locale}`}
+            href="/"
             className="flex w-full items-center px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
           >
             {renderSidebarBrand()}
@@ -1522,15 +1561,31 @@ export function DashboardSidebar({
       <SidebarHeader className="border-b-0 px-3 py-3 relative group-data-[collapsible=icon]:px-2">
         <Link
           prefetch={false}
-          href={`/${locale}`}
+          href="/"
           className="flex w-full items-center px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
           {renderSidebarBrand()}
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:gap-1">
-        {navGroups.map((group, groupIndex) => (
+      <SidebarContent
+        // Keyed on the menu shown, so a swap starts at the top of the list and
+        // the settings menu slides in over the place the main one held.
+        key={settingsSectionId ? "settings" : "main"}
+        className={cn(
+          "px-3 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:gap-1",
+          settingsSectionId &&
+            "pb-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-end-2",
+        )}
+      >
+        {settingsSectionId ? (
+          <AdminSettingsSidebarNav
+            activeSectionId={settingsSectionId}
+            isApparent={isApparent}
+            isRTL={isRTL}
+            isIconCollapsed={isIconCollapsed}
+          />
+        ) : navGroups.map((group, groupIndex) => (
           <SidebarGroup
             key={group.label}
             className={cn(
@@ -1857,7 +1912,7 @@ export function DashboardSidebar({
         ))}
       </SidebarContent>
 
-      {footerSettings && (
+      {footerSettings && !settingsSectionId && (
         <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2 mt-auto">
           <SidebarMenu className="group-data-[collapsible=icon]:items-center">
             <SidebarMenuItem className="group-data-[collapsible=icon]:w-full">
@@ -1885,7 +1940,7 @@ export function DashboardSidebar({
                   >
                     <Link
                       prefetch={false}
-                      href={settingsPath}
+                      href={footerSettings.href}
                       className="relative py-4 flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
                     >
                       <Settings className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:size-5" />

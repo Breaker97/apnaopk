@@ -27,17 +27,22 @@ import {
   type HeaderBackground,
   MIN_HEADER_LOGO_SIZE,
   MIN_HEADER_ROW_GAP,
+  MAX_HEADER_ROW_PADDING,
+  HEADER_CURRENCY_DISPLAYS,
+  HEADER_LANGUAGE_DISPLAYS,
   type HeaderBrandItem,
   type HeaderButtonsItem,
   type HeaderCategoriesItem,
   type HeaderCategoriesPanel,
   type HeaderColumnCount,
   type HeaderCollectionsItem,
+  type HeaderCurrencyItem,
   type HeaderIconKey,
   type HeaderIconsItem,
   type HeaderJustify,
   type HeaderLayoutColumn,
   type HeaderLayoutItem,
+  type HeaderLanguageItem,
   type HeaderLayoutRow,
   type HeaderLocationItem,
   type HeaderMenuButtonItem,
@@ -456,6 +461,30 @@ function AnnouncementProperties({
           onChange={(align) => patchStyle({ align })}
         />
       </PanelRow>
+      {/* The strip's own inset, and the space between it and the header —
+          the gap that had no control and read as one the bar had chosen. */}
+      <PanelRow
+        label={tSafe("admin.headerStudio.panel.padding", "Padding")}
+        layout="stacked"
+      >
+        <PaddingField
+          value={draft.style.padding}
+          max={MAX_HEADER_ROW_PADDING}
+          labels={labels.padding}
+          onChange={(padding) => patchStyle({ padding })}
+        />
+      </PanelRow>
+      <PanelRow
+        label={tSafe("admin.headerStudio.panel.spaceBelow", "Space below")}
+      >
+        <UnitField
+          value={draft.style.spaceBelow}
+          unit="px"
+          max={MAX_HEADER_ROW_PADDING}
+          ariaLabel={tSafe("admin.headerStudio.panel.spaceBelow", "Space below")}
+          onChange={(spaceBelow) => patchStyle({ spaceBelow })}
+        />
+      </PanelRow>
       <PanelRow label={tSafe("admin.headerStudio.panel.background", "Background")}>
         <BackgroundSwatchField
           value={draft.background}
@@ -494,6 +523,10 @@ function commonLabels(tSafe: TSafe) {
       right: tSafe("admin.headerStudio.panel.paddingRight", "Padding right"),
       bottom: tSafe("admin.headerStudio.panel.paddingBottom", "Padding bottom"),
       left: tSafe("admin.headerStudio.panel.paddingLeft", "Padding left"),
+      horizontal: tSafe("admin.headerStudio.panel.paddingX", "Left and right"),
+      vertical: tSafe("admin.headerStudio.panel.paddingY", "Top and bottom"),
+      expand: tSafe("admin.headerStudio.panel.paddingSides", "Edit each side"),
+      collapse: tSafe("admin.headerStudio.panel.paddingPairs", "Edit as pairs"),
     },
     inherit: tSafe("admin.headerStudio.panel.inherit", "Inherit"),
     clearColor: tSafe("admin.headerStudio.panel.clearColor", "Reset to inherit"),
@@ -617,6 +650,35 @@ function RowProperties({
         />
       </PanelRow>
 
+      {/* The row's own inset. Height can only centre content in a fixed box;
+          this is what gives a row that sizes to its content room to breathe.
+          Paired while it is symmetric, four sides once it is not. */}
+      <PanelRow
+        label={tSafe("admin.headerStudio.panel.padding", "Padding")}
+        layout="stacked"
+      >
+        <PaddingField
+          value={row.padding}
+          max={MAX_HEADER_ROW_PADDING}
+          labels={labels.padding}
+          onChange={(padding) => onPatch({ padding })}
+        />
+      </PanelRow>
+
+      {/* A row owns the edge beneath it: between two rows this is the gap,
+          under the last one it is the air before the page starts. */}
+      <PanelRow
+        label={tSafe("admin.headerStudio.panel.spaceBelow", "Space below")}
+      >
+        <UnitField
+          value={row.spaceBelow}
+          unit="px"
+          max={MAX_HEADER_ROW_PADDING}
+          ariaLabel={tSafe("admin.headerStudio.panel.spaceBelow", "Space below")}
+          onChange={(spaceBelow) => onPatch({ spaceBelow })}
+        />
+      </PanelRow>
+
       <PanelRow label={tSafe("admin.headerStudio.panel.background", "Background")}>
         <BackgroundSwatchField
           value={row.background}
@@ -710,6 +772,20 @@ function RowProperties({
             )}
           </p>
         </>
+      ) : null}
+
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.homeOnly", "Home page only")}
+        checked={row.homeOnly}
+        onChange={(homeOnly) => onPatch({ homeOnly })}
+      />
+      {row.homeOnly ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          {tSafe(
+            "admin.headerStudio.panel.homeOnlyHint",
+            "Shown on the home page and left out of every other page's header.",
+          )}
+        </p>
       ) : null}
 
       <Separator />
@@ -815,7 +891,7 @@ function ItemProperties({
   const paddingRow = (
     <PanelRow
       label={tSafe("admin.headerStudio.panel.padding", "Padding")}
-      align="start"
+      layout="stacked"
     >
       <PaddingField
         value={item.padding}
@@ -872,6 +948,22 @@ function ItemProperties({
           tSafe={tSafe}
           item={item}
           onPatch={onPatch as (patch: Partial<HeaderLocationItem>) => void}
+        />
+      ) : null}
+
+      {item.type === "language" ? (
+        <LanguageFields
+          tSafe={tSafe}
+          item={item}
+          onPatch={onPatch as (patch: Partial<HeaderLanguageItem>) => void}
+        />
+      ) : null}
+
+      {item.type === "currency" ? (
+        <CurrencyFields
+          tSafe={tSafe}
+          item={item}
+          onPatch={onPatch as (patch: Partial<HeaderCurrencyItem>) => void}
         />
       ) : null}
 
@@ -1946,6 +2038,121 @@ function LocationFields({
           />
         </PanelRow>
       ) : null}
+    </>
+  );
+}
+
+function LanguageFields({
+  tSafe,
+  item,
+  onPatch,
+}: {
+  tSafe: TSafe;
+  item: HeaderLanguageItem;
+  onPatch: (patch: Partial<HeaderLanguageItem>) => void;
+}) {
+  const labels = commonLabels(tSafe);
+  return (
+    <>
+      <PanelRow label={tSafe("admin.headerStudio.panel.languageDisplay", "Show as")}>
+        <SelectField
+          accent
+          ariaLabel={tSafe("admin.headerStudio.panel.languageDisplay", "Show as")}
+          value={item.display}
+          options={HEADER_LANGUAGE_DISPLAYS.map((value) => ({
+            value,
+            label: tSafe(
+              `admin.headerStudio.panel.languageDisplays.${value}`,
+              value === "code" ? "Code (EN)" : "Name (English)",
+            ),
+          }))}
+          onChange={(display) => onPatch({ display })}
+        />
+      </PanelRow>
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.showFlag", "Show flag")}
+        checked={item.showFlag}
+        onChange={(showFlag) => onPatch({ showFlag })}
+      />
+      {item.showFlag ? (
+        <PanelRow label={tSafe("admin.headerStudio.panel.size", "Size")}>
+          <UnitField
+            value={item.size}
+            unit="px"
+            min={12}
+            max={40}
+            ariaLabel={tSafe("admin.headerStudio.panel.size", "Size")}
+            onChange={(size) => onPatch({ size })}
+          />
+        </PanelRow>
+      ) : null}
+      <ToggleField
+        label={tSafe("admin.headerStudio.panel.showChevron", "Show chevron")}
+        checked={item.showChevron}
+        onChange={(showChevron) => onPatch({ showChevron })}
+      />
+      <PanelRow label={labels.textStyle.trigger}>
+        <TextStyleField
+          value={item.textStyle}
+          labels={labels.textStyle}
+          tSafe={tSafe}
+          onChange={(textStyle) => onPatch({ textStyle })}
+        />
+      </PanelRow>
+      <PanelRow label={tSafe("admin.headerStudio.panel.foreground", "Foreground")}>
+        <FillField
+          value={item.foreground}
+          label={tSafe("admin.headerStudio.panel.foreground", "Foreground")}
+          clearLabel={labels.clearColor}
+          tSafe={tSafe}
+          onChange={(foreground) => onPatch({ foreground })}
+        />
+      </PanelRow>
+    </>
+  );
+}
+
+function CurrencyFields({
+  tSafe,
+  item,
+  onPatch,
+}: {
+  tSafe: TSafe;
+  item: HeaderCurrencyItem;
+  onPatch: (patch: Partial<HeaderCurrencyItem>) => void;
+}) {
+  const labels = commonLabels(tSafe);
+  return (
+    <>
+      <PanelRow label={tSafe("admin.headerStudio.panel.currencyDisplay", "Show as")}>
+        <SelectField
+          accent
+          ariaLabel={tSafe("admin.headerStudio.panel.currencyDisplay", "Show as")}
+          value={item.display}
+          options={HEADER_CURRENCY_DISPLAYS.map((value) => ({
+            value,
+            label: tSafe(
+              `admin.headerStudio.panel.currencyDisplays.${value}`,
+              value === "code" ? "Code (USD)" : value === "symbol" ? "Symbol ($)" : "Both ($ USD)",
+            ),
+          }))}
+          onChange={(display) => onPatch({ display })}
+        />
+      </PanelRow>
+      <PanelRow label={labels.textStyle.trigger}>
+        <TextStyleField
+          value={item.textStyle}
+          labels={labels.textStyle}
+          tSafe={tSafe}
+          onChange={(textStyle) => onPatch({ textStyle })}
+        />
+      </PanelRow>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {tSafe(
+          "admin.headerStudio.panel.currencyHint",
+          "Shows the store currency set in Settings. Prices are not converted, so shoppers cannot switch it.",
+        )}
+      </p>
     </>
   );
 }

@@ -81,7 +81,9 @@ async function run() {
   const { PaymentTransaction } = await import(
     "../models/payment-transaction.model.ts"
   );
+  const { ReturnRequest } = await import("../models/return-request.model.ts");
   const postEvents = await import("../lib/finance/post-events.ts");
+  const { heldRestockReplays } = await import("../lib/returns/held-units.ts");
   const ledger = await import("../lib/finance/ledger.ts");
 
   const dateFilter = FROM ? { $gte: FROM } : undefined;
@@ -92,6 +94,7 @@ async function run() {
     platform: 0,
     subscriptions: 0,
     labels: 0,
+    restocks: 0,
   };
 
   // --- unpaid expenses, re-filed ------------------------------------------
@@ -222,6 +225,94 @@ async function run() {
     }
   }
 
+  // --- goods back on the shelf ----------------------------------------------
+  // What a cancellation or a return put back in stock comes back off cost of
+  // goods — see `restockCostPostings`. Capped at the cost the books still carry
+  // for each order, so a replay can never take off more than the sale booked.
+  // Every return that put something back — a step at a time since R5, so not
+  // only the ones marked restored whole.
+  const returnRestocks = await ReturnRequest.find({
+    "restockedLines.0": { $exists: true },
+    ...(dateFilter ? { createdAt: dateFilter } : {}),
+  })
+    .select("_id orderId restockedLines")
+    .lean();
+  const cancelRestocks = await Order.find({
+    ...(dateFilter ? { createdAt: dateFilter } : {}),
+    subOrders: { $elemMatch: { status: "cancelled", inventoryReserved: false } },
+    "subOrders.items.cost": { $exists: true },
+  })
+    .select(
+      "_id subOrders._id subOrders.status subOrders.inventoryReserved subOrders.items.productId subOrders.items.variantId subOrders.items.quantity",
+    )
+    .lean();
+  log(
+    `${returnRestocks.length} restocked return(s) and ${cancelRestocks.length} cancelled order(s) with costed goods to replay`,
+  );
+  for (const request of returnRestocks) {
+    if (DRY_RUN) {
+      totals.restocks += 1;
+      continue;
+    }
+    // Each step under the key its live restock was posted with; a return
+    // restocked before steps existed recorded none (`returnRestockEventKey`).
+    const steps = new Map();
+    for (const line of request.restockedLines || []) {
+      const eventKey = line.step
+        ? `return-${String(request._id)}:${line.step}`
+        : `return-${String(request._id)}`;
+      if (!steps.has(eventKey)) steps.set(eventKey, []);
+      steps.get(eventKey).push(line);
+    }
+    for (const [eventKey, restocked] of steps) {
+      totals.restocks += await postEvents.postRestockedCost({
+        orderId: request.orderId,
+        restocked,
+        eventKey,
+      });
+    }
+  }
+  // Unsellable units a merchant later put back on sale, one event each — see
+  // `lib/returns/held-units.ts`.
+  const heldRestocks = await ReturnRequest.find({
+    "unsellableDispositions.action": "restocked",
+    ...(dateFilter ? { createdAt: dateFilter } : {}),
+  })
+    .select("_id orderId unsellableDispositions")
+    .lean();
+  for (const request of heldRestocks) {
+    for (const replay of heldRestockReplays(request)) {
+      if (DRY_RUN) {
+        totals.restocks += 1;
+        continue;
+      }
+      totals.restocks += await postEvents.postRestockedCost({
+        orderId: request.orderId,
+        ...replay,
+      });
+    }
+  }
+  for (const order of cancelRestocks) {
+    if (DRY_RUN) {
+      totals.restocks += 1;
+      continue;
+    }
+    totals.restocks += await postEvents.postRestockedCost({
+      orderId: order._id,
+      restocked: (order.subOrders || [])
+        .filter((sub) => sub.status === "cancelled" && sub.inventoryReserved === false)
+        .flatMap((sub) =>
+          (sub.items || []).map((item) => ({
+            subOrderId: sub._id,
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+        ),
+      eventKey: "restock",
+    });
+  }
+
   // --- cleared payouts -----------------------------------------------------
   const payoutFilter = {
     status: "paid",
@@ -245,7 +336,9 @@ async function run() {
     ...(dateFilter ? { paidAt: dateFilter } : {}),
   };
   const platformPayments = await PlatformPayment.find(platformFilter)
-    .select("_id kind reference vendorId amount currency paidAt")
+    // `provider` decides the cash account: without it a payment an admin
+    // recorded by hand was replayed into the gateway instead of the bank.
+    .select("_id kind reference vendorId amount currency paidAt provider")
     .lean();
   log(`${platformPayments.length} platform payment(s) to replay`);
   for (const payment of platformPayments) {
@@ -290,7 +383,8 @@ async function run() {
     };
     const shipments = await Shipment.find(labelFilter)
       .select(
-        "_id vendorId orderId subOrderId rate bookingSequence purchase.purchasedAt purchase.billedTo purchase.shippingToStore createdAt",
+        // `providerMode`: a test label costs nothing and must not be booked.
+        "_id vendorId orderId subOrderId rate bookingSequence providerMode purchase.purchasedAt purchase.billedTo purchase.shippingToStore createdAt",
       )
       .lean();
     log(`${shipments.length} purchased label(s) to replay`);
@@ -310,11 +404,16 @@ async function run() {
         // to, so it does not land on top of the entry the first booking wrote.
         bookingSequence: shipment.bookingSequence,
         billedTo: shipment.purchase?.billedTo,
+        providerMode: shipment.providerMode,
       });
       // A live label that moved its parcel's delivery charge to the store —
       // restated under the same booking key, so an entry already there stays
-      // the only one.
-      if (shipment.purchase?.shippingToStore && shipment.subOrderId) {
+      // the only one. Never a test label, which moves nothing.
+      if (
+        shipment.purchase?.shippingToStore &&
+        shipment.subOrderId &&
+        shipment.providerMode !== "test"
+      ) {
         totals.labels += await postEvents.postShippingToStore({
           orderId: shipment.orderId,
           subOrderId: shipment.subOrderId,
@@ -330,14 +429,16 @@ async function run() {
     log(
       `dry run — would replay ${totals.orders} order(s), ${totals.refunds} refund(s), ` +
         `${totals.payouts} payout(s), ${totals.platform} platform payment(s), ` +
-        `${totals.subscriptions} subscription invoice(s), ${totals.labels} label(s). Nothing written.`,
+        `${totals.subscriptions} subscription invoice(s), ${totals.labels} label(s), ` +
+        `${totals.restocks} restock(s). Nothing written.`,
     );
   } else {
     const written = Object.values(totals).reduce((sum, count) => sum + count, 0);
     log(
       `posted ${written} entr(ies) ` +
         `(orders ${totals.orders}, refunds ${totals.refunds}, payouts ${totals.payouts}, ` +
-        `platform ${totals.platform}, subscriptions ${totals.subscriptions}, labels ${totals.labels})`,
+        `platform ${totals.platform}, subscriptions ${totals.subscriptions}, labels ${totals.labels}, ` +
+        `restocks ${totals.restocks})`,
     );
 
     // The check that catches a rule which credits one account and debits

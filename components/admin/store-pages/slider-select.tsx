@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { NativeSelect } from "@/components/ui/native-select";
 import { apiClient } from "@/lib/api/client";
 
@@ -21,13 +21,11 @@ interface SliderOption {
 export function SliderSelect({
   value,
   onChange,
-  locale,
   noneLabel,
   manageLabel,
 }: {
   value: string;
   onChange: (handle: string) => void;
-  locale: string;
   noneLabel: string;
   manageLabel: string;
 }) {
@@ -71,7 +69,7 @@ export function SliderSelect({
         ))}
       </NativeSelect>
       <Link
-        href={`/${locale}/admin/online-store/sliders`}
+        href="/admin/online-store/sliders"
         className="inline-block text-xs font-medium text-primary hover:underline"
       >
         {manageLabel}

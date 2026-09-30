@@ -25,6 +25,7 @@ import {
   VENDOR_APPLICATION_LATEST_SORT,
   vendorApplicationLookupQuery,
 } from "@/lib/vendors/vendor-application";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface VendorPaymentApplicationSummary {
   status?: string;
@@ -76,16 +77,18 @@ export async function requireVendorAreaAccess(params: {
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) {
     redirect(
-      buildLoginUrl(
+      await localeHref(
         params.locale,
-        returnPathFromHeaders(requestHeaders) ??
-          `/${params.locale}/vendor/dashboard`,
+        buildLoginUrl(
+          params.locale,
+          returnPathFromHeaders(requestHeaders) ?? "/vendor/dashboard",
+        ),
       ),
     );
   }
 
   if (session.user.role === USER_ROLES.ADMIN) {
-    redirect(`/${params.locale}/admin/dashboard`);
+    redirect("/admin/dashboard");
   }
 
   await connectDB();
@@ -99,11 +102,11 @@ export async function requireVendorAreaAccess(params: {
 
   const userStatus = (user as { status?: string } | null)?.status;
   if (userStatus && userStatus !== USER_ACCOUNT_STATUS.ACTIVE) {
-    redirect(`/${params.locale}/forbidden`);
+    redirect("/forbidden");
   }
 
   if (!vendor) {
-    redirect(`/${params.locale}/become-vendor`);
+    redirect("/become-vendor");
   }
 
   const paymentApplication =
@@ -156,7 +159,7 @@ export async function requireVendorAreaAccess(params: {
     // on to fetch data with — send it to the dashboard, where the same layout
     // shows why access is on hold.
     if (params.required?.length) {
-      redirect(`/${params.locale}/vendor/dashboard`);
+      redirect("/vendor/dashboard");
     }
 
     return {
@@ -186,7 +189,7 @@ export async function requireVendorAreaAccess(params: {
     const repaired =
       hasDashboardAccess && (await ensureVendorOwnerRole(vendor.userId));
     if (!repaired) {
-      redirect(`/${params.locale}/become-vendor`);
+      redirect("/become-vendor");
     }
     // The database now says vendor; this request is still holding the copy
     // that says customer, and callers read the role off the session they are
@@ -208,7 +211,12 @@ export async function requireVendorAreaAccess(params: {
     // typed denial) precisely because there are 31 call sites: a caller that
     // forgot to handle a new return value would fail OPEN.
     if (!ok) {
-      redirect(vendorLockedPath(params.locale, primaryDenial(access, required)));
+      redirect(
+        await localeHref(
+          params.locale,
+          vendorLockedPath(params.locale, primaryDenial(access, required)),
+        ),
+      );
     }
   }
 

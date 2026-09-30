@@ -6,6 +6,7 @@ import { validateQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema } from "@/lib/validations";
 import { Product } from "@/models";
 import { getSettings } from "@/models/settings.model";
+import { resolveProductFeatures } from "@/lib/products/product-features";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { hasVendorPermission, isAdmin, assertVendorPermission } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -172,7 +173,7 @@ export const POST = withApi(
         productLimit.limit == null
           ? undefined
           : { limit: productLimit.limit, current: productLimit.current },
-      countryAvailability: settings.general?.countryAvailability,
+      productFeatures: resolveProductFeatures(settings),
     });
 
     await auditProductImport(request, session, file.name, result);

@@ -72,6 +72,34 @@ function scopeFragment(ownerScope: string | undefined): string {
 }
 
 /**
+ * The folder one owner's objects live in: the path prefix plus their scope.
+ * Shared by the key builder and the listing, so the folder a vendor uploads
+ * into and the folder their media library shows are the same by construction.
+ */
+export function ownerPrefix(
+  pathPrefix: string | undefined,
+  ownerScope: string | undefined,
+): string {
+  return `${pathPrefix || ""}${scopeFragment(ownerScope)}`;
+}
+
+/**
+ * 128 random bits for the key's unique directory, from the platform's
+ * cryptographic generator (Node and browsers both have it).
+ *
+ * It was six base-36 characters of Math.random — about 31 bits from a
+ * generator whose output every public upload response shows. Private files
+ * (digital deliverables, KYC documents, expense receipts) use these keys too,
+ * so a key has to be unguessable, not merely unique.
+ */
+function randomKeySegment(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
+}
+
+/**
  * Build the storage object key for an upload.
  *
  * Layout: `<prefix><owner scope?><customPath | YYYY/MM>/<unique dir>/<name>`
@@ -80,9 +108,9 @@ export function generateStorageKey(
   pathPrefix: string | undefined,
   options: UploadOptions,
 ): string {
-  const prefix = `${pathPrefix || ""}${scopeFragment(options.ownerScope)}`;
+  const prefix = ownerPrefix(pathPrefix, options.ownerScope);
   const timestamp = Date.now();
-  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const randomSuffix = randomKeySegment();
 
   // Keep the original basename visible at the end of the public URL. Only
   // characters that are unsafe in an object key are replaced; casing and the

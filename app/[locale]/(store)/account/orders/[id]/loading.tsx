@@ -23,15 +23,13 @@ export default function OrderDetailLoading() {
           <Skeleton className="h-6 w-24" />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-4">
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-24 w-full" />
-          </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-4">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          ))}
         </div>
 
         <div className="space-y-4">

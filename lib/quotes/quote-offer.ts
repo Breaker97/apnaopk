@@ -13,7 +13,7 @@ import "server-only";
  *
  * Everything that prices a line reads its answer from here rather than
  * re-deriving the rules: the buy box (through /api/quotes/mine), POST
- * /api/cart/items, resolveCartProducts, POST /api/orders and POST
+ * /api/cart/items, cartProductFacts, POST /api/orders and POST
  * /api/payments/checkout. Those last two re-price every line from the live
  * product document on purpose — a stale cart must never lock in an old price —
  * so without this module a quoted line would be re-priced to the product's 0
@@ -29,13 +29,15 @@ import "server-only";
  *     quote is normally a volume price, so buying fewer at the same unit price
  *     would be taking the bulk rate for a single piece.
  *   - **Single-use.** An offer is spent by the order it is placed on, and only
- *     handed back if that order is cancelled. Nothing sweeps this: the bound
- *     order's own status is the state.
+ *     handed back if that order no longer holds it (see `orderHoldsOffer`):
+ *     cancelled, deleted, or a gateway payment that expired unpaid. Nothing
+ *     sweeps this: the bound order's own status is the state, and the next
+ *     order takes a handed-back offer over (bindOffersToOrder).
  */
 
 import { connectDB } from "@/lib/db";
 import { Order, QuoteRequest } from "@/models";
-import { ORDER_STATUS } from "@/config/app.config";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import type { QuoteOfferState } from "@/lib/quotes/quote-status";
 
 /** What a caller needs to price and attribute one quoted line. */
@@ -116,12 +118,28 @@ export function deriveQuoteOfferState(
 }
 
 /**
- * Which of these quotes are still holding an order.
+ * Whether the order an offer was spent on still holds it.
  *
- * A cancelled order releases its offer — the shopper never paid, and the
- * merchant should not have to re-quote because a payment failed. Any other
- * status (including a pending one awaiting a gateway) keeps it spent, so a
- * second checkout cannot be started against the same price.
+ * A cancelled order gives the price back — the shopper never paid, or called
+ * the order off — and so does a gateway order whose payment window closed with
+ * no money taken (`expired`). That order is hidden from every order list, so a
+ * price it held was stuck where neither the shopper nor the merchant could
+ * reach it. A deleted order holds nothing either: it is simply not found.
+ */
+export function orderHoldsOffer(
+  order: { status?: string | null; paymentStatus?: string | null } | null | undefined,
+): boolean {
+  if (!order) return false;
+  return (
+    order.status !== ORDER_STATUS.CANCELLED &&
+    order.paymentStatus !== PAYMENT_STATUS.EXPIRED
+  );
+}
+
+/**
+ * Which of these quotes' orders still hold their offer (see orderHoldsOffer).
+ * Anything else keeps it spent — a pending order included — so a second
+ * checkout cannot be started against a price an unfinished one still holds.
  */
 async function loadBoundOrderStates(
   quotes: QuoteShape[],
@@ -133,12 +151,12 @@ async function loadBoundOrderStates(
   if (orderIds.length === 0) return new Set();
 
   const orders = await Order.find({ _id: { $in: orderIds } })
-    .select("status")
-    .lean<Array<{ _id: unknown; status?: string }>>();
+    .select("status paymentStatus")
+    .lean<Array<{ _id: unknown; status?: string; paymentStatus?: string }>>();
 
   return new Set(
     orders
-      .filter((order) => order.status !== ORDER_STATUS.CANCELLED)
+      .filter((order) => orderHoldsOffer(order))
       .map((order) => order._id?.toString() ?? ""),
   );
 }
@@ -214,6 +232,10 @@ export async function loadShopperOffers(
 
   const filter: Record<string, unknown> = {
     userId,
+    // A quote the merchant closed as lost is not for sale, whatever its offer
+    // says. Closing one withdraws a live price in the same write; this covers
+    // quotes marked lost before it did.
+    status: { $ne: "lost" },
     "offer.unitPrice": { $exists: true },
     "offer.withdrawnAt": { $exists: false },
   };
@@ -307,18 +329,26 @@ export function matchOffersToLines<
 /**
  * Bind every offer an order was placed against to that order, spending them.
  *
- * Guarded on the offer not already being bound, so a retried checkout cannot
- * move an offer from the order that took it to a second one. Called at order
- * creation rather than at capture: a COD order is an obligation the moment it
- * is placed, and waiting for money would let one price be spent on any number
- * of unpaid orders.
+ * An offer already bound to an order that still holds it (orderHoldsOffer) is
+ * left there, so a retried checkout cannot move it from the order that took it
+ * to a second one. An offer handed back — its order cancelled, deleted, or
+ * expired unpaid — is taken over by this order. Binding used to require the
+ * quote to have no order at all, so once an offer was handed back no later
+ * order ever bound it again: it stayed open and could be bought at the quoted
+ * price any number of times.
+ *
+ * Every write is a compare-and-swap on the order the quote was read with, so
+ * two orders racing for one handed-back offer cannot both take it.
+ *
+ * Called when the order becomes an obligation: at placement for cash on
+ * delivery and the other methods with no capture step, and at capture for
+ * every prepaid gateway (settleCapturedOrder) — an unpaid gateway order is
+ * not bound at all, so a shopper who walks away from the gateway can check
+ * out again.
  *
  * `won` is separate from the binding because placing an order is not winning
- * the deal — a gateway order sits pending until the money lands, and marking
- * the quote won there would report an abandoned checkout as a sale. The
- * methods that have no capture step (cash on delivery and the rest of
- * POST /api/orders) pass it at placement; every prepaid gateway gets it from
- * `markQuotesWon` once settled.
+ * the deal: cash on delivery passes it at placement, every prepaid gateway
+ * gets it from `markQuotesWon` once settled.
  */
 export async function bindOffersToOrder(
   quoteIds: string[],
@@ -328,19 +358,105 @@ export async function bindOffersToOrder(
   const unique = Array.from(new Set(quoteIds.filter(Boolean)));
   if (unique.length === 0) return;
   await connectDB();
-  await QuoteRequest.updateMany(
-    { _id: { $in: unique }, orderId: { $exists: false } },
-    { $set: options.won ? { orderId, status: "won" } : { orderId } },
+
+  const quotes = await QuoteRequest.find({ _id: { $in: unique } })
+    .select("orderId")
+    .lean<Array<{ _id: unknown; orderId?: unknown }>>();
+  const target = String(orderId);
+  const stillHeld = await loadBoundOrderStates(
+    quotes.filter((quote) => quote.orderId && String(quote.orderId) !== target),
+  );
+  const set = options.won ? { orderId, status: "won" } : { orderId };
+
+  await Promise.all(
+    quotes.map(async (quote) => {
+      const current = quote.orderId ? String(quote.orderId) : null;
+      if (current === target) {
+        if (options.won) {
+          await QuoteRequest.updateOne(
+            { _id: quote._id, orderId: quote.orderId },
+            { $set: { status: "won" } },
+          );
+        }
+        return;
+      }
+      if (current && stillHeld.has(current)) return;
+      await QuoteRequest.updateOne(
+        { _id: quote._id, orderId: current ? quote.orderId : null },
+        { $set: set },
+      );
+    }),
   );
 }
 
-/** The deal closed: the order the offer was spent on has been paid for. */
-export async function markQuotesWon(quoteIds: string[]): Promise<void> {
+/**
+ * The deal closed: the order the offer was spent on has been paid for. Only
+ * quotes that order actually holds — one it lost to another order is not its
+ * sale.
+ */
+export async function markQuotesWon(
+  quoteIds: string[],
+  orderId: string,
+): Promise<void> {
   const unique = Array.from(new Set(quoteIds.filter(Boolean)));
   if (unique.length === 0) return;
   await connectDB();
   await QuoteRequest.updateMany(
-    { _id: { $in: unique } },
+    { _id: { $in: unique }, orderId },
     { $set: { status: "won" } },
   );
+}
+
+/**
+ * One open price per shopper per line.
+ *
+ * The cart honours only the newest offer for a product and variant (see
+ * loadShopperOffers), so an older one left open read "Price ready" on the
+ * shopper's quote page and failed when they tried it. Sending a new price
+ * withdraws every other live offer the same shopper — by account or by the
+ * email they asked with — holds for that product and variant.
+ *
+ * Returns how many it withdrew.
+ */
+export async function withdrawSupersededOffers(
+  quote: {
+    _id: unknown;
+    productId?: unknown;
+    variantId?: unknown;
+    userId?: unknown;
+    email?: string | null;
+  },
+  now: Date = new Date(),
+): Promise<number> {
+  const owners = [
+    ...(quote.userId ? [{ userId: quote.userId }] : []),
+    ...(quote.email ? [{ email: quote.email }] : []),
+  ];
+  if (owners.length === 0 || !quote.productId) return 0;
+  await connectDB();
+
+  const candidates = await QuoteRequest.find({
+    _id: { $ne: quote._id },
+    productId: quote.productId,
+    // `null` matches a quote with no variant as well as an explicit null.
+    variantId: quote.variantId ?? null,
+    $or: owners,
+    "offer.unitPrice": { $exists: true },
+    "offer.withdrawnAt": { $exists: false },
+  })
+    .select("offer orderId")
+    .lean<QuoteShape[]>();
+  if (candidates.length === 0) return 0;
+
+  const states = await resolveOfferStates(candidates);
+  const live = candidates
+    .filter((candidate) => states.get(String(candidate._id)) === "live")
+    .map((candidate) => candidate._id);
+  if (live.length === 0) return 0;
+
+  const result = await QuoteRequest.updateMany(
+    { _id: { $in: live }, "offer.withdrawnAt": { $exists: false } },
+    { $set: { "offer.withdrawnAt": now } },
+  );
+  return result.modifiedCount ?? 0;
 }

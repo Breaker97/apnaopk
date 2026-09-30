@@ -137,8 +137,12 @@ type ColorImageSource = {
  */
 export function findColorVariantImage(
   product: ColorImageSource,
-  color: { _id?: string; value?: string },
+  color: { _id?: string; value?: string; image?: string | null },
 ): string | null {
+  // A card's colour values arrive with the photo already resolved: cards carry
+  // no variant option values to look it up with
+  // (lib/products/storefront-product-cards.ts).
+  if (color.image !== undefined) return color.image;
   const wanted = color.value?.toLowerCase().trim();
   const variant = (product.variants || []).find((v) =>
     (v.optionValues || []).some(

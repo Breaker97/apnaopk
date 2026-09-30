@@ -23,8 +23,6 @@ import {
   getOrangeMoneyCredentials,
   getOrangeMoneyTransactionState,
   getOrangeMoneyTransactionStatus,
-  isOrangeMoneyCurrency,
-  ORANGE_MONEY_CURRENCIES,
   orangeMoneyChargeCurrency,
   submitOrangeMoneyPayment,
 } from "@/lib/payments/orange-money";
@@ -32,8 +30,6 @@ import {
   getMtnMomoCredentials,
   getMtnMomoRequestToPayStatus,
   getMtnMomoTransactionState,
-  isMtnMomoCurrency,
-  MTN_MOMO_CURRENCIES,
   MtnMomoApiError,
   mtnMomoCallbackUrl,
   mtnMomoChargeCurrency,
@@ -41,13 +37,23 @@ import {
   requestMtnMomoPayment,
 } from "@/lib/payments/mtn-momo";
 import { randomUUID } from "crypto";
-import { ValidationError } from "@/lib/api/errors";
+import { ApiError, ValidationError } from "@/lib/api/errors";
 import { getStripeForSecretKey, toStripeAmount } from "@/lib/payments/stripe";
 import {
   amountsMatchForCurrency,
   currencyMinorUnitExponent,
 } from "@/lib/intl/money";
 import { assertStripeBillingReady } from "@/lib/vendors/vendor-plan-stripe";
+import {
+  CHECKOUT_GATEWAY_LABELS,
+  type CheckoutGatewayId,
+} from "@/lib/payments/checkout-gateways";
+import {
+  gatewaySettlesCurrency,
+  listableCurrencies,
+  settledCurrencies,
+  storeCurrencyCode,
+} from "@/lib/payments/gateway-currencies";
 import {
   resolveIotecCredentials,
   resolveMtnMomoCredentials,
@@ -75,14 +81,11 @@ import {
   getPesapalCredentials,
   getPesapalTransactionState,
   getPesapalTransactionStatus,
-  isPesapalCurrency,
   normalizePesapalCountryCode,
-  PESAPAL_CURRENCIES,
   submitPesapalOrder,
   type PesapalTransactionStatus,
 } from "@/lib/payments/pesapal";
 import {
-  IOTEC_CURRENCY,
   IOTEC_MIN_AMOUNT,
   getIotecCredentials,
   getIotecTransactionState,
@@ -178,41 +181,14 @@ export function resolvePlatformPaymentMethods(
   settings: ISettings,
   allowlist: Partial<IPlatformPaymentMethodSettings> | undefined,
 ): PlatformPaymentGateway[] {
-  const currency = (settings.general?.defaultCurrency || "USD").toUpperCase();
+  const currency = storeCurrencyCode(settings);
   return PLATFORM_PAYMENT_GATEWAYS.filter((gateway) => {
     if ((allowlist?.[gateway] ?? true) === false) return false;
     if (!settings.payment?.[gateway]?.enabled) return false;
-    // ioTec settles UGX only; offering it under any other store currency
-    // would silently mis-denominate the charge.
-    if (gateway === PLATFORM_PAYMENT_PROVIDER.IOTEC && currency !== IOTEC_CURRENCY) {
-      return false;
-    }
-    // Same rule, wider list: Pesapal is an East African acquirer and refuses
-    // everything outside PESAPAL_CURRENCIES. Offering it under a currency it
-    // cannot settle sends the vendor to a gateway error at the last step, after
-    // a boost checkout has already reserved its days.
-    if (
-      gateway === PLATFORM_PAYMENT_PROVIDER.PESAPAL &&
-      !isPesapalCurrency(currency)
-    ) {
-      return false;
-    }
-    // Same rule again: Orange Money is a per-country wallet and settles only
-    // the currency its national operator issued the merchant key for.
-    if (
-      gateway === PLATFORM_PAYMENT_PROVIDER.ORANGE_MONEY &&
-      !isOrangeMoneyCurrency(currency)
-    ) {
-      return false;
-    }
-    // And once more for MTN MoMo, whose OpCo contract settles one wallet
-    // currency only.
-    if (
-      gateway === PLATFORM_PAYMENT_PROVIDER.MTN_MOMO &&
-      !isMtnMomoCurrency(currency)
-    ) {
-      return false;
-    }
+    // A gateway offered under a currency it cannot settle sends the vendor to
+    // its error at the last step — after a boost checkout has already reserved
+    // its days. The same table the storefront reads (gateway-currencies.ts).
+    if (!gatewaySettlesCurrency(gateway, currency)) return false;
     return gatewayConfigured(settings, gateway);
   });
 }
@@ -237,6 +213,8 @@ interface CreatePlatformPaymentInput {
   provider: (typeof PLATFORM_PAYMENT_PROVIDER)[keyof typeof PLATFORM_PAYMENT_PROVIDER];
   amount: number;
   currency: string;
+  /** Provider "manual" — the admin's own reference for money taken offline. */
+  note?: string | null;
 }
 
 /**
@@ -294,6 +272,7 @@ export async function createPlatformPaymentAttempt(
     amount: input.amount,
     currency: input.currency.toUpperCase(),
     reference,
+    note: input.note?.trim() || null,
   });
 }
 
@@ -359,18 +338,88 @@ function withParam(url: string, key: string, value: string) {
 }
 
 /**
+ * A gateway refused, or could not be reached, while a payment was starting.
+ *
+ * Carries the gateway, never the gateway's own words: "PayPal auth failed:
+ * Client Authentication failed" or "Currency not supported by merchant" tell a
+ * vendor nothing they can act on, and they describe the marketplace's setup.
+ * The UI names the gateway and offers the others; the reason stays on the
+ * attempt row and in the server log for whoever fixes the setup.
+ */
+export class GatewayUnavailableError extends ApiError {
+  constructor(gateway: string) {
+    const label = CHECKOUT_GATEWAY_LABELS[gateway as CheckoutGatewayId] ?? gateway;
+    super(
+      `${label} could not start the payment. Try again, or choose another payment method.`,
+      502,
+      "GATEWAY_UNAVAILABLE",
+    );
+    this.name = "GatewayUnavailableError";
+    this.details = { reason: "gateway_unavailable", gateway };
+  }
+}
+
+/**
  * Start the gateway flow for a pending attempt. Two-phase write throughout
  * (persist our reference → call the gateway → patch the gateway's ids), the
  * same shape the ioTec order flow documents: completion callbacks can arrive
  * before the initiating request returns.
+ *
+ * Our own refusals (a currency the gateway cannot settle, Pesapal without an
+ * IPN id, a missing email) are `ApiError`s written for the payer and pass
+ * through. Anything else came from the gateway: the attempt is failed here with
+ * the gateway's reason — the callers' own teardown only touches a PENDING row,
+ * so it keeps it — and the payer gets a `GatewayUnavailableError`.
  */
 export async function initiatePlatformPayment(
+  input: InitiatePlatformPaymentInput,
+): Promise<PlatformPaymentInitiation> {
+  try {
+    return await startGatewayFlow(input);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error(
+      `[platform-payments] ${input.payment.provider} could not start payment ${String(input.payment._id)}:`,
+      error,
+    );
+    await PlatformPayment.updateOne(
+      { _id: input.payment._id, status: PLATFORM_PAYMENT_STATUS.PENDING },
+      {
+        $set: {
+          status: PLATFORM_PAYMENT_STATUS.FAILED,
+          failedAt: new Date(),
+          failureReason: error instanceof Error ? error.message : String(error),
+        },
+      },
+    ).catch(() => undefined);
+    throw new GatewayUnavailableError(input.payment.provider);
+  }
+}
+
+async function startGatewayFlow(
   input: InitiatePlatformPaymentInput,
 ): Promise<PlatformPaymentInitiation> {
   const { payment, settings, payer } = input;
   const currency = payment.currency.toUpperCase();
   const storeName = settings.general?.storeName || "Store";
   const paymentId = String(payment._id);
+
+  // The method picker already withholds a gateway that cannot settle the store
+  // currency; this asks again of the charge's own, which is not always the
+  // store's — a plan snapshot priced before the currency changed carries the
+  // old one. Refused before any gateway is contacted.
+  const settled = settledCurrencies(payment.provider);
+  if (settled && !settled.has(currency)) {
+    const label =
+      CHECKOUT_GATEWAY_LABELS[payment.provider as CheckoutGatewayId] ??
+      payment.provider;
+    const listed = listableCurrencies(settled);
+    throw new ValidationError(
+      listed
+        ? `${label} cannot settle ${currency}. Price this in one of ${listed}.`
+        : `${label} cannot settle ${currency}. Choose another payment method.`,
+    );
+  }
 
   switch (payment.provider) {
     case PLATFORM_PAYMENT_PROVIDER.STRIPE: {
@@ -512,15 +561,6 @@ export async function initiatePlatformPayment(
           "Pesapal is not configured. Register the IPN URL and add its IPN ID.",
         );
       }
-      // resolvePlatformPaymentMethods already withholds Pesapal under an
-      // unsettleable currency; this is the same rule at the charge itself, for
-      // the paths that carry their own currency (a plan snapshot priced before
-      // the store currency changed) rather than the store default.
-      if (!isPesapalCurrency(currency)) {
-        throw new ValidationError(
-          `Pesapal cannot settle ${currency}. Price this in one of ${[...PESAPAL_CURRENCIES].join(", ")}.`,
-        );
-      }
       // Refuse fractional amounts in a zero-decimal currency up front rather
       // than rounding: the boost path quantizes its own total, but a plan price
       // is stored raw, and a rounded charge would fail finalize's amount
@@ -576,11 +616,6 @@ export async function initiatePlatformPayment(
         settings.payment?.orange_money,
       );
       const creds = getOrangeMoneyCredentials(resolved);
-      if (!isOrangeMoneyCurrency(currency)) {
-        throw new ValidationError(
-          `Orange Money cannot settle ${currency}. Price this in one of ${[...ORANGE_MONEY_CURRENCIES].join(", ")}.`,
-        );
-      }
       // Same zero-decimal guard as Pesapal, for the same reason: a rounded
       // charge would fail finalize's cross-check after the vendor's money moved.
       if (
@@ -631,11 +666,6 @@ export async function initiatePlatformPayment(
     case PLATFORM_PAYMENT_PROVIDER.MTN_MOMO: {
       const resolved = resolveMtnMomoCredentials(settings.payment?.mtn_momo);
       const creds = getMtnMomoCredentials(resolved);
-      if (!isMtnMomoCurrency(currency)) {
-        throw new ValidationError(
-          `MTN MoMo cannot settle ${currency}. Price this in one of ${[...MTN_MOMO_CURRENCIES].join(", ")}.`,
-        );
-      }
       // Same zero-decimal guard as Pesapal/Orange, for the same reason: a
       // rounded charge would fail finalize's cross-check after the vendor's
       // money moved.
@@ -698,11 +728,6 @@ export async function initiatePlatformPayment(
       if (!creds.walletId) {
         throw new ValidationError(
           "ioTec Pay is not configured. Add the wallet ID in Admin → Settings → Payments.",
-        );
-      }
-      if (currency !== IOTEC_CURRENCY) {
-        throw new ValidationError(
-          `ioTec Pay only accepts ${IOTEC_CURRENCY}. Set the store default currency to ${IOTEC_CURRENCY}.`,
         );
       }
       // Refuse fractional amounts up front instead of rounding: a rounded
@@ -1016,17 +1041,39 @@ async function grantPlatformBenefit(paid: IPlatformPayment): Promise<void> {
     vendorId: paid.vendorId,
     amount: paid.amount,
     currency: paid.currency,
+    // Decides the cash account: a `manual` collection is the store's bank, not
+    // a gateway balance.
+    provider: paid.provider,
     paidAt: paid.paidAt,
   });
 }
 
 /** Gateway reported a reversal/refund of a previously-paid attempt. */
 export async function markPlatformPaymentReversed(payment: IPlatformPayment) {
-  const updated = await PlatformPayment.findOneAndUpdate(
+  // What partials had already given back, read from the document as it was:
+  // the reversal below books only the REST, and `$set` on the same write makes
+  // the figure unreadable afterwards.
+  const beforeReversal = await PlatformPayment.findOneAndUpdate(
     { _id: payment._id, status: PLATFORM_PAYMENT_STATUS.PAID },
-    { $set: { status: PLATFORM_PAYMENT_STATUS.REFUNDED } },
-    { returnDocument: "after" },
+    // The whole payment has gone back, so that is what has been refunded. Left
+    // at the partial figure, the boost credit formula would go on offering the
+    // remainder as still refundable and an admin could pay it a second time.
+    {
+      $set: {
+        status: PLATFORM_PAYMENT_STATUS.REFUNDED,
+        refundedAmount: payment.amount,
+      },
+    },
+    { returnDocument: "before" },
   );
+  if (!beforeReversal) return null;
+  const alreadyRefunded = Number(beforeReversal.refundedAmount || 0);
+  // Re-read rather than reuse the pre-image: everything below, and the caller,
+  // expect the document as it now stands. Read after the claim, not before it,
+  // so a partial refund landing in between cannot be missed — the claim is
+  // what decides there is exactly one reversal, and this runs only for the
+  // call that won it.
+  const updated = await PlatformPayment.findById(payment._id);
   if (!updated) return null;
   if (updated.kind === PLATFORM_PAYMENT_KIND.BOOST && updated.campaignId) {
     // Tear the campaign down only if THIS attempt is the one that bought it.
@@ -1105,6 +1152,9 @@ export async function markPlatformPaymentReversed(payment: IPlatformPayment) {
       vendorId: updated.vendorId,
       amount: updated.amount,
       currency: updated.currency,
+      provider: updated.provider,
+      // Only what is left to reverse: partial refunds already posted theirs.
+      alreadyRefunded,
       reversedAt: new Date(),
     });
   }

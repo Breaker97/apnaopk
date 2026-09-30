@@ -6,9 +6,11 @@ import {
   rateLimitPresets,
   resetRateLimit,
 } from "@/lib/rate-limit";
-import { z } from "zod";
+import * as z from "zod";
 import { upsertCredentialPassword } from "@/lib/auth/auth-credentials";
 import { getActivePasswordPolicy } from "@/lib/auth/auth";
+import { revokeAllSessions } from "@/lib/auth/session-revocation";
+import { handleApiError, RateLimitError } from "@/lib/api/errors";
 import {
   checkPasswordPolicy,
   MIN_ALLOWED_PASSWORD_LENGTH,
@@ -59,27 +61,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limit by token
+    // Rate limit by token. Every attempt that gets this far spends the link
+    // or finds it unusable, so the way on is a new link, not a wait.
     const rateLimit = await checkRateLimit(
       `reset-password:${token}`,
       rateLimitPresets.veryStrict,
     );
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Too many attempts. Please request a new password reset link.",
-          resetIn: rateLimit.resetIn,
-        },
-        { status: 429 },
+      return handleApiError(
+        new RateLimitError(
+          "Too many attempts. Please request a new password reset link.",
+          rateLimit.resetIn,
+        ),
       );
     }
 
     await connectDB();
 
-    // Verify token
-    const resetDoc = await PasswordReset.verifyToken(token);
+    // Spent here, before the password is set, so a second request racing
+    // with the same link finds nothing to spend. A reset that fails after
+    // this needs a new link, which is the safe way round.
+    const resetDoc = await PasswordReset.consumeToken(token);
 
     if (!resetDoc) {
       return NextResponse.json(
@@ -109,14 +111,10 @@ export async function POST(request: NextRequest) {
 
     await upsertCredentialPassword(db, resetDoc.userId, password);
 
-    // Mark token as used
-    await resetDoc.markUsed();
-
-    // Invalidate all sessions for this user (by deleting from session collection)
+    // Sign the account out everywhere: whoever had it before the reset —
+    // someone who took over a session, say — must not keep it.
     try {
-      await db
-        .collection("session")
-        .deleteMany({ userId: resetDoc.userId.toString() });
+      await revokeAllSessions(resetDoc.userId.toString());
     } catch (sessionError) {
       console.warn("Could not clear sessions:", sessionError);
     }

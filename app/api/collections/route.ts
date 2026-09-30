@@ -3,7 +3,7 @@ import { paginatedResponse } from "@/lib/api/response";
 import { handleApiError } from "@/lib/api/errors";
 import { rateLimitByIP } from "@/lib/api/rate-limit-middleware";
 import { getStorefrontCollections } from "@/lib/storefront/storefront-collections";
-import { z } from "zod";
+import * as z from "zod";
 
 const CollectionPublicQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -17,7 +17,7 @@ const CollectionPublicQuerySchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    await rateLimitByIP(request, "lenient");
+    await rateLimitByIP(request, "browse");
     const { searchParams } = new URL(request.url);
 
     const params = CollectionPublicQuerySchema.parse({

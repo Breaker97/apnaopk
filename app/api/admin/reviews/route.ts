@@ -15,7 +15,7 @@ import { fetchAdminReviewList } from "@/lib/catalog/review-list";
 export const GET = withApi(
   { auth: "user" },
   async ({ request, session }) => {
-    await assertAdminOrStaffPermissions(
+    const { staffScope } = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.VIEW_REVIEWS, STAFF_PERMISSIONS.MANAGE_REVIEWS],
     );
@@ -41,18 +41,21 @@ export const GET = withApi(
       sortOrder,
     } = validateQuery(request, AdminReviewListQuerySchema);
 
-    const list = await fetchAdminReviewList({
-      page,
-      limit,
-      search,
-      status,
-      rating,
-      productId,
-      hasReply,
-      view,
-      sortBy,
-      sortOrder,
-    });
+    const list = await fetchAdminReviewList(
+      {
+        page,
+        limit,
+        search,
+        status,
+        rating,
+        productId,
+        hasReply,
+        view,
+        sortBy,
+        sortOrder,
+      },
+      staffScope,
+    );
 
     return successResponse({
       data: list.items,

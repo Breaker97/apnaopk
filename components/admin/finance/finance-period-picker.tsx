@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   DateRangePicker,

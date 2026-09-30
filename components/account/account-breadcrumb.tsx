@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useStoreDefaultLocale } from "@/hooks/use-locale-navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
@@ -65,6 +66,7 @@ export function AccountBreadcrumb({
   className?: string;
 }) {
   const t = useTranslations();
+  const storeDefault = useStoreDefaultLocale();
   const path = stripLocale(usePathname(), locale);
 
   const section =
@@ -74,6 +76,7 @@ export function AccountBreadcrumb({
   return (
     <StoreBreadcrumb
       locale={locale}
+      storeDefault={storeDefault}
       className={className}
       // The account area is behind a login and never indexed; structured data
       // for it would only mislead a crawler that got this far.

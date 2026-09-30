@@ -12,6 +12,7 @@ import type { BarcodeFormat, BarcodeSource } from "@/lib/barcode/standards";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { escapeRegExp } from "@/lib/strings";
 import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
+import { attachStockBreakdown } from "@/lib/inventory/stock-breakdown";
 
 /**
  * Inventory list query.
@@ -36,9 +37,13 @@ interface InventoryItem {
   barcodeFormat?: BarcodeFormat;
   barcodeSource?: BarcodeSource;
   price: number;
-  unavailable: number;
-  committed: number;
+  /** Units the store can still sell — the product's stock. */
   available: number;
+  /** Sold and still on the premises — see `lib/inventory/stock-breakdown.ts`. */
+  committed: number;
+  /** Back from a return, not fit to sell, not yet restocked or written off. */
+  unavailable: number;
+  /** Available + committed + unavailable: what a shelf count finds. */
   onHand: number;
   /** Shipped on a transfer to this row's stock and not yet received. */
   incoming: number;
@@ -68,8 +73,16 @@ function mapLocationInventory(
   });
 }
 
-/** Row as it leaves the aggregation: location names are resolved afterwards. */
-type InventoryRow = Omit<InventoryItem, "locationInventory" | "incoming"> & {
+/**
+ * Row as it leaves the aggregation: location names, incoming transfers and the
+ * committed / unavailable figures are resolved afterwards, for the page only.
+ */
+type InventoryRow = Omit<
+  InventoryItem,
+  "locationInventory" | "incoming" | "committed" | "unavailable" | "onHand"
+> & {
+  stock: number;
+  tracksStock: boolean;
   locationInventory?: RawLocationInventoryEntry[];
 };
 
@@ -155,9 +168,8 @@ const SORT_FIELDS: Record<string, string> = {
   sku: "sku",
   barcode: "barcode",
   available: "available",
-  onHand: "onHand",
-  committed: "committed",
-  unavailable: "unavailable",
+  // On hand adds figures read after paging, so it sorts by the stock under it.
+  onHand: "stock",
 };
 
 const STRING_SORT_FIELDS = new Set(["productName", "sku", "barcode"]);
@@ -293,6 +305,14 @@ export async function fetchInventoryList(
         price: 1,
         stock: 1,
         locationInventory: 1,
+        // `productTracksStock` in Mongo: a digital or untracked product's
+        // orders never move its counter.
+        tracksStock: {
+          $and: [
+            { $ne: ["$shipping.isPhysicalProduct", false] },
+            { $ne: ["$inventory.tracked", false] },
+          ],
+        },
         // Unwound below, so the array is never carried alongside its own rows.
         variantRow: asArray("$variants"),
       },
@@ -331,15 +351,13 @@ export async function fetchInventoryList(
             { $ifNull: ["$price", 0] },
           ],
         },
-        onHand: {
+        stock: {
           $cond: [
             "$isVariantRow",
             { $ifNull: ["$variantRow.stock", 0] },
             { $ifNull: ["$stock", 0] },
           ],
         },
-        committed: 0, // TODO: Calculate from pending orders
-        unavailable: 0, // TODO: Calculate from damaged/reserved
         locationInventory: {
           $cond: [
             "$isVariantRow",
@@ -362,20 +380,9 @@ export async function fetchInventoryList(
         barcodeFormat: 1,
         barcodeSource: 1,
         price: 1,
-        unavailable: 1,
-        committed: 1,
-        available: {
-          $max: [
-            0,
-            {
-              $subtract: [
-                { $subtract: ["$onHand", "$committed"] },
-                "$unavailable",
-              ],
-            },
-          ],
-        },
-        onHand: 1,
+        available: { $max: [0, "$stock"] },
+        stock: 1,
+        tracksStock: 1,
         locationInventory: 1,
         // Filter/sort helpers, stripped from the returned page below.
         hasBarcode: {
@@ -419,13 +426,16 @@ export async function fetchInventoryList(
       : {}),
   });
 
-  // Location names are only resolved for the returned page.
-  const paginatedItems: InventoryItem[] = await attachIncomingStock(
-    (facet?.rows ?? []).map((row) => ({
-      ...row,
-      locationInventory: mapLocationInventory(row.locationInventory, locationMap),
-    })),
-    locationId || undefined,
+  // Location names, transfers in flight and the committed / unavailable
+  // figures are only resolved for the returned page.
+  const paginatedItems: InventoryItem[] = await attachStockBreakdown(
+    await attachIncomingStock(
+      (facet?.rows ?? []).map((row) => ({
+        ...row,
+        locationInventory: mapLocationInventory(row.locationInventory, locationMap),
+      })),
+      locationId || undefined,
+    ),
   );
   const total = facet?.total?.[0]?.count ?? 0;
   const totalPages = Math.ceil(total / limit);

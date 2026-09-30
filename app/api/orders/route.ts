@@ -36,7 +36,7 @@ import {
   InsufficientStockError,
 } from "@/lib/inventory/inventory";
 import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
-import { PURCHASE_TYPE } from "@/lib/orders/preorders";
+import { PURCHASE_TYPE, resolvePurchaseType } from "@/lib/orders/preorders";
 import { isStorefrontProductSourceAllowed } from "@/lib/catalog/product-visibility";
 import { productAllowsOversell } from "@/lib/products/stock-policy";
 import {
@@ -69,8 +69,9 @@ import { sanitizeOrdersForCustomer } from "@/lib/orders/order-customer-view";
 import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
 import { assertCashOnDeliveryAllowed } from "@/lib/checkout/cod-eligibility";
 import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
+import { placedOrderMatch } from "@/lib/orders/order-payment-status";
 
 function isDuplicateKeyError(err: unknown): boolean {
   return (
@@ -108,7 +109,14 @@ export const GET = withApi(
     const status = searchParams.get("status");
     const type = searchParams.get("type");
 
-    const query: Record<string, unknown> = { customerId: session.user.id };
+    // A shopper's own order history, and an abandoned gateway checkout is not
+    // part of it: they closed the tab at PayPal and were then shown a
+    // "Pending" order for goods they never bought, with a Cancel button that
+    // did nothing anyone needed.
+    const query: Record<string, unknown> = {
+      customerId: session.user.id,
+      ...placedOrderMatch(),
+    };
 
     if (status && status !== "all") {
       query.status = status;
@@ -186,7 +194,7 @@ export async function POST(request: NextRequest) {
     const cart = await Cart.findOne({ userId: session.user.id })
       .populate(
         "items.productId",
-        "name price images vendorId sku status stock inventory slug productSource shipping variants priceOnRequest",
+        "name price images vendorId sku status stock inventory slug productSource shipping variants priceOnRequest preorder",
       )
       .lean();
 
@@ -236,6 +244,23 @@ export async function POST(request: NextRequest) {
       throw new ValidationError(
         "Pre-order items must be checked out through the storefront checkout",
       );
+    }
+    // Nor one that is a pre-order by the product's own rules while its cart
+    // line says otherwise — a "pre-order only" product with stock, added as a
+    // plain line. The stored flag is the cart's word; the product is the
+    // authority, as it is at checkout.
+    for (const item of cartItems) {
+      if (!item.productId) continue;
+      const purchase = resolvePurchaseType({
+        product: item.productId as Parameters<typeof resolvePurchaseType>[0]["product"],
+        variantId: item.variantId ? String(item.variantId) : undefined,
+        requestedQuantity: item.quantity,
+      });
+      if (purchase?.purchaseType === PURCHASE_TYPE.PREORDER) {
+        throw new ValidationError(
+          "Pre-order items must be checked out through the storefront checkout",
+        );
+      }
     }
 
     // Which lines this shopper holds a live quote price for. A "price on
@@ -467,6 +492,7 @@ export async function POST(request: NextRequest) {
           isMultiVendorEnabled,
           selectedShippingOptionId,
           vendorShippingSelections,
+          currency: settings.general?.defaultCurrency,
         })
       : null;
     if (shippingResolution && !shippingResolution.available) {
@@ -502,6 +528,7 @@ export async function POST(request: NextRequest) {
     );
     const subOrders = await buildVendorSubOrders(vendorItems, {
       codCollectedByDefault: settings.shipping?.codCollectedBy,
+      currency: settings.general?.defaultCurrency || "USD",
       getProductId: (item) => item.productId?._id || item.productId,
       getVariantId: (item) => item.variantId,
       getName: (item) => item.productId?.name || item.name,
@@ -536,6 +563,7 @@ export async function POST(request: NextRequest) {
         shippingResolution?.vendorShippingCosts ?? new Map(),
       orderShippingCost: shippingCost,
       orderShippingMethod: shippingResolution?.selectedShippingMethod,
+      currency: settings.general?.defaultCurrency || "USD",
     });
 
     // Create order with retry for order number uniqueness
@@ -705,6 +733,7 @@ export async function POST(request: NextRequest) {
       currency: settings.general?.defaultCurrency,
       channel: order.channel || "online",
       createdAt: order.createdAt,
+      storeCredit: order.storeCredit ?? null,
     }).catch((err) => {
       console.error("Failed to sync pending COD payment transaction:", err);
     });

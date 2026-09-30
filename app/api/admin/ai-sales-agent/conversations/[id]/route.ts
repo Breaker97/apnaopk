@@ -19,7 +19,6 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 type ConversationDoc = {
   _id: unknown;
-  sessionId?: string;
   userId?: unknown;
   locale?: string;
   status?: string;
@@ -78,8 +77,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     }
 
     return successResponse({
+      // No `sessionId` — see the conversations list route.
       id: String(conversation._id),
-      sessionId: conversation.sessionId,
       locale: conversation.locale,
       status: conversation.status,
       cartItemCount: conversation.cartItemCount || 0,

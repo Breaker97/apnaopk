@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   BadgeCheck,
@@ -241,7 +241,7 @@ export function VendorsDataTable({
           id: "add-vendor",
           label: tr("Add Vendor", "ভেন্ডর যোগ করুন"),
           icon: <Plus className="h-4 w-4" />,
-          href: `/${locale}/admin/vendors/new`,
+          href: "/admin/vendors/new",
           variant: "default",
         },
         importExportAction: {
@@ -274,19 +274,19 @@ export function VendorsDataTable({
           id: "details",
           label: tr("Details", "বিস্তারিত"),
           icon: <FileText className="h-4 w-4" />,
-          href: `/${locale}/admin/vendors/${row._id}`,
+          href: `/admin/vendors/${row._id}`,
         },
         {
           id: "edit",
           label: tr("Edit vendor", "ভেন্ডর এডিট"),
           icon: <Pencil className="h-4 w-4" />,
-          href: `/${locale}/admin/vendors/${row._id}`,
+          href: `/admin/vendors/${row._id}`,
         },
         {
           id: "visit-store",
           label: tr("Visit store", "স্টোর দেখুন"),
           icon: <ExternalLink className="h-4 w-4" />,
-          href: `/${locale}/vendors/${row.slug}`,
+          href: `/vendors/${row.slug}`,
         },
       ];
 
@@ -371,7 +371,7 @@ export function VendorsDataTable({
       rowActions={rowActions}
       rowActionsHeader={tr("Actions", "অ্যাকশন")}
       rowActionsVariant="inline"
-      onRowClick={(row) => router.push(`/${locale}/admin/vendors/${row._id}`)}
+      onRowClick={(row) => router.push(`/admin/vendors/${row._id}`)}
       emptyMessage={tr("No vendors found", "কোনো ভেন্ডর পাওয়া যায়নি")}
     />
   );

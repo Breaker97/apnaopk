@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   Circle,
   CheckCircle,
@@ -28,7 +28,7 @@ import {
 import { useTranslations } from "next-intl";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useMemo, useState } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
@@ -50,6 +50,23 @@ import {
   getOrderStatusActions,
   type OrderStatusActionDefinition,
 } from "@/lib/orders/order-status-workflow";
+import {
+  getFulfillmentPaymentBlock,
+  isFulfillmentTransition,
+} from "@/lib/orders/fulfillment-payment-gate";
+
+/**
+ * Why this order cannot be moved to `target` yet, or null — the same refusal
+ * the server makes (`PUT /api/admin/orders/[id]`), asked before the click so
+ * the menu can say it instead of the request failing.
+ */
+function paymentBlockFor(order: AdminOrder, target: string): string | null {
+  if (!isFulfillmentTransition(target)) return null;
+  return getFulfillmentPaymentBlock(
+    order as Parameters<typeof getFulfillmentPaymentBlock>[0],
+    null,
+  );
+}
 
 interface AdminOrder {
   _id: string;
@@ -58,7 +75,16 @@ interface AdminOrder {
   total: number;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string;
   channel?: string;
+  hasPreorder?: boolean;
+  preorderOutstandingAmount?: number;
+  preorderBalancePaidAt?: string | null;
+  subOrders?: Array<{
+    status?: string;
+    paymentStatus?: string;
+    items?: Array<{ preorderOutstandingAmount?: number | null }>;
+  }>;
   createdAt: string;
   items: {
     name: string;
@@ -158,6 +184,10 @@ function getPaymentStatusStyles(paymentStatus: string) {
       "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300",
     partially_refunded:
       "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300",
+    // The gateway never took the money and the window closed. Its own colour
+    // because a merchant scanning the list is looking for exactly this row.
+    expired:
+      "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
   };
   return (
     map[paymentStatus] ||
@@ -232,11 +262,21 @@ export function OrdersDataTable({
       payload: Record<string, string | undefined> = {},
     ) => {
       try {
-        await apiClient.put(`/api/admin/orders/${orderId}`, {
+        const updated = await apiClient.put<{
+          orderNumber?: string;
+          refund?: { failed?: boolean };
+        }>(`/api/admin/orders/${orderId}`, {
           status: newStatus,
           ...payload,
         });
-        return { ok: true, message: "" };
+        return {
+          ok: true,
+          message: "",
+          // Cancelled, but the money did not go back — see the warning below.
+          unrefunded: updated?.refund?.failed
+            ? updated.orderNumber || orderId
+            : undefined,
+        };
       } catch (error) {
         return {
           ok: false,
@@ -270,6 +310,17 @@ export function OrdersDataTable({
         if (updated > 0) {
           setSelectedOrders([]);
           list.refetch();
+        }
+
+        // Each of these was cancelled and still holds the shopper's money:
+        // the gateway refused the refund, and nothing else will say so here.
+        const unrefunded = results
+          .map((result) => ("unrefunded" in result ? result.unrefunded : undefined))
+          .filter(Boolean);
+        if (unrefunded.length > 0) {
+          toast.warning(
+            `${unrefunded.length} cancelled without a refund: ${unrefunded.join(", ")}. Refund them from each order.`,
+          );
         }
 
         if (failed > 0 || skipped > 0) {
@@ -329,8 +380,12 @@ export function OrdersDataTable({
 
   const handleBulkUpdateStatus = useCallback(
     async (items: AdminOrder[], newStatus: string) => {
-      const eligible = items.filter((order) =>
-        canTransitionOrderStatus(order.status, newStatus),
+      // Unpaid orders are skipped from a fulfilment move, like any other order
+      // that cannot make it — the server would refuse each one anyway.
+      const eligible = items.filter(
+        (order) =>
+          canTransitionOrderStatus(order.status, newStatus) &&
+          !paymentBlockFor(order, newStatus),
       );
       const skipped = items.length - eligible.length;
 
@@ -556,6 +611,7 @@ export function OrdersDataTable({
             partially_paid: t("admin.ordersPage.paymentStatus.partiallyPaid"),
             refunded: t("orders.refunded"),
             partially_refunded: t("admin.ordersPage.paymentStatus.partiallyRefunded"),
+            expired: t("admin.ordersPage.paymentStatus.expired"),
           };
           const label = labelMap[row.paymentStatus] || row.paymentStatus;
           return (
@@ -684,6 +740,10 @@ export function OrdersDataTable({
           {
             label: t("admin.ordersPage.paymentStatus.partiallyRefunded"),
             value: "partially_refunded",
+          },
+          {
+            label: t("admin.ordersPage.paymentStatus.expired"),
+            value: "expired",
           },
         ],
       },
@@ -838,15 +898,23 @@ export function OrdersDataTable({
 
       if (readOnly) return [viewAction];
 
-      const statusActions: DataTableAction[] = getOrderStatusActions(row.status).map((action) => ({
-        id: action.id,
+      const statusActions: DataTableAction[] = getOrderStatusActions(row.status).map((action) => {
+        // Shown greyed with the reason rather than hidden: an admin looking for
+        // "Mark as processing" should learn why it is not available.
+        const blocked = Boolean(paymentBlockFor(row, action.to));
         // The workflow constants carry English labels for server use; the row
         // menu shows the localized copy.
-        label: t(`admin.orderDetails.statusAction.${action.id}`),
-        icon: getActionIcon(action.id),
-        variant: action.destructive ? ("destructive" as const) : undefined,
-        onClick: () => handleStatusAction(row, action),
-      }));
+        const label = t(`admin.orderDetails.statusAction.${action.id}`);
+        return {
+          id: action.id,
+          label,
+          hint: blocked ? "Payment not received" : undefined,
+          disabled: blocked,
+          icon: getActionIcon(action.id),
+          variant: action.destructive ? ("destructive" as const) : undefined,
+          onClick: () => handleStatusAction(row, action),
+        };
+      });
 
       const deleteAction: DataTableAction = {
         id: "delete",

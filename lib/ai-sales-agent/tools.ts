@@ -1,3 +1,4 @@
+import { orderContactMatches } from "@/lib/orders/order-contact-match";
 import mongoose from "mongoose";
 import { Cart, Order, Product, User } from "@/models";
 import { PRODUCT_STATUS } from "@/config/app.config";
@@ -75,6 +76,8 @@ type OrderDoc = {
   createdAt?: Date | string;
   items?: OrderItemDoc[];
   customerId?: unknown;
+  guestEmail?: string;
+  contactPhone?: string;
   shippingAddress?: { phone?: string };
 };
 
@@ -639,7 +642,7 @@ async function addToCartTool(
     return { content: "Cart actions are disabled." };
   }
   const productId = typeof args.productId === "string" ? args.productId : "";
-  const quantity = Math.min(Math.max(Number(args.quantity) || 1, 1), 100);
+  const quantity = Math.min(Math.max(Math.trunc(Number(args.quantity)) || 1, 1), 100);
   const products = await findVisibleProducts({ _id: productId }, 1);
   const product = products[0];
   if (!product) throw new ValidationError("Product is not available");
@@ -801,22 +804,23 @@ async function getOrderStatusTool(
     }
     const candidate = await Order.findOne({ orderNumber }).lean<OrderDoc | null>();
     if (candidate) {
-      // Normalize phone to digits-only for comparison so different formats
-      // ("+1 555 ..." vs "5555550100") still match.
-      const digitsOnly = (value: string) => value.replace(/\D+/g, "");
-      const phoneMatch =
-        Boolean(phone) &&
-        digitsOnly(candidate.shippingAddress?.phone || "") === digitsOnly(phone);
-      let emailMatch = false;
-      if (email && candidate.customerId) {
-        const user = (await User.findById(candidate.customerId)
-          .select("email")
-          .lean()) as { email?: string } | null;
-        emailMatch =
-          Boolean(user?.email) &&
-          user!.email!.toLowerCase() === email;
-      }
-      if (phoneMatch || emailMatch) {
+      // The public tracker's rule (lib/orders/order-contact-match.ts): the
+      // account's email or the guest's checkout email, or a phone of seven
+      // digits or more on the account, the contact or the address.
+      const customer = candidate.customerId
+        ? ((await User.findById(candidate.customerId)
+            .select("email phone")
+            .lean()) as { email?: string; phone?: string } | null)
+        : null;
+      const known = {
+        emails: [customer?.email, candidate.guestEmail],
+        phones: [
+          customer?.phone,
+          candidate.contactPhone,
+          candidate.shippingAddress?.phone,
+        ],
+      };
+      if (orderContactMatches(email, known) || orderContactMatches(phone, known)) {
         orders = [candidate];
       }
     }

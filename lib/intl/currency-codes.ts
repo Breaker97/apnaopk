@@ -1,12 +1,12 @@
 /**
  * Currency code helpers.
  *
- * The store currency is admin-controlled (`settings.general.defaultCurrency`)
- * and admins can add any code to `settings.general.supportedCurrencies` from
- * the settings UI, so codes are validated by *shape* (ISO 4217 is always three
- * letters) rather than against a bundled whitelist. Intl already knows the
- * display name and minor units of every real currency, so a code the app has
- * never heard of still formats and labels correctly.
+ * The store sells in one admin-chosen currency
+ * (`settings.general.defaultCurrency`), which may be any ISO 4217 code, so
+ * codes are validated by *shape* (always three letters) rather than against a
+ * bundled whitelist. Intl already knows the display name and minor units of
+ * every real currency, so a code the app has never heard of still formats and
+ * labels correctly.
  */
 
 const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/;
@@ -19,44 +19,35 @@ export function isValidCurrencyCode(value: unknown): boolean {
   return CURRENCY_CODE_PATTERN.test(normalizeCurrencyCode(value));
 }
 
-/** Uppercase, de-duplicate and drop anything that is not a 3-letter code. */
-export function sanitizeCurrencyCodes(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  const codes = new Set<string>();
-  for (const entry of value) {
-    const code = normalizeCurrencyCode(entry);
-    if (CURRENCY_CODE_PATTERN.test(code)) codes.add(code);
-  }
-  return Array.from(codes);
-}
+const currencyDisplayNames = new Map<string, Intl.DisplayNames | null>();
 
-let currencyDisplayNames: Intl.DisplayNames | null | undefined;
-
-function getCurrencyDisplayNames() {
-  if (currencyDisplayNames === undefined) {
+function getCurrencyDisplayNames(locale: string) {
+  if (!currencyDisplayNames.has(locale)) {
     try {
-      currencyDisplayNames = new Intl.DisplayNames(["en"], {
-        type: "currency",
-      });
+      currencyDisplayNames.set(
+        locale,
+        new Intl.DisplayNames([locale, "en"], { type: "currency" }),
+      );
     } catch {
       // Runtime without the currency display-name data — fall back to codes.
-      currencyDisplayNames = null;
+      currencyDisplayNames.set(locale, null);
     }
   }
-  return currencyDisplayNames;
+  return currencyDisplayNames.get(locale) ?? null;
 }
 
 /**
- * Human-readable name for a currency code, or "" when the runtime doesn't know
- * it. `Intl.DisplayNames.of()` echoes the input back for unknown codes, which
- * would otherwise render as "CHF — CHF".
+ * Human-readable name for a currency code in `locale` ("US Dollar", "মার্কিন
+ * ডলার"), or "" when the runtime doesn't know it. `Intl.DisplayNames.of()`
+ * echoes the input back for unknown codes, which would otherwise render as
+ * "CHF — CHF".
  */
-export function currencyDisplayName(code: string): string {
+export function currencyDisplayName(code: string, locale = "en"): string {
   const normalized = normalizeCurrencyCode(code);
   if (!CURRENCY_CODE_PATTERN.test(normalized)) return "";
 
   try {
-    const name = getCurrencyDisplayNames()?.of(normalized);
+    const name = getCurrencyDisplayNames(locale)?.of(normalized);
     return name && name !== normalized ? name : "";
   } catch {
     return "";

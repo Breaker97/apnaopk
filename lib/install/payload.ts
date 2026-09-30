@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { locales } from "@/config/i18n.config";
 import { isIsoCurrencyCode } from "@/lib/intl/iso-currencies";
 import {
@@ -112,6 +112,12 @@ export const installPayloadSchema = z.object({
 export type InstallPayload = z.infer<typeof installPayloadSchema>;
 
 /**
+ * Where the wizard sends the INSTALL_TOKEN the owner typed — on the status
+ * check, the storage test and the finish (see `lib/install/install-token.ts`).
+ */
+export const INSTALL_TOKEN_HEADER = "x-install-token";
+
+/**
  * The lock rule, stated once: the wizard is dead the moment the store has an
  * admin OR the finish step has stamped the settings document. Both signals
  * count — a half-finished run that created the admin must still lock.
@@ -159,7 +165,9 @@ export function isInstallClaimFree(
  * still be able to stand the store up.
  *
  * Absent preflight (the status call itself failed) blocks too: the wizard
- * cannot reach its own API, so nothing it reports can be trusted.
+ * cannot reach its own API, so nothing it reports can be trusted. So does a
+ * missing INSTALL_TOKEN: without it nobody can prove they own the server,
+ * and the finish step refuses (see `lib/install/install-token.ts`).
  */
 export function isPreflightBlocking(
   preflight:
@@ -167,6 +175,7 @@ export function isPreflightBlocking(
         nodeOk: boolean;
         databaseOk: boolean;
         authSecretProblem: string | null;
+        installTokenProblem: string | null;
       }
     | null
     | undefined,
@@ -175,7 +184,8 @@ export function isPreflightBlocking(
   return (
     !preflight.nodeOk ||
     !preflight.databaseOk ||
-    Boolean(preflight.authSecretProblem)
+    Boolean(preflight.authSecretProblem) ||
+    Boolean(preflight.installTokenProblem)
   );
 }
 

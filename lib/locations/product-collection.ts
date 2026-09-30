@@ -13,6 +13,8 @@ import "server-only";
  * browser the per-branch counts to work it out. Those counts are a merchant's
  * operational data — how much of what sits in which shop — and publishing them
  * on every product page would let a competitor read the lot with a page fetch.
+ * The page is cached and shared, so the browser asks for the answer
+ * (GET /api/products/[slug]/collection-offer) rather than the page carrying it.
  */
 
 import { InventoryLocation } from "@/models/inventory-location.model";
@@ -24,29 +26,14 @@ import {
   type BranchStockLine,
 } from "@/lib/inventory/pickup-branch-stock";
 import {
-  distanceKm,
   isUsableLatLng,
-  latLngFromGeoPoint,
   normalizeRadiusKm,
   type LatLng,
 } from "@/lib/locations/vendor-geo";
-import {
-  VENDOR_ADDRESS_DISPLAY,
-  resolveVendorStoreVisibility,
-} from "@/lib/vendors/vendor-address";
-import { Vendor } from "@/models";
 
 type ProductCollectionOffer = {
   /** The branch a shopper would walk into. */
   branchName: string;
-  /** The neighbourhood. The exact address stays back until there is an order. */
-  pickupArea?: string;
-  /**
-   * Straight-line km. Absent when the vendor publishes no address — the same
-   * rule the product cards follow: hiding an address hides *where the seller
-   * is*, not *that collection exists*.
-   */
-  distanceKm?: number;
   /**
    * Which variants this branch can actually hand over, as ids. `null` for a
    * product with no variants, where the product's own counts are the answer.
@@ -116,7 +103,7 @@ export async function resolveProductCollectionOffer(input: {
 
   await connectDB();
 
-  const [product, branches, vendor] = await Promise.all([
+  const [product, branches] = await Promise.all([
     // Projected deliberately: this is the only place per-branch counts are
     // read for the storefront, and they must not travel any further than this
     // function's own arithmetic.
@@ -141,28 +128,12 @@ export async function resolveProductCollectionOffer(input: {
       },
     })
       .limit(BRANCH_SCAN_LIMIT)
-      .select("_id name pickupArea geo")
-      .lean<
-        Array<{
-          _id: unknown;
-          name?: string;
-          pickupArea?: string;
-          geo?: unknown;
-        }>
-      >(),
-    Vendor.findById(vendorId)
-      .select("storeVisibility.addressDisplay")
-      .lean<{ storeVisibility?: unknown } | null>(),
+      .select("_id name")
+      .lean<Array<{ _id: unknown; name?: string }>>(),
   ]);
 
   if (!product || branches.length === 0) return null;
 
-  // Hiding an address hides *where the seller is*, not *that collection
-  // exists* — the same split the product cards make. So a hidden-address
-  // vendor still gets the offer, just without a number attached.
-  const publishesAddress =
-    resolveVendorStoreVisibility(vendor?.storeVisibility).addressDisplay !==
-    VENDOR_ADDRESS_DISPLAY.HIDDEN;
   // Nothing downloadable is ever collected, whatever the seller's counter says.
   if (product.shipping?.isPhysicalProduct === false) return null;
 
@@ -187,15 +158,7 @@ export async function resolveProductCollectionOffer(input: {
       : branchStocksLine(stockLine(product, product.locationInventory), branchId);
     if (!supplies) continue;
 
-    const point = latLngFromGeoPoint(branch.geo);
-
-    return {
-      branchName: (branch.name || "").trim(),
-      pickupArea: branch.pickupArea?.trim() || undefined,
-      distanceKm:
-        point && publishesAddress ? distanceKm(center, point) : undefined,
-      variantIds,
-    };
+    return { branchName: (branch.name || "").trim(), variantIds };
   }
 
   return null;

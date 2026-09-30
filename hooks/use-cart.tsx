@@ -5,13 +5,21 @@ import {
   useContext,
   useState,
   useEffect,
+  useLayoutEffect,
   useCallback,
+  useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import type { CartItem } from "@/types";
-import { apiClient, ApiClientError } from "@/lib/api/client";
+import { apiClient, ApiClientError, refusalMessage } from "@/lib/api/client";
+import { toast } from "@/components/ui/toast-notification";
+import {
+  EMPTY_CART_ORDER_CONFIG,
+  type CartOrderConfig,
+} from "@/lib/orders/order-settings";
 
-interface CartContextType {
+interface CartState {
   items: CartItem[];
   isLoading: boolean;
   totalItems: number;
@@ -57,6 +65,15 @@ interface CartContextType {
    * state of a fresh install.
    */
   anySellerOffersPickup: boolean;
+  /**
+   * The store's tax, free-shipping and delivery-estimate settings, rendered
+   * in by the layout — the cart page and the drawer price the bag with them
+   * on first render.
+   */
+  orderConfig: CartOrderConfig;
+}
+
+interface CartActions {
   addItem: (item: Omit<CartItem, "_id">) => Promise<void>;
   updateItem: (
     productId: string,
@@ -77,18 +94,33 @@ interface CartContextType {
   refreshCart: (silent?: boolean) => Promise<void>;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+/**
+ * State and actions are two contexts. The actions are created once per
+ * provider and never change identity, so a component that only acts on the
+ * cart — a product card, quick view, "add all" — reads `useCartActions()`
+ * and does not re-render when the cart changes. On one shared context, each
+ * add to cart re-rendered every card on the page, twice.
+ *
+ * Keep each action's identity stable: one recreated on a cart change hands
+ * `useCartActions()` a new value and re-renders all of those components
+ * again (pinned by tests/cart-context-split.test.tsx).
+ */
+const CartStateContext = createContext<CartState | undefined>(undefined);
+const CartActionsContext = createContext<CartActions | undefined>(undefined);
 
 export function CartProvider({
   children,
   inert = false,
+  orderConfig = EMPTY_CART_ORDER_CONFIG,
 }: {
   children: ReactNode;
+  /** From `getStorefrontSettings()`; see `CartState.orderConfig`. */
+  orderConfig?: CartOrderConfig;
   /**
    * Provide the context without ever loading the cart. For the builder's
-   * section preview frames: cards call `useCart()` at render, but the frame
-   * is pointer-events-none and shows a draft, so a cart fetch per frame
-   * reload would be pure cost.
+   * section preview frames: cards call `useCartActions()` at render, but
+   * the frame is pointer-events-none and shows a draft, so a cart fetch per
+   * frame reload would be pure cost.
    */
   inert?: boolean;
 }) {
@@ -104,12 +136,13 @@ export function CartProvider({
   // An inert provider never loads, so it is never "loading".
   const [isLoading, setIsLoading] = useState(!inert);
 
-  // Calculate totals
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  // The committed lines, for updateItem's rollback. Read through a ref, not
+  // a dependency, so updateItem keeps one identity across cart changes; set
+  // in a layout effect so it is current before any later handler runs.
+  const committedItems = useRef(items);
+  useLayoutEffect(() => {
+    committedItems.current = items;
+  }, [items]);
 
   // Fetch cart from API
   const loadCart = useCallback(
@@ -135,6 +168,9 @@ export function CartProvider({
         })
         .catch((error) => {
           console.error("Failed to fetch cart:", error);
+          // A refused load leaves the cart looking empty, which it is not.
+          const refused = refusalMessage(error);
+          if (refused) toast.error(refused);
         })
         .finally(() => setIsLoading(false)),
     [],
@@ -193,7 +229,7 @@ export function CartProvider({
   const updateItem = useCallback(
     async (productId: string, quantity: number, variantId?: string) => {
       const safeQuantity = Math.max(0, quantity);
-      const previousItems = items;
+      const previousItems = committedItems.current;
 
       setItems((currentItems) =>
         currentItems
@@ -229,7 +265,7 @@ export function CartProvider({
         throw error;
       }
     },
-    [items, refreshCart]
+    [refreshCart]
   );
 
   const removeItem = useCallback(
@@ -244,8 +280,12 @@ export function CartProvider({
         await refreshCart(options?.silent === true);
       } catch (error) {
         console.error("Failed to remove item:", error);
-        // HTTP failures were previously ignored here; keep that contract.
-        if (!(error instanceof ApiClientError)) throw error;
+        // HTTP failures were previously ignored here; keep that contract —
+        // except a refusal (429): the line is still in the cart, and the
+        // caller used to announce "Item removed" over it.
+        if (!(error instanceof ApiClientError) || refusalMessage(error)) {
+          throw error;
+        }
       }
     },
     [refreshCart]
@@ -266,35 +306,67 @@ export function CartProvider({
     }
   }, []);
 
+  const state = useMemo<CartState>(
+    () => ({
+      items,
+      isLoading,
+      totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+      subtotal: items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      ),
+      hasShippableItems,
+      hasDigitalItems,
+      shippableSubtotal,
+      totalWeight,
+      sellerCount,
+      anySellerOffersPickup,
+      orderConfig,
+    }),
+    [
+      items,
+      isLoading,
+      hasShippableItems,
+      hasDigitalItems,
+      shippableSubtotal,
+      totalWeight,
+      sellerCount,
+      anySellerOffersPickup,
+      orderConfig,
+    ],
+  );
+  const actions = useMemo<CartActions>(
+    () => ({ addItem, updateItem, removeItem, clearCart, refreshCart }),
+    [addItem, updateItem, removeItem, clearCart, refreshCart],
+  );
+
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        isLoading,
-        totalItems,
-        subtotal,
-        hasShippableItems,
-        hasDigitalItems,
-        shippableSubtotal,
-        totalWeight,
-        sellerCount,
-        anySellerOffersPickup,
-        addItem,
-        updateItem,
-        removeItem,
-        clearCart,
-        refreshCart,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartActionsContext.Provider value={actions}>
+      <CartStateContext.Provider value={state}>
+        {children}
+      </CartStateContext.Provider>
+    </CartActionsContext.Provider>
   );
 }
 
-export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) {
+/**
+ * The cart's state and actions; re-renders on every cart change. A
+ * component that only acts on the cart reads `useCartActions()` instead.
+ */
+export function useCart(): CartState & CartActions {
+  const state = useContext(CartStateContext);
+  const actions = useContext(CartActionsContext);
+  if (!state || !actions) {
     throw new Error("useCart must be used within a CartProvider");
   }
-  return context;
+  return { ...state, ...actions };
+}
+
+/** The cart's actions alone, which never re-render their caller. */
+export function useCartActions(): CartActions {
+  const actions = useContext(CartActionsContext);
+  if (!actions) {
+    throw new Error("useCartActions must be used within a CartProvider");
+  }
+  return actions;
 }

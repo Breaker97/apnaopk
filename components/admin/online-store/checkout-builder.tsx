@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   DndContext,
@@ -46,6 +46,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { CountryMultiSelect } from "@/components/common/country-multi-select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,16 +80,16 @@ import {
 } from "@/lib/checkout/checkout-config";
 import { cn } from "@/lib/utils";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { resolveAttemptGateways } from "@/lib/payments/attempt-gateways";
 
 interface CheckoutBuilderProps {
-  locale: string;
   /** The storefront editor's page switcher, rendered as this page's title. */
   switcher?: PageSwitcher;
 }
 
 type SettingsPayload = {
   success?: boolean;
-  data?: { checkout?: unknown };
+  data?: { checkout?: unknown; payment?: unknown };
 };
 
 type Translate = (
@@ -112,7 +113,7 @@ const TAB_TRIGGER_CLASS =
  * checkout recovery, and the chrome/trust copy around it all. The payment
  * routes enforce the same settings (lib/checkout/checkout-form-policy.ts).
  */
-export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
+export function CheckoutBuilder({ switcher }: CheckoutBuilderProps) {
   const t = useTranslations("admin.checkoutStudio");
   const tf = useFallbackTranslator(t);
 
@@ -124,6 +125,11 @@ export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  // The payment-window hold is taken only by a gateway moved onto checkout
+  // attempts (`lib/checkout/attempt-stock-hold.ts`), an operator's switch that
+  // is off everywhere by default. Offered before then, the card promised a
+  // hold no checkout took.
+  const [stockHoldApplies, setStockHoldApplies] = useState(false);
 
   const isDirty =
     JSON.stringify(checkout) !== JSON.stringify(initialCheckout);
@@ -138,6 +144,9 @@ export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
         const loaded = normalizeCheckoutSettings(payload.data?.checkout);
         setCheckout(loaded);
         setInitialCheckout(cloneCheckout(loaded));
+        setStockHoldApplies(
+          resolveAttemptGateways(payload.data ?? null).length > 0,
+        );
       } catch {
         // Defaults stay in place; save still works.
       } finally {
@@ -195,7 +204,6 @@ export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
           switcher ? (
             <PageSwitcherSelect
               switcher={switcher}
-              locale={locale}
               variant="title"
             />
           ) : (
@@ -222,7 +230,7 @@ export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
             </Button>
             <Button variant="outline" asChild>
               <a
-                href={`/${locale}/checkout`}
+                href="/checkout"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -285,8 +293,10 @@ export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
             checkout={checkout}
             update={update}
             tf={tf}
-            locale={locale}
           />
+          {stockHoldApplies ? (
+            <StockHoldCard checkout={checkout} update={update} tf={tf} />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="appearance" className="space-y-6">
@@ -294,7 +304,6 @@ export function CheckoutBuilder({ locale, switcher }: CheckoutBuilderProps) {
             checkout={checkout}
             update={update}
             tf={tf}
-            locale={locale}
           />
         </TabsContent>
       </Tabs>
@@ -502,20 +511,148 @@ function ContactCard({ checkout, update, tf }: SectionProps) {
                   }
                 />
               </FieldRow>
-              <SwitchRow
-                label={tf("contact.marketingDefault", "Pre-tick the checkbox")}
-                checked={checkout.contact.marketingOptIn.defaultChecked}
-                onChange={(value) =>
-                  update((draft) => {
-                    draft.contact.marketingOptIn.defaultChecked = value;
-                  })
-                }
-              />
-              {checkout.contact.marketingOptIn.defaultChecked ? (
+              <FieldRow
+                label={tf("contact.marketingPreselect", "Pre-tick the checkbox")}
+              >
+                <NativeSelect
+                  value={checkout.contact.marketingOptIn.preselect}
+                  aria-label={tf(
+                    "contact.marketingPreselect",
+                    "Pre-tick the checkbox",
+                  )}
+                  onChange={(event) =>
+                    update((draft) => {
+                      const mode = event.target
+                        .value as CheckoutSettings["contact"]["marketingOptIn"]["preselect"];
+                      draft.contact.marketingOptIn.preselect = mode;
+                      // The boolean this replaced is kept in step for anything
+                      // still reading it.
+                      draft.contact.marketingOptIn.defaultChecked =
+                        mode === "always";
+                    })
+                  }
+                >
+                  <option value="never">{tf("contact.preselectNever", "Never")}</option>
+                  <option value="auto">
+                    {tf(
+                      "contact.preselectAuto",
+                      "Where the shopper's country allows it",
+                    )}
+                  </option>
+                  <option value="countries">
+                    {tf("contact.preselectCountries", "In countries I choose")}
+                  </option>
+                  <option value="always">
+                    {tf("contact.preselectAlways", "Everywhere")}
+                  </option>
+                </NativeSelect>
+              </FieldRow>
+              {checkout.contact.marketingOptIn.preselect === "countries" ? (
+                <CountryMultiSelect
+                  value={checkout.contact.marketingOptIn.preselectCountries}
+                  onChange={(value: string[]) =>
+                    update((draft) => {
+                      draft.contact.marketingOptIn.preselectCountries = value;
+                    })
+                  }
+                />
+              ) : null}
+              {checkout.contact.marketingOptIn.preselect === "auto" ? (
+                <Hint>
+                  {tf(
+                    "contact.preselectAutoHint",
+                    "Off in the EU and EEA, the UK, Switzerland, Canada and Brazil, where consent has to be actively given, and off everywhere until a delivery country is entered.",
+                  )}
+                </Hint>
+              ) : null}
+              {checkout.contact.marketingOptIn.preselect === "always" ? (
                 <Hint warn>
                   {tf(
                     "contact.marketingDefaultWarn",
                     "In many countries (the EU and UK among them) marketing consent must be opt-in, not pre-ticked.",
+                  )}
+                </Hint>
+              ) : null}
+              <SwitchRow
+                label={tf(
+                  "contact.doubleOptIn",
+                  "Ask for confirmation by email (double opt-in)",
+                )}
+                checked={checkout.contact.marketingOptIn.doubleOptIn}
+                onChange={(value) =>
+                  update((draft) => {
+                    draft.contact.marketingOptIn.doubleOptIn = value;
+                  })
+                }
+              />
+              {checkout.contact.marketingOptIn.doubleOptIn ? (
+                <Hint>
+                  {tf(
+                    "contact.doubleOptInHint",
+                    "The shopper stays pending until they open the link in a confirmation email, which carries no offers of its own. Nothing is sent to them before that.",
+                  )}
+                </Hint>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+
+        <div className="space-y-3 rounded-lg border p-3">
+          <SwitchRow
+            label={tf(
+              "contact.smsOptIn",
+              "Show the text me with news and offers checkbox",
+            )}
+            checked={checkout.contact.smsOptIn.enabled}
+            onChange={(value) =>
+              update((draft) => {
+                draft.contact.smsOptIn.enabled = value;
+              })
+            }
+          />
+          {checkout.contact.smsOptIn.enabled ? (
+            <>
+              <FieldRow label={tf("contact.smsOptInLabel", "Checkbox text")}>
+                <Input
+                  value={checkout.contact.smsOptIn.label}
+                  placeholder={tf(
+                    "contact.smsOptInPlaceholder",
+                    "Text me with news and offers",
+                  )}
+                  onChange={(event) =>
+                    update((draft) => {
+                      draft.contact.smsOptIn.label = event.target.value;
+                    })
+                  }
+                />
+              </FieldRow>
+              <FieldRow
+                label={tf("contact.smsOptInFineprint", "Small print under it")}
+              >
+                <Input
+                  value={checkout.contact.smsOptIn.fineprint}
+                  placeholder={tf(
+                    "contact.smsOptInFineprintPlaceholder",
+                    "Message and data rates may apply. Reply STOP to stop.",
+                  )}
+                  onChange={(event) =>
+                    update((draft) => {
+                      draft.contact.smsOptIn.fineprint = event.target.value;
+                    })
+                  }
+                />
+              </FieldRow>
+              <Hint>
+                {tf(
+                  "contact.smsOptInHint",
+                  "Shown instead of the email box when the shopper gives a phone number rather than an email. It is never pre-ticked, wherever they are: text marketing is consent the shopper gives themselves.",
+                )}
+              </Hint>
+              {checkout.contact.mode === "email" ? (
+                <Hint warn>
+                  {tf(
+                    "contact.smsOptInModeWarn",
+                    "Checkout asks for an email only, so this box will never appear. Set the contact method to a phone number or either one.",
                   )}
                 </Hint>
               ) : null}
@@ -1077,13 +1214,102 @@ function AccountsCard({ checkout, update, tf }: SectionProps) {
 /* Abandoned checkouts                                                 */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Stock held during payment                                           */
+/* ------------------------------------------------------------------ */
+
+/** The delays the editor offers for a payment-window hold, in minutes. */
+const STOCK_HOLD_MINUTES = [5, 10, 15, 30, 60] as const;
+
+function StockHoldCard({ checkout, update, tf }: SectionProps) {
+  const config = checkout.stockHold;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {tf("stockHold.title", "Hold stock while a shopper is paying")}
+        </CardTitle>
+        <CardDescription>
+          {tf(
+            "stockHold.description",
+            "A cart reserves nothing — but from the moment a shopper is sent to a payment provider until their payment is answered, their items are held for them.",
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <SwitchRow
+          label={tf("stockHold.enabled", "Hold the items during payment")}
+          checked={config.enabled}
+          onChange={(value) =>
+            update((draft) => {
+              draft.stockHold.enabled = value;
+            })
+          }
+        />
+        <Hint>
+          {tf(
+            "stockHold.enabledHint",
+            "Off: stock is only taken when the payment lands, so two shoppers can both pay for the last one — and the second is refunded afterwards.",
+          )}
+        </Hint>
+        {config.enabled ? (
+          <div className="flex flex-col gap-2 rounded-md border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <Label className="m-0">
+              {tf("stockHold.minutes", "Hold them for")}
+            </Label>
+            <NativeSelect
+              value={String(config.minutes)}
+              className="w-full sm:w-40"
+              onChange={(event) =>
+                update((draft) => {
+                  draft.stockHold.minutes = Number(event.target.value);
+                })
+              }
+            >
+              {(STOCK_HOLD_MINUTES as readonly number[]).includes(
+                config.minutes,
+              ) ? null : (
+                <option value={config.minutes}>
+                  {tf("abandoned.minutes", "{count} minutes", {
+                    count: config.minutes,
+                  })}
+                </option>
+              )}
+              {STOCK_HOLD_MINUTES.map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {tf("abandoned.minutes", "{count} minutes", {
+                    count: minutes,
+                  })}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+        ) : null}
+        <Hint>
+          {tf(
+            "stockHold.window",
+            "Long enough for a bank's verification step and a second card; after that the items go back on sale, and a shopper who pays late is settled exactly as before.",
+          )}
+        </Hint>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AbandonedCard({
   checkout,
   update,
   tf,
-  locale,
-}: SectionProps & { locale: string }) {
+}: SectionProps & {}) {
   const config = checkout.abandonedCheckouts;
+  // The ladder as the settings hold it: the first entry is always the idle
+  // delay above, so the rest are the follow-ups shown here.
+  const schedule =
+    config.schedule?.length > 0 ? config.schedule : [config.delayMinutes];
+  const nextDelay = ABANDONED_RECOVERY_DELAYS.find(
+    (value) => value > schedule[schedule.length - 1],
+  );
   const delayLabel = (minutes: number) =>
     minutes < 60
       ? tf("abandoned.minutes", "{count} minutes", { count: minutes })
@@ -1144,7 +1370,15 @@ function AbandonedCard({
                   className="w-full sm:w-40"
                   onChange={(event) =>
                     update((draft) => {
-                      draft.abandonedCheckouts.delayMinutes = Number(event.target.value);
+                      const minutes = Number(event.target.value);
+                      draft.abandonedCheckouts.delayMinutes = minutes;
+                      // The first rung of the ladder IS this delay, so moving
+                      // it moves the first email and pushes out any follow-up
+                      // that would now land before it.
+                      draft.abandonedCheckouts.schedule = [
+                        minutes,
+                        ...schedule.slice(1).filter((value) => value > minutes),
+                      ];
                     })
                   }
                 >
@@ -1162,10 +1396,78 @@ function AbandonedCard({
                   ))}
                 </NativeSelect>
               </div>
+              {schedule.slice(1).map((minutes, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col gap-2 rounded-md border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <Label className="m-0">
+                    {index === 0
+                      ? tf("abandoned.followUpOne", "Then remind them again after")
+                      : tf("abandoned.followUpTwo", "And one last time after")}
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <NativeSelect
+                      value={String(minutes)}
+                      disabled={!config.enabled}
+                      className="w-full sm:w-40"
+                      onChange={(event) =>
+                        update((draft) => {
+                          const next = [...schedule];
+                          next[index + 1] = Number(event.target.value);
+                          draft.abandonedCheckouts.schedule = next;
+                        })
+                      }
+                    >
+                      {ABANDONED_RECOVERY_DELAYS.filter(
+                        (value) => value > schedule[index],
+                      ).map((value) => (
+                        <option key={value} value={value}>
+                          {delayLabel(value)}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!config.enabled || index !== schedule.length - 2}
+                      onClick={() =>
+                        update((draft) => {
+                          draft.abandonedCheckouts.schedule = schedule.slice(
+                            0,
+                            index + 1,
+                          );
+                        })
+                      }
+                    >
+                      {tf("abandoned.removeReminder", "Remove")}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {schedule.length < 3 && nextDelay !== undefined ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!config.enabled}
+                  onClick={() =>
+                    update((draft) => {
+                      draft.abandonedCheckouts.schedule = [
+                        ...schedule,
+                        nextDelay,
+                      ];
+                    })
+                  }
+                >
+                  {tf("abandoned.addReminder", "Add another reminder")}
+                </Button>
+              ) : null}
               <SwitchRow
                 label={tf(
                   "abandoned.consentOnly",
-                  "Only email shoppers who ticked the news & offers box",
+                  "Only email shoppers who subscribed to marketing",
                 )}
                 checked={config.marketingConsentOnly}
                 disabled={!config.enabled}
@@ -1178,15 +1480,23 @@ function AbandonedCard({
               <Hint>
                 {tf(
                   "abandoned.autoEmailHint",
-                  "One email per checkout, with a link that restores the cart. Needs working email (Settings → Email) and the scheduled job /api/cron/abandoned-checkouts running.",
+                  "Each reminder carries a link that restores the cart, and an unsubscribe link. The ladder stops as soon as the shopper comes back or unsubscribes. Needs working email (Settings → Email) and the scheduled job /api/cron/abandoned-checkouts running.",
                 )}
               </Hint>
+              {config.marketingConsentOnly ? (
+                <Hint>
+                  {tf(
+                    "abandoned.consentOnlyHint",
+                    "Matches the shopper's subscription on their customer record — so someone who subscribed on an earlier visit counts, and someone who has since unsubscribed does not. A tick on this very checkout counts too.",
+                  )}
+                </Hint>
+              ) : null}
               {config.marketingConsentOnly &&
               !checkout.contact.marketingOptIn.enabled ? (
                 <Hint warn>
                   {tf(
                     "abandoned.consentWarn",
-                    "The news & offers checkbox is switched off on the Form fields tab, so no shopper can consent and no email will go out.",
+                    "The news & offers checkbox is switched off on the Form fields tab, so no shopper can consent at checkout — only those who subscribed elsewhere will be emailed.",
                   )}
                 </Hint>
               ) : null}
@@ -1202,7 +1512,7 @@ function AbandonedCard({
         </div>
 
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/${locale}/admin/abandoned-checkouts`}>
+          <Link href="/admin/abandoned-checkouts">
             {tf("abandoned.viewList", "View abandoned checkouts")}
           </Link>
         </Button>
@@ -1219,8 +1529,7 @@ function AppearanceCards({
   checkout,
   update,
   tf,
-  locale,
-}: SectionProps & { locale: string }) {
+}: SectionProps & {}) {
   return (
     <>
       {/* Layout */}
@@ -1438,12 +1747,12 @@ function AppearanceCards({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/${locale}/admin/online-store/theme?tab=branding`}>
+              <Link href="/admin/online-store/theme?tab=branding">
                 {tf("brandingLink", "Branding")}
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/${locale}/admin/online-store/theme`}>
+              <Link href="/admin/online-store/theme">
                 {tf("themeLink", "Theme settings")}
               </Link>
             </Button>

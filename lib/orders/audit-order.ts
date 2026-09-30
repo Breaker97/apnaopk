@@ -61,6 +61,7 @@ const SOURCE_LABEL: Record<string, string> = {
   storefront: "the online store",
   pos: "the POS register",
   admin: "the admin panel",
+  exchange: "an exchange",
 };
 
 /**
@@ -71,11 +72,13 @@ export function auditOrderPlaced(
   context: AuditContext,
   order: AuditOrderRef,
   details: {
-    source: "storefront" | "pos" | "admin";
+    source: "storefront" | "pos" | "admin" | "exchange";
     total: number;
     currency?: string;
     itemCount: number;
     paymentMethod?: string;
+    /** The return an exchange order was made for (R7). */
+    returnNumber?: string;
   },
 ) {
   return audit(context, {
@@ -83,7 +86,9 @@ export function auditOrderPlaced(
     resource: "order",
     ...ref(order),
     changes: {
-      summary: `Order placed via ${SOURCE_LABEL[details.source]} — ${
+      summary: `Order placed via ${SOURCE_LABEL[details.source]}${
+        details.returnNumber ? ` for return ${details.returnNumber}` : ""
+      } — ${
         details.itemCount
       } item${details.itemCount === 1 ? "" : "s"}, ${money(
         details.total,
@@ -96,6 +101,7 @@ export function auditOrderPlaced(
       currency: details.currency,
       itemCount: details.itemCount,
       paymentMethod: details.paymentMethod,
+      ...(details.returnNumber ? { returnNumber: details.returnNumber } : {}),
     },
   });
 }
@@ -116,24 +122,32 @@ export function auditOrderPaid(
     currency?: string;
     transactionId?: string;
     partial?: boolean;
+    /** What the shopper's store credit paid besides (R8). */
+    storeCredit?: number;
   },
 ) {
+  const credit = Math.max(0, Number(details.storeCredit || 0));
+  const summary =
+    credit > 0 && !(details.amount > 0)
+      ? `Paid with ${money(credit, details.currency)} of store credit`
+      : `${details.partial ? "Deposit" : "Payment"} of ${money(
+          details.amount,
+          details.currency,
+        )} received via ${details.gateway}${
+          credit > 0 ? `, with ${money(credit, details.currency)} of store credit` : ""
+        }`;
   return audit(context, {
     action: "PAYMENT",
     resource: "order",
     ...ref(order),
-    changes: {
-      summary: `${details.partial ? "Deposit" : "Payment"} of ${money(
-        details.amount,
-        details.currency,
-      )} received via ${details.gateway}`,
-    },
+    changes: { summary },
     metadata: {
       gateway: details.gateway,
       amount: details.amount,
       currency: details.currency,
       transactionId: details.transactionId,
       partial: Boolean(details.partial),
+      ...(credit > 0 ? { storeCredit: credit } : {}),
     },
   });
 }
@@ -285,18 +299,39 @@ export function auditOrderRefunded(
      * the timeline does not describe it as a refund the store chose to send.
      */
     chargeback?: { gatewayLabel: string; disputeId?: string };
+    /** How much of it the shopper was given as store credit (R8). */
+    storeCredit?: number;
+    /** The exchange order the money paid for instead (R7). */
+    exchangeOrderNumber?: string;
+    /**
+     * An exchange order called off (R7): `storeCredit` is the part that went
+     * back on this return rather than to the shopper's account.
+     */
+    backOnReturn?: string;
   },
 ) {
   const amount = money(details.amount, details.currency);
+  const credit = Math.max(0, Number(details.storeCredit || 0));
+  const allCredit = credit > 0 && credit >= details.amount - 0.001;
+  const creditPlace = details.backOnReturn
+    ? `back on return ${details.backOnReturn}`
+    : "as store credit";
+  const creditNote = details.exchangeOrderNumber
+    ? ` towards exchange order #${details.exchangeOrderNumber}`
+    : allCredit
+      ? ` ${creditPlace}`
+      : credit > 0
+        ? `, ${money(credit, details.currency)} of it ${creditPlace}`
+        : "";
   const summary = details.chargeback
     ? `Chargeback of ${amount} ${
         details.gatewayCalled === false
           ? `recorded by hand (${details.chargeback.gatewayLabel})`
           : `taken back through ${details.chargeback.gatewayLabel}`
       }${details.chargeback.disputeId ? ` for dispute ${details.chargeback.disputeId}` : ""}`
-    : `${details.full ? "Full refund" : "Partial refund"} of ${amount} issued${
+    : `${details.full ? "Full refund" : "Partial refund"} of ${amount} issued${creditNote}${
         details.returnNumber ? ` for return ${details.returnNumber}` : ""
-      }${details.gatewayCalled === false ? " (recorded manually)" : ""}`;
+      }${details.gatewayCalled === false && !allCredit ? " (recorded manually)" : ""}`;
   return audit(context, {
     action: "REFUND",
     resource: "order",
@@ -310,6 +345,11 @@ export function auditOrderRefunded(
       reason: details.reason,
       gatewayCalled: details.gatewayCalled,
       returnNumber: details.returnNumber,
+      ...(credit > 0 && !details.exchangeOrderNumber && !details.backOnReturn
+        ? { storeCredit: credit }
+        : {}),
+      ...(details.backOnReturn ? { backOnReturn: details.backOnReturn } : {}),
+      ...(details.exchangeOrderNumber ? { exchangeOrderNumber: details.exchangeOrderNumber } : {}),
       ...(details.chargeback
         ? {
             chargeback: true,
@@ -317,6 +357,67 @@ export function auditOrderRefunded(
             disputeId: details.chargeback.disputeId,
           }
         : {}),
+    },
+  });
+}
+
+/**
+ * A refund no gateway carried, recorded as actually sent — the moment the
+ * shopper was paid, which nothing on the order said before.
+ */
+export function auditOrderRefundSettled(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: {
+    amount: number;
+    currency?: string;
+    method: string;
+    reference?: string;
+    returnNumber?: string;
+  },
+) {
+  return audit(context, {
+    action: "REFUND",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      summary: `Refund of ${money(details.amount, details.currency)}${
+        details.returnNumber ? ` for return ${details.returnNumber}` : ""
+      } recorded as sent by ${details.method}${
+        details.reference ? ` (ref ${details.reference})` : ""
+      }`,
+    },
+    metadata: {
+      amount: details.amount,
+      currency: details.currency,
+      method: details.method,
+      reference: details.reference,
+      returnNumber: details.returnNumber,
+      settled: true,
+    },
+  });
+}
+
+/** A hand refund cancelled before anyone sent it. */
+export function auditOrderRefundVoided(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: { amount: number; currency?: string; reason?: string },
+) {
+  return audit(context, {
+    action: "REFUND",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      summary: `Refund of ${money(details.amount, details.currency)} cancelled before it was sent${
+        details.reason ? ` — ${details.reason}` : ""
+      }`,
+    },
+    metadata: {
+      amount: details.amount,
+      currency: details.currency,
+      reason: details.reason,
+      voided: true,
     },
   });
 }
@@ -429,6 +530,40 @@ export function auditOrderReturn(
 }
 
 /**
+ * An exchange called off (R7): its order was cancelled, and what the return
+ * paid for it went back to the return, to be refunded or exchanged again.
+ * Written on both orders, so each timeline says where the money went.
+ */
+export function auditOrderExchangeUndone(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: {
+    returnNumber: string;
+    exchangeOrderNumber: string;
+    amount: number;
+    currency?: string;
+  },
+) {
+  return audit(context, {
+    action: "UPDATE",
+    resource: "order",
+    ...ref(order),
+    changes: {
+      summary: `Exchange order #${details.exchangeOrderNumber} called off — ${money(
+        details.amount,
+        details.currency,
+      )} back on return ${details.returnNumber}`,
+    },
+    metadata: {
+      returnNumber: details.returnNumber,
+      exchangeOrderNumber: details.exchangeOrderNumber,
+      amount: details.amount,
+      currency: details.currency,
+    },
+  });
+}
+
+/**
  * A pre-order's delivery address changed before it shipped.
  *
  * Worth a timeline row of its own because it is the one edit a shopper can make
@@ -442,7 +577,7 @@ export function auditOrderAddressChanged(
   details: {
     before: Record<string, unknown>;
     after: Record<string, unknown>;
-    by: "customer" | "link";
+    by: "customer" | "link" | "address-link" | "store";
   },
 ) {
   const line = (address: Record<string, unknown>) =>
@@ -459,9 +594,34 @@ export function auditOrderAddressChanged(
       after: { shippingAddress: details.after },
       fields: ["shippingAddress"],
       summary: `Delivery address changed ${
-        details.by === "link" ? "from the pre-order link" : "by the customer"
+        details.by === "link"
+          ? "from the pre-order link"
+          : details.by === "address-link"
+            ? "from the address link"
+            : details.by === "store"
+              ? "by staff"
+              : "by the customer"
       }: ${line(details.before)} → ${line(details.after)}`,
     },
     metadata: { changedBy: details.by },
+  });
+}
+
+/**
+ * An address-hold event: placed, a request or reminder sent, confirmed by the
+ * customer, extended, expired or released. The summary is the whole sentence,
+ * as the timeline shows nothing else.
+ */
+export function auditAddressHold(
+  context: AuditContext,
+  order: AuditOrderRef,
+  details: { event: string; summary: string; metadata?: Record<string, unknown> },
+) {
+  return audit(context, {
+    action: "UPDATE",
+    resource: "order",
+    ...ref(order),
+    changes: { summary: details.summary },
+    metadata: { addressHold: details.event, ...(details.metadata || {}) },
   });
 }

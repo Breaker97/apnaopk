@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   ChevronsUpDown,
+  Circle,
   Download,
   Eye,
   Pencil,
@@ -19,7 +20,6 @@ import {
 import {
   DataTable,
   DateCell,
-  StatusCell,
   TextCell,
   type DataTableAction,
   type DataTableBulkAction,
@@ -29,7 +29,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
-import { Badge } from "@/components/ui/badge";
 import type { StaffPermission } from "@/config/permissions.config";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { useListNavigation } from "@/hooks/use-list-navigation";
@@ -112,6 +111,28 @@ function resolveMemberStatus(row: StaffListItem) {
   }
   return "active" as const;
 }
+
+/** The Orders list's badge: 12px, soft fill, square corners. */
+const BADGE_CLASS =
+  "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-[12px] font-medium";
+
+const ROLE_STYLES = {
+  owner: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  admin:
+    "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300",
+  staff: "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+};
+
+/** Green and amber as on the stats strip's Active and Inactive cards. */
+const STATUS_STYLES: Record<ReturnType<typeof resolveMemberStatus>, string> = {
+  active:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+  accessOff:
+    "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+  inactive:
+    "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  suspended: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
+};
 
 function getInitials(name?: string) {
   if (!name) return "?";
@@ -238,11 +259,11 @@ export function StaffDataTable({
             className="block"
           >
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar>
                 <AvatarImage src={row.image} />
                 <AvatarFallback>{getInitials(row.name)}</AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
+              <div className="min-w-0 max-w-[220px]">
                 <p className="font-medium truncate hover:underline">
                   {row.name || tr("Unknown", "অজানা")}
                 </p>
@@ -253,7 +274,7 @@ export function StaffDataTable({
             </div>
           </Link>
         ),
-        className: "w-[280px]",
+        className: "w-[260px]",
       },
       // The vendor dashboard manages staff only; a Role column there would
       // print "Staff" on every row.
@@ -264,15 +285,17 @@ export function StaffDataTable({
               header: tr("Role", "ভূমিকা"),
               cell: (row: StaffListItem) =>
                 row.isOwner ? (
-                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-transparent">
+                  <span className={`${BADGE_CLASS} ${ROLE_STYLES.owner}`}>
                     {tr("Owner", "মালিক")}
-                  </Badge>
+                  </span>
                 ) : row.role === "admin" ? (
-                  <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100 border-transparent">
+                  <span className={`${BADGE_CLASS} ${ROLE_STYLES.admin}`}>
                     {tr("Administrator", "প্রশাসক")}
-                  </Badge>
+                  </span>
                 ) : (
-                  <Badge variant="secondary">{tr("Staff", "স্টাফ")}</Badge>
+                  <span className={`${BADGE_CLASS} ${ROLE_STYLES.staff}`}>
+                    {tr("Staff", "স্টাফ")}
+                  </span>
                 ),
               className: "w-[130px]",
             },
@@ -281,24 +304,22 @@ export function StaffDataTable({
       {
         id: "status",
         header: tr("Status", "স্ট্যাটাস"),
-        cell: (row) => (
-          <StatusCell
-            status={resolveMemberStatus(row)}
-            statusMap={{
-              active: { label: tr("Active", "সক্রিয়"), variant: "default" },
-              accessOff: {
-                label: tr("Access off", "অ্যাক্সেস বন্ধ"),
-                variant: "secondary",
-              },
-              inactive: { label: tr("Inactive", "নিষ্ক্রিয়"), variant: "outline" },
-              suspended: {
-                label: tr("Suspended", "স্থগিত"),
-                variant: "destructive",
-              },
-            }}
-          />
-        ),
-        className: "w-[120px]",
+        cell: (row) => {
+          const status = resolveMemberStatus(row);
+          const labels = {
+            active: tr("Active", "সক্রিয়"),
+            accessOff: tr("Access off", "অ্যাক্সেস বন্ধ"),
+            inactive: tr("Inactive", "নিষ্ক্রিয়"),
+            suspended: tr("Suspended", "স্থগিত"),
+          };
+          return (
+            <span className={`${BADGE_CLASS} ${STATUS_STYLES[status]}`}>
+              <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
+              {labels[status]}
+            </span>
+          );
+        },
+        className: "w-[130px]",
       },
       {
         id: "department",
@@ -318,26 +339,29 @@ export function StaffDataTable({
         cell: (row) => {
           if (row.role === "admin") {
             return (
-              <span className="text-muted-foreground text-sm">
+              <span className="text-muted-foreground">
                 {tr("Full access", "সম্পূর্ণ অ্যাক্সেস")}
               </span>
             );
           }
           const perms = row.staffProfile?.permissions || [];
           if (perms.length === 0) return <span className="text-muted-foreground">{tr("None", "কোনোটি নয়")}</span>;
-          const shown = perms.slice(0, 3);
-          const remaining = perms.length - shown.length;
+          // One line, as the Orders list prints its products: the first two
+          // names, then the rest as a count that is never cut off.
+          const shown = perms
+            .slice(0, 2)
+            .map((p) => tr(PERMISSION_LABELS[p] || p))
+            .join(", ");
+          const remaining = perms.length - 2;
           return (
-            <div className="flex flex-wrap gap-1">
-              {shown.map((p) => (
-                <Badge key={p} variant="secondary" className="text-xs">
-                  {tr(PERMISSION_LABELS[p] || p)}
-                </Badge>
-              ))}
+            <div className="flex max-w-[200px] items-center gap-1">
+              <span className="truncate" title={shown}>
+                {shown}
+              </span>
               {remaining > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  +{remaining}
-                </Badge>
+                <span className="shrink-0 text-muted-foreground">
+                  {t("admin.ordersPage.plusMore", { count: remaining })}
+                </span>
               )}
             </div>
           );
@@ -353,7 +377,7 @@ export function StaffDataTable({
         className: "w-[130px]",
       },
     ],
-    [tr, area, staffBasePath],
+    [t, tr, area, staffBasePath],
   );
 
   const tabs = useMemo<DataTableTab[]>(
@@ -498,7 +522,8 @@ export function StaffDataTable({
       onPageSizeChange={list.handlePageSizeChange}
       rowActions={rowActions}
       rowActionsHeader={tr("Actions", "অ্যাকশন")}
-      rowActionsVariant="inline-soft"
+      rowActionsVariant="dropdown"
+      className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
       onRowClick={(row) =>
         router.push(`${staffBasePath}/${row._id}`)
       }

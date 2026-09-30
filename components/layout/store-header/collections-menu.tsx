@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ChevronDown, ArrowRight, Images } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";

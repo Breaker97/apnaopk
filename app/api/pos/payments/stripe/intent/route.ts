@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { validateBody } from "@/lib/api/validate";
 import { successResponse } from "@/lib/api/response";
@@ -154,6 +154,7 @@ export const POST = withApi(
       items,
       discount: body.discount,
       taxRate: settings.orders?.taxRate ?? 0,
+      currency: settings.general?.defaultCurrency || "USD",
     });
     if (total <= 0) {
       throw new ValidationError("Order total must be greater than zero");
@@ -166,9 +167,13 @@ export const POST = withApi(
       amount: toStripeAmount(total, currency),
       currency,
       payment_method_types: ["card"],
+      // Read back by POST /api/pos/orders (`posStripeIntentProblem`): the
+      // sale is held to the register, the cashier and the location that
+      // opened this intent.
       metadata: {
         channel: "pos",
         staffId: session.user.id,
+        vendorId: vendorScopeId || "",
         customerId: body.customerId || "",
         posLocationId: body.posLocationId || "",
         subtotal: String(subtotal),

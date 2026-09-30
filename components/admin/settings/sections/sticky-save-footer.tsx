@@ -24,10 +24,16 @@ export function StickySaveFooter({
 }) {
   const isDisabled = disabled ?? (isSaving || isDirty === false);
 
+  // Sticky, not fixed: the bar rides the bottom of the viewport only while
+  // the form it saves is on screen, then settles at that form's end, and it
+  // needs no offsets for a sidebar that collapses. The strip itself lets
+  // clicks through to the fields it floats over. One bar per page: a save
+  // reloads every section from the server, so a page that edits two sections
+  // saves both through one bar (Multi-Vendor Management does).
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-3 right-3 z-40 flex min-h-[61px] justify-end gap-2 py-3 md:left-[max(314px,calc((100vw-1030px)/2+314px))] md:right-auto md:w-[min(716px,calc(100vw-314px))]",
+        "pointer-events-none sticky bottom-0 z-40 flex min-h-15.25 justify-end gap-2 py-3 *:pointer-events-auto",
         className,
       )}
     >

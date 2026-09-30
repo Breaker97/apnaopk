@@ -1,6 +1,7 @@
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import { isPurchaseClaimStale } from "@/lib/shipping/carrier-config";
 import { hasShippableItems } from "@/lib/shipping/packing";
+import { isAddressHoldOpen } from "@/lib/orders/address-hold-policy";
 import type { ICarrierAutomationSettings } from "@/models/settings.model";
 import type { IShipment } from "@/models/shipment.model";
 import type { IOrder, SubOrder } from "@/types";
@@ -29,6 +30,7 @@ type AutoShipSkipReason =
   | "above_max_value"
   | "country_not_allowed"
   | "already_shipped"
+  | "address_hold"
   | "cancelled";
 
 interface AutoShipDecision {
@@ -45,7 +47,8 @@ type OrderForAutomation = Pick<
   | "total"
   | "shippingAddress"
   | "fulfillment"
->;
+> &
+  Partial<Pick<IOrder, "addressHold">>;
 
 type SubOrderForAutomation = Pick<
   SubOrder,
@@ -89,6 +92,15 @@ export function isAutoShipEligible(params: {
     return { eligible: false, reason: "sub_order_not_processing" };
   }
 
+  // Money handed back in full leaves nothing to ship against. The refund is
+  // written on the order, so a consignment stamped paid read as paid below.
+  if (
+    String(order.paymentStatus || "") === PAYMENT_STATUS.REFUNDED ||
+    Boolean((order as { goodsRefundedAt?: unknown }).goodsRefundedAt)
+  ) {
+    return { eligible: false, reason: "not_paid" };
+  }
+
   const isCod = String(order.paymentMethod || "").toLowerCase() === "cod";
   // Per consignment, like every other check in this function: on a split order
   // one vendor's collection says nothing about whether another's parcel has
@@ -106,6 +118,10 @@ export function isAutoShipEligible(params: {
 
   if (order.digitalOnly === true) {
     return { eligible: false, reason: "digital_only" };
+  }
+  // The courier can't deliver to the address; nothing ships until it is fixed.
+  if (isAddressHoldOpen(order)) {
+    return { eligible: false, reason: "address_hold" };
   }
   if (
     order.fulfillment?.method === "pickup" ||

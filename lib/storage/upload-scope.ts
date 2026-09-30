@@ -2,8 +2,14 @@ import "server-only";
 
 import { connectDB } from "@/lib/db";
 import { Vendor } from "@/models";
-import { isVendor } from "@/lib/access/rbac";
+import { isAdmin, isSeller, isVendor } from "@/lib/access/rbac";
+import { getActiveStaffAccess } from "@/lib/access/staff-authz";
+import { hasStaffScope } from "@/lib/access/staff-scope";
 import type { UserRole } from "@/config/app.config";
+import {
+  STAFF_PERMISSIONS,
+  type StaffPermission,
+} from "@/config/permissions.config";
 import { vendorMediaScope } from "@/lib/storage/key";
 
 /**
@@ -45,4 +51,59 @@ export async function resolveUploadScope(user: {
 
   if (!vendor?._id) return undefined;
   return vendorMediaScope(String(vendor._id)) || undefined;
+}
+
+/** Staff grants that put someone to work on the catalogue's media. */
+const STAFF_MEDIA_LIBRARY_PERMISSIONS: readonly StaffPermission[] = [
+  STAFF_PERMISSIONS.MANAGE_PRODUCTS,
+  STAFF_PERMISSIONS.CREATE_PRODUCTS,
+  STAFF_PERMISSIONS.EDIT_PRODUCTS,
+];
+
+/**
+ * Which stored files a caller may browse and pick from: `{}` for the whole
+ * library, `{ ownerScope }` for one owner's folder, null for none.
+ *
+ * The rule is "you browse the folder your uploads land in" — with the one
+ * case where that rule, read naively, hands out everything. An unscoped
+ * upload means "the store's", and resolveUploadScope also returns undefined
+ * for accounts whose uploads merely fall through to it; treating that as
+ * "browse unscoped" would show them the store's whole library.
+ *
+ * - An admin browses everything, vendor folders included — the view
+ *   Settings → Storage → Media Library gives.
+ * - A vendor browses their own folder and nothing else. A vendor account with
+ *   no vendor record yet has no folder, so no library — not the store's.
+ * - Staff upload unscoped, into the store's library, so only staff who work
+ *   on the whole catalogue may browse it: a product grant and no vendor,
+ *   location or region scope. A scoped member's view could not be narrowed —
+ *   nothing in a key says which vendor a staff upload was for — and every
+ *   vendor-owned staff member is scoped to their vendor.
+ * - Shoppers have no library.
+ */
+export async function resolveMediaLibraryScope(user: {
+  id: string;
+  role?: string | null;
+}): Promise<{ ownerScope?: string } | null> {
+  if (!user?.id) return null;
+  const caller = { id: user.id, role: user.role ?? undefined };
+
+  if (isAdmin(caller)) return {};
+
+  if (isVendor(caller)) {
+    const ownerScope = await resolveUploadScope(user);
+    return ownerScope ? { ownerScope } : null;
+  }
+
+  if (isSeller(caller)) {
+    const { permissions, scope } = await getActiveStaffAccess(user.id);
+    if (hasStaffScope(scope)) return null;
+    return permissions.some((permission) =>
+      STAFF_MEDIA_LIBRARY_PERMISSIONS.includes(permission),
+    )
+      ? {}
+      : null;
+  }
+
+  return null;
 }

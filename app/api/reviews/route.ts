@@ -6,7 +6,7 @@ import { rateLimitByIP, rateLimitByUser } from "@/lib/api/rate-limit-middleware"
 import { recomputeProductRating } from "@/lib/catalog/reviews";
 import { isReviewableOrder } from "@/lib/catalog/review-eligibility";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 // Server-side sort options for the reviews list. Rating-led sorts fall back to
@@ -43,7 +43,7 @@ const CreateReviewBodySchema = z.object({
 export const GET = withApi(
   {},
   async ({ request }) => {
-    await rateLimitByIP(request, "lenient");
+    await rateLimitByIP(request, "browse");
     await connectDB();
 
     const productId = request.nextUrl.searchParams.get("productId");

@@ -213,6 +213,10 @@ export interface ProductCardStyle {
   /** The preview media stage. */
   previewBackground: string;
   previewRadius: number;
+  /** The stage's outline; empty color = the faint default hairline. */
+  previewBorder: string;
+  /** px; 0 = no outline. */
+  previewBorderWidth: number;
   /** Stage proportions when no fixed height is set. */
   previewAspect: ProductCardPreviewAspect;
   /** px; 0 = use the aspect ratio. */
@@ -321,6 +325,9 @@ const DEFAULT_PRODUCT_CARD_STYLE: ProductCardStyle = {
   cardShadow: 0,
   previewBackground: "",
   previewRadius: 6,
+  // The stage as shipped: a 1px hairline (ring-1 ring-black/5).
+  previewBorder: "",
+  previewBorderWidth: 1,
   previewAspect: "square",
   previewHeight: 0,
   previewFit: "cover",
@@ -377,6 +384,7 @@ export const PRODUCT_CARD_COLOR_FALLBACKS = {
   cardBackground: "#ffffff",
   cardBorder: "#e4e4e7",
   previewBackground: "#f3f4f6",
+  previewBorder: "#ebebeb",
   discountChipBackground: "#ffe4e6",
   discountChipColor: "#e11d48",
   cartBackground: "#18181b",
@@ -825,6 +833,8 @@ export function normalizeProductCardConfig(raw: unknown): ProductCardConfig {
       cardShadow: num(s.cardShadow, ds.cardShadow),
       previewBackground: str(s.previewBackground, ds.previewBackground),
       previewRadius: num(s.previewRadius, ds.previewRadius),
+      previewBorder: str(s.previewBorder, ds.previewBorder),
+      previewBorderWidth: num(s.previewBorderWidth, ds.previewBorderWidth),
       previewAspect: oneOf(
         PRODUCT_CARD_PREVIEW_ASPECTS,
         s.previewAspect,
@@ -931,6 +941,25 @@ export function cardPreviewStageCss(style: ProductCardStyle): CSSProperties {
   else css.aspectRatio = PRODUCT_CARD_PREVIEW_ASPECT_RATIOS[style.previewAspect];
   return css;
 }
+
+/**
+ * The preview stage's outline. Drawn as an outline, not a border, so it sits
+ * outside the stage like the shipped ring and never shrinks the image. An
+ * empty color leaves it to PRODUCT_CARD_PREVIEW_BORDER_CLASS.
+ */
+export function cardPreviewBorderCss(style: ProductCardStyle): CSSProperties {
+  if (style.previewBorderWidth <= 0) return {};
+  const css: CSSProperties = {
+    outlineStyle: "solid",
+    outlineWidth: style.previewBorderWidth,
+  };
+  if (style.previewBorder) css.outlineColor = style.previewBorder;
+  return css;
+}
+
+/** The outline's default color, per scheme, when the merchant set none. */
+export const PRODUCT_CARD_PREVIEW_BORDER_CLASS =
+  "outline-black/5 dark:outline-white/10";
 
 /** The persistent action button's inline chrome. */
 export function cardButtonCss(style: ProductCardStyle): CSSProperties {

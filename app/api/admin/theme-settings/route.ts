@@ -8,7 +8,7 @@ import {
 } from "@/lib/storefront/themes/registry";
 import { normalizeThemeTokens } from "@/lib/storefront/themes/tokens";
 import { getSettings, Settings } from "@/models/settings.model";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 /**

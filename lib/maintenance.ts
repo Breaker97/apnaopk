@@ -1,9 +1,6 @@
 import { ServiceUnavailableError } from "@/lib/api/errors";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
-
-const DEFAULT_MAINTENANCE_TITLE = "We'll be back soon";
-const DEFAULT_MAINTENANCE_MESSAGE =
-  "We're making a few improvements behind the scenes. Thanks for your patience.";
+import { MAINTENANCE_COPY } from "@/lib/storefront/maintenance-copy";
 
 type MaintenanceSettingsInput = {
   enabled?: unknown;
@@ -66,10 +63,9 @@ export function normalizeMaintenanceSettings(
       ? storeName.trim()
       : DEFAULT_STORE_NAME;
   const title =
-    normalizeOptionalText(value?.title) ||
-    `${safeStoreName} is temporarily offline`;
+    normalizeOptionalText(value?.title) || MAINTENANCE_COPY.title(safeStoreName);
   const message =
-    normalizeOptionalText(value?.message) || DEFAULT_MAINTENANCE_MESSAGE;
+    normalizeOptionalText(value?.message) || MAINTENANCE_COPY.message;
   const backgroundImageUrl = normalizeOptionalText(value?.backgroundImageUrl);
   const countdownEndsAt = normalizeOptionalText(value?.countdownEndsAt);
   const countdownEnabled =
@@ -126,9 +122,10 @@ export function buildMaintenanceHtml(params: {
     typeof params.storeName === "string" && params.storeName.trim()
       ? params.storeName.trim()
       : DEFAULT_STORE_NAME;
-  const title = normalizeOptionalText(params.title) || DEFAULT_MAINTENANCE_TITLE;
+  const title =
+    normalizeOptionalText(params.title) || MAINTENANCE_COPY.title(storeName);
   const message =
-    normalizeOptionalText(params.message) || DEFAULT_MAINTENANCE_MESSAGE;
+    normalizeOptionalText(params.message) || MAINTENANCE_COPY.message;
   const countdownEndsAt = normalizeOptionalText(params.countdownEndsAt);
   const storeEmail = normalizeOptionalText(params.storeEmail);
   const logoUrl = normalizeOptionalText(params.logoUrl);
@@ -145,7 +142,7 @@ export function buildMaintenanceHtml(params: {
     ? `
       <section class="countdown-shell" aria-labelledby="maintenance-countdown-label">
         <div class="countdown-header">
-          <p id="maintenance-countdown-label" class="countdown-eyebrow">Expected back in</p>
+          <p id="maintenance-countdown-label" class="countdown-eyebrow">${MAINTENANCE_COPY.countdownLabel}</p>
           <p id="countdown-status" class="countdown-note">We are on it.</p>
         </div>
         <div id="countdown-grid" class="countdown-grid" data-end-at="${escapeHtml(countdownEndsAt)}">
@@ -480,7 +477,7 @@ export function buildMaintenanceHtml(params: {
         <div class="content">
           <div class="brand-row">
             ${brandMarkup}
-            <div class="status-pill">Scheduled maintenance in progress</div>
+            <div class="status-pill">${MAINTENANCE_COPY.status}</div>
           </div>
           <h1 id="maintenance-title">${escapeHtml(title)}</h1>
           <p class="message">${formatMessageHtml(message)}</p>

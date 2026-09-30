@@ -20,6 +20,12 @@ import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import type { VendorBillingInterval } from "@/config/app.config";
 import {
+  packsFromPlanCapabilities,
+  type VendorPermissionPack,
+  type VendorPlanCapabilityInput,
+} from "@/config/permissions.config";
+import { pickDefaultVendorPlanId } from "@/lib/vendors/vendor-default-plan";
+import {
   ONBOARDING_REGISTRY,
   ONBOARDING_STEP_KINDS,
   SYSTEM_FIELDS_BY_KEY,
@@ -45,6 +51,8 @@ export interface PublicVendorPlan {
   trialDays: number;
   features: string[];
   limits: { products?: number | null; staff?: number | null };
+  /** What the plan sells, so the wizard can say which tools come with it. */
+  packs: VendorPermissionPack[];
   isDefault: boolean;
 }
 
@@ -86,7 +94,10 @@ export interface OnboardingConfig {
   defaultCommissionRate: number;
   /** Force a plan choice before finishing (only meaningful when plansEnabled). */
   requirePlanSelection: boolean;
-  /** Plan auto-applied when the applicant picks none. */
+  /**
+   * The plan the wizard pre-selects and shows as Recommended, and the one
+   * auto-applied when the applicant picks none (see pickDefaultVendorPlanId).
+   */
   defaultPlanId: string | null;
   /** Whether paid vendor plan checkout can create Stripe sessions. */
   stripeBillingReady: boolean;
@@ -455,12 +466,14 @@ export async function resolveOnboardingConfig(): Promise<OnboardingConfig> {
         products: p.limits?.products ?? null,
         staff: p.limits?.staff ?? null,
       },
+      packs: packsFromPlanCapabilities(
+        p.capabilities as VendorPlanCapabilityInput | null | undefined,
+      ),
       isDefault: Boolean(p.isDefault),
     }));
   }
 
   const plansEnabled = multiVendor && plansFeature && plans.length > 0;
-  const defaultPlanId = settings.vendorConfig?.defaultPlanId ?? null;
 
   const template = await getOnboardingTemplate();
   const rawSteps = template
@@ -475,11 +488,11 @@ export async function resolveOnboardingConfig(): Promise<OnboardingConfig> {
     defaultCommissionRate,
     requirePlanSelection:
       plansEnabled && Boolean(settings.vendorConfig?.requirePlanSelection),
-    // Only surface a default that is actually an active, offerable plan.
-    defaultPlanId:
-      defaultPlanId && plans.some((p) => p.id === defaultPlanId)
-        ? defaultPlanId
-        : null,
+    // Only ever an active, offerable plan: `plans` holds nothing else.
+    defaultPlanId: pickDefaultVendorPlanId(
+      plans,
+      settings.vendorConfig?.defaultPlanId ?? null,
+    ),
     stripeBillingReady,
   };
 }

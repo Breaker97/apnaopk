@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -244,17 +245,17 @@ function SortableValueItem({
         className="flex-1"
       />
       {showColorPicker && (
-        <input
-          type="color"
+        <ColorSwatchPicker
           value={
             isHexColor(colorCode)
               ? colorCode
               : optionValueColor({ id, value, colorCode, position: 0 })
           }
-          onChange={(e) => onColorChange(e.target.value)}
-          aria-label={`Pick color for ${value || "option value"}`}
-          title="Pick color"
-          className="h-8 w-10 shrink-0 cursor-pointer rounded-md border bg-background p-1"
+          onChange={onColorChange}
+          alpha={false}
+          align="end"
+          ariaLabel={`Pick color for ${value || "option value"}`}
+          className="h-8 w-10"
         />
       )}
       <Button
@@ -644,13 +645,13 @@ export function OptionEditor({
                   className="flex-1"
                 />
                 {isColorOption && (
-                  <input
-                    type="color"
+                  <ColorSwatchPicker
                     value={newValueColor}
-                    onChange={(e) => setNewValueColor(e.target.value)}
-                    aria-label="Pick color for new option value"
-                    title="Pick color"
-                    className="h-8 w-10 shrink-0 cursor-pointer rounded-md border bg-background p-1"
+                    onChange={setNewValueColor}
+                    alpha={false}
+                    align="end"
+                    ariaLabel="Pick color for new option value"
+                    className="h-8 w-10"
                   />
                 )}
                 <Button

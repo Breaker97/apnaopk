@@ -1,6 +1,5 @@
 import type { IAIAuthoringSettings } from "@/models/settings.model";
 import { resolveOpenAICredentials } from "@/lib/settings/credentials";
-import type { AIAuthoringEntity } from "./types";
 
 const AI_AUTHORING_TEXT_MODEL_IDS = [
   "gpt-4.1-mini",
@@ -176,29 +175,6 @@ export function brandColorsOf(settings: IAIAuthoringSettings): string[] {
     settings.brandKit.primaryColor,
     settings.brandKit.secondaryColor,
   ].filter(Boolean);
-}
-
-/** Which settings surface toggle governs each authoring entity. */
-export function surfaceForEntity(
-  entity: AIAuthoringEntity,
-): keyof IAIAuthoringSettings["surfaces"] {
-  switch (entity) {
-    case "product":
-      return "products";
-    case "category":
-      return "categories";
-    case "collection":
-      return "collections";
-    case "brand":
-      return "brands";
-    case "blog_post":
-      return "blogPosts";
-    case "content_page":
-      return "contentPages";
-    case "review":
-    case "review_reply":
-      return "reviews";
-  }
 }
 
 export type ResolvedAIAuthoringConfig = {

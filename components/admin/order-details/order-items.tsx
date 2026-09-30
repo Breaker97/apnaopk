@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { AlertTriangle } from "lucide-react";
+import Link from "@/components/language/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Badge } from "@/components/ui/badge";
 import { AppImage } from "@/components/ui/app-image";
 import { useCurrency } from "@/providers/currency-provider";
@@ -40,15 +40,9 @@ export function OrderItems({ order }: OrderItemsProps) {
       <CardContent className="p-0">
         {isSplitShipment && (
           <div className="px-6 pb-4">
-            <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800 font-semibold">
-                {t("orderDetails.splitShipment")}
-              </AlertTitle>
-              <AlertDescription className="text-amber-700">
-                {t("orderDetails.splitShipmentDescription")}
-              </AlertDescription>
-            </Alert>
+            <WarningBanner title={t("orderDetails.splitShipment")}>
+              {t("orderDetails.splitShipmentDescription")}
+            </WarningBanner>
           </div>
         )}
 
@@ -81,6 +75,16 @@ export function OrderItems({ order }: OrderItemsProps) {
                       <span className="text-sm text-muted-foreground">
                         {t("orderDetails.sku")}: {item.sku}
                       </span>
+                      {/* Sold at a negotiated price rather than the
+                          catalogue's; the quote holds how it was agreed. */}
+                      {item.quoteId ? (
+                        <Link
+                          href={`/admin/quotes?quote=${String(item.quoteId)}`}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          {t("orderDetails.quotedPrice")}
+                        </Link>
+                      ) : null}
                       {/* Preorder lines ship on a different clock than the
                           rest of the order; the table gave no hint of it. */}
                       {item.purchaseType === "preorder" ? (
@@ -146,6 +150,22 @@ export function OrderItems({ order }: OrderItemsProps) {
             <span>{t("orderDetails.totalLabel")}</span>
             <span>{formatPrice(order.total)}</span>
           </div>
+          {/* The part the shopper's store credit paid (R8); the payment
+              method took the rest. */}
+          {order.storeCredit?.state !== "released" &&
+          Number(order.storeCredit?.applied || 0) > 0 ? (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                {/* An exchange order is paid by its return (R7). */}
+                {order.exchangeOf?.returnNumber
+                  ? t("orderDetails.paidByReturn", {
+                      returnNumber: order.exchangeOf.returnNumber,
+                    })
+                  : t("orderDetails.paidWithStoreCredit")}
+              </span>
+              <span>{formatPrice(Number(order.storeCredit?.applied || 0))}</span>
+            </div>
+          ) : null}
           {/* Refunds moved money and flipped the payment badge, but the amount
               refunded was never shown — leaving no way to tell a $5 refund
               from a $500 one, or how much of the order is still refundable. */}

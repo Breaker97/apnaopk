@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { isMultiVendorEnabled } from "@/lib/vendors/multi-vendor";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface LegacyVendorStorePageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -26,8 +27,8 @@ export default async function LegacyVendorStorePage({
     }
   }
 
-  const destination = `/${locale}/vendors/${slug}${
+  const destination = `/vendors/${slug}${
     query.toString() ? `?${query.toString()}` : ""
   }`;
-  redirect(destination);
+  redirect(await localeHref(locale, destination));
 }

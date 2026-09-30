@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ClientSuspense } from "@/components/common/client-suspense";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { CustomerOrdersList } from "@/components/account/orders-list";
 
@@ -35,7 +35,7 @@ export default async function OrdersPage({ params }: PageProps) {
           </p>
         </div>
         <Button variant="outline" className="min-h-11 sm:min-h-9" asChild>
-          <Link href={`/${locale}/account/orders/pre-orders`}>
+          <Link href="/account/orders/pre-orders">
             <CalendarClock className="mr-2 h-4 w-4" />
             {t("orders.preOrders")}
           </Link>
@@ -53,9 +53,9 @@ export default async function OrdersPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<OrdersListSkeleton />}>
-            <CustomerOrdersList locale={locale} filter="regular" />
-          </Suspense>
+          <ClientSuspense fallback={<OrdersListSkeleton />}>
+            <CustomerOrdersList filter="regular" />
+          </ClientSuspense>
         </CardContent>
       </Card>
     </div>

@@ -210,6 +210,17 @@ export interface CarrierWebhookEnvelope {
   test?: boolean;
 }
 
+export interface CarrierVoidResult {
+  /** The label's cost is certainly coming back — books may reverse it now. */
+  refunded: boolean;
+  state: string;
+  /**
+   * The carrier accepted the refund request but has not decided it. Nothing is
+   * reversed yet; `refundStatus` is asked later with this id.
+   */
+  refundPending?: { refundId: string };
+}
+
 /**
  * What every carrier must supply.
  *
@@ -288,7 +299,16 @@ export interface CarrierAdapter {
        */
       pickedUp?: boolean;
     },
-  ): Promise<{ refunded: boolean; state: string }>;
+  ): Promise<CarrierVoidResult>;
+
+  /**
+   * Where a refund left pending by `voidLabel` stands now. Only a carrier that
+   * answers refunds asynchronously implements it.
+   */
+  refundStatus?(
+    ctx: CarrierContext,
+    params: { refundId: string },
+  ): Promise<{ status: "pending" | "refunded" | "rejected"; state: string }>;
 
   validateAddress?(
     ctx: CarrierContext,

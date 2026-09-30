@@ -6,6 +6,7 @@ import { serializeProductCards } from "@/lib/products/storefront-product-cards";
 import { connectDB } from "@/lib/db";
 import { Collection } from "@/models";
 import type { ICollection } from "@/types";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 /**
  * Looks — outfits merchandised as collections.
@@ -34,18 +35,18 @@ type LeanCollection = Pick<
   "_id" | "title" | "slug" | "image" | "kind" | "status" | "publishing"
 > & { products?: unknown; conditions?: unknown; conditionMatch?: unknown };
 
-/** A Look with no picture of its own is dressed by its first piece. */
+/**
+ * A Look with no picture of its own is dressed by its first piece. A failed
+ * read is not a Look without a picture: it fails the whole cached read, so a
+ * database blip is never stored as a row with Looks missing.
+ */
 async function leadProductImage(collection: LeanCollection): Promise<string> {
-  try {
-    const { products } = await getCollectionProducts(
-      collection as unknown as ICollection,
-      { page: 1, limit: 1, publishingChannel: "onlineStore", fields: "card" },
-    );
-    const [lead] = serializeProductCards(products) as ModernProduct[];
-    return lead?.images?.[0] ?? "";
-  } catch {
-    return "";
-  }
+  const { products } = await getCollectionProducts(
+    collection as unknown as ICollection,
+    { page: 1, limit: 1, publishingChannel: "onlineStore", fields: "card" },
+  );
+  const [lead] = serializeProductCards(products) as ModernProduct[];
+  return lead?.images?.[0] ?? "";
 }
 
 async function toLooks(collections: LeanCollection[]): Promise<StorefrontLook[]> {
@@ -76,9 +77,9 @@ async function toLooks(collections: LeanCollection[]): Promise<StorefrontLook[]>
  * wins over the automatic source and keeps the given order; any collection
  * may be picked by hand, not only one marked as a Look.
  */
-export const getStorefrontLooks = unstable_cache(
-  async (query: { limit: number; ids?: string[] }): Promise<StorefrontLook[]> => {
-    try {
+export const getStorefrontLooks = withFallback(
+  unstable_cache(
+    async (query: { limit: number; ids?: string[] }): Promise<StorefrontLook[]> => {
       await connectDB();
       const limit = Math.min(Math.max(1, Math.floor(query.limit)), MAX_LOOKS);
       const ids = (query.ids ?? []).filter(Boolean);
@@ -106,18 +107,17 @@ export const getStorefrontLooks = unstable_cache(
         .limit(limit)
         .lean()) as unknown as LeanCollection[];
       return toLooks(collections);
-    } catch {
-      return [];
-    }
-  },
-  ["storefront-looks"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.collections, CACHE_TAGS.products],
-  },
+    },
+    ["storefront-looks"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.collections, CACHE_TAGS.products],
+    },
+  ),
+  () => [],
 );
 
-export interface StorefrontLookDetail extends StorefrontLook {
+interface StorefrontLookDetail extends StorefrontLook {
   products: ModernProduct[];
 }
 
@@ -126,9 +126,9 @@ export interface StorefrontLookDetail extends StorefrontLook {
  * stable id). Any collection qualifies — the section is the styling, the
  * `look` kind only decides what the automatic Looks row lists.
  */
-export const getStorefrontLook = unstable_cache(
-  async (collectionId: string, limit: number): Promise<StorefrontLookDetail | null> => {
-    try {
+export const getStorefrontLook = withFallback(
+  unstable_cache(
+    async (collectionId: string, limit: number): Promise<StorefrontLookDetail | null> => {
       await connectDB();
       const collection = (await Collection.findOne({
         _id: collectionId,
@@ -154,13 +154,12 @@ export const getStorefrontLook = unstable_cache(
         image,
         products: cards,
       };
-    } catch {
-      return null;
-    }
-  },
-  ["storefront-look"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.collections, CACHE_TAGS.products],
-  },
+    },
+    ["storefront-look"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.collections, CACHE_TAGS.products],
+    },
+  ),
+  () => null,
 );

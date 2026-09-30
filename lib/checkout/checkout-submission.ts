@@ -11,6 +11,7 @@ import {
   type CheckoutFieldAnswer,
 } from "@/lib/checkout/checkout-form-policy";
 import type { ISettings } from "@/models/settings.model";
+import { normalizePhoneNumber } from "@/lib/sms/phone";
 
 type SubmissionAddress = {
   firstName?: string;
@@ -19,6 +20,8 @@ type SubmissionAddress = {
   postalCode?: string;
   state?: string;
   phone?: string;
+  /** Read only to resolve a typed phone number into the one the store can text. */
+  country?: string;
 };
 
 const FIELD_NAMES: Record<string, string> = {
@@ -57,7 +60,9 @@ function fieldName(key: string, checkout: CheckoutSettings): string {
  * phone that stands in for a delivery phone the address left out.
  */
 export function enforceCheckoutSubmission(input: {
-  settings: Pick<ISettings, "checkout">;
+  // `sms` and `shipping` only for the country a typed phone number is read
+  // against; nothing else here looks at them.
+  settings: Pick<ISettings, "checkout" | "sms" | "shipping">;
   user?: { email?: string | null; phone?: string | null } | null;
   digitalOnly: boolean;
   body: {
@@ -91,6 +96,16 @@ export function enforceCheckoutSubmission(input: {
     billingAddress: input.billingAddress,
     customerNote: input.body.customerNote,
     customFields: input.body.customFields,
+    // The same rule the form ran in the browser: a contact number the store
+    // cannot resolve to a real one is refused here too, rather than accepted
+    // into an order whose text-message consent then lands nowhere.
+    resolvePhone: (value) =>
+      normalizePhoneNumber(value, {
+        country: input.shippingAddress?.country,
+        defaultCountry:
+          input.settings.sms?.defaultCountry ||
+          input.settings.shipping?.origin?.country,
+      }) ?? null,
   });
 
   if (result.issues.length > 0) {

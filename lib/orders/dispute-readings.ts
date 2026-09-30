@@ -130,7 +130,7 @@ interface StripeBalanceTransactionLike {
   currency?: string | null;
 }
 
-export interface StripeDisputeLike {
+interface StripeDisputeLike {
   id?: string;
   amount?: number | null;
   currency?: string | null;
@@ -178,7 +178,7 @@ function roundToCurrency(amount: number, currency: string): number {
  * rate Stripe used, not one assumed here — and the charged figure kept in the
  * note. Without both amounts it stays in the currency it was charged in.
  */
-export function disputeFees(dispute: {
+function disputeFees(dispute: {
   amount?: number | null;
   currency?: string | null;
   balance_transactions?: StripeBalanceTransactionLike[] | null;
@@ -268,6 +268,8 @@ export function readStripeDispute(
     locator: {
       stripePaymentIntentId: intentId,
       preorderBalancePaymentIntentId: intentId,
+      // A pay-link payment keeps its intent in `paymentId` alone.
+      paymentId: intentId,
     },
     currency,
     withdrawn: transactions ? (withdrawals > reinstatements ? amount : 0) : null,
@@ -707,7 +709,7 @@ export interface DisputeMoneyRow {
   exact?: boolean;
 }
 
-export interface DisputeSettlementPlan {
+interface DisputeSettlementPlan {
   /** Rows recorded under other ids that are this dispute's money. */
   adopt: string[];
   /** Taken and not recorded anywhere: a new chargeback row for this much. */
@@ -810,7 +812,7 @@ export function planDisputeSettlement(input: {
   return plan;
 }
 
-export interface DisputeNotice {
+interface DisputeNotice {
   title: string;
   message: string;
   /** The same notice is sent once, however many times the dispute is read. */

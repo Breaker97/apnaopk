@@ -71,8 +71,8 @@ export async function listPOSLocations(
     const rows = await InventoryLocation.find(
       // `$ne: false` and not `true`: rows written before the field existed carry
       // nothing, and a register that worked yesterday must not lose every
-      // counter waiting on a migration. `sellsAtCounter()` states the same rule
-      // for callers holding a loaded row.
+      // counter waiting on a migration. `resolvePOSLocationId` applies the same
+      // rule, so the register never scopes itself to a place this list hides.
       locationOwnerFilter(scope, {
         isActive: true,
         sellsAtCounter: { $ne: false },

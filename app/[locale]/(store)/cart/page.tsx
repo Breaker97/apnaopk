@@ -1,5 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
+import { RouteMessages } from "@/components/language/route-messages";
 import { StoreSections } from "@/components/store/store-sections";
 import { getTemplateSections } from "@/lib/storefront/pages/get-template";
 import type { SectionRenderContext } from "@/lib/storefront/sections/types";
@@ -35,5 +36,10 @@ export default async function CartPage({ params }: PageProps) {
     resource: { type: "cart" },
   };
 
-  return <StoreSections sections={template.sections} ctx={ctx} />;
+  // The bag's summary, estimator and coupon read `checkout` messages.
+  return (
+    <RouteMessages namespaces={["checkout"]}>
+      <StoreSections sections={template.sections} ctx={ctx} />
+    </RouteMessages>
+  );
 }

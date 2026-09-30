@@ -20,7 +20,7 @@
  * lib/products/stock-policy.ts exists for stock.
  */
 
-export type QuotePricingSource = {
+type QuotePricingSource = {
   priceOnRequest?: boolean | null;
   quoteButtonLabel?: string | null;
 };

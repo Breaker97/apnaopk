@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Clock3, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { apiClient, describeApiError } from "@/lib/api/client";
 
 /**
@@ -40,38 +41,31 @@ export function VendorPreorderAccessNotice(props: {
   };
 
   return (
-    <div className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
-      <span className="mt-0.5 text-amber-700 dark:text-amber-300">
-        {requested ? (
-          <Clock3 className="h-4 w-4" />
-        ) : (
-          <Lock className="h-4 w-4" />
-        )}
-      </span>
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-          {requested
-            ? "Your pre-order request is with the store"
-            : "This store reviews vendors before they can sell pre-orders"}
-        </p>
-        <p className="text-xs text-amber-800/90 dark:text-amber-200/80">
-          {requested
-            ? "You will be able to open pre-orders as soon as it is approved. Anything already selling is unaffected."
-            : `Once approved you can take deposits ahead of a release. Release dates can be up to ${props.maxLeadDays} days out, and deposits up to ${props.maxDepositPercent}% of the price.`}
-        </p>
-      </div>
-      {!requested ? (
-        // `type="button"`: this notice also sits inside the product editor's
-        // form, where a default-typed button would submit the product.
-        <Button
-          type="button"
-          size="sm"
-          disabled={isSubmitting}
-          onClick={() => void request()}
-        >
-          {isSubmitting ? "Sending..." : "Request access"}
-        </Button>
-      ) : null}
-    </div>
+    <WarningBanner
+      icon={requested ? Clock3 : Lock}
+      title={
+        requested
+          ? "Your pre-order request is with the store"
+          : "This store reviews vendors before they can sell pre-orders"
+      }
+      action={
+        !requested ? (
+          // `type="button"`: this notice also sits inside the product editor's
+          // form, where a default-typed button would submit the product.
+          <Button
+            type="button"
+            size="sm"
+            disabled={isSubmitting}
+            onClick={() => void request()}
+          >
+            {isSubmitting ? "Sending..." : "Request access"}
+          </Button>
+        ) : null
+      }
+    >
+      {requested
+        ? "You will be able to open pre-orders as soon as it is approved. Anything already selling is unaffected."
+        : `Once approved you can take deposits ahead of a release. Release dates can be up to ${props.maxLeadDays} days out, and deposits up to ${props.maxDepositPercent}% of the price.`}
+    </WarningBanner>
   );
 }

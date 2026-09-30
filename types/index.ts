@@ -7,12 +7,20 @@ import type {
   PaymentStatus,
   ProductStatus,
   VendorStatus,
+  MarketingChannel,
+  MarketingConsentSource,
+  MarketingConsentState,
+  MarketingOptInLevel,
 } from "@/config/app.config";
 import type { VendorPermission } from "@/config/permissions.config";
 import type { ShareSettings } from "@/lib/site-config/share-config";
 import type { VendorStoreVisibility } from "@/lib/vendors/vendor-address";
 import type { SocialProfile } from "@/lib/site-config/social-profiles";
 import type { VendorMessagingSettings } from "@/lib/notifications/vendor-messaging";
+import type {
+  ReturnTerms,
+  ReturnTermsSource,
+} from "@/lib/returns/return-policy";
 
 // ============================================
 // Common Types
@@ -145,6 +153,35 @@ interface EmailNotificationPreferences {
   backInStock: boolean;
 }
 
+/**
+ * One channel's marketing consent. Written only by
+ * `lib/customers/marketing-consent.ts`, which owns the state machine.
+ */
+export interface MarketingConsentRecord {
+  state: MarketingConsentState;
+  optInLevel?: MarketingOptInLevel;
+  consentUpdatedAt?: Date;
+  source?: MarketingConsentSource;
+  sourceOrderId?: string;
+  sourceCountry?: string;
+  ip?: string;
+  confirmedAt?: Date;
+}
+
+export interface SmsMarketingConsentRecord extends MarketingConsentRecord {
+  /** The number consented on, in E.164. */
+  phone?: string;
+}
+
+export interface MarketingConsentHistoryEntry {
+  channel: MarketingChannel;
+  state: MarketingConsentState;
+  optInLevel?: MarketingOptInLevel;
+  at: Date;
+  source?: MarketingConsentSource;
+  sourceOrderId?: string;
+}
+
 export interface CustomerStats {
   totalOrders: number;
   totalSpent: number;
@@ -163,6 +200,8 @@ export interface ICustomerProfile {
   /** Guest identity, present only until the row is claimed by a registration. */
   isGuest?: boolean;
   email?: string;
+  /** A guest who left a phone number and no email, in E.164. */
+  phone?: string;
   name?: string;
 
   // Loyalty & Rewards
@@ -178,7 +217,13 @@ export interface ICustomerProfile {
   sizePreferences?: Record<string, string>;
 
   // Marketing & Communication
+  /** Mirrors `emailMarketing.state === "subscribed"`, for readers older than it. */
   marketingOptIn: boolean;
+  emailMarketing?: MarketingConsentRecord;
+  smsMarketing?: SmsMarketingConsentRecord;
+  marketingConsentHistory?: MarketingConsentHistoryEntry[];
+  /** Token behind the unsubscribe link; absent until the shopper subscribes. */
+  unsubscribeToken?: string;
   emailNotifications: EmailNotificationPreferences;
   /** Covers order, pre-order and return texts. Absent on profiles saved before SMS. */
   smsNotifications?: { orderUpdates: boolean };
@@ -552,8 +597,7 @@ interface UnitPriceMeasurement {
 
 type MediaType = "image" | "video" | "model" | "external_video";
 
-const PRODUCT_MEDIA_FITS = ["auto", "contain", "cover"] as const;
-export type ProductMediaFit = (typeof PRODUCT_MEDIA_FITS)[number];
+export type ProductMediaFit = "auto" | "contain" | "cover";
 
 export interface ProductMedia {
   _id: string;
@@ -746,9 +790,11 @@ export interface IInventoryLocation {
    * The third capability, and the only one that can answer it: a collection
    * point admits the public but rings nothing up, a shop floor with collection
    * off still has a till, and `fulfillsOnlineOrders` defaults true so it says
-   * yes about almost every row. See `lib/locations/counter-location.ts`.
+   * yes about almost every row. See `lib/pos/list-locations.ts`.
    */
   sellsAtCounter?: boolean;
+  /** Returned parcels may be sent here — see lib/returns/return-destination.ts. */
+  acceptsReturns?: boolean;
   /**
    * Where this branch sits in the merchant's dispatch order. Lower goes first;
    * ties fall back to `isDefault` and then name.
@@ -847,7 +893,6 @@ export interface ProductVariant {
   price: number;
   comparePrice?: number;
   cost?: number;
-  taxable?: boolean;
   stock: number;
   attributes: ProductAttribute[];
   image?: string;
@@ -855,6 +900,11 @@ export interface ProductVariant {
   optionValues?: VariantOptionValue[];
   inventory?: ProductInventory;
   requiresShipping?: boolean;
+  /**
+   * This variant's own final-sale setting; absent follows the product (its
+   * mark and its collections) — see lib/returns/final-sale.ts.
+   */
+  finalSale?: boolean;
   weight?: number;
   weightUnit?: WeightUnit;
   /** Overrides the product's box only when all three axes are set. */
@@ -928,6 +978,12 @@ export interface IProduct {
   /** Derived on every write; never set by a caller. */
   search?: ProductSearchIndex;
   publishing?: ProductPublishing;
+  /** Final sale: the shopper cannot return it — see lib/returns/final-sale.ts. */
+  returns?: {
+    finalSale?: boolean;
+    /** Its own return window in days; absent, the store's applies. */
+    windowDays?: number;
+  };
   shipping?: {
     isPhysicalProduct?: boolean;
     weight?: number;
@@ -991,6 +1047,19 @@ export interface CartItem {
    */
   vendorId?: string;
   vendorName?: string;
+  /**
+   * The variant's options as captions — `[{ name: "Color", value: "White" }]`.
+   * Attached per line by the cart endpoints from the product, never stored:
+   * `variantName` keeps only the flat "White / M", and renaming an option
+   * should re-caption the lines already in the bag. See
+   * lib/cart/variant-options.ts.
+   */
+  variantOptions?: { name: string; value: string }[];
+  /**
+   * Sold as final sale: the shopper cannot return it. Attached per line by
+   * the cart endpoints, like the seller — see lib/returns/final-sale.ts.
+   */
+  finalSale?: boolean;
 }
 
 export interface ICart {
@@ -1086,6 +1155,18 @@ export interface OrderItem {
   preorderBatchName?: string;
   /** The quote whose offer priced this line, when it came from one. */
   quoteId?: Types.ObjectId;
+  /**
+   * Sold as final sale, so the shopper cannot return it. Copied from the
+   * product when the order was placed; absent on older orders, which stay
+   * returnable — see lib/returns/final-sale.ts.
+   */
+  finalSale?: boolean;
+  /**
+   * This line's own return window in days, when the product or one of its
+   * collections set one — the smallest that applied when the order was
+   * placed. Absent, the order's window applies (lib/returns/return-window.ts).
+   */
+  returnWindowDays?: number;
   customs?: {
     countryOfOrigin?: string;
     hsCode?: string;
@@ -1093,6 +1174,8 @@ export interface OrderItem {
     weight?: number;
     weightUnit?: WeightUnit;
   };
+  /** This line's share of the coupon's goods discount — see the Order model. */
+  couponDiscount?: number;
   // Per-line discount (applied before any order-level discount)
   lineDiscount?: {
     type: "percent" | "amount";
@@ -1207,8 +1290,27 @@ export interface SubOrder {
 export interface OrderLoyaltyState {
   pointsAwarded?: number;
   pointsReversed?: number;
+  /**
+   * What the customer spent per point when these were awarded — the store's
+   * rate at the time, which reversals keep to. Absent on orders awarded before
+   * stores had a rate; those earned one point per unit.
+   */
+  spendPerPoint?: number;
   awardedAt?: Date;
   lastReversedAt?: Date;
+}
+
+/** The return rules stored on an order — see lib/returns/return-policy.ts. */
+export interface OrderReturnTerms
+  extends Omit<ReturnTerms, "windowDays" | "windowStart"> {
+  /** Absent when the order was sold with no time limit. */
+  windowDays?: number;
+  /** Sold with no time limit — see `storedReturnTerms`. */
+  windowUnlimited?: boolean;
+  /** Absent on terms stored before it existed, which counted per parcel. */
+  windowStart?: ReturnTerms["windowStart"];
+  source?: ReturnTermsSource;
+  capturedAt?: Date;
 }
 
 export interface IOrder {
@@ -1243,10 +1345,40 @@ export interface IOrder {
    */
   refundedTotal?: number;
   /**
+   * Store credit that paid part or all of the order, and the credit given back
+   * on its refunds (R8) — see lib/store-credit/order-credit.ts.
+   */
+  storeCredit?: {
+    applied?: number;
+    holdKey?: string;
+    state?: "held" | "spent" | "released";
+    refunded?: number;
+  };
+  /**
+   * The return this order is the exchange for (R7): what the return was worth
+   * paid for it, as `storeCredit` with no hold behind it. `undoneAt` is set
+   * once the exchange was called off and the money went back to the return.
+   */
+  exchangeOf?: {
+    returnId: string;
+    returnNumber: string;
+    orderId: string;
+    orderNumber: string;
+    undoneAt?: Date;
+  };
+  /** Goods refunded in full, delivery kept — see the order model. */
+  goodsRefundedAt?: Date;
+  /**
    * Immutable award and cumulative reversal state for this order. Keeping it
    * alongside the financial record makes gateway retries idempotent.
    */
   loyalty?: OrderLoyaltyState;
+  /**
+   * The return rules this order was sold under — see `returnTermsForNewOrder`.
+   * Absent on orders placed before terms were stored, until the store first
+   * changes its rules.
+   */
+  returnTerms?: OrderReturnTerms;
   /** Short-lived claim serializing return-request creation for this order. */
   returnRequestLockAt?: Date;
   /** Short-lived claim serializing refund splits per order. */
@@ -1287,6 +1419,12 @@ export interface IOrder {
   paypalOrderId?: string;
   paypalCaptureId?: string;
   razorpayOrderId?: string;
+  /** The cart a gateway checkout came from — see the order model. */
+  checkoutCartId?: string;
+  /** The checkout attempt this order was promoted from — see the order model. */
+  checkoutAttemptId?: string;
+  checkoutFingerprint?: string;
+  gatewayCheckoutUrl?: string;
   razorpayPaymentId?: string;
   paystackReference?: string;
   paystackTransactionId?: string;
@@ -1302,6 +1440,9 @@ export interface IOrder {
   mtnMomoReferenceId?: string;
   mtnMomoTransactionId?: string;
   mtnMomoPhone?: string;
+  paymentReconcileCheckedAt?: Date;
+  paymentReconcileClosedAt?: Date;
+  paymentCustody?: "platform";
   subtotal: number;
   shippingCost: number;
   shippingMethod?: OrderShippingMethod;
@@ -1345,12 +1486,23 @@ export interface IOrder {
   preorderCustomerNotifiedAt?: Date;
   preorderBalancePaymentIntentId?: string;
   preorderBalancePaidAt?: Date;
+  /** The balance that actually arrived — see the order model. */
+  preorderBalancePaidAmount?: number;
+  /** When the auto-release sweep last passed this reservation over. */
+  preorderAutoReleaseCheckedAt?: Date;
   /** The gateway's cut of the balance payment alone. */
   preorderBalancePaymentFee?: number;
+  /**
+   * Which account a hand-recorded balance landed in — see the order model.
+   * Absent on a gateway balance, which lands wherever the charge did.
+   */
+  preorderBalancePaidFrom?: "bank" | "cash" | "gateway";
   /** When the order's payment was first recorded. */
   paidAt?: Date;
   /** The PayPal order raised to collect the balance — see the order model. */
   preorderBalancePaypalOrderId?: string;
+  /** The PayPal order raised from a "pay now" link — see the order model. */
+  payLinkPaypalOrderId?: string;
   /** When the balance was asked for — the expiry clock. See the order model. */
   preorderBalanceRequestedAt?: Date;
   /** Dunning state for the card on file — see the order model. */
@@ -1373,6 +1525,10 @@ export interface IOrder {
   statusChangedBy?: string;
   /** Last auto-ship sweep pass; bounds the sweep's scan. */
   autoShipCheckedAt?: Date;
+  /** Shipping paused on an undeliverable address; see address-hold-policy. */
+  addressHold?: import("@/lib/orders/address-hold-policy").AddressHold;
+  /** The last post-checkout address check, keyed by the address it read. */
+  addressCheck?: { key?: string; checkedAt?: Date; verdict?: "valid" | "invalid" | "unknown" };
   /** Staff-only internal notes. */
   notes?: string;
   /** The note the shopper left at checkout (checkout settings `orderNote`). */

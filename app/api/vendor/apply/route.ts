@@ -1,4 +1,5 @@
 import { connectDB } from "@/lib/db";
+import { resolveClientIp } from "@/lib/api/client-ip";
 import { User, Vendor, VendorApplication, VendorSubscription } from "@/models";
 import { NextRequest } from "next/server";
 import {
@@ -301,10 +302,7 @@ export async function POST(request: NextRequest) {
     application.submittedAt = new Date();
     application.termsAcceptedAt = new Date();
     application.termsVersion = VENDOR_SUBSCRIPTION_TERMS_VERSION;
-    application.termsAcceptedIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      null;
+    application.termsAcceptedIp = resolveClientIp(request.headers);
     application.termsAcceptedUserAgent =
       request.headers.get("user-agent") || null;
     application.paymentDueAt = null;

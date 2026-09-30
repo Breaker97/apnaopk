@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.TAX_PAYABLE]: "Tax collected",
   [LEDGER_ACCOUNT.DUTY_PAYABLE]: "Duty collected",
   [LEDGER_ACCOUNT.ACCOUNTS_PAYABLE]: "Unpaid bills",
+  [LEDGER_ACCOUNT.STORE_CREDIT_PAYABLE]: "Store credit held by shoppers",
   [LEDGER_ACCOUNT.PRODUCT_REVENUE]: "Product sales",
   [LEDGER_ACCOUNT.COMMISSION_INCOME]: "Commission",
   [LEDGER_ACCOUNT.SHIPPING_INCOME]: "Shipping charged",
@@ -56,13 +57,13 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.PROCESSING_FEES]: "Payment fees",
   [LEDGER_ACCOUNT.SHIPPING_COST]: "Shipping labels",
   [LEDGER_ACCOUNT.COST_OF_GOODS]: "Cost of goods",
-  [LEDGER_ACCOUNT.PROMOTIONS]: "Store-funded discounts",
+  [LEDGER_ACCOUNT.PROMOTIONS]: "Store-funded discounts and credit",
   [LEDGER_ACCOUNT.CHARGEBACK_LOSSES]: "Chargeback losses",
   [LEDGER_ACCOUNT.OPERATING_EXPENSE]: "Operating expenses",
 };
 
 /**
- * The two shapes this is actually opened for, offered as presets.
+ * The shapes this is actually opened for, offered as presets.
  *
  * A blank pair of account pickers is a correct journal-entry form and a useless
  * one: the person reaching for this has a specific balance that is wrong, and
@@ -86,6 +87,13 @@ const PRESETS = {
   "write-off-vendor-payable": {
     debit: LEDGER_ACCOUNT.OPERATING_EXPENSE,
     credit: LEDGER_ACCOUNT.VENDOR_PAYABLE,
+  },
+  // Nothing else ever takes tax the store collected off the books: it is owed
+  // onward until somebody records paying it, so without this the overview's
+  // "Tax collected" only ever grew.
+  "tax-paid": {
+    debit: LEDGER_ACCOUNT.TAX_PAYABLE,
+    credit: LEDGER_ACCOUNT.CASH_BANK,
   },
 } as const;
 
@@ -353,6 +361,12 @@ export function AdjustmentDialog({
                     {label(
                       "finance.adjustments.bankToGateway",
                       "The bank funded the gateway",
+                    )}
+                  </SelectItem>
+                  <SelectItem value="tax-paid">
+                    {label(
+                      "finance.adjustments.taxPaid",
+                      "Collected tax was paid to the tax authority",
                     )}
                   </SelectItem>
                   <SelectItem value="write-off-vendor-payable">

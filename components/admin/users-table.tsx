@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import {
@@ -361,6 +362,12 @@ export function AdminUsersTable({
                         >
                           Copy Email
                         </DropdownMenuItem>
+                        {/* Shoppers and sellers only: an administrator or a
+                            team member is changed on the Team page, where the
+                            owner and last-administrator rules are kept (the
+                            route refuses it here). */}
+                        {user.role === USER_ROLES.CUSTOMER ||
+                        user.role === USER_ROLES.VENDOR ? (
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
                             <Shield className="mr-2 h-4 w-4" />
@@ -381,12 +388,10 @@ export function AdminUsersTable({
                               <DropdownMenuRadioItem value={USER_ROLES.VENDOR}>
                                 Vendor
                               </DropdownMenuRadioItem>
-                              <DropdownMenuRadioItem value={USER_ROLES.ADMIN}>
-                                Admin
-                              </DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        ) : null}
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
                             <UserIcon className="mr-2 h-4 w-4" />

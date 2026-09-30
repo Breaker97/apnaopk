@@ -59,6 +59,7 @@ export function VariantsManager({
   defaultRequiresShipping = true,
   defaultWeightUnit = "kg",
   preorderLockedReason = null,
+  preordersOff = false,
 }: VariantsManagerProps) {
   const { variants: globalVariants } = useGlobalVariants();
   const isMultiLocation = locations.length > 1;
@@ -506,6 +507,7 @@ export function VariantsManager({
             defaultRequiresShipping={defaultRequiresShipping}
             defaultWeightUnit={defaultWeightUnit}
             preorderLockedReason={preorderLockedReason}
+            preordersOff={preordersOff}
           />
         </>
       )}

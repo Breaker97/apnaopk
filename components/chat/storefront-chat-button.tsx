@@ -1,23 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { buildLoginUrl } from "@/lib/auth/return-path";
 import { getRoleDashboardPath } from "@/lib/access/role-dashboard";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+
+/**
+ * The guest's sign-in prompt. Only a guest who presses the button ever sees
+ * it, so it is fetched when their pointer or focus reaches the button and
+ * mounted on the first press — the pages the button sits on do not carry the
+ * dialog. Client-only, so it waits for its chunk in a boundary of its own.
+ */
+const StorefrontChatSignInDialog = dynamic(
+  () =>
+    import("./storefront-chat-sign-in-dialog").then(
+      (module) => module.StorefrontChatSignInDialog,
+    ),
+  { ssr: false },
+);
+const preloadSignInDialog = () => {
+  // A failed download is retried by the `dynamic()` when it renders.
+  void import("./storefront-chat-sign-in-dialog").catch(() => undefined);
+};
 
 interface StorefrontChatButtonProps {
   locale: string;
@@ -65,10 +75,14 @@ export function StorefrontChatButton({
 }: StorefrontChatButtonProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const t = useTranslations("chat");
-  const tr = useFallbackTranslator(t);
-  const resolvedLabel = label || tr("chatWithVendor", "Chat with vendor");
+  // By its full key: storefront pages carry a few `chat` strings, not the
+  // namespace (lib/i18n/surface-messages.ts).
+  const t = useTranslations();
+  const tf = useFallbackTranslator(t);
+  const resolvedLabel = label || tf("chat.chatWithVendor", "Chat with vendor");
   const [signInPromptOpen, setSignInPromptOpen] = useState(false);
+  const [signInPromptUsed, setSignInPromptUsed] = useState(false);
+  const isGuest = !isLoading && !user;
 
   // The inbox lives in the customer-only account area; staff-side roles
   // (admin/vendor/staff) would only bounce off its guard, so they get no
@@ -95,7 +109,8 @@ export function StorefrontChatButton({
     // resolving we navigate anyway: the inbox is a server component and
     // redirects to login with this same URL as `redirect`, so an unresolved
     // session degrades into the identical flow instead of a dead button.
-    if (!isLoading && !user) {
+    if (isGuest) {
+      setSignInPromptUsed(true);
       setSignInPromptOpen(true);
       return;
     }
@@ -109,6 +124,8 @@ export function StorefrontChatButton({
         variant={variant}
         size={compact ? "icon" : "sm"}
         onClick={openChat}
+        onPointerEnter={isGuest ? preloadSignInDialog : undefined}
+        onFocus={isGuest ? preloadSignInDialog : undefined}
         aria-label={compact ? resolvedLabel : undefined}
         className={cn(
           compact ? "size-9 rounded-full" : "h-9 rounded-sm",
@@ -120,39 +137,15 @@ export function StorefrontChatButton({
         {compact ? null : resolvedLabel}
       </Button>
 
-      <Dialog open={signInPromptOpen} onOpenChange={setSignInPromptOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {tr("signInToChatTitle", "Sign in to start chatting")}
-            </DialogTitle>
-            <DialogDescription>
-              {tr(
-                "signInToChatDescription",
-                "Your conversation with the store is kept in your account inbox, so you can pick it up any time and never lose a reply.",
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-            {product ? `${vendorName} · ${product.name}` : vendorName}
-          </p>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSignInPromptOpen(false)}
-            >
-              {tr("cancel", "Cancel")}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => router.push(buildLoginUrl(locale, inboxUrl))}
-            >
-              {tr("signIn", "Sign in")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {signInPromptUsed ? (
+        <StorefrontChatSignInDialog
+          open={signInPromptOpen}
+          onOpenChange={setSignInPromptOpen}
+          locale={locale}
+          inboxUrl={inboxUrl}
+          context={product ? `${vendorName} · ${product.name}` : vendorName}
+        />
+      ) : null}
     </>
   );
 }

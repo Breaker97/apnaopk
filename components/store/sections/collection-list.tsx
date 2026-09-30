@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { Layers } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { AppImage } from "@/components/ui/app-image";
@@ -39,7 +39,7 @@ export async function CollectionList({
             return (
             <Link
               key={String(collection._id)}
-              href={`/${locale}/collections/${collection.slug}`}
+              href={`/collections/${collection.slug}`}
               className="group overflow-hidden rounded-md border border-border/70 bg-card transition-shadow hover:shadow-md"
             >
               <div className="relative aspect-[4/3] bg-muted">

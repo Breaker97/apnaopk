@@ -63,7 +63,8 @@ export type ProductFormOptions = {
     deferredBalanceSupported: boolean;
     /**
      * Whether this vendor may open a pre-order at all. Vendor editor only —
-     * the admin editor is never gated, so it leaves this out.
+     * the admin editor has no approval gate, and the store-wide switch reaches
+     * every editor from its page (`productFeatures`), so it leaves this out.
      */
     access?: VendorPreorderAccess;
   };

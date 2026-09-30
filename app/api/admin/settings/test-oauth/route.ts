@@ -30,7 +30,7 @@ import {
   resolveAuthBaseUrl,
   type OAuthProviderId,
 } from "@/lib/auth/oauth-callback";
-import { z } from "zod";
+import * as z from "zod";
 
 /** A provider that is slow to answer must not hold an admin request open. */
 const TIMEOUT_MS = 10_000;

@@ -1,6 +1,7 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { CalendarClock, CreditCard, PackageCheck } from "lucide-react";
 import { type Locale } from "@/config/i18n.config";
 import { resolveRequestLocation } from "@/lib/locations/resolve-request-location";
@@ -55,6 +56,7 @@ export default async function PreOrderPage({
   const { locale } = await params;
   const search = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const page = typeof search.page === "string" ? parseInt(search.page) : 1;
   const sort: SortId =
@@ -119,6 +121,7 @@ export default async function PreOrderPage({
       <StoreBreadcrumb
         className="mb-4"
         locale={locale}
+        storeDefault={storeDefault}
         items={[{ label: t("preorderPage.metaTitle") }]}
       />
 
@@ -143,7 +146,7 @@ export default async function PreOrderPage({
           </ul>
         </div>
         <Link
-          href={`/${locale}/account/orders/pre-orders`}
+          href="/account/orders/pre-orders"
           data-slot="button"
           className="inline-flex items-center whitespace-nowrap border border-primary/15 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
         >
@@ -163,7 +166,7 @@ export default async function PreOrderPage({
             {t("preorderPage.emptyDescription")}
           </p>
           <Button asChild className="mt-2">
-            <Link href={`/${locale}/products`}>
+            <Link href="/products">
               {t("preorderPage.browseAll")}
             </Link>
           </Button>

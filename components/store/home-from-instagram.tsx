@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { AppImage } from "@/components/ui/app-image";
 import { ScrollRail } from "@/components/store/scroll-rail";
 import { ImageOff } from "lucide-react";

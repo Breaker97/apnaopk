@@ -8,6 +8,7 @@ import { getPlatformMessagingSettings } from "@/lib/notifications/platform-messa
 import { sanitizeDigitalAssetsForStorefront } from "@/lib/products/digital-assets";
 import { stripLocationInventory } from "@/lib/inventory/pickup-branch-stock";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { STOREFRONT_PRODUCT_SELECT } from "@/lib/products/storefront-private-fields";
 
 async function loadStorefrontProductBySlug(slug: string) {
   await connectDB();
@@ -17,10 +18,10 @@ async function loadStorefrontProductBySlug(slug: string) {
     status: PRODUCT_STATUS.ACTIVE,
     ...(await getStorefrontProductConstraint()),
   })
-    // The derived search block never reaches the page: it is a few KB of
-    // index data per product, and this document is serialized into the
-    // RSC payload of every product page.
-    .select("-search")
+    // This document is serialized into the RSC payload of every product
+    // page and answers GET /api/products/[slug]: nothing the store keeps for
+    // itself — cost, the search index — may ride along.
+    .select(STOREFRONT_PRODUCT_SELECT)
     .populate(
       "vendorId",
       "storeName slug logo description rating messaging isDefault",

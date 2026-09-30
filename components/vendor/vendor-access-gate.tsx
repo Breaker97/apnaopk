@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   ArrowUpRight,
@@ -302,7 +302,7 @@ export function VendorAccessGate({
             <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
               {copy.showUpgrade ? (
                 <Button asChild>
-                  <Link href={`/${locale}/vendor/billing`}>
+                  <Link href="/vendor/billing">
                     {t("actions.comparePlans")}
                     <ArrowUpRight className="size-4" />
                   </Link>
@@ -330,7 +330,7 @@ export function VendorAccessGate({
               ) : null}
 
               <Button asChild variant="outline">
-                <Link href={`/${locale}/vendor/dashboard`}>
+                <Link href="/vendor/dashboard">
                   {t("actions.backToDashboard")}
                 </Link>
               </Button>

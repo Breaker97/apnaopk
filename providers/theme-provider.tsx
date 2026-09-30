@@ -25,7 +25,7 @@ import {
  */
 export type Theme = ThemeMode;
 
-export const THEME_STORAGE_KEY = "minimart-theme";
+const THEME_STORAGE_KEY = "minimart-theme";
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -38,6 +38,8 @@ interface ThemeProviderProps {
 interface ThemeProviderState {
   theme: Theme;
   setTheme: (theme: Theme | ((theme: Theme) => Theme)) => void;
+  /** Forget this browser's choice, so the store's default applies again. */
+  clearTheme: () => void;
   resolvedTheme: Theme;
   themes: readonly Theme[];
 }
@@ -47,6 +49,7 @@ const THEME_CHANGE_EVENT = "minimart-theme-change";
 const ThemeContext = createContext<ThemeProviderState>({
   theme: DEFAULT_THEME_MODE,
   setTheme: () => undefined,
+  clearTheme: () => undefined,
   resolvedTheme: DEFAULT_THEME_MODE,
   themes: THEME_MODES,
 });
@@ -88,17 +91,23 @@ function applyTheme(
 ) {
   const root = document.documentElement;
 
+  // Every write below re-styles the whole page, even one that changes nothing,
+  // and this runs during hydration — so each is made only when needed.
   if (attribute === "class") {
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-  } else {
+    for (const mode of THEME_MODES) {
+      if (mode !== theme && root.classList.contains(mode)) root.classList.remove(mode);
+    }
+    if (!root.classList.contains(theme)) root.classList.add(theme);
+  } else if (root.getAttribute(attribute) !== theme) {
     root.setAttribute(attribute, theme);
   }
 
   if (enableColorScheme) {
     // Overrides the `color-scheme: light` <meta> from the root layout viewport
     // so native widgets (scrollbars, form controls) match a chosen dark theme.
-    root.style.colorScheme = theme;
+    // Light is what the <meta> already says, so it needs no inline value.
+    const colorScheme = theme === "dark" ? "dark" : "";
+    if (root.style.colorScheme !== colorScheme) root.style.colorScheme = colorScheme;
   }
 }
 
@@ -165,6 +174,15 @@ export function ThemeProvider({
     [defaultTheme, storageKey],
   );
 
+  const clearTheme = useCallback(() => {
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // Ignore storage failures in private browsing or restricted contexts.
+    }
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+  }, [storageKey]);
+
   useEffect(() => {
     purgeLegacyStoredTheme(storageKey);
   }, [storageKey]);
@@ -177,12 +195,13 @@ export function ThemeProvider({
     () => ({
       theme,
       setTheme,
+      clearTheme,
       // Kept as a distinct field so callers reading `resolvedTheme` keep
       // working; with no system mode it is always the selected theme.
       resolvedTheme: theme,
       themes: THEME_MODES,
     }),
-    [setTheme, theme],
+    [clearTheme, setTheme, theme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

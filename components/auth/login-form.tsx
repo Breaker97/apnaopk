@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useLocaleHref } from "@/hooks/use-locale-navigation";
+import Link from "@/components/language/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,11 +35,6 @@ import {
   type Translate,
 } from "@/lib/auth/auth-error-message";
 import { FacebookIcon, GoogleIcon } from "@/components/auth/oauth-icons";
-import {
-  DEMO_ACCOUNTS,
-  DEMO_LOGIN_ORDER,
-  DEMO_ROLE_LABELS,
-} from "@/config/demo-credentials";
 
 /**
  * Sign-in, minus any chrome. The /login page wraps these in its card layout and
@@ -53,22 +49,17 @@ export interface OAuthEnabled {
 }
 
 /**
- * Shown only when the deployment runs with DEMO_MODE enabled — these are the
- * accounts `pnpm db:seed` and `pnpm db:seed:users` create, so on a real store
- * the card would be handing every visitor a working admin login.
- *
- * Derived from `config/demo-credentials.ts` rather than written out here: the
- * copy that used to live in this file drifted from the seeders, and the card
- * offered a quick login for an account that did not exist.
+ * One row of the demo quick-login card. The list itself comes from the server
+ * (`demoLoginCredentials`), and only on a DEMO_MODE deployment: imported here,
+ * it sat in every visitor's JavaScript — a working admin login on any store
+ * seeded with the demo accounts, demo mode or not.
  */
-export const demoCredentials = DEMO_LOGIN_ORDER.map((role) => ({
-  role,
-  label: DEMO_ROLE_LABELS[role],
-  email: DEMO_ACCOUNTS[role].email,
-  password: DEMO_ACCOUNTS[role].password,
-}));
-
-type DemoCredential = (typeof demoCredentials)[number];
+export interface DemoCredential {
+  role: string;
+  label: string;
+  email: string;
+  password: string;
+}
 
 interface UseLoginFormOptions {
   locale: string;
@@ -177,7 +168,7 @@ export function useLoginForm({
         if (result.error.code === "EMAIL_NOT_VERIFIED") {
           onSuccess?.();
           router.push(
-            `/${locale}/verify-email?email=${encodeURIComponent(data.email)}`,
+            `/verify-email?email=${encodeURIComponent(data.email)}`,
           );
           return;
         }
@@ -224,10 +215,13 @@ export function useLoginForm({
     }
   };
 
+  const localeHref = useLocaleHref();
   const oauthCallbackUrl = () =>
-    `/${locale}/role-redirect${
-      redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""
-    }`;
+    localeHref(
+      `/${locale}/role-redirect${
+        redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""
+      }`,
+    );
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -238,7 +232,7 @@ export function useLoginForm({
       await signInWithGoogle({
         callbackURL,
         newUserCallbackURL: callbackURL,
-        errorCallbackURL: `/${locale}/login`,
+        errorCallbackURL: localeHref(`/${locale}/login`),
       });
       // OAuth redirects automatically
     } catch {
@@ -256,7 +250,7 @@ export function useLoginForm({
       await signInWithFacebook({
         callbackURL,
         newUserCallbackURL: callbackURL,
-        errorCallbackURL: `/${locale}/login`,
+        errorCallbackURL: localeHref(`/${locale}/login`),
       });
       // OAuth redirects automatically
     } catch {
@@ -277,7 +271,14 @@ export function useLoginForm({
         trustDevice,
       });
       if (verifyResult.error) {
-        setError(verifyResult.error.message || "Invalid 2FA code");
+        setError(
+          verifyResult.error.status === 429
+            ? describeAuthError(
+                verifyResult.error as unknown as AuthErrorPayload,
+                t as unknown as Translate,
+              )
+            : verifyResult.error.message || "Invalid 2FA code",
+        );
         return;
       }
 
@@ -587,10 +588,16 @@ export function TwoFactorFields({
  * The demo account rows. Chrome-free — /login frames them in a card beside the
  * form, the account drawer stacks them under it.
  */
-export function DemoCredentialsList({ state }: { state: LoginFormState }) {
+export function DemoCredentialsList({
+  state,
+  credentials,
+}: {
+  state: LoginFormState;
+  credentials: DemoCredential[];
+}) {
   return (
     <div className="grid gap-2">
-      {demoCredentials.map((item) => {
+      {credentials.map((item) => {
         const isActive = state.activeDemoRole === item.role;
         return (
           <div

@@ -13,7 +13,7 @@
  * build its "View" link in the browser.
  */
 
-import { z } from "zod";
+import * as z from "zod";
 
 export const VENDOR_DOCUMENT_KEY_PREFIX = "vendor-documents/";
 

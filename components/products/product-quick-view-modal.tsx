@@ -1,8 +1,9 @@
 "use client";
 
+import { productRequiresVariantSelection } from "@/lib/products/variant-selection";
 import { useState, useCallback, useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   Heart,
@@ -21,11 +22,12 @@ import { AppImage } from "@/components/ui/app-image";
 import { ExternalVideoPlayer } from "@/components/products/external-video-player";
 import { ModelViewer } from "@/components/ui/model-viewer";
 import { useCurrency } from "@/providers/currency-provider";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useAuth } from "@/hooks/use-auth";
 import { useMultiVendorMode } from "@/providers/app-settings-provider";
 import { toast } from "@/components/ui/toast-notification";
+import { refusalMessage } from "@/lib/api/client";
 import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
 import { buildLoginUrl, currentBrowserPath } from "@/lib/auth/return-path";
@@ -42,6 +44,12 @@ import {
 import { trackAddToCart } from "@/lib/analytics/events";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { NumberInput } from "@/components/ui/number-input";
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
+import { useQuickViewProduct } from "@/components/products/quick-view-product";
+import {
+  getProductCompareAtPrice,
+  getProductPriceRange,
+} from "@/lib/products/price-display";
 
 // ============================================
 // Types
@@ -252,13 +260,7 @@ function isPreorderOpen(preorder?: ProductPreorder) {
 }
 
 function formatPreorderDate(value?: ProductPreorder["releaseDate"]) {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(date);
+  return formatPreorderReleaseDate(value, { year: "auto" });
 }
 
 function calculatePreorderDueNow(params: {
@@ -284,6 +286,20 @@ function calculatePreorderDueNow(params: {
 // Props
 // ============================================
 
+/** Stands where the option picker will be while the full product loads. */
+function OptionsPlaceholder() {
+  return (
+    <div aria-busy="true" className="mt-3 space-y-2 border-t pt-2.5">
+      <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+      <div className="flex gap-2">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="h-8 w-14 animate-pulse rounded-full bg-muted" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface ProductQuickViewModalProps {
   product: ModernProduct | null;
   locale: Locale;
@@ -296,15 +312,18 @@ interface ProductQuickViewModalProps {
 // ============================================
 
 export function ProductQuickViewModal({
-  product,
+  product: cardProduct,
   locale,
   open,
   onClose,
 }: ProductQuickViewModalProps) {
+  // A card carries no option values or gallery; the full product follows the
+  // card in (components/products/quick-view-product.ts).
+  const { product, complete: detailLoaded } = useQuickViewProduct(cardProduct);
   const t = useTranslations();
   const router = useRouter();
   const { currency, formatPrice } = useCurrency();
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
   const { isMultiVendor } = useMultiVendorMode();
@@ -386,8 +405,44 @@ export function ProductQuickViewModal({
   const options = (product.options || []) as ProductOption[];
   const variants = product.variants as ProductVariant[] | undefined;
 
-  // Find current variant based on selections
-  const currentVariant = findVariant(variants, selectedOptions);
+  // Find current variant based on selections. `findVariant` matches on the
+  // options answered SO FAR, so a half-filled selection would resolve to the
+  // first variant wearing that one value — a different colour, size or price
+  // than the shopper is looking at. It counts only once every option is in.
+  const allOptionsChosen = options.every(
+    (option) => selectedOptions[option.name],
+  );
+  // The same rule the card and the product page read: a product that asks
+  // nothing is sold as its single variant, and one that asks but has no
+  // options to ask with is answered by nobody.
+  const currentVariant = !productRequiresVariantSelection(product)
+    ? variants?.[0]
+    : options.length > 0 && allOptionsChosen
+      ? findVariant(variants, selectedOptions)
+      : undefined;
+  /**
+   * Same rule as the product page: a product with variants cannot be bought
+   * until one is picked — the cart API rejects it, and the shopper would only
+   * see a generic error for a choice the modal never asked them to make.
+   */
+  const awaitingVariantChoice = Boolean(variants?.length) && !currentVariant;
+  // Until the full product is in, there is nothing to choose from: the picker
+  // shows a placeholder and the buy buttons wait (awaitingVariantChoice).
+  const optionsPending =
+    !detailLoaded && productRequiresVariantSelection(product);
+  const unansweredOptions = options.filter(
+    (option) => !selectedOptions[option.name],
+  );
+  const variantChoicePrompt = !awaitingVariantChoice || optionsPending
+    ? null
+    : unansweredOptions.length > 0
+      ? tf("product.selectOptionsFirst", "Please select {options}", {
+          options: unansweredOptions.map((option) => option.name).join(", "),
+        })
+      : tf(
+          "product.variantUnavailable",
+          "That combination is not available — please pick another.",
+        );
 
   const media = (product as unknown as { media?: ProductMedia[] }).media;
   const currentMedia = getCurrentMedia({
@@ -402,8 +457,14 @@ export function ProductQuickViewModal({
       : currentMedia?.thumbnailUrl || images[0];
 
   // Get current price and stock
-  const currentPrice = currentVariant?.price ?? product.price;
-  const currentComparePrice = currentVariant?.comparePrice ?? product.comparePrice;
+  // With no variant picked the modal shows what the card behind it shows: the
+  // cheapest variant's price with the compare-at that belongs to it, never the
+  // top of the compare-at range against the bottom of the price range.
+  const currentPrice =
+    currentVariant?.price ?? getProductPriceRange(product).min;
+  const currentComparePrice = currentVariant
+    ? currentVariant.comparePrice
+    : (getProductCompareAtPrice(product) ?? undefined);
   const currentStock = currentVariant?.stock ?? product.stock;
   // Digital / untracked products aren't limited by `stock` — same rule as the
   // full product page and the cart guard.
@@ -449,7 +510,7 @@ export function ProductQuickViewModal({
   );
   const openQuoteOnProductPage = () => {
     onClose();
-    router.push(`/${locale}/products/${product.slug}`);
+    router.push(`/products/${product.slug}`);
   };
 
   // Calculate discount percentage
@@ -482,6 +543,13 @@ export function ProductQuickViewModal({
 
   const handleAddToCart = async () => {
     if (isUnavailable || isAddingToCart) return;
+    // The buttons are disabled for this, but the guard belongs with the action:
+    // the cart API refuses a variant product with no variant, and the shopper
+    // would get "something went wrong" for a question nobody asked them.
+    if (awaitingVariantChoice) {
+      if (variantChoicePrompt) toast.error(variantChoicePrompt);
+      return;
+    }
 
     setIsAddingToCart(true);
     try {
@@ -509,8 +577,8 @@ export function ProductQuickViewModal({
       });
       toast.success(t("cart.itemAdded"));
       onClose();
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(refusalMessage(error) ?? t("common.error"));
     } finally {
       setIsAddingToCart(false);
     }
@@ -518,6 +586,10 @@ export function ProductQuickViewModal({
 
   const handleBuyNow = async () => {
     if (isUnavailable || isBuyingNow) return;
+    if (awaitingVariantChoice) {
+      if (variantChoicePrompt) toast.error(variantChoicePrompt);
+      return;
+    }
 
     setIsBuyingNow(true);
     try {
@@ -544,9 +616,9 @@ export function ProductQuickViewModal({
         ],
       });
       onClose();
-      router.push(`/${locale}/checkout`);
-    } catch {
-      toast.error(t("common.error"));
+      router.push("/checkout");
+    } catch (error) {
+      toast.error(refusalMessage(error) ?? t("common.error"));
     } finally {
       setIsBuyingNow(false);
     }
@@ -642,7 +714,7 @@ export function ProductQuickViewModal({
             cropped. Tapping it opens the product page. */}
         <div className="relative mt-2">
           <Link
-            href={`/${locale}/products/${product.slug}`}
+            href={`/products/${product.slug}`}
             onClick={onClose}
             className="relative block h-48 w-full bg-muted/30"
           >
@@ -721,7 +793,8 @@ export function ProductQuickViewModal({
 
           {/* Options — the caption carries the selected value so the swatches
               can stay label-free. */}
-          {options.map((option) => {
+          {optionsPending ? <OptionsPlaceholder /> : null}
+          {!optionsPending && options.map((option) => {
             const selectedValue = selectedOptions[option.name];
             return (
               <div key={option.name} className="mt-3 border-t pt-2.5">
@@ -809,7 +882,7 @@ export function ProductQuickViewModal({
                 <span>Due today {formatPrice(preorderTerms.dueNow)}</span>
                 <span>Later {formatPrice(preorderTerms.dueLater)}</span>
                 {/* "Due today" covers the item alone — checkout still charges
-                    shipping and tax. See the note in product-details. */}
+                    shipping and tax. See the note in product-purchase-rows.tsx. */}
                 {preorderTerms.dueLater > 0 ? (
                   <span className="col-span-2 opacity-80">
                     {tf(
@@ -830,6 +903,20 @@ export function ProductQuickViewModal({
             </p>
           )}
 
+          {variantChoicePrompt ? (
+            <p
+              role="status"
+              className={cn(
+                "mt-3 text-xs font-medium",
+                unansweredOptions.length > 0
+                  ? "text-muted-foreground"
+                  : "text-orange-600 dark:text-orange-400",
+              )}
+            >
+              {variantChoicePrompt}
+            </p>
+          ) : null}
+
           {/* One decision row: both CTAs filled, Buy Now as the primary. */}
           <div className="mt-3 flex gap-2.5">
             {quoteOnly ? (
@@ -844,7 +931,7 @@ export function ProductQuickViewModal({
               <>
             <button
               onClick={handleAddToCart}
-              disabled={isUnavailable || isAddingToCart}
+              disabled={awaitingVariantChoice || isUnavailable || isAddingToCart}
               data-slot="button"
               className={cn(
                 "flex h-9 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-all",
@@ -866,7 +953,7 @@ export function ProductQuickViewModal({
             </button>
             <button
               onClick={handleBuyNow}
-              disabled={isUnavailable || isBuyingNow}
+              disabled={awaitingVariantChoice || isUnavailable || isBuyingNow}
               data-slot="button"
               className={cn(
                 "flex h-9 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-all",
@@ -889,7 +976,7 @@ export function ProductQuickViewModal({
           </div>
 
           <Link
-            href={`/${locale}/products/${product.slug}`}
+            href={`/products/${product.slug}`}
             onClick={onClose}
             className="mt-2.5 flex items-center justify-center gap-0.5 text-xs font-medium text-primary hover:underline"
           >
@@ -1041,7 +1128,24 @@ export function ProductQuickViewModal({
 
             {/* Product Options */}
             <div className="flex-1">
-              {options.map((option) => renderOption(option))}
+              {optionsPending ? (
+                <OptionsPlaceholder />
+              ) : (
+                options.map((option) => renderOption(option))
+              )}
+              {variantChoicePrompt ? (
+                <p
+                  role="status"
+                  className={cn(
+                    "mt-2 text-xs font-medium",
+                    unansweredOptions.length > 0
+                      ? "text-muted-foreground"
+                      : "text-orange-600 dark:text-orange-400",
+                  )}
+                >
+                  {variantChoicePrompt}
+                </p>
+              ) : null}
             </div>
 
             {/* Quantity and Actions */}
@@ -1096,7 +1200,9 @@ export function ProductQuickViewModal({
                 {/* Add to Cart Button */}
                 <button
                   onClick={handleAddToCart}
-                  disabled={isUnavailable || isAddingToCart}
+                  disabled={
+                    awaitingVariantChoice || isUnavailable || isAddingToCart
+                  }
                   data-slot="button"
                   className={cn(
                     "flex h-8 flex-1 items-center justify-center gap-1.5 px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
@@ -1121,7 +1227,7 @@ export function ProductQuickViewModal({
               {/* Second Row: Buy Now Button */}
               <button
                 onClick={handleBuyNow}
-                disabled={isUnavailable || isBuyingNow}
+                disabled={awaitingVariantChoice || isUnavailable || isBuyingNow}
                 data-slot="button"
                 className={cn(
                   "flex h-8 w-full items-center justify-center gap-1.5 px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
@@ -1187,7 +1293,7 @@ export function ProductQuickViewModal({
 
               {/* View Full Details Link */}
               <Link
-                href={`/${locale}/products/${product.slug}`}
+                href={`/products/${product.slug}`}
                 onClick={onClose}
                 className="block pt-0.5 text-center text-[11px] text-primary hover:underline sm:pt-1 sm:text-sm"
               >

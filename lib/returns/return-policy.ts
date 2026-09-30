@@ -79,6 +79,23 @@ export const MIN_RETURN_WINDOW_DAYS = 1;
 export const MAX_RETURN_WINDOW_DAYS = 365;
 
 /**
+ * When a return window starts counting (R6): the day each seller's parcel is
+ * delivered, or the day the last parcel of the order is. Shopify's two
+ * options. Per parcel is the default, and what every store had before: with
+ * the other, one slow seller holds every other seller's payout back.
+ */
+export const RETURN_WINDOW_STARTS = ["parcel_delivery", "last_delivery"] as const;
+export type ReturnWindowStart = (typeof RETURN_WINDOW_STARTS)[number];
+export const DEFAULT_RETURN_WINDOW_START: ReturnWindowStart = "parcel_delivery";
+
+/**
+ * The longest a seller's payout waits on a return window with no time limit
+ * (D6). A refund after it is taken from the seller's next payout, as one after
+ * any window is.
+ */
+export const DEFAULT_PAYOUT_HOLD_MAX_DAYS = 30;
+
+/**
  * The reasons that put the return on the merchant rather than the shopper.
  *
  * Drawn from `RETURN_REASONS` in lib/returns.ts. A shopper who ordered the
@@ -98,8 +115,21 @@ export const MERCHANT_FAULT_RETURN_REASONS = [
 ] as const;
 
 export interface ReturnPolicy {
-  /** Days after delivery within which a return may still be requested. */
-  windowDays: number;
+  /**
+   * Days after delivery within which a return may still be requested, or
+   * `null` for no time limit ("Unlimited" in Settings → Orders).
+   */
+  windowDays: number | null;
+  /** When the window starts counting — see `RETURN_WINDOW_STARTS`. */
+  windowStart: ReturnWindowStart;
+  /**
+   * Whether shoppers ask for returns from their own account. Off, only the
+   * store and its sellers open them (R3); shoppers still see and cancel the
+   * ones they have.
+   */
+  selfServe: boolean;
+  /** The most a seller's payout waits on a window with no time limit (D6). */
+  payoutHoldMaxDays: number;
   shippingRefund: ReturnShippingRefundMode;
   /** Percent of the returned goods the merchant keeps. 0–100. */
   restockingFeePercent: number;
@@ -135,6 +165,10 @@ export interface ReturnPolicySettingsLike {
   orders?: {
     returns?: {
       windowDays?: number | null;
+      windowUnlimited?: boolean | null;
+      windowStart?: string | null;
+      selfServe?: boolean | null;
+      payoutHoldMaxDays?: number | null;
       shippingRefund?: string | null;
       restockingFeePercent?: number | null;
       returnShippingFee?: number | null;
@@ -165,15 +199,33 @@ export function resolveReturnPolicy(
   const raw = settings?.orders?.returns ?? null;
   const mode = String(raw?.shippingRefund || "").trim();
 
+  const start = String(raw?.windowStart || "").trim();
+
   return {
     // Whole days: the window is compared against elapsed days and printed on
     // the product page, and "return within 30.5 days" is neither.
-    windowDays: Math.round(
+    windowDays:
+      raw?.windowUnlimited === true
+        ? null
+        : Math.round(
+            clamp(
+              raw?.windowDays,
+              MIN_RETURN_WINDOW_DAYS,
+              MAX_RETURN_WINDOW_DAYS,
+              DEFAULT_RETURN_WINDOW_DAYS,
+            ),
+          ),
+    windowStart: (RETURN_WINDOW_STARTS as readonly string[]).includes(start)
+      ? (start as ReturnWindowStart)
+      : DEFAULT_RETURN_WINDOW_START,
+    // On unless a store turned it off: shoppers always could.
+    selfServe: raw?.selfServe !== false,
+    payoutHoldMaxDays: Math.round(
       clamp(
-        raw?.windowDays,
+        raw?.payoutHoldMaxDays,
         MIN_RETURN_WINDOW_DAYS,
         MAX_RETURN_WINDOW_DAYS,
-        DEFAULT_RETURN_WINDOW_DAYS,
+        DEFAULT_PAYOUT_HOLD_MAX_DAYS,
       ),
     ),
     shippingRefund: (RETURN_SHIPPING_REFUND_MODES as readonly string[]).includes(
@@ -209,6 +261,180 @@ export function resolveReturnPolicy(
       raw?.billVendorCodShipping === true
         ? true
         : DEFAULT_BILL_VENDOR_COD_SHIPPING,
+  };
+}
+
+/**
+ * The half of the policy a shopper was promised: how long they have, and what
+ * sending something back costs them. The other half (the refund admin fee, the
+ * cash-on-delivery billing) is the store's arrangement with its sellers, and
+ * follows the settings of the day.
+ */
+export type ReturnTerms = Pick<
+  ReturnPolicy,
+  | "windowDays"
+  | "windowStart"
+  | "shippingRefund"
+  | "restockingFeePercent"
+  | "returnShippingFee"
+>;
+
+/** The terms as an order stores them — loose, so a lean document can be passed. */
+export interface ReturnTermsLike {
+  windowDays?: number | null;
+  /** Sold with no time limit — `windowDays` then holds nothing. */
+  windowUnlimited?: boolean | null;
+  /** Absent on terms stored before it existed, which counted per parcel. */
+  windowStart?: string | null;
+  shippingRefund?: string | null;
+  restockingFeePercent?: number | null;
+  returnShippingFee?: number | null;
+}
+
+/**
+ * Where an order's stored terms came from: written when it was placed, or
+ * frozen onto an order that predates stored terms, the moment the store first
+ * changed its rules after it (`freezeLegacyReturnTerms`).
+ */
+export type ReturnTermsSource = "order" | "legacy";
+
+/** The terms as the settings stand now. */
+export function buildReturnTerms(
+  settings: ReturnPolicySettingsLike | null | undefined,
+): ReturnTerms {
+  const policy = resolveReturnPolicy(settings);
+  return {
+    windowDays: policy.windowDays,
+    windowStart: policy.windowStart,
+    shippingRefund: policy.shippingRefund,
+    restockingFeePercent: policy.restockingFeePercent,
+    returnShippingFee: policy.returnShippingFee,
+  };
+}
+
+/**
+ * The terms in the shape an order stores them: no time limit is a flag rather
+ * than a missing number, which an order read as "fall back to the settings".
+ */
+export function storedReturnTerms(terms: ReturnTerms): {
+  windowDays?: number;
+  windowUnlimited: boolean;
+  windowStart: ReturnWindowStart;
+  shippingRefund: ReturnShippingRefundMode;
+  restockingFeePercent: number;
+  returnShippingFee: number;
+} {
+  return {
+    ...(terms.windowDays === null ? {} : { windowDays: terms.windowDays }),
+    windowUnlimited: terms.windowDays === null,
+    windowStart: terms.windowStart,
+    shippingRefund: terms.shippingRefund,
+    restockingFeePercent: terms.restockingFeePercent,
+    returnShippingFee: terms.returnShippingFee,
+  };
+}
+
+/**
+ * The terms written onto an order as it is placed.
+ *
+ * The product page printed this window and these fees, so they are what the
+ * shopper bought under. Read off the settings at return time instead, a store
+ * that shortened its window or added a restocking fee changed the deal on
+ * every order already delivered. Shopify's rule, and now this one: "Changes to
+ * your return rules apply only to future orders."
+ */
+export function returnTermsForNewOrder(
+  settings: ReturnPolicySettingsLike | null | undefined,
+  now: Date = new Date(),
+): ReturnType<typeof storedReturnTerms> & {
+  source: ReturnTermsSource;
+  capturedAt: Date;
+} {
+  return {
+    ...storedReturnTerms(buildReturnTerms(settings)),
+    source: "order",
+    capturedAt: now,
+  };
+}
+
+/** Whether two sets of terms would answer any return differently. */
+export function returnTermsDiffer(a: ReturnTerms, b: ReturnTerms): boolean {
+  return (
+    a.windowDays !== b.windowDays ||
+    a.windowStart !== b.windowStart ||
+    a.shippingRefund !== b.shippingRefund ||
+    a.restockingFeePercent !== b.restockingFeePercent ||
+    a.returnShippingFee !== b.returnShippingFee
+  );
+}
+
+/** A stored number, or the fallback when it is absent or unreadable. */
+const storedNumber = (
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number,
+) =>
+  value === null || value === undefined || value === ""
+    ? fallback
+    : clamp(value, min, max, fallback);
+
+/**
+ * The policy that answers a return on ONE order: the terms it was sold under,
+ * with the seller-side half from today's settings.
+ *
+ * An order from before terms were stored carries none and reads the settings,
+ * as every order always did, until the store first changes them — which writes
+ * the old terms onto it. A stored field that is missing or unreadable falls
+ * back to today's value for that field alone.
+ */
+export function resolveOrderReturnPolicy(
+  order: { returnTerms?: ReturnTermsLike | null } | null | undefined,
+  settings: ReturnPolicySettingsLike | null | undefined,
+): ReturnPolicy {
+  const live = resolveReturnPolicy(settings);
+  const terms = order?.returnTerms;
+  if (!terms) return live;
+  const mode = String(terms.shippingRefund || "").trim();
+  const start = String(terms.windowStart || "").trim();
+  const storedDays =
+    terms.windowDays === null || terms.windowDays === undefined
+      ? null
+      : Math.round(
+          clamp(
+            terms.windowDays,
+            MIN_RETURN_WINDOW_DAYS,
+            MAX_RETURN_WINDOW_DAYS,
+            DEFAULT_RETURN_WINDOW_DAYS,
+          ),
+        );
+
+  return {
+    ...live,
+    windowDays:
+      terms.windowUnlimited === true ? null : storedDays ?? live.windowDays,
+    // Terms stored before the choice existed were sold per parcel, whatever
+    // the store counts from today.
+    windowStart: (RETURN_WINDOW_STARTS as readonly string[]).includes(start)
+      ? (start as ReturnWindowStart)
+      : DEFAULT_RETURN_WINDOW_START,
+    shippingRefund: (RETURN_SHIPPING_REFUND_MODES as readonly string[]).includes(
+      mode,
+    )
+      ? (mode as ReturnShippingRefundMode)
+      : live.shippingRefund,
+    restockingFeePercent: storedNumber(
+      terms.restockingFeePercent,
+      0,
+      100,
+      live.restockingFeePercent,
+    ),
+    returnShippingFee: storedNumber(
+      terms.returnShippingFee,
+      0,
+      Number.MAX_SAFE_INTEGER,
+      live.returnShippingFee,
+    ),
   };
 }
 

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -204,12 +205,10 @@ const STOREFRONT_CARD_WIDTH =
   "w-[calc((var(--store-page-width,1280px)_-_2_*_var(--store-page-padding,1rem)_-_5rem)_/_5)]";
 
 export function ProductCardBuilder({
-  locale,
   switcher,
   storeSurface,
   sampleBrand = null,
 }: {
-  locale: string;
   /** One of the store's brands with a logo, for the Brand element's preview. */
   sampleBrand?: { name: string; logo: string } | null;
   /** The storefront editor's page switcher, rendered as this page's title. */
@@ -501,7 +500,6 @@ export function ProductCardBuilder({
           switcher ? (
             <PageSwitcherSelect
               switcher={switcher}
-              locale={locale}
               variant="title"
             />
           ) : (
@@ -971,6 +969,29 @@ export function ProductCardBuilder({
                   max={40}
                   onChange={(previewRadius) => patchStyle({ previewRadius })}
                 />
+                <ColorRow
+                  label={tSafe(
+                    "admin.productCardStudio.styleRows.previewBorder",
+                    "Preview border",
+                  )}
+                  value={config.style.previewBorder}
+                  fallback={fallbacks.previewBorder}
+                  tokens={colorTokens}
+                  onChange={(previewBorder) => patchStyle({ previewBorder })}
+                />
+                <SliderRow
+                  label={tSafe(
+                    "admin.productCardStudio.styleRows.previewBorderWidth",
+                    "Preview border thickness",
+                  )}
+                  value={config.style.previewBorderWidth}
+                  max={4}
+                  step={0.5}
+                  zeroLabel={tSafe("admin.productCardStudio.none", "None")}
+                  onChange={(previewBorderWidth) =>
+                    patchStyle({ previewBorderWidth })
+                  }
+                />
                 <SliderRow
                   label={tSafe(
                     "admin.productCardStudio.styleRows.previewHeight",
@@ -1151,40 +1172,41 @@ export function ProductCardBuilder({
                     whose old "Brand" line now reads as Seller — would change
                     nothing, so say so and offer the fix. */}
                 {!productCardElementOn(config.groups, "brand") ? (
-                  <div className="space-y-2 rounded-lg border border-amber-300/70 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-                    <p>
-                      {config.groups.some((entry) =>
-                        entry.items.some((item) => item.key === "seller"),
-                      )
-                        ? tSafe(
-                            "admin.productCardStudio.brandMissingSeller",
-                            "This card doesn't show the product's brand. The line under the image is the Seller — the store name — which is what the old Brand element always printed.",
-                          )
-                        : tSafe(
-                            "admin.productCardStudio.brandMissing",
-                            "This card doesn't show the product's brand yet, so these settings have nothing to change.",
-                          )}
-                    </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="bg-background"
-                      onClick={() => commitGroups(showBrandOnCard(config.groups))}
-                    >
-                      {config.groups.some((entry) =>
-                        entry.items.some((item) => item.key === "seller"),
-                      )
-                        ? tSafe(
-                            "admin.productCardStudio.brandReplaceSeller",
-                            "Show brand instead of seller",
-                          )
-                        : tSafe(
-                            "admin.productCardStudio.brandAdd",
-                            "Add brand to card",
-                          )}
-                    </Button>
-                  </div>
+                  <WarningBanner
+                    action={
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="bg-background"
+                        onClick={() => commitGroups(showBrandOnCard(config.groups))}
+                      >
+                        {config.groups.some((entry) =>
+                          entry.items.some((item) => item.key === "seller"),
+                        )
+                          ? tSafe(
+                              "admin.productCardStudio.brandReplaceSeller",
+                              "Show brand instead of seller",
+                            )
+                          : tSafe(
+                              "admin.productCardStudio.brandAdd",
+                              "Add brand to card",
+                            )}
+                      </Button>
+                    }
+                  >
+                    {config.groups.some((entry) =>
+                      entry.items.some((item) => item.key === "seller"),
+                    )
+                      ? tSafe(
+                          "admin.productCardStudio.brandMissingSeller",
+                          "This card doesn't show the product's brand. The line under the image is the Seller — the store name — which is what the old Brand element always printed.",
+                        )
+                      : tSafe(
+                          "admin.productCardStudio.brandMissing",
+                          "This card doesn't show the product's brand yet, so these settings have nothing to change.",
+                        )}
+                  </WarningBanner>
                 ) : null}
                 <SelectRow
                   label={tSafe(

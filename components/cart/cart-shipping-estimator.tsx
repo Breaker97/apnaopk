@@ -232,6 +232,7 @@ export function CartShippingEstimator({
               // quote a zone the shopper is not in.
               setRegion("");
             }}
+            ariaLabel={t("checkout.country")}
             placeholder={t("checkout.country")}
             searchPlaceholder={t("checkout.searchCountry")}
           />

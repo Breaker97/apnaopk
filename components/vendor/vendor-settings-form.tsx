@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useMessages, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Store,
   CreditCard,
@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { authClient } from "@/lib/auth/auth-client";
 import { TwoFactorManagementCard } from "@/components/account/two-factor-management-card";
 import {
@@ -214,7 +215,6 @@ export function VendorSettingsForm({
   canManageChannels = false,
 }: VendorSettingsFormProps) {
   const t = useTranslations();
-  const messages = useMessages();
   const [activeTab, setActiveTab] = useState<SettingsTab>(
     normalizeTab(initialTab),
   );
@@ -240,23 +240,9 @@ export function VendorSettingsForm({
   });
   const isAccountDemoMode = demoMode.enabled && activeTab === "account";
 
-  const hasMessage = (key: string): boolean => {
-    const parts = key.split(".");
-    let current: unknown = messages;
-
-    for (const part of parts) {
-      if (typeof current !== "object" || current === null) return false;
-      const record = current as Record<string, unknown>;
-      if (!(part in record)) return false;
-      current = record[part];
-    }
-
-    return typeof current === "string";
-  };
-
   const tSafe = (key: string, fallback: string) => {
     try {
-      if (!hasMessage(key)) return fallback;
+      if (!t.has(key as never)) return fallback;
       const translate = t as unknown as (k: string) => string;
       const result = translate(key);
       return result && result !== key ? result : fallback;
@@ -1753,15 +1739,9 @@ export function VendorSettingsForm({
 
         <TabsContent value="account" className="space-y-6">
         {demoMode.enabled && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-            <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold leading-5">Demo mode</p>
-              <p className="text-xs leading-5 text-amber-800 dark:text-amber-200">
-                {demoMode.message}
-              </p>
-            </div>
-          </div>
+          <WarningBanner icon={Lock} title="Demo mode" className="shadow-sm">
+            {demoMode.message}
+          </WarningBanner>
         )}
 
         <Card>

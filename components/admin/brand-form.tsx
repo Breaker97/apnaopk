@@ -1,11 +1,12 @@
 "use client";
 
-import { z } from "zod";
+import * as z from "zod";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   MediaUploader,
   type UploadedMedia,
@@ -464,8 +465,8 @@ export function BrandForm({
                                 background: "transparent",
                                 size: "1024x1024",
                               }}
-                              posHref={`/${locale}/${area}/pos`}
-                              browseHref={`/${locale}`}
+                              posHref={`/${area}/pos`}
+                              browseHref="/"
                               persistKey={`brand:${area}:${brandId ?? "new"}:logo`}
                             />
                           }

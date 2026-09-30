@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
 import {
@@ -35,10 +35,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
+import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
@@ -60,6 +68,7 @@ interface PreorderItem {
 
 interface PreorderSubOrder {
   status: string;
+  paymentStatus?: string;
   subtotal: number;
   vendorEarnings?: number;
   items: PreorderItem[];
@@ -76,6 +85,10 @@ interface PreorderOrder {
   preorderDepositAmount?: number;
   preorderOutstandingAmount?: number;
   paymentStatus: string;
+  paymentMethod?: string;
+  channel?: string;
+  hasPreorder?: boolean;
+  preorderBalancePaidAt?: string | null;
   total: number;
   createdAt: string;
   items: PreorderItem[];
@@ -130,6 +143,7 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   partially_paid: "Partially paid",
   refunded: "Refunded",
   partially_refunded: "Partially refunded",
+  expired: "Expired",
 };
 
 function getSubOrder(order: PreorderOrder) {
@@ -146,6 +160,12 @@ function getItemsCount(items: PreorderItem[]) {
 }
 
 function getPreorderStatus(order: PreorderOrder, scope: "admin" | "vendor") {
+  // Released goods that have left: nothing ever moves the pre-order stage past
+  // "ready", so a delivered order read "Ready" for good. The goods' own status
+  // says where it really is — the whole order for an admin, their consignment
+  // for a vendor.
+  const goodsStatus = scope === "vendor" ? getSubOrder(order)?.status : order.status;
+  if (goodsStatus === "shipped" || goodsStatus === "delivered") return "fulfilled";
   if (scope === "admin" && order.preorderStatus) return order.preorderStatus;
 
   const itemStatuses = getPreorderItems(order, scope)
@@ -203,6 +223,7 @@ function getPaymentStatusStyles(status: string) {
     refunded: "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300",
     partially_refunded:
       "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300",
+    expired: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
   };
   return (
     map[status] ||
@@ -276,6 +297,10 @@ export function PreordersDataTable({
     amount: number;
   } | null>(null);
   const [balanceMethod, setBalanceMethod] = useState("Bank transfer");
+  /** Which account the money landed in — what the ledger posts against. */
+  const [balancePaidFrom, setBalancePaidFrom] = useState<
+    "bank" | "cash" | "gateway"
+  >("bank");
   const [balanceReference, setBalanceReference] = useState("");
   const [balanceNote, setBalanceNote] = useState("");
   const [isBalanceSubmitting, setIsBalanceSubmitting] = useState(false);
@@ -293,11 +318,16 @@ export function PreordersDataTable({
   const runAction = useCallback(
     async (orderId: string, action: "ready" | "payment_due" | "cancel") => {
       // Cancelling refunds whatever the shopper paid, so the confirmation says
-      // so. "Cancel this pre-order?" hid the fact that money moves.
+      // so. "Cancel this pre-order?" hid the fact that money moves. A vendor
+      // cancels only their own consignment, and only what the shopper paid for
+      // it goes back — "everything" would promise a refund of other sellers'
+      // goods too.
       if (
         action === "cancel" &&
         !window.confirm(
-          "Cancel this pre-order and refund everything the customer has paid?",
+          scope === "vendor"
+            ? "Cancel your part of this pre-order and refund what the customer paid for it?"
+            : "Cancel this pre-order and refund everything the customer has paid?",
         )
       ) {
         return;
@@ -314,7 +344,11 @@ export function PreordersDataTable({
           if (refund && !refund.refunded && refund.reason) {
             toast.warning(`Pre-order cancelled — ${refund.reason}`);
           } else {
-            toast.success("Pre-order cancelled and refunded");
+            toast.success(
+              scope === "vendor"
+                ? "Your part of the pre-order was cancelled and refunded"
+                : "Pre-order cancelled and refunded",
+            );
           }
         } else {
           toast.success(
@@ -342,6 +376,7 @@ export function PreordersDataTable({
         {
           amount: balanceTarget.amount,
           method: balanceMethod.trim() || "Offline payment",
+          paidFrom: balancePaidFrom,
           reference: balanceReference.trim(),
           ...(balanceNote.trim() ? { note: balanceNote.trim() } : {}),
         },
@@ -356,7 +391,7 @@ export function PreordersDataTable({
     } finally {
       setIsBalanceSubmitting(false);
     }
-  }, [balanceTarget, balanceMethod, balanceReference, balanceNote, list]);
+  }, [balanceTarget, balanceMethod, balancePaidFrom, balanceReference, balanceNote, list]);
 
   const runDelayAction = useCallback(
     (orderId: string) => {
@@ -380,8 +415,19 @@ export function PreordersDataTable({
       if (delayTarget.bulk) {
         body.ids = delayTarget.ids;
         try {
-          await apiClient.post("/api/admin/preorders", body);
-          toast.success("Selected pre-orders updated");
+          const result = await apiClient.post<{
+            skipped?: Array<{ orderNumber?: string; reason?: string }>;
+          }>("/api/admin/preorders", body);
+          const skipped = result?.skipped || [];
+          if (skipped.length > 0) {
+            toast.warning(
+              `${skipped.length} pre-order(s) kept their date: ${skipped
+                .map((row) => `${row.orderNumber} (${row.reason})`)
+                .join("; ")}`,
+            );
+          } else {
+            toast.success("Selected pre-orders updated");
+          }
           setDelayTarget(null);
           list.refetch();
         } catch (error) {
@@ -446,8 +492,19 @@ export function PreordersDataTable({
         const result = await apiClient.post<{
           refunded?: number;
           refundsNeedingAttention?: Array<{ orderNumber?: string; reason?: string }>;
+          skipped?: Array<{ orderNumber?: string; reason?: string }>;
         }>("/api/admin/preorders", body);
         const needsAttention = result?.refundsNeedingAttention || [];
+        const skipped = result?.skipped || [];
+        if (skipped.length > 0) {
+          // Named, with the reason: a silent "updated" over rows that were
+          // refused leaves the admin believing shipped or unpaid orders moved.
+          toast.warning(
+            `${skipped.length} pre-order(s) were left unchanged: ${skipped
+              .map((row) => `${row.orderNumber} (${row.reason})`)
+              .join("; ")}`,
+          );
+        }
         if (action === "cancel" && needsAttention.length > 0) {
           // Named rather than counted: an admin has to go and refund these by
           // hand, and "3 failed" sends them hunting through the whole list.
@@ -528,7 +585,7 @@ export function PreordersDataTable({
         cell: (row) => (
           <div className="min-w-0">
             <Link
-              href={`/${locale}/${scope}/orders/${row._id}`}
+              href={`/${scope}/orders/${row._id}`}
               className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
             >
               {row.orderNumber}
@@ -690,19 +747,30 @@ export function PreordersDataTable({
           id: "view",
           label: "View order",
           icon: <Eye className="h-4 w-4" />,
-          href: `/${locale}/${scope}/orders/${row._id}`,
+          href: `/${scope}/orders/${row._id}`,
         },
       ];
 
+      // The server refuses to release an order whose payment never arrived (an
+      // abandoned gateway checkout reads "nothing owed" too); offering the
+      // action anyway only produced an error. Shown, greyed, with the reason.
+      const paymentBlock = hasOutstandingBalance
+        ? null
+        : getFulfillmentPaymentBlock(
+            { ...row, hasPreorder: true } as Parameters<typeof getFulfillmentPaymentBlock>[0],
+            scope === "vendor" ? getSubOrder(row) : null,
+          );
       if (
         canEditPreorder &&
         (preorderStatus === "reserved" || preorderStatus === "delayed")
       ) {
         actions.push({
           id: hasOutstandingBalance ? "payment_due" : "ready",
+          disabled: Boolean(paymentBlock),
           label: hasOutstandingBalance
             ? "Request balance"
             : "Move to fulfillment",
+          hint: paymentBlock ? "Payment not received" : undefined,
           icon: hasOutstandingBalance ? (
             <CreditCard className="h-4 w-4" />
           ) : (
@@ -738,6 +806,19 @@ export function PreordersDataTable({
         });
       }
 
+      // The goods can still slip after the balance is asked for. The server
+      // moves only the date and keeps the request standing (payment due, with
+      // its charge retries, reminders and deadline), so the row offers it too
+      // rather than leaving it to the bulk toolbar alone.
+      if (canEditPreorder && preorderStatus === "payment_due") {
+        actions.push({
+          id: "delay",
+          label: "Update release date",
+          icon: <Clock3 className="h-4 w-4" />,
+          onClick: () => void runDelayAction(row._id),
+        });
+      }
+
       // Paid, but still on `payment_due`: the balance landed while its stock
       // was not recorded yet (the settle path then leaves it waiting), or a
       // vendor's consignment was released before the money came in. Nothing
@@ -750,6 +831,8 @@ export function PreordersDataTable({
         actions.push({
           id: "ready",
           label: "Move to fulfillment",
+          hint: paymentBlock ? "Payment not received" : undefined,
+          disabled: Boolean(paymentBlock),
           icon: <CheckCircle2 className="h-4 w-4" />,
           onClick: () => void runAction(row._id, "ready"),
         });
@@ -770,16 +853,29 @@ export function PreordersDataTable({
               amount: getPreorderBalanceDue(row),
             });
             setBalanceMethod("Bank transfer");
+            setBalancePaidFrom("bank");
             setBalanceReference("");
             setBalanceNote("");
           },
         });
       }
 
+      // Nothing here ever writes `fulfilled`, so the pre-order status alone
+      // offered Cancel on goods already with the shopper. Shipped goods are a
+      // return: the whole order for an admin, their own consignment for a
+      // vendor (whose row carries only that consignment).
+      const goodsHaveLeft =
+        scope === "vendor"
+          ? ["shipped", "delivered"].includes(getSubOrder(row)?.status || "")
+          : ["shipped", "delivered"].includes(row.status) ||
+            (row.subOrders || []).some((sub) =>
+              ["shipped", "delivered"].includes(sub.status),
+            );
       if (
         canCancelPreorder &&
         preorderStatus !== "cancelled" &&
-        preorderStatus !== "fulfilled"
+        preorderStatus !== "fulfilled" &&
+        !goodsHaveLeft
       ) {
         actions.push({
           id: "cancel",
@@ -877,7 +973,7 @@ export function PreordersDataTable({
         rowActionsHeader="Actions"
         rowActionsVariant="dropdown"
         onRowClick={(row) =>
-          router.push(`/${locale}/${scope}/orders/${row._id}`)
+          router.push(`/${scope}/orders/${row._id}`)
         }
         emptyMessage="Pre-orders will appear here after customers reserve products marked for pre-order."
         emptyIcon={<PackageCheck className="h-6 w-6" />}
@@ -1011,6 +1107,28 @@ export function PreordersDataTable({
                 onChange={(event) => setBalanceMethod(event.target.value)}
                 placeholder="Bank transfer, cash, mobile money..."
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Where it landed</label>
+              <Select
+                value={balancePaidFrom}
+                onValueChange={(value) =>
+                  setBalancePaidFrom(value as "bank" | "cash" | "gateway")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bank">Bank account</SelectItem>
+                  <SelectItem value="cash">Cash in hand</SelectItem>
+                  <SelectItem value="gateway">Gateway balance</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                Which account the money actually reached. The line above is what
+                the timeline reads; this is what the books are posted against.
+              </p>
             </div>
             <div className="space-y-2">
               <label

@@ -16,7 +16,7 @@ import {
 
 import { AiImageStudio, type StudioImage } from "./ai-image-studio";
 import { AiStudioMenu } from "./ai-studio-menu";
-import { clearAiStudioDraftsByPersistKeyPrefix } from "./studio-drafts";
+import { useAiSurfaceAllowed } from "@/components/ai-authoring/ai-availability-provider";
 import type { UploadedImage } from "./upload-image";
 import { isRecord } from "@/lib/utils";
 
@@ -72,12 +72,6 @@ function valueHash(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-export function clearHeroBannerStudioDrafts(slideIdentity: string): void {
-  clearAiStudioDraftsByPersistKeyPrefix(
-    `home-hero-slide-${slideIdentity}-`,
-  );
-}
-
 export function isApplicableHeroBannerResult(
   result: AIAuthoringMediaResponse,
 ): boolean {
@@ -122,6 +116,11 @@ export async function requestHeroBanner(
 }
 
 export function HeroBannerAiStudio(props: Props) {
+  // Hero banners have their own surface toggle (and their own route, which
+  // asserts the same one), so they can be switched off while the rest of the
+  // home-page builder keeps its AI.
+  const allowed = useAiSurfaceAllowed("heroBanner");
+  if (!allowed) return null;
   return <HeroBannerAiStudioInstance key={props.slideIdentity} {...props} />;
 }
 

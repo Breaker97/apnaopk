@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, Loader2, Printer, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ import { useApplyOnChange } from "@/hooks/use-apply-on-change";
  */
 
 /** A consignment the caller may hand to a courier. */
-export interface CourierConsignment {
+interface CourierConsignment {
   id: string;
   label: string;
 }
@@ -132,6 +133,13 @@ export function SendToCourierDialog(props: {
   storeCurrency?: string;
   /** Refresh the order + shipments list once a label exists. */
   onPurchased?: () => void;
+  /**
+   * A rate lookup or purchase failed. The panel reloads, because a refused
+   * delivery address puts the order on hold and this dialog should say so.
+   */
+  onFailed?: () => void;
+  /** Shipping now waits on the address — shown under the refusal. */
+  addressHoldOpen?: boolean;
 }) {
   const t = useTranslations();
   const tSafe = useFallbackTranslator(t);
@@ -184,6 +192,7 @@ export function SendToCourierDialog(props: {
     setError(null);
   });
 
+  const { onFailed } = props;
   const fetchRates = useCallback(async () => {
     setIsBusy(true);
     setError(null);
@@ -210,10 +219,11 @@ export function SendToCourierDialog(props: {
           ? failure.message
           : tSafe("admin.orderDetails.courier.noRates", "No rates available"),
       );
+      onFailed?.();
     } finally {
       setIsBusy(false);
     }
-  }, [packageId, parcel, props.apiBase, props.orderId, subOrderId, tSafe]);
+  }, [onFailed, packageId, parcel, props.apiBase, props.orderId, subOrderId, tSafe]);
 
   const buyLabel = useCallback(async () => {
     if (!rates || !selectedRateId) return;
@@ -247,10 +257,11 @@ export function SendToCourierDialog(props: {
           ? failure.message
           : tSafe("admin.orderDetails.courier.buyFailed", "Could not buy the label"),
       );
+      onFailed?.();
     } finally {
       setIsBusy(false);
     }
-  }, [props, rates, selectedRateId, tSafe]);
+  }, [onFailed, props, rates, selectedRateId, tSafe]);
 
   const withLabel = useCallback(
     async (action: (blob: Blob) => void | Promise<void>) => {
@@ -443,17 +454,11 @@ export function SendToCourierDialog(props: {
         {step === "quotes" && rates ? (
           <div className="space-y-4">
             {rates.packing.warnings.length > 0 ? (
-              <div className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+              <WarningBanner>
                 {rates.packing.warnings.map((warning) => (
-                  <p
-                    key={warning}
-                    className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400"
-                  >
-                    <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                    {WARNING_COPY[warning] || warning}
-                  </p>
+                  <p key={warning}>{WARNING_COPY[warning] || warning}</p>
                 ))}
-              </div>
+              </WarningBanner>
             ) : null}
 
             <RadioGroup value={selectedRateId} onValueChange={setSelectedRateId}>
@@ -565,6 +570,14 @@ export function SendToCourierDialog(props: {
               <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
               <span className="min-w-0 break-words">{error}</span>
             </p>
+            {props.addressHoldOpen ? (
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                {tSafe(
+                  "admin.orderDetails.courier.nowOnHold",
+                  "Shipping for this order is now on hold. The customer has been asked to correct the address — or correct it yourself from the banner on this order.",
+                )}
+              </p>
+            ) : null}
           </div>
         ) : null}
 

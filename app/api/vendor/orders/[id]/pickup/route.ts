@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";

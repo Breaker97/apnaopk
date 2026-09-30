@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { Order } from "@/models";
+import { Order, ReturnRequest } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
 import {
   decrementInventory,
@@ -12,11 +12,15 @@ import {
   type FulfillmentCandidate,
 } from "@/lib/locations/fulfillment-location";
 import { DISPATCHED_ORDER_STATUSES } from "@/lib/orders/order-status-workflow";
+import { RETURN_STATUS } from "@/lib/returns/returns";
+import { heldReturnUnits } from "@/lib/returns/held-units";
 
 type SubOrderItem = {
   productId: unknown;
   variantId?: unknown;
   quantity: number;
+  /** What the unit cost, snapshotted at the sale — see `postRestockedUnits`. */
+  cost?: number | null;
 };
 
 type SubOrderShape = {
@@ -44,6 +48,51 @@ function itemsToInventoryLines(
       variantId: item.variantId ? String(item.variantId) : undefined,
       quantity: Number(item.quantity),
     }));
+}
+
+/** One consignment's share of a restore. */
+type RestockedConsignment = {
+  subOrderId: unknown;
+  /** Whose goods these are — the returns open on them are this vendor's. */
+  vendorId?: unknown;
+  lines: InventoryAdjustmentLine[];
+  /** Whether any of its lines recorded a cost — the only ones the ledger needs. */
+  costed: boolean;
+};
+
+function restockedConsignment(sub: SubOrderShape): RestockedConsignment {
+  return {
+    subOrderId: sub._id,
+    vendorId: sub.vendorId,
+    lines: itemsToInventoryLines(sub.items),
+    costed: (sub.items || []).some((item) => typeof item.cost === "number"),
+  };
+}
+
+/**
+ * Tell the ledger which units are back on the shelf, so what they cost comes
+ * back off cost of goods — see `restockCostPostings`. The sale moved that cost
+ * out of stock; without this a cancelled order kept it as a loss and stock on
+ * hand came up short by exactly the units sitting on the shelf.
+ *
+ * Only lines that recorded a cost, so a store that tracks none never pays for
+ * the ledger read. Never fails the restore: the stock is back either way, and
+ * the daily pass re-posts it from the order.
+ */
+function postRestockedUnits(orderId: string, restocked: RestockedConsignment[]) {
+  const lines = restocked
+    .filter((sub) => sub.costed)
+    .flatMap((sub) =>
+      sub.lines.map((line) => ({ subOrderId: sub.subOrderId, ...line })),
+    );
+  if (lines.length === 0) return;
+  void import("@/lib/finance/post-events")
+    .then(({ postRestockedCostSafely }) =>
+      postRestockedCostSafely({ orderId, restocked: lines, eventKey: "restock" }),
+    )
+    .catch((error) =>
+      console.error("Failed to post restocked cost of goods:", error),
+    );
 }
 
 /**
@@ -77,6 +126,101 @@ function getInventoryOpts(
       : fulfillment?.fulfillmentLocationId;
 
   return locationId ? { locationId: String(locationId) } : {};
+}
+
+/**
+ * Put a restock of a return's units back on the shelf.
+ *
+ * At the location whoever processed the return chose (R5b), and there alone.
+ * With none chosen, grouped by the seller each line belongs to, so every group
+ * goes back to its own consignment's branch — the counter of a POS sale, the
+ * store a parcel was fulfilled or collected from. Restored with no options,
+ * every return landed in the seller's first location, and a return taken at
+ * one branch was counted as stock at another. Throws when a restore does, so
+ * the caller can hand back its claim rather than record stock that never moved.
+ */
+export async function restoreReturnUnits(params: {
+  order: {
+    channel?: string;
+    posLocationId?: unknown;
+    subOrders?: SubOrderShape[] | null;
+  } | null;
+  lines: ReadonlyArray<InventoryAdjustmentLine & { vendorId?: string }>;
+  locationId?: string | null;
+}): Promise<void> {
+  const stock = (lines: ReadonlyArray<InventoryAdjustmentLine>) =>
+    lines
+      .filter((line) => line.productId && line.quantity > 0)
+      .map((line) => ({
+        productId: String(line.productId),
+        ...(line.variantId ? { variantId: String(line.variantId) } : {}),
+        quantity: line.quantity,
+      }));
+  if (params.locationId) {
+    const lines = stock(params.lines);
+    if (lines.length > 0) {
+      await restoreInventory(lines, {
+        locationId: String(params.locationId),
+        exactLocation: true,
+      });
+    }
+    return;
+  }
+  const byVendor = new Map<string, InventoryAdjustmentLine[]>();
+  for (const line of params.lines) {
+    const vendorId = String(line.vendorId || "");
+    if (!byVendor.has(vendorId)) byVendor.set(vendorId, []);
+    byVendor.get(vendorId)!.push(line);
+  }
+  for (const [vendorId, vendorLines] of byVendor) {
+    await restockUnitsToSoldBranch({
+      order: params.order,
+      vendorId,
+      lines: stock(vendorLines),
+    });
+  }
+}
+
+/**
+ * Put one seller's units back on the shelf their consignment sold them from —
+ * the counter of a POS sale, the store a parcel was fulfilled or collected
+ * from. Shared by a return's restock and by a held unit a merchant later puts
+ * back on sale, so both land where the sale took them. Throws when the restore
+ * does.
+ */
+export async function restockUnitsToSoldBranch(params: {
+  order: {
+    channel?: string;
+    posLocationId?: unknown;
+    subOrders?: SubOrderShape[] | null;
+  } | null;
+  vendorId: string;
+  lines: InventoryAdjustmentLine[];
+}): Promise<void> {
+  if (params.lines.length === 0) return;
+  const subOrder = (params.order?.subOrders || []).find(
+    (sub) => String(sub?.vendorId || "") === params.vendorId,
+  );
+  await restoreInventory(
+    params.lines,
+    params.order ? getInventoryOpts(params.order, subOrder) : {},
+  );
+}
+
+/** The branch `restockUnitsToSoldBranch` would put this seller's units on. */
+export function soldBranchLocationId(
+  order: {
+    channel?: string;
+    posLocationId?: unknown;
+    subOrders?: SubOrderShape[] | null;
+  } | null,
+  vendorId: string,
+): string | undefined {
+  if (!order) return undefined;
+  const subOrder = (order.subOrders || []).find(
+    (sub) => String(sub?.vendorId || "") === vendorId,
+  );
+  return getInventoryOpts(order, subOrder).locationId;
 }
 
 /**
@@ -142,15 +286,19 @@ export async function markOrderInventoryReserved(orderId: string) {
   // goods were left on the shelf, and flagging it reserved anyway meant the
   // next cancel or refund "restored" units that had never left — stock
   // invented out of nothing.
-  await Order.updateOne(
-    { _id: orderId },
-    { $set: { "subOrders.$[live].inventoryReserved": true } },
-    { arrayFilters: [{ "live.status": { $ne: ORDER_STATUS.CANCELLED } }] },
-  );
-
-  await stampFulfillmentLocations(orderId).catch((err) =>
-    console.error("Failed to record order fulfillment locations:", err),
-  );
+  //
+  // The branch stamp reads nothing the flag writes, so the two go together —
+  // one after the other, they were round trips a shopper waited on.
+  await Promise.all([
+    Order.updateOne(
+      { _id: orderId },
+      { $set: { "subOrders.$[live].inventoryReserved": true } },
+      { arrayFilters: [{ "live.status": { $ne: ORDER_STATUS.CANCELLED } }] },
+    ),
+    stampFulfillmentLocations(orderId).catch((err) =>
+      console.error("Failed to record order fulfillment locations:", err),
+    ),
+  ]);
 }
 
 /**
@@ -186,47 +334,57 @@ async function stampFulfillmentLocations(orderId: string): Promise<void> {
   if (order.channel === "pos") return;
 
   // One lookup per distinct vendor, not per sub-order: a single-vendor order is
-  // the overwhelming majority and must not pay for the marketplace case.
-  const resolved = new Map<string, FulfillmentCandidate | null>();
-
-  for (const sub of order.subOrders) {
-    if (sub.fulfillment?.method === "pickup") continue;
-
-    const vendorId = sub.vendorId ? String(sub.vendorId) : "";
-    if (!vendorId) continue;
-
-    if (!resolved.has(vendorId)) {
-      resolved.set(vendorId, await resolveFulfillmentLocation(vendorId));
-    }
-    const location = resolved.get(vendorId);
-    if (!location) continue;
-
-    await Order.updateOne(
-      { _id: orderId },
-      {
-        $set: {
-          "subOrders.$[so].fulfillment.method": "delivery",
-          // Cast here rather than leaving Mongoose to infer it through an
-          // `$[so]` array filter. A miscast would throw into the catch above
-          // and be logged, so the failure mode is a silently unstamped order —
-          // the worst kind to find out about in production.
-          "subOrders.$[so].fulfillment.fulfillmentLocationId":
-            new Types.ObjectId(location.id),
-          "subOrders.$[so].fulfillment.fulfillmentLocationName": location.name,
-        },
-      },
-      {
-        arrayFilters: [
-          {
-            "so.vendorId": new Types.ObjectId(vendorId),
-            // Never touch a pickup sub-order, even if one was added between the
-            // read above and this write.
-            "so.fulfillment.method": { $ne: "pickup" },
-          },
+  // the overwhelming majority and must not pay for the marketplace case. The
+  // vendors' lookups, and then their writes, go at once rather than in turn.
+  const vendorIds = Array.from(
+    new Set(
+      order.subOrders
+        .filter((sub) => sub.fulfillment?.method !== "pickup")
+        .map((sub) => (sub.vendorId ? String(sub.vendorId) : ""))
+        .filter(Boolean),
+    ),
+  );
+  const resolved: Array<[string, FulfillmentCandidate | null]> = await Promise.all(
+    vendorIds.map(
+      async (vendorId) =>
+        [vendorId, await resolveFulfillmentLocation(vendorId)] as [
+          string,
+          FulfillmentCandidate | null,
         ],
-      },
-    );
-  }
+    ),
+  );
+
+  await Promise.all(
+    resolved.map(([vendorId, location]) => {
+      if (!location) return undefined;
+      return Order.updateOne(
+        { _id: orderId },
+        {
+          $set: {
+            "subOrders.$[so].fulfillment.method": "delivery",
+            // Cast here rather than leaving Mongoose to infer it through an
+            // `$[so]` array filter. A miscast would throw into the catch above
+            // and be logged, so the failure mode is a silently unstamped
+            // order — the worst kind to find out about in production.
+            "subOrders.$[so].fulfillment.fulfillmentLocationId":
+              new Types.ObjectId(location.id),
+            "subOrders.$[so].fulfillment.fulfillmentLocationName":
+              location.name,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              "so.vendorId": new Types.ObjectId(vendorId),
+              // Never touch a pickup sub-order, even if one was added between
+              // the read above and this write.
+              "so.fulfillment.method": { $ne: "pickup" },
+            },
+          ],
+        },
+      );
+    }),
+  );
 }
 
 /**
@@ -242,6 +400,7 @@ async function claimSubOrderRestore(params: {
 }): Promise<{
   lines: InventoryAdjustmentLine[];
   opts: InventoryAdjustmentOptions;
+  consignment: RestockedConsignment;
 } | null> {
   if (!Types.ObjectId.isValid(params.orderId)) return null;
 
@@ -281,12 +440,14 @@ async function claimSubOrderRestore(params: {
   );
   if (!sub) return null;
 
+  const consignment = restockedConsignment(sub);
   return {
-    lines: itemsToInventoryLines(sub.items),
+    lines: consignment.lines,
     opts: getInventoryOpts(
       updated as { channel?: string; posLocationId?: unknown },
       sub,
     ),
+    consignment,
   };
 }
 
@@ -347,9 +508,11 @@ async function claimAllRemainingRestores(
 ): Promise<{
   lines: InventoryAdjustmentLine[];
   opts: InventoryAdjustmentOptions;
+  /** The same units, per consignment. */
+  consignments: RestockedConsignment[];
 }> {
   if (!Types.ObjectId.isValid(orderId)) {
-    return { lines: [], opts: {} };
+    return { lines: [], opts: {}, consignments: [] };
   }
 
   const claimFilter: Record<string, unknown> = { "so.inventoryReserved": true };
@@ -377,17 +540,16 @@ async function claimAllRemainingRestores(
     },
   );
 
-  if (!updated) return { lines: [], opts: {} };
+  if (!updated) return { lines: [], opts: {}, consignments: [] };
 
   const subOrders = (updated.subOrders || []) as SubOrderShape[];
   const claimed = subOrders.filter((sub) => isClaimableSubOrder(sub, options));
-  const lines: InventoryAdjustmentLine[] = [];
-  for (const sub of claimed) {
-    lines.push(...itemsToInventoryLines(sub.items));
-  }
+  const consignments = claimed.map(restockedConsignment);
+  const lines = consignments.flatMap((consignment) => consignment.lines);
 
   return {
     lines,
+    consignments,
     // Only when the claimed sub-orders all name the same branch. A marketplace
     // order spanning two vendors' warehouses cannot be restored to "the"
     // location, so it falls back to the per-line rule rather than picking one
@@ -407,10 +569,128 @@ export async function restoreOrderInventory(
   orderId: string,
   options?: RestoreClaimOptions,
 ): Promise<boolean> {
-  const { lines, opts } = await claimAllRemainingRestores(orderId, options);
+  const claimed = await claimAllRemainingRestores(orderId, options);
+  // Everything these consignments sold is back on the shelf now, a return
+  // still open on them included. Marked BEFORE their restocked units are read
+  // below: a return restocks a step only while it is unmarked, and records
+  // that step in the same write — so every step is either read here or
+  // refused, never both missed and restocked twice.
+  if (options?.includeDispatched && claimed.consignments.length > 0) {
+    await markReturnsRestockedByOrder(orderId, claimed.consignments);
+  }
+  // Delivered goods only come back through a return, and a return may have
+  // restocked its own units already. The order-wide restock used to put them
+  // back a second time. Taken consignment by consignment, so the ledger is
+  // told which seller's units actually came back.
+  const alreadyBack = options?.includeDispatched
+    ? new Map(await returnRestockedUnits(orderId))
+    : new Map<string, number>();
+  const consignments = claimed.consignments.map((consignment) => ({
+    ...consignment,
+    lines:
+      alreadyBack.size > 0
+        ? takeUnits(consignment.lines, alreadyBack)
+        : consignment.lines,
+  }));
+  const lines = consignments.flatMap((consignment) => consignment.lines);
   if (lines.length === 0) return false;
-  await restoreInventory(lines, opts);
+  await restoreInventory(lines, claimed.opts);
+  postRestockedUnits(orderId, consignments);
   return true;
+}
+
+/**
+ * Stamp the returns an order-wide restock has just covered.
+ *
+ * A full refund with "restock" ticked puts every unit of the claimed
+ * consignments back — including goods a return was still waiting on. Nothing
+ * told that return, so when its parcel arrived "Put back in stock" added the
+ * same units a second time and took their cost off cost of goods twice. The
+ * other order of events was already safe: an order restock leaves out what a
+ * return put back first (`returnRestockedUnits`).
+ */
+async function markReturnsRestockedByOrder(
+  orderId: string,
+  consignments: RestockedConsignment[],
+) {
+  const vendorIds = consignments
+    .map((consignment) => String(consignment.vendorId || ""))
+    .filter((id) => Types.ObjectId.isValid(id))
+    .map((id) => new Types.ObjectId(id));
+  if (vendorIds.length === 0) return;
+  await ReturnRequest.updateMany(
+    {
+      orderId,
+      inventoryRestored: { $ne: true },
+      status: { $nin: [RETURN_STATUS.REJECTED, RETURN_STATUS.CANCELLED] },
+      vendorIds: { $in: vendorIds },
+    },
+    { $set: { inventoryRestored: true, restockedByOrderAt: new Date() } },
+  ).catch((err) =>
+    console.error("Failed to mark returns restocked by an order refund:", err),
+  );
+}
+
+function unitKey(line: { productId: unknown; variantId?: unknown }): string {
+  return `${String(line.productId)}:${line.variantId ? String(line.variantId) : ""}`;
+}
+
+/**
+ * Units this order's returns have already accounted for: put back on sale —
+ * every step of every return, including one still being restocked in parts —
+ * or found unsellable when the parcel was counted. An unsellable unit is held
+ * as "Unavailable" (or was since restocked or written off by the merchant) —
+ * an order-wide restock that counted it again put a damaged unit on sale.
+ */
+async function returnRestockedUnits(orderId: string): Promise<Map<string, number>> {
+  const returns = await ReturnRequest.find({
+    orderId,
+    $or: [
+      { "restockedLines.0": { $exists: true } },
+      { itemsCountedAt: { $exists: true } },
+    ],
+  })
+    .select(
+      "status restockedLines itemsCountedAt items.productId items.variantId items.quantityReceived items.condition",
+    )
+    .lean<
+      Array<
+        Parameters<typeof heldReturnUnits>[0] & {
+          restockedLines?: InventoryAdjustmentLine[];
+        }
+      >
+    >();
+  const units = new Map<string, number>();
+  const add = (line: { productId: unknown; variantId?: unknown }, quantity: number) => {
+    const key = unitKey(line);
+    units.set(key, (units.get(key) || 0) + Math.max(0, quantity));
+  };
+  for (const request of returns) {
+    // Every recorded step went back on sale; a failed step is pulled again.
+    for (const line of request.restockedLines || []) {
+      add(line, Number(line.quantity || 0));
+    }
+    for (const line of heldReturnUnits(request)) add(line, line.received);
+  }
+  return units;
+}
+
+/**
+ * `lines` less what `left` still holds, taking it out of `left` as it goes — so
+ * the same units cannot be subtracted twice across several consignments.
+ */
+export function takeUnits(
+  lines: InventoryAdjustmentLine[],
+  left: Map<string, number>,
+): InventoryAdjustmentLine[] {
+  const out: InventoryAdjustmentLine[] = [];
+  for (const line of lines) {
+    const key = unitKey(line);
+    const take = Math.min(line.quantity, left.get(key) || 0);
+    if (take > 0) left.set(key, (left.get(key) || 0) - take);
+    if (line.quantity - take > 0) out.push({ ...line, quantity: line.quantity - take });
+  }
+  return out;
 }
 
 /**
@@ -494,5 +774,6 @@ export async function restoreSubOrderInventory(params: {
   const claim = await claimSubOrderRestore(params);
   if (!claim || claim.lines.length === 0) return false;
   await restoreInventory(claim.lines, claim.opts);
+  postRestockedUnits(params.orderId, [claim.consignment]);
   return true;
 }

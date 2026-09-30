@@ -357,15 +357,13 @@ export function CategoryListEditor({
                 onChange={(roundness) => patchStyle({ roundness })}
               />
             ) : null}
-            {scrolls ? (
-              <SliderRow
-                label={ts("tileWidth", "Tile width")}
-                value={style.tileWidth}
-                max={limits.tileWidth.max}
-                zeroLabel={ts("auto", "Auto")}
-                onChange={(tileWidth) => patchStyle({ tileWidth })}
-              />
-            ) : null}
+            <SliderRow
+              label={ts("tileWidth", "Tile width")}
+              value={style.tileWidth}
+              max={limits.tileWidth.max}
+              zeroLabel={ts("auto", "Auto")}
+              onChange={(tileWidth) => patchStyle({ tileWidth })}
+            />
             <SliderRow
               label={ts("tileHeight", "Tile height")}
               value={style.tileHeight}
@@ -665,11 +663,11 @@ export function CategoryListEditor({
                   <span className="block overflow-hidden rounded-sm">
                     <SectionThumbnail type={`${entry.type}:${variant.key}`} />
                   </span>
-                  <span className="mt-1.5 flex items-center gap-1 px-0.5">
+                  <span className="mt-1.5 flex items-start gap-1 px-0.5">
                     {selected ? (
-                      <Check className="h-3 w-3 shrink-0 text-primary" />
+                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
                     ) : null}
-                    <span className="truncate text-xs font-medium">
+                    <span className="break-words text-xs font-medium leading-snug">
                       {tSafe(
                         `admin.storeBuilder.sections.${entry.type}.variants.${variant.key}`,
                         variant.name,

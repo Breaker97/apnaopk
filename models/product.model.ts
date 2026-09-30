@@ -199,7 +199,6 @@ const ProductVariantSchema = new Schema<ProductVariant>({
   price: { type: Number, required: true, min: 0 },
   comparePrice: { type: Number, min: 0 },
   cost: { type: Number, min: 0 },
-  taxable: { type: Boolean, default: true },
   stock: { type: Number, required: true, min: 0, default: 0 },
   attributes: { type: [ProductAttributeSchema], default: [] },
   image: { type: String },
@@ -226,6 +225,8 @@ const ProductVariantSchema = new Schema<ProductVariant>({
   preorder: { type: PreorderSettingsSchema, default: undefined },
   // Undefined inherits the product-level physical-product setting.
   requiresShipping: { type: Boolean },
+  // Undefined follows the product: its final-sale mark and its collections.
+  finalSale: { type: Boolean },
   weight: { type: Number, min: 0 },
   weightUnit: { type: String, enum: ["g", "kg", "lb", "oz"] },
   // Parcel size, for carrier rating. A variant only overrides the product's
@@ -480,6 +481,14 @@ const ProductSchema = new Schema<IProduct>(
     publishing: {
       onlineStore: { type: Boolean, default: true },
       pointOfSale: { type: Boolean, default: false },
+    },
+    // Final sale: the shopper cannot return it. Copied onto each order line
+    // when the order is placed — see lib/returns/final-sale.ts.
+    returns: {
+      finalSale: { type: Boolean, default: false },
+      // Its own return window in days; absent, the store's applies. Copied
+      // onto order lines too — see lib/returns/return-window.ts.
+      windowDays: { type: Number, min: 1, max: 365 },
     },
     shipping: {
       isPhysicalProduct: { type: Boolean, default: true },

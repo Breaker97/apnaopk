@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { validateBody } from "@/lib/api/validate";
 import { successResponse } from "@/lib/api/response";

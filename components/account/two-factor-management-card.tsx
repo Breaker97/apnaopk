@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Card,
@@ -12,9 +12,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
 import { TwoFactorEnrollment } from "@/components/account/two-factor-enrollment";
+import { ClientSuspense } from "@/components/common/client-suspense";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
+import {
+  USER_PROFILE_URL,
+  type UserProfilePayload,
+} from "@/components/account/user-profile-resource";
+
+interface TwoFactorManagementCardProps {
+  disabled?: boolean;
+  disabledMessage?: string;
+}
 
 /**
  * Self-service two-factor authentication management, usable from any account
@@ -27,45 +39,68 @@ import { TwoFactorEnrollment } from "@/components/account/two-factor-enrollment"
  *   card renders nothing.
  * - A user who is already enrolled can always manage/disable it, even if the
  *   admin later turns the feature off.
+ *
+ * The state comes from /api/user/profile through `useSuspenseResource`: on the
+ * customer Security page that is the copy the Profile page already holds, so
+ * it costs no request, and the card's own Suspense boundary replaces the
+ * spinner card it used to draw while loading.
  */
-export function TwoFactorManagementCard({
+export function TwoFactorManagementCard(
+  props: TwoFactorManagementCardProps = {},
+) {
+  return (
+    <ClientSuspense fallback={<TwoFactorCardSkeleton />}>
+      <TwoFactorManagementContent {...props} />
+    </ClientSuspense>
+  );
+}
+
+function TwoFactorCardSkeleton() {
+  return (
+    <Card aria-busy="true">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-10 w-40" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function TwoFactorManagementContent({
   disabled = false,
   disabledMessage,
-}: {
-  disabled?: boolean;
-  disabledMessage?: string;
-} = {}) {
+}: TwoFactorManagementCardProps) {
   const t = useTranslations();
 
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
-  const [available, setAvailable] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // A failed read leaves both flags false, which hides the card: without the
+  // state there is nothing it could offer safely.
+  const { data: profile, mutate: mutateProfile } =
+    useSuspenseResource<UserProfilePayload>(USER_PROFILE_URL);
+  const is2FAEnabled = Boolean(profile?.user?.twoFactorEnabled);
+  const available = Boolean(profile?.user?.twoFactorAvailable);
+  // Written into the shared copy, so the Profile page and a later visit here
+  // agree with what just happened.
+  const setIs2FAEnabled = (enabled: boolean) =>
+    mutateProfile((current) => ({
+      ...current,
+      user: current.user
+        ? { ...current.user, twoFactorEnabled: enabled }
+        : current.user,
+    }));
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
   const [disablePassword, setDisablePassword] = useState("");
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Load per-user enrollment state and whether 2FA is offered to this role.
-  useEffect(() => {
-    async function load() {
-      try {
-        const profileRes = await fetch("/api/user/profile");
-        if (profileRes.ok) {
-          const data = await profileRes.json();
-          const user = data.data?.user || data.user;
-          setIs2FAEnabled(Boolean(user?.twoFactorEnabled));
-          setAvailable(Boolean(user?.twoFactorAvailable));
-        }
-      } catch {
-        // Silently fail — the card stays hidden if we cannot determine state.
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    load();
-  }, []);
 
   const handleDisable2FA = async () => {
     if (disabled) return;
@@ -101,16 +136,6 @@ export function TwoFactorManagementCard({
       setIsDisabling(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-10">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   // Personal preference: only surface 2FA when the admin has enabled it for this
   // role. Users already enrolled keep access so they can manage/disable it.

@@ -139,7 +139,16 @@
     "increaseQuantity": "Verhoog hoeveelheid",
     "name": "Naam",
     "email": "E-pos",
-    "showingResultsFor": "Resultate vir <q>{query}</q>"
+    "showingResultsFor": "Resultate vir <q>{query}</q>",
+    "countryPicker": {
+      "placeholder": "Kies ’n land",
+      "search": "Soek lande...",
+      "empty": "Geen lande gevind nie.",
+      "clear": "Maak land skoon",
+      "selected": "{count, plural, one {# land gekies} other {# lande gekies}}",
+      "remove": "Verwyder {country}"
+    },
+    "clear": "Maak skoon"
   },
   "ui": {
     "dataTable": {
@@ -555,7 +564,6 @@
     "shareProduct": "Deel hierdie produk met vriende en familie",
     "sizeGuide": "Groottegids",
     "fabricCare": "Materiaal + Versorging",
-    "faq": "Vrae",
     "productDetails": "Produkbesonderhede",
     "returnPolicy": "Terugstuur beleid",
     "freeReturns": "Gratis 30-dae terugsending",
@@ -812,6 +820,9 @@
     "shipments": "Versendings",
     "shipmentsDescription": "Items van verskillende verkopers word afsonderlik gestuur en betaal.",
     "tracking": "Opsporing",
+    "trackingNumber": "Naspoornommer",
+    "latestFromCarrier": "Nuutste van {carrier}",
+    "latestUpdate": "Nuutste opdatering",
     "payment": {
       "pending": "Betaling hangende",
       "paid": "Betaal",
@@ -982,12 +993,9 @@
       "collections": "Versamelings",
       "categories": "Kategorieë",
       "inventory": "Voorraad",
-      "purchaseOrders": "Aankoopbestellings",
       "transfers": "Oordragte",
-      "giftCards": "Geskenkkaarte",
       "customers": "Kliënte",
       "vendors": "Verkopers",
-      "marketing": "Bemarking",
       "discounts": "Afslag",
       "content": "Inhoud",
       "markets": "Markte",
@@ -995,15 +1003,11 @@
       "aiSalesAgent": "Verkoopsagent",
       "salesChannels": "Verkoopskanale",
       "onlineStore": "Aanlyn Winkel",
-      "homePage": "Tuisblad",
-      "theme": "Tema",
       "themes": "Temas",
       "pages": "Bladsye",
       "pos": "Punt van Verkoop",
       "posStaff": "Personeel",
       "posLocations": "Ligginge",
-      "apps": "Toepassings",
-      "addApp": "Voeg by",
       "addPage": "Voeg Bladsy by",
       "navigation": "Navigasie",
       "checkout": "Kas uit",
@@ -1013,14 +1017,11 @@
       "transactions": "Transaksies",
       "reviews": "Resensies",
       "blogPosts": "Blog-poste",
-      "blogCategories": "Blog-kategorieë",
-      "blogComments": "Kommentaar",
-      "allPosts": "Alle poste",
       "aiStudio": "AI-studio",
       "boosts": "Bevordering",
       "boostCampaigns": "Bevorderingsveldtogte",
       "boostPositions": "Boost-posisies",
-      "customize": "Customize",
+      "customize": "Pasmaak",
       "finance": "Finansies",
       "financeOverview": "Oorsig",
       "expenses": "Uitgawes",
@@ -1028,7 +1029,25 @@
       "financeReports": "Verslae",
       "quotes": "Kwotasies",
       "traffic": "Verkeer",
-      "searchInsights": "Soekinsigte"
+      "searchInsights": "Soekinsigte",
+      "abandonedCheckouts": "Onvoltooide betalings",
+      "accessRequests": "Toegangsversoeke",
+      "allOrders": "Alle bestellings",
+      "brands": "Handelsmerke",
+      "globalVariants": "Globale variante",
+      "inbox": "Inkassie",
+      "landmark": "Hoofkieslys",
+      "mobileTitle": "Kieslys",
+      "mobileDescription": "Skakels na elke deel van die paneelbord.",
+      "preorders": "Voorafbestellings",
+      "returns": "Terugsendings",
+      "shipping": "Versending",
+      "sliders": "Skyfies",
+      "staff": "Span",
+      "toggle": "Wys of versteek die sybalk",
+      "vendorConfiguration": "Opstelling",
+      "vendorOnboarding": "Aanboordvloei",
+      "vendorPlans": "Verkoperplanne"
     },
     "pos": "Punt van Verkoop",
     "posLocations": "POS Ligginge",
@@ -1265,26 +1284,7 @@
     },
     "settings": {
       "title": "Instellings",
-      "description": "Bestuur jou winkelkonfigurasie",
-      "tabs": {
-        "general": "Algemeen",
-        "security": "Sekuriteit",
-        "appearance": "Voorkoms",
-        "payment": "Betaling",
-        "email": "E-pos",
-        "orders": "Bestellings",
-        "seo": "SEO",
-        "social": "Social",
-        "maintenance": "Instandhouding",
-        "storage": "Storing"
-      },
       "search": "Soek instellings",
-      "close": "Maak instellings toe",
-      "openMenu": "Open settings menu",
-      "closeMenu": "Close settings menu",
-      "storeNameFallback": "Jou winkel",
-      "attention": "Aksie Benodig",
-      "disabled": "Gedeaktiveer",
       "unsaved": "Ongestoor",
       "general": {
         "title": "Algemene Instellings",
@@ -1296,76 +1296,162 @@
         "address": "Adres",
         "storeDescription": "Winkelbeskrywing",
         "defaultLanguage": "Verstek-taal",
-        "defaultCurrency": "Verstek-geldeenheid",
-        "logoUrl": "Logo-URL",
-        "faviconUrl": "Favicon-URL",
-        "timezone": "Tydsone",
-        "timezonePlaceholder": "UTC",
+        "defaultCurrency": "Winkelgeldeenheid",
         "supportedLanguages": "Ondersteunde tale",
         "supportedLanguagesDesc": "Beskikbare tale in jou winkel.",
-        "supportedCurrencies": "Ondersteunde geldeenhede",
-        "supportedCurrenciesDesc": "Geldeenheidskodes wat vir prys en vertoon toegelaat word.",
-        "save": "Stoor Veranderinge"
+        "save": "Stoor Veranderinge",
+        "storeInfoTitle": "Winkelinligting",
+        "storeInfoDescription": "Basiese besonderhede oor jou winkel",
+        "languageCurrencyTitle": "Taal en geldeenheid",
+        "languageCurrencyDescription": "Die taal waarin jou winkel oopmaak, en die een geldeenheid waarin dit verkoop",
+        "searchLanguage": "Soek taal...",
+        "searchCurrency": "Soek geldeenheid...",
+        "storeCurrencyHint": "Elke prys, bestelling en uitbetaling is in hierdie geldeenheid. Om dit te verander, benoem net die pryse anders; dit skakel hulle nie om nie.",
+        "countries": {
+          "title": "Beskikbare lande",
+          "description": "Beheer die landelyste wat by betaling, verkoper-aanboording, adresse, versending en produkvorms gebruik word.",
+          "all": "Alle lande",
+          "allHint": "Wys elke ondersteunde land ({count}) in alle landkiesers.",
+          "specific": "Spesifieke lande",
+          "specificHint": "Wys slegs die lande wat jy hieronder kies.",
+          "label": "Lande",
+          "placeholder": "Kies lande",
+          "search": "Soek lande of ISO-kodes...",
+          "empty": "Geen lande gevind nie.",
+          "required": "Kies minstens een land voordat jy stoor.",
+          "selected": "{count, plural, one {# land gekies.} other {# lande gekies.}}"
+        },
+        "defaultBadge": "Verstek",
+        "countryRequired": "Kies ten minste een land, of kies Alle lande."
       },
       "appearance": {
-        "title": "Voorkoms",
-        "description": "Pas jou winkel se voorkoms en gevoel aan",
+        "title": "Handelsmerk",
         "primaryColor": "Primêre Kleur",
         "secondaryColor": "Sekondêre Kleur",
         "accentColor": "Akraan-kleur",
-        "theme": "Verstek-tema",
         "themes": {
           "light": "Lig",
-          "dark": "Donker",
-          "system": "Stelsel"
-        },
-        "borderRadius": "Rand-radius",
-        "mode": "Modus",
-        "contrast": "Kontras",
-        "rtl": "Regs na links",
-        "collapsedSidebar": "Ineengevoude kantbalk",
-        "nav": "Navigasie",
-        "layout": "Uitleg",
-        "color": "Kleur",
-        "navColor": {
-          "integrate": "Integreer",
-          "apparent": "Ooglopend"
+          "dark": "Donker"
         },
         "presets": "Voorkeure",
-        "save": "Stoor Veranderinge"
+        "skeletonColor": "Kleur van laaiplekhouers",
+        "skeletonColorHint": "Plekhouers terwyl gelaai word. Leeg bly ’n neutrale grys."
       },
       "payment": {
         "title": "Betaling-instellings",
         "description": "Konfigureer betaalpoorte en -opsies",
         "stripe": {
           "title": "Stripe",
-          "description": "Konfigureer Stripe-betaalpoort",
-          "enable": "Aktiveer Stripe-betalings",
-          "publishableKey": "Publikasie sleutel",
+          "description": "Aanvaar krediet- en debietkaarte wêreldwyd",
           "secretKey": "Geheime sleutel",
-          "webhookSecret": "Webhook-geheim"
+          "webhookSecretHint": "Nodig om betalingsgebeure te hanteer. Kry dit by Stripe Dashboard → Developers → Webhooks"
         },
         "paypal": {
           "title": "PayPal",
-          "description": "Konfigureer PayPal-betaalpoort",
-          "enablePayPal": "Aktiveer PayPal",
-          "paypalClientId": "Kliënt-ID",
+          "description": "Betroubare wêreldwye betaalpunt en beursie",
           "clientSecret": "Kliënt-geheim",
-          "paypalMode": "Modus",
-          "paypalSandbox": "Sandkis",
-          "paypalLive": "Regstreeks",
-          "paypalWebhookId": "Webhook-ID"
+          "clientIdPlaceholder": "PayPal-kliënt-ID",
+          "webhookIdPlaceholder": "PayPal-webhaak-ID"
         },
         "cod": {
           "title": "Kontant by Aflewering",
-          "description": "Konfigureer COD-betaalopsie",
-          "enable": "Aktiveer Kontant by Aflewering",
-          "instructions": "COD-instruksies",
-          "placeholder": "Instruksies wat aan kliënte getoon word...",
-          "codMinOrder": "Min. Bestelbedrag",
-          "codMaxOrder": "Maks. Bestelbedrag"
+          "description": "Laat kliënte betaal wanneer hul bestelling aankom",
+          "placeholder": "bv. Hou asseblief presiese kleingeld gereed wanneer die koerier aankom.",
+          "offline": "Vanlyn"
         },
-        "save": "Stoor Betaling-instellings"
+        "pesapal": {
+          "ipnRegistered": "Pesapal-IPN geregistreer",
+          "ipnFailed": "Kon nie die Pesapal-IPN registreer nie",
+          "description": "Mobiele geld en kaartbetalings regoor Oos-Afrika",
+          "registerIpn": "Registreer IPN",
+          "consumerKeyPlaceholder": "Pesapal consumer key",
+          "consumerSecretPlaceholder": "Pesapal consumer secret",
+          "ipnId": "IPN-ID",
+          "ipnIdPlaceholder": "Geregistreerde Pesapal-IPN-ID",
+          "ipnHint": "Registreer <code>{path}</code> as 'n POST-IPN-URL en voer dan die ID in wat teruggegee word."
+        },
+        "testConnection": "Toets verbinding",
+        "activeCount": "{count} aktief",
+        "checkout": {
+          "currencyListed": "Versteek by betaling: dit kan nie {currency}, die winkel se geldeenheid, aanvaar nie. Dit aanvaar net {currencies}. Verander die geldeenheid in Algemene instellings om dit aan te bied.",
+          "currency": "Versteek by betaling: dit kan nie {currency}, die winkel se geldeenheid, aanvaar nie. Verander die geldeenheid in Algemene instellings om dit aan te bied.",
+          "keys": "Versteek by betaling totdat sy sleutels gestoor is."
+        },
+        "fields": {
+          "keyId": "Key ID",
+          "keySecret": "Key Secret",
+          "webhookSecret": "Webhaakgeheim",
+          "webhookUrl": "Webhaak-URL",
+          "publicKey": "Publieke sleutel",
+          "secretKey": "Geheime sleutel",
+          "consumerKey": "Consumer Key",
+          "consumerSecret": "Consumer Secret",
+          "clientId": "Kliënt-ID",
+          "clientSecret": "Kliëntgeheim",
+          "walletId": "Beursie-ID",
+          "merchantKey": "Handelaarsleutel",
+          "countryCode": "Landkode",
+          "subscriptionKey": "Intekeningsleutel",
+          "apiUser": "API-gebruiker",
+          "apiKey": "API-sleutel",
+          "targetEnvironment": "Teikenomgewing",
+          "callbackHost": "Terugroepgasheer (opsioneel)"
+        },
+        "razorpay": {
+          "description": "Betalings vir Indië, en vir Maleisië deur Razorpay Curlec",
+          "internationalNote": "Aanvaar {currency} slegs as International Payments op jou Razorpay-rekening geaktiveer is.",
+          "keySecretPlaceholder": "Key secret",
+          "webhookSecretPlaceholder": "Webhaakgeheim",
+          "webhookSecretHint": "Die geheim wat jy op daardie webhaak gestel het. Gestoorde geheime word om veiligheidsredes nie weer gewys nie.",
+          "webhookUrlHint": "Voeg dit by in Razorpay Dashboard → Account & Settings → Webhooks, met die gebeure payment.captured, order.paid, refund.created, refund.processed en refund.failed. Dit bevestig 'n betaling selfs wanneer die koper nooit na jou winkel terugkeer nie, wat algemeen is by FPX en ander bankherleidings."
+        },
+        "paystack": {
+          "description": "Moderne betalings vir Afrika"
+        },
+        "iotec": {
+          "description": "MTN- en Airtel-mobiele geld en kaartbetalings (Uganda)",
+          "clientIdPlaceholder": "ioTec-kliënt-ID",
+          "clientSecretPlaceholder": "ioTec-kliëntgeheim",
+          "walletIdPlaceholder": "ioTec Pay-beursie-UUID",
+          "walletIdHint": "Te vind in die ioTec Pay-portaal onder jou beursie-instellings.",
+          "callbackHint": "Opsioneel: stel in die ioTec Pay-portaal die invorderingsterugroep-URL op <code>{path}</code> vir onmiddellike statusopdaterings. Betalings word selfs daarsonder deur navrae bevestig."
+        },
+        "orangeMoney": {
+          "description": "Orange mobiele geld regoor Wes- en Sentraal-Afrika",
+          "clientIdPlaceholder": "Orange-ontwikkelaar se kliënt-ID",
+          "clientSecretPlaceholder": "Orange-ontwikkelaar se kliëntgeheim",
+          "merchantKeyPlaceholder": "Orange Money-handelaarsleutel",
+          "merchantKeyHint": "Uitgereik deur jou plaaslike Orange-operateur sodra die handelaarskontrak onderteken is — nie in die ontwikkelaarsportaal beskikbaar nie.",
+          "countryHint": "Die tweeletterkode van die land waarvan die Orange-operateur jou handelaarsleutel uitgereik het (ci, sn, cm, ml, mg…). Vereis in regstreekse modus; geïgnoreer in sandbox, wat altyd Orange se <code>{endpoint}</code>-eindpunt gebruik.",
+          "callbackHint": "Stel in die Orange-ontwikkelaarsportaal die kennisgewing-URL op <code>{path}</code>. Betalings word ook deur navrae op die bladsy vir suksesvolle betaling bevestig."
+        },
+        "mtnMomo": {
+          "description": "MTN MoMo-betalings met PIN-bevestiging regoor Afrika",
+          "subscriptionKeyHint": "Die primêre sleutel van jou intekening op die Collections-produk.",
+          "apiUserPlaceholder": "API-gebruiker se UUID",
+          "apiKeyPlaceholder": "API-sleutel gekoppel aan die gebruiker",
+          "targetEnvironmentHint": "Die X-Target-Environment wat jou MTN-OpCo by aanboording uitgereik het (mtnuganda, mtnghana, …). Vereis in regstreekse modus; geïgnoreer in sandbox, wat altyd <code>{value}</code> stuur.",
+          "callbackHostHint": "Die domein wat jy by MTN as die verskaffer se terugroepgasheer geregistreer het, sonder <code>{scheme}</code> en sonder 'n pad. MTN weier 'n betaling waarvan die terugroep-URL enige ander gasheer noem, dus laat dit leeg tensy dit presies ooreenstem — betalings word in elk geval deur navrae en 'n 15-minuut-rekonsiliasie bevestig.",
+          "callbackHint": "Wanneer gestel, word MTN gevra om <code>{path}</code> in kennis te stel — een keer, sonder herpogings, en daarom is dit nooit die enigste bevestiging nie."
+        },
+        "paypalMode": "Modus",
+        "paypalSandbox": "Sandbox",
+        "paypalLive": "Regstreeks",
+        "codInstructions": "Instruksies vir kontant by aflewering",
+        "codMaxOrder": "Maksimum bestelbedrag",
+        "codMinOrder": "Minimum bestelbedrag",
+        "paypalClientId": "Client ID",
+        "paypalWebhookId": "Webhook ID",
+        "stripePublishableKey": "Publiseerbare sleutel",
+        "stripeWebhookSecret": "Webhook-geheim",
+        "turnstile": {
+          "description": "Cloudflare Turnstile, slegs gevra ná herhaalde kaartweierings",
+          "explainer": "Die betaalblad vra vir ’n menslike toets sodra ’n koper se kaarte drie keer binne ’n halfuur geweier is, en onderbreek die betaling ná ses keer. Die onderbreking werk sonder dit; die toets vereis jou eie Cloudflare Turnstile-sleutels. Die meeste kopers sien dit nooit nie.",
+          "missingKeys": "Aangeskakel sonder albei sleutels, so geen toets word gevra nie — slegs die onderbreking geld.",
+          "secretKey": "Geheime sleutel",
+          "siteKey": "Werfsleutel",
+          "title": "Beskerming teen kaarttoetse"
+        }
       },
       "email": {
         "title": "E-pos-konfigurasie (SMTP)",
@@ -1377,7 +1463,6 @@
         "password": "SMTP-wagwoord",
         "fromEmail": "Van-e-pos",
         "fromName": "Van naam",
-        "secure": "Gebruik SSL/TLS (vir poort 465)",
         "test": {
           "label": "Toets-e-pos",
           "placeholder": "toets@voorbeeld.com",
@@ -1385,34 +1470,47 @@
           "success": "Toets-e-pos suksesvol gestuur!",
           "error": "Kon nie toets-e-pos stuur nie"
         },
-        "save": "Stoor E-pos-instellings"
+        "save": "Stoor E-pos-instellings",
+        "passwordPlaceholder": "Voer wagwoord in",
+        "fromNamePlaceholder": "Jou winkel se naam",
+        "encryptionNote": "Enkripsie is outomaties: poort 465 gebruik implisiete TLS en poort 587 vereis STARTTLS."
       },
       "security": {
         "title": "Sekuriteit en Toegangsbeheer",
         "description": "Konfigureer multi-verkopers-modus, sessie-sekuriteit, en wagwoordbeleide",
         "multiVendor": {
-          "title": "Winkelmodus",
           "label": "Multi-Verkoper-modus",
-          "description": "Aktiveer markplek-funksies: verkoperregistrasie, veelvuldige winkels, verkoper-dashbord"
+          "description": "Aktiveer markplek-funksies: verkoperregistrasie, veelvuldige winkels, verkoper-dashbord",
+          "manageLink": "Bestuur verkoperregistrasie, planne en beleid"
         },
         "emailVerification": {
           "title": "E-pos-verifikasie",
           "required": "Vereis E-pos-verifikasie",
           "requiredDesc": "Gebruikers moet e-pos verifieer voordat hulle die winkel betree",
-          "vendorRequired": "Vereis vir Verkopers",
-          "vendorRequiredDesc": "Verkopers moet e-pos verifieer voordat hulle produkte lys"
+          "vendorRequired": "Vereis vir Verkopers"
         },
         "session": {
-          "title": "Sessie-sekuriteit",
           "duration": "Sessie-duur (dae)",
           "maxAttempts": "Maks. Aanmel-pogings",
           "lockout": "Uitsluit-duur (min)"
         },
         "rateLimiting": {
-          "enabled": "Aktiveer Tempo-beperking"
+          "enabled": "Aktiveer Tempo-beperking",
+          "presets": {
+            "default": "Verstek",
+            "lenient": "Toegeeflik (100/15 min)",
+            "moderate": "Matig (20/15 min)",
+            "strict": "Streng (5/15 min)"
+          },
+          "adminPreset": "Admin-API",
+          "authPreset": "Auth / Aanmelding",
+          "cartPreset": "Mandjie",
+          "checkoutPreset": "Betaalblad / Betalings",
+          "couponPreset": "Koepons",
+          "ipPreset": "Gas / Publiek (IP-gebaseer)",
+          "vendorPreset": "Verkoper-API"
         },
         "passwordPolicy": {
-          "title": "Wagwoordbeleid",
           "minLength": "Min. Wagwoordlengte",
           "uppercase": "Vereis Hoofletters",
           "numbers": "Vereis Syfers",
@@ -1422,7 +1520,10 @@
         "unlock": {
           "label": "Ontsluit ’n rekening",
           "action": "Ontsluit",
-          "hint": "Vee die telling van mislukte aanmeldings vir hierdie adres op elke toestel waar dit gesluit is. Tree onmiddellik in werking — geen stoor nodig nie."
+          "hint": "Vee die telling van mislukte aanmeldings vir hierdie adres op elke toestel waar dit gesluit is. Tree onmiddellik in werking — geen stoor nodig nie.",
+          "done": "Rekening ontsluit. Hulle kan nou weer aanmeld.",
+          "notLocked": "Daardie adres was nie gesluit nie. Niks om uit te vee nie.",
+          "failed": "Kon nie daardie rekening ontsluit nie"
         }
       },
       "orders": {
@@ -1432,12 +1533,55 @@
         "taxRate": "Belastingkoers (%)",
         "shippingCost": "Verstek Afleweringskoste ($)",
         "freeShippingThreshold": "Gratis Aflewering-drempel ($)",
-        "freeShippingPlaceholder": "Laat leeg om te deaktiveer",
+        "freeShippingPlaceholder": "Stel op 0 om te deaktiveer",
         "shippingHandledByZones": "Versendingsones is aan, dus word hierdie twee waardes nie gebruik nie. Tariewe kom uit die Versending en Aflewering-instellings.",
-        "vendorCommission": "Verkooper-kommissie",
         "commissionRate": "Kommissiekoers (%)",
         "minWithdrawal": "Min. Opnamebedrag ($)",
-        "save": "Stoor Bestelling-instellings"
+        "returnInstructions": "Terugstuurinstruksies",
+        "returnInstructionsHint": "Word saam met die terugstuuradres aan die koper gestuur wanneer ’n terugsending goedgekeur word. Gebruik {returnNumber} vir die terugsendingnommer. Laat dit leeg om die getoonde bewoording te gebruik.",
+        "finalSaleCollections": "Finale-verkoop-versamelings",
+        "finalSaleCollectionsSearch": "Soek versamelings",
+        "finalSaleCollectionsNone": "Geen versamelings gevind nie",
+        "finalSaleCollectionMissing": "Verwyderde versameling",
+        "finalSaleCollectionUnnamed": "Versameling",
+        "finalSaleCollectionsHint": "Produkte in hierdie versamelings is finale verkoop: kopers kan hulle nie terugstuur nie. Bestellings wat reeds geplaas is, behou die reëls waaronder hulle verkoop is.",
+        "billVendorCodShipping": "Faktureer verkopers vir kontant-by-aflewering-versending",
+        "billVendorCodShippingHint": "Wanneer ’n verkoper kontant by die deur invorder, hou hulle ook die afleweringsfooi. Skakel dit aan om hulle te faktureer vir pakkies wat jou eie koerier vervoer het, saam met die kommissie wat hulle skuld.",
+        "loyaltyHeading": "Lojaliteitspunte",
+        "loyaltySpendPerPoint": "Besteding per lojaliteitspunt",
+        "loyaltySpendPerPointHint": "Kliënte verdien 1 punt vir elke keer dat hulle hierdie bedrag bestee. Vlakke begin by {silver, number} punte vir Silwer, {gold, number} vir Goud en {platinum, number} vir Platinum. ’n Nuwe koers tel vanaf die volgende betaalde bestelling; punte wat reeds gegee is, behou die koers waarteen hulle verdien is.",
+        "refundAdminFee": "Administrasiefooi vir terugbetalings (%)",
+        "refundAdminFeeCap": "Fooiplafon per terugstuur ({currency})",
+        "refundAdminFeeCapHint": "Stel op 0 vir geen plafon.",
+        "refundAdminFeeHint": "Die deel van jou kommissie wat jy hou wanneer ’n verkoop teruggestuur word. Die koper word in elk geval ten volle terugbetaal; die koste skuif na die verkoper.",
+        "restockingFee": "Herberginsfooi (%)",
+        "restockingFeeHint": "Word van die teruggestuurde goedere afgetrek, nooit van die belasting nie.",
+        "returnShippingFee": "Terugstuurversendingsfooi ({currency})",
+        "returnShippingFeeHint": "Word een keer gehef vir elke verkoper na wie die koper goedere terugstuur.",
+        "returnWindowDays": "Terugstuurtydperk (dae)",
+        "returnWindowDaysHint": "Hoe lank ná aflewering ’n koper nog kan vra om ’n bestelling terug te stuur. Word op elke produkbladsy gewys.",
+        "windowUnlimited": "Geen tydsbeperking",
+        "windowStart": "Tydperk begin",
+        "windowStartParcel": "Wanneer elke pakkie afgelewer is",
+        "windowStartLast": "Wanneer die bestelling se laaste pakkie afgelewer is",
+        "windowStartHint": "Om vanaf die laaste pakkie te tel, gee een tydperk per bestelling en hou elke verkoper se uitkering terug totdat die laaste pakkie aankom.",
+        "payoutHoldMaxDays": "Langste terughouding van uitkerings (dae)",
+        "payoutHoldMaxDaysHint": "Sonder ’n tydsbeperking word ’n verkoper se verkoping soveel dae ná aflewering uitgekeer. ’n Terugbetaling daarna kom uit hul volgende uitkering.",
+        "windowOverrides": "Terugstuurtydperke per versameling",
+        "windowOverrideDays": "Dae",
+        "windowOverrideDaysUnit": "dae",
+        "windowOverrideRemove": "Verwyder",
+        "windowOverridesSearch": "Voeg ’n versameling by",
+        "windowOverridesHint": "Produkte in hierdie versamelings kan eerder vir soveel dae teruggestuur word. ’n Produk kan ook sy eie stel; waar verskeie geld, geld die kortste.",
+        "returnsHeading": "Terugsendings en terugbetalings",
+        "returnsHint": "Hierdie begin by die gedrag wat Storify gehad het voordat dit instellings was, so niks verander totdat jy dit verander nie.",
+        "selfServe": "Klante kan terugsendings aanvra",
+        "selfServeHint": "Af: klante kontak jou en jy open terugsendings vir hulle vanaf die bestelling. Hulle sien steeds hul terugsendings en kan dit kanselleer.",
+        "shippingRefund": "Betaal aflewering terug by ’n terugstuur",
+        "shippingRefundAlways": "Altyd",
+        "shippingRefundHint": "Ons skuld beteken beskadig of defek, nie soos beskryf nie, of die verkeerde item gestuur.",
+        "shippingRefundMerchantFault": "Slegs wanneer die terugstuur ons skuld is",
+        "shippingRefundNever": "Nooit — die koper het die aflewering ontvang"
       },
       "seo": {
         "title": "SEO-instellings",
@@ -1467,7 +1611,35 @@
         "tiktokPlaceholder": "https://tiktok.com/@jouhandvatsel",
         "linkedin": "LinkedIn",
         "linkedinPlaceholder": "https://linkedin.com/company/joumaatskappy",
-        "save": "Stoor Sosiale Skakels"
+        "save": "Stoor Sosiale Skakels",
+        "share": {
+          "copyLink": "Kopieer skakel",
+          "copyLinkDesc": "’n Knoppie wat die produkskakel na die knipbord kopieer.",
+          "customAdd": "Voeg platform by",
+          "customGroup": "Pasgemaakte platforms",
+          "customHint": "Voeg enige ander platform met sy eie deelskakel by.",
+          "customIcon": "Ikoon",
+          "customIconHint": "Opsioneel. Laai ’n vierkantige beeld op, of plak ’n beeld-URL. Val terug op ’n algemene deelikoon.",
+          "customLabel": "Etiket",
+          "customLabelPlaceholder": "bv. Reddit",
+          "customRemove": "Verwyder platform",
+          "customUntitled": "Naamlose platform",
+          "customUrl": "Deelskakel",
+          "customUrlHint": "Voeg die produkskakel en -titel in met die tokens:",
+          "description": "Kies watter deelknoppies op jou produkbladsye verskyn.",
+          "email": "E-pos",
+          "enable": "Aktiveer deelknoppies",
+          "enableDesc": "Wys ’n ry deelknoppies op produkbesonderhedebladsye.",
+          "facebook": "Facebook",
+          "linkGroup": "Skakel",
+          "linkedin": "LinkedIn",
+          "pinterest": "Pinterest",
+          "socialGroup": "Sosiale netwerke",
+          "telegram": "Telegram",
+          "title": "Deelknoppies",
+          "twitter": "X / Twitter",
+          "whatsapp": "WhatsApp"
+        }
       },
       "maintenance": {
         "title": "Instandhouding-modus",
@@ -1475,8 +1647,24 @@
         "enable": "Aktiveer Instandhouding-modus",
         "enableDesc": "Wanneer geaktiveer, sal besoekers 'n instandhoudingsboodskap sien",
         "message": "Instandhouding-boodskap",
-        "messagePlaceholder": "Ons ondergaan tans instandhouding. Kom asseblief gou terug!",
-        "save": "Stoor Instandhouding-instellings"
+        "save": "Stoor Instandhouding-instellings",
+        "preview": {
+          "label": "Regstreekse voorskou",
+          "countdownEmpty": "Kies 'n terugkeertyd om die aftelling te begin.",
+          "countdownHidden": "Die aftelling is versteek. Besoekers sien net die titel en boodskap.",
+          "bypassTitle": "Toegang ten spyte van onderhoud",
+          "bypassCount": "{count, plural, one {# IP kan steeds die winkel besoek.} other {# IP's kan steeds die winkel besoek.}}"
+        },
+        "allowedIPs": "Toegelate IP-adresse",
+        "allowedIPsHint": "Een IP per reël. Hierdie besoekers kan steeds die winkel besoek terwyl die onderhoudsmodus aan is.",
+        "backgroundImage": "Agtergrondbeeld",
+        "backgroundImageHint": "Wanneer ’n beeld gestel is, sien besoekers dit gedemp agter die onderhoudsteks, sonder die kaart.",
+        "backgroundImagePreviewAlt": "Voorskou van onderhoudsagtergrond",
+        "countdown": "Wys aftelling",
+        "countdownDesc": "Wys ’n regstreekse aftelling tot die winkel na verwagting weer aanlyn is.",
+        "countdownEndsAt": "Verwag weer aanlyn",
+        "countdownEndsAtHint": "Stel die plaaslike datum en tyd waarheen kliënte moet aftel.",
+        "titleLabel": "Opskrif"
       },
       "storage": {
         "title": "Storing-instellings",
@@ -1485,7 +1673,7 @@
         "cloudflareR2Desc": "S3-compatibele berging met geen egress-gelde nie",
         "awsS3": "AWS S3",
         "awsS3Desc": "Amazon S3-objectberging",
-        "endpoint": "Endpoint URL",
+        "endpoint": "Eindpunt-URL",
         "region": "AWS-streek",
         "bucketName": "Bucket naam",
         "accessKeyId": "Toegangsleutel-ID",
@@ -1500,15 +1688,15 @@
         "notConnected": "Nie verbind nie",
         "refresh": "Verfris",
         "minio": "MinIO",
-        "minioDesc": "Self-hosted S3 on your own server — no cloud account needed",
+        "minioDesc": "Selfgehuisveste S3 op jou eie bediener — geen wolkrekening nodig nie",
         "digitalocean": "DigitalOcean Spaces",
-        "digitaloceanDesc": "Spaces object storage with a built-in CDN",
-        "providerConfig": "{provider} Configuration",
-        "minioEndpointHelp": "The MinIO API URL — port 9000 by default. Must be reachable from this server.",
-        "minioPublicUrlHelp": "Where browsers load the files from. Usually the same host; add a CDN or reverse-proxy URL here if you use one.",
-        "spacesPublicUrlHelp": "Leave blank to serve from the Space directly, or paste the CDN endpoint (…cdn.digitaloceanspaces.com) for edge caching.",
+        "digitaloceanDesc": "Spaces-objekberging met ’n ingeboude CDN",
+        "providerConfig": "{provider}-opstelling",
+        "minioEndpointHelp": "Die MinIO-API-URL — by verstek poort 9000. Moet vanaf hierdie bediener bereikbaar wees.",
+        "minioPublicUrlHelp": "Waarvandaan blaaiers die lêers laai. Gewoonlik dieselfde gasheer; voeg hier ’n CDN- of omgekeerde-instaanbediener-URL by as jy een gebruik.",
+        "spacesPublicUrlHelp": "Laat leeg om direk vanaf die Space te bedien, of plak die CDN-eindpunt (…cdn.digitaloceanspaces.com) vir randkasgeheue.",
         "localRetired": {
-          "title": "Local storage has been retired",
+          "title": "Plaaslike berging is uitgefaseer",
           "body": "Lêers wat reeds op hierdie bediener is bly laai, maar nuwe oplaaie het een van die verskaffers hieronder nodig. Kies een, vul die geloofsbriewe in, en maak dan “Skuif die lêers wat jy reeds het” oop — dit bevat die opdragte en die rugsteun wat voor die volgende ontplooiing gedoen moet word."
         },
         "setup": {
@@ -1562,6 +1750,42 @@
           "step4": "Kyk na die winkel en die Media-biblioteek. Niks word ooit van die skyf verwyder nie, so vee die plaaslike kopieë self uit sodra die prente laai.",
           "backup": "Voor jou volgende ontplooiing: as jou opdatering die app-vouer vervang — cPanel-oplaai, zip wat oorskryf, 'n houer sonder volume — kopieer die media eers van die bediener af. Om die vouer te vervang vee dit uit.",
           "note": "'n Lêer wat nie opgelaai kan word nie hou sy plaaslike URL, so 'n gedeeltelike loop laat 'n werkende winkel agter eerder as 'n half-gebreekte een. Dit is veilig om weer te loop."
+        },
+        "testSucceeded": "Bergingverbinding suksesvol!",
+        "testRejected": "Verbinding het misluk",
+        "testFailed": "Kon nie die verbinding toets nie",
+        "statusFailed": "Kon nie die bergingstatus nagaan nie",
+        "maxImageSize": "Maks. prentgrootte (MB)",
+        "maxVideoSize": "Maks. videogrootte (MB)",
+        "maxModelSize": "Maks. 3D-modelgrootte (MB)",
+        "accountId": "R2-rekening-ID",
+        "help": {
+          "cloudfront": "CloudFront of eie domein om opgelaaide lêers te bedien",
+          "privateBucket": "Identiteitsdokumente, digitale produkte en uitgawekwitansies word hier gehou, en slegs ’n getekende skakel maak hulle oop. Skep dit in dieselfde rekening met openbare toegang af en geen domein gekoppel nie; die sleutels hierbo moet toegelaat word om dit te gebruik.",
+          "r2Domain": "Jou emmer se R2.dev-subdomein of gekoppelde eie domein — nodig om opgelaaide lêers openbaar te bedien",
+          "r2FindOverview": "Vind dit in Cloudflare Dashboard → R2 → Overview"
+        },
+        "placeholder": {
+          "accessKeyId": "AKIA...",
+          "bucket": "my-bucket",
+          "cdnUrl": "https://cdn.example.com",
+          "privateBucket": "my-store-private",
+          "r2AccessKeyId": "Access Key ID",
+          "r2AccountId": "1234567890abcdef",
+          "r2SecretKey": "Jou R2 Secret Access Key",
+          "r2Url": "https://pub-xxxx.r2.dev",
+          "region": "Kies streek",
+          "secretKey": "Voer geheime sleutel in"
+        },
+        "privateBucketMissing": "Geen privaat emmer nie: identiteitsdokumente, digitale produkte en uitgawekwitansies word in die openbare emmer hierbo gehou, waar enigiemand met ’n lêer se adres dit kan oopmaak. Voeg ’n privaat emmer by en voer dan pnpm db:migrate private-storage uit om die reeds gestoorde lêers te skuif.",
+        "privateBucketName": "Privaat emmer",
+        "publicUrlR2": "Openbare URL / CDN (vereis)",
+        "r2PublicUrlMissing": "Sonder ’n openbare URL kan opgelaaide lêers nie in jou winkel gewys word nie — beeld- en video-URL’s sal na die privaat R2-eindpunt wys en nie laai nie. Skakel in Cloudflare Dashboard → R2 → jou emmer → Settings → Public access die R2.dev-subdomein aan (of koppel ’n eie domein) en plak daardie URL hier.",
+        "switchDialog": {
+          "cancel": "Kanselleer",
+          "confirm": "Bevestig",
+          "description": "As jy bergingsverskaffers wissel, gaan nuwe oplaaie na die nuwe verskaffer. Bestaande lêers bly by die vorige verskaffer en moet dalk geskuif word.",
+          "title": "Wissel bergingsverskaffer?"
         }
       },
       "analytics": {
@@ -1575,7 +1799,17 @@
         "facebookPixelIdPlaceholder": "123456789012345",
         "tiktokPixelId": "TikTok Pixel-ID",
         "tiktokPixelIdPlaceholder": "C1234567890ABCDEF",
-        "save": "Stoor Analitieke-instellings"
+        "save": "Stoor Analitieke-instellings",
+        "plausibleApiKey": "API-sleutel",
+        "plausibleApiKeyHelp": "Te vind in Plausible → Settings → API Keys",
+        "plausibleApiKeyPlaceholder": "Voer jou Plausible-API-sleutel in",
+        "plausibleBaseUrl": "URL van eie instansie",
+        "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
+        "plausibleDomain": "Werfdomein",
+        "plausibleDomainHelp": "Voer net die domein in, bv. yourdomain.com (sonder https://)",
+        "plausibleDomainPlaceholder": "yourdomain.com",
+        "plausibleSelfHosted": "Selfgehuisveste instansie",
+        "plausibleTitle": "Plausible Analytics"
       },
       "loadError": "Kon nie instellings laai nie",
       "unsavedChanges": {
@@ -1589,8 +1823,8 @@
         "description": "Een plek om AI-studio-inhoud, SEO en beeldopwekking te konfigureer.",
         "statusConfigured": "Gekonfigureer",
         "statusNotConfigured": "Nie gekonfigureer nie",
-        "enabled": "Aktiveer AI-funksies",
-        "enabledHint": "Skakel die AI-studio en elke AI-knoppie regoor die dashboard aan of af.",
+        "enabled": "Aktiveer AI-studio",
+        "enabledHint": "Skakel die AI-studio en elke AI-knoppie regoor die dashboard aan of af. Die AI-verkoopsagent het sy eie skakelaar op sy eie bladsy.",
         "apiKey": "OpenAI API-sleutel",
         "apiKeySetPlaceholder": "••••••••  (gestoor — voer 'n nuwe sleutel in om te vervang)",
         "apiKeyHint": "Word deur AI-studio en die AI-verkoopsagent gebruik. Los leeg om die OPENAI_API_KEY-omgewingsveranderlike te bly gebruik.",
@@ -1635,7 +1869,13 @@
         "primaryColor": "Primêre handelsmerkkleur",
         "secondaryColor": "Sekondêre handelsmerkkleur",
         "logoUrl": "Handelsmerklogo-URL",
-        "logoUrlHint": "Laai jou logo na die winkel op en plak dan die URL hier. Word as 'n opsionele logo-plasing op sosiale-media-uitvoere gebruik."
+        "logoUrlHint": "Laai jou logo na die winkel op en plak dan die URL hier. Word as 'n opsionele logo-plasing op sosiale-media-uitvoere gebruik.",
+        "modelNotes": {
+          "fastLowCost": "vinnig, lae koste",
+          "higherQuality": "hoër gehalte",
+          "bestQuality": "beste gehalte",
+          "lowerCost": "laer koste"
+        }
       },
       "saveChanges": "Stoor veranderinge",
       "boosting": {
@@ -1711,8 +1951,11 @@
           "step4b": "en voeg",
           "step4c": "by App domains. Meta vereis ook 'n privaatheidsbeleid-URL voordat die program lewendig mag gaan.",
           "step5": "Kopieer die App ID en App Secret na die velde hierbo, stoor, en druk dan Verifieer legitimasie.",
-          "step6": "Skakel die program van Development na Live oor. Tot dan kan net mense met 'n rol op die program met Facebook aanmeld."
-        }
+          "step6": "Skakel die program van Development na Live oor. Tot dan kan net mense met 'n rol op die program met Facebook aanmeld.",
+          "appIdPlaceholder": "Facebook-toep-ID"
+        },
+        "verified": "Geloofsbriewe geverifieer",
+        "verifyFailed": "Verifikasie het misluk"
       },
       "groups": {
         "store": "Winkel",
@@ -1722,6 +1965,719 @@
         "authentication": "Verifikasie",
         "growth": "Groei",
         "advanced": "Gevorderd"
+      },
+      "fields": {
+        "envSourceHint": "Deur 'n omgewingsveranderlike gestel. 'n Waarde wat hier gestoor word, kry voorrang.",
+        "configured": "Opgestel",
+        "notConfigured": "Nie opgestel nie",
+        "mode": {
+          "live": "Regstreeks",
+          "sandbox": "Sandbox",
+          "test": "Toets"
+        },
+        "savedPlaceholder": "Gestoor (laat leeg om te behou)",
+        "savedKeysHint": "Gestoorde sleutels word om veiligheidsredes nie weer gewys nie.",
+        "savedSecretsHint": "Gestoorde geheime word om veiligheidsredes nie weer gewys nie.",
+        "savedPasswordsHint": "Gestoorde wagwoorde word om veiligheidsredes nie weer gewys nie.",
+        "enableProvider": "Aktiveer {name}"
+      },
+      "demoMode": "Demomodus",
+      "vendorConfig": {
+        "paymentMethods": {
+          "description": "Deur watter betaalpoorte verkopers hul plan-intekeninge kan betaal. Stripe hernu outomaties; ander poorte faktureer een tydperk op 'n slag met hernuwingsherinneringe. Geloofsbriewe word in Betalingsinstellings opgestel.",
+          "title": "Betaalmetodes vir intekeninge"
+        },
+        "allowRegistration": {
+          "description": "Laat mense toe om vanuit die winkel aansoek te doen om ’n verkoper te word.",
+          "label": "Laat verkoperregistrasie toe"
+        },
+        "commission": {
+          "byCurrencyAdd": "Voeg geldeenheid by",
+          "byCurrencyAmount": "Minimum uitbetaling in {currency}",
+          "byCurrencyCode": "Geldeenheidkode",
+          "byCurrencyDescription": "Uitbetalings in ’n ander geldeenheid as {currency} gebruik hul eie minimum. ’n Geldeenheid wat nie hier gelys is nie, het geen minimum nie.",
+          "byCurrencyLabel": "Minimum in ander geldeenhede",
+          "byCurrencyRemove": "Verwyder die {currency}-minimum",
+          "description": "Geld vir verkopers sonder ’n plan. Ook redigeerbaar onder Bestellingsinstellings.",
+          "minWithdrawalDescription": "Die kleinste saldo wat ’n verkoper as uitbetaling kan versoek, in jou winkel se geldeenheid.",
+          "minWithdrawalLabel": "Minimum onttrekkingsbedrag",
+          "rateDescription": "Persentasie wat die platform op elke verkoperverkoping hou.",
+          "rateLabel": "Kommissiekoers",
+          "title": "Verstekkommissie"
+        },
+        "description": "Beleid vir registrasie, goedkeuring en intekenplanne van verkopers.",
+        "documents": {
+          "manageLink": "Maak aanboordvloei oop",
+          "movedDescription": "Vereiste dokumente — en elke aanboordveld — word nou in die aanboordvloei-bouer bestuur, waar jy enige veld verpligtend kan maak, dit kan versteek, stappe kan herorden of eie velde kan byvoeg.",
+          "title": "Vereiste dokumente en velde"
+        },
+        "marketplaceOff": "Aktiveer Multiverkoperbestuur om verkoperbeleid op te stel.",
+        "plans": {
+          "title": "Planne en intekeninge"
+        },
+        "plansEnabled": {
+          "description": "Wys verkopers ’n planstap tydens aanboording. Wanneer dit af is, gebruik verkopers die verstekkommissie.",
+          "label": "Aktiveer intekenplanne"
+        },
+        "registration": {
+          "title": "Registrasie en goedkeuring"
+        },
+        "requirePlanSelection": {
+          "description": "Aansoekers moet ’n plan kies voordat hulle klaarmaak. Anders word ’n verstekplan gebruik.",
+          "label": "Vereis ’n plan by aanmelding"
+        },
+        "title": "Verkoperopstelling"
+      },
+      "sms": {
+        "authTokenPlaceholder": "Voer Auth Token in",
+        "authTokenHint": "Verifieer ook Twilio se afleweringsbewyse. Gestoorde tokens word nie weer gewys nie.",
+        "messagingServiceSidHint": "Aanbeveel. Twilio kies die regte sender vir elke bestemming en hanteer STOP-antwoorde.",
+        "fromNumberHint": "Word gebruik wanneer geen Messaging Service gestel is nie: 'n Twilio-nommer, of 'n alfanumeriese sender-ID waar jou bestemmings dit toelaat.",
+        "defaultCountryPlaceholder": "Gebruik die versending se land van oorsprong",
+        "defaultCountryHint": "Lees profielnommers wat sonder 'n landkode gestoor is. 'n Bestelling se foon word altyd volgens sy versendingsland gelees.",
+        "includeLinksHint": "Voeg die bestelling- of naspoorbladsy by. 'n Skakel stoot 'n boodskap dikwels na 'n tweede segment, wat as 'n tweede SMS gefaktureer word.",
+        "consentNote": "Kliënte kry SMS'e op die foon op hul bestelling en kan uitteken onder Rekening → Voorkeure of deur STOP te antwoord. Admins, personeel en verkopers kry dit op die foon op hul profiel of winkel. Kies die gebeure in <link>Kennisgewinginstellings</link>. Stuur net boodskappe aan mense wat ingestem het om van jou te hoor.",
+        "testSent": "Toets-SMS gestuur",
+        "testFailed": "Kon nie die toets-SMS stuur nie",
+        "accountSid": "Account SID",
+        "authToken": "Auth Token",
+        "defaultCountry": "Versteklands vir telefoonnommers",
+        "description": "Stuur bestellings-, terugstuur- en betalingsopdaterings as SMS’e deur jou Twilio-rekening.",
+        "enable": "Aktiveer SMS-kennisgewings",
+        "enableHint": "Twilio hef vir elke boodskap. Niks word gestuur totdat jy ook gebeure in Kennisgewingsinstellings kies nie.",
+        "fromNumber": "Afsendernommer of afsender-ID",
+        "includeLinks": "Sluit ’n skakel in",
+        "messagingServiceSid": "Messaging Service SID",
+        "save": "Stoor SMS-instellings",
+        "testButton": "Stuur toets-SMS",
+        "testLabel": "Stuur ’n toetsboodskap aan",
+        "title": "SMS (Twilio)"
+      },
+      "brandAssets": {
+        "wrongFormat": "Moet 'n {formats}-lêer wees",
+        "tooLarge": "Moet kleiner as {max} MB wees — hierdie lêer is {size} MB",
+        "tooSmall": "Kleiner as {dimension}x{dimension}px ({width}x{height}px) — dit sal vergroot word en kan vaag lyk",
+        "uploadingProgress": "Laai op… {progress}%",
+        "dropHint": "Sleep en los, of klik om te kies",
+        "maxSize": "Maks. grootte:",
+        "formats": "Formate:",
+        "recommended": "Aanbeveel:",
+        "lightLogo": {
+          "label": "Logo vir ligte tema",
+          "alt": "Logo vir ligte tema",
+          "upload": "Laai logo vir ligte tema op",
+          "replace": "Vervang ligte logo"
+        },
+        "darkLogo": {
+          "label": "Logo vir donker tema",
+          "alt": "Logo vir donker tema",
+          "upload": "Laai logo vir donker tema op",
+          "replace": "Vervang donker logo"
+        },
+        "favicon": {
+          "label": "Favicon",
+          "alt": "Winkel-favicon",
+          "upload": "Laai favicon op",
+          "replace": "Vervang favicon"
+        },
+        "appIcon": {
+          "label": "Toepikoon",
+          "alt": "Ikoon van geïnstalleerde toep",
+          "upload": "Laai toepikoon op",
+          "replace": "Vervang toepikoon",
+          "recommended": "512x512px vierkantig",
+          "note": "Die toepikoon is wat blaaiers wys wanneer iemand jou winkel op hul toestel installeer. Dit word op 512x512px weergegee, so 'n kleiner prent werk steeds — dit lyk net sagter. Laat dit leeg en die favicon word as terugval gebruik."
+        }
+      },
+      "preorder": {
+        "title": "Voorafbestellings",
+        "description": "Wat 'n verkoper mag beloof wanneer hulle iets verkoop voordat dit bestaan — en wie dit mag doen.",
+        "storeOff": "Voorafbestellings is vir die hele winkel afgeskakel. Skakel hulle aan in <link>Instellings → Produkte</link> om te bepaal wat verkopers mag beloof.",
+        "requireApproval": {
+          "title": "Hersien verkopers voordat hulle voorafbestellings kan verkoop",
+          "description": "Wanneer aan, het 'n verkoper jou goedkeuring nodig voordat hulle hul eerste voorafbestelling oopmaak. Bestaande lysings bly in elk geval verkoop."
+        },
+        "maxLead": {
+          "label": "Verste vrystellingsdatum",
+          "unit": "dae vooruit",
+          "hint": "Hoe langer die wag, hoe langer kan 'n koper die betaling betwis."
+        },
+        "maxDeposit": {
+          "label": "Grootste deposito",
+          "unit": "% van die prys",
+          "hint": "Geld ook vir vaste bedrae, gemeet teen die prys."
+        },
+        "expiry": {
+          "label": "Gee 'n onbetaalde saldo op na",
+          "unit": "dae na die vrystellingsdatum",
+          "hint": "Die bestelling word gekanselleer, die kwota vrygestel en die deposito ten volle terugbetaal."
+        },
+        "autoRelease": {
+          "title": "Vra die saldo outomaties",
+          "description": "Op die vrystellingsdatum word elke voorafbestelling se oorblywende saldo gevra en dié wat reeds betaal is, word vrygestel. Laat dit af as jou datums kan skuif — om geld te vra, sê dat die goedere gereed is.",
+          "unit": "dae na die vrystellingsdatum",
+          "hint": "'n Voorafbestelling wat reeds ten volle betaal is, word eers vrygestel wanneer die voorraad werklik aangeteken is — die kalender alleen stuur nooit iets nie."
+        },
+        "reserve": {
+          "label": "Hou terug van voorafbestelling-uitbetalings",
+          "percentUnit": "% vir",
+          "daysUnit": "dae",
+          "hint": "'n Kaartdispuut word vanaf die verwagte afleweringsdatum getel, dus kan 'n voorafbestelling lank nadat die verkoper betaal is, teruggevorder word. Nul skakel die reserwe af."
+        },
+        "access": {
+          "title": "Verkopertoegang",
+          "waiting": "{count} wag",
+          "reviewOff": "Hersiening is af, dus kan elke verkoper reeds voorafbestellings oopmaak. Goedkeuring hier verander niks totdat jy hersiening hierbo aanskakel nie, en die verkoper word nie daarvan in kennis gestel nie.",
+          "empty": "Geen verkoper het nog voorafbestellingstoegang versoek nie.",
+          "revokeNote": "Terugtrekking stop die volgende voorafbestelling. Lysings wat reeds verkoop, hou hul beloftes — kopers het deposito's daarvoor betaal."
+        }
+      },
+      "notifications": {
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "Nuwe bestellings",
+              "description": "Stel admins in kennis wanneer 'n bestelling geplaas word."
+            },
+            "newCustomers": {
+              "title": "Nuwe kliënte",
+              "description": "Stel admins in kennis wanneer 'n kliëntprofiel geskep word."
+            },
+            "newVendors": {
+              "title": "Nuwe verkoperaansoeke",
+              "description": "Stel admins in kennis wanneer 'n verkoperaansoek hangend is."
+            },
+            "returns": {
+              "title": "Terugstuurversoeke",
+              "description": "Stel admins in kennis wanneer 'n terugstuurversoek hersien moet word."
+            },
+            "payments": {
+              "title": "Betalings",
+              "description": "Stel admins in kennis wanneer betalingsaktiwiteit aangeteken word."
+            },
+            "preorderAccessRequests": {
+              "title": "Versoeke vir voorafbestellingstoegang",
+              "description": "Stel admins in kennis wanneer 'n verkoper vra om voorafbestellings te verkoop."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "Status van verkoperaansoek",
+              "description": "Stel verkopers in kennis wanneer hul rekening goedgekeur of afgekeur word."
+            },
+            "newOrders": {
+              "title": "Nuwe bestellings vir verkopers",
+              "description": "Stel verkopers in kennis wanneer hulle 'n nuwe bestelling ontvang."
+            },
+            "returns": {
+              "title": "Terugstuurversoeke vir verkopers",
+              "description": "Stel verkopers in kennis wanneer 'n terugstuurversoek aan hulle behoort."
+            },
+            "preorderAccess": {
+              "title": "Voorafbestellingstoegang vir verkopers",
+              "description": "Stel verkopers in kennis wanneer hul voorafbestellingstoegang goedgekeur, afgekeur of teruggetrek word."
+            }
+          },
+          "staff": {
+            "newOrders": {
+              "title": "Nuwe bestellings vir personeel",
+              "description": "Stel personeel met bestellingstoegang in kennis wanneer 'n bestelling geplaas word."
+            },
+            "newCustomers": {
+              "title": "Nuwe kliënte vir personeel",
+              "description": "Stel personeel met kliënttoegang in kennis wanneer 'n kliëntprofiel geskep word."
+            },
+            "returns": {
+              "title": "Terugstuurversoeke vir personeel",
+              "description": "Stel personeel met bestellingstoegang in kennis wanneer terugstuurversoeke hersien moet word."
+            },
+            "payments": {
+              "title": "Betalings vir personeel",
+              "description": "Stel POS- en bestellingspersoneel in kennis wanneer betalingsaktiwiteit aangeteken word."
+            },
+            "lowStock": {
+              "title": "Lae voorraad vir personeel",
+              "description": "Stel voorraadpersoneel in kennis wanneer produkte aangevul moet word."
+            }
+          },
+          "customer": {
+            "orderUpdates": {
+              "title": "Bestellingsopdaterings vir kliënte",
+              "description": "Stel kliënte in kennis wanneer die bestellingstatus verander."
+            },
+            "returnUpdates": {
+              "title": "Terugstuuropdaterings vir kliënte",
+              "description": "Stel kliënte in kennis wanneer die terugstuurstatus verander."
+            }
+          }
+        },
+        "event": "Gebeurtenis",
+        "channels": {
+          "inApp": "In die toep",
+          "email": "E-pos",
+          "browserPush": "Stoot",
+          "sms": "SMS"
+        },
+        "smsSettingsLink": "SMS-instellings",
+        "smsOffWarning": "Sommige gebeure is gestel om 'n SMS te stuur, maar SMS is af of nie volledig opgestel nie, dus sal geen uitgaan nie.",
+        "smsSetupHint": "Stel eers Twilio op om SMS'e te stuur.",
+        "groups": {
+          "admin": {
+            "title": "Adminkennisgewings",
+            "description": "Gebeure wat die winkel se adminspan moet waarsku."
+          },
+          "vendor": {
+            "title": "Verkoperkennisgewings",
+            "description": "Gebeure wat aan verkoperrekeninge gestuur word."
+          },
+          "staff": {
+            "title": "Personeelkennisgewings",
+            "description": "Gebeure wat aan aktiewe personeel gestuur word volgens hul modulepermissies."
+          },
+          "customer": {
+            "title": "Kliëntkennisgewings",
+            "description": "Gebeure wat aan kliëntrekeninge gestuur word."
+          }
+        },
+        "description": "Kies watter gebeure paneelbordkennisgewings, e-posse, stootwaarskuwings en SMS'e skep.",
+        "title": "Kennisgewing-instellings"
+      },
+      "deliveryLogs": {
+        "email": {
+          "title": "E-pos-afleweringslogs",
+          "description": "Gestuurde inhoud word onmiddellik verwyder; slegs afleweringsmetadata word behou. Stoor die e-posinstellings nadat jy die bewaartydperk verander het.",
+          "summaryLabel": "Onderwerp",
+          "searchPlaceholder": "Ontvanger, onderwerp of kategorie",
+          "clearTitle": "Vee logs van gestuurde e-posse uit?",
+          "deleteTitle": "Vee geselekteerde e-poslogs uit?",
+          "clearDescription": "{count, plural, one {Dit vee # log van 'n gestuurde e-pos permanent uit. Dit kan nie ongedaan gemaak word nie.} other {Dit vee al # logs van gestuurde e-posse permanent uit. Dit kan nie ongedaan gemaak word nie.}}",
+          "deleteDescription": "{count, plural, one {Dit vee # geselekteerde voltooide log permanent uit. E-posse in die tou of wat gestuur word, word nooit uitgevee nie.} other {Dit vee # geselekteerde voltooide logs permanent uit. E-posse in die tou of wat gestuur word, word nooit uitgevee nie.}}",
+          "queuedForRetry": "{count, plural, one {# mislukte e-pos weer in die tou geplaas.} other {# mislukte e-posse weer in die tou geplaas.}}"
+        },
+        "sms": {
+          "title": "SMS-afleweringslogs",
+          "description": "Elke SMS word saam met die diensverskaffer se uitspraak gehou totdat die bewaartydperk verstryk. Stoor die SMS-instellings nadat jy die bewaartydperk verander het.",
+          "summaryLabel": "Boodskap",
+          "searchPlaceholder": "Foonnommer, boodskap of kategorie",
+          "clearTitle": "Vee logs van gestuurde SMS'e uit?",
+          "deleteTitle": "Vee geselekteerde SMS-logs uit?",
+          "clearDescription": "{count, plural, one {Dit vee # log van 'n gestuurde SMS permanent uit. Dit kan nie ongedaan gemaak word nie.} other {Dit vee al # logs van gestuurde SMS'e permanent uit. Dit kan nie ongedaan gemaak word nie.}}",
+          "deleteDescription": "{count, plural, one {Dit vee # geselekteerde voltooide log permanent uit. SMS'e in die tou of wat gestuur word, word nooit uitgevee nie.} other {Dit vee # geselekteerde voltooide logs permanent uit. SMS'e in die tou of wat gestuur word, word nooit uitgevee nie.}}",
+          "queuedForRetry": "{count, plural, one {# mislukte SMS weer in die tou geplaas.} other {# mislukte SMS'e weer in die tou geplaas.}}"
+        },
+        "status": {
+          "sent": "Gestuur",
+          "delivered": "Afgelewer",
+          "undelivered": "Nie afgelewer nie",
+          "failed": "Misluk",
+          "queued": "In die tou",
+          "retrying": "Probeer weer",
+          "sending": "Besig om te stuur"
+        },
+        "keepSentLogs": "Hou gestuurde logs",
+        "retentionDays": "{count, plural, one {# dag} other {# dae}}",
+        "refresh": "Verfris",
+        "stats": {
+          "total": "Totaal",
+          "sent": "Gestuur",
+          "failed": "Misluk",
+          "pending": "Hangend"
+        },
+        "allStatuses": "Alle statusse",
+        "range": {
+          "today": "Vandag",
+          "last7": "Laaste 7 dae",
+          "last30": "Laaste 30 dae",
+          "last90": "Laaste 90 dae",
+          "all": "Alle tye"
+        },
+        "deleteSelected": "Vee geselekteerdes uit",
+        "retrySelectedFailed": "Probeer geselekteerde mislukte weer",
+        "retryAllFailed": "Probeer alle mislukte weer",
+        "clearSent": "Vee gestuurde logs uit",
+        "deleteLogs": "Vee logs uit",
+        "selectPage": "Kies voltooide logs op hierdie bladsy",
+        "selectRow": "Kies {name}",
+        "columns": {
+          "created": "Geskep",
+          "recipient": "Ontvanger",
+          "status": "Status",
+          "tries": "Pogings",
+          "action": "Aksie"
+        },
+        "empty": "Geen ooreenstemmende aflewerings nie.",
+        "segments": "{count, plural, one {# segment} other {# segmente}}",
+        "retryNow": "Probeer nou weer",
+        "retryFailed": "Weer probeer het misluk",
+        "retrySent": "Suksesvol gestuur",
+        "actionFailed": "Aksie het misluk",
+        "updated": "Afleweringslogs bygewerk",
+        "deleted": "{count, plural, one {# log uitgevee.} other {# logs uitgevee.}}"
+      },
+      "demoModeMessage": "Demomodus is aan. Instellingsveranderinge is op hierdie demowebwerf gedeaktiveer.",
+      "shipping": {
+        "carriers": {
+          "saveFirst": {
+            "test": "Stoor versendingsinstellings voordat jy die verbinding toets",
+            "webhook": "Stoor versendingsinstellings voordat jy die webhaak-URL genereer",
+            "disconnect": "Stoor versendingsinstellings voordat jy die draer ontkoppel",
+            "pickupLocations": "Stoor versendingsinstellings voordat jy afhaalplekke laai"
+          },
+          "webhookGenerated": "Webhaak-URL gegenereer",
+          "webhookFailed": "Kon nie die webhaak-URL genereer nie",
+          "disconnected": "Draer ontkoppel",
+          "disconnectFailed": "Kon nie die draer ontkoppel nie",
+          "pickupLocationsFailed": "Kon nie afhaalplekke laai nie",
+          "shippo": {
+            "labelFormats": {
+              "pdf4x6": "PDF 4×6 (termies)",
+              "pdf": "PDF (A4 / Letter)"
+            },
+            "description": "USPS, UPS, FedEx, DHL en 40+ draers wêreldwyd.",
+            "labelFormat": "Etiketformaat",
+            "liveToken": "Regstreekse API-token",
+            "modeHint": "Shippo het geen aparte sandbox nie — die token wat jy gebruik, bepaal of ’n etiket eg is. Stoor albei en wissel hier.",
+            "testToken": "Toets-API-token"
+          },
+          "shiprocket": {
+            "pickupPlaceholder": "Kies 'n afhaalplek",
+            "description": "Indiese koerier-samevoeger — Delhivery, Bluedart, Ekart en meer.",
+            "email": "E-pos van API-gebruiker",
+            "password": "Wagwoord van API-gebruiker",
+            "pickupHint": "Shiprocket stuur vanaf ’n bynaam wat jy in hul paneelbord registreer, nie vanaf ’n vrye adres nie. Niks kan gestuur word totdat een gekies is nie.",
+            "webhookHint": "Stel dieselfde waarde in Shiprocket se webhook-instellings; naspooropdaterings wat dit nie bevat nie, word geweier.",
+            "webhookToken": "Webhook-token (x-api-key)"
+          },
+          "authFailed": "Hierdie draer weier jou geloofsbriewe — niks kan daarmee gestuur word nie.",
+          "authFailedHint": "Werk die geloofsbriewe hieronder by en druk dan Toets verbinding. Die waarskuwing verdwyn vanself sodra die draer dit aanvaar.",
+          "description": "Koppel ’n draerrekening om regte etikette te koop en pakkies outomaties na te spoor. Die betaalblad gebruik steeds jou eie versendingstariewe.",
+          "disconnect": "Ontkoppel",
+          "enable": "Aktiveer draers",
+          "mode": "Omgewing",
+          "modeLive": "Regstreeks",
+          "modeTest": "Toets",
+          "originNotSupported": "Shiprocket stuur slegs vanuit Indië. Stel jou versendingsoorsprongland op Indië om dit te aktiveer.",
+          "pickupLocation": "Afhaalplek",
+          "refreshPickupLocations": "Herlaai afhaalplekke",
+          "registerWebhook": "Genereer webhook-URL",
+          "testConnection": "Toets verbinding",
+          "title": "Versendingsdraers",
+          "webhookUrl": "Webhook-URL — plak dit in die draer se paneelbord"
+        },
+        "addressHold": {
+          "title": "Onafleweerbare adresse",
+          "description": "Wanneer 'n koerier nie by 'n bestelling se adres kan aflewer nie, word versending onderbreek en die kliënt gevra om dit reg te stel.",
+          "suggestAtCheckout": "Kontroleer die adres by betaling",
+          "suggestAtCheckoutHint": "Stel 'n regstelling voor voordat die bestelling geplaas word. Die koper kan steeds hou wat hulle getik het. Vereis 'n gekoppelde Shippo-rekening.",
+          "checkAfterOrder": "Kontroleer nuwe bestellings se adresse",
+          "checkAfterOrderHint": "Plaas 'n bestelling op hou sodra die adres die kontrole druip, eerder as om te wag dat 'n koerier die etiket weier.",
+          "autoRequest": "Vra die kliënt outomaties",
+          "autoRequestHint": "E-pos die kliënt 'n skakel om die adres reg te stel sodra 'n bestelling op hou geplaas word. Af laat dit aan personeel oor.",
+          "reminderDays": "Herinner na (dae)",
+          "reminderDaysHint": "Dae na die eerste versoek, geskei deur kommas. Laat leeg vir geen herinneringe.",
+          "deadlineDays": "Sperdatum (dae)",
+          "deadlineDaysHint": "Hoe lank die kliënt het om te antwoord, vanaf die eerste versoek.",
+          "onDeadline": "Wanneer die sperdatum verstryk",
+          "onDeadlineNotify": "Laat weet die winkel en hou die bestelling op hou",
+          "onDeadlineCancel": "Kanselleer die bestelling en betaal dit ten volle terug",
+          "keepReturnShipping": "Hou terugstuurversending wanneer 'n pakkie terugkom",
+          "keepReturnShippingHint": "Wanneer 'n pakkie weens 'n slegte adres na die sender teruggestuur word, trek die terugbetaling wat aangebied word die etiketkoste af. Bestellings op hou is nooit gestuur nie, dus word hulle altyd ten volle terugbetaal."
+        },
+        "zone": {
+          "isFallback": "Res van die wêreld",
+          "conditionalRatesWarning": "⚠️ Elke tarief in hierdie sone is voorwaardelik. ’n Mandjie wat aan geen voorwaarde voldoen nie, kry geen tarief uit hierdie sone nie — dit val deur na die rugsteuntarief, of die kliënt word gesê versending is nie beskikbaar nie. Voeg ’n vaste tarief by om die res te dek.",
+          "countries": "Lande",
+          "countriesPlaceholder": "Kies lande",
+          "isFallbackHint": "Prys enige adres wat geen ander sone dek nie. Sy lande en streke word geïgnoreer, en dit vervang die enkele rugsteuntarief hieronder.",
+          "name": "Naam van sone",
+          "namePlaceholder": "Binnelands",
+          "noCountriesWarning": "Geen lande gekies nie. Hierdie sone sal by geen adres pas nie.",
+          "noCountryMatches": "Geen lande gevind nie.",
+          "noRegionMatches": "Geen streke gevind nie.",
+          "regions": "Streke (opsioneel)",
+          "regionsFreeTextPlaceholder": "CA, NY, TX",
+          "regionsPlaceholder": "Alle streke",
+          "remove": "Verwyder",
+          "searchCountries": "Soek lande...",
+          "searchRegions": "Soek streke..."
+        },
+        "automation": {
+          "buyLabel": "Koop die etiket outomaties",
+          "buyLabelHint": "Af skep ’n konsep ná tariefvergelyking en stop, en laat die aankoop aan ’n mens oor.",
+          "description": "Skep ’n besending sodra ’n bestelling betaal en na verwerking geskuif is. Jy kan ’n bestelling altyd eerder met die hand na ’n koerier stuur.",
+          "enable": "Aktiveer outomatiese versending",
+          "fixedServiceHint": "Die draer se eie diens-identifiseerder. Stuur een bestelling met die hand na ’n koerier om die tokens te sien wat jou rekening teruggee.",
+          "fixedServiceToken": "Dienstoken",
+          "includeCod": "Sluit kontant-by-aflewering-bestellings in",
+          "includeCodHint": "’n Kontant-by-aflewering-bestelling word nooit as betaal gemerk nie, so dit word slegs outomaties gestuur wanneer dit aan is.",
+          "markShipped": "Merk die bestelling as gestuur sodra die etiket gekoop is",
+          "markShippedHint": "Stuur die kliënt sy of haar naspoornommer.",
+          "maxLabelCost": "Staak as die etiket meer kos as",
+          "maxLabelCostHint": "In die geldeenheid van jou draerrekening, nie die winkel s’n nie.",
+          "maxOrderValue": "Maksimum bestelwaarde",
+          "minOrderValue": "Minimum bestelwaarde",
+          "noLimit": "Geen perk nie",
+          "rateChoice": "Watter tarief om te koop",
+          "rateChoiceCheapest": "Goedkoopste",
+          "rateChoiceFastest": "Vinnigste",
+          "rateChoiceFixed": "’n Spesifieke diens",
+          "requiresCarrier": "Koppel eers ’n draer — anders het outomatisering nêrens om ’n etiket te koop nie.",
+          "restrictCountries": "Outomatiseer slegs hierdie bestemmings",
+          "restrictCountriesHint": "Laat leeg om elke bestemming te outomatiseer.",
+          "title": "Outomatiese versending"
+        },
+        "codCollectedBy": {
+          "description": "As die verkoper met hul eie vloot aflewer, neem hulle die kontant en skuld jou kommissie. As jou koerier aflewer, neem jy die kontant en skuld die verkoper hul verdienste — en slegs ’n administrateur kan daardie bestellings as betaal merk. Geld vir nuwe bestellings; bestaande bestellings behou die antwoord waaronder hulle geplaas is.",
+          "platform": "Die winkel",
+          "title": "Wie vorder kontant by aflewering in",
+          "vendor": "Die verkoper"
+        },
+        "courierLinks": {
+          "add": "Voeg koerier by",
+          "builtIn": "Reeds gekoppel sonder enige opstelling:",
+          "carrier": "Naam van koerier",
+          "description": "Vir pakkies wat jy met die hand invoer. Gebruik {tracking} waar die naspoornommer moet kom; ’n skakel sonder plekhouer kry dit aan die einde bygevoeg.",
+          "remove": "Verwyder koerierskakel",
+          "title": "Naspoorskakels van koeriers",
+          "urlTemplate": "Naspoor-URL"
+        },
+        "customs": {
+          "ddp": "DDP — vorder tariewe by betaling in",
+          "ddu": "DDU — kliënt betaal by aflewering",
+          "deMinimis": "De minimis (belastingvry onder)",
+          "description": "Hanteer invoertariewe vir oorgrensbestellings. DDP vorder ’n beraamde tarief by betaling in; DDU/DAP laat die kliënt die tariewe by aflewering betaal.",
+          "dutyMode": "Hantering van tariewe",
+          "dutyRatePercent": "Beraamde tariefkoers (%)",
+          "title": "Doeane en tariewe"
+        },
+        "delivery": {
+          "description": "Stel die verwerkingstyd wat by die afleweringstye van tariewe getel word wanneer dit gewys word.",
+          "processingMax": "Verwerkingsdae (maks.)",
+          "processingMin": "Verwerkingsdae (min.)",
+          "showEstimated": "Wys ramings by betaling",
+          "title": "Afleweringsramings"
+        },
+        "description": "Stel versendingsones, tariewe en afleweringsramings soos in Shopify op.",
+        "enable": {
+          "help": "Wanneer dit aan is, gebruik die betaalblad jou versendingsones en tariewe. Anders val dit terug op die vaste versending in Bestellingsinstellings.",
+          "label": "Aktiveer versendingstariewe"
+        },
+        "fallback": {
+          "description": "As geen sone by die adres pas nie, kan jy ’n verstektarief toepas.",
+          "enable": "Aktiveer rugsteuntarief",
+          "maxDays": "Maks. dae",
+          "minDays": "Min. dae",
+          "name": "Naam",
+          "price": "Prys",
+          "supersededByZone": "Die sone “{zone}” dek die res van die wêreld, so hierdie enkele tarief word nie meer gebruik nie. Wysig daardie sone om te verander wat onbedekte adresse betaal.",
+          "title": "Rugsteuntarief"
+        },
+        "origin": {
+          "address1": "Adresreël 1",
+          "address1Placeholder": "123 Market St",
+          "address2": "Adresreël 2",
+          "address2Placeholder": "Suite 100 (opsioneel)",
+          "city": "Stad",
+          "cityPlaceholder": "San Francisco",
+          "country": "Land",
+          "description": "Word gebruik as bedryfsverwysing en vir toekomstige draerintegrasies.",
+          "postalCode": "Poskode",
+          "postalCodePlaceholder": "94105",
+          "state": "Staat / Provinsie",
+          "statePlaceholder": "CA",
+          "title": "Versendingsoorsprong"
+        },
+        "packages": {
+          "active": "Aktief",
+          "add": "Voeg pakket by",
+          "default": "Verstekdoos",
+          "description": "Dose waarvolgens ’n draerkwotasie bereken kan word. Die verstek word gebruik wanneer ’n bestelling se items nie hul eie afmetings het nie.",
+          "empty": "Nog geen pakkette nie. Draertariewe het ten minste een doos nodig.",
+          "emptyWeight": "Leë gewig",
+          "height": "Hoogte",
+          "length": "Lengte",
+          "maxWeight": "Maks. gewig",
+          "name": "Naam",
+          "newName": "Nuwe doos",
+          "noLimit": "Geen perk nie",
+          "remove": "Verwyder pakket",
+          "title": "Gestoorde pakkette",
+          "unit": "Eenheid",
+          "width": "Breedte"
+        },
+        "rate": {
+          "active": "Aktief",
+          "freeOver": "Gratis bo",
+          "maxDays": "Afleweringsdae (maks.)",
+          "maxSubtotal": "Maks. subtotaal",
+          "maxWeight": "Maks. gewig",
+          "minDays": "Afleweringsdae (min.)",
+          "minSubtotal": "Min. subtotaal",
+          "minWeight": "Min. gewig",
+          "name": "Naam van tarief",
+          "namePlaceholder": "Standaard",
+          "price": "Prys",
+          "pricePerWeightUnit": "Prys per",
+          "type": {
+            "flat": "Vaste tarief",
+            "freeOver": "Gratis bo subtotaal",
+            "subtotalRange": "Subtotaalreeks",
+            "weightRange": "Gewigreeks"
+          },
+          "typeLabel": "Tipe",
+          "typePlaceholder": "Kies tipe"
+        },
+        "rates": {
+          "add": "Voeg tarief by",
+          "empty": "Nog geen tariewe in hierdie sone nie. Voeg ’n tarief by (bv. Standaard of Snel).",
+          "title": "Tariewe"
+        },
+        "title": "Versending en aflewering",
+        "vendorShipping": {
+          "description": "Wanneer dit aan is, word elke verkoper se items in ’n multiverkopermandjie volgens daardie verkoper se eie versendingsprofiel getarifeer (met hierdie platformprofiel as rugsteun). Versending word per verkoper gehef en toegewys.",
+          "title": "Versending per verkoper"
+        },
+        "weightUnit": {
+          "help": "Eenheid vir produkgewigte en gewiggebaseerde versendingstariewe.",
+          "kg": "Kilogram (kg)",
+          "label": "Gewigseenheid",
+          "lb": "Pond (lb)"
+        },
+        "zones": {
+          "add": "Voeg sone by",
+          "description": "Skep sones en stel tariewe. Kies lande uit die lys en beperk ’n sone dan opsioneel tot spesifieke streke — laat streke leeg om die hele land te dek.",
+          "empty": "Nog geen sones nie. Voeg ’n sone by om versendingstariewe op te stel.",
+          "title": "Versendingsones"
+        }
+      },
+      "toasts": {
+        "connected": "Verbind",
+        "connectionFailed": "Verbinding het misluk",
+        "saveEmailFirst": "Stoor die e-posinstellings voordat jy 'n toets-e-pos stuur",
+        "savePaymentBeforeTest": "Stoor betalingsinstellings voordat jy die verbinding toets",
+        "deliveryLogsLoadFailed": "Kon nie die afleweringslogs laai nie",
+        "loadFailed": "Kon nie instellings laai nie",
+        "saveFailed": "Kon nie instellings stoor nie",
+        "saveOauthFirst": "Stoor die OAuth-instellings voordat jy die geloofsbriewe verifieer",
+        "savePaymentFirst": "Stoor die betalingsinstellings voordat jy die Pesapal IPN-URL registreer",
+        "saveSmsFirst": "Stoor die SMS-instellings voordat jy ’n toetsboodskap stuur",
+        "saved": "Instellings gestoor"
+      },
+      "pos": {
+        "orderNumberPrefix": "Voorvoegsel vir bestelnommers",
+        "orderNumberPrefixHint": "Nuwe POS-bestellings gebruik hierdie voorvoegsel met ’n sessyfernommer, byvoorbeeld POS000017.",
+        "access": "POS-toegang volgens rol",
+        "accessDesc": "Bepaal watter gebruikersrolle die POS-terminaal kan gebruik",
+        "admin": "Administrateurs",
+        "adminDesc": "Laat administrateurs toe om via POS te verkoop",
+        "checkout": "Betaling",
+        "checkoutDesc": "Stel betaalmetodes en betaalgedrag op",
+        "customize": "Pasmaak",
+        "customizeDesc": "Pas die voorkoms en gedrag van die POS-terminaal aan",
+        "defaultBadge": "Verstek",
+        "defaultLocation": "Verstek-POS-liggings-ID",
+        "defaultLocationHint": "Die ligging wat by verstek vir nuwe POS-bestellings gebruik word",
+        "description": "Stel op watter rolle toegang tot die POS-stelsel het",
+        "disabled": "Gedeaktiveer",
+        "enable": "Aktiveer POS-stelsel",
+        "enableDesc": "Laat verkope in die winkel toe via die verkoopspuntmodule",
+        "enabled": "Geaktiveer",
+        "general": "Algemeen",
+        "generalDesc": "Stel die verstektaal en -ligging vir die POS op",
+        "locationIdPlaceholder": "Voer liggings-ID in",
+        "noLocation": "Geen verstekligging nie",
+        "offlinePayments": "Vanlyn betalings",
+        "offlinePaymentsDesc": "Verwerk betalings wanneer die toestel vanlyn is",
+        "orders": "Bestellings",
+        "ordersDesc": "Stel terugstuurbeleide vir POS-bestellings op",
+        "paymentBank": "Bankoorplasing",
+        "paymentBankDesc": "Aanvaar bankoorplasings met ’n verwysing",
+        "paymentCard": "Kaart (Stripe)",
+        "paymentCardDesc": "Aanvaar krediet- en debietkaartbetalings via Stripe",
+        "paymentCash": "Kontant",
+        "paymentCashDesc": "Aanvaar kontantbetalings",
+        "paymentManual": "Handmatig",
+        "paymentManualDesc": "Pasgemaakte betaalmetodes",
+        "paymentMethods": "Aanvaarde betaalmetodes",
+        "printedReceipts": "Gedrukte kwitansies",
+        "printedReceiptsDesc": "Druk ná elke transaksie ’n kwitansie",
+        "receiptPrinter": "Kwitansiedrukker",
+        "receiptPrinterPlaceholder": "bv. Star TSP143",
+        "save": "Stoor POS-instellings",
+        "selectLocation": "Kies ’n ligging",
+        "seller": "Personeel",
+        "sellerDesc": "Laat personeellede toe om via POS te verkoop",
+        "sound": "Klankeffekte",
+        "soundAddToCart": "Voeg by mandjie",
+        "soundAddToCartDesc": "Piep wanneer ’n produk by die mandjie gevoeg word",
+        "soundDesc": "Stel klankterugvoer vir interaksies met die POS-terminaal op",
+        "soundEnable": "Aktiveer klankeffekte",
+        "soundEnableDesc": "Speel klankseine tydens POS-handelinge",
+        "soundError": "Foutwaarskuwing",
+        "soundErrorDesc": "Waarskuwingsklank vir foute en voorraadwaarskuwings",
+        "soundOrderComplete": "Bestelling voltooi",
+        "soundOrderCompleteDesc": "Klokkie wanneer ’n bestelling voltooi is",
+        "soundPayment": "Betaling aanvaar",
+        "soundPaymentDesc": "Klank wanneer ’n betaling verwerk word",
+        "soundVolume": "Volume",
+        "title": "Toegang tot die verkoopspunt (POS)",
+        "vendor": "Verkopers",
+        "vendorDesc": "Laat verkopers toe om hul produkte via POS te verkoop"
+      },
+      "vendorPermissions": {
+        "title": "Markplekbeleid",
+        "description": "Een skakelaar per vermoë, platformwyd. Dit is nie verstekwaardes vir nuwe verkopers nie — elkeen geld dadelik vir elke bestaande winkel.",
+        "liveWarning": "Om een af te skakel, verwyder daardie vermoë dadelik van elke verkoper op hierdie markplek, nie net van nuwes nie. ’n Verkoper wat daarop stuit, sien ’n bladsy wat hierdie instelling as die rede noem.",
+        "packAiStudio": "KI-skryfwerk vir lysinskrywings en media",
+        "packAnalytics": "Verkoop- en verkeersverslae",
+        "packBoosts": "Koop geborgde plasings",
+        "packCatalog": "Produkte en handelsmerke",
+        "packDiscounts": "Koepons en afslagveldtogte",
+        "packInbox": "Omnikanaal-boodskappe en kanaalopstelling",
+        "packOrders": "Bestellingslys, uitvoering, terugsendings",
+        "packPayouts": "Saldo en selfdiens-onttrekkingsversoeke",
+        "packPos": "Persoonlike verkope",
+        "packStaff": "Nooi en bestuur winkelplekke",
+        "packStorefront": "Winkelbladsy, handelsmerk, versendingsinstellings",
+        "warning": "Aktiveer die multiverkopermodus om markplekbeleid op te stel."
+      },
+      "conflict": {
+        "description": "Iemand anders het hierdie instellings verander sedert jy dit oopgemaak het. Herlaai om die nuutste te sien, of stoor weer om dit te oorskryf.",
+        "overwrite": "Stoor in elk geval",
+        "reload": "Herlaai",
+        "title": "Instellings elders verander"
+      },
+      "messaging": {
+        "description": "Regstreekse kletsure, eskalasie, en die WhatsApp-, Messenger-, Instagram- en Telegram-rekeninge waarvandaan die markplek antwoord",
+        "title": "Omnikanaal-boodskappe"
+      },
+      "needsAttention": "Vereis aandag",
+      "noResults": "Geen instellings gevind nie",
+      "products": {
+        "description": "Kies wat die produkredigeerder aanbied. Enigiets wat jy afskakel, verdwyn uit die redigeerder en kan nie meer vir ’n produk aangeskakel word nie.",
+        "digital": "Digitale produkte en dienste",
+        "digitalDesc": "Aflaaie soos e-boeke en lisensiesleutels, of dienste sonder iets om te stuur.",
+        "existingNote": "Om ’n funksie af te skakel, verander nooit ’n regstreekse produk nie: ’n lopende voorafbestelling verkoop voort, ’n produk slegs op kwotasie behou sy kwotasieknoppie, en ’n digitale produk bly digitaal.",
+        "physical": "Fisiese produkte",
+        "physicalDesc": "Word na die kliënt gestuur, met voorraad-, gewig- en doeanebesonderhede.",
+        "preorders": "Voorafbestellings",
+        "preordersDesc": "Neem bestellings voordat voorraad aankom, met ’n vrystellingsdatum en ’n opsionele deposito. Verkopergoedkeuring en perke is onder Multiverkoperbestuur.",
+        "priceOnRequest": "Prys op aanvraag",
+        "priceOnRequestDesc": "Versteek ’n produk se prys en wys eerder ’n “Vra ’n kwotasie”-knoppie.",
+        "sellingHeading": "Verkoopopsies",
+        "title": "Produkte",
+        "typesHeading": "Produktipes",
+        "typesHint": "Ten minste een produktipe bly aan."
+      },
+      "twoFactor": {
+        "admin": "Aktiveer vir administrateurs",
+        "description": "Aktiveer tweefaktor-verifikasie en kies watter rolle dit kan opstel",
+        "enable": "Aktiveer tweefaktor-verifikasie",
+        "enableFirstHint": "Skakel tweefaktor-verifikasie aan om dit aan administrateurs, verkopers of personeel te bied.",
+        "save": "Stoor 2FA-instellings",
+        "staff": "Aktiveer vir personeel",
+        "title": "Tweefaktor-verifikasie",
+        "vendor": "Aktiveer vir verkopers"
       }
     },
     "addToCart": "Voeg by Mandjie",
@@ -2218,19 +3174,19 @@
           "name": "Electronics",
           "styleNote": "Aangepas vir tegnologieprodukte, bykomstighede en spesifikasieryke bladsye."
         },
+        "furniture": {
+          "name": "Furniture",
+          "description": "Huisware wat per vertrek verkoop word: binnenruimtes oor die volle breedte, vertrekafdelings, materiaalstories en koop-die-vertrek-stelle.",
+          "styleNote": "Gebou vir banke, beddens en eetkamerstelle — vertrekke lei, produkte volg."
+        },
         "essential": {
           "description": "Gebalanseerde winkel vir algemene katalogusse en veelkategorie-verkope.",
           "name": "Classic Marketplace",
           "styleNote": "Skoon hiërargie, vinnige oorsig en promosiegereed uitlegte."
         },
-        "luxe": {
-          "description": "Redaksionele visuele styl vir premium mode-, skoonheids- en leefstylhandelsmerke.",
-          "name": "Fashion",
-          "styleNote": "Gefokus op visuele uitstalling en verfynde versamelingsverhale."
-        },
         "women-fashion": {
           "description": "Redaksionele klere-uitstalling: kampanjebeelde oor die volle breedte, voorkomsteëls en seisoenskeuses.",
-          "name": "Women Fashion",
+          "name": "Fashion",
           "styleNote": "Gebou vir klere, skoene en bykomstighede — die beelde lei, die raamwerk tree terug."
         }
       },
@@ -2695,12 +3651,172 @@
       "starterPublish": "Gebruik die tema se beginuitleg (aanbeveel)",
       "starterPublishHint": "Jou winkel verander onmiddellik, met die tema se afdelings gekoppel aan jou eie versamelings en produkte. Jou ou uitleg bly in die weergawegeskiedenis.",
       "subtitle": "Ontwerpopsies vir die aktiewe tema. Hulle herstileer die winkel — bladinhoud bly in die Tuisblad- en Blaaie-bouers.",
-      "title": "Temainstellings"
+      "title": "Temainstellings",
+      "tabs": {
+        "theme": "Kies tema",
+        "branding": "Handelsmerk",
+        "settings": "Temainstellings",
+        "css": "Pasgemaakte CSS"
+      }
     },
     "phrases": {
       "guest": "Gas",
       "guest_customers_have_no_account_status": "Gaskliënte het geen rekeningstatus nie",
       "last_order": "Laaste bestelling"
+    },
+    "returnsPage": {
+      "stats": {
+        "needsReview": {
+          "title": "Moet nagegaan word",
+          "description": "Keur goed of wys af"
+        },
+        "onTheWayBack": {
+          "title": "Op pad terug",
+          "description": "Goedgekeur, nog nie ontvang nie"
+        },
+        "refundDue": {
+          "title": "Terugbetaling uitstaande",
+          "description": "Ontvang, nog nie terugbetaal nie",
+          "problems": "Misluk of handmatig: {count}"
+        },
+        "refunded": {
+          "title": "Terugbetaal (30 dae)",
+          "description": "{value} terugbetaal"
+        }
+      }
+    },
+    "media": {
+      "loadFailed": "Kon nie media laai nie",
+      "copyFailed": "Kon nie die URL kopieer nie",
+      "demoDeleteBlocked": "Demomodus is aan. Lêers uitvee is op hierdie demowebwerf gedeaktiveer.",
+      "deleteFailed": "Uitvee het misluk",
+      "copyUrl": "Kopieer URL",
+      "count": "{count, plural, one {# lêer} other {# lêers}}",
+      "deleteDescription": "{count, plural, one {Die lêer word permanent uit die berging verwyder. Oral waar sy URL nog gebruik word (produkte, bladsye, e-posse) sal ’n gebroke lêer wys.} other {Die lêers word permanent uit die berging verwyder. Oral waar hul URL’s nog gebruik word (produkte, bladsye, e-posse) sal gebroke lêers wys.}}",
+      "deleteSelected": "Skrap gekose",
+      "deleteTitle": "{count, plural, one {Skrap hierdie lêer?} other {Skrap # lêers?}}",
+      "deleted": "{count, plural, one {# lêer geskrap} other {# lêers geskrap}}",
+      "empty": "Geen media gevind nie",
+      "emptyHint": "Opgelaaide lêers verskyn hier vir die aktiewe bergingsverskaffer.",
+      "key": "Bergingsleutel",
+      "loadMore": "Laai meer",
+      "modified": "Gewysig",
+      "open": "Maak oop",
+      "refresh": "Herlaai",
+      "searchPlaceholder": "Soek lêers…",
+      "selectedCount": "{count} gekies",
+      "size": "Grootte",
+      "tabLibrary": "Mediabiblioteek",
+      "tabStorage": "Berging",
+      "type": "Tipe",
+      "upload": "Laai op",
+      "uploaded": "Lêers opgelaai",
+      "urlCopied": "URL gekopieer",
+      "filter": {
+        "all": "Alles",
+        "documents": "Dokumente",
+        "images": "Beelde",
+        "models": "3D-modelle",
+        "videos": "Video’s"
+      }
+    },
+    "preferences": {
+      "title": "Voorkeure",
+      "fullscreenUnavailable": "Volskerm is nie in hierdie blaaier beskikbaar nie",
+      "enterFullscreen": "Volskerm",
+      "exitFullscreen": "Verlaat volskerm",
+      "reset": "Stel terug na verstek",
+      "personalNote": "Net vir jou, in hierdie blaaier. Jou winkel se logo's, kleure en verstekvoorkoms word in Aanlyn Winkel → Temas → Handelsmerk gestel.",
+      "darkMode": "Donker modus",
+      "contrast": "Kontras",
+      "rtl": "Regs na links",
+      "collapsedSidebar": "Ingevoude sybalk",
+      "sidebar": "Sybalk",
+      "sidebarColor": "Kleur",
+      "sidebarIntegrate": "Geïntegreer",
+      "sidebarApparent": "Opvallend"
+    },
+    "preorderAccess": {
+      "vendorFallback": "Verkoper",
+      "thisVendor": "hierdie verkoper",
+      "unnamedStore": "Naamlose winkel",
+      "approvedToast": "{name} kan nou voorafbestellings oopmaak",
+      "declinedToast": "Die voorafbestellingsversoek van {name} is afgekeur",
+      "revokedToast": "{name} kan nie meer nuwe voorafbestellings oopmaak nie",
+      "updateFailed": "Kon nie voorafbestellingstoegang bywerk nie",
+      "revokeTitle": "Trek voorafbestellingstoegang van {name} terug?",
+      "declineTitle": "Keur die voorafbestellingsversoek van {name} af?",
+      "revokeDescription": "Hulle sal nie nuwe voorafbestellings kan oopmaak nie. Voorafbestellings wat reeds verkoop, gaan voort — kopers het deposito's daarvoor betaal.",
+      "declineDescription": "Hulle kan later 'n nuwe versoek stuur.",
+      "reasonLabel": "Rede (word aan die verkoper gestuur)",
+      "reasonPlaceholder": "Opsioneel",
+      "reasonTooLong": "Hou die rede korter as {max} karakters.",
+      "revokeSubmit": "Trek toegang terug",
+      "declineSubmit": "Keur af",
+      "approve": "Keur goed",
+      "grant": "Gee toegang",
+      "revoke": "Trek terug",
+      "since": "Sedert {date}",
+      "asked": "Versoek op {date}",
+      "askedRecently": "Onlangs versoek",
+      "notAsked": "Het nie toegang versoek nie",
+      "approvedBadge": "Goedgekeur",
+      "waitingBadge": "Wag op hersiening",
+      "noAccessBadge": "Geen toegang",
+      "lastNote": "Laaste nota: {note}",
+      "card": {
+        "title": "Voorafbestellingstoegang",
+        "description": "Of hierdie verkoper voorafbestellings mag oopmaak. 'n Voorafbestelling neem 'n koper se geld voordat die goedere bestaan, dus kan die winkel hersien wie dit mag doen.",
+        "rulesLink": "Voorafbestellingsreëls",
+        "loadFailed": "Kon nie voorafbestellingstoegang laai nie.",
+        "storeOff": "Voorafbestellings is vir die hele winkel afgeskakel, dus kan niemand nou een oopmaak nie. Wat jy hier stel, geld sodra hulle weer aan is, en die verkoper word nie daarvan in kennis gestel nie.",
+        "reviewOff": "Hersiening is af, dus kan hierdie verkoper reeds voorafbestellings oopmaak. Wat jy hier stel, geld sodra hersiening aangeskakel word, en die verkoper word nie daarvan in kennis gestel nie.",
+        "limits": "Sodra dit goedgekeur is, kan vrystellingsdatums tot {days, plural, one {# dag} other {# dae}} vorentoe wees en deposito's tot {percent}% van die prys. Om toegang terug te trek, haal nooit lysings af wat reeds verkoop nie."
+      }
+    },
+    "branding": {
+      "colorPicker": "Kieser vir {label}",
+      "removePreset": "Verwyder voorafstelling",
+      "removeNamedPreset": "Verwyder voorafstelling {name}",
+      "savePreset": "Stoor huidige kleure as ’n voorafstelling",
+      "customPresetName": "Pasgemaak {number}",
+      "preview": {
+        "title": "Voorskou",
+        "subtitle": "hoe jou kleure oral in die app gebruik word",
+        "primary": "Primêr",
+        "secondary": "Sekondêr",
+        "accent": "Aksent",
+        "outline": "Buitelyn",
+        "link": "Skakel",
+        "accentSurface": "Aksentoppervlak"
+      },
+      "appearanceMode": "Modus",
+      "appearanceSubtitle": "Hoe die winkel oopmaak voordat ’n besoeker self lig of donker kies.",
+      "appearanceTitle": "Verstekvoorkoms",
+      "assetsSubtitle": "Logo’s, favicon en app-ikoon wat oral in jou winkel en paneelbord gebruik word.",
+      "assetsTitle": "Handelsmerkbates",
+      "colorsSubtitle": "Knoppies, skakels en uitlig in die winkel, en die paneelbord, betaalblad en e-posse. Kies ’n voorafstelling of stel jou eie kleur met die kleurkieser, hex of rgb().",
+      "colorsTitle": "Handelsmerkkleure",
+      "globalHint": "Jou handelsmerk geld oral — dit bly wanneer jy temas wissel en word in die winkel, die paneelbord, die betaalblad en e-posse gebruik.",
+      "save": "Stoor handelsmerk"
+    },
+    "mediaPicker": {
+      "uploadFailed": "Oplaai het misluk",
+      "uploading": "Laai tans op…",
+      "addVideoUrl": "Voeg video vanaf URL by",
+      "added": "Bygevoeg",
+      "description": "Kies uit jou mediabiblioteek, of laai nuwe lêers daarheen op.",
+      "dropToUpload": "Los lêers om op te laai",
+      "empty": "Jou mediabiblioteek is leeg",
+      "emptyHint": "Laai lêers hier op en hulle bly in die biblioteek, gereed vir hergebruik.",
+      "forbidden": "Jou rekening kan nie die mediabiblioteek deursoek nie. Jy kan steeds nuwe lêers oplaai.",
+      "loadFailed": "Kon nie die mediabiblioteek laai nie",
+      "noMatches": "Geen lêers pas nie",
+      "retry": "Probeer weer",
+      "searchPlaceholder": "Soek lêers…",
+      "selectUpTo": "{max, plural, one {Kies tot # lêer} other {Kies tot # lêers}}",
+      "selectedCount": "{count} van {max} gekies",
+      "title": "Kies lêers"
     }
   },
   "vendor": {
@@ -2734,10 +3850,10 @@
     "applicationForm": "Ifomu Lombuki",
     "applicationDesc": "Gcwalisa ifomu ngezantsi ukuze usebenze njengombuki.",
     "vendorPanel": "Iphaneli Yomthengisi",
-    "dashboard": "Idoshi",
-    "products": "Iimveliso",
-    "orders": "I-oderi",
-    "settings": "Izicwangciso",
+    "dashboard": "Dashbord",
+    "products": "Produkte",
+    "orders": "Bestellings",
+    "settings": "Winkelinstellings",
     "goToDashboard": "Iya Edoshini Yomthengisi",
     "overview": "Uchungechunge",
     "management": "Ulwulo",
@@ -2944,7 +4060,7 @@
       "ordersCount": "{count} i-order",
       "noRecentOrders": "Ayikabikho i-order zakwamva"
     },
-    "payouts": "Ukukhokha",
+    "payouts": "Uitbetalings",
     "storefront": {
       "title": "{storeName}",
       "subtitle": "Hlola iimveliso kuleli store.",
@@ -3045,7 +4161,10 @@
         "refunded": "Terugbetaal"
       }
     },
-    "boosts": "Bevorderings"
+    "boosts": "Bevorderings",
+    "finance": "Finansies",
+    "owedToPlatform": "Verskuldig aan die platform",
+    "statements": "State"
   },
   "footer": {
     "aboutUs": "Mayelana Nathi",
@@ -3056,10 +4175,10 @@
     "contactUs": "Xhumana Nathi",
     "shippingInfo": "Ulwazi Lokuthunyelwa",
     "returns": "Ukubuyela",
-    "termsOfService": "Imigomo Yesevisi",
+    "termsOfService": "Diensbepalings",
     "privacyPolicy": "Inqubomgomo Yobumfihlo",
-    "cookiePolicy": "Inqubomgomo Ye-Cookie",
-    "accessibility": "Ukufinyeleleka",
+    "cookiePolicy": "Koekiebeleid",
+    "accessibility": "Toeganklikheid",
     "newsletter": "I-Newsletter",
     "subscribeDescription": "Subscribe kwi-imeyili yethu ukuze uthole izibuyekezo nezivakalo.",
     "subscribe": "Subscribe",
@@ -3077,6 +4196,8 @@
     "needAccessDescription": "Xhumana {email}.",
     "networkError": "Iphutha Wanethiwekhi",
     "networkErrorDescription": "Sicela uhlaziye i-inthanethi yakho futhi uzame.",
+    "tooManyRequestsIn": "Te veel versoeke. Wag {duration} en probeer weer.",
+    "tooManyRequests": "Te veel versoeke. Wag 'n oomblik en probeer weer.",
     "needHelp": "udinga usizo? Thola i-documentation okanye xhumana ne-support.",
     "adminPageNotFoundDescription": "Ikhasi le-admin ofunayo alikho.",
     "vendorPageNotFoundDescription": "Ikhasi lombuki ofunayo alikho.",
@@ -3117,7 +4238,7 @@
     "orderNumber": "I-oderi",
     "orderFailed": "Kuhlulekile ukusula i-order",
     "printReceipt": "Printa Ireceipt",
-    "newSale": "Ukuthengisa Okusha",
+    "newSale": "Nuwe verkoop",
     "errorLoadingProducts": "Kuhlulekile ukulayisha iimveliso",
     "customer": {
       "addCustomer": "Yongeza Umthengi",
@@ -3143,7 +4264,7 @@
     }
   },
   "locations": {
-    "title": "Izindawo",
+    "title": "Liggings",
     "name": "Igama",
     "address": "Ikheli",
     "status": "Isimo",
@@ -3421,9 +4542,9 @@
       "quickReplyOption": "Vinnige antwoord",
       "textHeaderOptional": "Tekskopstuk (opsioneel)",
       "websiteUrlOption": "Webwerf-URL",
-      "headerPlaceholder": "Bestelling {{1}} opdatering",
-      "bodyPlaceholder": "Hallo {{1}}, jou bestelling is nou {{2}}.",
-      "placeholderHint": "Gebruik opeenvolgende plekhouers: {{1}}, {{2}}, en so meer.",
+      "headerPlaceholder": "Bestelling '{{1}}' opdatering",
+      "bodyPlaceholder": "Hallo '{{1}}', jou bestelling is nou '{{2}}'.",
+      "placeholderHint": "Gebruik opeenvolgende plekhouers: '{{1}}', '{{2}}', en so meer.",
       "authenticationNote": "Meta beheer die bewoording van outentiseringsjablone en voeg self die vereiste kode-kopieer-knoppie by.",
       "bodyExampleLabel": "Voorbeeld van {variable} in die inhoud",
       "submitForReview": "Dien in vir Meta se hersiening",
@@ -3664,7 +4785,7 @@
     "title": "Bevorderings",
     "empty": "Nog geen bevorderings nie. Bevorder 'n produk om meer kopers te bereik.",
     "addAction": "Bevorder 'n produk",
-    "searchPlaceholder": "Soek op posisie of etiket",
+    "searchPlaceholder": "Soek produk, posisie of etiket",
     "tabs": {
       "all": "Almal",
       "active": "Aktief",
@@ -3672,7 +4793,8 @@
       "paused": "Onderbreek",
       "expired": "Verstreke",
       "canceled": "Gekanselleer",
-      "scheduled": "Aanstaande"
+      "scheduled": "Aanstaande",
+      "creditOwed": "Krediet verskuldig"
     },
     "status": {
       "active": "Aktief",
@@ -3694,7 +4816,8 @@
       "actions": "Aksies",
       "position": "Gleuf",
       "startsIn": "Begin oor {days} dae",
-      "startsToday": "Begin vandag"
+      "startsToday": "Begin vandag",
+      "credit": "Krediet verskuldig"
     },
     "stats": {
       "active": "Aktiewe bevorderings",
@@ -3708,13 +4831,16 @@
       "revenue": "Bevorderingsinkomste",
       "revenueDescription": "Betaalde besprekings minus terugbetalings, alle tye (winkelvaluta)",
       "upcoming": "Aanstaande",
-      "upcomingDescription": "Bespreek, nog nie begin nie"
+      "upcomingDescription": "Bespreek, nog nie begin nie",
+      "creditOwed": "Krediet verskuldig",
+      "creditOwedDescription": "besprekings om te vereffen",
+      "creditOwedNone": "niks uitstaande nie"
     },
     "admin": {
       "title": "Bevorderingsveldtogte",
       "empty": "Nog geen bevorderingsveldtogte nie",
+      "searchPlaceholder": "Soek winkel, produk, posisie of etiket",
       "create": "Skep bespreking",
-      "createTitle": "Skep bespreking (aflyn betaling)",
       "createDescription": "Vir betalings buite die poorte ingesamel, of om 'n plasing te skenk. Die dae word onmiddellik bespreek en kan aan niemand anders verkoop word nie.",
       "createConfirm": "Skep bespreking",
       "created": "Bespreking geskep",
@@ -3726,34 +4852,24 @@
       "cancelDescription": "Elke bespreekte dag van môre af word onmiddellik na die kalender vrygestel en kan herverkoop word. Dae wat reeds geloop het, bly gehef; enigiets wat vrygestel word, word by die verkoper se krediet gevoeg vir jou om by die poort terug te betaal.",
       "pause": "Onderbreek",
       "resume": "Hervat",
-      "product": "Produk",
-      "vendor": "Verkoper",
-      "selectVendor": "Kies 'n verkoper…",
-      "selectVendorFirst": "Kies 'n verkoper om sy produkte te sien",
-      "searchProducts": "Soek produkte…",
       "updated": "Veldtog opgedateer",
       "updateFailed": "Kon nie veldtog opdateer nie",
       "position": "Posisie",
       "dates": "Datums (UTC)",
-      "heldBy": "Bespreek by hierdie posisie:",
-      "amountOverride": "Bedrag om aan te teken",
-      "amountOverrideHint": "Los leeg om die lysprys van {amount} te hef. 'n Laer bedrag skenk die verskil; 0 maak dit gratis. Dit kan nie die lysprys oorskry nie.",
-      "recordingBooking": "Posisie {position} · {days} dae · teken {amount} as betaal aan",
       "markRefunded": "Merk as terugbetaal",
       "markRefundedTitle": "Merk as terugbetaal",
-      "markRefundedDescription": "Teken aan dat jy die uitstaande krediet reeds by die betaalverskaffer terugbetaal het. Dit werk net die grootboek by — dit skuif geen geld nie."
+      "markRefundedDescription": "Teken aan dat jy die uitstaande krediet reeds by die betaalverskaffer terugbetaal het. Dit werk net die grootboek by — dit skuif geen geld nie.",
+      "creditLedger": "Kredietgrootboek",
+      "outstanding": "Uitstaande",
+      "paymentAttempts": "Betalingspogings"
     },
     "purchase": {
       "subtitle": "Bespreek 'n genommerde gleuf op die geborgde leer vir die dae wat jy kies.",
-      "pickProduct": "Kies 'n produk",
-      "pickPayment": "Kies 'n betaalmetode",
       "stepProduct": "Produk",
       "stepPayment": "Betaling",
       "searchProducts": "Soek jou produkte…",
       "noProducts": "Geen aktiewe produkte gevind nie",
       "noMethods": "Geen betaalmetodes beskikbaar nie. Kontak die markplek-administrateur.",
-      "boosting": "Bevorder:",
-      "days": "{days} dae",
       "payNow": "Betaal & bespreek",
       "card": "Kaart",
       "mobileMoney": "Selfoongeld",
@@ -3767,34 +4883,68 @@
       "failed": "Kon nie die betaling begin nie",
       "loadFailed": "Kon nie die posisieleer laai nie",
       "pollTimeout": "Ons kon die betaling nog nie bevestig nie. Dit sal outomaties aktiveer sodra dit bevestig is.",
-      "stepSlot": "Gleuf & datums",
-      "pickSlot": "Kies 'n posisie en datums",
       "perDay": "/dag",
       "noPositions": "Daar is nog geen geborgde posisies te koop nie",
       "pickPositionFirst": "Kies 'n posisie om te sien watter dae vry is.",
-      "legendFree": "Vry",
       "legendBooked": "Bespreek",
       "legendYours": "Joune",
-      "conflictInline": "Daardie datums is nie vry by hierdie posisie nie — kies weer.",
       "slotTaken": "Iemand het pas {days} by hierdie posisie bespreek.",
       "slotTakenRetry": "Iemand het {days} bespreek terwyl jy gekies het. Kies weer.",
       "productBusy": "Hierdie produk is reeds op {days} geskeduleer. Kies ander datums, of 'n ander produk.",
-      "strictIndexNote": "Jy koop visuele gleuf {position}. As 'n posisie bo joune daardie dag onverkoop is, wys daardie gleuf 'n gewone produk — joune skuif nie op nie.",
-      "reachDetail": "Op lysbladsye verskyn jou produk op die hoofwinkelbladsy en op sy eie kategoriebladsy. Gefilterde en soekresultate wys nooit geborgde produkte nie.",
-      "refundPolicy": "Dae wat reeds geloop het, word nie terugbetaal nie. Toekomstige dae kan vrygestel word — die mark krediteer hulle teen die dagtarief en betaal via jou betaalverskaffer terug. Raak jou produk uit voorraad of ongepubliseer, word daardie dag proporsioneel gekrediteer.",
-      "utcNote": "Dae loop van middernag tot middernag, UTC.",
-      "utcShort": "UTC-dae",
-      "oneCheckout": "Jy kan een oop betaling per produk hê. As jy die posisie of datums verander, skuif jou bespreking na die nuwe keuse.",
       "holdExpires": "Hierdie datums word vir {clock} vir jou gehou",
       "holdExpired": "Jou bespreking het verval en die datums is weer te koop.",
-      "observedReach": "Gemiddeld {n} vertonings/dag oor die afgelope 30 dae",
       "positionStale": "In 'n ander geldeenheid geprys — vra die mark om dit te herprys.",
-      "summaryLine": "Posisie {position}",
       "overMaxDays": "'n Bespreking mag nie {days} dae oorskry nie.",
-      "alreadyBooked": "{count} besprekings reeds",
       "availabilityFailed": "Kon nie die besprekingskalender laai nie",
       "booked": "Jou bespreking is bevestig.",
-      "tooManyHolds": "Jy het reeds te veel oop betalings. Voltooi of kanselleer een eers."
+      "tooManyHolds": "Jy het reeds te veel oop betalings. Voltooi of kanselleer een eers.",
+      "gatewayUnavailable": "{gateway} kon nie die betaling begin nie. Probeer weer, of kies 'n ander betaalmetode."
+    },
+    "booking": {
+      "vendorTitle": "Bevorder 'n produk",
+      "offlinePayment": "Aflyn-betaling",
+      "steps": "Besprekingstappe",
+      "stepPositionDates": "Posisie en datums",
+      "stepRecordPayment": "Teken betaling aan",
+      "searchAll": "Soek volgens produk- of winkelnaam…",
+      "allStores": "Alle winkels",
+      "filterByStore": "Filtreer volgens winkel",
+      "showingSome": "Wys {shown} van {total} — soek om die res te vind",
+      "notOnHome": "Nie op die tuisblad nie",
+      "notOnListings": "Nie op lysbladsye nie",
+      "notOnProductPages": "Nie op produkbladsye nie",
+      "daysTaken": "{taken} van {total} dae reeds bespreek",
+      "noFreeDays": "Geen vrye dag in die volgende {days} dae nie",
+      "blockedNowhere": "Verskyn tans op geen bladsy nie — verhoog eers 'n plasing se aantal gleuwe.",
+      "blockedStale": "In 'n ander geldeenheid geprys — stel eers 'n nuwe prys op die leer.",
+      "pickFirstDay": "Klik op die eerste dag, dan op die laaste.",
+      "pickLastDay": "Klik nou op die laaste dag.",
+      "datesTaken": "Reeds op hierdie posisie bespreek: {days}. Kies ander datums of 'n ander posisie.",
+      "legendThisProduct": "Hierdie produk word reeds bevorder",
+      "dayCount": "{count, plural, one {# dag} other {# dae}}",
+      "total": "Totaal",
+      "summary": "Opsomming",
+      "dates": "Datums",
+      "price": "Prys",
+      "recordedAsPaid": "Aangeteken as betaal",
+      "totalDue": "Totaal verskuldig",
+      "amountReceived": "Bedrag ontvang",
+      "fullPrice": "Volle prys",
+      "partPayment": "Gedeeltelike betaling of afslag",
+      "free": "Gratis",
+      "amountYouReceived": "Bedrag wat jy ontvang het",
+      "comped": "{amount} kwytgeskeld",
+      "sameAsFullPrice": "Dieselfde as die volle prys",
+      "enterAmountRange": "Voer {min} tot {max} in",
+      "note": "Nota",
+      "optional": "opsioneel",
+      "notePlaceholder": "Bankoorplasing-ID, kwitansienommer…",
+      "bookedAtOnce": "Die dae word bespreek sodra jy dit skep — niemand anders kan dit koop nie.",
+      "payWith": "Betaal met",
+      "termSlot": "Jy koop gleuf #{position}. As 'n gleuf daarbo nie verkoop word nie, skuif joune nie op nie.",
+      "termListings": "Op lyste verskyn dit op die winkel- en kategoriebladsy, nooit in soekresultate nie.",
+      "termRefund": "Dae wat reeds verby is, word nie terugbetaal nie. Toekomstige dae kan vir krediet vrygestel word.",
+      "termHold": "Jou datums word {minutes} minute vir jou gehou terwyl jy betaal."
     },
     "performance": {
       "back": "Alle bevorderings",
@@ -3827,41 +4977,80 @@
       "deleteFailed": "Kon nie skrap nie",
       "deleteTitle": "Skrap hierdie posisie?",
       "deleted": "Posisie geskrap",
-      "derivedPrices": "7 dae {week} · 30 dae {month}",
       "description": "Beskrywing (opsioneel)",
       "dialogDescription": "Verkopers betaal hierdie prys vir elke dag wat hulle op hierdie posisie bespreek.",
       "editTitle": "Wysig posisie",
       "empty": "Nog geen posisies nie",
       "emptyHint": "Skep posisie 1 om die boonste geborgde gleuf te koop aan te bied.",
-      "horizonDays": "{days} d",
       "label": "Etiket",
       "labelPlaceholder": "Boonste plek",
       "labelRequired": "Voer 'n etiket in",
       "ladderGap": "Posisies {positions} is ongedefinieer — daardie gleuwe wys altyd 'n gewone produk.",
-      "occupancy": "Besetting",
-      "occupancyBooked": "{booked} van {total} dae bespreek",
-      "occupancyFull": "vol bespreek",
-      "occupancyNextFree": "volgende vry {day}",
-      "perDay": "/ dag",
       "position": "Posisie",
       "positionLocked": "Die posisie kan nie ná skepping verander word nie — argiveer hierdie sport en skep 'n nuwe een.",
       "positionRequired": "Posisie moet tussen 1 en 50 wees",
       "pricePerDay": "Prys per dag",
       "pricePerDayHint": "7 dae = {week} · 30 dae = {month}",
       "priceRequired": "Die dagprys moet groter as nul wees",
-      "reach": "Verskyn op",
       "reachHome": "Tuis (top {n})",
       "reachListing": "Lyste (top {n})",
       "reachProductPage": "Produkbladsye (top {n})",
-      "reachesNothing": "Posisie {position} verskyn nêrens nie. Verhoog 'n plasing se gleuftelling of argiveer hierdie sport.",
       "saveFailed": "Kon nie die posisie stoor nie",
       "status": "Status",
       "subtitle": "Verkopers bespreek een posisie vir 'n reeks dae. Posisie N verskyn in gleuf N; 'n onverkoopte posisie wys 'n gewone produk en dié daaronder skuif nooit op nie.",
       "title": "Posisieleer",
       "unarchive": "Ontargiveer",
       "updated": "Posisie opgedateer",
-      "delivery": "Gemiddeld {n} vertonings/dag oor die afgelope 30 dae",
-      "deliveryNone": "Nog geen aflewering aangeteken nie"
+      "ladderGapOne": "Posisie {positions} is ongedefinieer — daardie gleuf wys altyd 'n gewone produk.",
+      "defineGap": "Definieer #{position}",
+      "windowLabel": "Dae vorentoe",
+      "ladderSummary": "{percent}% van die leer bespreek · {booked} van {total} dae",
+      "slotsPerSurface": "Geborgde gleuwe per blad:",
+      "surfaceHome": "Tuis",
+      "surfaceListing": "Lyste",
+      "surfaceProductPage": "Produkbladsye",
+      "surfaceOff": "af",
+      "settingsLink": "Instellings",
+      "colPrice": "Prys",
+      "colPerDay": "per dag",
+      "colBooked": "Bespreek",
+      "colNextDays": "volgende {days} dae",
+      "colImpressions": "Vertonings",
+      "colImpressionsHint": "per dag · 30-dag-gemiddeld",
+      "axisToday": "Vandag",
+      "statusNowhere": "Word nêrens gewys nie",
+      "statusReprice": "Nuwe prys nodig",
+      "chipOn": "{surface} wys die boonste {n} posisies — hierdie een ingesluit",
+      "chipOff": "{surface} wys net die boonste {n} posisies",
+      "chipDisabled": "{surface} wys tans geen geborgde produkte nie",
+      "freeFrom": "Vry vanaf {day}",
+      "freeToday": "Vandag vry",
+      "freeWindow": "Vry — geen besprekings in die volgende {days} dae nie",
+      "freeShort": "Vry",
+      "notForSale": "Nie te koop nie",
+      "nowhereTrack": "Op geen blad gewys nie — verkopers kan dit nie bespreek nie.",
+      "nowhereFix": "Verander die aantal gleuwe",
+      "staleTrack": "Verkopers kan nie betaal voordat dit 'n nuwe prys kry nie",
+      "segmentUntil": "tot {day}",
+      "segmentHold": "Aangehou · onbetaal",
+      "segmentRange": "{from} – {to} · {count, plural, one {# dag} other {# dae}}",
+      "segmentOpen": "Maak die bespreking oop",
+      "segmentHoldHint": "Onvoltooide betaling — die dae kom vry as die betaling nie opdaag nie",
+      "bookedOf": "{booked} van {total} dae",
+      "bookedOfHeld": "{booked} van {total} dae, {held} aangehou",
+      "freeFromShort": "vry vanaf {day}",
+      "noFreeDay": "geen vrye dag in die volgende {days} dae nie",
+      "noNewBookings": "geen nuwe besprekings nie",
+      "noData": "nog geen data nie",
+      "storeCurrency": "winkel se geldeenheid is {currency}",
+      "editAria": "Wysig posisie {position}",
+      "moreActions": "Meer aksies vir posisie {position}",
+      "viewBookings": "Bekyk besprekings",
+      "deleteBlockedBooked": "Het besprekings van vandag af — argiveer dit eerder.",
+      "deleteBlockedClaimed": "'n Gepouseerde, geskeduleerde of onbetaalde bespreking hou dit steeds — argiveer dit eerder.",
+      "gapTitle": "Ongedefinieer",
+      "gapHint": "Gleuf {position} wys elke dag 'n gewone produk — geen laer posisie skuif op nie.",
+      "gapRangeHint": "Gleuwe {from}–{to} wys elke dag 'n gewone produk — geen laer posisie skuif op nie."
     },
     "cancel": {
       "action": "Kanselleer bespreking",
@@ -3870,6 +5059,15 @@
       "confirm": "Kanselleer bespreking",
       "done": "Bespreking gekanselleer",
       "failed": "Kon nie die bespreking kanselleer nie"
+    },
+    "disabled": {
+      "title": "Produkbevordering is af",
+      "campaigns": "Skakel bevordering aan in Instellings → Produkbevordering om geborgde plasings aan verkopers te verkoop.",
+      "positions": "Skakel bevordering aan in Instellings → Produkbevordering om die posisieleer te bestuur."
+    },
+    "filters": {
+      "allVendors": "Alle verkopers",
+      "allPositions": "Alle posisies"
     }
   },
   "install": {
@@ -3940,5 +5138,18 @@
     "short": "Vergelyk",
     "bar": "Vergelyk {count}",
     "clear": "Maak skoon"
+  },
+  "permissionPacks": {
+    "aiStudio": "AI Studio",
+    "analytics": "Ontleding",
+    "boosts": "Hupstoot",
+    "catalog": "Katalogus",
+    "discounts": "Afslag",
+    "inbox": "Inkassie",
+    "orders": "Bestellings",
+    "payouts": "Uitbetalings",
+    "pos": "Verkoopspunt",
+    "staff": "Personeel",
+    "storefront": "Winkel"
   }
 }

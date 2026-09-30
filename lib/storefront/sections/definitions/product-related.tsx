@@ -5,10 +5,11 @@ import { lt } from "../localized";
 import type { LocalizedText, SectionDefinition } from "../types";
 
 /**
- * "You may also like" — related products by category, pickup-aware through
- * the shopper's location. The title falls back to the LOCALIZED storefront
- * string while unset, so the default template reads identically in every
- * locale; typing a custom title takes over from there.
+ * "You may also like" — related products by category, the same shelf for
+ * every shopper (a card strip takes no location; see
+ * `StorefrontProductCardQuery`). The title falls back to the LOCALIZED
+ * storefront string while unset, so the default template reads identically
+ * in every locale; typing a custom title takes over from there.
  *
  * The two variants share the shelf entirely — same query, same cards, same
  * scroller — and differ only in the header the carousel draws.
@@ -49,7 +50,6 @@ function renderWith(
           categoryId={categoryId as string}
           locale={ctx.locale}
           title={title}
-          location={resource.location}
           appearance={appearance}
         />
       </section>

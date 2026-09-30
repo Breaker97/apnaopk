@@ -2,7 +2,11 @@ import { connectDB } from "@/lib/db";
 import { Order } from "@/models";
 import { getSettingsLean } from "@/models/settings.model";
 import { ValidationError } from "@/lib/api/errors";
-import { rateLimitByIP } from "@/lib/api/rate-limit-middleware";
+import {
+  SHOPPING_ADDRESS_ALLOWANCE,
+  rateLimitByIP,
+  rateLimitByIPAndSubject,
+} from "@/lib/api/rate-limit-middleware";
 import { withApi } from "@/lib/api/handler";
 import { validateOptionalBody } from "@/lib/api/validate";
 import { TrackOrderBodySchema } from "@/lib/validations";
@@ -40,12 +44,21 @@ export const POST = withApi(
   {},
   async ({ request }) => {
     // Public, unauthenticated endpoint guarded only by email/phone match.
-    // Throttle by IP to prevent brute-forcing contact details / PDF scraping.
-    await rateLimitByIP(request, "strict");
+    // Held like order tracking: a strict limit per order and address, and the
+    // address to ten times that (brute-forcing contact details, PDF scraping).
+    await rateLimitByIP(request, "strict", SHOPPING_ADDRESS_ALLOWANCE);
 
     const body = await validateOptionalBody(request, TrackOrderBodySchema);
     const orderNumber = normalizeText(body.orderNumber || body.orderId);
     const identifier = normalizeText(body.identifier);
+
+    if (orderNumber) {
+      await rateLimitByIPAndSubject(
+        request,
+        `order:${orderNumber.toUpperCase().slice(0, 64)}`,
+        "strict",
+      );
+    }
 
     if (!orderNumber || !identifier) {
       throw new ValidationError("Order number and email or phone are required");

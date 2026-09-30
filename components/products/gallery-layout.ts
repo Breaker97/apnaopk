@@ -45,6 +45,37 @@ export const THUMBNAIL_ROW_CLASS =
 export const THUMBNAIL_TILE_WIDTH_CLASS =
   "w-[calc(25%-0.75rem)] sm:w-[calc(25%-0.9375rem)]";
 
+/**
+ * The same share, used as a CEILING on a merchant-set tile width (the
+ * section's "Thumbnail width"). Fixed-width tiles do not fit every gallery
+ * column: four 160px tiles want 700px, and in a 624px column the row simply
+ * ran out of it and under the buy box, where the info card's own background
+ * painted over the last tile.
+ *
+ * The ceiling is this tile's share of the row — 100%/n minus its share of the
+ * n-1 gaps — and therefore counts the tiles ACTUALLY in the row, not the four
+ * slots it can hold. A quarter for every row would have shrunk a two- or
+ * three-up strip that had the room for the width it was given.
+ *
+ * Indexed by tile count, so it runs to THUMBNAIL_SLOTS (4).
+ */
+const THUMBNAIL_TILE_MAX_WIDTH_CLASSES = [
+  // 0 and 1: a lone tile shares the row with nothing.
+  "max-w-full",
+  "max-w-full",
+  "max-w-[calc(50%-0.5rem)] sm:max-w-[calc(50%-0.625rem)]",
+  "max-w-[calc(33.333%-0.6667rem)] sm:max-w-[calc(33.333%-0.8333rem)]",
+  "max-w-[calc(25%-0.75rem)] sm:max-w-[calc(25%-0.9375rem)]",
+];
+
+/** The ceiling for a strip of `count` tiles. */
+export function thumbnailTileMaxWidthClass(count: number) {
+  const slots = THUMBNAIL_TILE_MAX_WIDTH_CLASSES.length - 1;
+  return THUMBNAIL_TILE_MAX_WIDTH_CLASSES[
+    Math.min(Math.max(count, 0), slots)
+  ] as string;
+}
+
 /** A single thumbnail tile. */
 export const THUMBNAIL_TILE_CLASS = `aspect-4/3 rounded-md ${THUMBNAIL_TILE_WIDTH_CLASS}`;
 

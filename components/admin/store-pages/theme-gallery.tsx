@@ -10,7 +10,7 @@ import {
   SlidersHorizontal,
   Braces,
 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   Card,
@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   UnderlineTabsList,
@@ -56,13 +56,11 @@ type StarterMode = "keep" | "draft" | "publish";
  * switches so a reload or a shared link lands on the same tab.
  */
 export function ThemeGallery({
-  locale,
   manifests,
   activeThemeId,
   initialTab = "theme",
   customCss = "",
 }: {
-  locale: string;
   manifests: (ThemeManifest & { hasStarter?: boolean })[];
   activeThemeId: string;
   initialTab?: ThemePageTab;
@@ -299,7 +297,7 @@ export function ThemeGallery({
               </CardHeader>
               <CardContent>
                 <Button asChild>
-                  <Link href={`/${locale}/admin/online-store/theme/editor`}>
+                  <Link href="/admin/online-store/theme/editor">
                     {tSafe("admin.themeSettings.launch", "Open theme editor")}
                     <ArrowUpRight className="h-4 w-4" />
                   </Link>

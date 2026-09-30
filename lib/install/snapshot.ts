@@ -47,6 +47,8 @@ export interface TemplateSnapshot {
   blogPosts: SnapshotDoc[];
   storePages: SnapshotDoc[];
   settings: SnapshotDoc;
+  /** When the snapshot was exported (its manifest), for re-basing dates. */
+  exportedAt?: string | null;
 }
 
 function readFile(dir: string, name: string): SnapshotDoc[] {
@@ -56,6 +58,14 @@ function readFile(dir: string, name: string): SnapshotDoc[] {
     relaxed: true,
   }) as unknown;
   return Array.isArray(parsed) ? (parsed as SnapshotDoc[]) : [];
+}
+
+/** The manifest's export time, or null when the snapshot has none. */
+function readExportedAt(dir: string): string | null {
+  const file = path.join(dir, "manifest.json");
+  if (!existsSync(file)) return null;
+  const manifest = JSON.parse(readFileSync(file, "utf8")) as { exportedAt?: unknown };
+  return typeof manifest.exportedAt === "string" ? manifest.exportedAt : null;
 }
 
 /** Whether this template ships a sample store the wizard can import. */
@@ -96,5 +106,6 @@ export function loadTemplateSnapshot(
     blogPosts: readFile(dir, "blog-posts"),
     storePages: readFile(dir, "store-pages"),
     settings,
+    exportedAt: readExportedAt(dir),
   };
 }

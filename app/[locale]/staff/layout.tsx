@@ -1,3 +1,4 @@
+import "@/app/dashboard.css";
 import { connectDB } from "@/lib/db";
 import { type Locale } from "@/config/i18n.config";
 import { NextIntlClientProvider } from "next-intl";
@@ -8,6 +9,11 @@ import { StaffSidebar } from "@/components/staff/staff-sidebar";
 import { requireStaffAreaAccess } from "@/lib/access/staff-area-guard";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarStateSync } from "@/components/layout/sidebar-state-sync";
+import { AiAvailabilityProvider } from "@/components/ai-authoring/ai-availability-provider";
+import { getAIAuthoringAvailability } from "@/lib/ai-authoring/runtime";
+
+// Canonical, hreflang and robots from the URL being served.
+export { generateMetadata } from "@/lib/storefront/request-path-metadata";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,37 +36,42 @@ export default async function StaffLayout({ children, params }: LayoutProps) {
   const posEnabled = Boolean(
     settings.pos?.enabled && settings.pos.allowSellerSales,
   );
+  // Settings → AI has its own "Allow staff accounts" switch, so the staff area
+  // can be dark on AI while the admin area is not.
+  const aiAvailability = await getAIAuthoringAvailability({ caller: "staff" });
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <SidebarProvider>
-        <SidebarStateSync />
-        <StaffSidebar
-          locale={locale as Locale}
-          user={{
-            name: session.user.name,
-            email: session.user.email,
-            image: session.user.image || undefined,
-          }}
-          permissions={staffPermissions}
-          posEnabled={posEnabled}
-          storeName={settings.general?.storeName}
-        />
-        <SidebarInset className="[--dashboard-header-height:4rem]">
-          <StaffHeader
+      <AiAvailabilityProvider value={aiAvailability}>
+        <SidebarProvider>
+          <SidebarStateSync />
+          <StaffSidebar
+            locale={locale as Locale}
             user={{
               name: session.user.name,
               email: session.user.email,
               image: session.user.image || undefined,
             }}
-            locale={locale as Locale}
+            permissions={staffPermissions}
             posEnabled={posEnabled}
+            storeName={settings.general?.storeName}
           />
-          <main className="isolate flex-1 min-w-0 space-y-8 overflow-x-clip p-6 md:p-6">
-            {children}
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+          <SidebarInset className="[--dashboard-header-height:4rem]">
+            <StaffHeader
+              user={{
+                name: session.user.name,
+                email: session.user.email,
+                image: session.user.image || undefined,
+              }}
+              locale={locale as Locale}
+              posEnabled={posEnabled}
+            />
+            <main className="isolate flex-1 min-w-0 space-y-8 overflow-x-clip p-6 md:p-6">
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </AiAvailabilityProvider>
     </NextIntlClientProvider>
   );
 }

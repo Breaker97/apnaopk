@@ -9,7 +9,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export interface ISliderMetricDaily extends Document {
+interface ISliderMetricDaily extends Document {
   handle: string;
   slideId: string;
   /** UTC calendar day, "YYYY-MM-DD". */

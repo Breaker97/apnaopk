@@ -12,6 +12,7 @@ import {
   type PayPalCredentials,
 } from "@/lib/payments/paypal";
 import { paypalFee } from "@/lib/payments/gateway-fee";
+import { assertPaymentMethodSettles } from "@/lib/payments/gateway-currencies";
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
 import { PAYPAL_BALANCE_REFERENCE_PREFIX } from "@/lib/payments/preorder-balance-reference";
 import {
@@ -100,7 +101,7 @@ function hundredths(value: unknown) {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
-export type PayPalBalanceOrderResult =
+type PayPalBalanceOrderResult =
   | { alreadyPaid: true }
   | { alreadyPaid?: false; approvalUrl: string; paypalOrderId: string };
 
@@ -143,10 +144,14 @@ export async function createPreorderBalancePayPalOrder(params: {
 
   const settings = params.settings || (await getSettings());
   const creds = payPalCredentialsFor(settings);
+  // The order's own currency — the balance is owed in whatever the order was
+  // placed in, whatever the store prices in now.
+  const currency = orderCurrency(order, settings);
+  assertPaymentMethodSettles("paypal", currency);
 
   const { orderId: paypalOrderId, approvalUrl } = await createPayPalOrder({
     creds,
-    currency: orderCurrency(order, settings),
+    currency,
     total: balanceDue,
     returnUrl: params.returnUrl,
     cancelUrl: params.cancelUrl,
@@ -178,7 +183,7 @@ export async function createPreorderBalancePayPalOrder(params: {
   return { approvalUrl, paypalOrderId };
 }
 
-export type SettlePayPalBalanceResult = {
+type SettlePayPalBalanceResult = {
   settled: boolean;
   orderId?: string;
   orderNumber?: string;
@@ -361,6 +366,7 @@ export async function settlePreorderBalanceFromPayPal(params: {
     orderId: current._id,
     reference: reference(captureId),
     now: new Date(),
+    amount: owedNow,
     extraSet: { ...custodyUpdate, ...feeUpdate },
   });
   if (!claimed) {

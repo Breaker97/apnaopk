@@ -8,6 +8,7 @@ import {
   trimMenuTreeDepth,
 } from "@/lib/site-config/menu-depth";
 import type { MenuLocation } from "@/types";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 interface SeedItem {
   label: string;
@@ -303,44 +304,36 @@ function normalizeMenuItemsByLocation(
 }
 
 async function loadMenuByHandle(handle: string): Promise<MenuPlain | null> {
-  try {
-    await connectDB();
-    const m = await Menu.findOne({ handle, isActive: true }).lean();
-    if (!m) return null;
-    return {
-      _id: String(m._id),
-      name: m.name,
-      handle: m.handle,
-      location: m.location,
-      items: normalizeMenuItemsByLocation(m.items, m.location),
-    };
-  } catch {
-    return null;
-  }
+  await connectDB();
+  const m = await Menu.findOne({ handle, isActive: true }).lean();
+  if (!m) return null;
+  return {
+    _id: String(m._id),
+    name: m.name,
+    handle: m.handle,
+    location: m.location,
+    items: normalizeMenuItemsByLocation(m.items, m.location),
+  };
 }
 
 async function loadMenusByLocation(
   location: MenuLocation,
 ): Promise<MenuPlain[]> {
-  try {
-    await connectDB();
-    const menus = await Menu.find({ location, isActive: true })
-      .sort({ updatedAt: -1 })
-      .lean();
-    const normalizedMenus = menus.map((m) => ({
-      _id: String(m._id),
-      name: m.name,
-      handle: m.handle,
-      location: m.location,
-      items: normalizeMenuItemsByLocation(m.items, m.location),
-    }));
+  await connectDB();
+  const menus = await Menu.find({ location, isActive: true })
+    .sort({ updatedAt: -1 })
+    .lean();
+  const normalizedMenus = menus.map((m) => ({
+    _id: String(m._id),
+    name: m.name,
+    handle: m.handle,
+    location: m.location,
+    items: normalizeMenuItemsByLocation(m.items, m.location),
+  }));
 
-    return normalizedMenus.length > 0
-      ? normalizedMenus
-      : getDefaultMenusByLocation(location);
-  } catch {
-    return getDefaultMenusByLocation(location);
-  }
+  return normalizedMenus.length > 0
+    ? normalizedMenus
+    : getDefaultMenusByLocation(location);
 }
 
 // Header nav + mega menu are read on nearly every storefront (and auth) page
@@ -348,20 +341,28 @@ async function loadMenusByLocation(
 // `revalidateMenuContent()` which busts that tag, and the 5-minute revalidate is
 // a safety net. Returns plain JSON-serializable objects, so `unstable_cache` is
 // safe here. Cache key includes the handle/location so entries don't collide.
+// A database failure answers with no menu / the default menus, decided outside
+// the cache so it never replaces the store's own (lib/storefront/cached-read.ts).
 export function getMenuByHandle(handle: string): Promise<MenuPlain | null> {
-  return unstable_cache(
-    () => loadMenuByHandle(handle),
-    ["menu-by-handle", handle],
-    { revalidate: 300, tags: [CACHE_TAGS.menus] },
+  return withFallback(
+    unstable_cache(
+      () => loadMenuByHandle(handle),
+      ["menu-by-handle", handle],
+      { revalidate: 300, tags: [CACHE_TAGS.menus] },
+    ),
+    () => null,
   )();
 }
 
 export function getMenusByLocation(
   location: MenuLocation,
 ): Promise<MenuPlain[]> {
-  return unstable_cache(
-    () => loadMenusByLocation(location),
-    ["menus-by-location", location],
-    { revalidate: 300, tags: [CACHE_TAGS.menus] },
+  return withFallback(
+    unstable_cache(
+      () => loadMenusByLocation(location),
+      ["menus-by-location", location],
+      { revalidate: 300, tags: [CACHE_TAGS.menus] },
+    ),
+    () => getDefaultMenusByLocation(location),
   )();
 }

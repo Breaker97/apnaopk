@@ -1,6 +1,6 @@
 import { type Locale } from "@/config/i18n.config";
 import { type ModernProduct } from "@/components/products/modern-product-card";
-import { RelatedProductsCarousel } from "@/components/products/related-products-carousel";
+import { RelatedProductsCarouselLazy as RelatedProductsCarousel } from "@/components/products/related-products-carousel-lazy";
 import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
 import type { RequestLocation } from "@/lib/locations/resolve-request-location";
 

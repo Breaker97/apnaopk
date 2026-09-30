@@ -1,3 +1,4 @@
+import "@/app/dashboard.css";
 import { connectDB } from "@/lib/db";
 import { USER_ROLES } from "@/config/app.config";
 import { type Locale } from "@/config/i18n.config";
@@ -9,6 +10,11 @@ import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { SidebarStateSync } from "@/components/layout/sidebar-state-sync";
+import { AiAvailabilityProvider } from "@/components/ai-authoring/ai-availability-provider";
+import { getAIAuthoringAvailability } from "@/lib/ai-authoring/runtime";
+
+// Canonical, hreflang and robots from the URL being served.
+export { generateMetadata } from "@/lib/storefront/request-path-metadata";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,36 +37,41 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
       settings.pos?.allowAdminSales &&
       session.user.role === USER_ROLES.ADMIN,
   );
+  // `requireAdminPageAccess` admits admins only, so the AI caller is never
+  // "staff" here — staff have their own area, and their own layout.
+  const aiAvailability = await getAIAuthoringAvailability({ caller: "admin" });
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <SidebarProvider>
-        <SidebarStateSync />
-        <DashboardSidebar
-          locale={locale as Locale}
-          user={{
-            name: session.user.name,
-            email: session.user.email,
-            image: session.user.image || undefined,
-            role: session.user.role as string,
-          }}
-        />
-        <SidebarInset className="[--dashboard-header-height:4rem]">
-          <AdminHeader
+      <AiAvailabilityProvider value={aiAvailability}>
+        <SidebarProvider>
+          <SidebarStateSync />
+          <DashboardSidebar
+            locale={locale as Locale}
             user={{
               name: session.user.name,
               email: session.user.email,
               image: session.user.image || undefined,
+              role: session.user.role as string,
             }}
-            locale={locale as Locale}
-            role={session.user.role as string}
-            posEnabled={canAccessPos}
           />
-          <main className="isolate flex-1 min-w-0 space-y-8 overflow-x-clip p-6 md:p-6">
-            {children}
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+          <SidebarInset className="[--dashboard-header-height:4rem]">
+            <AdminHeader
+              user={{
+                name: session.user.name,
+                email: session.user.email,
+                image: session.user.image || undefined,
+              }}
+              locale={locale as Locale}
+              role={session.user.role as string}
+              posEnabled={canAccessPos}
+            />
+            <main className="isolate flex-1 min-w-0 space-y-8 overflow-x-clip p-6 md:p-6">
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </AiAvailabilityProvider>
     </NextIntlClientProvider>
   );
 }

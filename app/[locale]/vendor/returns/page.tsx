@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import { setRequestLocale } from "next-intl/server";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
+import { AdminStatsStripSkeleton } from "@/components/admin/admin-stats-strip";
 import { ReturnsDataTable } from "@/components/admin/returns-data-table";
+import { ReturnsStatsStrip } from "@/components/admin/returns-stats-strip";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -11,7 +14,7 @@ export default async function VendorReturnsPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  await requireVendorAreaAccess({
+  const access = await requireVendorAreaAccess({
     locale,
     required: [VENDOR_PERMISSIONS.VIEW_ORDERS],
   });
@@ -27,7 +30,13 @@ export default async function VendorReturnsPage({ params }: PageProps) {
           what came back. The store admin issues the refund.
         </p>
       </div>
-      <ReturnsDataTable locale={locale} scope="vendor" />
+      <Suspense fallback={<AdminStatsStripSkeleton items={4} />}>
+        <ReturnsStatsStrip
+          locale={locale}
+          vendorId={String(access.vendor._id)}
+        />
+      </Suspense>
+      <ReturnsDataTable scope="vendor" />
     </div>
   );
 }

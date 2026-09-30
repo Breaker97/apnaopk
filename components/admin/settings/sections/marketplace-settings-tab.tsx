@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Settings } from "@/components/admin/settings/types";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { useTranslations } from "next-intl";
@@ -16,8 +15,6 @@ export function MarketplaceSettingsTab(props: {
   updateField: (path: string, value: unknown) => void;
 }) {
   const t = useTranslations();
-  const params = useParams();
-  const locale = typeof params?.locale === "string" ? params.locale : "en";
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingValue, setPendingValue] = useState<boolean>(
     props.settings.multiVendorMode.enabled,
@@ -53,10 +50,10 @@ export function MarketplaceSettingsTab(props: {
 
           {currentValue ? (
             <Link
-              href={`/${locale}/admin/vendors/configuration`}
+              href="/admin/vendors/configuration"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
-              Manage vendor registration, plans &amp; policy
+              {t("admin.settings.security.multiVendor.manageLink")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           ) : null}

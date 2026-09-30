@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/db";
 import { Coupon } from "@/models";
 
@@ -10,10 +11,10 @@ import { Coupon } from "@/models";
  * stops working. Deriving those from the discount is what keeps a banner from
  * promising 20% while the code gives 15.
  *
- * Cached for a minute rather than tagged: discounts are edited rarely and a
- * banner that lags a change by under a minute is not a correctness problem,
- * whereas threading invalidation through every coupon write path is surface
- * this one reader does not justify.
+ * Tagged, so a banner shows a discount's edit on the next visit: every route
+ * that creates, edits, deletes or switches off a coupon expires the tag
+ * (`revalidateCouponContent`). Redemptions write usage counts this read does
+ * not select, so checkout never busts it.
  */
 interface StorefrontCoupon {
   code: string;
@@ -64,7 +65,7 @@ export const getStorefrontCoupon = unstable_cache(
     };
   },
   ["storefront-coupon"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: [CACHE_TAGS.coupons] },
 );
 
 /**

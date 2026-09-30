@@ -7,6 +7,8 @@
  * hardcoded dashboard. The module is import-safe from client components: the
  * login/register pages reuse `sanitizeReturnPath` on their query params.
  */
+import { splitLocalePath } from "@/lib/i18n/locale-prefix";
+
 export const REQUEST_PATH_HEADER = "x-request-path";
 
 /**
@@ -24,11 +26,23 @@ const AUTH_PAGE_PATH_PATTERN =
  * default landing, and honoring it would keep every role off its post-login
  * dashboard (the header's sign-in link stamps the current path, so logging
  * in from the front page arrives with a home callback). Query-carrying home
- * paths (`/en?search=abc`) stay valid targets. Every route lives under a
- * locale prefix (the proxy redirects bare paths), so a single-segment path
- * can only be a locale root.
+ * paths (`/en?search=abc`) stay valid targets.
+ *
+ * The locale prefix is optional because the store's default language is served
+ * without one: a single-segment path is the home page only when that segment
+ * IS a locale. It used to be enough to count segments — back when every route
+ * carried a prefix — and keeping that shortcut would now throw away `/account`,
+ * `/checkout` and every other top-level page as if it were the front page.
  */
-const HOME_PATH_PATTERN = /^(?:\/[a-zA-Z0-9-]+)?\/?$/;
+function isHomePath(value: string) {
+  if (/[?#]/.test(value)) return false;
+
+  const path = value.length > 1 ? value.replace(/\/+$/, "") : value;
+  if (path === "" || path === "/") return true;
+
+  const { locale, rest } = splitLocalePath(path);
+  return locale !== null && rest === "/";
+}
 
 /**
  * WHATWG URL parsers (the browser's address bar, `new URL`, the Next router)
@@ -62,7 +76,7 @@ export function sanitizeReturnPath(
   if (CONTROL_CHARACTER_PATTERN.test(value)) return null;
   if (value.startsWith("//") || value.startsWith("/\\")) return null;
   if (AUTH_PAGE_PATH_PATTERN.test(value)) return null;
-  if (HOME_PATH_PATTERN.test(value)) return null;
+  if (isHomePath(value)) return null;
   return value;
 }
 

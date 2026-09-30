@@ -2,8 +2,10 @@ import {
   ModernProductCardSkeleton,
   type ModernProduct,
 } from "./modern-product-card";
-import { ProductGridClient } from "./product-grid-client";
-import { ProductGridInfinite } from "./product-grid-infinite";
+import {
+  ProductGridClientLazy as ProductGridClient,
+  ProductGridInfiniteLazy as ProductGridInfinite,
+} from "./product-grid-lazy";
 import {
   ProductGridClearLocation,
   ProductGridLocationNotice,

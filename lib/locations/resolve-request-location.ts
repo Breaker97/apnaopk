@@ -1,12 +1,8 @@
 import "server-only";
 
-import { cookies } from "next/headers";
 import {
-  LOCATION_COOKIE,
-  parseLocationCookie,
   resolveRequestLocationValues,
   type RequestLocation,
-  type ShopperLocation,
 } from "@/lib/locations/shopper-location";
 
 /**
@@ -27,13 +23,4 @@ type SearchParams = Record<string, string | string[] | undefined>;
  */
 export function resolveRequestLocation(search: SearchParams): RequestLocation {
   return resolveRequestLocationValues(search);
-}
-
-/**
- * The shopper's saved delivery place, parsed from its cookie. The header's
- * "Deliver to" control is seeded with this so it paints the right place
- * instead of flashing "Set location" on every first render.
- */
-export async function readStoredShopperLocation(): Promise<ShopperLocation | null> {
-  return parseLocationCookie((await cookies()).get(LOCATION_COOKIE)?.value);
 }

@@ -14,20 +14,26 @@ import type { ProductFormData } from "@/components/admin/product-form/schema";
  * at the top of the form because it decides which sections apply (Shipping
  * for physical, Digital files for digital).
  *
- * Chosen once, at creation. `locked` renders the decision read-only when
- * editing: the two formats own different data (weight/customs vs. download
- * files), different checkout paths and different stock semantics, and existing
- * carts and orders already reference the old shape. The API refuses the switch
- * too — see isProductFormatChange() in lib/product-shipping.ts.
+ * Chosen once, at creation, so only the create page renders it: the two
+ * formats own different data (weight/customs vs. download files), different
+ * checkout paths and different stock semantics, and existing carts and orders
+ * already reference the old shape. The API refuses the switch too — see
+ * isProductFormatChange() in lib/catalog/product-shipping.ts.
+ *
+ * `formats` is what the store sells (Settings → Products). A new product is
+ * offered only those, and with a single one there is nothing to choose, so
+ * the card steps aside — the form already starts in that format.
  */
 export function ProductFormatCard({
   form,
-  locked = false,
+  formats,
 }: {
   form: UseFormReturn<ProductFormData>;
-  locked?: boolean;
+  formats: { physical: boolean; digital: boolean };
 }) {
   const t = useTranslations();
+
+  if (!(formats.physical && formats.digital)) return null;
 
   const options = [
     {
@@ -61,18 +67,14 @@ export function ProductFormatCard({
             >
               {options.map((option) => {
                 const isSelected = (field.value ?? true) === option.physical;
-                // Locked: keep the chosen format visible, drop the alternative
-                // rather than showing a control that cannot be used.
-                if (locked && !isSelected) return null;
                 return (
                   <button
                     key={String(option.physical)}
                     type="button"
                     role="radio"
                     aria-checked={isSelected}
-                    aria-disabled={locked || undefined}
                     onClick={() => {
-                      if (locked || isSelected) return;
+                      if (isSelected) return;
                       field.onChange(option.physical);
                       // The Inventory card is hidden for digital products, so
                       // stock tracking must not stay on (the tracked:true +
@@ -86,7 +88,6 @@ export function ProductFormatCard({
                       isSelected
                         ? "border-primary bg-primary/5"
                         : "border-muted-foreground/25 hover:border-muted-foreground/50",
-                      locked && "cursor-default",
                     )}
                   >
                     <option.icon
@@ -109,11 +110,6 @@ export function ProductFormatCard({
             </div>
           )}
         />
-        {locked && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("admin.productForm.format.locked")}
-          </p>
-        )}
       </CardContent>
     </Card>
   );

@@ -12,6 +12,10 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { checkPlanLimit } from "@/lib/vendors/vendor-limits";
 import { getSettings } from "@/models/settings.model";
 import { assertProductPreorderAllowed } from "@/lib/orders/preorder-gating";
+import {
+  assertProductFeaturesAllowed,
+  resolveProductFeatures,
+} from "@/lib/products/product-features";
 import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validateBody, validateQuery } from "@/lib/api/validate";
@@ -43,7 +47,6 @@ import {
   reserveProductBarcodeRegistry,
   syncProductBarcodeRegistry,
 } from "@/lib/products/barcode-registry";
-import { isCountryAllowed } from "@/lib/intl/country-availability";
 import {
   allowedLocationIds,
   vendorLocationScope,
@@ -155,18 +158,8 @@ export const POST = withApi(
 
     const body = await validateBody(request, CreateProductSchema);
     await assertCategoryAcceptsProducts(body.category);
-    const countryOfOrigin = body.shipping?.countryOfOrigin?.trim();
-    if (
-      countryOfOrigin &&
-      !isCountryAllowed(
-        countryOfOrigin,
-        settings.general?.countryAvailability,
-      )
-    ) {
-      throw new ValidationError({
-        "shipping.countryOfOrigin": ["Selected country is not available"],
-      });
-    }
+    // `shipping.countryOfOrigin` is deliberately unrestricted: it records
+    // where the goods were made, not a country the store sells or ships to.
 
     // Digital files must come from this vendor's own private-storage scope.
     assertOwnDigitalAssetKeys(body.digitalAssets, String(vendor._id));
@@ -202,6 +195,18 @@ export const POST = withApi(
     const cleanedPreorder = sanitizePreorderSettings(
       (body as unknown as Record<string, unknown>).preorder,
     );
+
+    // Settings → Products first: a feature the store has switched off is the
+    // reason to give, before any limit on how a vendor may use it.
+    assertProductFeaturesAllowed({
+      features: resolveProductFeatures(settings),
+      product: {
+        shipping: body.shipping,
+        priceOnRequest: body.priceOnRequest,
+        preorder: cleanedPreorder as never,
+        variants: cleanedVariants as never,
+      },
+    });
 
     // A pre-order commits the PLATFORM to a refund it cannot decline, so the
     // limits are checked before the product exists rather than at sell time.

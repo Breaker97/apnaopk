@@ -1,5 +1,5 @@
 import { Eye, X } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
 

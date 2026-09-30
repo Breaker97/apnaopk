@@ -29,6 +29,8 @@ export interface DataTableAction {
   items?: DataTableAction[];
   variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
   disabled?: boolean;
+  /** Short secondary line under the label, e.g. why the action is disabled. */
+  hint?: string;
   className?: string;
 }
 

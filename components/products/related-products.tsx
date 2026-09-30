@@ -1,8 +1,7 @@
 import { type Locale } from "@/config/i18n.config";
 import { type ModernProduct } from "./modern-product-card";
-import { RelatedProductsCarousel } from "./related-products-carousel";
+import { RelatedProductsCarouselLazy as RelatedProductsCarousel } from "./related-products-carousel-lazy";
 import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
-import type { RequestLocation } from "@/lib/locations/resolve-request-location";
 
 const RELATED_PRODUCTS_LIMIT = 12;
 
@@ -11,16 +10,11 @@ interface RelatedProductsProps {
   categoryId: string;
   locale: Locale;
   title: string;
-  location?: RequestLocation;
   /** Header treatment, forwarded to the carousel. Presentation only. */
   appearance?: "classic" | "electronics";
 }
 
-async function fetchRelatedProducts(
-  productId: string,
-  categoryId: string,
-  location: RequestLocation = {},
-) {
+async function fetchRelatedProducts(productId: string, categoryId: string) {
   if (!categoryId) {
     return [];
   }
@@ -31,7 +25,6 @@ async function fetchRelatedProducts(
     limit: RELATED_PRODUCTS_LIMIT,
     sortBy: "createdAt",
     sortOrder: "desc",
-    ...location,
   });
 
   return products.slice(0, RELATED_PRODUCTS_LIMIT) as ModernProduct[];
@@ -42,10 +35,9 @@ export async function RelatedProducts({
   categoryId,
   locale,
   title,
-  location = {},
   appearance = "classic",
 }: RelatedProductsProps) {
-  const products = await fetchRelatedProducts(productId, categoryId, location);
+  const products = await fetchRelatedProducts(productId, categoryId);
 
   if (products.length === 0) {
     return null;

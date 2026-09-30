@@ -59,14 +59,14 @@ export default async function VendorStaffPage({
         }
         suggestions={[
           {
-            href: `/${locale}/vendor/products`,
+            href: "/vendor/products",
             title: t("vendor.featureLocked.suggestions.products.title"),
             description: t(
               "vendor.featureLocked.suggestions.products.description",
             ),
           },
           {
-            href: `/${locale}/vendor/settings`,
+            href: "/vendor/settings",
             title: t("vendor.featureLocked.suggestions.settings.title"),
             description: t(
               "vendor.featureLocked.suggestions.settings.description",

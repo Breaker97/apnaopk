@@ -12,6 +12,7 @@ import {
 import { resolveDefaultVendorId } from "@/lib/vendors/multi-vendor";
 import { Vendor } from "@/models";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
+import { quantizeToCurrency } from "@/lib/intl/money";
 
 type OrderVendorContext = {
   isMultiVendorEnabled: boolean;
@@ -52,6 +53,8 @@ type OrderSubOrderItem = {
     amount?: number;
   };
   lineNote?: string;
+  /** This line's share of the coupon's goods discount. */
+  couponDiscount?: number;
 };
 
 type OrderSubOrderInput = {
@@ -181,6 +184,9 @@ export function getOrderItemVendorId(
 /**
  * Compute the monetary amount of a per-line discount for a given item.
  * Returns 0 if the item has no line discount.
+ *
+ * Rounded to what `currency` can hold when it is given — to the cent, 10% off
+ * a 1255 XOF line was 125.5 francs that do not exist. Omitted, cents as before.
  */
 export function computeLineDiscountAmount(
   price: number,
@@ -189,14 +195,22 @@ export function computeLineDiscountAmount(
     | { type: "percent" | "amount"; value: number; amount?: number }
     | undefined
     | null,
+  currency?: string | null,
 ): number {
   if (!lineDiscount) return 0;
   const lineSubtotal = price * quantity;
   const value = Math.max(0, Number(lineDiscount.value) || 0);
-  if (lineDiscount.type === "percent") {
-    return Math.round((lineSubtotal * Math.min(value, 100)) / 100 * 100) / 100;
+  const amount =
+    lineDiscount.type === "percent"
+      ? (lineSubtotal * Math.min(value, 100)) / 100
+      : Math.min(value, lineSubtotal);
+  if (currency) {
+    return Math.min(quantizeToCurrency(amount, currency), lineSubtotal);
   }
-  return Math.min(value, lineSubtotal);
+  if (lineDiscount.type === "percent") {
+    return Math.round(amount * 100) / 100;
+  }
+  return amount;
 }
 
 export function groupItemsByOrderVendor<T>(
@@ -213,6 +227,29 @@ export function groupItemsByOrderVendor<T>(
   }
 
   return groups;
+}
+
+/** What a consignment needs from its vendor record. */
+export type SubOrderVendor = {
+  _id: unknown;
+  commission?: number;
+  isDefault?: boolean;
+  shipping?: { codCollectedBy?: string };
+};
+
+/**
+ * The vendor records `buildVendorSubOrders` reads — commission, whether the
+ * vendor is the store itself, who collects cash on delivery. Exported so a
+ * caller that knows the vendors early can start the read alongside other work
+ * and hand the promise in as `vendors`.
+ */
+export async function readSubOrderVendors(
+  vendorIds: string[],
+): Promise<SubOrderVendor[]> {
+  if (vendorIds.length === 0) return [];
+  return Vendor.find({ _id: { $in: vendorIds } })
+    .select("commission isDefault shipping.codCollectedBy")
+    .lean<SubOrderVendor[]>();
 }
 
 export async function buildVendorSubOrders<T>(
@@ -249,6 +286,8 @@ export async function buildVendorSubOrders<T>(
       | undefined
       | null;
     getLineNote?: (item: T) => string | undefined;
+    /** This line's share of the coupon's goods discount, when one was recorded. */
+    getCouponDiscount?: (item: T) => number | undefined;
     fallbackCommissionPercent?: number;
     status?: string;
     /**
@@ -264,8 +303,24 @@ export async function buildVendorSubOrders<T>(
      * none does, and the order's single discount is shared by sales as before.
      */
     couponDiscountByVendor?: Record<string, number>;
+    /**
+     * The order's currency, so commission and earnings are rounded to what it
+     * can actually hold. Rounding to cents regardless left a UGX sale with
+     * 125.63 of commission the ledger books as 126, and a payout of a fraction
+     * of a shilling. Omitted, amounts round to cents as before.
+     */
+    currency?: string;
+    /**
+     * The vendors' records (`readSubOrderVendors`), when the caller already
+     * has the read in flight. Any consignment's vendor it lacks is read here.
+     */
+    vendors?: Promise<SubOrderVendor[]>;
   },
 ): Promise<OrderSubOrderInput[]> {
+  const roundAmount = (value: number) =>
+    options.currency
+      ? quantizeToCurrency(value, options.currency)
+      : Math.round(value * 100) / 100;
   const fallbackCommissionPercent = Number.isFinite(
     options.fallbackCommissionPercent,
   )
@@ -276,11 +331,12 @@ export async function buildVendorSubOrders<T>(
   // Batch-load every vendor's commission rate up front instead of querying per
   // vendor group inside the loop (previously an N+1 on the checkout path).
   const vendorIds = [...vendorGroups.keys()];
-  const vendorDocs = vendorIds.length
-    ? await Vendor.find({ _id: { $in: vendorIds } })
-        .select("commission isDefault shipping.codCollectedBy")
-        .lean()
-    : [];
+  const known = options.vendors ? await options.vendors : [];
+  const knownIds = new Set(known.map((vendor) => String(vendor._id)));
+  const vendorDocs = [
+    ...known,
+    ...(await readSubOrderVendors(vendorIds.filter((id) => !knownIds.has(id)))),
+  ];
   const commissionByVendorId = new Map<string, number>();
   // Who takes the cash if this sale is COD. Resolved here, at the one place
   // every order-creation path funnels through, and frozen onto the consignment
@@ -290,7 +346,7 @@ export async function buildVendorSubOrders<T>(
   // the store's, whoever carries the parcel.
   const storeVendorIds = new Set<string>();
   for (const vendor of vendorDocs) {
-    if ((vendor as { isDefault?: boolean }).isDefault) {
+    if (vendor.isDefault) {
       storeVendorIds.add(String(vendor._id));
     }
     if (typeof vendor.commission === "number") {
@@ -300,9 +356,7 @@ export async function buildVendorSubOrders<T>(
       String(vendor._id),
       resolveCodCollector({
         storeDefault: options.codCollectedByDefault,
-        vendorPreference: (
-          vendor as { shipping?: { codCollectedBy?: string } }
-        ).shipping?.codCollectedBy,
+        vendorPreference: vendor.shipping?.codCollectedBy,
       }),
     );
   }
@@ -318,15 +372,15 @@ export async function buildVendorSubOrders<T>(
         price,
         quantity,
         lineDiscount,
+        options.currency,
       );
       return sum + (price * quantity - lineDiscountAmount);
     }, 0);
     const commissionPercent = commissionByVendorId.has(vendorId)
       ? commissionByVendorId.get(vendorId)!
       : fallbackCommissionPercent;
-    const commission =
-      Math.round(subtotal * (commissionPercent / 100) * 100) / 100;
-    const vendorEarnings = Math.round((subtotal - commission) * 100) / 100;
+    const commission = roundAmount(subtotal * (commissionPercent / 100));
+    const vendorEarnings = roundAmount(subtotal - commission);
 
     const codCollectedBy =
       codCollectorByVendorId.get(vendorId) ?? COD_COLLECTED_BY.VENDOR;
@@ -346,6 +400,7 @@ export async function buildVendorSubOrders<T>(
               options.getPrice(item),
               options.getQuantity(item),
               lineDiscount,
+              options.currency,
             )
           : 0;
         return {
@@ -377,6 +432,7 @@ export async function buildVendorSubOrders<T>(
               }
             : undefined,
           lineNote: options.getLineNote?.(item),
+          couponDiscount: options.getCouponDiscount?.(item),
         };
       }),
       subtotal,

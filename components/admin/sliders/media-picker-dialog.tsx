@@ -15,11 +15,11 @@ import { cn } from "@/lib/utils";
 
 /**
  * Pick a picture or a video the store already has, instead of uploading it
- * again. Reads the media library's own listing (/api/admin/media), a page
+ * again. Reads the media library's own listing (/api/media/library), a page
  * at a time, with the same search the library offers.
  */
 
-export interface PickedMedia {
+interface PickedMedia {
   url: string;
   name: string;
   size?: number;
@@ -29,7 +29,10 @@ export interface PickedMedia {
 
 interface MediaRow {
   key?: string;
+  /** Preview only: a signed URL that expires when the bucket is not public. */
   url?: string;
+  /** What an upload of the file returned — the URL a slide may keep. */
+  publicUrl?: string;
   name?: string;
   filename?: string;
   size?: number;
@@ -81,7 +84,7 @@ export function MediaPickerDialog({
       const params = new URLSearchParams({ limit: "48", kind });
       if (next) params.set("cursor", next);
       if (query) params.set("q", query);
-      const res = await fetch(`/api/admin/media?${params.toString()}`);
+      const res = await fetch(`/api/media/library?${params.toString()}`);
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error(json?.message || labels.loadFailed);
       const data = json.data as { files?: MediaRow[]; nextCursor?: string };
@@ -105,7 +108,7 @@ export function MediaPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{labels.title}</DialogTitle>
           <DialogDescription>{labels.description}</DialogDescription>
@@ -135,7 +138,7 @@ export function MediaPickerDialog({
                     type="button"
                     title={name}
                     onClick={() => {
-                      onPick({ url: row.url!, name, size: row.size, width: row.width, height: row.height });
+                      onPick({ url: row.publicUrl ?? row.url!, name, size: row.size, width: row.width, height: row.height });
                       onOpenChange(false);
                     }}
                     className={cn(

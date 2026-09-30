@@ -7,7 +7,7 @@ import { canAccessPOS } from "@/lib/access/rbac";
 import { sanitizeSearchString, validateBody } from "@/lib/api/validate";
 import { notifyAdminsNewCustomer } from "@/lib/notifications/notifications";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 
 const PosCustomerSchema = z.object({
   name: z.string().max(200).optional(),

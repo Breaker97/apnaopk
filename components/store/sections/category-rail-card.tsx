@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getTranslations } from "next-intl/server";
 import { Package } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
@@ -61,7 +61,7 @@ export async function CategoryRailCard({
           {roots.map((category) => (
             <li key={category._id} className={RAIL_ROW_CLASS}>
               <Link
-                href={`/${locale}/categories/${encodeURIComponent(category.slug)}`}
+                href={`/categories/${encodeURIComponent(category.slug)}`}
                 className={cn(
                   RAIL_LINK_CLASS,
                   "transition-opacity hover:opacity-70",
@@ -142,7 +142,7 @@ export async function CategoryRailChips({
       {roots.map((category) => (
         <Link
           key={category._id}
-          href={`/${locale}/categories/${encodeURIComponent(category.slug)}`}
+          href={`/categories/${encodeURIComponent(category.slug)}`}
           className="flex h-10 shrink-0 snap-start items-center gap-2 rounded-button border border-border bg-background pe-3.5 ps-2.5 text-[13px] font-semibold text-foreground/80 transition-colors hover:border-foreground/30 hover:text-foreground"
         >
           <span className="grid h-6 w-6 shrink-0 place-items-center">

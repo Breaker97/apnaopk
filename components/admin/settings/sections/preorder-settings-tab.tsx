@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,12 @@ import { NumberInput } from "@/components/ui/number-input";
 import { apiClient } from "@/lib/api/client";
 import type { Settings } from "@/components/admin/settings/types";
 import { SettingSwitchRow } from "@/components/admin/settings/fields/setting-switch-row";
+import Link from "@/components/language/link";
 import {
   formatPreorderAccessDate as formatDate,
   usePreorderAccessDecision,
 } from "@/components/admin/vendors/use-preorder-access-decision";
 import { SettingsTabHeader } from "./settings-tab-header";
-import { StickySaveFooter } from "./sticky-save-footer";
 
 /**
  * The Vendor access card's anchor. Access-request notifications and emails
@@ -49,11 +50,11 @@ interface VendorRow {
 
 export function PreorderSettingsTab(props: {
   settings: Settings;
-  isSaving: boolean;
-  isDirty: boolean;
   updateField: (path: string, value: unknown) => void;
-  onSave: () => void | Promise<unknown>;
 }) {
+  const t = useTranslations("admin.settings.preorder");
+  const tAccess = useTranslations("admin.preorderAccess");
+  const locale = useLocale();
   const preorder = props.settings.preorder;
   const enabled = preorder?.enabled ?? true;
   const requireApproval = preorder?.requireVendorApproval ?? false;
@@ -111,27 +112,40 @@ export function PreorderSettingsTab(props: {
   const { busyVendorId, approve, refuse, dialog } =
     usePreorderAccessDecision(loadQueue);
 
+  const askedLine = (requestedAt?: string | null) => {
+    const date = formatDate(requestedAt, locale);
+    return date ? tAccess("asked", { date }) : tAccess("askedRecently");
+  };
+
   return (
     <div className="space-y-4">
-      <SettingsTabHeader
-        title="Pre-orders"
-        description="What a vendor may promise when they sell something before it exists — and who is allowed to."
-      />
+      <SettingsTabHeader title={t("title")} description={t("description")} />
 
       <Card>
         <CardContent className="space-y-4">
-          <SettingSwitchRow
-            title="Enable pre-orders"
-            description="Master switch. When off, no vendor can open a new pre-order. Listings that are already selling are not withdrawn."
-            checked={enabled}
-            onCheckedChange={(v) => props.updateField("preorder.enabled", v)}
-          />
+          {/* The on/off switch is store-wide — it gates the admin's own
+              products too — so it lives in Settings → Products; what is
+              left here is what a VENDOR may promise once it is on. */}
+          {enabled ? null : (
+            <p className="text-muted-foreground text-sm">
+              {t.rich("storeOff", {
+                link: (chunks) => (
+                  <Link
+                    href="/admin/settings/products"
+                    className="text-primary font-medium hover:underline"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </p>
+          )}
 
           {enabled ? (
             <>
               <SettingSwitchRow
-                title="Review vendors before they can sell pre-orders"
-                description="When on, a vendor needs your approval before opening their first pre-order. Existing listings keep selling either way."
+                title={t("requireApproval.title")}
+                description={t("requireApproval.description")}
                 checked={requireApproval}
                 onCheckedChange={(v) =>
                   props.updateField("preorder.requireVendorApproval", v)
@@ -141,7 +155,7 @@ export function PreorderSettingsTab(props: {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">
-                    Furthest release date
+                    {t("maxLead.label")}
                   </label>
                   <div className="flex items-center gap-2">
                     <NumberInput
@@ -158,17 +172,18 @@ export function PreorderSettingsTab(props: {
                       }}
                     />
                     <span className="text-muted-foreground text-sm">
-                      days ahead
+                      {t("maxLead.unit")}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    The longer the wait, the longer a shopper can dispute the
-                    charge.
+                    {t("maxLead.hint")}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Largest deposit</label>
+                  <label className="text-sm font-medium">
+                    {t("maxDeposit.label")}
+                  </label>
                   <div className="flex items-center gap-2">
                     <NumberInput
                       min={0}
@@ -184,17 +199,17 @@ export function PreorderSettingsTab(props: {
                       }}
                     />
                     <span className="text-muted-foreground text-sm">
-                      % of the price
+                      {t("maxDeposit.unit")}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    Applies to fixed amounts too, measured against the price.
+                    {t("maxDeposit.hint")}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">
-                    Give up on an unpaid balance after
+                    {t("expiry.label")}
                   </label>
                   <div className="flex items-center gap-2">
                     <NumberInput
@@ -211,19 +226,18 @@ export function PreorderSettingsTab(props: {
                       }}
                     />
                     <span className="text-muted-foreground text-sm">
-                      days past the release date
+                      {t("expiry.unit")}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    The order is cancelled, the quota freed, and the deposit
-                    refunded in full.
+                    {t("expiry.hint")}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <SettingSwitchRow
-                    title="Ask for the balance automatically"
-                    description="On the release date, ask each pre-order for its remaining balance and release the ones already paid for. Leave this off if your dates slip — asking for money says the goods are ready."
+                    title={t("autoRelease.title")}
+                    description={t("autoRelease.description")}
                     checked={autoRelease}
                     onCheckedChange={(v) =>
                       props.updateField("preorder.autoRelease", v)
@@ -248,20 +262,18 @@ export function PreorderSettingsTab(props: {
                         }}
                       />
                       <span className="text-muted-foreground text-sm">
-                        days after the release date
+                        {t("autoRelease.unit")}
                       </span>
                     </div>
                   ) : null}
                   <p className="text-muted-foreground text-xs">
-                    A pre-order that is already paid in full is only released
-                    once its stock is actually recorded — the calendar alone
-                    never ships anything.
+                    {t("autoRelease.hint")}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">
-                    Hold back from pre-order payouts
+                    {t("reserve.label")}
                   </label>
                   <div className="flex items-center gap-2">
                     <NumberInput
@@ -277,7 +289,9 @@ export function PreorderSettingsTab(props: {
                           props.updateField("preorder.reservePercent", next);
                       }}
                     />
-                    <span className="text-muted-foreground text-sm">% for</span>
+                    <span className="text-muted-foreground text-sm">
+                      {t("reserve.percentUnit")}
+                    </span>
                     <NumberInput
                       min={1}
                       max={365}
@@ -291,25 +305,17 @@ export function PreorderSettingsTab(props: {
                           props.updateField("preorder.reserveDays", next);
                       }}
                     />
-                    <span className="text-muted-foreground text-sm">days</span>
+                    <span className="text-muted-foreground text-sm">
+                      {t("reserve.daysUnit")}
+                    </span>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    A card dispute is counted from the expected delivery date,
-                    so a pre-order can be charged back long after the vendor was
-                    paid. Zero switches the reserve off.
+                    {t("reserve.hint")}
                   </p>
                 </div>
               </div>
             </>
           ) : null}
-
-          <StickySaveFooter
-            label="Save changes"
-            isSaving={props.isSaving}
-            isDirty={props.isDirty}
-            disabled={props.isSaving || !props.isDirty}
-            onSave={props.onSave}
-          />
         </CardContent>
       </Card>
 
@@ -318,12 +324,14 @@ export function PreorderSettingsTab(props: {
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <ShieldCheck className="text-muted-foreground h-4 w-4" />
-              <h3 className="text-sm font-semibold">Vendor access</h3>
+              <h3 className="text-sm font-semibold">{t("access.title")}</h3>
               {isLoadingQueue ? (
                 <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
               ) : null}
               {pending.length > 0 ? (
-                <Badge variant="secondary">{pending.length} waiting</Badge>
+                <Badge variant="secondary">
+                  {t("access.waiting", { count: pending.length })}
+                </Badge>
               ) : null}
             </div>
 
@@ -331,15 +339,13 @@ export function PreorderSettingsTab(props: {
               // Without this an admin working the queue would think they were
               // granting something that was never withheld.
               <p className="text-muted-foreground text-sm">
-                Review is off, so every vendor can already open pre-orders.
-                Approving here changes nothing until you turn review on above,
-                and the vendor is not notified of it.
+                {t("access.reviewOff")}
               </p>
             ) : null}
 
             {pending.length === 0 && approved.length === 0 && !isLoadingQueue ? (
               <p className="text-muted-foreground text-sm">
-                No vendor has asked for pre-order access yet.
+                {t("access.empty")}
               </p>
             ) : null}
 
@@ -350,10 +356,10 @@ export function PreorderSettingsTab(props: {
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {vendor.storeName || "Unnamed store"}
+                    {vendor.storeName || tAccess("unnamedStore")}
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    Asked {formatDate(vendor.preorder?.requestedAt) || "recently"}
+                    {askedLine(vendor.preorder?.requestedAt)}
                   </p>
                 </div>
                 <Button
@@ -361,7 +367,7 @@ export function PreorderSettingsTab(props: {
                   disabled={busyVendorId === vendor._id}
                   onClick={() => approve(vendor)}
                 >
-                  Approve
+                  {tAccess("approve")}
                 </Button>
                 <Button
                   size="sm"
@@ -369,7 +375,7 @@ export function PreorderSettingsTab(props: {
                   disabled={busyVendorId === vendor._id}
                   onClick={() => refuse(vendor, "decline")}
                 >
-                  Decline
+                  {tAccess("declineSubmit")}
                 </Button>
               </div>
             ))}
@@ -377,7 +383,7 @@ export function PreorderSettingsTab(props: {
             {approved.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                  Approved
+                  {tAccess("approvedBadge")}
                 </p>
                 {approved.map((vendor) => (
                   <div
@@ -386,10 +392,14 @@ export function PreorderSettingsTab(props: {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {vendor.storeName || "Unnamed store"}
+                        {vendor.storeName || tAccess("unnamedStore")}
                       </p>
                       <p className="text-muted-foreground text-xs">
-                        Since {formatDate(vendor.preorder?.approvedAt) || "—"}
+                        {tAccess("since", {
+                          date:
+                            formatDate(vendor.preorder?.approvedAt, locale) ||
+                            "—",
+                        })}
                       </p>
                     </div>
                     <Button
@@ -398,14 +408,12 @@ export function PreorderSettingsTab(props: {
                       disabled={busyVendorId === vendor._id}
                       onClick={() => refuse(vendor, "revoke")}
                     >
-                      Revoke
+                      {tAccess("revoke")}
                     </Button>
                   </div>
                 ))}
                 <p className="text-muted-foreground text-xs">
-                  Revoking stops the next pre-order. Listings already selling
-                  keep their promises — shoppers have paid deposits against
-                  them.
+                  {t("access.revokeNote")}
                 </p>
               </div>
             ) : null}

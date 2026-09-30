@@ -9,7 +9,11 @@ import {
 } from "@/lib/payments/webhook-event-lease";
 import { carrierAdapter } from "@/lib/shipping/carriers/registry";
 import { enqueueShipmentJob } from "@/lib/shipping/carriers/shipment-worker";
-import { carrierWebhookSecretMatches } from "@/lib/shipping/carriers/webhook-secret";
+import { resolveShippoCredentials } from "@/lib/settings/credentials";
+import {
+  carrierWebhookSecretMatches,
+  carrierWebhookTokenMatches,
+} from "@/lib/shipping/carriers/webhook-secret";
 
 export const runtime = "nodejs";
 
@@ -38,9 +42,19 @@ export async function POST(
 
   await connectDB();
   const settings = await getSettings();
-  const storedHash = settings.shipping?.carriers?.shippo?.webhookSecretHash;
+  const shippo = settings.shipping?.carriers?.shippo;
+  const storedHash = shippo?.webhookSecretHash;
+  // The secret can reach us two ways: minted by "Generate webhook URL", which
+  // stores its hash, or set by hand — `SHIPPO_WEBHOOK_SECRET`, which the
+  // credential resolver has always honoured. Checking only the hash turned
+  // every webhook of a store configured the second way into a 401, leaving its
+  // parcels to the polling sweep alone.
+  const { webhookSecret } = resolveShippoCredentials(shippo);
 
-  if (!storedHash || !carrierWebhookSecretMatches(secret, storedHash)) {
+  const authorised =
+    carrierWebhookSecretMatches(secret, storedHash) ||
+    carrierWebhookTokenMatches(secret, webhookSecret);
+  if (!authorised) {
     return NextResponse.json({ received: false }, { status: 401 });
   }
 

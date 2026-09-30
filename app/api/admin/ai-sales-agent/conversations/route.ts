@@ -2,10 +2,10 @@ import { AISalesConversation } from "@/models";
 import { paginatedResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { parsePageLimit } from "@/lib/api/list-query";
+import { isValidObjectId } from "@/lib/api/validate";
 
 type ConversationListItem = {
   _id: unknown;
-  sessionId?: string;
   userId?: unknown;
   locale?: string;
   status?: string;
@@ -40,8 +40,8 @@ export const GET = withApi(
         "i",
       );
       filter.$or = [
-        { sessionId: regex },
         { "messages.content": regex },
+        ...(isValidObjectId(search) ? [{ _id: search }] : []),
       ];
     }
 
@@ -51,8 +51,10 @@ export const GET = withApi(
       .sort({ lastMessageAt: -1, updatedAt: -1 })
       .skip(skip)
       .limit(limit)
+      // No `sessionId`: on conversations written before they had an id of
+      // their own it is the guest's cart session, which opens their cart.
       .select(
-        "sessionId userId locale status messages actions cartItemCount updatedAt lastMessageAt createdAt",
+        "userId locale status messages actions cartItemCount updatedAt lastMessageAt createdAt",
       )
       .lean();
 
@@ -66,7 +68,6 @@ export const GET = withApi(
         .find((message) => message.role === "assistant");
       return {
         id: String(conversation._id),
-        sessionId: conversation.sessionId,
         userId: conversation.userId ? String(conversation.userId) : undefined,
         locale: conversation.locale,
         status: conversation.status,

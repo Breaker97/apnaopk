@@ -16,6 +16,7 @@ import { Order, Product } from "@/models";
 import { getStorageService } from "@/lib/storage";
 import { DIGITAL_DOWNLOAD_URL_TTL_SECONDS } from "@/lib/products/digital-assets";
 import {
+  fullyRefundedLines,
   isOrderEntitledToDownloads,
   orderEntitledProductIds,
 } from "@/lib/orders/order-digital-downloads";
@@ -40,7 +41,7 @@ export const GET = withApi<{ id: string; assetId: string }>(
       ...(isValidObjectId(id) ? { _id: id } : { orderNumber: id }),
       customerId: session.user.id,
     })
-      .select("items paymentStatus digitalDownloads subOrders.vendorId subOrders.status subOrders.paymentStatus")
+      .select("items status paymentStatus goodsRefundedAt digitalDownloads subOrders.vendorId subOrders.status subOrders.paymentStatus")
       .lean();
     if (!order) return notFoundResponse("Order");
 
@@ -54,7 +55,10 @@ export const GET = withApi<{ id: string; assetId: string }>(
     // — which on a split order is narrower than "on the order": only the
     // consignments whose money has actually arrived. Shared with the listing
     // route so one rule cannot start admitting what the other refuses.
-    const productIds = orderEntitledProductIds(order);
+    const productIds = orderEntitledProductIds(
+      order,
+      await fullyRefundedLines(order),
+    );
     const product = await Product.findOne({
       _id: { $in: productIds },
       "digitalAssets._id": assetId,
@@ -66,31 +70,35 @@ export const GET = withApi<{ id: string; assetId: string }>(
     );
     if (!product || !asset) return notFoundResponse("File");
 
-    // Enforce the per-order download limit (0 = unlimited).
+    // The per-order download limit (0 = unlimited) is checked in the same
+    // step that counts the download. Reading the count first and adding to it
+    // after let parallel requests all read the same count and all get the
+    // file, however low the limit.
     const downloadLimit = product.digitalDelivery?.downloadLimit ?? 0;
-    if (downloadLimit > 0) {
-      const used =
-        order.digitalDownloads?.find(
-          (d: { assetId: string }) => d.assetId === assetId,
-        )?.count ?? 0;
-      if (used >= downloadLimit) {
-        throw new AuthorizationError(
-          "The download limit for this file has been reached",
-        );
-      }
-    }
-
-    // Count the download atomically: bump the existing counter, or create it
-    // guarded against a concurrent first download double-inserting.
     const now = new Date();
-    const bumped = await Order.updateOne(
-      { _id: order._id, "digitalDownloads.assetId": assetId },
-      {
-        $inc: { "digitalDownloads.$.count": 1 },
-        $set: { "digitalDownloads.$.lastDownloadedAt": now },
-      },
-    );
-    if (bumped.matchedCount === 0) {
+    const countWithinLimit = async () =>
+      (
+        await Order.updateOne(
+          {
+            _id: order._id,
+            digitalDownloads: {
+              $elemMatch: {
+                assetId,
+                ...(downloadLimit > 0 ? { count: { $lt: downloadLimit } } : {}),
+              },
+            },
+          },
+          {
+            $inc: { "digitalDownloads.$.count": 1 },
+            $set: { "digitalDownloads.$.lastDownloadedAt": now },
+          },
+        )
+      ).matchedCount > 0;
+
+    let counted = await countWithinLimit();
+    if (!counted) {
+      // The file's first download creates its counter, guarded against a
+      // concurrent first download inserting it twice.
       const pushed = await Order.updateOne(
         { _id: order._id, "digitalDownloads.assetId": { $ne: assetId } },
         {
@@ -99,16 +107,13 @@ export const GET = withApi<{ id: string; assetId: string }>(
           },
         },
       );
-      if (pushed.modifiedCount === 0) {
-        // Lost the race to another first download — bump the row it created.
-        await Order.updateOne(
-          { _id: order._id, "digitalDownloads.assetId": assetId },
-          {
-            $inc: { "digitalDownloads.$.count": 1 },
-            $set: { "digitalDownloads.$.lastDownloadedAt": now },
-          },
-        );
-      }
+      // Lost that race: count against the row the other request created.
+      counted = pushed.modifiedCount > 0 || (await countWithinLimit());
+    }
+    if (!counted) {
+      throw new AuthorizationError(
+        "The download limit for this file has been reached",
+      );
     }
 
     const storage = await getStorageService();

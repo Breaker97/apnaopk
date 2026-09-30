@@ -35,5 +35,6 @@ export async function recomputeProductRating(productId: string) {
     .select("slug")
     .lean();
 
-  revalidateProductContent({ slugs: [product?.slug] });
+  // A shopper's review, not an edit anyone is waiting to see land.
+  revalidateProductContent({ slugs: [product?.slug], freshness: "background" });
 }

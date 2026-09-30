@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/language/link";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   BadgePercent,

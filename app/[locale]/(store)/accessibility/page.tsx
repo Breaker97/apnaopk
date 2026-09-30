@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { ContentPageView } from "@/components/store/content-page-view";
@@ -10,6 +11,7 @@ interface PageProps {
 export default async function AccessibilityPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const { contentPages } = await getStorefrontSettings();
   if (!contentPages.accessibility.visible) {
@@ -19,6 +21,7 @@ export default async function AccessibilityPage({ params }: PageProps) {
   return (
     <ContentPageView
       locale={locale}
+      storeDefault={storeDefault}
       title={contentPages.accessibility.title}
       content={contentPages.accessibility.content}
     />

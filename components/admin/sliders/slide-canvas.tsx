@@ -6,9 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type ReactNode,
 } from "react";
-import { Settings2, Type } from "lucide-react";
 import {
   HighlightedText,
   SlideView,
@@ -20,26 +18,20 @@ import { cn } from "@/lib/utils";
 import { useCurrency } from "@/providers/currency-provider";
 import {
   EDITOR_CANVAS_MAX_HEIGHT,
-  ownTextStyle,
   resolveImageLayout,
-  resolveSlideLayout,
   resolveTextStyle,
+  SLIDE_BAND_KEYS,
   SLIDE_FRAMES,
   textBoxWidthCss,
-  type SlideCtaElement,
-  type SlideCtaVariant,
   type SlideShape,
   type SlideImageLayout,
   type SliderSlide,
   type SlideTextElement,
-  type SlideTextStyle,
   type SlideTextTransform,
 } from "@/lib/sliders/types";
 import {
-  CtaSettingsPopover,
   type CtaSettingsLabels,
-} from "./cta-settings-popover";
-import { TextStylePopover } from "./text-style-popover";
+} from "./cta-settings-fields";
 
 /**
  * The editing canvas for one slide: an ARTBOARD.
@@ -90,25 +82,44 @@ export interface SlideCanvasLabels {
 
 interface SlideCanvasProps {
   slide: SliderSlide;
+  /**
+   * The band whose design is being edited. It is DERIVED from `frame` by the
+   * caller, never chosen beside it — the two disagreeing is how a merchant
+   * ended up tuning a headline on a band the shop never used for that cell.
+   */
   shape: SlideShape;
+  /**
+   * The exact frame to draw, in storefront pixels. Defaults to the band's own
+   * frame, which is what an unplaced slider gets; a placed one passes the
+   * cell it really lands in, so the board is the shop's frame and not a
+   * stand-in with the same band but different proportions.
+   */
+  frame?: { width: number; height: number };
   /** Resolved price of the bound product, in store currency units. */
   productPrice?: number | null;
   /** Which layer the toolbar is currently driving. */
   selection: SlideSelection;
   onSelectionChange: (selection: SlideSelection) => void;
   onTextChange: (element: SlideTextElement, value: string) => void;
-  onStyleChange: (element: SlideTextElement, style: SlideTextStyle) => void;
-  onCtaVariantChange: (element: SlideCtaElement, variant: SlideCtaVariant) => void;
-  onLinkChange: (element: SlideCtaElement, link: string) => void;
+  /**
+   * What the inspector should show.
+   *
+   * Styling used to open in a panel floating over the artboard, then behind
+   * a button that sat on top of the very words it styled. Selecting IS the
+   * gesture now: a text element opens that element's own properties, and
+   * `null` — the artwork, or the slide itself — closes back to the main
+   * inspector. The canvas says WHAT is being edited; the sidebar, which
+   * already holds every other property, shows it.
+   */
+  onStyleTarget: (element: SlideTextElement | null) => void;
   /** Drag on the artwork: deltas are percent of the slide's own box. */
   onImageNudge: (patch: Partial<SlideImageLayout>) => void;
-  renderAiAction?: (element: SlideTextElement) => ReactNode;
   labels: SlideCanvasLabels;
   className?: string;
 }
 
 /** The tagline's default tracking, as the panel shows it (percent of the size). */
-const DEFAULT_TRACKING_PCT: Record<SlideTextElement, number> = {
+export const DEFAULT_TRACKING_PCT: Record<SlideTextElement, number> = {
   tagline: 20,
   heading: 0,
   description: 0,
@@ -187,21 +198,18 @@ function GrowingTextarea({
 export function SlideCanvas({
   slide,
   shape,
+  frame: frameProp,
   productPrice,
   selection,
   onSelectionChange,
   onTextChange,
-  onStyleChange,
-  onCtaVariantChange,
-  onLinkChange,
+  onStyleTarget,
   onImageNudge,
-  renderAiAction,
   labels,
   className,
 }: SlideCanvasProps) {
   const { formatPrice } = useCurrency();
-  const frame = SLIDE_FRAMES[shape];
-  const layout = resolveSlideLayout(slide, shape);
+  const frame = frameProp ?? SLIDE_FRAMES[shape];
   const imageLayout = resolveImageLayout(slide, shape);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -216,7 +224,7 @@ export function SlideCanvas({
    * Held as STATE, not a ref: each panel portals its anchor into this box,
    * so it needs the element at render time.
    */
-  const [panelAnchor, setPanelAnchor] = useState<HTMLDivElement | null>(null);
+
 
   // The board is drawn at the frame's real size and ZOOMED to fit the space
   // it has, so it is never re-proportioned; the tall band is also held under
@@ -312,33 +320,6 @@ export function SlideCanvas({
   };
 
   /**
-   * The style/AI controls sit just under the box they edit, hugging the
-   * edge the content is aligned to — under a left-aligned headline they
-   * start at its left edge, mirrored on the right. That edge is also the
-   * one the width slider grows the box AWAY from, so dragging it never
-   * walks the panel out from under the cursor. They are counter-zoomed so
-   * they stay the size of every other control, whatever the board's zoom.
-   */
-  const controlAnchor: { className: string; style: CSSProperties } =
-    layout.h === "left"
-      ? {
-          className: "left-0",
-          style: { transform: `scale(${1 / zoom})`, transformOrigin: "top left" },
-        }
-      : layout.h === "right"
-        ? {
-            className: "right-0",
-            style: { transform: `scale(${1 / zoom})`, transformOrigin: "top right" },
-          }
-        : {
-            className: "left-1/2",
-            style: {
-              transform: `translateX(-50%) scale(${1 / zoom})`,
-              transformOrigin: "top center",
-            },
-          };
-
-  /**
    * A row's own per-band visibility: the element's `--sh-*` (its display,
    * or `none`) read as "a flex row, or nothing". The row carries `sl-text`
    * so the band alias resolves on it — without that, `display: var(--sh)`
@@ -346,46 +327,22 @@ export function SlideCanvas({
    */
   const rowVisibility = (style: CSSProperties): CSSProperties => {
     const vars = style as Record<string, string | undefined>;
-    const pick = (key: string) => (vars[key] === "none" ? "none" : "flex");
     return {
-      "--sh-l": pick("--sh-l"),
-      "--sh-s": pick("--sh-s"),
-      "--sh-p": pick("--sh-p"),
+      ...Object.fromEntries(
+        SLIDE_BAND_KEYS.map(([suffix]) => [
+          `--sh-${suffix}`,
+          vars[`--sh-${suffix}`] === "none" ? "none" : "flex",
+        ]),
+      ),
       display: "var(--sh)",
     } as CSSProperties;
   };
 
-  const controls = (children: ReactNode) => (
-    <div
-      className={cn(
-        "pointer-events-none absolute top-full z-20 flex items-center gap-1 pt-1.5 opacity-0 transition-opacity group-focus-within/text:pointer-events-auto group-focus-within/text:opacity-100 group-hover/text:pointer-events-auto group-hover/text:opacity-100",
-        controlAnchor.className,
-      )}
-      style={controlAnchor.style}
-    >
-      {children}
-    </div>
-  );
-
-  const styleButton = (element: SlideTextElement) => (
-    <TextStylePopover
-      trigger={
-        <button
-          type="button"
-          className="grid h-7 w-7 place-items-center rounded-[5px] border border-border bg-background text-rose-500 shadow-sm transition hover:bg-accent"
-          aria-label={`${labels.style}: ${element}`}
-        >
-          <Type className="h-3.5 w-3.5" />
-        </button>
-      }
-      value={ownTextStyle(slide, element, shape)}
-      inherited={resolveTextStyle(slide, element, shape)}
-      defaults={{ letterSpacing: DEFAULT_TRACKING_PCT[element] }}
-      onChange={(style) => onStyleChange(element, style)}
-      labels={labels}
-      anchor={panelAnchor}
-    />
-  );
+  /** Selecting a layer is what opens its properties. */
+  const selectText = (element: SlideTextElement) => {
+    onSelectionChange("content");
+    onStyleTarget(element);
+  };
 
   /**
    * One editable text: the box `SlideView` styled, holding a field instead
@@ -408,8 +365,9 @@ export function SlideCanvas({
           box.className,
           "pointer-events-auto relative rounded-[2px] transition-colors group-focus-within/text:bg-primary/15",
         )}
+        data-sl-layer="text"
         style={box.style}
-        onPointerDown={() => onSelectionChange("content")}
+        onPointerDown={() => selectText(box.element)}
       >
         {/* Hover hint, then a solid frame while the box has focus. Both sit
             OUTSIDE the box so turning them on never reflows the copy. */}
@@ -423,15 +381,9 @@ export function SlideCanvas({
         <GrowingTextarea
           value={box.text}
           onChange={(next) => onTextChange(box.element, next)}
-          onFocus={() => onSelectionChange("content")}
+          onFocus={() => selectText(box.element)}
           placeholder={labels.placeholders[box.element]}
         />
-        {controls(
-          <>
-            {styleButton(box.element)}
-            {renderAiAction?.(box.element)}
-          </>,
-        )}
       </div>
     </div>
   );
@@ -449,8 +401,6 @@ export function SlideCanvas({
     // The band's own value, computed from the frame exactly as the
     // storefront's `width: var(--wd)` is — exact because the board IS the band.
     const width = textBoxWidthCss(resolveTextStyle(slide, element, shape).width);
-    const link = element === "cta2" ? slide.link2 : slide.link;
-    const variant = element === "cta2" ? slide.cta2Variant : slide.ctaVariant;
     return (
       <div
         key={element}
@@ -459,8 +409,9 @@ export function SlideCanvas({
       >
         <div
           className="pointer-events-auto relative rounded-[2px] transition-colors group-focus-within/text:bg-primary/15"
+          data-sl-layer="text"
           style={{ width, maxWidth: "100%" }}
-          onPointerDown={() => onSelectionChange("content")}
+          onPointerDown={() => selectText(element)}
         >
           <span
             aria-hidden
@@ -477,7 +428,7 @@ export function SlideCanvas({
             <input
               value={box.text}
               onChange={(event) => onTextChange(element, event.target.value)}
-              onFocus={() => onSelectionChange("content")}
+              onFocus={() => selectText(element)}
               placeholder={labels.placeholders[element]}
               spellCheck={false}
               // The field is exactly as wide as its label, so the button
@@ -489,33 +440,6 @@ export function SlideCanvas({
               style={{ ...INHERIT_TEXT, fieldSizing: "content" } as CSSProperties}
             />
           </span>
-          {controls(
-            <>
-              {styleButton(element)}
-              {/* Link, plate style, padding, corners — the button's own settings. */}
-              <CtaSettingsPopover
-                trigger={
-                  <button
-                    type="button"
-                    className="grid h-7 w-7 place-items-center rounded-[5px] border border-border bg-background text-muted-foreground shadow-sm transition hover:bg-accent hover:text-foreground"
-                    aria-label={`${labels.ctaSettings.title}: ${element}`}
-                    title={labels.ctaSettings.title}
-                  >
-                    <Settings2 className="h-3.5 w-3.5" />
-                  </button>
-                }
-                link={link}
-                variant={variant}
-                ownStyle={ownTextStyle(slide, element, shape)}
-                labels={labels.ctaSettings}
-                onLinkChange={(next) => onLinkChange(element, next)}
-                onVariantChange={(next) => onCtaVariantChange(element, next)}
-                onStyleChange={(style) => onStyleChange(element, style)}
-                anchor={panelAnchor}
-              />
-              {renderAiAction?.(element)}
-            </>,
-          )}
         </div>
       </div>
     );
@@ -526,7 +450,11 @@ export function SlideCanvas({
     <div
       ref={artRef}
       className={cn(box.className, "group/art cursor-move outline-none")}
-      onPointerDown={startImageDrag}
+      data-sl-layer="art"
+      onPointerDown={(event) => {
+        onStyleTarget(null);
+        startImageDrag(event);
+      }}
       onKeyDown={nudgeByKey}
       tabIndex={0}
       role="img"
@@ -551,14 +479,20 @@ export function SlideCanvas({
         className="relative mx-auto"
         style={{ width: frame.width * zoom, height: frame.height * zoom }}
       >
-        {/* The box the style and button panels hang from: the board's, as
-            shown on screen, so a panel never lands on the slide. */}
-        <div ref={setPanelAnchor} aria-hidden className="pointer-events-none absolute inset-0" />
         <div
           ref={boardRef}
           // The board: a real slider frame at the band's real size, so the
           // same container queries the storefront uses pick this band.
           className="sl-frame absolute left-0 top-0 overflow-hidden rounded-xl bg-muted"
+          // Clicking the slide itself — not a text, not the artwork —
+          // deselects, which is what puts the inspector back to the slide's
+          // own settings. A click that merely bubbled through a layer is
+          // not that, hence the marker.
+          onPointerDown={(event) => {
+            if ((event.target as HTMLElement).closest("[data-sl-layer]")) return;
+            onSelectionChange("content");
+            onStyleTarget(null);
+          }}
           style={{
             width: frame.width,
             height: frame.height,

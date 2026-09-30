@@ -13,7 +13,8 @@
  * from `currentPeriodEnd` rather than restarting.
  */
 
-import { z } from "zod";
+import { appUrlForRequest } from "@/lib/app-url";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
@@ -55,14 +56,6 @@ const IN_FLIGHT_CHANGE_STATUSES = [
   "awaiting_payment",
   "scheduled",
 ];
-
-function appUrlForRequest(request: Request) {
-  return (
-    request.headers.get("origin") ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
-}
 
 export const POST = withApi(
   {

@@ -3,6 +3,8 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { OrderCreateForm } from "@/components/common/order-create-form";
+import { isPostcodeRequired } from "@/lib/shipping/address-verification";
+import { getSettings } from "@/models/settings.model";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -21,5 +23,13 @@ export default async function VendorCreateOrderPage({ params }: PageProps) {
   });
   await requireApprovedVendorByUserId(access.session.user.id);
 
-  return <OrderCreateForm locale={locale} variant="vendor" />;
+  const postalCodeRequired = await isPostcodeRequired(await getSettings());
+
+  return (
+    <OrderCreateForm
+      locale={locale}
+      variant="vendor"
+      postalCodeRequired={postalCodeRequired}
+    />
+  );
 }

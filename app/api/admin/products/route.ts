@@ -9,7 +9,6 @@ import {
   handleApiError,
   AuthenticationError,
   AuthorizationError,
-  ValidationError,
 } from "@/lib/api/errors";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
@@ -27,7 +26,11 @@ import {
   getOrCreateDefaultVendor,
   syncDefaultVendorWithSettings,
 } from "@/lib/vendors/multi-vendor";
-import { getSettings } from "@/models/settings.model";
+import { getSettings, getSettingsLean } from "@/models/settings.model";
+import {
+  assertProductFeaturesAllowed,
+  resolveProductFeatures,
+} from "@/lib/products/product-features";
 import {
   assignMissingProductBarcodes,
   extractClearedProductFields,
@@ -51,7 +54,6 @@ import {
   reserveProductBarcodeRegistry,
   syncProductBarcodeRegistry,
 } from "@/lib/products/barcode-registry";
-import { isCountryAllowed } from "@/lib/intl/country-availability";
 import {
   allowedLocationIds,
   resolveLocationScope,
@@ -89,10 +91,8 @@ export async function GET(request: NextRequest) {
     );
 
     // Validate query params (search is auto-sanitized for regex safety)
-    const { page, limit, search, status, vendor, source, sortOrder, onSale } = validateQuery(
-      request,
-      ProductListQuerySchema
-    );
+    const { page, limit, search, status, vendor, source, sortOrder, onSale, boostable } =
+      validateQuery(request, ProductListQuerySchema);
 
     await connectDB();
     const settings = await getSettings();
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     );
 
     const list = await fetchAdminProductList(
-      { page, limit, search, status, vendor, source, sortOrder, onSale },
+      { page, limit, search, status, vendor, source, sortOrder, onSale, boostable },
       { staffScope: access.staffScope, isMultiVendor },
     );
 
@@ -164,20 +164,9 @@ export async function POST(request: NextRequest) {
     const body = await validateBody(request, CreateProductSchema);
     const productData = body;
     await assertCategoryAcceptsProducts(productData.category);
-    const countryOfOrigin = productData.shipping?.countryOfOrigin?.trim();
-    if (countryOfOrigin) {
-      const settings = await getSettings();
-      if (
-        !isCountryAllowed(
-          countryOfOrigin,
-          settings.general?.countryAvailability,
-        )
-      ) {
-        throw new ValidationError({
-          "shipping.countryOfOrigin": ["Selected country is not available"],
-        });
-      }
-    }
+    // `shipping.countryOfOrigin` is deliberately not checked against the
+    // store's country availability: it is customs data about where the goods
+    // were manufactured, not a country the store sells or ships to.
 
     // Admin products belong to the default store vendor. Scoped staff create
     // under their first assigned vendor; unrestricted legacy staff fall back
@@ -219,6 +208,18 @@ export async function POST(request: NextRequest) {
     const cleanedPreorder = sanitizePreorderSettings(
       (productData as unknown as Record<string, unknown>).preorder,
     );
+
+    // Settings → Products: a format, pre-order or quote the store has
+    // switched off cannot be started here.
+    assertProductFeaturesAllowed({
+      features: resolveProductFeatures(await getSettingsLean()),
+      product: {
+        shipping: productData.shipping,
+        priceOnRequest: productData.priceOnRequest,
+        preorder: cleanedPreorder as never,
+        variants: cleanedVariants as never,
+      },
+    });
 
     const normalizedProductData = {
       ...productData,

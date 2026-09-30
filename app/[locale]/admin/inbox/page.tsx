@@ -1,5 +1,5 @@
 import { Inbox, Settings2 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { ConversationInbox } from "@/components/chat/inbox/conversation-inbox";
@@ -45,7 +45,7 @@ export default async function AdminInboxPage({ params, searchParams }: PageProps
           </div>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href={`/${locale}/admin/settings/messaging`}>
+          <Link href="/admin/settings/messaging">
             <Settings2 />
             {chatLabel("channels", "Channels")}
           </Link>

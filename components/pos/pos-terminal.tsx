@@ -22,9 +22,9 @@ import {
   Tag,
   Bookmark,
   MessageSquare,
-  TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -79,7 +79,6 @@ import type {
 } from "@/components/pos/pos-types";
 import type { POSSettings } from "@/lib/pos/build-pos-settings";
 import QRCode from "qrcode";
-import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { useHydrated } from "@/hooks/use-client-value";
 
@@ -163,6 +162,13 @@ export function POSTerminal({
 
   // State that stays in POSTerminal
   const [customer, setCustomer] = React.useState<POSCustomer | null>(null);
+  /**
+   * "They agreed to marketing emails", asked at the counter. Off for every
+   * sale, and cleared with the customer: consent is given once, by the
+   * shopper, not carried over to whoever is served next.
+   */
+  const [customerMarketingOptIn, setCustomerMarketingOptIn] =
+    React.useState(false);
   const [customerSearch, setCustomerSearch] = React.useState("");
   const [customerResults, setCustomerResults] = React.useState<POSCustomer[]>(
     [],
@@ -234,10 +240,6 @@ export function POSTerminal({
   const hydrated = useHydrated();
   useApplyOnChange([holdScope, hydrated], () => {
     if (hydrated) setHeldOrders(loadHeldOrders(holdScope));
-  });
-
-  const { toggleFullscreen } = useFullscreen({
-    onError: () => toast.error("Fullscreen is not available in this browser"),
   });
 
   // Format price helper - uses dynamic currency from store
@@ -700,6 +702,7 @@ export function POSTerminal({
             notes: orderNote,
             posLocationId: settings.posLocationId,
             customerId: customer?._id,
+            marketingOptIn: customer ? customerMarketingOptIn : undefined,
             discount: discount
               ? {
                   type: discount.type,
@@ -939,6 +942,7 @@ export function POSTerminal({
     [
       cart,
       cashTendered,
+      customerMarketingOptIn,
       paymentNote,
       paymentReference,
       orderNote,
@@ -990,6 +994,7 @@ export function POSTerminal({
         }),
         posLocationId: settings.posLocationId,
         customerId: customer?._id,
+        marketingOptIn: customer ? customerMarketingOptIn : undefined,
         discount: discount
           ? {
               type: discount.type,
@@ -1014,6 +1019,7 @@ export function POSTerminal({
   }, [
     cart,
     customer,
+    customerMarketingOptIn,
     discount,
     discountAmount,
     getLineDiscountAmount,
@@ -1512,20 +1518,15 @@ export function POSTerminal({
   }, [isSaleBusy, onSaleBusyChange]);
 
   // ============================================
-  // Keyboard shortcuts (fullscreen on Enter, hotkeys F2/F3/F4/F9).
+  // Keyboard shortcuts (hotkeys F2/F3/F4/F9).
   // "/" search focus, F8 scan focus and ALT+C calculator belong to
-  // POSSearchBar, which owns those inputs and dialogs.
+  // POSSearchBar, which owns those inputs and dialogs. Enter is deliberately
+  // unbound: a hardware scanner ends every scan with it
+  // (see usePOSHardwareScanner).
   // ============================================
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const isInEditable =
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.tagName === "SELECT" ||
-        target?.isContentEditable;
-      const isButtonTarget = target?.closest("button, a");
       // Radix dialogs (calculator, camera, payment, hold…) are portalled, so
       // they are detected from the DOM rather than from local state.
       const hasOpenOverlay =
@@ -1536,20 +1537,6 @@ export function POSTerminal({
         showHoldDialog ||
         showSaleCompleteModal ||
         document.querySelector('[data-slot="dialog-content"]') !== null;
-
-      if (
-        e.key === "Enter" &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        !e.altKey &&
-        !isInEditable &&
-        !isButtonTarget &&
-        !hasOpenOverlay
-      ) {
-        e.preventDefault();
-        void toggleFullscreen();
-        return;
-      }
 
       // Function-key hotkeys (F2 customer, F3 discount, F4 hold, F9 checkout)
       if (e.key === "F2") {
@@ -1599,7 +1586,6 @@ export function POSTerminal({
     showHoldDialog,
     showSaleCompleteModal,
     showTakePaymentDialog,
-    toggleFullscreen,
     openCustomerDialog,
   ]);
 
@@ -1614,7 +1600,12 @@ export function POSTerminal({
         if (e.target === e.currentTarget) closeCustomerDialog();
       }}
     >
-      <div className="bg-background rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col border animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("pos.customer.addCustomer")}
+        className="bg-background rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col border animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+      >
         {/* Dialog Header */}
         <div className="flex items-center justify-between p-5 border-b">
           <div className="flex items-center gap-3">
@@ -1889,7 +1880,12 @@ export function POSTerminal({
         if (e.target === e.currentTarget) setSelectedProduct(null);
       }}
     >
-      <div className="bg-background rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col border animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={selectedProduct.name}
+        className="bg-background rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col border animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+      >
         <div className="flex items-center justify-between p-5 border-b">
           <div className="flex items-center gap-3">
             {selectedProduct.images?.[0] && (
@@ -2370,6 +2366,7 @@ export function POSTerminal({
 
             {/* Customer */}
             {customer ? (
+              <div className="space-y-2">
               <div className="flex items-center gap-3 bg-primary/5 border border-primary/15 rounded-xl px-3.5 py-2 sm:py-3">
                 <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <UserCheck className="w-4 h-4 text-primary" />
@@ -2386,10 +2383,28 @@ export function POSTerminal({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 shrink-0 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setCustomer(null)}
+                  onClick={() => {
+                    setCustomer(null);
+                    setCustomerMarketingOptIn(false);
+                  }}
                 >
                   <X className="w-3.5 h-3.5" />
                 </Button>
+              </div>
+              {/* Asked at the counter, ticked by the cashier on the shopper's
+                  say-so. It only ever subscribes — taking someone off the list
+                  is theirs to do, from the link in the email. */}
+              <label className="flex items-start gap-2 px-1 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-3.5 w-3.5 accent-primary"
+                  checked={customerMarketingOptIn}
+                  onChange={(event) =>
+                    setCustomerMarketingOptIn(event.target.checked)
+                  }
+                />
+                <span>Customer agreed to receive news and offers by email</span>
+              </label>
               </div>
             ) : isWalkIn ? (
               <div className="flex items-center gap-3 bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 rounded-xl px-3.5 py-2 sm:py-3">
@@ -2709,10 +2724,7 @@ export function POSTerminal({
                 find. Holding the sale stays available on purpose — the way out
                 of this state is to park it and move to a live counter. */}
             {saleBlockedReason ? (
-              <p className="flex items-start gap-2 rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
-                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{saleBlockedReason}</span>
-              </p>
+              <WarningBanner>{saleBlockedReason}</WarningBanner>
             ) : null}
 
             {/* Action buttons: Hold / Discount / Checkout.

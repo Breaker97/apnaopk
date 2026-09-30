@@ -1,3 +1,4 @@
+import { ValidationError } from "@/lib/api/errors";
 import { GatewayApiError } from "@/lib/payments/gateway-api-error";
 import type { PayPalDisputeLike } from "@/lib/orders/dispute-readings";
 
@@ -18,12 +19,17 @@ function getBaseUrl(mode: PayPalMode) {
 async function readErrorMessage(res: Response) {
   try {
     const json = await res.json();
-    if (typeof json?.message === "string") return json.message;
-    if (typeof json?.error_description === "string") return json.error_description;
-    if (typeof json?.error === "string") return json.error;
+    // The specific reason first. An Orders API refusal carries the same
+    // top-level `message` for every failure of its kind ("The requested action
+    // could not be performed, semantically incorrect, or failed business
+    // validation."), and what actually went wrong — a currency PayPal does not
+    // take, an amount it cannot read — is only in `details`.
     if (Array.isArray(json?.details) && typeof json.details?.[0]?.description === "string") {
       return json.details[0].description;
     }
+    if (typeof json?.message === "string") return json.message;
+    if (typeof json?.error_description === "string") return json.error_description;
+    if (typeof json?.error === "string") return json.error;
     return `HTTP ${res.status}`;
   } catch {
     return `HTTP ${res.status}`;
@@ -53,6 +59,44 @@ export async function getPayPalAccessToken(creds: PayPalCredentials) {
   return json.access_token;
 }
 
+/**
+ * The currencies PayPal takes in whole units only. Its currency table marks
+ * them "zero-digit — no decimal places or fractions", and it refuses an amount
+ * written with decimals outright, "1000.00" included: "Fraction digits are not
+ * allowed with this currency".
+ */
+const PAYPAL_WHOLE_UNIT_CURRENCIES: ReadonlySet<string> = new Set(["HUF", "JPY", "TWD"]);
+
+/**
+ * An amount as PayPal must be sent it: two decimals, or none for the three
+ * currencies it takes in whole units.
+ *
+ * Every amount this app hands PayPal comes through here — checkout, the pay
+ * link, a balance, a vendor's plan or boost, and every refund. Each used to
+ * write `toFixed(2)` for itself, so a yen store could neither take a PayPal
+ * payment nor give one back.
+ *
+ * A fraction in a whole-unit currency is refused, not rounded. The store prices
+ * forints and Taiwan dollars to two places, so 1234.50 HUF is a real total.
+ * Sent as 1235, the shopper would pay a forint the order does not say, and the
+ * capture check — which compares to the cent — would then refuse the very
+ * payment it had just taken, leaving the money captured against an unpaid
+ * order. Refused here, it never leaves.
+ */
+export function toPayPalAmount(amount: number, currency: string): string {
+  const code = String(currency || "").trim().toUpperCase();
+  if (!PAYPAL_WHOLE_UNIT_CURRENCIES.has(code)) return amount.toFixed(2);
+  // In hundredths, as the capture check compares, so float noise
+  // (1234.0000000001) is not taken for a fraction.
+  const hundredths = Math.round(amount * 100);
+  if (hundredths % 100 !== 0) {
+    throw new ValidationError(
+      `PayPal only takes whole ${code} amounts, and ${amount.toFixed(2)} ${code} is not one.`,
+    );
+  }
+  return String(hundredths / 100);
+}
+
 export async function createPayPalOrder(params: {
   creds: PayPalCredentials;
   currency: string;
@@ -61,6 +105,8 @@ export async function createPayPalOrder(params: {
   cancelUrl: string;
   referenceId: string;
 }) {
+  // Before anything is asked of PayPal: an amount it cannot take stops here.
+  const value = toPayPalAmount(params.total, params.currency);
   const token = await getPayPalAccessToken(params.creds);
   const baseUrl = getBaseUrl(params.creds.mode);
 
@@ -77,7 +123,7 @@ export async function createPayPalOrder(params: {
           reference_id: params.referenceId,
           amount: {
             currency_code: params.currency,
-            value: params.total.toFixed(2),
+            value,
           },
         },
       ],
@@ -116,9 +162,8 @@ export async function refundPayPalCapture(params: {
   currency?: string;
   reason?: string;
 }) {
-  const token = await getPayPalAccessToken(params.creds);
-  const baseUrl = getBaseUrl(params.creds.mode);
-
+  // Built before PayPal is asked for a token, so an amount it cannot take is
+  // refused without a call.
   const body: Record<string, unknown> = {};
   if (
     params.amount !== undefined &&
@@ -127,13 +172,16 @@ export async function refundPayPalCapture(params: {
     params.amount > 0
   ) {
     body.amount = {
-      value: params.amount.toFixed(2),
+      value: toPayPalAmount(params.amount, params.currency),
       currency_code: params.currency.toUpperCase(),
     };
   }
   if (params.reason) {
     body.note_to_payer = params.reason.slice(0, 255);
   }
+
+  const token = await getPayPalAccessToken(params.creds);
+  const baseUrl = getBaseUrl(params.creds.mode);
 
   const res = await fetch(
     `${baseUrl}/v2/payments/captures/${encodeURIComponent(params.captureId)}/refund`,
@@ -299,6 +347,51 @@ export async function verifyPayPalWebhookSignature(params: {
 }
 
 /**
+ * What PayPal says has become of an order, without moving any money.
+ *
+ * The capture route is the only thing that ever asked PayPal about an order
+ * before, and it asks by capturing — fine when a shopper is waiting on the
+ * page, useless for a sweep that has to decide whether an order left pending
+ * days ago was ever paid. `COMPLETED` means the money arrived (a capture the
+ * browser never reported), `VOIDED` means it never will, and `APPROVED` means
+ * the shopper agreed and never came back, which PayPal stops honouring a few
+ * hours later.
+ */
+export async function getPayPalOrderStatus(params: {
+  creds: PayPalCredentials;
+  orderId: string;
+}): Promise<{ status: string; captureId?: string }> {
+  const token = await getPayPalAccessToken(params.creds);
+  const baseUrl = getBaseUrl(params.creds.mode);
+
+  const res = await fetch(
+    `${baseUrl}/v2/checkout/orders/${encodeURIComponent(params.orderId)}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) {
+    // A 404 is an answer, not an outage: PayPal drops orders it never
+    // completed after a few days, and one it has forgotten will never pay.
+    if (res.status === 404) return { status: "NOT_FOUND" };
+    const message = await readErrorMessage(res);
+    throw new Error(`PayPal order lookup failed: ${message}`);
+  }
+
+  const json = (await res.json()) as {
+    status?: string;
+    purchase_units?: Array<{
+      payments?: { captures?: Array<{ id?: string; status?: string }> };
+    }>;
+  };
+  const capture = json.purchase_units?.[0]?.payments?.captures?.find(
+    (entry) => String(entry?.status || "").toUpperCase() === "COMPLETED",
+  );
+  return {
+    status: String(json.status || "").toUpperCase(),
+    captureId: capture?.id,
+  };
+}
+
+/**
  * How much of a PayPal order can still be refunded, in major units.
  *
  * Asked of PayPal rather than worked out from our own books, for the same
@@ -425,7 +518,7 @@ export async function readPayPalOrderCapture(params: {
 }
 
 /** A dispute's summary, as PayPal's dispute list returns it. */
-export interface PayPalDisputeSummary {
+interface PayPalDisputeSummary {
   dispute_id?: string;
   update_time?: string;
   status?: string;

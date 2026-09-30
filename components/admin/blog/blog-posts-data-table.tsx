@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/data-table";
 import { toast } from "@/components/ui/toast-notification";
 import { Badge } from "@/components/ui/badge";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
@@ -228,7 +229,7 @@ export function BlogPostsDataTable({
             title={row.title}
             titleWordLimit={8}
             subtitle={`/${row.slug}`}
-            href={`/${locale}/admin/content/blog-posts/${row._id}/edit`}
+            href={`/admin/content/blog-posts/${row._id}/edit`}
           />
         ),
         className: "w-[400px]",
@@ -319,14 +320,14 @@ export function BlogPostsDataTable({
           {
             id: "manage-categories",
             label: t("actions.manageCategories"),
-            href: `/${locale}/admin/content/blog-categories`,
+            href: "/admin/content/blog-categories",
             icon: <Tags className="h-4 w-4" />,
             variant: "outline",
           },
           {
             id: "manage-comments",
             label: t("actions.manageComments"),
-            href: `/${locale}/admin/content/blog-comments`,
+            href: "/admin/content/blog-comments",
             icon: <MessageCircle className="h-4 w-4" />,
             variant: "outline",
           },
@@ -334,7 +335,7 @@ export function BlogPostsDataTable({
         addAction: {
           id: "add",
           label: t("actions.add"),
-          href: `/${locale}/admin/content/blog-posts/new`,
+          href: "/admin/content/blog-posts/new",
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
@@ -382,13 +383,13 @@ export function BlogPostsDataTable({
         id: "view",
         label: t("actions.viewOnSite"),
         icon: <ExternalLink className="h-4 w-4" />,
-        href: `/${locale}/blog/${row.slug}`,
+        href: `/blog/${row.slug}`,
       },
       {
         id: "edit",
         label: t("actions.edit"),
         icon: <Pencil className="h-4 w-4" />,
-        href: `/${locale}/admin/content/blog-posts/${row._id}/edit`,
+        href: `/admin/content/blog-posts/${row._id}/edit`,
       },
       {
         id: row.isFeatured ? "unfeature" : "feature",
@@ -449,7 +450,7 @@ export function BlogPostsDataTable({
       rowActionsHeader={t("table.actions")}
       rowActionsVariant="inline"
       onRowClick={(row) =>
-        router.push(`/${locale}/admin/content/blog-posts/${row._id}/edit`)
+        router.push(`/admin/content/blog-posts/${row._id}/edit`)
       }
       emptyMessage={t("empty")}
       emptyIcon={<Newspaper className="h-8 w-8" />}

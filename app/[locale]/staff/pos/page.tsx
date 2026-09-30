@@ -14,6 +14,7 @@ import type { Address } from "@/types";
 import type { VendorStoreVisibility } from "@/lib/vendors/vendor-address";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { canAccessPOS, canApplyPosDiscount } from "@/lib/access/rbac";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -31,11 +32,11 @@ export default async function StaffPosPage({ params }: PageProps) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.pos?.enabled) {
-    redirect(`/${locale}/staff/dashboard`);
+    redirect(await localeHref(locale, "/staff/dashboard"));
   }
 
   if (!(await canAccessPOS(session.user))) {
-    redirect(`/${locale}/staff/dashboard`);
+    redirect(await localeHref(locale, "/staff/dashboard"));
   }
 
   // Staff assigned to exactly one vendor are that vendor's counter staff, so

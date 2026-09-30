@@ -11,10 +11,7 @@ import {
 } from "@/lib/email/email-templates";
 import { trackingUrlForOrder } from "@/lib/orders/order-shipment-view";
 import { appBaseUrl } from "@/lib/app-url";
-import {
-  generateOrderInvoicePdf,
-  type OrderInvoiceSource,
-} from "@/lib/orders/order-invoice";
+import type { OrderInvoiceSource } from "@/lib/orders/order-invoice";
 import { Order } from "@/models";
 import {
   isOrderEntitledToDownloads,
@@ -94,10 +91,18 @@ export async function sendOrderConfirmationEmail(
 
   const html = orderConfirmationTemplate({
       ...order,
+      // The finalizers list the saved order's lines in its own order, so the
+      // final-sale mark is read off the same line of the saved order.
+      items: order.items.map((item, index) => ({
+        ...item,
+        finalSale: saved?.items?.[index]?.finalSale === true,
+      })),
       // Read off the saved order: the finalizers hand this function their own
       // order shape, and none of them carries the checkout answers.
       customerNote: saved?.customerNote,
       checkoutFields: saved?.checkoutFields,
+      // Part of the total; without its row the summary did not add up.
+      duty: Number(saved?.customs?.dutyAmount || 0),
       orderUrl,
       downloadsUrl,
     }, {
@@ -113,6 +118,14 @@ export async function sendOrderConfirmationEmail(
   let attachments;
   if (saved) {
     try {
+      // Loaded here rather than at the top of the file: the invoice pulls in
+      // the whole PDF renderer, and this module sits on the payment
+      // finalizer's import path — every script that touches an order would
+      // have to load a PDF engine it never uses, and under `tsx` that
+      // renderer does not resolve at all.
+      const { generateOrderInvoicePdf } = await import(
+        "@/lib/orders/order-invoice"
+      );
       const pdfBuffer = await generateOrderInvoicePdf(
         saved,
         settings ?? {},

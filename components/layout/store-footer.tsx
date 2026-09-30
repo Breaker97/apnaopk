@@ -12,14 +12,14 @@ import {
   Twitter,
   Youtube,
 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { appConfig } from "@/config/app.config";
 import { type Locale } from "@/config/i18n.config";
-import { Separator } from "@/components/ui/separator";
 import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
 import { useAppSettings } from "@/providers/app-settings-provider";
+import { useRenderNow } from "@/components/store/render-clock";
 import {
   getDefaultFooterSettings,
   resolveFooterContactDetails,
@@ -28,6 +28,14 @@ import {
   type FooterSettings,
 } from "@/lib/site-config/footer-config";
 import type { LogoWidths } from "@/lib/site-config/header-config";
+import { paddingStyle } from "@/lib/site-config/header-layout-style";
+import {
+  footerLayoutFromSettings,
+  resolveFooterLayout,
+  type FooterLayoutColumn,
+  type FooterLayoutItem,
+  type FooterLayoutRow,
+} from "@/lib/site-config/footer-layout";
 import { cn } from "@/lib/utils";
 
 interface FooterColumn {
@@ -125,14 +133,6 @@ export function StoreFooter({
   const contentClass = footerSettings?.layout.fullWidth
     ? "w-full px-4 sm:px-6 lg:px-8"
     : "container mx-auto px-4";
-  const showLogo = footerSettings?.widgets.showLogo ?? true;
-  const showDescription = footerSettings?.widgets.showDescription ?? true;
-  const showContact = footerSettings?.widgets.showContact ?? true;
-  const showSocialLinks = footerSettings?.widgets.showSocialLinks ?? true;
-  const showLinkColumns = footerSettings?.widgets.showLinkColumns ?? true;
-  const showCopyright = footerSettings?.widgets.showCopyright ?? true;
-  const showPaymentMethods = footerSettings?.widgets.showPaymentMethods ?? true;
-
   const resolveHref = (raw: string) => {
     if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
     if (raw.startsWith("/")) {
@@ -144,59 +144,43 @@ export function StoreFooter({
   const fallbackShop: FooterColumn = {
     title: t("common.products"),
     links: [
-      { label: t("nav.products"), href: `/${locale}/products` },
-      { label: t("nav.categories"), href: `/${locale}/categories` },
-      { label: t("nav.vendors"), href: `/${locale}/vendors` },
-      { label: t("nav.deals"), href: `/${locale}/deals` },
-      { label: t("nav.newArrivals"), href: `/${locale}/new-arrivals` },
+      { label: t("nav.products"), href: "/products" },
+      { label: t("nav.categories"), href: "/categories" },
+      { label: t("nav.vendors"), href: "/vendors" },
+      { label: t("nav.deals"), href: "/deals" },
+      { label: t("nav.newArrivals"), href: "/new-arrivals" },
     ],
   };
   const fallbackSupport: FooterColumn = {
     title: t("nav.help"),
     links: [
-      { label: "Track Order", href: `/${locale}/track-order` },
-      { label: t("nav.faq"), href: `/${locale}/faq` },
-      { label: t("footer.shippingInfo"), href: `/${locale}/shipping` },
-      { label: t("footer.returns"), href: `/${locale}/returns` },
+      { label: "Track Order", href: "/track-order" },
+      { label: t("nav.faq"), href: "/faq" },
+      { label: t("footer.shippingInfo"), href: "/shipping" },
+      { label: t("footer.returns"), href: "/returns" },
     ],
   };
   const fallbackCompany: FooterColumn = {
     title: resolvedStoreName,
     links: [
-      { label: t("nav.aboutUs"), href: `/${locale}/about` },
-      { label: t("footer.careers"), href: `/${locale}/careers` },
-      { label: t("footer.press"), href: `/${locale}/press` },
-      { label: t("footer.blog"), href: `/${locale}/blog` },
+      { label: t("nav.aboutUs"), href: "/about" },
+      { label: t("footer.careers"), href: "/careers" },
+      { label: t("footer.press"), href: "/press" },
+      { label: t("footer.blog"), href: "/blog" },
     ],
   };
   const fallbackLegal: FooterColumn = {
     title: "Legal",
     links: [
-      { label: t("footer.termsOfService"), href: `/${locale}/terms` },
-      { label: t("footer.privacyPolicy"), href: `/${locale}/privacy` },
-      { label: t("footer.cookiePolicy"), href: `/${locale}/cookies` },
-      { label: t("footer.accessibility"), href: `/${locale}/accessibility` },
+      { label: t("footer.termsOfService"), href: "/terms" },
+      { label: t("footer.privacyPolicy"), href: "/privacy" },
+      { label: t("footer.cookiePolicy"), href: "/cookies" },
+      { label: t("footer.accessibility"), href: "/accessibility" },
     ],
   };
 
-  const configuredColumns =
-    footerSettings?.linkColumns
-      .map((column) => ({
-        title: column.title,
-        links: column.links
-          .filter((link) => link.visible)
-          .map((link) => ({
-            label: link.label,
-            href: resolveHref(link.href),
-            target: link.target,
-          })),
-      }))
-      .filter((column) => column.links.length > 0) ?? [];
-  const finalColumns = footerSettings
-    ? showLinkColumns
-      ? configuredColumns
-      : []
-    : columns && columns.length > 0
+  const finalColumns =
+    columns && columns.length > 0
       ? columns
       : [fallbackShop, fallbackSupport, fallbackCompany, fallbackLegal];
 
@@ -233,23 +217,297 @@ export function StoreFooter({
       label: "TikTok",
     },
   ].filter((s) => typeof s.href === "string" && s.href.trim().length > 0);
-  const paymentMethodsImageUrl = footerSettings?.paymentMethods.imageUrl?.trim() || "";
-  const showPaymentMethodsImage =
-    showPaymentMethods &&
-    (footerSettings?.paymentMethods.enabled ?? true) &&
-    paymentMethodsImageUrl;
-  const copyrightParts = [
-    footerSettings?.copyright.showYear ?? true ? new Date().getFullYear() : null,
-    footerSettings?.copyright.showStoreName ?? true ? resolvedStoreName : null,
-  ].filter(Boolean);
-  const copyrightText =
-    footerSettings?.copyright.text?.trim() || t("common.allRightsReserved");
+  // The render's year, in UTC on both sides: a cached page hydrates on a
+  // different day than it was drawn, in a different time zone.
+  const currentYear = new Date(useRenderNow()).getUTCFullYear();
   const mutedStyle = activeColors
     ? ({ color: "var(--footer-muted)" } as CSSProperties)
     : undefined;
   const headingStyle = activeColors
     ? ({ color: "var(--footer-text)" } as CSSProperties)
     : undefined;
+
+  /**
+   * WHAT to draw, as a layout. A store that has built one gets theirs; one
+   * that has not gets the arrangement its settings already describe, which
+   * is the footer it already had — see footerLayoutFromSettings. There is
+   * one renderer either way: a second "legacy" path would be a second
+   * footer to keep in step, and the two would drift.
+   */
+  const layout = footerSettings
+    ? resolveFooterLayout(footerSettings.builder, footerSettings)
+    : fallbackLayout(finalColumns);
+
+  /** One item, in the markup the footer has always drawn it with. */
+  const renderItem = (item: FooterLayoutItem) => {
+    const inset = paddingStyle(item.padding);
+    switch (item.type) {
+      case "brand":
+        return (
+          <Link
+            key={item.id}
+            href="/"
+            className="flex items-center gap-2"
+            style={inset}
+          >
+            {currentLogoUrl ? (
+              // Sized by WIDTH, as the header sizes its logo. Matching the
+              // header copies its two recipes exactly: the compact bar's
+              // 32px-tall box below `lg`, the brand item's width-only box
+              // from `lg` up.
+              <span
+                className={cn(
+                  "relative block max-w-full",
+                  logoWidths.matchesHeader
+                    ? "h-8 w-(--footer-logo-width) lg:h-auto lg:w-(--footer-logo-width-lg)"
+                    : "w-(--footer-logo-width)",
+                )}
+                style={
+                  {
+                    "--footer-logo-width": `${logoWidths.mobile}px`,
+                    "--footer-logo-width-lg": `${logoWidths.desktop}px`,
+                  } as CSSProperties
+                }
+              >
+                <AppImage
+                  src={currentLogoUrl}
+                  alt={footerLogoAlt || resolvedStoreName}
+                  className={cn(
+                    "w-full object-contain object-left",
+                    logoWidths.matchesHeader ? "h-8 lg:h-auto" : "h-auto",
+                  )}
+                  width={Math.round(logoWidths.desktop)}
+                  height={Math.round(logoWidths.desktop / 4)}
+                />
+              </span>
+            ) : (
+              <>
+                <Store
+                  className="h-6 w-6 text-primary"
+                  style={
+                    activeColors
+                      ? ({ color: "var(--footer-accent)" } as CSSProperties)
+                      : undefined
+                  }
+                />
+                <span className="text-xl font-bold">{resolvedStoreName}</span>
+              </>
+            )}
+          </Link>
+        );
+      case "text":
+        return (
+          <p
+            key={item.id}
+            className="max-w-xs text-sm text-muted-foreground"
+            style={{ ...mutedStyle, ...inset }}
+          >
+            {item.text.trim() || resolvedFooterDescription}
+          </p>
+        );
+      case "contact":
+        return (
+          <div
+            key={item.id}
+            className="space-y-2 text-sm text-muted-foreground"
+            style={{ ...mutedStyle, ...inset }}
+          >
+            {item.title ? (
+              <p className="font-semibold" style={headingStyle}>
+                {item.title}
+              </p>
+            ) : null}
+            {resolvedContact.phone && item.showPhone ? (
+              <a
+                href={`tel:${resolvedContact.phone.replace(/\s+/g, "")}`}
+                className="flex items-center gap-2 transition-colors hover:text-primary"
+              >
+                <Phone className="h-4 w-4" />
+                <span>{resolvedContact.phone}</span>
+              </a>
+            ) : null}
+            {resolvedContact.email && item.showEmail ? (
+              <a
+                href={`mailto:${resolvedContact.email}`}
+                className="flex items-center gap-2 transition-colors hover:text-primary"
+              >
+                <Mail className="h-4 w-4" />
+                <span>{resolvedContact.email}</span>
+              </a>
+            ) : null}
+            {resolvedContact.address && item.showAddress ? (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span>{resolvedContact.address}</span>
+              </div>
+            ) : null}
+          </div>
+        );
+      case "links": {
+        // A column sourced from a reusable menu has already had its links
+        // resolved server-side (resolveFooterMenuColumns), which is why the
+        // item carries both and reads whichever it was given.
+        const links = item.links.filter((link) => link.label);
+        if (links.length === 0) return null;
+        return (
+          <div key={item.id} style={inset}>
+            {item.title ? (
+              <h4 className="mb-4 font-semibold" style={headingStyle}>
+                {item.title}
+              </h4>
+            ) : null}
+            <ul className="space-y-2">
+              {links.map((link, linkIdx) => (
+                <li key={`${link.id}-${linkIdx}`}>
+                  <Link
+                    href={resolveHref(link.url)}
+                    // Footer columns are ~25 links: with viewport prefetch
+                    // every short page (cart, about, account) fired a server
+                    // render per link before the shopper touched one. These
+                    // are secondary pages; a click pays one round trip.
+                    prefetch={false}
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    style={mutedStyle}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+      case "copyright": {
+        const parts = [
+          item.showYear ? currentYear : null,
+          item.showStoreName ? resolvedStoreName : null,
+        ].filter(Boolean);
+        return (
+          <p
+            key={item.id}
+            className="text-sm text-muted-foreground"
+            style={{ ...mutedStyle, ...inset }}
+          >
+            {"\u00a9"} {parts.join(" ")}
+            {parts.length > 0 ? ". " : ""}
+            {item.text.trim() || t("common.allRightsReserved")}
+          </p>
+        );
+      }
+      case "payments":
+        return item.imageUrl.trim() ? (
+          <AppImage
+            key={item.id}
+            src={item.imageUrl}
+            alt={item.imageAlt || "Payment methods"}
+            width={240}
+            height={40}
+            className="h-8 max-w-[240px] object-contain"
+            style={inset}
+          />
+        ) : null;
+      case "social":
+        return socialItems.length > 0 ? (
+          <div key={item.id} className="flex items-center gap-4" style={inset}>
+            {socialItems.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground transition-colors hover:text-primary"
+                style={mutedStyle}
+                aria-label={social.label}
+              >
+                <social.icon className="h-5 w-5" />
+              </a>
+            ))}
+          </div>
+        ) : null;
+    }
+    return null;
+  };
+
+  const renderColumn = (column: FooterLayoutColumn) => {
+    const drawn = column.items.map(renderItem).filter(Boolean);
+    if (drawn.length === 0) return null;
+    return (
+      <div
+        key={column.id}
+        className={cn(
+          "flex min-w-0",
+          column.flow === "row" ? "flex-wrap items-center" : "flex-col",
+          // Below `lg` the tracks are the grid's own, so a column wider than
+          // one track says so by spanning; from `lg` the row states every
+          // track explicitly and a span would fight it.
+          column.width > 1 && "col-span-2 lg:col-span-1",
+        )}
+        style={{
+          gap: column.gap,
+          justifyContent: FLOW_JUSTIFY[column.justify],
+          alignItems:
+            column.flow === "row"
+              ? ALIGN_ITEMS[column.align.vertical]
+              : ALIGN_ITEMS[column.align.horizontal],
+        }}
+      >
+        {drawn}
+      </div>
+    );
+  };
+
+  const renderRow = (row: FooterLayoutRow) => {
+    // Only the columns that actually DREW get a track. A column whose items
+    // all resolved to nothing — no social URLs set, no payment artwork —
+    // would otherwise leave an empty track behind and push its neighbours
+    // off their share of the row.
+    const drawnColumns = row.columns.filter((column) => renderColumn(column) !== null);
+    const drawn = drawnColumns.map(renderColumn);
+    if (drawn.length === 0) return null;
+    const strip = drawnColumns.every((column) => column.width === 1);
+    return (
+      <div
+        key={row.id}
+        style={
+          row.borderTop
+            ? {
+                borderTopWidth: row.borderTop,
+                borderTopStyle: "solid",
+                borderTopColor:
+                  row.borderColor ||
+                  (activeColors ? "var(--footer-border)" : undefined),
+              }
+            : undefined
+        }
+      >
+        <div className={contentClass} style={paddingStyle(row.padding)}>
+          <div
+            className={cn(
+              "footer-row grid",
+              // Below `lg` the row keeps the shape the footer has always
+              // had. A STRIP — every column one track, like the legal
+              // line — stacked and centred on a phone and spread across
+              // the width from `md`; a BANK with a wide brand column kept
+              // the two- and four-track grids, the brand spanning two.
+              strip
+                ? "footer-row--strip grid-cols-1 justify-items-center md:justify-items-stretch"
+                : "grid-cols-2 md:grid-cols-4",
+            )}
+            style={
+              {
+                gap: row.gap,
+                "--footer-cols": drawnColumns
+                  .map((column) => `minmax(0, ${column.width}fr)`)
+                  .join(" "),
+              } as CSSProperties
+            }
+          >
+            {drawn}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <footer
@@ -261,175 +519,42 @@ export function StoreFooter({
         borderColor: activeColors ? "var(--footer-border)" : undefined,
       }}
     >
-      <div className={`${contentClass} py-12`}>
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-6">
-          <div className="col-span-2">
-            {showLogo ? (
-              <Link href={`/${locale}`} className="mb-4 flex items-center gap-2">
-                {currentLogoUrl ? (
-                  // Sized by WIDTH, as the header sizes its logo. Matching
-                  // the header copies its two recipes exactly: the compact
-                  // bar's 32px-tall box below `lg`, the brand item's
-                  // width-only box from `lg` up.
-                  <span
-                    className={cn(
-                      "relative block max-w-full",
-                      logoWidths.matchesHeader
-                        ? "h-8 w-(--footer-logo-width) lg:h-auto lg:w-(--footer-logo-width-lg)"
-                        : "w-(--footer-logo-width)",
-                    )}
-                    style={
-                      {
-                        "--footer-logo-width": `${logoWidths.mobile}px`,
-                        "--footer-logo-width-lg": `${logoWidths.desktop}px`,
-                      } as CSSProperties
-                    }
-                  >
-                    <AppImage
-                      src={currentLogoUrl}
-                      alt={footerLogoAlt || resolvedStoreName}
-                      className={cn(
-                        "w-full object-contain object-left",
-                        logoWidths.matchesHeader ? "h-8 lg:h-auto" : "h-auto",
-                      )}
-                      width={Math.round(logoWidths.desktop)}
-                      height={Math.round(logoWidths.desktop / 4)}
-                    />
-                  </span>
-                ) : (
-                  <>
-                    <Store
-                      className="h-6 w-6 text-primary"
-                      style={
-                        activeColors
-                          ? ({ color: "var(--footer-accent)" } as CSSProperties)
-                          : undefined
-                      }
-                    />
-                    <span className="text-xl font-bold">{resolvedStoreName}</span>
-                  </>
-                )}
-              </Link>
-            ) : null}
-            {showDescription ? (
-              <p className="mb-4 max-w-xs text-sm text-muted-foreground" style={mutedStyle}>
-                {resolvedFooterDescription}
-              </p>
-            ) : null}
-            {showContact ? (
-              <div className="space-y-2 text-sm text-muted-foreground" style={mutedStyle}>
-                {footerSettings?.contact.title ? (
-                  <p className="font-semibold" style={headingStyle}>
-                    {footerSettings.contact.title}
-                  </p>
-                ) : null}
-                {resolvedContact.phone &&
-                (footerSettings?.contact.showPhone ?? true) ? (
-                  <a
-                    href={`tel:${resolvedContact.phone.replace(/\s+/g, "")}`}
-                    className="flex items-center gap-2 transition-colors hover:text-primary"
-                  >
-                    <Phone className="h-4 w-4" />
-                    <span>{resolvedContact.phone}</span>
-                  </a>
-                ) : null}
-                {resolvedContact.email &&
-                (footerSettings?.contact.showEmail ?? true) ? (
-                  <a
-                    href={`mailto:${resolvedContact.email}`}
-                    className="flex items-center gap-2 transition-colors hover:text-primary"
-                  >
-                    <Mail className="h-4 w-4" />
-                    <span>{resolvedContact.email}</span>
-                  </a>
-                ) : null}
-                {resolvedContact.address &&
-                (footerSettings?.contact.showAddress ?? true) ? (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{resolvedContact.address}</span>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          {finalColumns.map((column, idx) => (
-            <div key={`${column.title}-${idx}`}>
-              <h4 className="mb-4 font-semibold" style={headingStyle}>
-                {column.title}
-              </h4>
-              <ul className="space-y-2">
-                {column.links.map((link, linkIdx) => (
-                  <li key={`${link.href}-${linkIdx}`}>
-                    <Link
-                      href={link.href}
-                      // Footer columns are ~25 links: with viewport prefetch
-                      // every short page (cart, about, account) fired a
-                      // server render per link before the shopper touched
-                      // one. These are secondary pages; a click pays one
-                      // round trip instead.
-                      prefetch={false}
-                      target={link.target}
-                      rel={link.target === "_blank" ? "noopener noreferrer" : undefined}
-                      className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                      style={mutedStyle}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Separator
-        style={{
-          backgroundColor: activeColors ? "var(--footer-border)" : undefined,
-        }}
-      />
-
-      <div className={`${contentClass} py-6`}>
-        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-          {showCopyright ? (
-            <p className="text-sm text-muted-foreground" style={mutedStyle}>
-              {"\u00a9"} {copyrightParts.join(" ")}
-              {copyrightParts.length > 0 ? ". " : ""}
-              {copyrightText}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap items-center justify-center gap-4 md:justify-end">
-            {showPaymentMethodsImage ? (
-              <AppImage
-                src={paymentMethodsImageUrl}
-                alt={footerSettings?.paymentMethods.imageAlt || "Payment methods"}
-                width={240}
-                height={40}
-                className="h-8 max-w-[240px] object-contain"
-              />
-            ) : null}
-            {showSocialLinks && socialItems.length > 0 ? (
-              <div className="flex items-center gap-4">
-                {socialItems.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground transition-colors hover:text-primary"
-                    style={mutedStyle}
-                    aria-label={social.label}
-                  >
-                    <social.icon className="h-5 w-5" />
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      {layout.rows.map(renderRow)}
     </footer>
   );
+}
+
+/** Where a column seats its items along its own flow. */
+const FLOW_JUSTIFY: Record<string, string> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  between: "space-between",
+};
+const ALIGN_ITEMS: Record<string, string> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+};
+
+/**
+ * The footer for a surface that has no footer settings at all — the auth
+ * pages, which pass their own columns. It is the same two rows, so the one
+ * renderer above covers every case and there is no second footer to keep in
+ * step with this one.
+ */
+function fallbackLayout(columns: FooterColumn[]) {
+  return footerLayoutFromSettings({
+    ...getDefaultFooterSettings(),
+    linkColumns: columns.map((column, index) => ({
+      id: `fallback-${index}`,
+      title: column.title,
+      links: column.links.map((link) => ({
+        label: link.label,
+        href: link.href,
+        target: (link.target as "_self" | "_blank") ?? "_self",
+        visible: true,
+      })),
+    })),
+  });
 }

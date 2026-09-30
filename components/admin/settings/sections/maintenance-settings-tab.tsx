@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { Settings } from "@/components/admin/settings/types";
 import { normalizeAllowedIPs } from "@/lib/maintenance";
+import { MAINTENANCE_COPY } from "@/lib/storefront/maintenance-copy";
+import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { cn } from "@/lib/utils";
 import { ImageUploadField } from "@/components/admin/settings/fields/image-upload-field";
 import { SettingsTabHeader } from "./settings-tab-header";
@@ -40,6 +42,10 @@ export function MaintenanceSettingsTab(props: {
   const { settings, isSaving, isDirty, updateNestedField, onSave } = props;
   const maintenance = settings.maintenance || { enabled: false };
   const translate = useFallbackTranslator(t);
+  // What a visitor reads when the fields are left blank.
+  const defaultTitle = MAINTENANCE_COPY.title(
+    settings.general?.storeName?.trim() || DEFAULT_STORE_NAME,
+  );
   const countdownDate = maintenance.countdownEndsAt
     ? new Date(maintenance.countdownEndsAt)
     : null;
@@ -88,10 +94,7 @@ export function MaintenanceSettingsTab(props: {
                     <Input
                       id="maintenanceTitle"
                       value={maintenance.title || ""}
-                      placeholder={translate(
-                        "admin.settings.maintenance.titlePlaceholder",
-                        "We'll be back soon",
-                      )}
+                      placeholder={defaultTitle}
                       onChange={(event) =>
                         updateNestedField(
                           "maintenance.title",
@@ -114,9 +117,7 @@ export function MaintenanceSettingsTab(props: {
                           event.target.value,
                         )
                       }
-                      placeholder={t(
-                        "admin.settings.maintenance.messagePlaceholder",
-                      )}
+                      placeholder={MAINTENANCE_COPY.message}
                       rows={5}
                     />
                   </div>
@@ -261,7 +262,7 @@ export function MaintenanceSettingsTab(props: {
                       backgroundImageUrl ? "text-white/80" : "text-primary",
                     )}
                   >
-                    Live Preview
+                    {translate("admin.settings.maintenance.preview.label", "Live Preview")}
                   </p>
                   <div className="mt-4 space-y-4">
                     <div
@@ -272,11 +273,11 @@ export function MaintenanceSettingsTab(props: {
                           : "border-primary/15 bg-primary/10 text-primary",
                       )}
                     >
-                      Scheduled maintenance
+                      {MAINTENANCE_COPY.status}
                     </div>
                     <div className="space-y-2">
                       <h3 className="text-2xl font-semibold leading-tight">
-                        {maintenance.title?.trim() || "We'll be back soon"}
+                        {maintenance.title?.trim() || defaultTitle}
                       </h3>
                       <p
                         className={cn(
@@ -286,8 +287,7 @@ export function MaintenanceSettingsTab(props: {
                             : "text-muted-foreground",
                         )}
                       >
-                        {maintenance.message?.trim() ||
-                          "We're making a few improvements behind the scenes. Thanks for your patience."}
+                        {maintenance.message?.trim() || MAINTENANCE_COPY.message}
                       </p>
                     </div>
 
@@ -300,7 +300,9 @@ export function MaintenanceSettingsTab(props: {
                             : "bg-background",
                         )}
                       >
-                        <p className="text-sm font-medium">Expected back</p>
+                        <p className="text-sm font-medium">
+                          {MAINTENANCE_COPY.countdownLabel}
+                        </p>
                         <p
                           className={cn(
                             "mt-2 text-sm",
@@ -309,7 +311,11 @@ export function MaintenanceSettingsTab(props: {
                               : "text-muted-foreground",
                           )}
                         >
-                          {countdownEndsAt || "Choose a return time to start the countdown."}
+                          {countdownEndsAt ||
+                            translate(
+                              "admin.settings.maintenance.preview.countdownEmpty",
+                              "Choose a return time to start the countdown.",
+                            )}
                         </p>
                       </div>
                     ) : (
@@ -321,7 +327,10 @@ export function MaintenanceSettingsTab(props: {
                             : "bg-background/70 text-muted-foreground",
                         )}
                       >
-                        Countdown is hidden. Visitors will only see the title and message.
+                        {translate(
+                          "admin.settings.maintenance.preview.countdownHidden",
+                          "Countdown is hidden. Visitors will only see the title and message.",
+                        )}
                       </div>
                     )}
 
@@ -334,7 +343,12 @@ export function MaintenanceSettingsTab(props: {
                             : "bg-background",
                         )}
                       >
-                        <p className="text-sm font-medium">Access bypass</p>
+                        <p className="text-sm font-medium">
+                          {translate(
+                            "admin.settings.maintenance.preview.bypassTitle",
+                            "Access bypass",
+                          )}
+                        </p>
                         <p
                           className={cn(
                             "mt-2 text-sm",
@@ -343,9 +357,9 @@ export function MaintenanceSettingsTab(props: {
                               : "text-muted-foreground",
                           )}
                         >
-                          {maintenance.allowedIPs?.length} IP
-                          {maintenance.allowedIPs?.length === 1 ? "" : "s"} can
-                          still access the storefront.
+                          {t("admin.settings.maintenance.preview.bypassCount", {
+                            count: maintenance.allowedIPs?.length ?? 0,
+                          })}
                         </p>
                       </div>
                     ) : null}

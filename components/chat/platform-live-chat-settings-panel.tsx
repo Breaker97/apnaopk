@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Clock3, Loader2, Save } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
+import { useReportUnsavedPanel } from "@/components/admin/settings/admin-settings-context";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 interface BusinessHour {
@@ -48,7 +50,12 @@ interface MessagingSettings {
 /** 2024-01-07 (UTC) is a Sunday, so day index 0..6 maps to Sunday..Saturday. */
 const FIRST_SUNDAY_UTC_DATE = 7;
 
-export function PlatformLiveChatSettingsPanel() {
+export function PlatformLiveChatSettingsPanel({
+  initialSettings,
+}: {
+  /** Read by the page on the server; absent only when that read failed. */
+  initialSettings?: MessagingSettings;
+}) {
   const t = useTranslations("chat");
   const locale = useLocale();
   const tr = useFallbackTranslator(t);
@@ -65,9 +72,22 @@ export function PlatformLiveChatSettingsPanel() {
     );
   }, [locale]);
 
-  const [settings, setSettings] = useState<MessagingSettings>();
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<MessagingSettings | undefined>(
+    initialSettings,
+  );
+  // What the server holds. The form starts as this very object and every
+  // edit spreads it, so the two serialize alike until something changes.
+  const [saved, setSaved] = useState(initialSettings);
+  const [loading, setLoading] = useState(!initialSettings);
   const [saving, setSaving] = useState(false);
+  const unsaved =
+    Boolean(settings && saved) &&
+    JSON.stringify(settings) !== JSON.stringify(saved);
+
+  // These hours are their own record, outside the settings document, so the
+  // settings shell cannot see an edit here unless the panel reports it: the
+  // leave prompt and the sidebar's "Unsaved" mark then cover it too.
+  useReportUnsavedPanel("messaging", unsaved);
 
   const loadFailedMessage = tr(
     "liveChatSettings.loadFailed",
@@ -79,6 +99,7 @@ export function PlatformLiveChatSettingsPanel() {
   );
 
   useEffect(() => {
+    if (initialSettings) return;
     void fetch("/api/admin/messaging/settings")
       .then(async (response) => {
         const payload = await response.json().catch(() => null);
@@ -86,12 +107,13 @@ export function PlatformLiveChatSettingsPanel() {
           throw new Error(payload?.message || loadFailedMessage);
         }
         setSettings(payload.data);
+        setSaved(payload.data);
       })
       .catch((error) =>
         toast.error(error instanceof Error ? error.message : loadFailedMessage),
       )
       .finally(() => setLoading(false));
-  }, [loadFailedMessage]);
+  }, [initialSettings, loadFailedMessage]);
 
   const updateHour = (day: number, update: Partial<BusinessHour>) => {
     setSettings((current) =>
@@ -120,6 +142,7 @@ export function PlatformLiveChatSettingsPanel() {
         throw new Error(payload?.message || saveFailedMessage);
       }
       setSettings(payload.data);
+      setSaved(payload.data);
       toast.success(tr("liveChatSettings.saved", "Live-chat settings saved"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : saveFailedMessage);
@@ -209,14 +232,15 @@ export function PlatformLiveChatSettingsPanel() {
                   {tr("liveChatSettings.primaryColor", "Primary color")}
                 </Label>
                 <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    className="w-14 p-1"
+                  <ColorSwatchPicker
+                    className="w-14"
+                    alpha={false}
+                    ariaLabel={tr("liveChatSettings.primaryColor", "Primary color")}
                     value={settings.primaryColor}
-                    onChange={(event) =>
+                    onChange={(hex) =>
                       setSettings({
                         ...settings,
-                        primaryColor: event.target.value,
+                        primaryColor: hex,
                       })
                     }
                   />
@@ -350,7 +374,7 @@ export function PlatformLiveChatSettingsPanel() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => void save()} disabled={saving}>
+              <Button onClick={() => void save()} disabled={saving || !unsaved}>
                 {saving ? <Loader2 className="animate-spin" /> : <Save />}
                 {tr("liveChatSettings.save", "Save live-chat settings")}
               </Button>

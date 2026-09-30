@@ -42,6 +42,19 @@ export const PLATFORM_OWNED_STAFF_FILTER: Record<string, unknown> = {
   ],
 };
 
+/**
+ * `VENDOR_OWNED_STAFF_FILTER` for a profile already in hand — the same legacy
+ * fallback: no `managedBy` and any vendorIds meant a vendor created it.
+ */
+export function isVendorOwnedStaffProfile(profile: {
+  managedBy?: unknown;
+  vendorIds?: unknown[] | null;
+}): boolean {
+  if (profile.managedBy === STAFF_MANAGED_BY.VENDOR) return true;
+  if (profile.managedBy === STAFF_MANAGED_BY.PLATFORM) return false;
+  return profile.managedBy == null && (profile.vendorIds?.length ?? 0) > 0;
+}
+
 /** User IDs of staff whose profile belongs to a vendor. */
 export async function getVendorOwnedStaffUserIds(): Promise<Types.ObjectId[]> {
   const profiles = await StaffProfile.find(VENDOR_OWNED_STAFF_FILTER)

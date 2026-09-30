@@ -25,6 +25,8 @@ interface AdminProductListParams {
   source?: string;
   /** Deals only: a compare-at price above the price, on the product or a variant. */
   onSale?: boolean;
+  /** Only products a sponsored placement could render. */
+  boostable?: boolean;
   sortOrder?: "asc" | "desc";
 }
 
@@ -54,8 +56,9 @@ async function buildProductListFilter(
   params: AdminProductListParams,
   { staffScope, isMultiVendor }: AdminProductListContext,
 ) {
-  const { search, status, vendor, source, onSale } = params;
+  const { search, status, vendor, source, onSale, boostable } = params;
   const query: Record<string, unknown> = {};
+
 
   // The same test the storefront's deal shelves use, so a product the deals
   // picker offers is one the deals panel would also show unasked.
@@ -100,6 +103,15 @@ async function buildProductListFilter(
   }
 
   if (status && status !== "all") query.status = status;
+  // The same test `assertProductIsBoostable` applies on the way in, so what a
+  // boost booking form offers is exactly what it is allowed to book. Last, and
+  // deliberately: the storefront pool is narrower than any status a caller can
+  // ask for. It also wants the online-store channel, and `onlineStore` is
+  // absent on rows written before the field existed.
+  if (boostable) {
+    query.status = PRODUCT_STATUS.ACTIVE;
+    query["publishing.onlineStore"] = { $ne: false };
+  }
   if (isMultiVendor && vendor && vendor !== "all") query.vendorId = vendor;
 
   if (isMultiVendor && source === "vendor") {

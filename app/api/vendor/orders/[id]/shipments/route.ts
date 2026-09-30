@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Order, Shipment } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";

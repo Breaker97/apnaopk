@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import type {
   VendorShippingProfile,
   VendorShippingRate,
@@ -356,14 +357,11 @@ export function VendorShippingEditor({
       </div>
 
       {hasLegacyZones ? (
-        <div
-          role="status"
-          className="rounded-md border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-400"
-        >
+        <WarningBanner role="status">
           This store now defines the shipping zones and you set your price
           inside each one. Your previous zones are still being used until you
           save prices below, which replaces them.
-        </div>
+        </WarningBanner>
       ) : null}
 
       <Separator />
@@ -447,10 +445,10 @@ export function VendorShippingEditor({
                     // An empty override is a real answer — "I do not serve
                     // this zone" — and the shopper is told so at checkout, so
                     // it must not read as an unfinished form.
-                    <div className="rounded-md border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-400">
+                    <WarningBanner>
                       No rates here means your items cannot be delivered to this
                       zone. Add a rate, or choose &quot;Use store rates&quot;.
-                    </div>
+                    </WarningBanner>
                   ) : null}
 
                   {rates.map((rate) => (

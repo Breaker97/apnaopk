@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
@@ -12,7 +12,7 @@ import {
 import type { DealLayout } from "@/lib/storefront/sections/deal-layouts";
 import { BackgroundVideo } from "@/components/store/background-video";
 import { CountdownTimer } from "@/components/store/sections/countdown-timer";
-import { ElectronicsDealsProducts } from "@/components/store/sections/themes/electronics-deals-products";
+import { ElectronicsDealsProductsLazy as ElectronicsDealsProducts } from "@/components/store/sections/themes/electronics-deals-products-lazy";
 import {
   isExternalSectionHref,
   resolveSectionHref,
@@ -29,8 +29,8 @@ const DESIGN_FIELD =
 
 /**
  * Whether the deadline has passed. A function rather than a comparison in
- * the render body: the compiler's purity rule forbids reading the clock
- * there, and the server decides expiry once per request in any case.
+ * the render body: the `react-hooks/purity` lint rule forbids reading the
+ * clock there, and the server decides expiry once per request in any case.
  */
 function hasPassed(deadline: number): boolean {
   return deadline <= Date.now();
@@ -244,7 +244,6 @@ export async function ElectronicsDeals({
             <div className="relative lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
               <ElectronicsDealsProducts
                 products={products}
-                locale={locale}
                 layout={layout}
                 showStock={showStock}
                 imageFit={imageFit}

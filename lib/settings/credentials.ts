@@ -101,6 +101,7 @@ const ENV = {
   storageEndpoint: ["STORAGE_ENDPOINT"],
   storageRegion: ["STORAGE_REGION"],
   storageBucket: ["STORAGE_BUCKET"],
+  storagePrivateBucket: ["STORAGE_PRIVATE_BUCKET"],
   storagePublicUrl: ["STORAGE_PUBLIC_URL", "CLOUDFLARE_R2_PUBLIC_URL"],
 
   gaId: ["NEXT_PUBLIC_GA_ID"],
@@ -431,8 +432,7 @@ export function resolveSmtpConfig(
   settings?: Pick<ISettings, "email"> | null,
 ): ResolvedSmtpConfig | null {
   const email = settings?.email;
-  const provider = email?.provider ?? "smtp";
-  const dbEnabledSmtp = Boolean(email?.enabled) && provider === "smtp";
+  const dbEnabledSmtp = Boolean(email?.enabled);
   const envHasCreds = envSet(ENV.smtpUser) && envSet(ENV.smtpPass);
 
   if (!dbEnabledSmtp && !envHasCreds) return null;
@@ -524,6 +524,7 @@ interface ResolvedStorageCredentials {
   endpoint?: string;
   region?: string;
   bucketName?: string;
+  privateBucketName?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
   publicUrl?: string;
@@ -594,6 +595,8 @@ export function resolveStorageCredentials(
       firstSet(block?.bucketName, storage?.bucketName),
       ENV.storageBucket,
     ),
+    // Block-only: the pre-v1.5 flat fields never had one.
+    privateBucketName: pick(block?.privateBucketName, ENV.storagePrivateBucket),
     accessKeyId: pick(
       firstSet(block?.accessKeyId, storage?.accessKeyId),
       ENV.storageAccessKeyId,
@@ -714,6 +717,7 @@ export interface CredentialEnvSources {
     endpoint: boolean;
     region: boolean;
     bucketName: boolean;
+    privateBucketName: boolean;
     accessKeyId: boolean;
     secretAccessKey: boolean;
     publicUrl: boolean;
@@ -819,6 +823,7 @@ export function getCredentialEnvSources(): CredentialEnvSources {
       endpoint: envSet(ENV.storageEndpoint),
       region: envSet(ENV.storageRegion),
       bucketName: envSet(ENV.storageBucket),
+      privateBucketName: envSet(ENV.storagePrivateBucket),
       accessKeyId: envSet(ENV.storageAccessKeyId),
       secretAccessKey: envSet(ENV.storageSecretAccessKey),
       publicUrl: envSet(ENV.storagePublicUrl),

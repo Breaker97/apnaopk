@@ -11,6 +11,13 @@ import type {
   Address,
   OrderLoyaltyState,
 } from "@/types";
+import {
+  MAX_RETURN_WINDOW_DAYS,
+  MIN_RETURN_WINDOW_DAYS,
+  RETURN_SHIPPING_REFUND_MODES,
+  RETURN_WINDOW_STARTS,
+  returnTermsForNewOrder,
+} from "@/lib/returns/return-policy";
 
 const { Schema, models, model } = mongoose;
 
@@ -100,6 +107,20 @@ const OrderItemSchema = new Schema<OrderItem>(
       type: Schema.Types.ObjectId,
       ref: "QuoteRequest",
     },
+    // Sold as final sale: the shopper cannot return it. Written when the order
+    // is placed (see `stampFinalSaleLines`) and deliberately without a
+    // default — an older line has none and stays returnable.
+    finalSale: {
+      type: Boolean,
+    },
+    // This line's own return window, from its product or a collection — the
+    // smallest that applied when the order was placed. Absent, the order's
+    // window applies (see lib/returns/return-window.ts).
+    returnWindowDays: {
+      type: Number,
+      min: MIN_RETURN_WINDOW_DAYS,
+      max: MAX_RETURN_WINDOW_DAYS,
+    },
     preorderReleaseDate: {
       type: Date,
     },
@@ -147,6 +168,17 @@ const OrderItemSchema = new Schema<OrderItem>(
       description: { type: String, trim: true, maxlength: 500 },
       weight: { type: Number, min: 0 },
       weightUnit: { type: String, enum: ["g", "kg", "lb", "oz"] },
+    },
+    /**
+     * This line's share of the order's coupon discount on goods, recorded at
+     * checkout (see `splitCouponAcrossLines`). A return of the line gives back
+     * what it actually sold for; without it a coupon on one product was spread
+     * over every line. Absent on orders from before it was recorded, and on
+     * orders with no goods coupon — which keep the order-wide share.
+     */
+    couponDiscount: {
+      type: Number,
+      min: 0,
     },
     // Per-line discount (applied before any order-level discount)
     lineDiscount: {
@@ -460,6 +492,7 @@ const OrderLoyaltySchema = new Schema<OrderLoyaltyState>(
   {
     pointsAwarded: { type: Number, min: 0 },
     pointsReversed: { type: Number, min: 0 },
+    spendPerPoint: { type: Number, min: 0 },
     awardedAt: { type: Date },
     lastReversedAt: { type: Date },
   },
@@ -567,8 +600,73 @@ const OrderSchema = new Schema<IOrder>(
     refundedTotal: {
       type: Number,
     },
+    // Store credit that paid part or all of this order, its hold, and the
+    // credit given back on its refunds (R8) — see lib/store-credit/order-credit.ts.
+    storeCredit: {
+      type: new Schema(
+        {
+          applied: { type: Number, min: 0 },
+          holdKey: { type: String, trim: true },
+          state: { type: String, enum: ["held", "spent", "released"] },
+          refunded: { type: Number, min: 0 },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    // The return this order is the exchange for (R7) — see
+    // lib/returns/exchange.ts. What the return was worth pays for it, as
+    // `storeCredit` with no hold behind it.
+    exchangeOf: {
+      type: new Schema(
+        {
+          returnId: { type: Schema.Types.ObjectId, ref: "ReturnRequest", required: true },
+          returnNumber: { type: String, trim: true },
+          orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
+          orderNumber: { type: String, trim: true },
+          undoneAt: { type: Date },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    // When everything the shopper can have back has gone back but the
+    // delivery a delivered order keeps: the payment reads `partially_refunded`
+    // (the store kept the carrier's fee), and the sale is over all the same —
+    // stock back when asked, coupon released, digital files closed.
+    goodsRefundedAt: {
+      type: Date,
+    },
     loyalty: {
       type: OrderLoyaltySchema,
+    },
+    // The return rules this order was sold under — see `returnTermsForNewOrder`.
+    // No defaults, deliberately: Mongoose applies a schema default when it
+    // hydrates an existing document too, and an order from before this field
+    // has to read as carrying none until the store first changes its rules.
+    returnTerms: {
+      type: new Schema(
+        {
+          windowDays: {
+            type: Number,
+            min: MIN_RETURN_WINDOW_DAYS,
+            max: MAX_RETURN_WINDOW_DAYS,
+          },
+          // Sold with no time limit; `windowDays` is then absent.
+          windowUnlimited: { type: Boolean },
+          windowStart: { type: String, enum: RETURN_WINDOW_STARTS },
+          shippingRefund: {
+            type: String,
+            enum: RETURN_SHIPPING_REFUND_MODES,
+          },
+          restockingFeePercent: { type: Number, min: 0, max: 100 },
+          returnShippingFee: { type: Number, min: 0 },
+          source: { type: String, enum: ["order", "legacy"] },
+          capturedAt: { type: Date },
+        },
+        { _id: false },
+      ),
+      default: undefined,
     },
     // Short-lived claim serializing return-request creation per order, so two
     // concurrent requests can't both pass the returnable-quantity validation.
@@ -690,6 +788,38 @@ const OrderSchema = new Schema<IOrder>(
     razorpayOrderId: {
       type: String,
     },
+    /**
+     * The cart a gateway checkout was placed from, and a hash of what it was
+     * placed for (lines, prices, totals, addresses, coupon). A shopper who
+     * leaves a redirect gateway and tries again from the same cart is handed
+     * this same order — and its gateway session where that can still be paid —
+     * instead of a new pending order per attempt. See
+     * `lib/checkout/checkout-attempts.ts`.
+     */
+    checkoutCartId: {
+      type: Schema.Types.ObjectId,
+    },
+    /**
+     * The checkout attempt this order was written from, once the money had
+     * actually arrived (`createOrderFromAttempt`). Absent on every order
+     * placed before the attempt model, and on the paths that never go through
+     * a gateway — cash on delivery, a pay-later pre-order, a till sale, an
+     * order an admin made by hand.
+     *
+     * Its unique index below is the last line of defence against a payment
+     * being turned into two orders.
+     */
+    checkoutAttemptId: {
+      type: Schema.Types.ObjectId,
+      ref: "CheckoutAttempt",
+    },
+    checkoutFingerprint: {
+      type: String,
+    },
+    /** The gateway's payment page for this order, kept so a retry can reuse it. */
+    gatewayCheckoutUrl: {
+      type: String,
+    },
     razorpayPaymentId: {
       type: String,
     },
@@ -738,6 +868,15 @@ const OrderSchema = new Schema<IOrder>(
     mtnMomoReferenceId: {
       type: String,
     },
+    // The mobile-money reconcile sweep's bookkeeping. `CheckedAt` rotates the
+    // sweep through every pending order instead of re-asking the same first
+    // batch; `ClosedAt` marks a payment the gateway says failed for good, so
+    // it stops taking a slot at all.
+    paymentReconcileCheckedAt: { type: Date },
+    // "platform" when the store recorded the money itself (an admin-created
+    // order). See PLATFORM_PAYMENT_CUSTODY in lib/payments/payment-custody.ts.
+    paymentCustody: { type: String, enum: ["platform"] },
+    paymentReconcileClosedAt: { type: Date },
     // MTN's financialTransactionId, present once SUCCESSFUL.
     mtnMomoTransactionId: {
       type: String,
@@ -963,6 +1102,20 @@ const OrderSchema = new Schema<IOrder>(
       type: Date,
     },
     /**
+     * How much the balance payment actually was, stamped with it.
+     *
+     * Not always `preorderOutstandingAmount`: a consignment cancelled before
+     * the balance was asked for comes off what the shopper is charged
+     * (`getPreorderBalanceDue`), and without the figure that ACTUALLY arrived
+     * a paid order read its whole total as collected — so a later cancel tried
+     * to refund money that never came in. Absent on balances recorded before
+     * it existed, which keep the old reading.
+     */
+    preorderBalancePaidAmount: {
+      type: Number,
+      min: 0,
+    },
+    /**
      * The gateway's cut of the balance payment alone, stamped with it. The
      * order's `paymentFee` is the deposit's and the balance's together once
      * the balance is in, and without this the balance's fee could not be told
@@ -971,6 +1124,24 @@ const OrderSchema = new Schema<IOrder>(
     preorderBalancePaymentFee: {
       type: Number,
       min: 0,
+    },
+    /**
+     * Which of the store's accounts the balance actually landed in, when it
+     * was recorded by hand rather than charged.
+     *
+     * The order's own `paymentMethod` answers for the DEPOSIT and cannot
+     * answer for this: a deposit taken on Stripe and a balance handed over in
+     * cash are two different accounts, and a `pay_later` order took nothing at
+     * checkout at all. Read as the deposit's, every offline balance was booked
+     * into the gateway — the balance of a pay-later order being the whole
+     * total of it.
+     *
+     * Absent on a gateway balance, which lands wherever the charge did, and on
+     * every balance recorded before this existed.
+     */
+    preorderBalancePaidFrom: {
+      type: String,
+      enum: ["bank", "cash", "gateway"],
     },
     /**
      * The PayPal order raised to collect the balance, while the shopper is
@@ -984,6 +1155,18 @@ const OrderSchema = new Schema<IOrder>(
      * approval, only on the capture call this app makes.
      */
     preorderBalancePaypalOrderId: {
+      type: String,
+    },
+    /**
+     * The PayPal order raised from a "pay now" link, for an order whose
+     * original payment never arrived.
+     *
+     * Its own field rather than `paypalOrderId`, which belongs to the checkout
+     * that failed: overwriting that one would lose the reference a support
+     * question ("PayPal says I paid") is asked about, and would make the
+     * checkout finalizer pick up a payment meant for this path.
+     */
+    payLinkPaypalOrderId: {
       type: String,
     },
     /**
@@ -1021,6 +1204,15 @@ const OrderSchema = new Schema<IOrder>(
     preorderBalanceChargeAttempts: {
       type: Number,
       min: 0,
+    },
+    /**
+     * When the auto-release sweep last looked at this reservation and left it
+     * — its stock not in yet, or its payment not captured. The sweep reads the
+     * least recently checked first, so a pile of orders it cannot release yet
+     * no longer fills every batch and starves the ones behind them.
+     */
+    preorderAutoReleaseCheckedAt: {
+      type: Date,
     },
     preorderBalanceLastChargeAt: {
       type: Date,
@@ -1098,6 +1290,51 @@ const OrderSchema = new Schema<IOrder>(
     autoShipCheckedAt: {
       type: Date,
     },
+    // Shipping paused because a courier can't deliver to the address — see
+    // `lib/orders/address-hold-policy.ts`. Not a status: the order keeps its
+    // own, and every shipping path asks this instead.
+    addressHold: {
+      type: new mongoose.Schema(
+        {
+          state: { type: String, enum: ["open", "released"], required: true },
+          reason: {
+            type: String,
+            enum: ["carrier_refused", "validation_failed", "store"],
+            required: true,
+          },
+          message: { type: String, trim: true, maxlength: 600 },
+          placedAt: { type: Date, required: true },
+          placedBy: { type: String, trim: true },
+          requestedAt: Date,
+          requestsSent: { type: Number, min: 0 },
+          lastRequestAt: Date,
+          deadlineAt: Date,
+          expiredAt: Date,
+          customerConfirmedAt: Date,
+          releasedAt: Date,
+          releasedBy: { type: String, trim: true },
+          releaseReason: {
+            type: String,
+            enum: ["address_changed", "store_edited", "store_confirmed", "order_cancelled"],
+          },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    // The address a check after checkout last looked at, so an unchanged
+    // address is not re-checked (and re-billed) on every sweep.
+    addressCheck: {
+      type: new mongoose.Schema(
+        {
+          key: { type: String, trim: true },
+          checkedAt: Date,
+          verdict: { type: String, enum: ["valid", "invalid", "unknown"] },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     notes: {
       type: String,
       maxlength: 1000,
@@ -1147,7 +1384,16 @@ OrderSchema.index({ status: 1, createdAt: -1 });
 // Bounds the auto-ship sweep: stamped on every pass regardless of outcome, so
 // the scan never re-examines the same order forever.
 OrderSchema.index({ status: 1, autoShipCheckedAt: 1 });
+// The address-hold sweep reads only open holds.
+OrderSchema.index(
+  { "addressHold.state": 1, "addressHold.lastRequestAt": 1 },
+  { partialFilterExpression: { "addressHold.state": "open" } },
+);
 OrderSchema.index({ paymentStatus: 1, createdAt: -1 });
+// A credit hold is settled or released by what became of its order (R8).
+OrderSchema.index({ "storeCredit.holdKey": 1 }, { sparse: true });
+// An exchange order by its return (R7), and the credit such orders still wait on.
+OrderSchema.index({ "exchangeOf.returnId": 1 }, { sparse: true });
 OrderSchema.index({ customerId: 1, createdAt: -1 });
 // Guest orders are looked up by the checkout email: the account-claim on
 // login relinks them in one updateMany, and guest customer stats aggregate
@@ -1216,6 +1462,31 @@ OrderSchema.index(
   { preorderBalancePaypalOrderId: 1 },
   { partialFilterExpression: { preorderBalancePaypalOrderId: { $gt: "" } } },
 );
+// The same lookup for a "pay now" PayPal approval, and just as rare.
+OrderSchema.index(
+  { payLinkPaypalOrderId: 1 },
+  { partialFilterExpression: { payLinkPaypalOrderId: { $gt: "" } } },
+);
+/**
+ * One attempt, one order — enforced by the database rather than trusted to the
+ * claim logic above it.
+ *
+ * The claim (`finalize.claimedAt` on the attempt) is what normally stops a
+ * webhook and the shopper's return from both writing an order. This is what
+ * stops them when the claim has a bug in it: the second insert fails, the
+ * settlement finds the order the first one wrote, and the payment is recorded
+ * once.
+ *
+ * `$type: "objectId"` rather than `$exists`, so a row that somehow carries a
+ * `null` is outside the index too and cannot collide with every other null.
+ */
+OrderSchema.index(
+  { checkoutAttemptId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { checkoutAttemptId: { $type: "objectId" } },
+  },
+);
 // Mirror the Stripe/Pesapal duplicate-order protection for the remaining
 // gateways: nothing should ever create two orders with the same gateway
 // reference, and the DB now enforces it.
@@ -1225,6 +1496,11 @@ OrderSchema.index(
     unique: true,
     partialFilterExpression: { paypalOrderId: { $gt: "" } },
   },
+);
+// A retry looks for the cart's live gateway attempt.
+OrderSchema.index(
+  { checkoutCartId: 1, status: 1 },
+  { partialFilterExpression: { checkoutCartId: { $exists: true } } },
 );
 OrderSchema.index(
   { razorpayOrderId: 1 },
@@ -1282,6 +1558,66 @@ OrderSchema.index(
     partialFilterExpression: { mtnMomoTransactionId: { $gt: "" } },
   },
 );
+
+/**
+ * Every order carries the return rules it was sold under.
+ *
+ * The checkout writes them into the order document itself, so an order made
+ * later from a checkout attempt keeps the rules of the moment the shopper paid.
+ * This catches every other way an order comes into being (admin, vendor, POS,
+ * the Stripe finaliser) without each of them having to remember.
+ *
+ * Never fails the order: without terms it reads the store's settings, the way
+ * every order did before they were stored.
+ */
+OrderSchema.pre("validate", async function stampReturnTerms() {
+  if (!this.isNew || this.returnTerms) return;
+  // Nobody opened a connection, so reading the settings would wait for ever
+  // and no order is being written anyway: an order is only created after
+  // `connectDB()`. This is a model being validated on its own, as a test does.
+  if (this.db?.readyState === 0) return;
+  try {
+    const { getSettings } = await import("@/models/settings.model");
+    this.returnTerms = returnTermsForNewOrder(await getSettings());
+  } catch (error) {
+    console.error("Failed to record an order's return terms:", error);
+  }
+});
+
+/**
+ * Every line carries whether it was sold as final sale, and its own return
+ * window when its product or a collection gave it one (R6).
+ *
+ * The checkout writes both into the document from the products it already
+ * has in hand, which is what the shopper was shown; this fills the lines every
+ * other way of making an order leaves unmarked. Like the return terms it never
+ * fails the order: a line left unmarked is returnable, as every line was
+ * before final sale existed, for the order's own window.
+ */
+OrderSchema.pre("validate", async function stampFinalSaleLines() {
+  if (!this.isNew) return;
+  const unmarked = (this.items || []).filter(
+    (item) => item && typeof item.finalSale !== "boolean",
+  );
+  if (unmarked.length === 0) return;
+  if (this.db?.readyState === 0) return;
+  try {
+    const [{ returnLineTerms }, { getSettings }] = await Promise.all([
+      import("@/lib/returns/final-sale-lines"),
+      import("@/models/settings.model"),
+    ]);
+    const terms = await returnLineTerms(unmarked, await getSettings());
+    unmarked.forEach((item, index) => {
+      item.finalSale = terms[index]?.finalSale === true;
+      const windowDays = terms[index]?.returnWindowDays;
+      if (typeof windowDays === "number" && typeof item.returnWindowDays !== "number") {
+        item.returnWindowDays = windowDays;
+      }
+    });
+  } catch (error) {
+    console.error("Failed to record which order lines are final sale:", error);
+  }
+});
 
 // Virtual for customer
 OrderSchema.virtual("customer", {

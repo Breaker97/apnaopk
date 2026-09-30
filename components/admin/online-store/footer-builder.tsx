@@ -9,7 +9,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   Redo2,
@@ -77,10 +77,6 @@ import { ColorField, FieldRow, SwitchRow } from "@/components/admin/online-store
 import { FooterBuilderSkeleton } from "@/components/admin/online-store/online-store-skeletons";
 import { setNestedValue } from "@/components/admin/online-store/set-nested-value";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
-
-interface FooterBuilderProps {
-  locale: string;
-}
 
 type SettingsPayload = {
   success?: boolean;
@@ -164,7 +160,7 @@ function areFootersEqual(a: FooterSettings, b: FooterSettings) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export function FooterBuilder({ locale }: FooterBuilderProps) {
+export function FooterBuilder() {
   const t = useTranslations("admin.footerCms");
   // New-key guard: these labels post-date several locale files.
   const tf = useFallbackTranslator(t);
@@ -494,7 +490,7 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
               {t("actions.save")}
             </Button>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/${locale}/admin/online-store/menus`}>{t("actions.back")}</Link>
+              <Link href="/admin/online-store/menus">{t("actions.back")}</Link>
             </Button>
           </>
         }
@@ -536,7 +532,7 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Badge variant="secondary">{t("brand.synced")}</Badge>
                     <Link
-                      href={`/${locale}/admin/online-store/theme?tab=branding`}
+                      href="/admin/online-store/theme?tab=branding"
                       className="text-xs font-medium text-primary hover:underline"
                     >
                       {t("brand.editBranding")}
@@ -921,7 +917,7 @@ export function FooterBuilder({ locale }: FooterBuilderProps) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Badge variant="secondary">{t("contact.synced")}</Badge>
                     <Link
-                      href={`/${locale}/admin/settings/general/store-info`}
+                      href="/admin/settings/general"
                       className="text-xs font-medium text-primary hover:underline"
                     >
                       {t("contact.editStoreInformation")}

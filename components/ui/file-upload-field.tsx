@@ -37,6 +37,20 @@ function nameFromUrl(url: string) {
   }
 }
 
+/** The public media upload — the default for fields whose files are not private. */
+async function uploadToMediaLibrary(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("files", file);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  const json = (await res.json()) as UploadResponse;
+  const items = Array.isArray(json?.data) ? (json.data as unknown[]) : [];
+  const url = (items[0] as { url?: unknown } | undefined)?.url;
+  if (json?.success !== true || typeof url !== "string" || !url) {
+    throw new Error(typeof json?.message === "string" ? json.message : "");
+  }
+  return url;
+}
+
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -70,6 +84,10 @@ export function FileUploadField({
   readOnly = false,
   readOnlyHint,
   className,
+  upload: uploadFile,
+  viewUrl = (stored: string) => stored,
+  onUploadingChange,
+  invalid = false,
 }: {
   id: string;
   label?: string;
@@ -82,6 +100,18 @@ export function FileUploadField({
   readOnly?: boolean;
   readOnlyHint?: string;
   className?: string;
+  /**
+   * Stores the file and resolves to the value to keep. Defaults to the public
+   * media upload; a field whose files must stay private (expense receipts)
+   * passes its own, which resolves to a storage key.
+   */
+  upload?: (file: File) => Promise<string>;
+  /** Where "View" and the preview load a stored value from. */
+  viewUrl?: (value: string) => string;
+  /** Told when an upload starts and ends, so a form can wait for it. */
+  onUploadingChange?: (uploading: boolean) => void;
+  /** Marks the field as the one a form's error is about. */
+  invalid?: boolean;
 }) {
   const t = useTranslations();
   const text = useFallbackTranslator(t);
@@ -103,10 +133,9 @@ export function FileUploadField({
 
       if (file.size > maxSizeMb * 1024 * 1024) {
         setError(
-          text(
-            "ui.fileUpload.tooLarge",
-            `That file is larger than ${maxSizeMb} MB`,
-          ).replace("{size}", String(maxSizeMb)),
+          text("ui.fileUpload.tooLarge", "That file is larger than {size} MB", {
+            size: maxSizeMb,
+          }),
         );
         return;
       }
@@ -129,42 +158,34 @@ export function FileUploadField({
         setError(
           text(
             "ui.fileUpload.wrongType",
-            "That file type isn't accepted. Use PNG, JPG or PDF.",
+            "That file type isn't accepted. Use a PDF, PNG, JPG or WebP file.",
           ),
         );
         return;
       }
 
       setIsUploading(true);
+      onUploadingChange?.(true);
       try {
-        const formData = new FormData();
-        formData.append("files", file);
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const json = (await res.json()) as UploadResponse;
-        const items = Array.isArray(json?.data) ? (json.data as unknown[]) : [];
-        const url = (items[0] as { url?: unknown } | undefined)?.url;
-        if (json?.success !== true || typeof url !== "string" || !url) {
-          setError(
-            typeof json?.message === "string"
-              ? json.message
-              : text("ui.fileUpload.failed", "Upload failed"),
-          );
-          return;
-        }
+        const stored = uploadFile
+          ? await uploadFile(file)
+          : await uploadToMediaLibrary(file);
         setPicked({ name: file.name, size: file.size });
-        onChange(url);
-      } catch {
-        setError(text("ui.fileUpload.failed", "Upload failed"));
+        onChange(stored);
+      } catch (uploadError) {
+        setError(
+          uploadError instanceof Error && uploadError.message
+            ? uploadError.message
+            : text("ui.fileUpload.failed", "Upload failed"),
+        );
       } finally {
         setIsUploading(false);
+        onUploadingChange?.(false);
         // Allow re-picking the same file after a failure or a removal.
         if (inputRef.current) inputRef.current.value = "";
       }
     },
-    [accept, maxSizeMb, onChange, text],
+    [accept, maxSizeMb, onChange, onUploadingChange, text, uploadFile],
   );
 
   const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -178,13 +199,17 @@ export function FileUploadField({
   const name = picked?.name || (value ? nameFromUrl(value) : "");
   const pdf = Boolean(value) && isPdf(name);
 
+  // The hint sits after the label and wraps under it on a narrow screen,
+  // instead of being squeezed into the label's own row beside it.
   const fieldLabel = label ? (
-    <Label htmlFor={id} className={readOnly ? "text-muted-foreground" : undefined}>
-      {label}
+    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+      <Label htmlFor={id} className={readOnly ? "text-muted-foreground" : undefined}>
+        {label}
+      </Label>
       {hint ? (
-        <span className="font-normal text-muted-foreground">{hint}</span>
+        <span className="text-xs text-muted-foreground">{hint}</span>
       ) : null}
-    </Label>
+    </div>
   ) : null;
 
   const fileInput = (
@@ -246,7 +271,15 @@ export function FileUploadField({
             </span>
           ) : (
             <span className="relative size-11 shrink-0 overflow-hidden rounded-lg border bg-muted">
-              <AppImage src={value} alt={name} width={44} height={44} />
+              <AppImage
+                src={viewUrl(value)}
+                alt={name}
+                width={44}
+                height={44}
+                // A private file is served to the signed-in admin only; the
+                // image optimizer fetches without their session.
+                unoptimized={viewUrl(value) !== value}
+              />
             </span>
           )}
           <div className="min-w-0 flex-1">
@@ -269,7 +302,7 @@ export function FileUploadField({
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button type="button" variant="ghost" size="sm" asChild>
-              <a href={value} target="_blank" rel="noreferrer">
+              <a href={viewUrl(value)} target="_blank" rel="noreferrer">
                 <Eye className="size-3.5 text-muted-foreground" />
                 {text("ui.fileUpload.view", "View")}
               </a>
@@ -360,6 +393,7 @@ export function FileUploadField({
           className={cn(
             "flex h-[92px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed bg-muted/30 text-center transition-colors",
             "hover:border-primary/50 hover:bg-muted/50",
+            invalid && "border-destructive",
             isDragging && "border-primary bg-primary/5",
             disabled && "cursor-not-allowed opacity-60 hover:bg-muted/30",
           )}
@@ -381,11 +415,10 @@ export function FileUploadField({
                 </span>
               </p>
               <p className="text-xs text-muted-foreground/80">
-                {text("ui.fileUpload.limits", "PNG, JPG or PDF")} ·{" "}
-                {text("ui.fileUpload.upTo", "up to {size} MB").replace(
-                  "{size}",
-                  String(maxSizeMb),
-                )}
+                {text("ui.fileUpload.limits", "PDF, PNG, JPG or WebP")} ·{" "}
+                {text("ui.fileUpload.upTo", "up to {size} MB", {
+                  size: maxSizeMb,
+                })}
               </p>
             </>
           )}

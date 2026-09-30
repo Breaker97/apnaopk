@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { ChevronDown, Package, Star } from "lucide-react";
 import {
@@ -103,7 +103,7 @@ export function PendingReviewsCard({
                 </div>
                 <div className="min-w-0">
                   <Link
-                    href={`/${locale}/products/${item.slug}`}
+                    href={`/products/${item.slug}`}
                     className="line-clamp-1 text-sm font-medium hover:underline"
                   >
                     {item.name}
@@ -115,7 +115,7 @@ export function PendingReviewsCard({
                         })} · `
                       : null}
                     <Link
-                      href={`/${locale}/account/orders/${item.orderId}`}
+                      href={`/account/orders/${item.orderId}`}
                       className="hover:underline"
                     >
                       #{item.orderNumber}

@@ -9,7 +9,7 @@ import { getStripeForSecretKey, isStripeSecretKeyConfigured } from "@/lib/paymen
 import { settlePreorderBalanceFromIntent } from "@/lib/payments/preorder-balance";
 import { readPreorderBalanceToken } from "@/lib/payments/preorder-balance-link";
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
-import { z } from "zod";
+import * as z from "zod";
 
 const BodySchema = z.object({
   paymentIntentId: z.string().min(1).max(255),
@@ -85,6 +85,12 @@ export const POST = withApi<{ id: string }>(
     // being shown a paid order that is not paid.
     return successResponse({
       settled: result.settled || Boolean(result.alreadySettled),
+      // Not refused, not recorded: the bank is still confirming (`processing`)
+      // and the webhook records it when it clears. Reported apart, because
+      // "not settled" alone read as the refund that follows a payment the
+      // order could not take — a shopper whose money was still on its way was
+      // told it had been sent back.
+      pending: result.reason === "not_succeeded",
       reason: result.reason,
       intentStatus: paymentIntent.status,
       paymentStatus: after?.paymentStatus,

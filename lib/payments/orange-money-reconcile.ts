@@ -29,6 +29,7 @@ import {
 } from "@/lib/payments/orange-money";
 import { finalizeOrangeMoneyOrder } from "@/lib/payments/orange-money-orders";
 import { verifyPlatformPayment } from "@/lib/payments/platform-payments";
+import { amountDueNow } from "@/lib/payments/finalize-order";
 
 /**
  * How long a payment must have been pending before we ask about it.
@@ -95,24 +96,42 @@ export async function reconcileOrangeMoneyPayments(
     orangeMoneyPayToken: { $gt: "" },
     orangeMoneyOrderId: { $gt: "" },
     createdAt: { $lt: olderThan, $gt: newerThan },
+    paymentReconcileClosedAt: { $exists: false },
   })
-    .select("_id orangeMoneyOrderId orangeMoneyPayToken total preorderOutstandingAmount")
+    // Least recently asked first, so every pending order gets its turn rather
+    // than the same first batch taking every slot on every sweep.
+    .sort({ paymentReconcileCheckedAt: 1, createdAt: -1 })
+    .select("_id orangeMoneyOrderId orangeMoneyPayToken total preorderOutstandingAmount storeCredit")
     .limit(limit);
 
   for (const order of orders) {
     result.checked++;
+    await Order.updateOne(
+      { _id: order._id },
+      { $set: { paymentReconcileCheckedAt: new Date() } },
+    ).catch((error) =>
+      console.error("Failed to note an Orange Money reconcile check:", error),
+    );
     try {
-      const expectedAmount = Math.max(
-        0,
-        Number(order.total || 0) - Number(order.preorderOutstandingAmount || 0),
-      );
+      // What every gateway is held to — store credit included (R8).
+      const expectedAmount = amountDueNow(order);
       const transaction = await getOrangeMoneyTransactionStatus({
         creds,
         orderId: String(order.orangeMoneyOrderId),
         amount: expectedAmount,
         payToken: String(order.orangeMoneyPayToken),
       });
-      if (getOrangeMoneyTransactionState(transaction) !== "completed") continue;
+      const state = getOrangeMoneyTransactionState(transaction);
+      // Failed or expired for good: the token is dead and will never pay.
+      if (state === "failed") {
+        await Order.updateOne(
+          { _id: order._id },
+          { $set: { paymentReconcileClosedAt: new Date() } },
+        ).catch((error) =>
+          console.error("Failed to close an Orange Money reconcile:", error),
+        );
+      }
+      if (state !== "completed") continue;
 
       // No customerEmail: the confirmation email belongs to the path the
       // shopper is watching, and a sweep replaying it days later is noise.

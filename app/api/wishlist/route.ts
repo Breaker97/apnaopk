@@ -7,7 +7,7 @@ import {
   isStorefrontMultiVendorEnabled,
   isStorefrontProductSourceAllowed,
 } from "@/lib/catalog/product-visibility";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 import { Types } from "mongoose";
 

@@ -6,7 +6,7 @@ import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { STAFF_USER_ROLES } from "@/lib/access/staff-role";
 import { isVendorOwnedStaff } from "@/lib/access/staff-ownership";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const StaffNoteSchema = z.object({

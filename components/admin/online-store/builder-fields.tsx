@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Input } from "@/components/ui/input";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -70,13 +71,12 @@ export function ColorField({
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
         />
-        <Input
-          type="color"
+        <ColorSwatchPicker
           value={value}
           disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-12 shrink-0 p-1"
-          aria-label={`${label} picker`}
+          onChange={onChange}
+          align="end"
+          ariaLabel={`${label} picker`}
         />
       </div>
     </FieldRow>

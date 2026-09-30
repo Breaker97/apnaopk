@@ -67,6 +67,7 @@ export default async function SectionPreviewPage({
     <div data-section-preview>
       <StoreSections
         sections={pickPreviewSection(page.sections, sectionId, blockId)}
+        page={page.sections}
         ctx={page.ctx}
       />
       <SectionPreviewSizer />

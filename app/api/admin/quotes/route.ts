@@ -1,10 +1,13 @@
 import { withApi } from "@/lib/api/handler";
 import { paginatedResponse } from "@/lib/api/response";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { fetchQuoteRequestList } from "@/lib/quotes/quotes";
+import { fetchAdminQuoteList } from "@/lib/quotes/quotes";
 
 /**
- * GET /api/admin/quotes — the quote inbox.
+ * GET /api/admin/quotes — the quote inbox, one page at a time.
+ *
+ * Reads the same query string as the admin Quotes page (see
+ * `fetchAdminQuoteList`), so the two cannot answer the same URL differently.
  *
  * Gated on the order permissions rather than a permission of its own: a quote
  * is a pre-sale lead, so anyone trusted to work the order queue is the same
@@ -18,7 +21,7 @@ export const GET = withApi(
     rateLimit: { action: "admin:quotes:list", preset: "lenient" },
   },
   async ({ request, staff }) => {
-    const list = await fetchQuoteRequestList(request.nextUrl.searchParams, {
+    const list = await fetchAdminQuoteList(request.nextUrl.searchParams, {
       staffScope: staff?.scope,
     });
 

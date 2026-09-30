@@ -5,12 +5,13 @@ import { Loader2, ShoppingBag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-notification";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { type ModernProduct } from "@/lib/products/modern-product";
+import { getProductPriceRange } from "@/lib/products/price-display";
 import {
-  getProductPriceRange,
+  productOnlyVariant,
   productRequiresVariantSelection,
-} from "@/lib/products/price-display";
+} from "@/lib/products/variant-selection";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import { trackAddToCart } from "@/lib/analytics/events";
 import { useCurrency } from "@/providers/currency-provider";
@@ -33,7 +34,7 @@ export function AddAllToCartButton({
   className?: string;
 }) {
   const t = useTranslations();
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   const { currency } = useCurrency();
   const [busy, setBusy] = useState(false);
 
@@ -46,10 +47,7 @@ export function AddAllToCartButton({
     try {
       for (const product of products) {
         if (isQuoteOnlyProduct(product)) continue;
-        const onlyVariant =
-          Array.isArray(product.variants) && product.variants.length === 1
-            ? product.variants[0]
-            : null;
+        const onlyVariant = productOnlyVariant(product);
         if (productRequiresVariantSelection(product) && !onlyVariant) {
           needsChoice += 1;
           continue;

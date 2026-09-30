@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth/auth";
 import { ObjectId } from "mongodb";
 import { mongoose } from "@/lib/db";
 import { connectDB } from "@/lib/db";
@@ -7,13 +6,24 @@ import { redirect } from "next/navigation";
 import { AccountSidebar } from "@/components/account/account-sidebar";
 import { AccountMobileNav } from "@/components/account/account-mobile-nav";
 import { AccountBreadcrumb } from "@/components/account/account-breadcrumb";
-import { ensureCustomerProfile } from "@/lib/customers/customer";
-import { Notification, StaffProfile } from "@/models";
+import {
+  countUnreadNotifications,
+  getAccountProfile,
+  getAccountSession,
+} from "@/lib/customers/account-data";
+import { StaffProfile } from "@/models";
 import { USER_ROLES } from "@/config/app.config";
 import { isStaffRole } from "@/lib/access/staff-role";
 import { getRoleDashboardPath } from "@/lib/access/role-dashboard";
 import { EmailVerificationNotice } from "@/components/auth/email-verification-notice";
+import { RouteMessages } from "@/components/language/route-messages";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
+import { localeHref } from "@/lib/i18n/locale-routing";
+import { isDemoModeEnabled, PROFILE_DEMO_MODE_MESSAGE } from "@/lib/demo-mode";
+import { ResourceScope } from "@/hooks/use-suspense-resource";
+
+// Canonical, hreflang and robots from the URL being served.
+export { generateMetadata } from "@/lib/storefront/request-path-metadata";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,15 +34,11 @@ async function getAccountStats(userId: string) {
   await connectDB();
 
   const [profile, user, notificationsCount] = await Promise.all([
-    ensureCustomerProfile(userId),
+    getAccountProfile(userId),
     mongoose.connection.db
       ?.collection("user")
       .findOne({ _id: new ObjectId(userId) }),
-    Notification.countDocuments({
-      userId,
-      isRead: false,
-      isArchived: { $ne: true },
-    }),
+    countUnreadNotifications(userId),
   ]);
 
   return {
@@ -50,15 +56,15 @@ export default async function AccountLayout({ children, params }: LayoutProps) {
 
   // Check authentication
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const session = await getAccountSession();
 
   if (!session) {
     // Send the visitor back to the exact account page (with its query — the
     // inbox arrives with product/vendor chat context) they were heading for.
     redirect(
-      buildLoginUrl(
+      await localeHref(
         locale,
-        returnPathFromHeaders(requestHeaders) ?? `/${locale}/account`,
+        buildLoginUrl(locale, returnPathFromHeaders(requestHeaders) ?? "/account"),
       ),
     );
   }
@@ -78,51 +84,66 @@ export default async function AccountLayout({ children, params }: LayoutProps) {
         isActive: true,
       });
       if (!activeStaff) {
-        redirect(`/${locale}`);
+        redirect(await localeHref(locale, "/"));
       }
     }
-    redirect(dashboardPath);
+    redirect(await localeHref(locale, dashboardPath));
   }
   if (session.user.role && session.user.role !== USER_ROLES.CUSTOMER) {
     // A future non-customer role without a dashboard mapping still stays out.
-    redirect(`/${locale}`);
+    redirect(await localeHref(locale, "/"));
   }
 
   // Fetch stats for sidebar
   const stats = await getAccountStats(session.user.id);
+  // The avatar pickers refuse uploads in demo mode. The flag is the server's
+  // env, so it is handed down here rather than asked of /api/user/profile by
+  // each picker on every visit to the profile page.
+  const demoMode = {
+    enabled: isDemoModeEnabled(),
+    message: PROFILE_DEMO_MODE_MESSAGE,
+  };
 
   return (
-    // The theme's global `--radius` (1rem) makes every card here read as a
-    // 20px-round bubble. The account area wants a tighter, more utilitarian
-    // surface, so it scopes the token down once: because `@theme inline` inlines
-    // `calc(var(--radius) ± n)` into every `rounded-*` utility, this single
-    // override reshapes cards, tiles, inputs and buttons throughout the subtree
-    // in one place — no per-card class to keep in sync.
-    <div className="container mx-auto px-4 pb-8 lg:py-8 [--dashboard-header-height:var(--storefront-header-height,4rem)] [--radius:0.5rem]">
-      {/* Mobile chrome: sticky identity strip + section pills. Renders here (not
-          per page) so it stays put while the content below it scrolls, and so
-          every page inherits the same nav without repeating a back link. */}
-      <AccountMobileNav locale={locale} stats={stats} />
+    // Orders, addresses and the account's own screens: the three namespaces
+    // the rest of the storefront does without.
+    <RouteMessages namespaces={["account", "orders", "checkout"]}>
+      {/* Pages below keep what they fetched for this user between visits (see
+          useSuspenseResource), keyed by the id this session was authorised as. */}
+      <ResourceScope owner={session.user.id}>
+        {/* The theme's global `--radius` (1rem) makes every card here read as a
+            20px-round bubble. The account area wants a tighter, more utilitarian
+            surface, so it scopes the token down once: because `@theme inline`
+            inlines `calc(var(--radius) ± n)` into every `rounded-*` utility, this
+            single override reshapes cards, tiles, inputs and buttons throughout
+            the subtree in one place — no per-card class to keep in sync. */}
+        <div className="container mx-auto px-4 pb-8 lg:py-8 [--dashboard-header-height:var(--storefront-header-height,4rem)] [--radius:0.5rem]">
+          {/* Mobile chrome: sticky identity strip + section pills. Renders here (not
+              per page) so it stays put while the content below it scrolls, and so
+              every page inherits the same nav without repeating a back link. */}
+          <AccountMobileNav locale={locale} stats={stats} demoMode={demoMode} />
 
-      {/* Desktop only: on phones the sticky strip above already names the
-          section and carries the way back, so a second trail under it would be
-          the same navigation twice. */}
-      <AccountBreadcrumb locale={locale} className="hidden lg:block" />
+          {/* Desktop only: on phones the sticky strip above already names the
+              section and carries the way back, so a second trail under it would be
+              the same navigation twice. */}
+          <AccountBreadcrumb locale={locale} className="hidden lg:block" />
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
-        <AccountSidebar locale={locale} stats={stats} />
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar */}
+            <AccountSidebar locale={locale} stats={stats} demoMode={demoMode} />
 
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 space-y-6">
-          <EmailVerificationNotice
-            email={session.user.email}
-            status={session.user.emailVerificationStatus}
-            locale={locale}
-          />
-          {children}
+            {/* Main Content */}
+            <div className="flex-1 min-w-0 space-y-6">
+              <EmailVerificationNotice
+                email={session.user.email}
+                status={session.user.emailVerificationStatus}
+                locale={locale}
+              />
+              {children}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </ResourceScope>
+    </RouteMessages>
   );
 }

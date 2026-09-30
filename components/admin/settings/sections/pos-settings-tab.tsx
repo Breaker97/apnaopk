@@ -38,7 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Slider } from "@/components/ui/slider";
 import type { Settings } from "@/components/admin/settings/types";
 import { previewPOSSound } from "@/lib/pos/pos-sounds";
@@ -63,19 +62,6 @@ interface LocationOption {
   isDefault: boolean;
   isActive: boolean;
 }
-
-const LANGUAGE_OPTIONS = [
-  { code: "en", name: "English" },
-  { code: "bn", name: "Bengali" },
-  { code: "ar", name: "Arabic" },
-  { code: "hi", name: "Hindi" },
-  { code: "zh", name: "Chinese" },
-  { code: "ja", name: "Japanese" },
-  { code: "ko", name: "Korean" },
-  { code: "fr", name: "French" },
-  { code: "es", name: "Spanish" },
-  { code: "de", name: "German" },
-];
 
 // ============================================
 // Section Card Component
@@ -165,16 +151,6 @@ export function POSSettingsTab(props: POSSettingsTabProps) {
   const pos = props.settings.pos;
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
-  const posOrderNumberPrefixLabel = t.has(
-    "admin.settings.pos.orderNumberPrefix"
-  )
-    ? t("admin.settings.pos.orderNumberPrefix")
-    : "Order number prefix";
-  const posOrderNumberPrefixHint = t.has(
-    "admin.settings.pos.orderNumberPrefixHint"
-  )
-    ? t("admin.settings.pos.orderNumberPrefixHint")
-    : "New POS orders use this prefix with a six-digit number, for example POS000017.";
 
   // Fetch locations for the dropdown
   useEffect(() => {
@@ -327,25 +303,6 @@ export function POSSettingsTab(props: POSSettingsTabProps) {
           description={t("admin.settings.pos.generalDesc")}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="posLanguage">
-                {t("admin.settings.pos.language")}
-              </Label>
-              <SearchableSelect
-                id="posLanguage"
-                value={pos.language || "en"}
-                onValueChange={(v) => props.updateField("pos.language", v)}
-                disabled={!pos.enabled}
-                options={LANGUAGE_OPTIONS.map((lang) => ({
-                  value: lang.code,
-                  label: lang.name,
-                }))}
-                searchPlaceholder="Search language..."
-              />
-              <p className="text-xs text-muted-foreground">
-                {t("admin.settings.pos.languageHint")}
-              </p>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="posDefaultLocation">
                 {t("admin.settings.pos.defaultLocation")}
@@ -677,7 +634,7 @@ export function POSSettingsTab(props: POSSettingsTabProps) {
           <div className="space-y-2">
             <Label htmlFor="posOrderNumberPrefix" className="flex items-center gap-2">
               <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
-              {posOrderNumberPrefixLabel}
+              {t("admin.settings.pos.orderNumberPrefix")}
             </Label>
             <Input
               id="posOrderNumberPrefix"
@@ -693,7 +650,7 @@ export function POSSettingsTab(props: POSSettingsTabProps) {
               className="max-w-xs"
             />
             <p className="text-xs text-muted-foreground">
-              {posOrderNumberPrefixHint}
+              {t("admin.settings.pos.orderNumberPrefixHint")}
             </p>
           </div>
 

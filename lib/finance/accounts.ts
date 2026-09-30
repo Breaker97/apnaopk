@@ -71,6 +71,15 @@ export const LEDGER_ACCOUNT = {
    * though it were a sale.
    */
   ACCOUNTS_PAYABLE: "accounts_payable",
+  /**
+   * Store credit shoppers hold and have not spent (R8).
+   *
+   * A refund to store credit sends no money anywhere: the sale is reversed as
+   * any refund reverses it, and what the shopper is owed sits here instead of
+   * leaving a cash account. Spending the credit on a new order pays for that
+   * order out of it, and an expired lot takes the rest out of it.
+   */
+  STORE_CREDIT_PAYABLE: "store_credit_payable",
 
   /** Goods sold by the store itself. Marketplace sales never touch this. */
   PRODUCT_REVENUE: "product_revenue",
@@ -148,6 +157,7 @@ export const LEDGER_ACCOUNT_TYPES: Record<LedgerAccount, LedgerAccountType> = {
   [LEDGER_ACCOUNT.TAX_PAYABLE]: LEDGER_ACCOUNT_TYPE.LIABILITY,
   [LEDGER_ACCOUNT.DUTY_PAYABLE]: LEDGER_ACCOUNT_TYPE.LIABILITY,
   [LEDGER_ACCOUNT.ACCOUNTS_PAYABLE]: LEDGER_ACCOUNT_TYPE.LIABILITY,
+  [LEDGER_ACCOUNT.STORE_CREDIT_PAYABLE]: LEDGER_ACCOUNT_TYPE.LIABILITY,
   [LEDGER_ACCOUNT.PRODUCT_REVENUE]: LEDGER_ACCOUNT_TYPE.INCOME,
   [LEDGER_ACCOUNT.COMMISSION_INCOME]: LEDGER_ACCOUNT_TYPE.INCOME,
   [LEDGER_ACCOUNT.SHIPPING_INCOME]: LEDGER_ACCOUNT_TYPE.INCOME,
@@ -190,12 +200,4 @@ export function debitSign(account: LedgerAccount): 1 | -1 {
     type === LEDGER_ACCOUNT_TYPE.EXPENSE
     ? 1
     : -1;
-}
-
-/** True for accounts that belong on the profit and loss rather than the balance. */
-export function isProfitAndLossAccount(account: LedgerAccount): boolean {
-  const type = LEDGER_ACCOUNT_TYPES[account];
-  return (
-    type === LEDGER_ACCOUNT_TYPE.INCOME || type === LEDGER_ACCOUNT_TYPE.EXPENSE
-  );
 }

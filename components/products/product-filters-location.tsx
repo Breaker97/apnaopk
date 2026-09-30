@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { Crosshair, Loader2, MapPin, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

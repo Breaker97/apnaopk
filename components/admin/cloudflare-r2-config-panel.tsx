@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, KeyRound, Globe, HardDrive, User } from "lucide-react";
+import { KeyRound, Globe, HardDrive, User } from "lucide-react";
 import { EnvSourceHint } from "@/components/admin/settings/fields/env-source-hint";
 import type { CredentialEnvSources } from "@/lib/settings/credentials";
 
@@ -165,15 +166,12 @@ export function CloudflareR2ConfigPanel({
         </p>
         <EnvSourceHint show={Boolean(envSources?.publicUrl)} />
         {!publicUrl?.trim() && !envSources?.publicUrl && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="text-xs leading-relaxed">
-              {t("admin.settings.storage.r2PublicUrlMissing", {
-                defaultMessage:
-                  "Without a public URL, uploaded files cannot be displayed on your store — image and video URLs will point at the private R2 endpoint and fail to load. In Cloudflare Dashboard → R2 → your bucket → Settings → Public access, enable the R2.dev subdomain (or connect a custom domain) and paste that URL here.",
-              })}
-            </p>
-          </div>
+          <WarningBanner>
+            {t("admin.settings.storage.r2PublicUrlMissing", {
+              defaultMessage:
+                "Without a public URL, uploaded files cannot be displayed on your store — image and video URLs will point at the private R2 endpoint and fail to load. In Cloudflare Dashboard → R2 → your bucket → Settings → Public access, enable the R2.dev subdomain (or connect a custom domain) and paste that URL here.",
+            })}
+          </WarningBanner>
         )}
       </div>
     </>

@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -53,8 +52,6 @@ const quickLinks = [
 
 export default function VendorNotFound() {
   const t = useTranslations();
-  const params = useParams();
-  const locale = typeof params?.locale === "string" ? params.locale : "en";
 
   return (
     <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-8">
@@ -87,7 +84,7 @@ export default function VendorNotFound() {
             className="w-full sm:w-auto"
           />
           <Button asChild className="w-full sm:w-auto">
-            <Link href={`/${locale}/vendor/dashboard`}>
+            <Link href="/vendor/dashboard">
               <LayoutDashboard className="size-4" aria-hidden="true" />
               {t("common.backToDashboard")}
             </Link>
@@ -103,7 +100,7 @@ export default function VendorNotFound() {
             {quickLinks.map((link) => (
               <Link
                 key={link.href}
-                href={`/${locale}${link.href}`}
+                href={`${link.href}`}
                 className="group"
               >
                 <Card className="h-full transition-all duration-200 hover:bg-accent hover:border-accent-foreground/20 group-focus-visible:ring-2 group-focus-visible:ring-ring">

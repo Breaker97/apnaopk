@@ -3,7 +3,8 @@
  * Provides unified validation for API routes using Zod schemas
  */
 
-import { z, ZodSchema, ZodError } from "zod";
+import * as z from "zod";
+import type { ZodError, ZodSchema } from "zod";
 import { NextRequest } from "next/server";
 import { ValidationError } from "./errors";
 

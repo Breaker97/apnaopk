@@ -22,7 +22,7 @@ import {
  * marketplace, which on a large one is a payload no popover needs.
  */
 export const GET = withApi({}, async ({ request }) => {
-  await rateLimitByIP(request, "lenient");
+  await rateLimitByIP(request, "browse");
 
   const params = request.nextUrl.searchParams;
   const query = params.get("q");

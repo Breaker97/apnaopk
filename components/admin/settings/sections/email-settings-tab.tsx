@@ -197,9 +197,8 @@ export function EmailSettingsTab(props: {
                   maskedHint={
                     credentialMeta(settings, "email.smtp.password").hint
                   }
-                  placeholderWhenSet="Saved (leave blank to keep)"
-                  placeholderWhenUnset="Enter password"
-                  helperText="Saved passwords are not shown again for security."
+                  placeholderWhenUnset={t("admin.settings.email.passwordPlaceholder")}
+                  helperText={t("admin.settings.fields.savedPasswordsHint")}
                 />
                 <EnvSourceHint show={Boolean(envEmail?.password)} />
               </div>
@@ -226,13 +225,12 @@ export function EmailSettingsTab(props: {
                   onChange={(e) =>
                     updateNestedField("email.fromName", e.target.value)
                   }
-                  placeholder="Your Store Name"
+                  placeholder={t("admin.settings.email.fromNamePlaceholder")}
                 />
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Encryption is automatic: port 465 uses implicit TLS and port 587
-              requires STARTTLS.
+              {t("admin.settings.email.encryptionNote")}
             </p>
             <Separator />
             <div className="flex items-end gap-4">

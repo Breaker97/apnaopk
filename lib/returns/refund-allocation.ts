@@ -167,19 +167,27 @@ export function allocateReturnRefund(params: {
   }
 
   const parts = allocate(amount, weights, currency);
+
+  // Sized from the commission each consignment's returned goods carry, then
+  // held to the policy's cap for the RETURN as a whole. Capping each seller on
+  // its own let a return to two sellers keep twice the ceiling the policy
+  // names; the fee is shared out in proportion to what each would have paid.
+  const fees = seen.map((vendorId, index) =>
+    params.policy
+      ? refundAdminFeeFor(
+          (parts[index * 4] ?? 0) *
+            (params.commissionRatioByVendor?.get(vendorId) ?? 0),
+          { ...params.policy, refundAdminFeeCap: 0 },
+        )
+      : 0,
+  );
+  const feeTotal = fees.reduce((sum, fee) => sum + fee, 0);
+  const cap = params.policy?.refundAdminFeeCap ?? 0;
+  const feeScale = cap > 0 && feeTotal > cap ? cap / feeTotal : 1;
+
   return seen.map((vendorId, index) => {
     const merchandiseBack = parts[index * 4] ?? 0;
-    // Sized from the commission this consignment's returned goods carry, and
-    // applied per consignment — a shopper returning to two sellers has two
-    // sales being reversed, and each one cost the platform its own processing.
-    const commissionRatio =
-      params.commissionRatioByVendor?.get(vendorId) ?? 0;
-    const retained = params.policy
-      ? quantizeToCurrency(
-          refundAdminFeeFor(merchandiseBack * commissionRatio, params.policy),
-          currency,
-        )
-      : 0;
+    const retained = quantizeToCurrency((fees[index] ?? 0) * feeScale, currency);
 
     return {
       vendorId: vendorId || null,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import {
+  fromRazorpayAmountSubunits,
   type RazorpayPayment,
   verifyRazorpayWebhookSignature,
 } from "@/lib/payments/razorpay";
@@ -17,6 +18,7 @@ import {
   verifyPlatformPayment,
 } from "@/lib/payments/platform-payments";
 import { syncRazorpayDisputeEvent } from "@/lib/payments/gateway-disputes";
+import { resolveRazorpayCredentials } from "@/lib/settings/credentials";
 import type { RazorpayDisputeLike } from "@/lib/orders/dispute-readings";
 
 type RazorpayWebhookPayload = {
@@ -118,10 +120,113 @@ export async function POST(request: NextRequest) {
     const refund = event.payload?.refund?.entity;
     if (refund?.id) {
       if (event.event === "refund.failed") {
-        await reverseFailedGatewayRefund(refund.id);
+        await reverseFailedGatewayRefund(refund.id, {
+          amount:
+            typeof refund.amount === "number" && refund.currency
+              ? fromRazorpayAmountSubunits(refund.amount, refund.currency)
+              : undefined,
+          currency: refund.currency,
+        });
       } else {
         await reconcileGatewayRefundReading(readRazorpayRefund(refund));
+        // Or one of the marketplace's own payments — a boost, a subscription
+        // — which only Stripe's refunds ever reached.
+        const { keyId, keySecret } = resolveRazorpayCredentials(
+          settings.payment?.razorpay,
+        );
+        if (refund.payment_id && keyId && keySecret) {
+          await import("@/lib/payments/platform-refund-sync")
+            .then(({ syncRazorpayPlatformRefund }) =>
+              syncRazorpayPlatformRefund({
+                paymentId: String(refund.payment_id),
+                creds: { keyId, keySecret },
+              }),
+            )
+            .catch((error) =>
+              console.error("Failed to apply a Razorpay platform refund:", error),
+            );
+        }
       }
+    }
+    return NextResponse.json({ received: true });
+  }
+
+  // Razorpay reports every refusal, and nothing here listened: a shopper
+  // whose card was declined four times left no record, and the order sitting
+  // `pending` gave no hint of why. Recorded, never acted on — a failed
+  // payment does not cancel anything, because the same shopper usually tries
+  // again on the same Razorpay order.
+  if (event.event === "payment.failed") {
+    const payment = event.payload?.payment?.entity;
+    const razorpayOrderId =
+      payment?.order_id || event.payload?.order?.entity?.id;
+    if (payment) {
+      // Imported here rather than at the top: these reach the models barrel,
+      // and this route is loaded by tests that stub the database.
+      const { Order } = await import("@/models");
+      const { recordChargeFailure } = await import(
+        "@/lib/payments/payment-transactions"
+      );
+      const { recordCheckoutPaymentEvent } = await import(
+        "@/lib/orders/abandoned-checkouts"
+      );
+      // A refused payment on a gateway already switched over belongs to an
+      // attempt, not an order — there is no order until one of the tries
+      // succeeds. Binding the failure to the attempt is what lets the admin
+      // show every try behind one checkout, however many there were.
+      const { findAttemptByGatewayRef } = await import(
+        "@/lib/payments/finalize-attempt"
+      );
+      const { recordAttemptFailure } = await import(
+        "@/lib/checkout/checkout-attempt-store"
+      );
+      const attempt = razorpayOrderId
+        ? await findAttemptByGatewayRef("razorpayOrderId", razorpayOrderId)
+        : null;
+      if (attempt) {
+        await recordAttemptFailure(
+          attempt._id,
+          payment.error_reason || payment.error_code || undefined,
+        );
+      }
+      const order = razorpayOrderId
+        ? await Order.findOne({ razorpayOrderId })
+            .select("_id orderNumber checkoutCartId")
+            .lean<{
+              _id: unknown;
+              orderNumber?: string;
+              checkoutCartId?: unknown;
+            } | null>()
+        : null;
+      await recordChargeFailure({
+        provider: "razorpay",
+        paymentMethod: payment.method || "razorpay",
+        externalId: payment.id,
+        amount: fromRazorpayAmountSubunits(
+          Number(payment.amount || 0),
+          payment.currency,
+        ),
+        currency: payment.currency,
+        failureCode: payment.error_reason || payment.error_code,
+        gatewayMessage: payment.error_description,
+        source: "webhook",
+        orderId: order?._id,
+        orderNumber: order?.orderNumber,
+        checkoutAttemptId: attempt?._id,
+        // Who was paying, for the card-testing counters.
+        customerEmail: payment.email || undefined,
+        dedupeKey: payment.id ? `razorpay:failed:${payment.id}` : undefined,
+        ...(razorpayOrderId ? { metadata: { razorpayOrderId } } : {}),
+      });
+      await recordCheckoutPaymentEvent({
+        // An attempt has no order until a try succeeds, so its refusals are
+        // shown on the checkout through the attempt's own cart.
+        cartId: order?.checkoutCartId ?? attempt?.cartId,
+        gateway: "razorpay",
+        status: "failed",
+        message: payment.error_description || payment.error_reason,
+        paymentId: payment.id,
+      });
     }
     return NextResponse.json({ received: true });
   }

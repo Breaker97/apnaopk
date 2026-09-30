@@ -1,5 +1,5 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Separator } from "@/components/ui/separator";
-import { type Locale } from "@/config/i18n.config";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import { BrandsPageClient } from "@/components/store/brands-page-client";
@@ -33,6 +33,7 @@ async function getInitialBrands() {
 export default async function BrandsPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
   const [t, { brands, pagination }] = await Promise.all([
     getTranslations({ locale }),
     getInitialBrands(),
@@ -43,6 +44,7 @@ export default async function BrandsPage({ params }: PageProps) {
       <StoreBreadcrumb
         className="mb-4"
         locale={locale}
+        storeDefault={storeDefault}
         items={[{ label: t("nav.brands") }]}
       />
 
@@ -56,7 +58,6 @@ export default async function BrandsPage({ params }: PageProps) {
       <Separator className="mb-8" />
 
       <BrandsPageClient
-        locale={locale as Locale}
         initialBrands={brands}
         initialPagination={pagination}
       />

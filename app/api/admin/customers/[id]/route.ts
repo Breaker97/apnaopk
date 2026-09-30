@@ -1,15 +1,21 @@
 import { connectDB } from "@/lib/db";
-import { CustomerProfile, Order, User } from "@/models";
+import { CustomerProfile, User } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import {
   AuthorizationError,
   ConflictError,
   ValidationError,
 } from "@/lib/api/errors";
-import { USER_ROLES } from "@/config/app.config";
+import {
+  MARKETING_CONSENT_SOURCE,
+  MARKETING_CONSENT_STATE,
+  MARKETING_OPT_IN_LEVEL,
+  USER_ROLES,
+} from "@/config/app.config";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { AdminUpdateCustomerProfileSchema } from "@/lib/validations";
 import { computeLoyaltyTier } from "@/lib/customers/customer";
+import { setMarketingConsent } from "@/lib/customers/marketing-consent";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import {
   createAuditContext,
@@ -19,11 +25,10 @@ import {
 import { Types } from "mongoose";
 import { validateBody } from "@/lib/api/validate";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
-import {
-  buildStaffOrderScopeFilter,
-  hasStaffScope,
-  type StaffAccessScope,
-} from "@/lib/access/staff-scope";
+import { isCustomerAccount } from "@/lib/access/customer-account";
+import { revokeAllSessions } from "@/lib/auth/session-revocation";
+import { hasStaffScope, type StaffAccessScope } from "@/lib/access/staff-scope";
+import { isProfileInStaffScope } from "@/lib/customers/customer-staff-scope";
 import { withApi } from "@/lib/api/handler";
 import { cleanupDeletedUserReferences } from "@/lib/customers/user-cleanup";
 import { getSettings } from "@/models/settings.model";
@@ -31,6 +36,14 @@ import {
   areCountryValuesEquivalent,
   isCountryAllowed,
 } from "@/lib/intl/country-availability";
+
+/**
+ * The customer screen changes shoppers only — see `isCustomerAccount`. Refused
+ * for admins too: a team member's or seller's login is changed on the screen
+ * that owns their role, where the owner and last-admin rules are kept.
+ */
+const NOT_A_CUSTOMER_ACCOUNT =
+  "This account belongs to a seller or a team member. Change it from their own page.";
 
 type ShippingAddressInput = {
   firstName?: string;
@@ -165,15 +178,19 @@ export const PUT = withApi<{ id: string }>(
 
     const existingUser = userId
       ? await User.findById(userId)
-          .select("name email phone role status addresses")
+          .select("name email phone role roles status addresses")
           .lean()
       : null;
     if (!isGuestProfile && !existingUser) {
       return notFoundResponse("Customer user");
     }
+    if (existingUser && !isCustomerAccount(existingUser)) {
+      throw new AuthorizationError(NOT_A_CUSTOMER_ACCOUNT);
+    }
 
     const profileUpdateFields: Record<string, unknown> = {};
     const userUpdateFields: Record<string, unknown> = {};
+    let emailChanged = false;
 
     if (parsed.tags !== undefined) {
       profileUpdateFields.tags = Array.from(
@@ -194,8 +211,11 @@ export const PUT = withApi<{ id: string }>(
     }
     if (parsed.acquisitionSource !== undefined)
       profileUpdateFields.acquisitionSource = parsed.acquisitionSource;
-    if (parsed.marketingOptIn !== undefined)
-      profileUpdateFields.marketingOptIn = parsed.marketingOptIn;
+    // Marketing consent is a state with a date and a source behind it, so it
+    // is applied through `setMarketingConsent` rather than `$set` — including
+    // for guest rows, which is the whole point of keeping it off the User.
+    // Applied after the other writes, below; recorded here for the audit.
+    const consentRequested = parsed.marketingOptIn;
     if (parsed.emailNotifications !== undefined)
       profileUpdateFields.emailNotifications = parsed.emailNotifications;
     const shippingAddress = normalizeShippingAddress(parsed.shippingAddress);
@@ -234,6 +254,18 @@ export const PUT = withApi<{ id: string }>(
       if (parsed.email !== undefined) {
         const normalizedEmail = parsed.email.trim().toLowerCase();
         if (normalizedEmail !== existingUser.email) {
+          // The login email is where a password reset goes, so changing it
+          // hands over the account. Only an admin may, the new address is
+          // unverified until the shopper confirms it, and every session
+          // signed in under the old one ends (below, after the write).
+          if (session.user.role !== USER_ROLES.ADMIN) {
+            throw new AuthorizationError(
+              "Only an admin can change a customer's login email.",
+            );
+          }
+          emailChanged = true;
+          userUpdateFields.emailVerified = false;
+          userUpdateFields.emailVerifiedAt = null;
           const otherUser = await User.findOne({
             email: normalizedEmail,
             _id: { $ne: userId },
@@ -265,7 +297,8 @@ export const PUT = withApi<{ id: string }>(
 
     if (
       Object.keys(profileUpdateFields).length === 0 &&
-      Object.keys(userUpdateFields).length === 0
+      Object.keys(userUpdateFields).length === 0 &&
+      consentRequested === undefined
     ) {
       return successResponse({ message: "No fields to update" });
     }
@@ -273,9 +306,25 @@ export const PUT = withApi<{ id: string }>(
     if (Object.keys(profileUpdateFields).length > 0) {
       await CustomerProfile.updateOne({ _id: id }, { $set: profileUpdateFields });
     }
+    if (consentRequested !== undefined) {
+      await setMarketingConsent({
+        state: consentRequested
+          ? MARKETING_CONSENT_STATE.SUBSCRIBED
+          : MARKETING_CONSENT_STATE.UNSUBSCRIBED,
+        // An admin switching it on is vouching for consent given somewhere
+        // this store did not record, so the level stays honest about that.
+        optInLevel: consentRequested
+          ? MARKETING_OPT_IN_LEVEL.UNKNOWN
+          : undefined,
+        source: MARKETING_CONSENT_SOURCE.ADMIN,
+        profileId: id,
+      });
+      profileUpdateFields.marketingOptIn = consentRequested;
+    }
     if (userId && Object.keys(userUpdateFields).length > 0) {
       await User.updateOne({ _id: userId }, { $set: userUpdateFields });
     }
+    if (userId && emailChanged) await revokeAllSessions(userId);
 
     // Audit log — guest rows audit against the profile id and checkout email,
     // there being no user to attribute the record to.
@@ -341,7 +390,7 @@ export const DELETE = withApi<{ id: string }>(
     const profile = await CustomerProfile.findById(id)
       .populate({
         path: "userId",
-        select: "name email role",
+        select: "name email role roles",
       })
       .lean();
     if (!profile) {
@@ -370,6 +419,9 @@ export const DELETE = withApi<{ id: string }>(
     if (targetUserId === session.user.id) {
       throw new AuthorizationError("Cannot delete your own account");
     }
+    if (userFromProfile && !isCustomerAccount(userFromProfile)) {
+      throw new AuthorizationError(NOT_A_CUSTOMER_ACCOUNT);
+    }
 
     await CustomerProfile.deleteOne({ _id: id });
     if (targetUserId) {
@@ -395,47 +447,3 @@ export const DELETE = withApi<{ id: string }>(
     return successResponse({ message: "Customer deleted successfully" });
   },
 );
-
-async function isCustomerInStaffScope(
-  userId: string,
-  staffScope?: StaffAccessScope,
-) {
-  if (!hasStaffScope(staffScope)) return true;
-  // Guest profiles reach here with no userId at all; the string then isn't a
-  // castable ObjectId, and matching on it would throw rather than filter.
-  if (!Types.ObjectId.isValid(userId)) return false;
-  const count = await Order.countDocuments({
-    customerId: userId,
-    ...buildStaffOrderScopeFilter(staffScope),
-  });
-  return count > 0;
-}
-
-/**
- * The profile-shaped variant: registered rows are scoped by their orders'
- * customerId, guest rows by the checkout email their orders carry.
- */
-async function isProfileInStaffScope(
-  profile: { userId?: unknown; email?: string },
-  staffScope?: StaffAccessScope,
-) {
-  if (!hasStaffScope(staffScope)) return true;
-  const userId = getCustomerProfileUserId(profile);
-  if (Types.ObjectId.isValid(userId)) {
-    return isCustomerInStaffScope(userId, staffScope);
-  }
-  if (!profile.email) return false;
-  const count = await Order.countDocuments({
-    guestEmail: profile.email,
-    ...buildStaffOrderScopeFilter(staffScope),
-  });
-  return count > 0;
-}
-
-function getCustomerProfileUserId(profile: { userId?: unknown }) {
-  const user = profile.userId;
-  if (user && typeof user === "object" && "_id" in user) {
-    return String((user as { _id?: unknown })._id || "");
-  }
-  return String(user || "");
-}

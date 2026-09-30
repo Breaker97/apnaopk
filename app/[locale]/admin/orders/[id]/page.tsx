@@ -9,15 +9,23 @@ import { OrderConsignments } from "@/components/admin/order-details/order-consig
 import { OrderHeader } from "@/components/admin/order-details/order-header";
 import { OrderCustomer } from "@/components/admin/order-details/order-customer";
 import { OrderTimeline } from "@/components/admin/order-details/order-timeline";
+import { OrderPaymentAttempts } from "@/components/admin/order-details/order-payment-attempts";
 import { OrderTimelineSkeleton } from "@/components/admin/order-details/order-details-skeleton";
 import { OrderShipmentsCard } from "@/components/shipping/order-shipments-card";
+import { OrderAddressHoldBanner } from "@/components/orders/order-address-hold-banner";
 import { getSettings } from "@/models/settings.model";
 import {
-  resolveReturnPolicy,
+  resolveOrderReturnPolicy,
   unrefundableDeliveryFor,
 } from "@/lib/returns/return-policy";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
+import { getOrderRefundCeiling } from "@/lib/orders/preorder-cancel-refund";
+import {
+  refundedDeliveryTotal,
+  refundedQuantitiesByIndex,
+} from "@/lib/returns/return-plan";
 import { ORDER_STATUS } from "@/config/app.config";
+import { orderStoreCreditRefundProblem } from "@/lib/store-credit/refund-to-credit";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -62,18 +70,45 @@ export default async function OrderDetailsPage({ params }: PageProps) {
   // Delivery the carrier has already been paid for. Worked out here rather
   // than in the header because it is a policy question, and the header is a
   // client component with no business reading settings.
+  const settings = await getSettings();
   const ratedShipping = Math.max(0, Number(order.shippingCost || 0));
+  const chargedShipping = isFreeShippingCouponType(order.coupon?.type)
+    ? Math.max(0, ratedShipping - Math.max(0, Number(order.discount || 0)))
+    : ratedShipping;
+  const deliveryRefunded = await refundedDeliveryTotal(order._id);
   const unrefundableDelivery = unrefundableDeliveryFor({
-    policy: resolveReturnPolicy(await getSettings()),
+    // The delivery rule this order was sold under, not today's.
+    policy: resolveOrderReturnPolicy(order, settings),
     // Shipped counts, not only delivered: the label was bought and the
     // courier took the parcel days before the shopper signs for it.
     dispatched:
       order.status === ORDER_STATUS.SHIPPED ||
       order.status === ORDER_STATUS.DELIVERED,
-    chargedShipping: isFreeShippingCouponType(order.coupon?.type)
-      ? Math.max(0, ratedShipping - Math.max(0, Number(order.discount || 0)))
-      : ratedShipping,
+    chargedShipping,
+    // A delivery refunded once is not held back a second time — the server
+    // reads it the same way.
+    alreadyRefunded: deliveryRefunded,
   });
+  // The delivery the shopper paid that no refund has handed back — what the
+  // refund's delivery row can name, held back or not. The charge, not the
+  // rate: a free-shipping coupon's delivery took no money to give back.
+  const refundableDelivery = Math.max(0, chargedShipping - deliveryRefunded);
+  // The most a refund can reach, which is less than the total when part of
+  // the order was never paid for — the same figure the server caps at.
+  const refundCeiling = getOrderRefundCeiling({
+    ...order,
+    currency: String(order.currency || settings.general?.defaultCurrency || "USD"),
+  } as Parameters<typeof getOrderRefundCeiling>[0]);
+  // Units already refunded line by line, so a Full refund does not name them
+  // again — the server refuses a line refunded twice, and it used to.
+  const refundedQuantities = Object.fromEntries(
+    await refundedQuantitiesByIndex(order._id),
+  ) as Record<number, number>;
+  // Whether a refund here can go to the shopper as store credit (R8) — the
+  // same question the refund itself asks.
+  const storeCreditRefundBlocked = await orderStoreCreditRefundProblem(
+    order as Parameters<typeof orderStoreCreditRefundProblem>[0],
+  ).catch(() => "unknown");
 
   return (
     <div className="space-y-6">
@@ -92,6 +127,21 @@ export default async function OrderDetailsPage({ params }: PageProps) {
         // refuses to hand it back without being told to explicitly; this is
         // what stops the Full button asking.
         unrefundableDelivery={unrefundableDelivery}
+        refundableDelivery={refundableDelivery}
+        refundCeiling={refundCeiling}
+        refundedQuantities={refundedQuantities}
+        canRefundToStoreCredit={!storeCreditRefundBlocked}
+      />
+
+      {/* Above everything else: while it is amber nothing on this order ships. */}
+      <OrderAddressHoldBanner
+        orderId={String(order._id)}
+        orderNumber={order.orderNumber}
+        address={order.shippingAddress}
+        hold={order.addressHold}
+        apiBase="/api/admin"
+        readOnly={!canEditOrder}
+        canCancel={canCancelOrder}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -115,6 +165,16 @@ export default async function OrderDetailsPage({ params }: PageProps) {
               order.fulfillment?.method === "pickup"
             }
           />
+          {/* Every payment tried for this order, the refused ones included —
+              shown only when there is more to say than the badge above. */}
+          <Suspense fallback={null}>
+            <OrderPaymentAttempts
+              orderId={String(order._id)}
+              checkoutAttemptId={
+                order.checkoutAttemptId ? String(order.checkoutAttemptId) : undefined
+              }
+            />
+          </Suspense>
           {/* Streamed separately: the order itself never waits on the audit trail. */}
           <Suspense fallback={<OrderTimelineSkeleton />}>
             <OrderTimeline

@@ -51,7 +51,7 @@ export default async function OnlineStorePagesPage({ params }: PageProps) {
         defaultLanguage={settings.general?.defaultLanguage || "en"}
         initialPages={landingPages}
       />
-      <PagesManager locale={locale} initialContentPages={contentPages} />
+      <PagesManager initialContentPages={contentPages} />
     </div>
   );
 }

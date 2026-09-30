@@ -502,9 +502,9 @@ export function cartPillFor(
  * - `other` — a model, colour, size or storage: the identity fields, or the
  *   product's own options and variants.
  */
-export type QueryTokenKind = "category" | "brand" | "other";
+type QueryTokenKind = "category" | "brand" | "other";
 
-export type GradedQuery = {
+type GradedQuery = {
   tokens: string[];
   kinds: Map<string, QueryTokenKind>;
 };

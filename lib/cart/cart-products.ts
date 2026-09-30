@@ -9,10 +9,20 @@ import "server-only";
  * than a cart that says nothing at all.
  */
 
-import { Product } from "@/models";
+import { mongoose } from "@/lib/db";
+import { InventoryLocation, Product, Vendor } from "@/models";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
+import {
+  resolveVariantOptions,
+  type CartVariantOption,
+} from "@/lib/cart/variant-options";
 import { resolveItemShipping } from "@/lib/catalog/product-shipping";
+import { isFinalSaleProduct } from "@/lib/returns/final-sale";
+import {
+  readCartFinalSale,
+  type CartFinalSale,
+} from "@/lib/returns/final-sale-collections";
 import { CANONICAL_CART_WEIGHT_UNIT } from "@/lib/shipping/shipping";
 import {
   isStorefrontMultiVendorEnabled,
@@ -60,7 +70,161 @@ type CartProductFacts = {
   unitWeight: number;
   vendorId?: string;
   vendorName?: string;
+  /**
+   * Whether this line's seller runs a collection point a shopper can use —
+   * see `anySellerOffersPickup`. Only set alongside `vendorId`.
+   */
+  vendorOffersPickup?: boolean;
+  /**
+   * What the shopper chose on this line — "Color: White", "Size: M" — as
+   * name/value pairs. Resolved from the product for the same reason the seller
+   * name is: the stored `variantName` is a flat "White / M" that has forgotten
+   * which half is the colour, and renaming an option should re-caption the
+   * lines already in the bag. Empty for a line with no variant.
+   */
+  variantOptions?: CartVariantOption[];
+  /**
+   * Sold as final sale — the shopper cannot return it — so the cart and
+   * checkout can say so before they pay. See lib/returns/final-sale.ts.
+   */
+  finalSale?: boolean;
 };
+
+type CartProductRow = {
+  _id: { toString: () => string };
+  status?: string;
+  productSource?: unknown;
+  priceOnRequest?: boolean;
+  shipping?: {
+    isPhysicalProduct?: boolean;
+    weight?: number;
+    weightUnit?: "g" | "kg" | "lb" | "oz";
+  };
+  variants?: {
+    _id: { toString: () => string };
+    name?: string;
+    optionValues?: Array<string | { optionName?: string; value?: string }>;
+    requiresShipping?: boolean;
+    weight?: number;
+    weightUnit?: "g" | "kg" | "lb" | "oz";
+    finalSale?: boolean;
+  }[];
+  options?: { name?: string }[];
+  returns?: { finalSale?: boolean };
+  collectionIds?: unknown[];
+  /** The seller, if it still exists: only its store name. */
+  vendor: { _id: unknown; storeName?: string }[];
+  /** One of the seller's usable collection points, if it has any. */
+  pickupLocations: unknown[];
+};
+
+/** What `readCartProducts` read, for `cartProductFacts`. */
+type CartProductRows = {
+  isMultiVendorEnabled: boolean;
+  products: CartProductRow[];
+  /** Final sale by collection, hand-picked or by an automated one's rules. */
+  finalSale?: CartFinalSale;
+};
+
+/**
+ * Read what the cart needs about the products on it: one query.
+ *
+ * The seller's store name and whether it runs a collection point are joined
+ * in, rather than read after: they were a populate and then a lookup, each
+ * waiting on the one before it, on an endpoint every page load calls. The
+ * join asks for exactly what they asked — only the store name (the cart names
+ * the seller, it does not link to a full vendor profile, and pulling the
+ * whole document would drag address and payout fields onto an endpoint that
+ * returns raw JSON), and a branch on the same `{ vendorId, pickupEnabled,
+ * isActive }` index the checkout branch list uses, with the same "must have
+ * an address" rule `pickupLocationsForVendor` applies when it drops unusable
+ * branches.
+ *
+ * Final sale by collection is read alongside: the store's final-sale
+ * collections come from the cache, and only a store with an automated one
+ * matches these products against its rules (`readCartFinalSale`).
+ *
+ * Needs nothing from the shopper's session, so a caller can run it alongside
+ * the shopper's quote offers and hand both to `cartProductFacts`.
+ */
+export async function readCartProducts(
+  items: CartProductLine[],
+): Promise<CartProductRows> {
+  const productIds = Array.from(
+    new Set(
+      items
+        .map((item) => item.productId?.toString())
+        .filter((id): id is string => Boolean(id && mongoose.isValidObjectId(id))),
+    ),
+  );
+  if (!productIds.length) return { isMultiVendorEnabled: false, products: [] };
+
+  const [isMultiVendorEnabled, products, finalSale] = await Promise.all([
+    isStorefrontMultiVendorEnabled(),
+    Product.aggregate<CartProductRow>([
+      {
+        $match: {
+          _id: { $in: productIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        },
+      },
+      {
+        $project: {
+          status: 1,
+          productSource: 1,
+          priceOnRequest: 1,
+          "shipping.isPhysicalProduct": 1,
+          "shipping.weight": 1,
+          "shipping.weightUnit": 1,
+          "variants._id": 1,
+          "variants.name": 1,
+          "variants.optionValues": 1,
+          "variants.requiresShipping": 1,
+          "variants.weight": 1,
+          "variants.weightUnit": 1,
+          "variants.finalSale": 1,
+          "options.name": 1,
+          "returns.finalSale": 1,
+          collectionIds: 1,
+          vendorId: 1,
+        },
+      },
+      {
+        $lookup: {
+          from: Vendor.collection.name,
+          localField: "vendorId",
+          foreignField: "_id",
+          pipeline: [{ $project: { storeName: 1 } }],
+          as: "vendor",
+        },
+      },
+      {
+        $lookup: {
+          from: InventoryLocation.collection.name,
+          localField: "vendorId",
+          foreignField: "vendorId",
+          pipeline: [
+            {
+              $match: {
+                pickupEnabled: true,
+                isActive: { $ne: false },
+                address: { $nin: [null, ""] },
+              },
+            },
+            { $limit: 1 },
+            { $project: { _id: 1 } },
+          ],
+          as: "pickupLocations",
+        },
+      },
+    ]),
+    // The store's final-sale collections, and the automated ones these
+    // products join by their rules — from the cache, then (only if the store
+    // has such a collection) matched alongside this read.
+    readCartFinalSale(productIds),
+  ]);
+
+  return { isMultiVendorEnabled, products, finalSale };
+}
 
 /**
  * `quotedLineKeys` names the lines a live quote offer covers, by
@@ -68,55 +232,17 @@ type CartProductFacts = {
  * stay in a cart, so the caller resolves them (it has the shopper's session;
  * this module does not) and hands them in — see lib/quotes/quote-offer.ts.
  */
-type ResolveCartProductsOptions = {
+type CartProductFactsOptions = {
   quotedLineKeys?: ReadonlySet<string>;
 };
 
-export async function resolveCartProducts(
+/** The facts for each line of the cart, from what `readCartProducts` read. */
+export function cartProductFacts(
   items: CartProductLine[],
-  options: ResolveCartProductsOptions = {},
-): Promise<Map<string, CartProductFacts>> {
+  { isMultiVendorEnabled, products, finalSale }: CartProductRows,
+  options: CartProductFactsOptions = {},
+): Map<string, CartProductFacts> {
   const facts = new Map<string, CartProductFacts>();
-  if (!items.length) return facts;
-
-  const isMultiVendorEnabled = await isStorefrontMultiVendorEnabled();
-  const productIds = Array.from(
-    new Set(
-      items
-        .map((item) => item.productId?.toString())
-        .filter((id): id is string => Boolean(id)),
-    ),
-  );
-
-  const products = await Product.find({ _id: { $in: productIds } })
-    .select(
-      "status productSource priceOnRequest shipping.isPhysicalProduct shipping.weight shipping.weightUnit variants._id variants.requiresShipping variants.weight variants.weightUnit vendorId",
-    )
-    // Only the store name: the cart names the seller, it does not link to a
-    // full vendor profile, and a populate that pulls the whole document would
-    // drag address and payout fields onto an endpoint that returns raw JSON.
-    .populate("vendorId", "storeName")
-    .lean<
-      Array<{
-        _id: { toString: () => string };
-        status?: string;
-        productSource?: unknown;
-        priceOnRequest?: boolean;
-        shipping?: {
-          isPhysicalProduct?: boolean;
-          weight?: number;
-          weightUnit?: "g" | "kg" | "lb" | "oz";
-        };
-        variants?: {
-          _id: { toString: () => string };
-          requiresShipping?: boolean;
-          weight?: number;
-          weightUnit?: "g" | "kg" | "lb" | "oz";
-        }[];
-        vendorId?: { _id?: unknown; storeName?: string } | null;
-      }>
-    >();
-
   const byId = new Map(products.map((row) => [row._id.toString(), row]));
 
   for (const item of items) {
@@ -148,6 +274,11 @@ export async function resolveCartProducts(
       targetWeightUnit: CANONICAL_CART_WEIGHT_UNIT,
     });
 
+    // A deleted seller joins nothing, and its line then has no seller at all:
+    // counting it would invent a second seller and draw a group header with
+    // the fallback label instead of a store's name.
+    const vendor = product.vendor[0];
+
     facts.set(key, {
       visible:
         product.status === PRODUCT_STATUS.ACTIVE &&
@@ -169,15 +300,24 @@ export async function resolveCartProducts(
         ),
       requiresShipping: itemShipping.requiresShipping,
       unitWeight: itemShipping.unitWeight,
-      // `?._id` rather than a plain truthiness check on `vendorId`: an
-      // unpopulated ref is a bare ObjectId, which is truthy but has no
-      // `storeName`. Treating that as a seller would draw a group header with
-      // the fallback label instead of the store's name. A deleted vendor
-      // populates to `null` and is handled by the same optional chain.
-      vendorId: product.vendorId?._id
-        ? String(product.vendorId._id)
+      vendorId: vendor ? String(vendor._id) : undefined,
+      vendorName: vendor?.storeName || undefined,
+      vendorOffersPickup: vendor
+        ? product.pickupLocations.length > 0
         : undefined,
-      vendorName: product.vendorId?.storeName || undefined,
+      variantOptions: variant
+        ? resolveVariantOptions(variant, product.options)
+        : undefined,
+      // A download never comes back in the first place, so only goods are
+      // called final sale.
+      finalSale:
+        itemShipping.requiresShipping &&
+        isFinalSaleProduct(
+          product,
+          item.variantId?.toString(),
+          finalSale?.collectionIds ?? [],
+          finalSale?.byRule.get(id),
+        ),
     });
   }
 
@@ -211,31 +351,23 @@ export function countCartSellers(
  * one up — the default state of a fresh install — the notice would blame the
  * mix for something that never existed.
  *
- * One indexed lookup, on the same `{ vendorId, pickupEnabled, isActive }` index
- * the checkout branch list uses, with the same "must have an address" rule
- * `pickupLocationsForVendor` applies when it drops unusable branches.
+ * Asked of the same lines `cartVendorIds` counts — physical ones with a
+ * seller — from the branch `readCartProducts` joined in for each seller.
  */
-export async function anySellerOffersPickup(
-  vendorIds: string[],
-): Promise<boolean> {
-  if (vendorIds.length === 0) return false;
-
-  const { InventoryLocation } = await import(
-    "@/models/inventory-location.model"
-  );
-
-  return Boolean(
-    await InventoryLocation.exists({
-      vendorId: { $in: vendorIds },
-      pickupEnabled: true,
-      isActive: { $ne: false },
-      address: { $nin: [null, ""] },
-    }),
-  );
+export function anySellerOffersPickup(
+  items: CartProductLine[],
+  facts: Map<string, CartProductFacts>,
+): boolean {
+  return items.some((item) => {
+    const fact = facts.get(cartLineKey(item));
+    return Boolean(
+      fact?.requiresShipping && fact.vendorId && fact.vendorOffersPickup,
+    );
+  });
 }
 
-/** The distinct sellers of the bag's physical lines, for the lookup above. */
-export function cartVendorIds(
+/** The distinct sellers of the bag's physical lines. */
+function cartVendorIds(
   items: CartProductLine[],
   facts: Map<string, CartProductFacts>,
 ): string[] {

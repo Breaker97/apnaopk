@@ -30,6 +30,7 @@ import {
 import { Check, Crop, ImageIcon, ImageUp, Link2, Upload, X } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Input } from "@/components/ui/input";
 import { AiStudioImageField } from "@/components/ai-authoring/ai-studio-image-field";
 import {
@@ -634,13 +635,13 @@ function SlotNotes({
       ) : null}
 
       {fit && !fit.exact ? (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+        <WarningBanner icon={null}>
           {fit.edges === "sides" ? "Wider" : "Taller"} than the frame, so about{" "}
           <b>{Math.round((fit.trimmed / 2) * 100)}%</b> comes off{" "}
           {fit.edges === "sides" ? "each side" : "the top and the bottom"}. The
           preview shows the part that survives — generate in AI Studio for an
           exact fit.
-        </p>
+        </WarningBanner>
       ) : null}
     </>
   );
@@ -714,10 +715,10 @@ export function MegaPromoSlots({
             <span className="font-mono tabular-nums">377</span> pixels tall.
           </p>
         ) : (
-          <p className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+          <WarningBanner icon={null}>
             No image yet, so the storefront skips the banner and gives the links
             the full four columns instead.
-          </p>
+          </WarningBanner>
         )}
       </div>
     );
@@ -785,17 +786,17 @@ export function MegaPromoSlots({
       {/* The storefront draws whatever is filled, so a lone card is a layout
           choice rather than a mistake — say which one it is. */}
       {filled === 1 ? (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+        <WarningBanner icon={null}>
           Only one card is set, so it{" "}
           <b>stretches across the whole row.</b> Add the second to split it in
           two.
-        </p>
+        </WarningBanner>
       ) : null}
 
       {filled === 0 ? (
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+        <WarningBanner icon={null}>
           No images yet, so the storefront skips the card row entirely.
-        </p>
+        </WarningBanner>
       ) : null}
 
       {item.url ? (

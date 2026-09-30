@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { type Locale } from "@/config/i18n.config";
+import Link from "@/components/language/link";
 import {
   AlertTriangle,
   ArrowRight,
@@ -24,7 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import {
-  fillContentPlaceholders,
+  fillContentPagePlaceholders,
+  windowPlaceholders,
   type ReturnPolicyPageData,
 } from "@/lib/site-config/content-pages-config";
 
@@ -53,23 +55,43 @@ const summaryIcons = [
 
 export function ReturnPolicyPageView({
   locale,
-  page,
+  storeDefault,
+  page: written,
   storeName,
+  windowDays,
   supportEmail,
   supportPhone,
 }: {
   locale: string;
+  /** The language served without a URL prefix — see `StoreBreadcrumb`. */
+  storeDefault: Locale;
   page: ReturnPolicyPageData;
   storeName: string;
+  /**
+   * The return window the store enforces — what `{windowDays}` stands for —
+   * or null for no time limit.
+   */
+  windowDays: number | null;
   supportEmail?: string;
   supportPhone?: string;
 }) {
+  // Every line the merchant wrote, placeholders filled: `{windowDays}` may be
+  // anywhere on the page, not only in the introduction.
+  const page = fillContentPagePlaceholders(written, {
+    storeName,
+    returnWindow: written.returnWindowValue,
+    ...windowPlaceholders(windowDays),
+  });
+
   return (
     <main className="bg-background">
       <section className="border-b bg-muted/20">
         <div className="container mx-auto grid gap-10 px-4 pb-12 pt-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end lg:pb-16 lg:pt-10">
           <div className="max-w-3xl">
-            <StoreBreadcrumb locale={locale} items={[{ label: page.title }]} />
+            <StoreBreadcrumb
+              locale={locale}
+              storeDefault={storeDefault}
+              items={[{ label: page.title }]} />
 
             <Badge variant="outline" className="mb-4 gap-2 rounded-md">
               <RotateCcw className="h-3.5 w-3.5" />
@@ -79,20 +101,17 @@ export function ReturnPolicyPageView({
               {page.title}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-              {fillContentPlaceholders(page.description, {
-                storeName,
-                returnWindow: page.returnWindowValue,
-              })}
+              {page.description}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button asChild>
-                <Link href={`/${locale}/account/orders`}>
+                <Link href="/account/orders">
                   {page.primaryActionLabel}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={`/${locale}/track-order`}>
+                <Link href="/track-order">
                   {page.secondaryActionLabel}
                 </Link>
               </Button>
@@ -331,13 +350,13 @@ export function ReturnPolicyPageView({
               </div>
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
                 <Button asChild>
-                  <Link href={`/${locale}/account/orders`}>
+                  <Link href="/account/orders">
                     {page.ctaPrimaryLabel}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/${locale}/track-order`}>
+                  <Link href="/track-order">
                     {page.ctaSecondaryLabel}
                   </Link>
                 </Button>

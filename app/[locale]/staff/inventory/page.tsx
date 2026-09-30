@@ -10,6 +10,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models";
 import { InventoryLocation } from "@/models/inventory-location.model";
+import { offShelfStockTotals } from "@/lib/inventory/stock-breakdown";
 import {
   AdminStatsStrip,
   type AdminStatsStripItem,
@@ -120,7 +121,7 @@ export default async function StaffInventoryPage({
 async function getInventoryStats(staffScope?: StaffAccessScope): Promise<InventoryStats> {
   await connectDB();
 
-  const [products, locations] = await Promise.all([
+  const [products, locations, offShelf] = await Promise.all([
     Product.find(buildStaffProductScopeFilter(staffScope))
       .select("variants sku stock")
       .lean(),
@@ -130,6 +131,7 @@ async function getInventoryStats(staffScope?: StaffAccessScope): Promise<Invento
         buildStaffLocationScopeFilter(staffScope),
       ),
     ),
+    offShelfStockTotals(buildStaffProductScopeFilter(staffScope)),
   ]);
 
   let totalSkus = 0;
@@ -160,7 +162,8 @@ async function getInventoryStats(staffScope?: StaffAccessScope): Promise<Invento
     totalSkus,
     lowStockSkus,
     outOfStockSkus,
-    onHandUnits,
+    // Physical units, as the table's On hand reads them.
+    onHandUnits: onHandUnits + offShelf.committed + offShelf.unavailable,
     activeLocations: locations,
   };
 }

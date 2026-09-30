@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { auth } from "@/lib/auth/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIP } from "@/lib/api/rate-limit-middleware";
+import { handleApiError, RateLimitError } from "@/lib/api/errors";
+import { rateLimitMessage } from "@/lib/api/rate-limit-message";
 import { getSettings } from "@/models/settings.model";
 import { headers } from "next/headers";
 import {
@@ -39,14 +42,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
-function getClientIp(request: NextRequest) {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -68,19 +63,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const rateLimit = await checkRateLimit(`contact:${getClientIp(request)}`, {
+    const rateLimit = await checkRateLimit(`contact:${getClientIP(request)}`, {
       windowMs: 15 * 60 * 1000,
       max: 5,
     });
 
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Too many messages. Please try again later.",
-          resetIn: rateLimit.resetIn,
-        },
-        { status: 429 },
+      return handleApiError(
+        new RateLimitError(
+          await rateLimitMessage(request, rateLimit.resetIn),
+          rateLimit.resetIn,
+        ),
       );
     }
 

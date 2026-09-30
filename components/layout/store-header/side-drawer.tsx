@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   ArrowRight,
@@ -56,7 +56,7 @@ const GLYPHS: Record<DrawerLinkGlyph, LucideIcon> = {
   link: ArrowRight,
 };
 
-export interface SideDrawerLanguage {
+interface SideDrawerLanguage {
   code: string;
   name: string;
 }

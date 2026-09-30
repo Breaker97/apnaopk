@@ -4,11 +4,12 @@
  */
 
 import { cache } from "react";
+import { requestMemo } from "@/lib/api/request-scope";
 import {
   ALL_VENDOR_PACKS,
   type VendorPermissionPack,
 } from "@/config/permissions.config";
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document, Model, type Types } from "mongoose";
 import { COD_COLLECTED_BY, type CodCollectedBy } from "@/config/app.config";
 import {
   DEFAULT_OUT_OF_STOCK_DISPLAY,
@@ -44,7 +45,6 @@ import {
   DEFAULT_SECONDARY_COLOR,
   DEFAULT_STORE_NAME,
   DEFAULT_THEME_MODE,
-  DEFAULT_TIMEZONE,
   isLegacySeededBrandText,
   normalizeThemeMode,
   resolveFaviconUrl,
@@ -64,25 +64,35 @@ import {
   ORDER_PREFIX_PATTERN,
 } from "@/lib/orders/order-settings";
 import {
+  DEFAULT_LOYALTY_SPEND_PER_POINT,
+  MIN_LOYALTY_SPEND_PER_POINT,
+} from "@/lib/customers/loyalty";
+import {
   DEFAULT_BILL_VENDOR_COD_SHIPPING,
   DEFAULT_REFUND_ADMIN_FEE_CAP,
   DEFAULT_REFUND_ADMIN_FEE_PERCENT,
   DEFAULT_RESTOCKING_FEE_PERCENT,
   DEFAULT_RETURN_SHIPPING_FEE,
+  DEFAULT_PAYOUT_HOLD_MAX_DAYS,
   DEFAULT_RETURN_SHIPPING_REFUND,
   DEFAULT_RETURN_WINDOW_DAYS,
+  DEFAULT_RETURN_WINDOW_START,
   MAX_RETURN_WINDOW_DAYS,
   MIN_RETURN_WINDOW_DAYS,
   NEW_STORE_RETURN_SHIPPING_REFUND,
   RETURN_SHIPPING_REFUND_MODES,
+  RETURN_WINDOW_STARTS,
   type ReturnShippingRefundMode,
+  type ReturnWindowStart,
 } from "@/lib/returns/return-policy";
+import { RETURN_INSTRUCTIONS_MAX_LENGTH } from "@/lib/returns/return-shipping";
 import {
   DEFAULT_LOCKOUT_MINUTES,
   DEFAULT_MAX_LOGIN_ATTEMPTS,
   DEFAULT_SESSION_MAX_AGE_DAYS,
 } from "@/lib/security-limits";
 import { SUPPORTED_UPLOAD_MIME_TYPES } from "@/lib/storage/types";
+import type { AddressHoldSettings } from "@/lib/orders/address-hold-policy";
 import {
   POS_SELECTABLE_PAYMENT_METHODS,
   type POSSelectablePaymentMethod,
@@ -129,9 +139,7 @@ interface IGeneralSettings {
   defaultLanguage: string;
   defaultCurrency: string;
   supportedLanguages: string[];
-  supportedCurrencies: string[];
   countryAvailability: CountryAvailability;
-  timezone: string;
 }
 
 // ============================================
@@ -159,16 +167,9 @@ interface IAppearanceSettings {
    * directly, since the app no longer follows the OS preference.
    */
   theme: ThemeMode | "system";
-  contrast: boolean;
-  rtl: boolean;
-  collapsedSidebar: boolean;
-  navLayout: "vertical" | "horizontal" | "mini";
-  navColor: "integrate" | "apparent";
   presetColor: "default" | "cyan" | "purple" | "blue" | "orange" | "red";
   /** User-saved color presets shown alongside the built-in ones. */
   customPresets?: ICustomColorPreset[];
-  fontFamily?: string;
-  borderRadius?: string;
 }
 
 // ============================================
@@ -263,6 +264,12 @@ interface ICODSettings {
   maxOrderAmount?: number;
 }
 
+interface ITurnstileSettings {
+  enabled?: boolean;
+  siteKey?: string;
+  secretKey?: string;
+}
+
 interface IPaymentSettings {
   stripe: IStripeSettings;
   paypal: IPayPalSettings;
@@ -273,6 +280,10 @@ interface IPaymentSettings {
   orange_money: IOrangeMoneySettings;
   mtn_momo: IMtnMomoSettings;
   cod: ICODSettings;
+  /** The human check a checkout asks for after repeated refusals. */
+  turnstile?: ITurnstileSettings;
+  /** Gateways switched over to checkout attempts — an operator's switch. */
+  attemptGateways?: string[];
 }
 
 // ============================================
@@ -288,13 +299,11 @@ interface ISMTPSettings {
 }
 
 interface IEmailSettings {
-  provider: "smtp" | "sendgrid" | "ses" | "mailgun";
   enabled: boolean;
   smtp: ISMTPSettings;
   fromEmail?: string;
   fromName?: string;
   replyTo?: string;
-  apiKey?: string; // For SendGrid, SES, Mailgun
   logRetentionDays?: 7 | 30 | 90;
 }
 
@@ -342,12 +351,26 @@ interface ICommissionSettings {
  */
 interface IReturnPolicySettings {
   windowDays: number;
+  /** No time limit on returns; `windowDays` is kept for when it is switched off. */
+  windowUnlimited?: boolean;
+  /** When the window starts counting — see `RETURN_WINDOW_STARTS`. */
+  windowStart?: ReturnWindowStart;
+  /** Shoppers ask for returns from their account; off, only the store opens them. */
+  selfServe?: boolean;
+  /** The most a seller's payout waits on a window with no time limit (D6). */
+  payoutHoldMaxDays?: number;
+  /** Collections with a return window of their own — see lib/returns/return-window.ts. */
+  windowOverrides?: Array<{ collectionId: Types.ObjectId; windowDays: number }>;
   shippingRefund: ReturnShippingRefundMode;
   restockingFeePercent: number;
   returnShippingFee: number;
   refundAdminFeePercent: number;
   refundAdminFeeCap: number;
   billVendorCodShipping: boolean;
+  /** What a shopper is told to do with an approved return — see lib/returns/return-shipping.ts. */
+  instructions?: string;
+  /** Collections sold as final sale — see lib/returns/final-sale.ts. */
+  finalSaleCollectionIds?: Types.ObjectId[];
 }
 
 interface IOrderSettings {
@@ -355,6 +378,8 @@ interface IOrderSettings {
   taxRate: number;
   freeShippingThreshold?: number;
   defaultShippingCost: number;
+  /** Store-currency spend per loyalty point — see lib/customers/loyalty.ts. */
+  loyaltySpendPerPoint?: number;
   commission: ICommissionSettings;
   returns: IReturnPolicySettings;
 }
@@ -522,6 +547,8 @@ export interface ICarrierAutomationSettings {
   maxLabelCost?: number;
 }
 
+type IAddressHoldSettings = AddressHoldSettings;
+
 interface ICarrierSettings {
   /** Master switch: off hides every carrier surface and blocks every call. */
   enabled: boolean;
@@ -548,6 +575,7 @@ interface IShippingSettings {
   carriers?: ICarrierSettings;
   packages?: ICarrierPackagePreset[];
   automation?: ICarrierAutomationSettings;
+  addressHold?: Partial<IAddressHoldSettings>;
   /**
    * Tracking pages for couriers we do not book through an API.
    *
@@ -740,7 +768,6 @@ interface IPOSSettings {
   allowAdminSales: boolean;
   allowVendorSales: boolean;
   allowSellerSales: boolean;
-  language?: string;
   defaultPosLocationId?: string;
   customize: IPOSCustomizeSettings;
   checkout: IPOSCheckoutSettings;
@@ -783,7 +810,11 @@ interface IMultiVendorModeSettings {
  * by a version bump that quietly delists their catalogue.
  */
 export interface IPreorderSettings {
-  /** Master switch. Off means no vendor may open a pre-order at all. */
+  /**
+   * Master switch for the whole store, set in Settings → Products. Off means
+   * nobody — the admin, staff or a vendor — may open a new pre-order;
+   * pre-orders already selling keep selling.
+   */
   enabled: boolean;
   /** Require an admin to approve each vendor before they can sell one. */
   requireVendorApproval: boolean;
@@ -869,10 +900,6 @@ interface IVendorConfigSettings {
   plansEnabled: boolean;
   /** Whether new vendors may self-register via /become-vendor. */
   allowRegistration: boolean;
-  /** Approve applications automatically instead of manual admin review. */
-  autoApprove: boolean;
-  /** Fallback free-trial length (days) when a paid plan is chosen. */
-  freeTrialDays: number;
   /** Force a plan choice at onboarding vs. a silent default fallback. */
   requirePlanSelection: boolean;
   /** Documents an applicant must supply (subset of VENDOR_DOCUMENT_KEYS). */
@@ -895,6 +922,15 @@ interface IVendorConfigSettings {
 export interface ICatalogSettings {
   /** What listings do with a product nothing can be bought from. */
   outOfStockDisplay: OutOfStockDisplay;
+  /**
+   * Which formats a NEW product may take, and whether a product may hide its
+   * price behind a quote — Settings → Products. Off stops the editor offering
+   * it; products already using it are left alone. At least one format stays
+   * on. Read through `resolveProductFeatures` (lib/products/product-features).
+   */
+  physicalProducts: boolean;
+  digitalProducts: boolean;
+  priceOnRequest: boolean;
 }
 
 // ============================================
@@ -941,6 +977,12 @@ interface IBoostingSettings {
 /** Fields every S3-compatible backend needs. */
 interface IStorageCredentialsBase {
   bucketName?: string;
+  /**
+   * A second bucket, with no public access, for the files only the store may
+   * open — identity documents, digital products, expense receipts. Same
+   * account and keys as `bucketName`. Unset, they share the public bucket.
+   */
+  privateBucketName?: string;
   accessKeyId?: string;
   secretAccessKey?: string;
   publicUrl?: string;
@@ -1343,11 +1385,7 @@ const SettingsSchema = new Schema<ISettings>(
           defaultCurrency: { type: String, default: DEFAULT_CURRENCY },
           supportedLanguages: {
             type: [String],
-            default: ["en", "bn", "ar", "hi", "zh", "ja", "ko", "fr", "es"],
-          },
-          supportedCurrencies: {
-            type: [String],
-            default: ["USD", "EUR", "GBP", "BDT", "INR", "UGX"],
+            default: ["en", "bn", "ar", "hi", "zh", "ja", "fr", "es"],
           },
           countryAvailability: {
             type: new Schema(
@@ -1369,7 +1407,6 @@ const SettingsSchema = new Schema<ISettings>(
               countryCodes: [...DEFAULT_COUNTRY_AVAILABILITY.countryCodes],
             }),
           },
-          timezone: { type: String, default: DEFAULT_TIMEZONE },
         },
         { _id: false },
       ),
@@ -1395,19 +1432,6 @@ const SettingsSchema = new Schema<ISettings>(
             enum: ["light", "dark", "system"],
             default: DEFAULT_THEME_MODE,
           },
-          contrast: { type: Boolean, default: false },
-          rtl: { type: Boolean, default: false },
-          collapsedSidebar: { type: Boolean, default: false },
-          navLayout: {
-            type: String,
-            enum: ["vertical", "horizontal", "mini"],
-            default: "mini",
-          },
-          navColor: {
-            type: String,
-            enum: ["integrate", "apparent"],
-            default: "integrate",
-          },
           presetColor: {
             type: String,
             enum: ["default", "cyan", "purple", "blue", "orange", "red"],
@@ -1428,8 +1452,6 @@ const SettingsSchema = new Schema<ISettings>(
             ],
             default: [],
           },
-          fontFamily: String,
-          borderRadius: String,
         },
         { _id: false },
       ),
@@ -1581,6 +1603,38 @@ const SettingsSchema = new Schema<ISettings>(
             ),
             default: () => ({}),
           },
+          /**
+           * The human check a checkout asks for once cards have been refused
+           * too often — see `lib/checkout/turnstile.ts`. Off, and with no
+           * keys, until a store enters its own: the velocity pause beside it
+           * works without any of this.
+           */
+          turnstile: {
+            type: new Schema(
+              {
+                enabled: { type: Boolean, default: false },
+                siteKey: String,
+                secretKey: String,
+              },
+              { _id: false },
+            ),
+            default: () => ({}),
+          },
+          /**
+           * Which gateways write a checkout attempt instead of an order when
+           * the shopper leaves to pay — the rollout switch for the
+           * checkout-attempt work. See `lib/payments/attempt-gateways.ts`.
+           *
+           * Empty by default, which is today's behaviour for every gateway.
+           * It lives here, beside the gateways it names, rather than in
+           * `settings.checkout` (which is the storefront checkout's
+           * appearance) — and it is deliberately absent from the admin UI:
+           * this is an operator's switch, not a merchant setting.
+           */
+          attemptGateways: {
+            type: [String],
+            default: () => [],
+          },
         },
         { _id: false },
       ),
@@ -1591,11 +1645,6 @@ const SettingsSchema = new Schema<ISettings>(
     email: {
       type: new Schema(
         {
-          provider: {
-            type: String,
-            enum: ["smtp", "sendgrid", "ses", "mailgun"],
-            default: "smtp",
-          },
           enabled: { type: Boolean, default: false },
           smtp: {
             type: new Schema(
@@ -1613,7 +1662,6 @@ const SettingsSchema = new Schema<ISettings>(
           fromEmail: String,
           fromName: String,
           replyTo: String,
-          apiKey: String,
           logRetentionDays: {
             type: Number,
             enum: [7, 30, 90],
@@ -1677,6 +1725,14 @@ const SettingsSchema = new Schema<ISettings>(
             type: Number,
             default: DEFAULT_ORDER_SHIPPING_COST,
             min: 0,
+          },
+          // What a customer spends, in the store currency, for each loyalty
+          // point. One per unit was a dollar in one store and a taka in
+          // another — see lib/customers/loyalty.ts.
+          loyaltySpendPerPoint: {
+            type: Number,
+            default: DEFAULT_LOYALTY_SPEND_PER_POINT,
+            min: MIN_LOYALTY_SPEND_PER_POINT,
           },
           commission: {
             type: new Schema(
@@ -1742,6 +1798,54 @@ const SettingsSchema = new Schema<ISettings>(
                 billVendorCodShipping: {
                   type: Boolean,
                   default: DEFAULT_BILL_VENDOR_COD_SHIPPING,
+                },
+                // Empty means the default wording, which is shown instead.
+                instructions: {
+                  type: String,
+                  trim: true,
+                  maxlength: RETURN_INSTRUCTIONS_MAX_LENGTH,
+                  default: "",
+                },
+                // Every product in these collections is final sale.
+                finalSaleCollectionIds: {
+                  type: [{ type: Schema.Types.ObjectId, ref: "Collection" }],
+                  default: [],
+                },
+                // R6. Every default here is how returns worked before: a
+                // window in days, counted per parcel, asked for by shoppers.
+                windowUnlimited: { type: Boolean, default: false },
+                windowStart: {
+                  type: String,
+                  enum: RETURN_WINDOW_STARTS,
+                  default: DEFAULT_RETURN_WINDOW_START,
+                },
+                selfServe: { type: Boolean, default: true },
+                payoutHoldMaxDays: {
+                  type: Number,
+                  default: DEFAULT_PAYOUT_HOLD_MAX_DAYS,
+                  min: MIN_RETURN_WINDOW_DAYS,
+                  max: MAX_RETURN_WINDOW_DAYS,
+                },
+                windowOverrides: {
+                  type: [
+                    new Schema(
+                      {
+                        collectionId: {
+                          type: Schema.Types.ObjectId,
+                          ref: "Collection",
+                          required: true,
+                        },
+                        windowDays: {
+                          type: Number,
+                          required: true,
+                          min: MIN_RETURN_WINDOW_DAYS,
+                          max: MAX_RETURN_WINDOW_DAYS,
+                        },
+                      },
+                      { _id: false },
+                    ),
+                  ],
+                  default: [],
                 },
               },
               { _id: false },
@@ -1989,6 +2093,27 @@ const SettingsSchema = new Schema<ISettings>(
             default: () => [{ ...DEFAULT_PACKAGE_PRESET }],
           },
 
+          // Undeliverable addresses; defaults in address-hold-policy.
+          addressHold: {
+            type: new Schema(
+              {
+                suggestAtCheckout: { type: Boolean, default: true },
+                checkAfterOrder: { type: Boolean, default: true },
+                autoRequest: { type: Boolean, default: true },
+                reminderDays: { type: [Number], default: () => [1, 3] },
+                deadlineDays: { type: Number, min: 1, max: 60, default: 7 },
+                onDeadline: {
+                  type: String,
+                  enum: ["notify", "cancel"],
+                  default: "notify",
+                },
+                keepReturnShipping: { type: Boolean, default: false },
+              },
+              { _id: false },
+            ),
+            default: () => ({}),
+          },
+
           automation: {
             type: new Schema(
               {
@@ -2221,7 +2346,6 @@ const SettingsSchema = new Schema<ISettings>(
           allowAdminSales: { type: Boolean, default: true },
           allowVendorSales: { type: Boolean, default: true },
           allowSellerSales: { type: Boolean, default: true },
-          language: { type: String, default: "en" },
           defaultPosLocationId: { type: String },
           customize: {
             type: new Schema(
@@ -2329,8 +2453,6 @@ const SettingsSchema = new Schema<ISettings>(
         {
           plansEnabled: { type: Boolean, default: false },
           allowRegistration: { type: Boolean, default: true },
-          autoApprove: { type: Boolean, default: false },
-          freeTrialDays: { type: Number, default: 0, min: 0 },
           requirePlanSelection: { type: Boolean, default: false },
           requiredDocuments: {
             type: [String],
@@ -2360,6 +2482,11 @@ const SettingsSchema = new Schema<ISettings>(
             enum: [...OUT_OF_STOCK_DISPLAY_VALUES],
             default: DEFAULT_OUT_OF_STOCK_DISPLAY,
           },
+          // On by default: every store could sell all of these before the
+          // switches existed, and an upgrade must not take one away.
+          physicalProducts: { type: Boolean, default: true },
+          digitalProducts: { type: Boolean, default: true },
+          priceOnRequest: { type: Boolean, default: true },
         },
         { _id: false },
       ),
@@ -2440,6 +2567,7 @@ const SettingsSchema = new Schema<ISettings>(
               {
                 accountId: String,
                 bucketName: String,
+                privateBucketName: String,
                 accessKeyId: String,
                 secretAccessKey: String,
                 publicUrl: String,
@@ -2453,6 +2581,7 @@ const SettingsSchema = new Schema<ISettings>(
               {
                 region: { type: String, default: "us-east-1" },
                 bucketName: String,
+                privateBucketName: String,
                 accessKeyId: String,
                 secretAccessKey: String,
                 publicUrl: String,
@@ -2467,6 +2596,7 @@ const SettingsSchema = new Schema<ISettings>(
                 endpoint: String,
                 region: { type: String, default: "us-east-1" },
                 bucketName: String,
+                privateBucketName: String,
                 accessKeyId: String,
                 secretAccessKey: String,
                 publicUrl: String,
@@ -2480,6 +2610,7 @@ const SettingsSchema = new Schema<ISettings>(
               {
                 region: { type: String, default: "nyc3" },
                 bucketName: String,
+                privateBucketName: String,
                 accessKeyId: String,
                 secretAccessKey: String,
                 publicUrl: String,
@@ -2858,37 +2989,68 @@ export async function loadSettingsDocument(): Promise<ISettings> {
   }
 }
 
-async function loadSettings(): Promise<ISettings> {
-  if (!hasCheckedSettingsMigration) {
-    hasCheckedSettingsMigration = true;
-    await migrateSettings();
+/**
+ * A copy of plain data that shares no object or array with it. Anything else
+ * — ObjectId, Date, the other BSON values — is kept as it is.
+ */
+function copyPlainData<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry: unknown) => copyPlainData(entry)) as T;
   }
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    Object.getPrototypeOf(value) === Object.prototype
+  ) {
+    const copy: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      copy[key] = copyPlainData(entry);
+    }
+    return copy as T;
+  }
+  return value;
+}
 
-  return loadSettingsDocument();
+async function loadSettings(): Promise<ISettings> {
+  // What a hydrated `findOne()` returns — the same `$init`, with defaults for
+  // the paths the stored document lacks — without reading it a second time.
+  // From a copy: hydrating keeps a Mixed path's object as it finds it, and the
+  // plain data is shared with every `getSettingsLean()` caller in the request.
+  return Settings.hydrate(copyPlainData(await getSettingsLean()));
 }
 
 /**
  * Singleton settings accessor, memoized per server request.
  *
- * `getSettings()` was being called many times inside a single request (payment
- * finalizers, product/vendor/payout list routes, notification fan-out, etc.),
- * each issuing its own `Settings.findOne()` for the same ~62KB singleton doc.
- * React `cache()` collapses all those calls to a single Mongo round trip within
- * one request (route handler / RSC render) and returns the *same hydrated*
- * Mongoose document — so the settings-mutation paths that do
- * `getSettings()` → `settings.set(...)` → `settings.save()` keep working.
+ * `getSettings()` is called many times inside a single request (payment
+ * finalizers, product/vendor/payout list routes, notification fan-out, etc.)
+ * for the same ~62KB singleton doc. Memoized, a request gets the *same
+ * hydrated* Mongoose document every time — so the settings-mutation paths that
+ * do `getSettings()` → `settings.set(...)` → `settings.save()` keep working.
+ * The document is hydrated from `getSettingsLean()`'s data, so a request that
+ * calls both readers — a storefront page does — reads the collection once.
  *
- * Outside a request scope (scripts, tests, background jobs) `cache()` simply
- * doesn't memoize and forwards straight to `loadSettings`, so behavior is
- * unchanged there. The cache is per-request, so settings edited via the admin
- * PUT are visible on the very next request.
+ * Two memos, because React's `cache()` covers only a server component render:
+ * in a route handler it memoizes nothing. A route handler opts in with
+ * `withRequestScope` (lib/api/request-scope.ts) — the checkout routes do.
+ * Outside both (scripts, tests, background jobs) every call reads. The memo
+ * lasts one request, so settings edited via the admin PUT are visible on the
+ * very next request.
  */
-export const getSettings: () => Promise<ISettings> = cache(loadSettings);
+export const getSettings: () => Promise<ISettings> = cache(() =>
+  requestMemo("settings", loadSettings),
+);
 
 /** The settings document's data without Mongoose's document methods. */
 export type ISettingsData = Omit<ISettings, keyof Document>;
 
 async function loadSettingsData(): Promise<ISettingsData> {
+  // Once per process, before the first read by either reader.
+  if (!hasCheckedSettingsMigration) {
+    hasCheckedSettingsMigration = true;
+    await migrateSettings();
+  }
+
   const data = await Settings.findOne().lean<ISettingsData | null>();
   if (data) return data;
   // A brand-new database: let the upsert mint the singleton, then read it
@@ -2900,10 +3062,12 @@ async function loadSettingsData(): Promise<ISettingsData> {
  * Read-only settings, memoised per request like `getSettings()`, as a plain
  * object: no hydration into 87 sub-schemas, no document methods. For the
  * majority of callers that only read fields — a request path that must
- * `set()`/`save()` keeps using `getSettings()`.
+ * `set()`/`save()` keeps using `getSettings()`. This is the request's one
+ * read of the collection: `getSettings()` hydrates its document from it.
  */
-export const getSettingsLean: () => Promise<ISettingsData> =
-  cache(loadSettingsData);
+export const getSettingsLean: () => Promise<ISettingsData> = cache(() =>
+  requestMemo("settings:lean", loadSettingsData),
+);
 
 // ============================================
 // Migration Helper (for existing data)
@@ -2937,7 +3101,6 @@ export async function migrateSettings(): Promise<void> {
     social?: Record<string, unknown>;
     maintenance?: Record<string, unknown>;
     pos?: {
-      language?: unknown;
       customize?: unknown;
       checkout?: unknown;
     };
@@ -2977,7 +3140,6 @@ export async function migrateSettings(): Promise<void> {
     updates["general.defaultLanguage"] = doc.defaultLanguage;
     updates["general.defaultCurrency"] = doc.defaultCurrency;
     updates["general.supportedLanguages"] = doc.supportedLanguages;
-    updates["general.supportedCurrencies"] = doc.supportedCurrencies;
     // Straight to its modern home. Parking it on the deprecated
     // `general.multiVendorEnabled` meant the value only reached
     // `multiVendorMode.enabled` on the *next* boot, via the branch below.
@@ -3013,24 +3175,6 @@ export async function migrateSettings(): Promise<void> {
   if (isLegacySeededBrandText(doc.email?.fromName as string | undefined)) {
     needsMigration = true;
     updates["email.fromName"] = "";
-  }
-
-  // The supported-currency list is fully admin-owned: it is edited in Settings
-  // → General and may contain any ISO 4217 code, so nothing is injected here.
-  // (An earlier revision re-added "UGX" on every boot, which silently undid an
-  // admin removing it.) Only a genuinely empty list is repaired.
-  const supportedCurrenciesInput =
-    updates["general.supportedCurrencies"] ?? doc.general?.supportedCurrencies;
-  const supportedCurrencies = Array.isArray(supportedCurrenciesInput)
-    ? supportedCurrenciesInput.filter(
-        (currency): currency is string => typeof currency === "string",
-      )
-    : [];
-  if (supportedCurrencies.length === 0) {
-    needsMigration = true;
-    updates["general.supportedCurrencies"] = [
-      String(doc.general?.defaultCurrency || DEFAULT_CURRENCY).toUpperCase(),
-    ];
   }
 
   // Migrate appearance fields
@@ -3114,10 +3258,6 @@ export async function migrateSettings(): Promise<void> {
 
   // Initialize POS nested structure defaults if missing
   if (doc.pos) {
-    if (doc.pos.language === undefined) {
-      needsMigration = true;
-      updates["pos.language"] = "en";
-    }
     if (!doc.pos.customize) {
       needsMigration = true;
       updates["pos.customize.printedReceiptsEnabled"] = false;

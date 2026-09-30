@@ -95,6 +95,7 @@ export const getAgentStoreContext = unstable_cache(
         : undefined;
 
     return buildAgentStoreContext({
+      returnWindowDays: storefront.returnWindowDays,
       store: {
         name: storefront.storeName,
         currency: settings.general?.defaultCurrency?.trim() || "USD",
@@ -115,8 +116,8 @@ export const getAgentStoreContext = unstable_cache(
 
 export const getAgentKnowledgeChunks = unstable_cache(
   async (): Promise<KnowledgeChunk[]> => {
-    const { contentPages, storeName } = await getStorefrontSettings();
-    return buildKnowledgeChunks(contentPages, storeName);
+    const { contentPages, returnWindowDays, storeName } = await getStorefrontSettings();
+    return buildKnowledgeChunks(contentPages, storeName, returnWindowDays);
   },
   ["ai-sales-agent-knowledge"],
   { revalidate: 300, tags: [CACHE_TAGS.settings] },

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
+import { use, useState, useEffect, useMemo } from "react";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import {
@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Star,
   CalendarClock,
+  PackageCheck,
   type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -57,35 +58,53 @@ import {
   type RefundBreakdownData,
 } from "@/components/account/refund-breakdown";
 import { RefundDestinationFields } from "@/components/account/refund-destination-fields";
+import { ReturnShippingDetails } from "@/components/account/return-shipping-details";
 import {
-  describeRefundDestination,
+  getRefundDestinationLabel,
   validateRefundDestination,
   type RefundDestinationInput,
 } from "@/lib/returns/refund-settlement";
+import {
+  QUANTITY_CONSUMING_RETURN_STATUSES,
+  returnClaimedQuantity,
+} from "@/lib/returns/returns";
+import { formatCurrency } from "@/lib/intl/money";
+import { resolveCurrency } from "@/lib/intl/currencies";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/components/ui/toast-notification";
 import { ORDER_STATUS } from "@/config/app.config";
 import { AppImage } from "@/components/ui/app-image";
-import {
-  ScanHistory,
-  type ScanEvent,
-} from "@/components/shipping/scan-history";
+import { type ScanEvent } from "@/components/shipping/scan-history";
 import {
   DeliveryException,
   type DeliveryException as DeliveryExceptionData,
 } from "@/components/shipping/delivery-exception";
+import {
+  CopyTrackingNumber,
+  LatestScan,
+} from "@/components/shipping/parcel-tracking";
+import {
+  partialShipmentState,
+  summarizeShipments,
+} from "@/lib/orders/shipment-progress";
 import { OrderDownloads } from "@/components/account/order-downloads";
 import { PreorderBalanceCard } from "@/components/account/preorder-balance-card";
 import { PreorderAddressEditor } from "@/components/store/preorder-address-editor";
+import { CustomerAddressHoldNotice } from "@/components/orders/customer-address-hold-notice";
 import { getPreorderStatusLabel } from "@/lib/orders/preorder-status-label";
 import { ReviewDialog, type ReviewTarget } from "@/components/reviews/review-dialog";
 import { StarRatingDisplay } from "@/components/reviews/star-rating";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import {
+  invalidateResources,
+  useResource,
+} from "@/hooks/use-suspense-resource";
 import { formatPickupWindow } from "@/lib/checkout/pickup-fulfillment-shared";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import { OrderCheckoutAnswers } from "@/components/common/order-checkout-answers";
 import type { OrderCheckoutField } from "@/types";
 import type { OrderReviewState } from "@/lib/catalog/review-eligibility";
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
 
 interface OrderItem {
   productId:
@@ -153,6 +172,12 @@ interface Order {
   trackingEvents?: ScanEvent[];
   trackingException?: DeliveryExceptionData;
   paymentMethod: string;
+  /** Store credit that paid part or all of the order (R8). */
+  storeCredit?: { applied?: number; state?: string };
+  /** The return this order is the exchange for (R7). */
+  exchangeOf?: { returnNumber?: string; undoneAt?: string };
+  /** Where the sale was made — a counter sale is refunded at the counter. */
+  channel?: string;
   subtotal: number;
   shipping?: number;
   shippingCost?: number;
@@ -180,7 +205,24 @@ interface Order {
     };
   };
   digitalOnly?: boolean;
+  /** Lines that can never be returned — the order's digital goods. */
+  nonReturnableItemIndexes?: number[];
+  /** Units of each line the store already refunded from the order itself. */
+  refundedQuantities?: Record<string, number>;
+  /** Lines whose return window has closed. */
+  returnClosedItemIndexes?: number[];
+  /** False when the store takes returns only through its team. */
+  returnsSelfServe?: boolean;
+  /** Lines sold as final sale, which cannot be returned. */
+  finalSaleItemIndexes?: number[];
   hasPreorder?: boolean;
+  /** Shipping paused on an undeliverable address (customer view of it). */
+  addressHold?: {
+    state?: string;
+    message?: string;
+    deadlineAt?: string;
+    customerConfirmedAt?: string;
+  };
   preorderStatus?: string;
   preorderPaymentMode?: string;
   preorderOutstandingAmount?: number;
@@ -216,6 +258,19 @@ const DISPATCHED_STATUSES: string[] = [
   ORDER_STATUS.DELIVERED,
 ];
 
+/** How a pickup's state reads at a glance; "ready" is the one to act on. */
+const PICKUP_STATUS_TONES: Record<
+  string,
+  { icon: LucideIcon; className: string }
+> = {
+  scheduled: { icon: Clock, className: "bg-muted text-foreground" },
+  ready: { icon: PackageCheck, className: "bg-primary/10 text-primary" },
+  collected: {
+    icon: CheckCircle2,
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  },
+};
+
 interface ReturnRequest {
   _id: string;
   returnNumber: string;
@@ -229,7 +284,25 @@ interface ReturnRequest {
     orderItemIndex: number;
     name: string;
     quantityRequested: number;
+    /** What the store agreed to take back. */
+    quantityApproved?: number;
   }>;
+  /** Why the store said no. */
+  rejectionReason?: string;
+  /** What has actually been paid back so far, and what paid for an exchange. */
+  actualRefund?: { amount?: number; settledAt?: string; storeCredit?: number; exchange?: number };
+  /** What they are getting instead of the money (R7). */
+  exchange?: { orderId: string; orderNumber?: string };
+  /** How the parcel comes back, where to, and the label — see `toCustomerReturn`. */
+  returnMethod?: string;
+  returnTo?: { name?: string; address?: string };
+  returnInstructions?: string;
+  shipment?: {
+    carrier?: string;
+    trackingNumber?: string;
+    labelUrl?: string;
+    hasLabelFile?: boolean;
+  };
   createdAt: string;
 }
 
@@ -248,17 +321,23 @@ interface ReturnPreview {
   }>;
 }
 
-const ACTIVE_RETURN_STATUSES = new Set([
+/**
+ * Where a shopper may still call their own return off — the same three states
+ * `DELETE /api/returns/[id]` accepts. Past them the goods are in the post or
+ * the money is, and it becomes the store's decision.
+ */
+const CANCELLABLE_RETURN_STATUSES = [
   "requested",
   "approved",
   "awaiting_shipment",
-  "in_transit",
-  "received",
-  "inspected",
-  "refund_pending",
-  "partially_refunded",
-  "refunded",
-]);
+];
+
+/**
+ * The returns that hold units of the order — the list the server counts.
+ * A closed return was left out here, so the form offered units the server
+ * then refused.
+ */
+const ACTIVE_RETURN_STATUSES = new Set<string>(QUANTITY_CONSUMING_RETURN_STATUSES);
 
 interface OrderDetailsProps {
   orderId: string;
@@ -280,19 +359,80 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const t = useTranslations();
   const tf = useFallbackTranslator(t);
   const { formatPrice } = useCurrency();
+  // A return's money in the currency it was priced in, not the one the store
+  // shows today: after a change of store currency, old estimates carried the
+  // new symbol.
+  const formatReturnMoney = (amount: number, currencyCode?: string | null) => {
+    if (!currencyCode) return formatPrice(amount);
+    const currency = resolveCurrency(String(currencyCode).toUpperCase());
+    return formatCurrency(Number(amount || 0), currency.code, currency.locale);
+  };
+  const returnStatusLabel = (status: string) =>
+    tf(`orders.returns.status.${status}`, status.replace(/_/g, " "));
+  // In the shopper's words: "manual required" and "not required" were the
+  // stored tokens, shown as they were.
+  const refundStatusLabel = (status: string) =>
+    tf(`orders.returns.refundStatus.${status}`, status.replace(/_/g, " "));
+  const describeDestination = (destination?: RefundDestinationInput) => {
+    if (!destination?.method) {
+      return tf("orders.returns.destination.notProvided", "Not provided");
+    }
+    const method = String(destination.method);
+    const label = tf(
+      `orders.returns.destination.methods.${method}`,
+      getRefundDestinationLabel(method),
+    );
+    if (method === "cash") return label;
+    const account = String(destination.accountNumber || "").trim();
+    const parts = [
+      String(destination.provider || "").trim(),
+      account ? `••••${account.slice(-4)}` : "",
+    ].filter(Boolean);
+    return parts.length > 0 ? `${label} — ${parts.join(" ")}` : label;
+  };
   const { confirm } = useConfirmation();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Both reads start before either is awaited, so they load side by side, and
+  // the page's `<ClientSuspense>` shows its skeleton until both are in.
+  // Opening the same order again renders the held copies with no request.
+  const orderResource = useResource<Order>(`/api/orders/${orderId}`);
+  const returnsResource = useResource<{ data?: ReturnRequest[] }>(
+    `/api/returns?orderId=${orderId}&limit=20`,
+  );
+  const { data: order, error: orderError } = use(orderResource.promise);
+  // Return history must not block the order: a failed read is no history.
+  const returnsState = use(returnsResource.promise);
+  const returnRequests = returnsState.data?.data ?? [];
+  const setReturnRequests = (
+    update: (current: ReturnRequest[]) => ReturnRequest[],
+  ) => {
+    if (returnsState.error) {
+      returnsResource.mutate({ data: update([]) });
+      return;
+    }
+    returnsResource.mutate((page) => ({
+      ...page,
+      data: update(page.data ?? []),
+    }));
+  };
+  // Re-read rather than patch: a payment, a cancellation or an address fix
+  // moves the payment status, the consignments and the pre-order state
+  // together. The page stays up while it reloads; the order lists, which show
+  // the same status, read afresh the next time they open.
+  const reloadOrder = () => {
+    invalidateResources((url) => url.startsWith("/api/orders?"));
+    void orderResource.refresh();
+  };
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-  const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [returnReason, setReturnReason] = useState("");
   const [otherReturnReason, setOtherReturnReason] = useState("");
   const [returnNote, setReturnNote] = useState("");
   const [returnQuantities, setReturnQuantities] = useState<Record<number, number>>({});
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  const [cancellingReturnId, setCancellingReturnId] = useState<string | null>(
+    null,
+  );
   // Both keyed by the selection they answer, so a result is matched to its
   // question rather than assumed to be current. Without that, a quote for the
   // previous selection reads as a quote for this one.
@@ -306,47 +446,6 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   } | null>(null);
   const [refundDestination, setRefundDestination] = useState<RefundDestinationInput>({});
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-
-  // Bumped after the shopper pays a pre-order balance so the page re-reads
-  // the order instead of showing a "pay" prompt for money already taken.
-  const [orderReloadKey, setOrderReloadKey] = useState(0);
-
-  useEffect(() => {
-    async function fetchOrder() {
-      try {
-        const res = await fetch(`/api/orders/${orderId}`);
-        const data = await res.json();
-
-        if (data.success) {
-          setOrder(data.data);
-        } else {
-          setError(data.message || "Order not found");
-        }
-      } catch {
-        setError("Failed to load order");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchOrder();
-  }, [orderId, orderReloadKey]);
-
-  useEffect(() => {
-    async function fetchReturns() {
-      try {
-        const res = await fetch(`/api/returns?orderId=${orderId}&limit=20`);
-        const data = await res.json();
-        if (data.success) {
-          setReturnRequests(data.data?.data || []);
-        }
-      } catch {
-        // Return history should not block order rendering.
-      }
-    }
-
-    void fetchReturns();
-  }, [orderId]);
 
   const handleCancelOrder = async () => {
     if (!order) return;
@@ -378,7 +477,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         // nothing is not a failure — it is a pay-later reservation with no
         // deposit to return, which the message below does not claim otherwise.
         const refund = data.data?.refund as
-          | { refunded?: boolean; amount?: number; reason?: string }
+          | { refunded?: boolean; amount?: number; reason?: string; failed?: boolean }
           | undefined;
         if (refund?.refunded && typeof refund.amount === "number") {
           toast.success(
@@ -388,13 +487,22 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
               { amount: formatPrice(refund.amount) },
             ),
           );
+        } else if (refund?.failed) {
+          // The money did not go back on its own. The store has been told;
+          // "cancelled successfully" alone left the shopper assuming it had.
+          toast.warning(
+            tf(
+              "orders.orderCancelledRefundFailed",
+              "Order cancelled, but your refund could not be sent automatically. The store has been told and will send it to you.",
+            ),
+          );
         } else {
           toast.success(t("orders.orderCancelled"));
         }
         // Re-read rather than patching the status locally: the cancellation
         // also moves the payment status, the consignments and the pre-order
         // state, and a hand-patched copy would disagree with all three.
-        setOrderReloadKey((key) => key + 1);
+        reloadOrder();
       } else {
         toast.error(data.message || t("orders.orderCancelFailed"));
       }
@@ -443,12 +551,20 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const selectedReturnItemsCount = Object.values(returnQuantities).filter(
     (quantity) => Number(quantity || 0) > 0,
   ).length;
-  const selectedReturnReason =
-    returnReason === "other" ? otherReturnReason.trim() : returnReason.trim();
+  // The store's own reason, always — never what was typed into the box. What
+  // the shopper writes is their description of it, and it travels as the note.
+  const selectedReturnReason = returnReason.trim();
+  const otherReturnDetail = otherReturnReason.trim();
+  const needsOtherDetail = returnReason === "other";
   const canSubmitReturn =
     selectedReturnReason.length > 0 &&
+    (!needsOtherDetail || otherReturnDetail.length > 0) &&
     selectedReturnItemsCount > 0 &&
     !isSubmittingReturn;
+  /** The description and any separate note, as the one note the API takes. */
+  const returnCustomerNote = [needsOtherDetail ? otherReturnDetail : "", returnNote.trim()]
+    .filter(Boolean)
+    .join(" — ");
 
   const currentOrderId = order?._id;
 
@@ -457,6 +573,42 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
    * quote. Sorted so the same choice made in a different order is the same
    * key, and re-quoting it is a cache hit rather than a second round trip.
    */
+  /**
+   * Calling off a return before the store has taken the goods back.
+   *
+   * The API is the authority on whether it is still allowed — it re-checks the
+   * status in the write — so a stale page is refused rather than obeyed.
+   */
+  const cancelReturnRequest = async (returnRequestId: string) => {
+    setCancellingReturnId(returnRequestId);
+    try {
+      const res = await fetch(`/api/returns/${returnRequestId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        toast.success(tf("orders.returns.toast.cancelled", "Return request cancelled"));
+        setReturnRequests((current) =>
+          current.map((request) =>
+            request._id === returnRequestId
+              ? { ...request, status: "cancelled", refundStatus: "not_required" }
+              : request,
+          ),
+        );
+      } else {
+        toast.error(
+          data?.message ||
+            data?.error ||
+            tf("orders.returns.toast.cancelFailed", "Could not cancel this return"),
+        );
+      }
+    } catch {
+      toast.error(tf("orders.returns.toast.cancelFailed", "Could not cancel this return"));
+    } finally {
+      setCancellingReturnId(null);
+    }
+  };
+
   const returnSelectionKey = useMemo(() => {
     const items = Object.entries(returnQuantities)
       .map(([index, quantity]) => ({
@@ -506,14 +658,22 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
             setReturnPreviewError({
               key,
               message:
-                data?.message || data?.error || "Could not work out a refund for this selection",
+                data?.message ||
+                data?.error ||
+                tf(
+                  "orders.returns.previewFailed",
+                  "Could not work out a refund for this selection",
+                ),
             });
           }
         } catch {
           if (controller.signal.aborted) return;
           setReturnPreviewError({
             key,
-            message: "Could not work out a refund for this selection",
+            message: tf(
+              "orders.returns.previewFailed",
+              "Could not work out a refund for this selection",
+            ),
           });
         }
       })();
@@ -523,7 +683,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [returnDialogOpen, currentOrderId, returnSelectionKey]);
+  }, [returnDialogOpen, currentOrderId, returnSelectionKey, tf]);
 
   const previewError =
     returnPreviewError?.key === returnSelectionKey ? returnPreviewError.message : null;
@@ -554,12 +714,17 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       .filter((item) => item.quantity > 0);
 
     if (items.length === 0) {
-      toast.error("Select at least one item to return");
+      toast.error(tf("orders.returns.toast.selectItem", "Select at least one item to return"));
       return;
     }
 
     if (!selectedReturnReason) {
-      toast.error("Select a return reason");
+      toast.error(tf("orders.returns.toast.selectReason", "Select a return reason"));
+      return;
+    }
+
+    if (needsOtherDetail && !otherReturnDetail) {
+      toast.error(tf("orders.returns.toast.explain", "Tell us what went wrong"));
       return;
     }
 
@@ -571,7 +736,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         body: JSON.stringify({
           orderId: order._id,
           reason: selectedReturnReason,
-          customerNote: returnNote.trim() || undefined,
+          customerNote: returnCustomerNote || undefined,
           items,
           refundDestination: needsRefundDestination ? refundDestination : undefined,
         }),
@@ -579,7 +744,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       const data = await res.json().catch(() => null);
 
       if (res.ok && data?.success) {
-        toast.success("Return request submitted");
+        toast.success(tf("orders.returns.toast.submitted", "Return request submitted"));
         setReturnDialogOpen(false);
         setReturnReason("");
         setOtherReturnReason("");
@@ -593,10 +758,14 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
           ...current,
         ]);
       } else {
-        toast.error(data?.message || data?.error || "Failed to submit return");
+        toast.error(
+          data?.message ||
+            data?.error ||
+            tf("orders.returns.toast.submitFailed", "Failed to submit return"),
+        );
       }
     } catch {
-      toast.error("Failed to submit return");
+      toast.error(tf("orders.returns.toast.submitFailed", "Failed to submit return"));
     } finally {
       setIsSubmittingReturn(false);
     }
@@ -662,19 +831,21 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
     </Badge>
   );
 
-  if (isLoading) {
-    return <OrderDetailsSkeleton />;
-  }
-
-  if (error || !order) {
+  if (orderError || !order) {
+    // No status means the request never reached the server.
+    const message = !orderError
+      ? "Order not found"
+      : orderError.status === undefined
+        ? "Failed to load order"
+        : orderError.message || "Order not found";
     return (
       <div className="text-center py-12">
         <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="font-medium text-lg mb-2">
-          {error || "Order not found"}
+          {message}
         </h3>
         <Button variant="outline" asChild>
-          <Link href={`/${locale}/account/orders`}>
+          <Link href="/account/orders">
             {t("orders.backToOrders")}
           </Link>
         </Button>
@@ -701,6 +872,11 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const hasDispatchedShipment = shipments.some((shipment) =>
     DISPATCHED_STATUSES.includes(shipment.status),
   );
+  // The order status is its slowest seller, so a split order with one parcel
+  // already on its way still reads "Pending"; these counts say how far along
+  // the packages actually are.
+  const shipmentProgress = isSplitOrder ? summarizeShipments(shipments) : null;
+  const partialState = partialShipmentState(shipmentProgress);
 
   // One group per seller on a split order, one unheaded group otherwise. Items
   // are addressed by their index in `order.items` throughout, never renumbered
@@ -740,18 +916,21 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const preorderStatusLabel = order.hasPreorder
     ? getPreorderStatusLabel(order.preorderStatus)
     : null;
-  const formatPreorderDay = (value?: string) => {
-    if (!value) return null;
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : format(date, "d MMM yyyy");
-  };
+  const formatPreorderDay = (value?: string) =>
+    formatPreorderReleaseDate(value, { locale }) || null;
   const preorderExpectedLabel = formatPreorderDay(order.preorderReleaseDate);
   const preorderOriginalLabel = formatPreorderDay(
     order.preorderOriginalReleaseDate,
   );
 
+  // A split order is returnable seller by seller, each from its own parcel's
+  // delivery — the rule `POST /api/returns` applies. Asked of the order, one
+  // seller's delivered goods waited on the slowest seller to deliver.
+  const hasDeliveredGoods = isSplitOrder
+    ? shipments.some((shipment) => shipment.status === ORDER_STATUS.DELIVERED)
+    : order.status === ORDER_STATUS.DELIVERED;
   const isReturnEligibleOrder =
-    order.status === ORDER_STATUS.DELIVERED &&
+    hasDeliveredGoods &&
     // `partially_paid` belongs here: a split order sits there while one
     // seller's cash is outstanding, and the sellers who HAVE been paid are
     // returnable. Which items that covers is decided per item below.
@@ -768,6 +947,9 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
   const pickupWindow = pickup
     ? formatPickupWindow(locale, pickup)
     : null;
+  const pickupTone = pickup
+    ? (PICKUP_STATUS_TONES[pickup.status] ?? PICKUP_STATUS_TONES.scheduled)
+    : null;
   const getAddressName = (address: ShippingAddress) =>
     address.fullName ||
     [address.firstName, address.lastName].filter(Boolean).join(" ");
@@ -777,7 +959,8 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       request.items.forEach((item) => {
         const index = item.orderItemIndex;
         if (typeof index !== "number") return;
-        acc[index] = (acc[index] || 0) + Number(item.quantityRequested || 0);
+        // What the return holds: a unit the store declined is returnable again.
+        acc[index] = (acc[index] || 0) + returnClaimedQuantity(item);
       });
       return acc;
     },
@@ -790,15 +973,34 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
     if (isSplitOrder && !paidVendorIds.has(vendorIdByItemIndex.get(index) ?? "")) {
       return 0;
     }
+    // A digital line never comes back; the store refunds it if need be.
+    if (order!.nonReturnableItemIndexes?.includes(index)) return 0;
+    // Nor one sold as final sale.
+    if (order!.finalSaleItemIndexes?.includes(index)) return 0;
+    // Nor a line whose return window has closed.
+    if (order!.returnClosedItemIndexes?.includes(index)) return 0;
+    // Nor from a seller whose parcel has not reached the shopper yet.
+    if (
+      isSplitOrder &&
+      shipments.find((shipment) => (shipment.itemIndexes ?? []).includes(index))
+        ?.status !== ORDER_STATUS.DELIVERED
+    ) {
+      return 0;
+    }
     const item = order!.items[index];
     return Math.max(
       0,
-      Number(item?.quantity || 0) - (returnedQuantityByIndex[index] || 0),
+      Number(item?.quantity || 0) -
+        (returnedQuantityByIndex[index] || 0) -
+        // Units the store already refunded from the order itself.
+        Number(order!.refundedQuantities?.[String(index)] || 0),
     );
   }
-  const canRequestReturn =
+  const hasReturnableItem =
     isReturnEligibleOrder &&
     order.items.some((_, index) => getReturnableQuantity(index) > 0);
+  // A store that takes returns through its team: the shopper asks the store.
+  const canRequestReturn = hasReturnableItem && order.returnsSelfServe !== false;
 
   // Reviews are per product: two lines of one product (two sizes, say) share
   // a single review, so they share its state and are asked about once.
@@ -815,6 +1017,26 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       orderNumber: order.orderNumber,
     };
   };
+  // What this order still owes, when its payment never arrived. The same rule
+  // the server applies (`lib/payments/order-pay.ts`); the card it feeds asks
+  // the server for the figure again before charging anything, so a stale page
+  // cannot collect the wrong amount.
+  const orderPayDue =
+    order.status !== "cancelled" &&
+    (order.paymentStatus === "pending" || order.paymentStatus === "expired") &&
+    !["cod", "cash_on_delivery", "pay_later"].includes(
+      String(order.paymentMethod || "").toLowerCase(),
+    )
+      ? Math.max(
+          0,
+          Number(order.total || 0) -
+            Number(order.preorderOutstandingAmount || 0) -
+            // What their store credit pays (R8), left out even once its
+            // hold was given back — the pay link asks for the same.
+            Number(order.storeCredit?.applied || 0),
+        )
+      : 0;
+
   const pendingReviews: ReviewTarget[] = [];
   for (const item of order.items) {
     const { productId } = describeItem(item);
@@ -838,7 +1060,19 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {getStatusBadge(order.status)}
+          {partialState ? (
+            <Badge
+              variant="secondary"
+              className="gap-1.5 bg-primary/10 px-3 py-1 text-sm text-primary"
+            >
+              <Truck className="h-4 w-4" />
+              {partialState === "partially_shipped"
+                ? tf("orders.partiallyShipped", "Partially shipped")
+                : tf("orders.partiallyDelivered", "Partially delivered")}
+            </Badge>
+          ) : (
+            getStatusBadge(order.status)
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -869,11 +1103,30 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
               onClick={() => setReturnDialogOpen(true)}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Request return
+              {tf("orders.returns.request", "Request return")}
             </Button>
           )}
+          {hasReturnableItem && order.returnsSelfServe === false ? (
+            <p className="text-sm text-muted-foreground">
+              {tf(
+                "orders.returns.contactStore",
+                "To return an item, contact the store.",
+              )}
+            </p>
+          ) : null}
         </div>
       </div>
+
+      {/* Shipping waits on the shopper: the courier can't deliver to the
+          address. First thing under the header, because nothing else on the
+          order moves until it is answered. */}
+      <CustomerAddressHoldNotice
+        orderId={order._id}
+        orderNumber={order.orderNumber}
+        address={order.shippingAddress || {}}
+        hold={order.addressHold}
+        onChanged={() => reloadOrder()}
+      />
 
       {/* What a pre-order shopper actually wants to know, and the one screen
           that never told them: when it is expected, whether that date has
@@ -923,8 +1176,24 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       <PreorderBalanceCard
         order={order}
         locale={locale}
-        onPaid={() => setOrderReloadKey((key) => key + 1)}
+        onPaid={() => reloadOrder()}
       />
+
+      {/* An order whose payment never arrived: the same card, collecting the
+          whole amount instead of a balance. A signed-in shopper gets it here;
+          a guest gets the emailed link, which opens the same form. */}
+      {orderPayDue > 0 ? (
+        <PreorderBalanceCard
+          mode="order_pay"
+          order={{
+            ...order,
+            preorderBalanceDue: orderPayDue,
+            preorderPaidSoFar: 0,
+          }}
+          locale={locale}
+          onPaid={() => reloadOrder()}
+        />
+      ) : null}
 
       {/* The delivery notification lands here, so the ask sits at the top
           rather than below the addresses; each line below carries its own
@@ -964,7 +1233,157 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         </div>
       ) : null}
 
-      {/* Info Cards */}
+      {/* The parcel, full width above the details. It is the part of an order
+          that moves — scans, a failed delivery — and as a fourth card in the
+          grid below it left one card alone on a second row. Hidden for pickup
+          — there is no courier to name — and on a split order, where the
+          order-level AWB is only the most recent seller to ship: the
+          per-seller blocks below carry each consignment's own, and showing it
+          here passed one seller's parcel off as the whole order's. */}
+      {!pickup && !isSplitOrder && (order.trackingNumber || order.trackingUrl) ? (
+        <Card className="gap-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Truck className="h-4 w-4" />
+              {t("orders.tracking")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
+              <div className="flex items-center justify-between gap-3 md:block md:min-w-30">
+                <p className="text-muted-foreground">{t("orders.carrier")}</p>
+                <p className="font-medium md:mt-1 md:leading-8">
+                  {order.carrier || t("orders.carrierPending")}
+                </p>
+              </div>
+              {order.trackingNumber ? (
+                <>
+                  <Separator className="md:hidden" />
+                  <div
+                    aria-hidden
+                    className="hidden w-px self-stretch bg-border md:block"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground">
+                      {t("orders.trackingNumber")}
+                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2 md:justify-start md:gap-2.5">
+                      <p className="min-w-0 break-all font-mono">
+                        {order.trackingNumber}
+                      </p>
+                      <CopyTrackingNumber
+                        value={order.trackingNumber}
+                        label={tf("orders.copyTrackingNumber", "Copy tracking number")}
+                        copiedMessage={tf("orders.trackingNumberCopied", "Tracking number copied")}
+                        className="h-10 w-10 md:h-8 md:w-8"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : null}
+              {order.trackingUrl ? (
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="mt-1 h-11 w-full gap-1.5 bg-primary/10 text-primary hover:bg-primary/15 md:ms-auto md:mt-0 md:h-9 md:w-auto"
+                >
+                  <a
+                    href={order.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t("orders.trackWithCarrier")}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+            <DeliveryException
+              exception={order.trackingException}
+              className="mt-4"
+            />
+            {order.trackingEvents?.length ? (
+              <div className="mt-4 border-t pt-4">
+                <LatestScan
+                  events={order.trackingEvents}
+                  title={
+                    order.carrier
+                      ? t("orders.latestFromCarrier", { carrier: order.carrier })
+                      : t("orders.latestUpdate")
+                  }
+                  showAllLabel={tf("orders.showAllScans", "Show all scans")}
+                  hideLabel={tf("orders.hideScans", "Hide scans")}
+                />
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* The pickup counter takes the parcel's place: when and where, and
+          whether it is ready yet. */}
+      {pickup && pickupTone ? (
+        <Card className="gap-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MapPin className="h-4 w-4" />
+              {t("checkout.pickup.details")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-6">
+              <div className="md:min-w-60">
+                <p className="text-muted-foreground">
+                  {t("checkout.pickup.window")}
+                </p>
+                <p className="mt-1 font-medium">{pickupWindow}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {pickup.timeZone}
+                </p>
+              </div>
+              <Separator className="md:hidden" />
+              <div
+                aria-hidden
+                className="hidden w-px self-stretch bg-border md:block"
+              />
+              <div className="min-w-0 md:flex-1">
+                <p className="text-muted-foreground">
+                  {t("checkout.pickup.pickupAt")}
+                </p>
+                <p className="mt-1 whitespace-pre-line">{pickup.pickupAddress}</p>
+                {pickup.instructions ? (
+                  <p className="mt-1 text-muted-foreground">
+                    {pickup.instructions}
+                  </p>
+                ) : null}
+              </div>
+              <Separator className="md:hidden" />
+              <div
+                aria-hidden
+                className="hidden w-px self-stretch bg-border md:block"
+              />
+              <div className="flex items-center justify-between gap-3 md:block">
+                <p className="text-muted-foreground">
+                  {t("checkout.pickup.status")}
+                </p>
+                <span
+                  className={cn(
+                    "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold md:mt-1.5",
+                    pickupTone.className,
+                  )}
+                >
+                  <pickupTone.icon className="h-3.5 w-3.5" aria-hidden />
+                  {t(`checkout.pickup.${pickup.status}`)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Info Cards — always these three, so the row is always full. Anything
+          that comes and goes (the parcel, the pickup, checkout answers) sits
+          full width above or below instead of joining it. */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Contact address for pickup; shipping address for delivery.
             Digital-only orders have no shipment; their address snapshot is
@@ -1027,7 +1446,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                   <PreorderAddressEditor
                     orderId={order._id}
                     address={order.shippingAddress}
-                    onSaved={() => setOrderReloadKey((key) => key + 1)}
+                    onSaved={() => reloadOrder()}
                   />
                 </div>
               ) : null}
@@ -1035,103 +1454,6 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
             )}
           </CardContent>
         </Card>
-
-        <OrderCheckoutAnswers
-          className="gap-1"
-          customerNote={order.customerNote}
-          checkoutFields={order.checkoutFields}
-        />
-
-        {pickup ? (
-          <Card className="gap-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MapPin className="h-4 w-4" />
-                {t("checkout.pickup.details")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <p className="text-muted-foreground">
-                  {t("checkout.pickup.window")}
-                </p>
-                <p className="mt-1 font-medium">{pickupWindow}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {pickup.timeZone}
-                </p>
-              </div>
-              <Separator />
-              <div>
-                <p className="text-muted-foreground">
-                  {t("checkout.pickup.pickupAt")}
-                </p>
-                <p className="mt-1 whitespace-pre-line">{pickup.pickupAddress}</p>
-                {pickup.instructions ? (
-                  <p className="mt-2 text-muted-foreground">
-                    {pickup.instructions}
-                  </p>
-                ) : null}
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {t("checkout.pickup.status")}
-                </span>
-                <span className="font-medium">
-                  {t(`checkout.pickup.${pickup.status}`)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {/* The parcel itself. Hidden for pickup — there is no courier to name
-            — and on a split order the per-seller blocks below carry each
-            consignment's own AWB; this card is the order-level summary. */}
-        {!pickup && (order.trackingNumber || order.trackingUrl) ? (
-          <Card className="gap-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Truck className="h-4 w-4" />
-                {t("orders.tracking")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <p className="text-muted-foreground">{t("orders.carrier")}</p>
-                <p className="mt-1 font-medium">
-                  {order.carrier || t("orders.carrierPending")}
-                </p>
-              </div>
-              {order.trackingNumber ? (
-                <div>
-                  <p className="text-muted-foreground">
-                    {t("orders.tracking")}
-                  </p>
-                  <p className="mt-1 font-mono text-xs break-all">
-                    {order.trackingNumber}
-                  </p>
-                </div>
-              ) : null}
-              {order.trackingUrl ? (
-                <a
-                  href={order.trackingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                >
-                  {t("orders.trackWithCarrier")}
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              ) : null}
-              <DeliveryException
-                exception={order.trackingException}
-                className="mt-0"
-              />
-              <ScanHistory events={order.trackingEvents} className="mt-0" />
-            </CardContent>
-          </Card>
-        ) : null}
 
         {/* Billing Address */}
         <Card className="gap-1">
@@ -1176,13 +1498,15 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-sm space-y-2">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground">
                   {t("common.method")}
                 </span>
-                <span>{getPaymentMethodMeta(t, order.paymentMethod).label}</span>
+                <span className="text-right">
+                  {getPaymentMethodMeta(t, order.paymentMethod).label}
+                </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">
                   {t("common.status")}
                 </span>
@@ -1193,17 +1517,52 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         </Card>
       </div>
 
+      {/* What the shopper wrote at checkout: free text, so it gets the width
+          to wrap in rather than a fourth card in the row above. */}
+      <OrderCheckoutAnswers
+        className="gap-1"
+        layout="columns"
+        customerNote={order.customerNote}
+        checkoutFields={order.checkoutFields}
+      />
+
       {/* Order Items */}
       <Card>
-        <CardHeader>
-          <CardTitle>
-            {isSplitOrder ? t("orders.shipments") : t("orders.orderItems")}
-          </CardTitle>
-          <CardDescription>
-            {isSplitOrder
-              ? t("orders.shipmentsDescription")
-              : `${order.items.length} ${order.items.length === 1 ? "item" : "items"}`}
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle>
+              {isSplitOrder ? t("orders.shipments") : t("orders.orderItems")}
+            </CardTitle>
+            <CardDescription>
+              {isSplitOrder
+                ? t("orders.shipmentsDescription")
+                : `${order.items.length} ${order.items.length === 1 ? "item" : "items"}`}
+            </CardDescription>
+          </div>
+          {shipmentProgress && !pickup ? (
+            <div className="w-full space-y-1.5 sm:w-52">
+              <p className="text-sm text-muted-foreground sm:text-right">
+                {tf(
+                  "orders.packagesShipped",
+                  "{shipped} of {total} packages shipped",
+                  {
+                    shipped: shipmentProgress.shipped,
+                    total: shipmentProgress.total,
+                  },
+                )}
+              </p>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.round(
+                      (shipmentProgress.shipped / shipmentProgress.total) * 100,
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -1227,30 +1586,69 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                     </div>
                   </div>
                 ) : null}
-                {group.shipment?.trackingNumber ? (
-                  <div className="px-3 text-sm text-muted-foreground">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span>
-                        {t("orders.tracking")}: {group.shipment.trackingNumber}
-                        {group.shipment.carrier
-                          ? ` · ${group.shipment.carrier}`
-                          : ""}
-                      </span>
-                      {group.shipment.trackingUrl ? (
-                        <a
-                          href={group.shipment.trackingUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                        >
-                          {t("orders.trackWithCarrier")}
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : null}
+                {group.shipment && !pickup ? (
+                  group.shipment.trackingNumber ? (
+                    <div className="space-y-3 px-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <LatestScan
+                          events={group.shipment.events}
+                          showAllLabel={tf("orders.showAllScans", "Show all scans")}
+                          hideLabel={tf("orders.hideScans", "Hide scans")}
+                          className="min-w-0 sm:order-1 sm:flex-1"
+                        />
+                        <div className="flex w-full items-center gap-2 rounded-lg border py-1.5 pl-3 pr-1.5 sm:order-2 sm:w-auto sm:shrink-0">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-muted-foreground">
+                              {group.shipment.carrier
+                                ? `${group.shipment.carrier} ${t("orders.tracking").toLowerCase()}`
+                                : t("orders.tracking")}
+                            </p>
+                            <p className="break-all font-mono text-xs sm:text-sm">
+                              {group.shipment.trackingNumber}
+                            </p>
+                          </div>
+                          <CopyTrackingNumber
+                            value={group.shipment.trackingNumber}
+                            label={tf("orders.copyTrackingNumber", "Copy tracking number")}
+                            copiedMessage={tf("orders.trackingNumberCopied", "Tracking number copied")}
+                          />
+                          {group.shipment.trackingUrl ? (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 shrink-0 gap-1 bg-primary/10 text-primary hover:bg-primary/15"
+                            >
+                              <a
+                                href={group.shipment.trackingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {tf("orders.track", "Track")}
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                      <DeliveryException
+                        exception={group.shipment.exception}
+                        className="mt-0"
+                      />
+                    </div>
+                  ) : group.shipment.status !== ORDER_STATUS.CANCELLED ? (
+                    <p className="px-3 text-sm text-muted-foreground">
+                      {DISPATCHED_STATUSES.includes(group.shipment.status)
+                        ? tf(
+                            "orders.shippedWithoutTracking",
+                            "This package was sent without a tracking number.",
+                          )
+                        : tf(
+                            "orders.trackingAppearsOnceShipped",
+                            "Tracking number appears once shipped.",
+                          )}
                     </p>
-                    <DeliveryException exception={group.shipment.exception} />
-                    <ScanHistory events={group.shipment.events} />
-                  </div>
+                  ) : null
                 ) : null}
                 {group.indexes.map((index) => {
                   const item = order.items[index];
@@ -1282,7 +1680,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                       <div className="flex-1 min-w-0">
                         {productSlug ? (
                           <Link
-                            href={`/${locale}/products/${productSlug}`}
+                            href={`/products/${productSlug}`}
                             className="font-medium hover:underline line-clamp-1"
                           >
                             {productName}
@@ -1292,6 +1690,9 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                         )}
                         <p className="text-sm text-muted-foreground">
                           {t("common.qty")}: {item.quantity}
+                          {order.finalSaleItemIndexes?.includes(index)
+                            ? ` · ${tf("orders.finalSale", "Final sale")}`
+                            : ""}
                         </p>
                         {reviewState?.rating ? (
                           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -1376,6 +1777,20 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
               <span>{t("common.total")}</span>
               <span>{formatPrice(order.total)}</span>
             </div>
+            {/* The part the shopper's store credit paid (R8). */}
+            {order.storeCredit?.state !== "released" &&
+            Number(order.storeCredit?.applied || 0) > 0 ? (
+              <div className="flex justify-between text-muted-foreground">
+                <span>
+                  {order.exchangeOf?.returnNumber
+                    ? tf("orders.paidByReturn", "Paid by your return {returnNumber}", {
+                        returnNumber: order.exchangeOf.returnNumber,
+                      })
+                    : tf("orders.paidWithStoreCredit", "Paid with store credit")}
+                </span>
+                <span>{formatPrice(Number(order.storeCredit?.applied || 0))}</span>
+              </div>
+            ) : null}
             {/* A deposit pre-order is not settled by the total: say here, next
                 to it, what has been paid and what is still owed — the same
                 figures as the balance card and the invoice. */}
@@ -1410,50 +1825,133 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       {returnRequests.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Return requests</CardTitle>
+            <CardTitle>{tf("orders.returns.title", "Return requests")}</CardTitle>
             <CardDescription>
-              Return and refund activity for this order.
+              {tf("orders.returns.description", "Return and refund activity for this order.")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {returnRequests.map((request) => (
-                <div
-                  key={request._id}
-                  className="rounded-md border p-4 text-sm"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium">{request.returnNumber}</p>
-                      <p className="text-muted-foreground">
-                        {request.items
-                          .map((item) => `${item.name} x${item.quantityRequested}`)
-                          .join(", ")}
+              {returnRequests.map((request) => {
+                // What paid for an exchange order (R7) was never a refund;
+                // all of it gone that way, the return reads as exchanged.
+                const exchanged = request.exchange?.orderId
+                  ? Number(request.actualRefund?.exchange || 0)
+                  : 0;
+                const refunded = Math.max(0, Number(request.actualRefund?.amount || 0) - exchanged);
+                const allExchanged =
+                  exchanged > 0 &&
+                  refunded <= 0.005 &&
+                  Number(request.estimatedRefund?.total || 0) - exchanged <= 0.005;
+                return (
+                  <div
+                    key={request._id}
+                    className="rounded-md border p-4 text-sm"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-medium">{request.returnNumber}</p>
+                        <p className="text-muted-foreground">
+                          {request.items
+                            .map((item) => `${item.name} x${item.quantityRequested}`)
+                            .join(", ")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="capitalize">
+                          {allExchanged
+                            ? tf("orders.returns.exchanged", "Exchanged")
+                            : returnStatusLabel(request.status)}
+                        </Badge>
+                        {/* Nothing to say about a refund that is not coming. */}
+                        {!allExchanged &&
+                        request.refundStatus &&
+                        request.refundStatus !== "not_required" ? (
+                          <Badge variant="secondary">
+                            {refundStatusLabel(request.refundStatus)}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                    {/* Why the store said no — never shown to the shopper before. */}
+                    {request.status === "rejected" && request.rejectionReason ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {tf("orders.returns.rejectionReason", "Reason: {reason}", {
+                          reason: request.rejectionReason,
+                        })}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="capitalize">
-                        {request.status.replace(/_/g, " ")}
-                      </Badge>
-                      <Badge variant="secondary" className="capitalize">
-                        {request.refundStatus.replace(/_/g, " ")}
-                      </Badge>
-                    </div>
-                  </div>
-                  {request.estimatedRefund ? (
-                    <RefundBreakdown
-                      estimate={request.estimatedRefund}
-                      formatPrice={formatPrice}
-                      className="mt-3"
+                    ) : null}
+                    {/* Where the parcel goes and how, once the store has said. */}
+                    <ReturnShippingDetails
+                      key={`${request._id}:${request.shipment?.trackingNumber || ""}`}
+                      request={request}
+                      tf={tf}
+                      onUpdated={(updated) =>
+                        setReturnRequests((current) =>
+                          current.map((item) =>
+                            item._id === updated._id ? { ...item, ...updated } : item,
+                          ),
+                        )
+                      }
                     />
-                  ) : null}
-                  {request.refundDestination?.method ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Refund going to: {describeRefundDestination(request.refundDestination)}
-                    </p>
-                  ) : null}
-                </div>
-              ))}
+                    {request.estimatedRefund ? (
+                      <RefundBreakdown
+                        estimate={request.estimatedRefund}
+                        refundedAmount={refunded}
+                        className="mt-3"
+                      />
+                    ) : null}
+                    {/* What they get instead of the money (R7). */}
+                    {request.exchange?.orderId ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {tf("orders.returns.exchangedFor", "Exchanged for")}{" "}
+                        <Link
+                          href={`/account/orders/${request.exchange.orderId}`}
+                          className="font-medium text-foreground underline-offset-2 hover:underline"
+                        >
+                          #{request.exchange.orderNumber}
+                        </Link>
+                      </p>
+                    ) : null}
+                    {/* Where the refund went when it was not the way they paid (R8). */}
+                    {Number(request.actualRefund?.storeCredit || 0) > 0 ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {tf(
+                          "orders.returns.refundedAsStoreCredit",
+                          "{amount} refunded as store credit",
+                          { amount: formatPrice(Number(request.actualRefund?.storeCredit || 0)) },
+                        )}
+                      </p>
+                    ) : null}
+                    {request.refundDestination?.method && !allExchanged ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {tf("orders.returns.destination.goingTo", "Refund going to: {destination}", {
+                          destination: describeDestination(request.refundDestination),
+                        })}
+                      </p>
+                    ) : null}
+                    {/* Before the goods are on their way back, changing your
+                        mind is yours to do. Afterwards it is the store's call —
+                        a parcel is in the post, or a refund is. Without this the
+                        items stayed spoken for until somebody in the shop
+                        rejected the request, so they could not be returned
+                        again at all. */}
+                    {CANCELLABLE_RETURN_STATUSES.includes(request.status) ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        disabled={cancellingReturnId === request._id}
+                        onClick={() => void cancelReturnRequest(request._id)}
+                      >
+                        {cancellingReturnId === request._id
+                          ? tf("orders.returns.cancelling", "Cancelling...")
+                          : tf("orders.returns.cancel", "Cancel this return")}
+                      </Button>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -1474,16 +1972,18 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Request a return</DialogTitle>
+            <DialogTitle>{tf("orders.returns.dialog.title", "Request a return")}</DialogTitle>
             <DialogDescription>
-              Select the items you want to return. The store team will review
-              the request before refund processing.
+              {tf(
+                "orders.returns.dialog.description",
+                "Select the items you want to return. The store team will review the request before refund processing.",
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-5 py-2">
             <div className="grid gap-2">
-              <Label>Reason</Label>
+              <Label>{tf("orders.returns.dialog.reason", "Reason")}</Label>
               <Select
                 value={returnReason}
                 onValueChange={(value) => {
@@ -1492,33 +1992,47 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a reason" />
+                  <SelectValue
+                    placeholder={tf("orders.returns.dialog.chooseReason", "Choose a reason")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="wrong_size_or_variant">
-                    Wrong size or variant
+                    {tf("orders.returns.reasons.wrong_size_or_variant", "Wrong size or variant")}
                   </SelectItem>
                   <SelectItem value="damaged_or_defective">
-                    Damaged or defective
+                    {tf("orders.returns.reasons.damaged_or_defective", "Damaged or defective")}
                   </SelectItem>
                   <SelectItem value="not_as_described">
-                    Not as described
+                    {tf("orders.returns.reasons.not_as_described", "Not as described")}
                   </SelectItem>
                   <SelectItem value="wrong_item_received">
-                    Wrong item received
+                    {tf("orders.returns.reasons.wrong_item_received", "Wrong item received")}
                   </SelectItem>
-                  <SelectItem value="arrived_late">Arrived late</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="arrived_late">
+                    {tf("orders.returns.reasons.arrived_late", "Arrived late")}
+                  </SelectItem>
+                  <SelectItem value="changed_mind">
+                    {tf("orders.returns.reasons.changed_mind", "Changed my mind")}
+                  </SelectItem>
+                  <SelectItem value="other">
+                    {tf("orders.returns.reasons.other", "Other")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               {returnReason === "other" ? (
                 <div className="grid gap-2">
-                  <Label htmlFor="other-return-reason">Other reason</Label>
+                  <Label htmlFor="other-return-reason">
+                    {tf("orders.returns.dialog.otherReason", "Other reason")}
+                  </Label>
                   <Input
                     id="other-return-reason"
                     value={otherReturnReason}
                     onChange={(event) => setOtherReturnReason(event.target.value)}
-                    placeholder="Type your return reason"
+                    placeholder={tf(
+                      "orders.returns.dialog.otherReasonPlaceholder",
+                      "Type your return reason",
+                    )}
                     maxLength={100}
                     required
                   />
@@ -1527,7 +2041,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
             </div>
 
             <div className="grid gap-3">
-              <Label>Items</Label>
+              <Label>{tf("orders.returns.dialog.items", "Items")}</Label>
               {order.items.map((item, index) => {
                 const productName = describeItem(item).name;
                 const returnableQuantity = getReturnableQuantity(index);
@@ -1539,12 +2053,21 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                     <div>
                       <p className="font-medium">{productName}</p>
                       <p className="text-sm text-muted-foreground">
-                        Returnable quantity: {returnableQuantity} of {item.quantity}
+                        {order.finalSaleItemIndexes?.includes(index)
+                          ? tf(
+                              "orders.returns.dialog.finalSale",
+                              "Final sale — can't be returned",
+                            )
+                          : tf(
+                              "orders.returns.dialog.returnable",
+                              "Returnable quantity: {count} of {total}",
+                              { count: returnableQuantity, total: item.quantity },
+                            )}
                       </p>
                     </div>
                     <div className="grid gap-1">
                       <Label htmlFor={`return-item-${index}`} className="text-xs">
-                        Return qty
+                        {tf("orders.returns.dialog.quantity", "Return qty")}
                       </Label>
                       <Input
                         id={`return-item-${index}`}
@@ -1564,19 +2087,24 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="return-note">Notes</Label>
+              <Label htmlFor="return-note">
+                {tf("orders.returns.dialog.notes", "Notes")}
+              </Label>
               <Textarea
                 id="return-note"
                 value={returnNote}
                 onChange={(event) => setReturnNote(event.target.value)}
-                placeholder="Add details for the store team"
+                placeholder={tf(
+                  "orders.returns.dialog.notesPlaceholder",
+                  "Add details for the store team",
+                )}
                 className="min-h-24"
               />
             </div>
 
             {selectedReturnItemsCount > 0 && selectedReturnReason ? (
               <div className="grid gap-2" aria-live="polite">
-                <Label>What you get back</Label>
+                <Label>{tf("orders.returns.dialog.whatYouGetBack", "What you get back")}</Label>
                 {previewError ? (
                   <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
                     {previewError}
@@ -1595,15 +2123,16 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                             their own return-leg fee. */}
                         {shownPreview.groups.length > 1 ? (
                           <p className="text-xs text-muted-foreground">
-                            Parcel {groupIndex + 1}:{" "}
-                            {group.items
-                              .map((item) => `${item.name} x${item.quantityRequested}`)
-                              .join(", ")}
+                            {tf("orders.returns.dialog.parcel", "Parcel {number}: {items}", {
+                              number: groupIndex + 1,
+                              items: group.items
+                                .map((item) => `${item.name} x${item.quantityRequested}`)
+                                .join(", "),
+                            })}
                           </p>
                         ) : null}
                         <RefundBreakdown
                           estimate={group.estimatedRefund}
-                          formatPrice={formatPrice}
                           refundsShipping={shownPreview.refundsShipping}
                           merchantAtFault={shownPreview.merchantAtFault}
                         />
@@ -1613,17 +2142,21 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                     {shownPreview.groups.length > 1 ? (
                       <div className="flex items-baseline justify-between gap-4 px-1 text-sm font-medium">
                         <span>
-                          Total across {shownPreview.groups.length} parcels
+                          {tf("orders.returns.dialog.totalParcels", "Total across {count} parcels", {
+                            count: shownPreview.groups.length,
+                          })}
                         </span>
                         <span className="tabular-nums">
-                          {formatPrice(shownPreview.total)}
+                          {formatReturnMoney(shownPreview.total, shownPreview.currency)}
                         </span>
                       </div>
                     ) : null}
 
                     <p className="text-xs text-muted-foreground">
-                      An estimate. The store confirms the final amount after
-                      checking the returned items.
+                      {tf(
+                        "orders.returns.dialog.estimateNote",
+                        "An estimate. The store confirms the final amount after checking the returned items.",
+                      )}
                     </p>
                   </div>
                 ) : (
@@ -1636,6 +2169,8 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
               <RefundDestinationFields
                 value={refundDestination}
                 onChange={setRefundDestination}
+                paymentMethod={order.paymentMethod}
+                channel={order.channel}
               />
             ) : null}
           </div>
@@ -1647,14 +2182,16 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
               onClick={() => setReturnDialogOpen(false)}
               disabled={isSubmittingReturn}
             >
-              Cancel
+              {tf("common.cancel", "Cancel")}
             </Button>
             <Button
               type="button"
               onClick={() => void handleSubmitReturn()}
               disabled={!canSubmitReturnNow}
             >
-              {isSubmittingReturn ? "Submitting..." : "Submit return"}
+              {isSubmittingReturn
+                ? tf("orders.returns.dialog.submitting", "Submitting...")
+                : tf("orders.returns.dialog.submit", "Submit return")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1665,27 +2202,24 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         onClose={() => setReviewTarget(null)}
         onReviewed={(reviewed, rating) => {
           setReviewTarget(null);
-          setOrder((current) =>
-            current
-              ? {
-                  ...current,
-                  reviewStates: (current.reviewStates ?? []).map((state) =>
-                    state.productId === reviewed.productId
-                      ? { ...state, rating, canReview: false }
-                      : state,
-                  ),
-                }
-              : current,
-          );
+          orderResource.mutate((current) => ({
+            ...current,
+            reviewStates: (current.reviewStates ?? []).map((state) =>
+              state.productId === reviewed.productId
+                ? { ...state, rating, canReview: false }
+                : state,
+            ),
+          }));
         }}
       />
     </div>
   );
 }
 
-function OrderDetailsSkeleton() {
+/** The order page's loading state: its `<ClientSuspense>` fallback. */
+export function OrderDetailsSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy="true">
       <div className="flex justify-between items-start">
         <div className="space-y-2">
           <Skeleton className="h-8 w-48" />
@@ -1694,8 +2228,8 @@ function OrderDetailsSkeleton() {
         <Skeleton className="h-6 w-24" />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {[1, 2].map((i) => (
+      <div className="grid gap-6 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
           <Card key={i}>
             <CardHeader className="pb-3">
               <Skeleton className="h-5 w-32" />

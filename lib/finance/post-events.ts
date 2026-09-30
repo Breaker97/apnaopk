@@ -22,11 +22,14 @@ import { PaymentTransaction } from "@/models/payment-transaction.model";
 import { Vendor } from "@/models/vendor.model";
 import {
   LedgerEntry,
+  LEDGER_SOURCE_KIND,
 } from "@/models/ledger-entry.model";
+import { LEDGER_ACCOUNT, type LedgerAccount } from "@/lib/finance/accounts";
 // The constant, not `lib/multi-vendor` — that module reaches into geocoding
 // and `next/cache`, which a plain script (the backfill) cannot load. The
 // finance layer has no business pulling that stack in either.
 import { appConfig } from "@/config/app.config";
+import { isPlatformSettled } from "@/lib/payments/payment-custody";
 import { postLedgerEntries, postingKey } from "@/lib/finance/ledger";
 import {
   adjustmentPostings,
@@ -36,10 +39,13 @@ import {
   payoutPaidPostings,
   payoutReversalPostings,
   platformPaymentPostings,
+  platformPaymentRefundPostings,
   platformPaymentReversalPostings,
   accumulateRefundBacks,
+  cashAccountFor,
   decomposeOrder,
   isConsignmentCollected,
+  fitRefundAllocation,
   refundBacks,
   scopedRefundBacks,
   unreversedConsignmentTotals,
@@ -50,13 +56,22 @@ import {
   shipmentLabelReversalPostings,
   shippingToStorePostings,
   balanceWriteOffPostings,
+  bookSharesOfCharge,
   chargebackLossPostings,
+  moveShareToOtherBook,
+  restockCostPostings,
   storeFundedCancellationPostings,
+  disputeFeeInOrderCurrency,
   disputeFeePostings,
+  storeCreditPostings,
   subscriptionInvoicePostings,
+  testLabelCorrectionPostings,
   type OrderPostingContext,
   type PostingOrder,
 } from "@/lib/finance/postings";
+// Import-light by design (it is read by the Settings model), so a plain script
+// such as the backfill can still load this module.
+import { isTestLabel } from "@/lib/shipping/carrier-config";
 
 /** The order fields the rules read — nothing else is loaded. */
 const ORDER_POSTING_PROJECTION =
@@ -77,7 +92,9 @@ const ORDER_POSTING_PROJECTION =
   // is whose coupon it was: without it the ledger shared a seller's own coupon
   // across every seller while the payout and the consignment charge did not,
   // and `subOrders._id` is how a refund names the consignment it belongs to.
-  "orderNumber currency total tax shippingCost discount coupon.type coupon.fundedBy customs.dutyAmount paidAt createdAt paymentMethod paymentStatus status preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaymentFee channel stripePaymentIntentId paymentFee paymentFeeCurrency paymentFeeRate subOrders._id subOrders.vendorId subOrders.subtotal subOrders.couponDiscount subOrders.shippingDiscount subOrders.commission subOrders.vendorEarnings subOrders.shippingCost subOrders.codCollectedBy subOrders.paymentStatus subOrders.status subOrders.fulfillment.method subOrders.items.cost subOrders.items.quantity subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.paidAt";
+  // `storeCredit` is the part the shopper's credit paid (R8), which never
+  // reached the cash account the sale is posted to.
+  "orderNumber currency total tax shippingCost discount storeCredit coupon.type coupon.fundedBy customs.dutyAmount paidAt createdAt paymentMethod paymentStatus status preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidFrom preorderBalancePaymentFee channel paymentCustody stripePaymentIntentId paymentFee paymentFeeCurrency paymentFeeRate subOrders._id subOrders.vendorId subOrders.subtotal subOrders.couponDiscount subOrders.shippingDiscount subOrders.commission subOrders.vendorEarnings subOrders.shippingCost subOrders.codCollectedBy subOrders.paymentStatus subOrders.status subOrders.fulfillment.method subOrders.items.productId subOrders.items.variantId subOrders.items.cost subOrders.items.quantity subOrders.items.preorderOutstandingAmount subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.paidAt";
 
 /**
  * Which vendors are the admin-owned store.
@@ -183,7 +200,32 @@ async function loadPostingOrder(
 export async function postOrderPaid(orderId: unknown): Promise<number> {
   const order = await loadPostingOrder(orderId);
   if (!order) return 0;
-  return postLedgerEntries(orderPaidPostings(order, await orderContext()));
+  return postLedgerEntries(
+    orderPaidPostings(order, {
+      ...(await orderContext()),
+      raisedOutstanding: await loadRaisedOutstanding(order),
+    }),
+  );
+}
+
+/**
+ * The balance receivables this order has already raised, by posting key, so
+ * the collection clears what was raised rather than what today's split says.
+ */
+async function loadRaisedOutstanding(order: {
+  _id?: unknown;
+  preorderOutstandingAmount?: number | null;
+}): Promise<Map<string, number> | undefined> {
+  if (!(Number(order.preorderOutstandingAmount || 0) > 0)) return undefined;
+  const raised = await LedgerEntry.find({
+    "source.kind": "order",
+    "source.id": new Types.ObjectId(String(order._id)),
+    debit: "customer_receivable",
+    key: { $regex: ":outstanding:" },
+  })
+    .select("key amount")
+    .lean<Array<{ key: string; amount: number }>>();
+  return new Map(raised.map((entry) => [entry.key, Number(entry.amount || 0)]));
 }
 
 /**
@@ -195,15 +237,28 @@ export async function postOrderPaid(orderId: unknown): Promise<number> {
  * order-level refund, and everything written before allocations existed —
  * yields null, and the rules fall back to prorating across the order.
  */
-async function loadRefundAllocation(
-  refundId: unknown,
-): Promise<RefundAllocationInput[] | null> {
-  if (!refundId || !Types.ObjectId.isValid(String(refundId))) return null;
+/**
+ * The stored split of a refund row, and whether it went to store credit
+ * (R8) — which the ledger books as credit owed rather than cash paid out.
+ */
+async function loadRefundRow(refundId: unknown): Promise<{
+  allocation: RefundAllocationInput[] | null;
+  storeCredit: boolean;
+}> {
+  if (!refundId || !Types.ObjectId.isValid(String(refundId))) {
+    return { allocation: null, storeCredit: false };
+  }
   const refund = await PaymentTransaction.findById(refundId)
-    .select("refundAllocation")
-    .lean<{ refundAllocation?: RefundAllocationInput[] | null } | null>();
+    .select("refundAllocation metadata.storeCredit")
+    .lean<{
+      refundAllocation?: RefundAllocationInput[] | null;
+      metadata?: { storeCredit?: boolean };
+    } | null>();
   const allocation = refund?.refundAllocation;
-  return allocation && allocation.length > 0 ? allocation : null;
+  return {
+    allocation: allocation && allocation.length > 0 ? allocation : null,
+    storeCredit: refund?.metadata?.storeCredit === true,
+  };
 }
 
 /**
@@ -323,7 +378,17 @@ export async function resolveRefundAllocation(params: {
       decomposition,
       subOrders,
       amount,
-      allocation: supplied,
+      // Fitted to what each consignment has left before it is trusted, so a
+      // return quoting more delivery or tax than its own parcel carried moves
+      // that overflow alone rather than spreading the goods over every seller.
+      allocation:
+        fitRefundAllocation({
+          decomposition,
+          subOrders,
+          amount,
+          allocation: supplied,
+          alreadyReversed,
+        }) ?? supplied,
       alreadyReversed,
     });
 
@@ -399,6 +464,21 @@ export async function loadUnreversedConsignmentTotals(
  * The amount is whatever of that consignment's delivery no refund has handed
  * back yet, from the same decomposition the sale posted — a refund of the
  * delivery before the label already took its part out of the vendor's payable.
+ *
+ * WHICH WAY it moves is worked out here, from the order, and is deliberately
+ * not a parameter. The two directions carry different keys — `shipping-billed`
+ * when the vendor took the shopper's cash and is billed for the delivery,
+ * `shipping-to-store` when the charge comes out of a payable the store is
+ * holding — so a caller that omitted the flag did not post nothing, it posted
+ * a SECOND entry the unique index could not recognise as a duplicate. The
+ * daily reconcile omitted it, and every pass re-billed the same delivery: the
+ * charge counted twice as shipping income and the vendor's payable driven
+ * negative by it, which is the impossible balance the overview warns about.
+ *
+ * Safe to derive rather than remember because custody never moves: none of the
+ * fields `isPlatformSettled` reads change once the order is placed, and in
+ * particular it does not read `platformLabelAt` — so this gives the same
+ * answer before the stamp, after it, and on a reversal months later.
  */
 export async function postShippingToStore(params: {
   orderId: unknown;
@@ -407,8 +487,6 @@ export async function postShippingToStore(params: {
   bookingSequence?: number | null;
   date?: Date;
   reversal?: boolean;
-  /** Bill the vendor instead of taking it out of their payable. */
-  billToVendor?: boolean;
 }): Promise<number> {
   const order = await loadPostingOrder(params.orderId);
   if (!order) return 0;
@@ -427,6 +505,19 @@ export async function postShippingToStore(params: {
   const shipping = decomposition.shares[index]?.shipping ?? 0;
   const remaining = shipping - Number(alreadyReversed[index * 4 + 1] || 0);
 
+  // The vendor took the shopper's money at the door, so there is no payable to
+  // take the delivery out of: the store bills them for the parcel it carried,
+  // alongside the commission they already owe.
+  const billToVendor = !isPlatformSettled(
+    {
+      paymentMethod: order.paymentMethod,
+      channel: order.channel,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      paymentCustody: order.paymentCustody,
+    },
+    subOrders[index]!,
+  );
+
   return postLedgerEntries(
     shippingToStorePostings({
       orderId: order._id,
@@ -438,7 +529,7 @@ export async function postShippingToStore(params: {
       currency: decomposition.currency,
       date: params.date || new Date(),
       reversal: params.reversal,
-      billToVendor: params.billToVendor,
+      billToVendor,
     }),
   );
 }
@@ -561,21 +652,24 @@ export async function postDisputeFee(params: {
   const anyOwn = (order.subOrders || []).some((sub) =>
     defaults.has(sub?.vendorId ? String(sub.vendorId) : ""),
   );
+  const shares = bookSharesOfCharge(order, { defaultVendorIds: defaults });
+  const fee = disputeFeeInOrderCurrency(order, params);
   return postLedgerEntries(
     disputeFeePostings({
       disputeId: params.disputeId,
       orderId: order._id,
       orderNumber: order.orderNumber,
-      amount: params.amount,
-      currency: params.currency,
+      amount: fee.amount,
+      currency: fee.currency,
       date: params.date || new Date(),
       book: anyOwn ? "own" : "marketplace",
       returned: params.returned,
       part: params.part,
-      note: params.note,
-    }),
+      note: fee.note,
+    }).flatMap((entry) => [entry, ...moveShareToOtherBook(entry, shares)]),
   );
 }
+
 
 /**
  * Bring what the books hold as a dispute's loss beyond the sale in line with
@@ -593,13 +687,18 @@ export async function postChargebackLoss(params: {
   const order = await loadPostingOrder(params.orderId);
   if (!order) return 0;
   const prefix = postingKey("order", order._id, "dispute", params.disputeId, "beyond-sale");
-  const existing = await LedgerEntry.find({
-    "source.kind": "order",
-    "source.id": new Types.ObjectId(String(order._id)),
-    key: { $regex: `^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:` },
-  })
-    .select("debit amount")
-    .lean<Array<{ debit?: string; amount?: number }>>();
+  const existing = (
+    await LedgerEntry.find({
+      "source.kind": "order",
+      "source.id": new Types.ObjectId(String(order._id)),
+      key: { $regex: `^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:` },
+    })
+      .select("debit amount key")
+      .lean<Array<{ debit?: string; amount?: number; key?: string }>>()
+  )
+    // A share moved to the other book is not a change to the loss, and must
+    // not count as a part: its two legs cancel on the account anyway.
+    .filter((entry) => !String(entry.key || "").includes(":book-share:"));
   const booked = existing.reduce(
     (sum, entry) =>
       sum + (entry.debit === "chargeback_losses" ? 1 : -1) * Number(entry.amount || 0),
@@ -613,6 +712,7 @@ export async function postChargebackLoss(params: {
   const anyOwn = (order.subOrders || []).some((sub) =>
     defaults.has(sub?.vendorId ? String(sub.vendorId) : ""),
   );
+  const shares = bookSharesOfCharge(order, { defaultVendorIds: defaults });
   return postLedgerEntries(
     chargebackLossPostings({
       disputeId: params.disputeId,
@@ -624,7 +724,7 @@ export async function postChargebackLoss(params: {
       book: anyOwn ? "own" : "marketplace",
       returned: change < 0,
       part: existing.length + 1,
-    }),
+    }).flatMap((entry) => [entry, ...moveShareToOtherBook(entry, shares)]),
   );
 }
 
@@ -654,15 +754,18 @@ export async function postRefund(params: {
         })
       : null;
 
+  const row = await loadRefundRow(params.refundId);
   return postLedgerEntries(
     refundPostings({
       order,
       amount: params.amount,
       refundId: params.refundId,
       date: params.date,
-      allocation: await loadRefundAllocation(params.refundId),
+      allocation: row.allocation,
       alreadyReversed,
       context: await orderContext(),
+      // A refund to store credit sends nothing: the shopper is owed it (R8).
+      ...(row.storeCredit ? { against: "store_credit" as const } : {}),
     }),
   );
 }
@@ -688,6 +791,8 @@ export async function postRefundReversal(params: {
   amount: number;
   refundId?: unknown;
   date?: Date;
+  /** Why it is reversed, for the entries' note. */
+  note?: string;
 }): Promise<number> {
   const order = await loadPostingOrder(params.orderId);
   if (!order) return 0;
@@ -703,15 +808,20 @@ export async function postRefundReversal(params: {
         })
       : null;
 
+  // Against what the refund came out of: a refund to store credit (R8) is put
+  // back on the credit owed, not on a cash account it never touched.
+  const row = await loadRefundRow(params.refundId);
   return postLedgerEntries(
     refundReversalPostings({
       order,
       amount: params.amount,
       refundId: params.refundId,
       date: params.date,
-      allocation: await loadRefundAllocation(params.refundId),
+      allocation: row.allocation,
       alreadyReversed,
       context: await orderContext(),
+      ...(row.storeCredit ? { against: "store_credit" as const } : {}),
+      ...(params.note ? { note: params.note } : {}),
     }),
   );
 }
@@ -745,6 +855,7 @@ export async function postPlatformPayment(payment: {
   amount?: number | null;
   currency?: string | null;
   paidAt?: Date | null;
+  provider?: string | null;
 }): Promise<number> {
   return postLedgerEntries(platformPaymentPostings(payment));
 }
@@ -753,6 +864,13 @@ export async function postPlatformPaymentReversed(
   payment: Parameters<typeof platformPaymentReversalPostings>[0],
 ): Promise<number> {
   return postLedgerEntries(platformPaymentReversalPostings(payment));
+}
+
+/** One step of a platform payment being refunded — see the posting rule. */
+export async function postPlatformPaymentRefund(
+  payment: Parameters<typeof platformPaymentRefundPostings>[0],
+): Promise<number> {
+  return postLedgerEntries(platformPaymentRefundPostings(payment));
 }
 
 /** A vendor's plan invoice, billed by the provider's own subscription engine. */
@@ -767,16 +885,20 @@ export async function postSubscriptionInvoice(
  *
  * Both go in one call because they are one accounting act: the correction is
  * only true if the thing it corrects is undone in the same breath.
+ *
+ * `strict` from the admin routes, where the entry is the whole point of the
+ * record and a failed write has to be reported — see `postLedgerEntries`.
  */
 export async function postExpense(
   expense: Parameters<typeof expensePostings>[0],
   previous?: Parameters<typeof expenseReversalPostings>[0] | null,
+  options: { strict?: boolean } = {},
 ): Promise<number> {
   const entries = [
     ...(previous ? expenseReversalPostings(previous) : []),
     ...expensePostings(expense),
   ];
-  return postLedgerEntries(entries);
+  return postLedgerEntries(entries, options);
 }
 
 /**
@@ -820,8 +942,9 @@ export async function currentExpenseRevision(expense: {
 /** Deleting an expense reverses it; the original entry stays on the books. */
 export async function reverseExpense(
   expense: Parameters<typeof expenseReversalPostings>[0],
+  options: { strict?: boolean } = {},
 ): Promise<number> {
-  return postLedgerEntries(expenseReversalPostings(expense));
+  return postLedgerEntries(expenseReversalPostings(expense), options);
 }
 
 /** The shipment fields both label rules read. */
@@ -845,6 +968,12 @@ type PostingShipment = {
    * existed and for every store that never configures one.
    */
   billedTo?: string | null;
+  /**
+   * `test` for a label bought on the carrier's test environment, which costs
+   * nothing — see `isTestLabel`. Every path that books a label has to read it:
+   * the purchase always did, and the daily pass and the backfill did not.
+   */
+  providerMode?: string | null;
 };
 
 /** True when the platform's own carrier account was charged for this label. */
@@ -857,13 +986,40 @@ export async function postShipmentLabel(
 ): Promise<number> {
   if (!platformPaidForLabel(shipment)) return 0;
   const defaults = await getDefaultVendorIds();
+  const posting = {
+    ...shipment,
+    isOwnStore: shipment.vendorId
+      ? defaults.has(String(shipment.vendorId))
+      : true,
+  };
+  // A test label books nothing — and one an earlier pass booked anyway has
+  // its cost taken back off.
+  if (isTestLabel({ providerMode: shipment.providerMode })) {
+    return correctTestLabelCost(posting);
+  }
+  return postLedgerEntries(shipmentLabelPostings(posting));
+}
+
+/**
+ * Take a test label's cost back off, if one was ever booked.
+ *
+ * Nothing when it never was — the case for every test label the purchase path
+ * handled — and nothing when a void has already reversed it, which would
+ * otherwise be taken off twice.
+ */
+async function correctTestLabelCost(
+  posting: Parameters<typeof shipmentLabelPostings>[0],
+): Promise<number> {
+  const [cost] = shipmentLabelPostings(posting);
+  if (!cost) return 0;
+  const booked = await LedgerEntry.findOne({ key: cost.key })
+    .select("date")
+    .lean<{ date?: Date } | null>();
+  if (!booked) return 0;
+  const voided = await LedgerEntry.exists({ key: `${cost.key}:void` });
+  if (voided) return 0;
   return postLedgerEntries(
-    shipmentLabelPostings({
-      ...shipment,
-      isOwnStore: shipment.vendorId
-        ? defaults.has(String(shipment.vendorId))
-        : true,
-    }),
+    testLabelCorrectionPostings({ ...posting, bookedAt: booked.date ?? null }),
   );
 }
 
@@ -878,18 +1034,143 @@ export async function postShipmentLabelVoid(
 ): Promise<number> {
   if (!platformPaidForLabel(shipment)) return 0;
   const defaults = await getDefaultVendorIds();
+  const posting = {
+    ...shipment,
+    isOwnStore: shipment.vendorId
+      ? defaults.has(String(shipment.vendorId))
+      : true,
+  };
+  // A test label is never reversed as a refund, because it never cost
+  // anything. If an earlier pass booked it anyway, the one correction for that
+  // is the test-label one — under its own key, so the void and the daily pass
+  // cannot both take it off.
+  if (isTestLabel({ providerMode: shipment.providerMode })) {
+    return correctTestLabelCost(posting);
+  }
+  // Only a cost that was booked comes back off. The reversal's key carries the
+  // booking number, which moves on every void, so the unique index cannot stop
+  // a second reversal of the same label on its own — and a label that never
+  // posted a cost (a test label, or one bought before costs were booked)
+  // would otherwise be "refunded" into a negative shipping expense.
+  const originalKeys = shipmentLabelPostings(posting).map((entry) => entry.key);
+  if (originalKeys.length === 0) return 0;
+  const booked = await LedgerEntry.exists({ key: { $in: originalKeys } });
+  if (!booked) return 0;
+  return postLedgerEntries(shipmentLabelReversalPostings(posting));
+}
+
+/**
+ * Units of the store's own goods back on the shelf — see `restockCostPostings`.
+ *
+ * Reads what the books still carry as this order's cost of goods, per seller,
+ * and never reverses more: an order whose units were never costed, or were
+ * never booked at all (an unpaid order called off), posts nothing.
+ */
+export async function postRestockedCost(params: {
+  orderId: unknown;
+  restocked: Parameters<typeof restockCostPostings>[0]["restocked"];
+  /** `restock` for a cancellation, `return-<id>` for a return. */
+  eventKey: string;
+  date?: Date;
+}): Promise<number> {
+  if (params.restocked.length === 0) return 0;
+  const order = await loadPostingOrder(params.orderId);
+  if (!order) return 0;
+  // Most stores record no cost at all; they need no ledger read.
+  const costed = (order.subOrders || []).some((sub) =>
+    (sub?.items || []).some((item) => Number.isFinite(Number(item?.cost))),
+  );
+  if (!costed) return 0;
+
+  const standing = await LedgerEntry.aggregate<{ _id: unknown; balance: number }>([
+    {
+      $match: {
+        "source.kind": "order",
+        "source.id": new Types.ObjectId(String(order._id)),
+        $or: [{ debit: "cost_of_goods" }, { credit: "cost_of_goods" }],
+      },
+    },
+    {
+      $group: {
+        _id: "$vendorId",
+        balance: {
+          $sum: {
+            $cond: [
+              { $eq: ["$debit", "cost_of_goods"] },
+              "$amount",
+              { $multiply: ["$amount", -1] },
+            ],
+          },
+        },
+      },
+    },
+  ]);
+  const standingByVendor = new Map(
+    standing.map((row) => [row._id ? String(row._id) : "", Number(row.balance || 0)]),
+  );
+  if (![...standingByVendor.values()].some((balance) => balance > 0)) return 0;
+
   return postLedgerEntries(
-    shipmentLabelReversalPostings({
-      ...shipment,
-      isOwnStore: shipment.vendorId
-        ? defaults.has(String(shipment.vendorId))
-        : true,
+    restockCostPostings({
+      order,
+      context: await orderContext(),
+      restocked: params.restocked,
+      standingByVendor,
+      eventKey: params.eventKey,
+      date: params.date || new Date(),
     }),
   );
 }
 
+export function postRestockedCostSafely(
+  params: Parameters<typeof postRestockedCost>[0],
+): void {
+  void postRestockedCost(params).catch((error) => {
+    console.error("Ledger: failed to take restocked units out of cost of goods", params.orderId, error);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Fire-and-forget wrappers — what the live paths call.
+
+/**
+ * Store credit given as goodwill, or expired unspent (R8) — see
+ * `storeCreditPostings`. Any other credit row posts nothing here: a refund's
+ * credit is the refund's, and a spend is the sale's.
+ */
+export async function postStoreCreditEvent(row: {
+  _id: unknown;
+  type?: string;
+  source?: string;
+  amount?: number;
+  currency?: string;
+  createdAt?: Date;
+}): Promise<number> {
+  const kind =
+    row.type === "issue" && row.source === "goodwill"
+      ? ("goodwill" as const)
+      : row.type === "expire"
+        ? ("expiry" as const)
+        : null;
+  if (!kind) return 0;
+  return postLedgerEntries(
+    storeCreditPostings({
+      kind,
+      id: row._id,
+      amount: Number(row.amount || 0),
+      currency: String(row.currency || ""),
+      date: row.createdAt ? new Date(row.createdAt) : new Date(),
+    }),
+  );
+}
+
+export function postStoreCreditEventSafely(
+  row: Parameters<typeof postStoreCreditEvent>[0],
+): void {
+  postStoreCreditEvent(row).catch((error) =>
+    console.error("Failed to post a store credit event to the ledger:", error),
+  );
+}
 
 export function postOrderPaidSafely(orderId: unknown): void {
   void postOrderPaid(orderId).catch((error) => {
@@ -905,6 +1186,107 @@ export function postRefundSafely(params: {
 }): void {
   void postRefund(params).catch((error) => {
     console.error("Ledger: failed to post refund", params.orderId, error);
+  });
+}
+
+/**
+ * The cash account a refund recorded as SENT actually left from, read off
+ * the method it was recorded under — or null when the words do not say.
+ *
+ * Mobile money and wallets are deliberately not guessed at, for the reason a
+ * register's "manual" takings are not: a balance someone reconciles against a
+ * statement must not receive money it never held.
+ */
+function cashAccountForSettlement(
+  method: string | null | undefined,
+): LedgerAccount | null {
+  const text = ` ${String(method || "")
+    .toLowerCase()
+    .replace(/[_\-/]+/g, " ")} `;
+  if (!text.trim()) return null;
+  if (/\s(bank|transfer|wire|iban|swift|ach|neft|rtgs|cheque|check)\s/.test(text)) {
+    return LEDGER_ACCOUNT.CASH_BANK;
+  }
+  if (/\s(cash|counter|drawer|till)\s/.test(text)) return LEDGER_ACCOUNT.CASH_ON_HAND;
+  if (/\s(stripe|paypal|razorpay|paystack|pesapal|gateway|card)\s/.test(text)) {
+    return LEDGER_ACCOUNT.CASH_GATEWAY;
+  }
+  return null;
+}
+
+/**
+ * Move a hand refund to the account it was actually sent from.
+ *
+ * A refund is booked out of the account the ORDER's money came into — a
+ * courier's cash for a cash-on-delivery order — the day it is recorded, before
+ * anyone has decided how to send it. Sent by bank transfer, it drew the drawer
+ * down all the same, and a drawer already banked went negative and was flagged
+ * as missing cash. Recorded as sent, the amount it drew from that account is
+ * put back and taken from the one the money really left. Keyed on the refund
+ * and the account, so recording the same thing twice moves nothing.
+ */
+export async function postRefundSettlementReclass(params: {
+  refundId: unknown;
+  method: string;
+  date?: Date;
+}): Promise<number> {
+  const to = cashAccountForSettlement(params.method);
+  if (!to) return 0;
+  const refund = await PaymentTransaction.findById(params.refundId)
+    .select("orderId")
+    .lean<{ _id: Types.ObjectId; orderId?: unknown } | null>();
+  if (!refund?.orderId) return 0;
+  const order = await loadPostingOrder(refund.orderId);
+  if (!order) return 0;
+  const from = cashAccountFor(order);
+  if (from === to) return 0;
+
+  const entries = await LedgerEntry.find({
+    "source.kind": LEDGER_SOURCE_KIND.REFUND,
+    "source.id": refund._id,
+    $or: [{ debit: from }, { credit: from }],
+  })
+    .select("book currency debit credit amount")
+    .lean<
+      Array<{ book: string; currency: string; debit: string; credit: string; amount: number }>
+    >();
+  // What the refund drew from that account, per book and currency.
+  const drawn = new Map<string, { book: string; currency: string; amount: number }>();
+  for (const entry of entries) {
+    const key = `${entry.book}:${entry.currency}`;
+    const current = drawn.get(key) ?? { book: entry.book, currency: entry.currency, amount: 0 };
+    current.amount += entry.credit === from ? entry.amount : -entry.amount;
+    drawn.set(key, current);
+  }
+
+  return postLedgerEntries(
+    [...drawn.values()]
+      .filter((share) => share.amount > 0.000001)
+      .map((share) => ({
+        date: params.date || new Date(),
+        book: share.book as never,
+        // Back into the account the refund was booked out of, and out of the
+        // one it really left.
+        debit: from,
+        credit: to,
+        amount: share.amount,
+        currency: share.currency,
+        source: {
+          kind: LEDGER_SOURCE_KIND.REFUND,
+          id: refund._id,
+          ref: order.orderNumber ?? null,
+        },
+        key: postingKey(LEDGER_SOURCE_KIND.REFUND, refund._id, "sent-from", to, share.book, share.currency),
+        note: `Refund sent by ${params.method}`,
+      })),
+  );
+}
+
+export function postRefundSettlementReclassSafely(
+  params: Parameters<typeof postRefundSettlementReclass>[0],
+): void {
+  void postRefundSettlementReclass(params).catch((error) => {
+    console.error("Ledger: failed to move a refund to where it was sent from", params.refundId, error);
   });
 }
 
@@ -942,6 +1324,18 @@ export function postPlatformPaymentReversedSafely(
   void postPlatformPaymentReversed(payment).catch((error) => {
     console.error(
       "Ledger: failed to reverse platform payment",
+      payment?._id,
+      error,
+    );
+  });
+}
+
+export function postPlatformPaymentRefundSafely(
+  payment: Parameters<typeof postPlatformPaymentRefund>[0],
+): void {
+  void postPlatformPaymentRefund(payment).catch((error) => {
+    console.error(
+      "Ledger: failed to post a platform payment refund",
       payment?._id,
       error,
     );

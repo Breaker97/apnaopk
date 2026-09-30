@@ -9,7 +9,10 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { getSettings } from "@/models";
-import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import {
+  assertAdminOrStaffPermissions,
+  assertUnscopedStaff,
+} from "@/lib/access/staff-authz";
 import { resolveAnalyticsConfig } from "@/lib/settings/credentials";
 
 /**
@@ -24,9 +27,15 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
-    await assertAdminOrStaffPermissions(
+    const { staffScope } = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.VIEW_ANALYTICS],
+    );
+    // Plausible reports the whole site's traffic; it cannot be narrowed to the
+    // vendors or locations a scoped staff member is limited to.
+    assertUnscopedStaff(
+      staffScope,
+      "Store-wide traffic is only available to platform staff",
     );
 
     await connectDB();

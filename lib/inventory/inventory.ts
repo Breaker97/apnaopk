@@ -43,6 +43,22 @@ export type InventoryAdjustmentOptions = {
    * (`posOversoldLines`) so a human can reconcile it.
    */
   allowOversell?: boolean;
+  /**
+   * `decrementInventory` only: what follows the movement — reading where
+   * stock landed, refreshing the storefront's copies, low-stock alerts —
+   * handed over to run alongside the caller's own next steps instead of being
+   * waited on here. The caller must still await it (catching its errors)
+   * before it answers, so the refresh happens within the request.
+   */
+  onAftermath?: (aftermath: Promise<void>) => void;
+  /**
+   * Put restored units at `locationId` and nowhere else, adding the product's
+   * entry there first when it has none — the location a returned item is
+   * restocked at, chosen by whoever processes the return. Without it
+   * `locationId` is a preference, as it is for every other restore. A product
+   * that keeps no per-location stock only has its total raised.
+   */
+  exactLocation?: boolean;
 };
 
 export class InsufficientStockError extends Error {
@@ -241,15 +257,21 @@ async function loadDispatchOrder(
     );
 
     // One lookup per distinct vendor, not per product: a ten-line order from
-    // one store must not become ten identical queries.
-    const byVendor = new Map<string, string[]>();
-    for (const vendorId of new Set(vendorByProduct.values())) {
-      const candidates = await fulfillmentCandidatesForVendor(vendorId);
-      byVendor.set(
-        vendorId,
-        candidates.map((candidate) => candidate.id),
-      );
-    }
+    // one store must not become ten identical queries. The vendors' lookups go
+    // at once, not one after another.
+    const byVendor = new Map<string, string[]>(
+      await Promise.all(
+        Array.from(new Set(vendorByProduct.values())).map(
+          async (vendorId) =>
+            [
+              vendorId,
+              (await fulfillmentCandidatesForVendor(vendorId)).map(
+                (candidate) => candidate.id,
+              ),
+            ] as [string, string[]],
+        ),
+      ),
+    );
 
     for (const [productId, vendorId] of vendorByProduct) {
       const ranked = byVendor.get(vendorId);
@@ -588,20 +610,24 @@ export async function decrementInventory(
   // lookup in invalidateProductCache.
   const lineData = await readAllLineLocations(lines, opts);
 
-  try {
-    for (const line of lines) {
-      if (
-        !line.productId ||
-        !Number.isFinite(line.quantity) ||
-        line.quantity <= 0
-      ) {
-        continue;
-      }
+  const movable = lines.filter(
+    (line) =>
+      line.productId &&
+      Number.isFinite(line.quantity) &&
+      line.quantity > 0 &&
       // Digital / untracked products have no counter to move. Skipping them
       // also keeps them out of `applied`, so a later failure doesn't try to
       // "restore" stock that was never taken.
-      if (lineData.untracked.has(String(line.productId))) continue;
-      await decrementSingleLine(
+      !lineData.untracked.has(String(line.productId)),
+  );
+  // Every line's counter moves at once. Each move is its own atomic,
+  // conditional update and needs nothing from the others — they ran one after
+  // another, a database round trip per line on the path a shopper waits on.
+  // Only the rollback needs them together, and it gets exactly the lines that
+  // moved.
+  const outcomes = await Promise.allSettled(
+    movable.map((line) =>
+      decrementSingleLine(
         productModel,
         line,
         opts,
@@ -611,10 +637,16 @@ export async function decrementInventory(
         opts.allowOversell === true ||
           lineData.oversell.has(String(line.productId)),
         lineData.preferred.get(String(line.productId)) || [],
-      );
-      applied.push(line);
-    }
-  } catch (err) {
+      ),
+    ),
+  );
+  applied.push(...movable.filter((_, i) => outcomes[i].status === "fulfilled"));
+  // The first line to fail, in the order given — the one a sequential run
+  // would have stopped at — is the error the caller sees.
+  const failure = outcomes.find(
+    (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+  );
+  if (failure) {
     if (applied.length > 0) {
       await restoreInventory(applied, opts).catch((rollbackErr) => {
         // If rollback itself fails, we surface the original error to the
@@ -626,29 +658,37 @@ export async function decrementInventory(
         );
       });
     }
-    throw err;
+    throw failure.reason;
   }
 
   if (applied.length === 0) return;
 
-  // One read of where stock landed serves both follow-ups below.
-  const after = await readStockAfterMovement(applied);
+  const aftermath = (async () => {
+    // One read of where stock landed serves both follow-ups below.
+    const after = await readStockAfterMovement(applied);
 
-  // Refresh the cached storefront copies of these products so the new stock is
-  // reflected immediately rather than waiting for the 60s revalidate window.
-  invalidateProductCache(applied, lineData.slugs, after, -1);
+    // Refresh the cached storefront copies of these products so the new stock
+    // is reflected immediately rather than waiting for the 60s revalidate
+    // window.
+    invalidateProductCache(applied, lineData.slugs, after, -1);
 
-  // Low-stock alerts. Fired only when this decrement CROSSED the threshold
-  // (previous stock above, new stock at/below) so a product sitting at low
-  // stock doesn't re-notify on every subsequent sale.
-  if (after) await maybeNotifyLowStock(applied, after);
+    // Low-stock alerts. Fired only when this decrement CROSSED the threshold
+    // (previous stock above, new stock at/below) so a product sitting at low
+    // stock doesn't re-notify on every subsequent sale.
+    if (after) await maybeNotifyLowStock(applied, after);
+  })();
+  if (opts.onAftermath) {
+    opts.onAftermath(aftermath);
+    return;
+  }
+  await aftermath;
 }
 
 // Matches the admin inventory screen's low-stock boundary.
 const LOW_STOCK_THRESHOLD = 10;
 
 /** A product's stock as it stands right after a movement. */
-export type StockAfterMovement = {
+type StockAfterMovement = {
   _id: unknown;
   name?: string;
   stock?: number;
@@ -789,6 +829,7 @@ async function maybeNotifyLowStock(
       );
       await notifyStaffLowStock(name, stock, {
         productId: String(product._id),
+        vendorId: product.vendorId ? String(product.vendorId) : undefined,
       }).catch((err) => console.error("Failed to notify staff low stock:", err));
 
       if (product.vendorId) {
@@ -845,6 +886,18 @@ export async function restoreInventory(
             opts.locationId,
             lineData.preferred.get(String(line.productId)),
           );
+    // The one location these units go to, when the caller chose it — only
+    // for a product that keeps stock by location at all (see `exactLocation`).
+    const exact =
+      opts.exactLocation &&
+      opts.channel !== "pos" &&
+      opts.locationId &&
+      lineLocations.length > 0
+        ? String(opts.locationId)
+        : null;
+    const missingExact =
+      exact !== null &&
+      !lineLocations.some((loc) => String(loc.locationId) === exact);
 
     if (line.variantId) {
       if (typeof productModel.updateOne !== "function") {
@@ -855,6 +908,26 @@ export async function restoreInventory(
           $inc: { stock: line.quantity },
         });
         continue;
+      }
+      if (missingExact) {
+        // Idempotent: matches only while the variant has no entry there.
+        await productModel.updateOne(
+          {
+            _id: line.productId,
+            variants: {
+              $elemMatch: {
+                _id: line.variantId,
+                "locationInventory.locationId": { $ne: exact },
+              },
+            },
+          },
+          {
+            $push: {
+              "variants.$[v].locationInventory": { locationId: exact, quantity: 0 },
+            },
+          },
+          { arrayFilters: [{ "v._id": line.variantId }] },
+        );
       }
 
       const baseUpdate: Record<string, unknown> = {
@@ -882,7 +955,7 @@ export async function restoreInventory(
       } else {
         // Online restore: credit a location so Σ(locationInventory) stays equal
         // to variant.stock (mirrors the online decrement).
-        const locationId = pickRestoreLocationId(lineLocations, preferred);
+        const locationId = exact ?? pickRestoreLocationId(lineLocations, preferred);
         if (locationId) {
           (baseUpdate.$inc as Record<string, unknown>)[
             "variants.$.locationInventory.$[li].quantity"
@@ -913,9 +986,15 @@ export async function restoreInventory(
         lineLocations.some((loc) => String(loc.locationId) === opts.locationId)
           ? opts.locationId
           : undefined;
+      if (missingExact) {
+        await productModel.updateOne(
+          { _id: line.productId, "locationInventory.locationId": { $ne: exact } },
+          { $push: { locationInventory: { locationId: exact, quantity: 0 } } },
+        );
+      }
       const locationId = isPos
         ? trackedPosLocation
-        : pickRestoreLocationId(lineLocations, preferred);
+        : exact ?? pickRestoreLocationId(lineLocations, preferred);
       if (locationId) {
         (baseUpdate.$inc as Record<string, unknown>)[
           "locationInventory.$[li].quantity"

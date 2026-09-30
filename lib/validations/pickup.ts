@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 
 import { assertValidPickupSchedule } from "@/lib/checkout/pickup-hours";
 

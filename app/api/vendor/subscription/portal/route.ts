@@ -1,6 +1,7 @@
+import { appUrlForRequest } from "@/lib/app-url";
 import { NextRequest } from "next/server";
 import { headers } from "next/headers";
-import { z } from "zod";
+import * as z from "zod";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
 import { Vendor, VendorSubscription } from "@/models";
@@ -52,11 +53,7 @@ export async function POST(request: NextRequest) {
     const body = await validateBody(request, PortalBodySchema);
     const settings = await getSettings();
     const stripe = getStripeForSecretKey(assertStripeBillingReady(settings));
-    const origin = (
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000"
-    ).replace(/\/$/, "");
+    const origin = appUrlForRequest(request);
     const portal = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/${body.locale || "en"}/vendor/dashboard`,

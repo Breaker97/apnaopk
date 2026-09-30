@@ -76,7 +76,10 @@ interface BlogPostDetailResponse {
 
 export const PUBLIC_BLOG_FILTER = {
   status: "published",
-  visibility: { $ne: "private" },
+  // A post written with the old "password" option reads as private: that
+  // option never protected anything — the post showed to everyone, and the
+  // blog API handed out its password.
+  visibility: { $nin: ["private", "password"] },
 } as const;
 
 /**
@@ -147,7 +150,7 @@ export const getPublishedBlogPostDetail = unstable_cache(
     };
 
     const post = await BlogPost.findOne({ slug, ...publishFilter })
-      .populate("author", "name image email")
+      .populate("author", "name image")
       .populate("categories", "name slug")
       .lean();
 

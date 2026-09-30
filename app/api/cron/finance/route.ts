@@ -41,16 +41,7 @@ export const runtime = "nodejs";
 // The pass walks real collections; the platform default cuts it off mid-scan.
 export const maxDuration = 60;
 
-export const GET = withCronRun("finance", async (request) => {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
+export const GET = withCronRun("finance", async () => {
   await connectDB();
   const recurring = await runRecurringExpenses();
   const ledger = await reconcileRecentLedger({

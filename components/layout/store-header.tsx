@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
+import Link from "@/components/language/link";
 import {
   ShoppingCart,
   Search,
@@ -21,8 +20,6 @@ import {
   ArrowLeftRight,
   Menu,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -36,14 +33,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { useTranslations } from "next-intl";
 import { signOutAndReload } from "@/lib/auth/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { useWishlist } from "@/hooks/use-wishlist";
-import { useDebounce } from "@/hooks/use-debounce";
 import {
   Fragment,
   useEffect,
@@ -54,7 +49,7 @@ import {
   type ReactNode,
 } from "react";
 import { AppImage } from "@/components/ui/app-image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import type { ThemeMode } from "@/config/branding.config";
 import { useAppTheme } from "@/providers/theme-provider";
 import { appConfig, USER_ROLES } from "@/config/app.config";
@@ -70,7 +65,6 @@ import {
 import { type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAppSettings as useGlobalAppSettings } from "@/stores/app-settings";
 import {
   getDefaultHeaderSettings,
   headerShadowCss,
@@ -79,11 +73,14 @@ import {
   type HeaderSettings,
 } from "@/lib/site-config/header-config";
 import {
+  headerCurrencyLabel,
   linkGlyph,
   visibleColumns,
   type HeaderBrandItem,
   type HeaderButtonsItem,
   type HeaderCategoriesItem,
+  type HeaderCurrencyItem,
+  type HeaderLanguageItem,
   type HeaderFill,
   type HeaderIconKey,
   type HeaderIconsItem,
@@ -106,7 +103,6 @@ import {
   darkenHeaderLayout,
 } from "@/lib/site-config/header-layout-scheme";
 import { LocationPickerLazy } from "@/components/layout/location-picker-lazy";
-import type { ShopperLocation } from "@/lib/locations/shopper-location";
 import {
   alignItemsValue,
   columnStyle,
@@ -127,7 +123,7 @@ import {
   backgroundAccentColor,
   backgroundCss,
   hasBackground,
-} from "@/lib/sliders/types";
+} from "@/lib/sliders/background";
 import { cn } from "@/lib/utils";
 import {
   MAX_MEGA_MENU_LEVEL_2_ITEMS,
@@ -138,10 +134,18 @@ import { OverflowNav } from "@/components/layout/store-header/overflow-nav";
 import { NavDropdown } from "@/components/layout/store-header/nav-dropdown";
 import { CollectionsMenu } from "@/components/layout/store-header/collections-menu";
 import { NavMegaDropdown } from "@/components/layout/store-header/nav-mega-dropdown";
-import { searchIconShouldSubmit } from "@/lib/site-config/header-search-icon";
+import { LanguagePopover } from "@/components/layout/store-header/language-popover";
+import {
+  HeaderMobileSearch,
+  HeaderSearchBar,
+  HeaderSearchDrawer,
+  HeaderSearchIconField,
+  HeaderSearchProvider,
+  useHeaderSearchActions,
+} from "@/components/layout/store-header/header-search";
 import { useMobileMenu } from "@/stores/mobile-menu";
 import { CategoryTriggerGlyph } from "@/lib/site-config/header-trigger-style";
-import { useClientValue, useHydrated } from "@/hooks/use-client-value";
+import { useHydrated } from "@/hooks/use-client-value";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import dynamic from "next/dynamic";
@@ -157,15 +161,11 @@ const MobileMenuSheet = dynamic(() =>
     (module) => module.MobileMenuSheet,
   ),
 );
-// Both drawers are chunks of their own, fetched the first time one opens.
+// Both drawers are chunks of their own, fetched the first time one opens
+// (the search drawer's loader lives with the header's search).
 const SideDrawer = dynamic(() =>
   import("@/components/layout/store-header/side-drawer").then(
     (module) => module.SideDrawer,
-  ),
-);
-const SearchDrawer = dynamic(() =>
-  import("@/components/layout/store-header/search-drawer").then(
-    (module) => module.SearchDrawer,
   ),
 );
 const CustomMegaMenuPanel = dynamic(() =>
@@ -208,21 +208,7 @@ interface StoreHeaderProps {
   // of after two client round-trips per page.
   initialCategories?: CategoryNode[];
   initialCollections?: CollectionItem[];
-  /**
-   * The shopper's saved place, read from its cookie on the server, so the
-   * "Deliver to" control paints the right city on the first frame instead of
-   * flashing "Set location" until the client can read storage.
-   */
-  initialLocation?: ShopperLocation | null;
 }
-
-type SearchSuggestion = {
-  _id: string;
-  slug: string;
-  name?: string;
-  title?: string;
-  images?: string[];
-};
 
 /**
  * The storefront header.
@@ -234,8 +220,22 @@ type SearchSuggestion = {
  * studio preview and the storefront are two views of one document. Below
  * `lg` the tree gives way to the compact bar (logo, cart, a search row) and
  * the menu drawer, which the studio does not lay out.
+ *
+ * The search state sits above the bar (header-search.tsx), so a keystroke
+ * re-renders the search fields and not the header around them.
  */
-export function StoreHeader({
+export function StoreHeader(props: StoreHeaderProps) {
+  return (
+    <HeaderSearchProvider
+      locale={props.locale}
+      categories={props.initialCategories}
+    >
+      <StoreHeaderBar {...props} />
+    </HeaderSearchProvider>
+  );
+}
+
+function StoreHeaderBar({
   locale,
   menuItems,
   megaMenuItems,
@@ -243,17 +243,15 @@ export function StoreHeader({
   headerSettings,
   initialCategories,
   initialCollections,
-  initialLocation = null,
 }: StoreHeaderProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const router = useRouter();
+  const { searchFor } = useHeaderSearchActions();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { totalItems } = useCart();
   const { items: wishlistItems } = useWishlist();
   const { storeName, logoUrl, darkModeLogoUrl } = useAppSettings();
   const { isDark, setTheme } = useAppTheme();
-  const { setThemeMode } = useGlobalAppSettings();
   const { currency } = useCurrency();
   const { language, languages } = useLanguage();
   const mounted = useHydrated();
@@ -292,27 +290,8 @@ export function StoreHeader({
   useApplyOnChange([isOpen], () => {
     if (isOpen) setMobileMenuMounted(true);
   });
-  const [isMarketModalOpen, setIsMarketModalOpen] = useState(false);
   const [isGuestMenuOpen, setIsGuestMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [pendingLanguageCode, setPendingLanguageCode] = useState(language.code);
-  const [searchQuery, setSearchQuery] = useState("");
-  /**
-   * Whether the plain search icon's field was OPEN (focused) when the icon
-   * was pressed. Read on pointer-down: pressing the button moves focus to it,
-   * so by the click the field has always just lost it.
-   */
-  const searchFieldWasOpenRef = useRef(false);
-  const [searchSuggestions, setSearchSuggestions] = useState<
-    SearchSuggestion[]
-  >([]);
-  // The words the suggestions are really for, when a misspelling was
-  // corrected ("ipone" → "iphone"). Updated with the rows, never apart.
-  const [searchCorrectedTo, setSearchCorrectedTo] = useState<string | null>(
-    null,
-  );
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   // True while an auto-open (scheduled by the merchant, not the shopper) is
@@ -331,9 +310,6 @@ export function StoreHeader({
   const [activeChildCategoryId, setActiveChildCategoryId] = useState<
     string | null
   >(initialCategories?.[0]?.children?.[0]?._id ?? null);
-  const closeSuggestionsTimeoutRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
   const categoriesMenuCloseTimeoutRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -346,41 +322,6 @@ export function StoreHeader({
   const userMenuCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 350);
-  // Category scope for the search bar's dropdown; "" = all categories.
-  const [searchCategory, setSearchCategory] = useState("");
-  // The scope the suggestions are fetched under: the picker's category while
-  // the scoped bar has focus, "" for every other field.
-  const [suggestionCategory, setSuggestionCategory] = useState("");
-  // The product listing's own query string, or null anywhere else. Read on
-  // every render, so a navigation (the header's own push, a category link,
-  // back/forward) or a reload hands it the new URL.
-  const listingSearch = useClientValue(
-    () =>
-      window.location.pathname === `/${locale}/products`
-        ? window.location.search
-        : null,
-    null,
-  );
-  // On the listing the bar shows what the grid under it is filtered by, so a
-  // reload or a category link doesn't leave it blank and the next search
-  // starts from the scope on screen. A category the picker does not offer (a
-  // subcategory, a multi-select from the sidebar) reads as "All".
-  useApplyOnChange([listingSearch], () => {
-    if (listingSearch === null) return;
-    const params = new URLSearchParams(listingSearch);
-    const category = params.get("category") ?? "";
-    setSearchQuery(params.get("search") ?? "");
-    setSearchCategory(
-      categories.some((node) => node.slug === category) ? category : "",
-    );
-  });
-  const allCategoriesLabel = t.has("common.allCategories")
-    ? t("common.allCategories")
-    : "All categories";
-  const searchCategoryLabel =
-    categories.find((node) => node.slug === searchCategory)?.name ??
-    allCategoriesLabel;
   // The All Categories button's rendered width. An item with no width of
   // its own fills its column, and the rail beneath it has to match what
   // the column gave it — read off the button rather than guessed.
@@ -407,15 +348,23 @@ export function StoreHeader({
   // never changes.
   const darkScheme = isDark && headerColorMode !== "color";
   const darkColors = headerSettings?.colors.dark;
+  const homePaths = [`/${locale}`, `/${locale}/`, "/"];
+  const onHomePage = homePaths.includes(pathname);
   const tree = useMemo(() => {
-    const stored = headerSettings?.builder ?? getDefaultHeaderLayout();
+    const saved = headerSettings?.builder ?? getDefaultHeaderLayout();
+    // Rows marked "home page only" leave the tree everywhere else, before
+    // anything measures it — so hide-on-scroll and the sticky offset count
+    // only the rows actually on this page.
+    const stored = onHomePage
+      ? saved
+      : { ...saved, rows: saved.rows.filter((row) => !row.homeOnly) };
     return darkScheme
       ? darkenHeaderLayout(
           stored,
           darkColors ?? getDefaultHeaderSettings().colors.dark,
         )
       : stored;
-  }, [headerSettings, darkScheme, darkColors]);
+  }, [headerSettings, darkScheme, darkColors, onHomePage]);
   const headerTransparent = headerColorMode === "transparent";
   /**
    * The floating bar. `overlapLayout` is the LAYOUT half — true for the
@@ -432,8 +381,7 @@ export function StoreHeader({
   const overlapScrim = headerSettings?.layout.overlapScrim ?? 0;
   // The shadow under a solid bar — the merchant's, or the one it always had.
   const barShadow = headerShadowCss(headerSettings?.layout.shadow);
-  const homePaths = [`/${locale}`, `/${locale}/`, "/"];
-  const overlapLayout = overlapHome && homePaths.includes(pathname);
+  const overlapLayout = overlapHome && onHomePage;
   const headerLogoUrl = headerSettings?.brand.logoUrl?.trim() || "";
   const headerDarkLogoUrl = headerSettings?.brand.darkLogoUrl?.trim() || "";
   const headerLogoAlt = headerSettings?.brand.logoAlt?.trim() || "";
@@ -469,10 +417,7 @@ export function StoreHeader({
   );
   const locationControlFor = (itemId: string) =>
     locationSlot?.type !== "location" && locationSlot?.itemId === itemId ? (
-      <LocationPickerLazy
-        initialLocation={initialLocation}
-        appearance="header"
-      />
+      <LocationPickerLazy appearance="header" />
     ) : null;
   const showCategoryMenu = headerSettings?.categoryMenu.enabled ?? true;
   const showMegaMenu = headerSettings?.categoryMenu.showMegaMenu ?? true;
@@ -571,47 +516,6 @@ export function StoreHeader({
     height: searchHeight,
   } as CSSProperties;
 
-  /**
-   * Submit a search. `category` is passed only by the search bar that shows
-   * the category picker ("" = its "All categories"): every other field shares
-   * this handler and the typed text, but has no picker, so it must never
-   * narrow by a scope it does not display. With nothing typed the picker's
-   * choice is still a search — a category opens that category's listing and
-   * "All categories" the full one, clearing a category left on the URL.
-   */
-  const handleSearch = (e: React.FormEvent, category?: string) => {
-    e.preventDefault();
-    setShowSearchSuggestions(false);
-    const query = searchQuery.trim();
-    if (!query && category === undefined) return;
-    const params = new URLSearchParams();
-    if (query) params.set("search", query);
-    if (category) params.set("category", category);
-    const queryString = params.toString();
-    router.push(
-      `/${locale}/products${queryString ? `?${queryString}` : ""}`,
-    );
-  };
-
-  const handleAISalesAgentOpen = () => {
-    setShowSearchSuggestions(false);
-    window.dispatchEvent(new CustomEvent("ai-sales-agent:open"));
-  };
-
-  const handleSearchQueryChange = (value: string) => {
-    setSearchQuery(value);
-    if (value.trim().length < 2) {
-      setSearchSuggestions([]);
-      setSearchCorrectedTo(null);
-      setIsSearching(false);
-      setShowSearchSuggestions(false);
-      return;
-    }
-    // Open on the keystroke, not on the response: the panel appears once
-    // and stays, and only its rows change as the shopper keeps typing.
-    setShowSearchSuggestions(true);
-  };
-
   const handleLogout = async () => {
     await signOutAndReload(locale);
   };
@@ -657,34 +561,22 @@ export function StoreHeader({
       : appConfig.name;
 
   const handleThemeToggle = () => {
-    const nextMode = isDark ? "light" : "dark";
-    setTheme(nextMode);
-    setThemeMode(nextMode);
+    setTheme(isDark ? "light" : "dark");
   };
 
-  const handleMarketModalOpenChange = (open: boolean) => {
-    setIsMarketModalOpen(open);
-    if (open) {
-      setPendingLanguageCode(language.code);
-    }
-  };
-
-  const handleMarketSettingsSave = () => {
-    const newLocale = pendingLanguageCode;
+  const handleLanguageSave = (newLocale: string) => {
     const currentLocale = language.code;
 
     // Language changes are pure navigation: the URL locale is the source of
-    // truth, and next-intl's middleware persists the choice via NEXT_LOCALE.
+    // truth, and the router records the choice in the locale cookie on the
+    // way (rememberLocale, hooks/use-locale-navigation.ts).
     if (newLocale !== currentLocale) {
       router.push(swapLocaleInPathname(pathname, currentLocale, newLocale));
     }
-
-    setIsMarketModalOpen(false);
   };
 
   const handleThemeChange = (nextMode: ThemeMode) => {
     setTheme(nextMode);
-    setThemeMode(nextMode);
   };
 
   const handleMobileLanguageChange = (newLocale: string) => {
@@ -832,57 +724,6 @@ export function StoreHeader({
       else setCategoriesOpen(true);
     },
   );
-
-  useEffect(() => {
-    if (debouncedSearchQuery.length < 2) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const fetchSuggestions = async () => {
-      setIsSearching(true);
-      try {
-        const params = new URLSearchParams({
-          search: debouncedSearchQuery,
-          limit: "6",
-          page: "1",
-          // Suggestions render only name/slug/image — request card fields, not
-          // full variant/media-heavy product documents.
-          cardFieldsOnly: "true",
-        });
-        // The same scope Enter would search, so the panel previews the
-        // results page rather than the whole catalogue.
-        if (suggestionCategory) params.set("category", suggestionCategory);
-
-        const response = await fetch(`/api/products?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        const result = await response.json();
-        const products = Array.isArray(result?.data?.data)
-          ? result.data.data
-          : [];
-        // Only the rows change. Opening is the keystroke's job, so a response
-        // that lands after the field lost focus cannot pop the panel back up.
-        setSearchSuggestions(products);
-        const correctedTo = result?.data?.searchCorrection?.to;
-        setSearchCorrectedTo(typeof correctedTo === "string" ? correctedTo : null);
-      } catch {
-        // Asked on the signal, not the error: aborted with a reason, fetch
-        // rejects with that reason rather than an AbortError, and treating
-        // it as a failure blanked the rows the next request was replacing.
-        if (!controller.signal.aborted) {
-          setSearchSuggestions([]);
-          setSearchCorrectedTo(null);
-        }
-      } finally {
-        // The superseding request owns the spinner now.
-        if (!controller.signal.aborted) setIsSearching(false);
-      }
-    };
-
-    void fetchSuggestions();
-    return () => controller.abort("cleanup");
-  }, [debouncedSearchQuery, suggestionCategory]);
 
   /**
    * Rows marked "hide on scroll" go two ways.
@@ -1131,9 +972,6 @@ export function StoreHeader({
 
   useEffect(() => {
     return () => {
-      if (closeSuggestionsTimeoutRef.current) {
-        clearTimeout(closeSuggestionsTimeoutRef.current);
-      }
       if (categoriesMenuCloseTimeoutRef.current) {
         clearTimeout(categoriesMenuCloseTimeoutRef.current);
       }
@@ -1148,112 +986,6 @@ export function StoreHeader({
       }
     };
   }, []);
-
-  /**
-   * Open/close handlers shared by every search field on the header.
-   * `category` is the field's own scope, as for `handleSearch`: the field
-   * that takes focus decides what the shared suggestions panel is fetched
-   * under, so it never previews a scope the field does not show.
-   */
-  const searchFieldFocusProps = (category = "") => ({
-    onFocus: () => {
-      if (closeSuggestionsTimeoutRef.current) {
-        clearTimeout(closeSuggestionsTimeoutRef.current);
-      }
-      setSuggestionCategory(category);
-      if (searchQuery.trim().length >= 2) {
-        setShowSearchSuggestions(true);
-      }
-    },
-    onBlur: () => {
-      closeSuggestionsTimeoutRef.current = setTimeout(() => {
-        setShowSearchSuggestions(false);
-      }, 140);
-    },
-  });
-
-  /**
-   * Product suggestions dropdown, shared by every search field. Only the
-   * field that has focus shows it, since the panel keys off one query.
-   *
-   * Stale-while-revalidate on purpose: while the next query is in flight the
-   * previous rows stay in place, dimmed, and are replaced when the response
-   * lands. Swapping them for a loading row collapsed the panel and re-grew it
-   * on every keystroke, which read as the whole dialog blinking.
-   */
-  const renderSearchSuggestions = (panelClassName: string) =>
-    showSearchSuggestions && searchQuery.trim().length >= 2 ? (
-      <div
-        className={cn(
-          "absolute top-full z-50 mt-2 overflow-hidden rounded-2xl border bg-background text-foreground shadow-lg",
-          "animate-in fade-in-0 zoom-in-95 duration-150",
-          panelClassName,
-        )}
-        aria-busy={isSearching}
-      >
-        {searchCorrectedTo && searchSuggestions.length > 0 && (
-          <p className="border-b px-4 py-2 text-xs text-muted-foreground">
-            {t.rich("common.showingResultsFor", {
-              query: searchCorrectedTo,
-              q: (chunks) => (
-                <strong className="font-semibold text-foreground">{chunks}</strong>
-              ),
-            })}
-          </p>
-        )}
-        <div className="max-h-80 overflow-y-auto p-2">
-          {searchSuggestions.length > 0 ? (
-            <div
-              className={cn(
-                "space-y-1 transition-opacity duration-150",
-                isSearching && "opacity-60",
-              )}
-            >
-              {searchSuggestions.map((product) => {
-                const label = product.name || product.title || "Product";
-                return (
-                  <Link
-                    key={product._id}
-                    href={`/${locale}/products/${product.slug}`}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/60"
-                    onClick={() => {
-                      setSearchQuery(label);
-                      setShowSearchSuggestions(false);
-                    }}
-                  >
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted/40">
-                      {product.images?.[0] ? (
-                        <AppImage
-                          src={product.images[0]}
-                          alt={label}
-                          className="h-full w-full object-cover"
-                          width={40}
-                          height={40}
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-muted/60" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{label}</p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
-              {isSearching ? t("common.loading") : t("common.noProductsFound")}
-            </div>
-          )}
-        </div>
-        {searchSuggestions.length > 0 && (
-          <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-            {t("common.pressEnterToSearch")} &quot;{searchQuery}&quot;
-          </div>
-        )}
-      </div>
-    ) : null;
 
   /**
    * The search icon set to open the drawer: the same button and capsule the
@@ -1484,48 +1216,12 @@ export function StoreHeader({
 
   /** The language picker, opened from whatever trigger an item draws. */
   const languagePopover = (trigger: ReactNode) => (
-    <Popover
-      open={isMarketModalOpen}
-      onOpenChange={handleMarketModalOpenChange}
-    >
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        align="end"
-        side="bottom"
-        sideOffset={10}
-        className="w-[310px] rounded-4xl border-0 bg-[#f3f3f3] p-0 text-zinc-900 shadow-[0_18px_40px_rgba(15,23,42,0.2)] dark:border dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
-      >
-        <div className="space-y-4 px-6 py-6">
-          <section className="space-y-2.5">
-            <h3 className="text-[17px] font-semibold leading-none text-zinc-900 dark:text-zinc-100">
-              {t("common.language")}
-            </h3>
-            <div className="relative">
-              <select
-                value={pendingLanguageCode}
-                onChange={(e) => setPendingLanguageCode(e.target.value)}
-                className="h-11 w-full appearance-none rounded-xl border border-[#c8c8c8] bg-white px-4 pr-10 text-[14px] font-medium text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              >
-                {languages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600 dark:text-zinc-300" />
-            </div>
-          </section>
-
-          <Button
-            type="button"
-            onClick={handleMarketSettingsSave}
-            className="mt-1 h-11 w-full rounded-full bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            {t("common.save")}
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <LanguagePopover
+      trigger={trigger}
+      currentCode={language.code}
+      languages={languages}
+      onSave={handleLanguageSave}
+    />
   );
 
   /** The cart button; the badge counts what is in the cart. */
@@ -1547,15 +1243,13 @@ export function StoreHeader({
     >
       {showGlyph ? (
         <>
-          <IconCount size={size} count={totalItems}>
+          <CartCount size={size}>
             <ShoppingCart style={{ width: size, height: size }} />
-          </IconCount>
+          </CartCount>
           {label}
         </>
       ) : (
-        <IconCount size={size} count={totalItems}>
-          {label}
-        </IconCount>
+        <CartCount size={size}>{label}</CartCount>
       )}
     </button>
   );
@@ -2148,88 +1842,8 @@ export function StoreHeader({
   /** The search bar: a field, an optional category scope, the AI shortcut. */
   const renderSearchBar = (item: HeaderSearchBarItem) => {
     if (!showSearch) return null;
-    const showScope = item.showCategoryFilter && categories.length > 0;
-    const scope = showScope ? searchCategory : "";
-    const placeholderColor = backgroundAccentColor(item.textStyle.fill);
     const locationControl = locationControlFor(item.id);
-    const form = (
-      <form
-        onSubmit={(e) => handleSearch(e, showScope ? scope : undefined)}
-        className="relative min-w-0 flex-1"
-        style={paddingStyle(item.padding)}
-      >
-        <div
-          {...searchFieldFocusProps(scope)}
-          className="flex items-center gap-2 pl-4 pr-1.5"
-          style={{
-            height: item.height,
-            borderRadius: item.roundness,
-            borderWidth: item.borderThickness,
-            borderStyle: "solid",
-            borderColor: item.border || "transparent",
-            ...backgroundCss(item.background),
-            ...surfaceInkCss(item.background, item.foreground),
-          }}
-        >
-          <input
-            type="search"
-            placeholder={item.placeholder || searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => handleSearchQueryChange(e.target.value)}
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[color:var(--header-search-placeholder)] placeholder:opacity-80"
-            style={
-              {
-                ...textStyleCss(item.textStyle),
-                color: placeholderColor,
-                "--header-search-placeholder": placeholderColor,
-              } as CSSProperties
-            }
-          />
-          {showScope ? (
-            <div className="flex shrink-0 items-center border-l border-current/20 pl-2 opacity-80">
-              <SearchableSelect
-                value={searchCategory}
-                onValueChange={(category) => {
-                  setSearchCategory(category);
-                  setSuggestionCategory(category);
-                }}
-                options={[
-                  { value: "", label: allCategoriesLabel },
-                  ...categories.map((category) => ({
-                    value: category.slug,
-                    label: category.name,
-                  })),
-                ]}
-                searchPlaceholder={`${t("common.search")}...`}
-                emptyText={t("common.noResults")}
-                align="end"
-                contentClassName="w-60"
-                // The bar's own ink and surface, not the default bordered
-                // field: a box inside the bar's frame reads as a second input.
-                trigger={
-                  <button
-                    type="button"
-                    aria-label={`${t("common.categories")}: ${searchCategoryLabel}`}
-                    className="flex max-w-36 cursor-pointer items-center gap-1 rounded-sm px-1 py-1 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-current/30"
-                  >
-                    <span className="truncate">{searchCategoryLabel}</span>
-                    <ChevronDown className="size-3 shrink-0" />
-                  </button>
-                }
-              />
-            </div>
-          ) : null}
-          <button
-            type="submit"
-            aria-label={searchPlaceholder}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full transition-opacity hover:opacity-70"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        {renderSearchSuggestions("left-0 right-0")}
-      </form>
-    );
+    const form = <HeaderSearchBar item={item} placeholder={searchPlaceholder} />;
     // "Deliver to" leads the bar, the way every marketplace with a search
     // bar places it. Only wrapped when it is actually there, so a plain bar
     // keeps the exact box it had.
@@ -2265,118 +1879,12 @@ export function StoreHeader({
     return renderSearchIconOnly(item);
   };
 
-  const renderSearchIconOnly = (item: HeaderSearchIconItem) => {
-    const pill = item.style === "pill";
-    if (item.drawer) return renderSearchDrawerTrigger(item, pill);
-    const button = (
-      <button
-        type="submit"
-        aria-label={searchPlaceholder}
-        onPointerDown={(event) => {
-          const field =
-            event.currentTarget.form?.querySelector<HTMLInputElement>("input");
-          searchFieldWasOpenRef.current = Boolean(
-            field && document.activeElement === field,
-          );
-        }}
-        onClick={(event) => {
-          const field =
-            event.currentTarget.form?.querySelector<HTMLInputElement>("input");
-          // Enter in the field submits by "clicking" this button with focus
-          // still in the field and no pointer-down first — that is a search
-          // from an open field too.
-          const wasOpen =
-            searchFieldWasOpenRef.current ||
-            Boolean(field && document.activeElement === field);
-          searchFieldWasOpenRef.current = false;
-          // See searchIconShouldSubmit: a closed field still holds the last
-          // query, and submitting it sent every click back to old results.
-          if (
-            searchIconShouldSubmit({
-              pill,
-              fieldWasOpen: wasOpen,
-              query: searchQuery,
-            })
-          ) {
-            return;
-          }
-          event.preventDefault();
-          field?.focus();
-          // Selected, so typing replaces the old query instead of adding to it.
-          field?.select();
-        }}
-        className={cn(
-          "shrink-0 transition-opacity hover:opacity-80",
-          item.showLabel && !pill
-            ? "flex items-center"
-            : "grid place-items-center",
-        )}
-        style={{
-          borderRadius: item.roundness,
-          padding: pill ? "8px 14px" : 8,
-          ...backgroundCss(item.background),
-          ...surfaceInkCss(item.background, item.foreground),
-        }}
-      >
-        <Search style={{ width: item.size, height: item.size }} />
-        {/* Plain style only: inside the capsule the label would sit where
-            the typed query goes. */}
-        {item.showLabel && !pill && item.label ? (
-          <span className="ms-2 text-sm font-semibold">{item.label}</span>
-        ) : null}
-      </button>
+  const renderSearchIconOnly = (item: HeaderSearchIconItem) =>
+    item.drawer ? (
+      renderSearchDrawerTrigger(item, item.style === "pill")
+    ) : (
+      <HeaderSearchIconField item={item} placeholder={searchPlaceholder} />
     );
-    const input = (
-      <input
-        type="search"
-        value={searchQuery}
-        aria-label={searchPlaceholder}
-        onChange={(e) => handleSearchQueryChange(e.target.value)}
-        className={cn(
-          "min-w-0 bg-transparent text-sm outline-none transition-[width] duration-200",
-          pill ? "w-full flex-1" : "w-0 focus:w-44",
-          // The line takes the header's ink, so it inverts with the rest of
-          // the bar over a hero. Transparent while closed: the field is
-          // zero-wide then, and its border must not linger as a dot.
-          !pill &&
-            item.fieldLine &&
-            "h-8 border-b border-transparent focus:border-current",
-        )}
-      />
-    );
-    return (
-      <form
-        onSubmit={handleSearch}
-        className="relative shrink-0"
-        style={paddingStyle(item.padding)}
-        {...searchFieldFocusProps()}
-      >
-        {pill ? (
-          <div
-            className="flex items-center justify-end gap-1 p-1 pl-3"
-            style={{
-              width: item.width,
-              borderRadius: item.pillRoundness,
-              borderWidth: item.borderThickness,
-              borderStyle: "solid",
-              borderColor: item.border || "transparent",
-              ...backgroundCss(item.pillBackground),
-              ...surfaceInkCss(item.pillBackground),
-            }}
-          >
-            {input}
-            {button}
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            {input}
-            {button}
-          </div>
-        )}
-        {renderSearchSuggestions("left-auto right-0 w-80 max-w-[85vw]")}
-      </form>
-    );
-  };
 
   const renderButtons = (item: HeaderButtonsItem) => {
     const solid = item.variant === "solid";
@@ -2806,13 +2314,61 @@ export function StoreHeader({
         style={{ ...paddingStyle(item.padding), ...fillColorCss(item.foreground) }}
       >
         <LocationPickerLazy
-          initialLocation={initialLocation}
           appearance="header"
           caption={item.showCaption ? item.caption : null}
           iconSize={item.size}
         />
       </div>
     ) : null;
+
+  /**
+   * The language switcher as an item of its own. Placing one is the ask, so
+   * it renders whatever the utility cluster's language toggle says — the
+   * same picker the cluster's glyph opens.
+   */
+  const renderLanguage = (item: HeaderLanguageItem) =>
+    languagePopover(
+      <button
+        type="button"
+        aria-label={t("common.language")}
+        className="flex shrink-0 items-center gap-2 leading-none transition-opacity hover:opacity-70"
+        style={{ ...paddingStyle(item.padding), ...fillColorCss(item.foreground) }}
+      >
+        {item.showFlag ? (
+          <FlagIcon
+            countryCode={language.countryCode}
+            size={item.size}
+            aria-hidden="true"
+          />
+        ) : null}
+        <span
+          style={{
+            ...textStyleCss(item.textStyle),
+            ...fillTextCss(item.textStyle.fill),
+          }}
+        >
+          {item.display === "name" ? language.name : language.code.toUpperCase()}
+        </span>
+        {item.showChevron ? (
+          <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+        ) : null}
+      </button>,
+    );
+
+  /** The store currency, read-only: shoppers cannot switch it (no conversion). */
+  const renderCurrency = (item: HeaderCurrencyItem) => (
+    <span
+      className="shrink-0 leading-none"
+      title={currency.name}
+      style={{
+        ...paddingStyle(item.padding),
+        ...textStyleCss(item.textStyle),
+        ...fillTextCss(item.textStyle.fill),
+      }}
+    >
+      {headerCurrencyLabel(item.display, currency)}
+    </span>
+  );
 
   const renderItem = (item: HeaderLayoutItem, rowTone: SurfaceTone | null) => {
     switch (item.type) {
@@ -2840,6 +2396,10 @@ export function StoreHeader({
         return renderMenuButton(item);
       case "location":
         return renderLocation(item);
+      case "language":
+        return renderLanguage(item);
+      case "currency":
+        return renderCurrency(item);
     }
   };
 
@@ -2968,6 +2528,11 @@ export function StoreHeader({
                   key={row.id}
                   data-header-row
                   className={cn(
+                    // The row holding an open search dropdown sits above the
+                    // rows after it; otherwise a row that forms its own
+                    // stacking context (blur, a fold) keeps the panel under
+                    // the next row's links.
+                    "has-data-search-suggestions:relative has-data-search-suggestions:z-60",
                     folds &&
                       "grid transition-[grid-template-rows,opacity] duration-[220ms] ease-out motion-reduce:transition-none",
                     folded && "opacity-0",
@@ -3007,7 +2572,6 @@ export function StoreHeader({
                   <div className={headerContainerClass}>
                     <div
                       className={cn(
-                        "py-2",
                         brandScaleOf(row) < 1 &&
                           "transition-[min-height] duration-200 ease-out",
                       )}
@@ -3077,41 +2641,16 @@ export function StoreHeader({
             {/* The phone's search row: submits through the same handler,
                 so results and the AI trigger behave identically. */}
             {showSearch && showMobileSearch && (
-              <form onSubmit={handleSearch} className="pb-3">
-                <div className="relative" {...searchFieldFocusProps()}>
-                  {/* The field paints its own background (`--header-search-bg`),
-                      so its icon and placeholder take the FIELD's ink, never the
-                      bar's: over a transparent header the bar's text is white,
-                      and a white placeholder on the white pill vanished. */}
-                  <Search
-                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                    style={
-                      activeHeaderColors
-                        ? { color: "var(--header-search-text)" }
-                        : undefined
-                    }
-                  />
-                  <Input
-                    type="search"
-                    placeholder={searchPlaceholder}
-                    className="h-10 w-full rounded-full border border-[#dddddd] bg-transparent pl-11 pr-12 text-sm shadow-none placeholder:text-[color:var(--header-search-text,var(--muted-foreground))] placeholder:opacity-70 focus-visible:border-[#d3d3d3] focus-visible:bg-transparent focus-visible:ring-0 dark:border-white/15 dark:focus-visible:border-white/25"
-                    style={mobileSearchInputStyle}
-                    value={searchQuery}
-                    onChange={(e) => handleSearchQueryChange(e.target.value)}
-                  />
-                  {showAiSearch && (
-                    <button
-                      type="button"
-                      onClick={handleAISalesAgentOpen}
-                      aria-label={t("common.aiSearch")}
-                      className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-fuchsia-500 transition-colors before:absolute before:-inset-2 before:content-[''] hover:text-fuchsia-600"
-                    >
-                      <Image src="/AI Icon.png" alt="" height={24} width={24} />
-                    </button>
-                  )}
-                  {renderSearchSuggestions("left-0 right-0")}
-                </div>
-              </form>
+              <HeaderMobileSearch
+                placeholder={searchPlaceholder}
+                inputStyle={mobileSearchInputStyle}
+                iconStyle={
+                  activeHeaderColors
+                    ? { color: "var(--header-search-text)" }
+                    : undefined
+                }
+                showAiSearch={showAiSearch}
+              />
             )}
 
             {/* The phone's "Deliver to" strip, under the search the way the
@@ -3122,7 +2661,6 @@ export function StoreHeader({
             {showLocationPicker ? (
               <div className="-mt-1 pb-2">
                 <LocationPickerLazy
-                  initialLocation={initialLocation}
                   appearance="header"
                   className="w-full rounded-lg bg-foreground/[0.04] px-3 py-1.5"
                 />
@@ -3131,11 +2669,7 @@ export function StoreHeader({
           </div>
 
           {cartDrawerMounted ? (
-            <CartDrawer
-              open={isCartOpen}
-              onOpenChange={setIsCartOpen}
-              locale={locale}
-            />
+            <CartDrawer open={isCartOpen} onOpenChange={setIsCartOpen} />
           ) : null}
 
           {mobileMenuMounted ? (
@@ -3188,16 +2722,7 @@ export function StoreHeader({
                   ? () => openSearchDrawerFor(drawerSearchIcon)
                   : undefined
               }
-              onSearchSubmit={
-                showSearch
-                  ? (query) => {
-                      setSearchQuery(query);
-                      router.push(
-                        `/${locale}/products?search=${encodeURIComponent(query)}`,
-                      );
-                    }
-                  : undefined
-              }
+              onSearchSubmit={showSearch ? searchFor : undefined}
               languages={languages.map(({ code, name }) => ({ code, name }))}
               currentLanguage={locale || language.code}
               onLanguageChange={(code) => {
@@ -3210,18 +2735,9 @@ export function StoreHeader({
           ) : null}
 
           {searchDrawer ? (
-            <SearchDrawer
+            <HeaderSearchDrawer
               open={searchDrawerOpen}
               onOpenChange={setSearchDrawerOpen}
-              locale={locale}
-              // The header's own search state: one query, one suggestion
-              // fetch, one submit — shared with every other search field.
-              query={searchQuery}
-              onQueryChange={handleSearchQueryChange}
-              onSubmit={handleSearch}
-              suggestions={searchSuggestions}
-              isSearching={isSearching}
-              correctedTo={searchCorrectedTo}
               placeholder={searchPlaceholder}
               trending={searchDrawer.trending}
               collectionIds={searchDrawer.collections}
@@ -3233,6 +2749,19 @@ export function StoreHeader({
         </header>
       </div>
     </>
+  );
+}
+
+/**
+ * The cart's count over its glyph — the only part of the header that reads
+ * the cart, so an add to cart re-renders the badge and not the bar.
+ */
+function CartCount({ size, children }: { size: number; children: ReactNode }) {
+  const { totalItems } = useCart();
+  return (
+    <IconCount size={size} count={totalItems}>
+      {children}
+    </IconCount>
   );
 }
 

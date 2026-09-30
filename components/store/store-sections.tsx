@@ -7,9 +7,66 @@ import {
 } from "@/lib/storefront/sections/registry";
 import { getThemePreferredVariants } from "@/lib/storefront/themes/registry";
 import type {
+  SectionDefinition,
   SectionInstance,
   SectionRenderContext,
 } from "@/lib/storefront/sections/types";
+
+/** A section the page will draw: normalized, in the design it resolved to. */
+interface DrawnSection {
+  instance: SectionInstance;
+  Render: SectionDefinition["Render"];
+  Skeleton: SectionDefinition["Skeleton"];
+  /** Its own configuration leaves it nothing to draw (`isEmpty`). */
+  empty: boolean;
+}
+
+/**
+ * The sections a page will actually draw, in order. The visibility, feature
+ * gate, per-page cap and design rules live here once, so a page and its
+ * loading frame can never disagree about what is on it.
+ */
+function drawnSections(
+  sections: SectionInstance[],
+  ctx: SectionRenderContext,
+): DrawnSection[] {
+  const renderedPerType = new Map<string, number>();
+  const preferredVariants = getThemePreferredVariants(ctx.themeId);
+  const drawn: DrawnSection[] = [];
+
+  for (const raw of sections) {
+    if (!raw.visible) continue;
+
+    const def = getSectionDefinition(raw.type);
+    if (!def) continue;
+    if (def.available && !def.available(ctx)) continue;
+
+    // maxPerPage is a policy cap (e.g. the paid sponsored rail must stay
+    // a singleton), enforced here so a hand-edited document can't bypass
+    // it — the editor enforcing it on write is UX, this is the invariant.
+    const count = renderedPerType.get(def.type) ?? 0;
+    if (def.maxPerPage !== undefined && count >= def.maxPerPage) continue;
+    renderedPerType.set(def.type, count + 1);
+
+    const instance = normalizeSectionInstance(def, raw);
+    const variant = resolveSectionVariant(
+      def,
+      instance.settings,
+      preferredVariants,
+    );
+    drawn.push({
+      instance,
+      Render: variant?.Render ?? def.Render,
+      Skeleton: variant?.Skeleton ?? def.Skeleton,
+      empty:
+        def.isEmpty?.({
+          settings: instance.settings,
+          blocks: instance.blocks ?? [],
+        }) ?? false,
+    });
+  }
+  return drawn;
+}
 
 /**
  * Render a page's section instances through the registry.
@@ -36,11 +93,18 @@ import type {
  */
 export function StoreSections({
   sections,
+  page,
   ctx,
   editable = false,
   className,
 }: {
   sections: SectionInstance[];
+  /**
+   * The whole page, when `sections` is only a piece of it (the builder's
+   * single-section preview frame), so `ctx.pageSectionTypes` still
+   * describes the page the section sits on.
+   */
+  page?: SectionInstance[];
   ctx: SectionRenderContext;
   /**
    * Draft-preview renders wrap every section in a `data-section-id` block so
@@ -55,48 +119,36 @@ export function StoreSections({
    */
   className?: string;
 }) {
-  const renderedPerType = new Map<string, number>();
-  const preferredVariants = getThemePreferredVariants(ctx.themeId);
-
+  const drawn = drawnSections(sections, ctx);
+  const pageCtx: SectionRenderContext = {
+    ...ctx,
+    pageSectionTypes: new Set(
+      (page ? drawnSections(page, ctx) : drawn).map(({ instance }) => instance.type),
+    ),
+  };
   return (
     <div className={className}>
-      {sections.map((raw) => {
-        if (!raw.visible) return null;
-
-        const def = getSectionDefinition(raw.type);
-        if (!def) return null;
-        if (def.available && !def.available(ctx)) return null;
-
-        // maxPerPage is a policy cap (e.g. the paid sponsored rail must stay
-        // a singleton), enforced here so a hand-edited document can't bypass
-        // it — the editor enforcing it on write is UX, this is the invariant.
-        const count = renderedPerType.get(def.type) ?? 0;
-        if (def.maxPerPage !== undefined && count >= def.maxPerPage) {
-          return null;
-        }
-        renderedPerType.set(def.type, count + 1);
-
-        const instance = normalizeSectionInstance(def, raw);
-        const variant = resolveSectionVariant(
-          def,
-          instance.settings,
-          preferredVariants,
-        );
-        const Render = variant?.Render ?? def.Render;
-        const Skeleton = variant?.Skeleton ?? def.Skeleton;
+      {drawn.map(({ instance, Render, Skeleton, empty }) => {
         const node = (
           <Render
             sectionId={instance.id}
             settings={instance.settings}
             blocks={instance.blocks ?? []}
-            ctx={ctx}
+            ctx={pageCtx}
           />
         );
 
+        // A section configured empty keeps its boundary but not its
+        // skeleton: a placeholder for content that never arrives is exactly
+        // the flash a shopper should not see.
         const body = !Skeleton ? (
           node
         ) : (
-          <Suspense fallback={<Skeleton settings={instance.settings} ctx={ctx} />}>
+          <Suspense
+            fallback={
+              empty ? null : <Skeleton settings={instance.settings} ctx={pageCtx} />
+            }
+          >
             {node}
           </Suspense>
         );
@@ -122,5 +174,30 @@ export function StoreSections({
         return <Fragment key={instance.id}>{sized}</Fragment>;
       })}
     </div>
+  );
+}
+
+/**
+ * A section page's route-level loading frame: the skeleton of every section
+ * the page is about to draw, in the page's order. A hidden, gated-off or
+ * empty-configured section adds nothing, and neither does a synchronous one
+ * (it has no skeleton) — so the frame shows what the store is set up to
+ * show, not one default arrangement of it.
+ */
+export function StoreSectionSkeletons({
+  sections,
+  ctx,
+}: {
+  sections: SectionInstance[];
+  ctx: SectionRenderContext;
+}) {
+  return (
+    <>
+      {drawnSections(sections, ctx).map(({ instance, Skeleton, empty }) =>
+        Skeleton && !empty ? (
+          <Skeleton key={instance.id} settings={instance.settings} ctx={ctx} />
+        ) : null,
+      )}
+    </>
   );
 }

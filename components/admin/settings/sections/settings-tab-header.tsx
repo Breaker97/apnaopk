@@ -15,14 +15,21 @@ export function SettingsTabHeader(props: {
         props.className,
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
+      {/* `meta` is a short status chip, but nothing stops a caller passing a
+          longer one. It keeps its width while it fits, then wraps onto its own
+          line rather than squeezing the title into a one-word column — and
+          `max-w-full` keeps even a sentence inside the card instead of running
+          off the page. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-64 space-y-1">
           <h2 className="text-base font-semibold">{props.title}</h2>
           {props.description ? (
             <p className="text-sm text-muted-foreground">{props.description}</p>
           ) : null}
         </div>
-        {props.meta ? <div className="shrink-0">{props.meta}</div> : null}
+        {props.meta ? (
+          <div className="min-w-0 max-w-full shrink-0">{props.meta}</div>
+        ) : null}
       </div>
     </div>
   );

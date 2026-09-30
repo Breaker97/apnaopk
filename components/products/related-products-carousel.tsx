@@ -8,7 +8,6 @@ import {
   ModernProductCard,
   type ModernProduct,
 } from "@/components/products/modern-product-card";
-import { ProductQuickViewModal } from "@/components/products/product-quick-view-modal";
 import { type Locale } from "@/config/i18n.config";
 import { useTranslations } from "next-intl";
 
@@ -44,9 +43,6 @@ export function RelatedProductsCarousel({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [quickViewProduct, setQuickViewProduct] = useState<ModernProduct | null>(
-    null,
-  );
 
   const showArrows = products.length > SCROLL_THRESHOLD;
 
@@ -158,19 +154,10 @@ export function RelatedProductsCarousel({
             product={product}
             locale={locale}
             showQuickView
-            onQuickView={setQuickViewProduct}
             className="min-w-0 snap-start"
           />
         ))}
       </div>
-
-      {/* One modal for the carousel — this used to be one per card. */}
-      <ProductQuickViewModal
-        product={quickViewProduct}
-        locale={locale}
-        open={!!quickViewProduct}
-        onClose={() => setQuickViewProduct(null)}
-      />
     </div>
   );
 }

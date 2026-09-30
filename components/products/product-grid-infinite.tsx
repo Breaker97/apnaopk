@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
@@ -18,14 +17,6 @@ import {
 
 /** Cards on the first grid row are above the fold and eager-load their shot. */
 const FIRST_ROW_CARDS = 4;
-
-// Pulled in only once a shopper opens quick view, keeping the modal and its
-// variant/cart dependencies out of the bundle every listing visit pays for.
-const ProductQuickViewModal = dynamic(
-  () =>
-    import("./product-quick-view-modal").then((mod) => mod.ProductQuickViewModal),
-  { ssr: false },
-);
 
 /**
  * How far ahead of the viewport the next page starts loading.
@@ -111,9 +102,6 @@ export function ProductGridInfinite({
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [autoBudget, setAutoBudget] = useState(AUTO_LOAD_PAGES);
-  const [quickViewProduct, setQuickViewProduct] = useState<ModernProduct | null>(
-    null,
-  );
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   // One request in flight at a time, cancelled on unmount. Guarded through a
@@ -247,7 +235,6 @@ export function ProductGridInfinite({
             locale={locale}
             imagePriority={index < FIRST_ROW_CARDS}
             showQuickView
-            onQuickView={setQuickViewProduct}
           />
         ))}
 
@@ -339,15 +326,6 @@ export function ProductGridInfinite({
           </p>
         )}
       </div>
-
-      {quickViewProduct ? (
-        <ProductQuickViewModal
-          product={quickViewProduct}
-          locale={locale}
-          open
-          onClose={() => setQuickViewProduct(null)}
-        />
-      ) : null}
     </>
   );
 }

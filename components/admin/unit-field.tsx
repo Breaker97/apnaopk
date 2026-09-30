@@ -36,7 +36,7 @@ function roundToStep(value: number, step: number): number {
  * pinned so it does not flicker over whatever is passed on the way. The
  * value is clamped to the field's range, exactly as typing would be.
  */
-export function ScrubHandle({
+function ScrubHandle({
   value,
   min,
   max,
@@ -111,7 +111,7 @@ export function ScrubHandle({
  * the step, keeping the last value when cleared (a size has no "unset"),
  * and blurring on Enter so the committed value is what the box shows.
  */
-export function NumberInput({
+function NumberInput({
   value,
   onChange,
   min,

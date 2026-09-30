@@ -335,8 +335,18 @@ export function CarriersCard(props: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PDF_4x6">PDF 4×6 (thermal)</SelectItem>
-                  <SelectItem value="PDF">PDF (A4 / Letter)</SelectItem>
+                  <SelectItem value="PDF_4x6">
+                    {tSafe(
+                      "admin.settings.shipping.carriers.shippo.labelFormats.pdf4x6",
+                      "PDF 4×6 (thermal)",
+                    )}
+                  </SelectItem>
+                  <SelectItem value="PDF">
+                    {tSafe(
+                      "admin.settings.shipping.carriers.shippo.labelFormats.pdf",
+                      "PDF (A4 / Letter)",
+                    )}
+                  </SelectItem>
                   <SelectItem value="PNG">PNG</SelectItem>
                   <SelectItem value="ZPLII">ZPL II</SelectItem>
                 </SelectContent>
@@ -457,7 +467,12 @@ export function CarriersCard(props: {
                     }
                   >
                     <SelectTrigger id="shiprocket-pickup" className="flex-1">
-                      <SelectValue placeholder="Select a pickup location" />
+                      <SelectValue
+                        placeholder={tSafe(
+                          "admin.settings.shipping.carriers.shiprocket.pickupPlaceholder",
+                          "Select a pickup location",
+                        )}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {pickupLocations.map((location) => (

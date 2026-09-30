@@ -16,7 +16,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  AlertTriangle,
   ChevronDown,
   ChevronUp,
   GripVertical,
@@ -27,6 +26,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { cn } from "@/lib/utils";
 import {
   getMegaCategoryBudget,
@@ -513,50 +513,44 @@ export function MegaFlyoutCanvas({
       </div>
 
       {parked.length > 0 ? (
-        <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
-          <p className="flex items-start gap-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
-            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
-            <span>
-              {labels.parkedTitle(parked.length)}{" "}
-              <span className="font-normal">
-                {labels.parkedHint(budget.groupLimit)}
-              </span>
-            </span>
-          </p>
-          {parked.map((group, index) => (
-            <div
-              key={group._id || index}
-              className="flex items-center gap-2 rounded-md border border-amber-300 bg-background px-2 py-1.5 text-sm dark:border-amber-900/60"
-            >
-              <span className="min-w-0 flex-1 truncate">
-                {group.label.trim() || labels.untitled}
-                <span className="ms-1.5 text-xs tabular-nums text-muted-foreground">
-                  · {(group.children || []).length}
+        <WarningBanner title={labels.parkedTitle(parked.length)}>
+          <div className="space-y-2">
+            <p>{labels.parkedHint(budget.groupLimit)}</p>
+            {parked.map((group, index) => (
+              <div
+                key={group._id || index}
+                className="flex items-center gap-2 rounded-md border border-amber-300 bg-background px-2 py-1.5 text-sm dark:border-amber-900/60"
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {group.label.trim() || labels.untitled}
+                  <span className="ms-1.5 text-xs tabular-nums text-muted-foreground">
+                    · {(group.children || []).length}
+                  </span>
                 </span>
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 px-2 text-xs"
-                onClick={() =>
-                  onReorder([categoryIndex], budget.groupLimit + index, 0)
-                }
-              >
-                {labels.moveIn}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                onClick={() => onRemove([categoryIndex, budget.groupLimit + index])}
-              >
-                {labels.remove}
-              </Button>
-            </div>
-          ))}
-        </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={() =>
+                    onReorder([categoryIndex], budget.groupLimit + index, 0)
+                  }
+                >
+                  {labels.moveIn}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => onRemove([categoryIndex, budget.groupLimit + index])}
+                >
+                  {labels.remove}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </WarningBanner>
       ) : null}
     </div>
   );

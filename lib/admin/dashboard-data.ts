@@ -1,9 +1,16 @@
 import { cache } from "react";
 import { connectDB } from "@/lib/db";
-import { getSettings, Order, Product, ReturnRequest, User } from "@/models";
-import { RETURN_REFUND_STATUS } from "@/lib/returns/returns";
+import { getSettings, Order, PaymentTransaction, Product, User } from "@/models";
 import { USER_ROLES } from "@/config/app.config";
 import { buildOrderChartPoints } from "@/lib/admin/order-chart-points";
+import {
+  collectedOrderExpr,
+  placedOrderMatch,
+} from "@/lib/orders/order-payment-status";
+import {
+  inStoreCurrencyExpr,
+  inStoreCurrencyMatch,
+} from "@/lib/intl/currency-scope";
 import type {
   DashboardStats,
   LatestProduct,
@@ -67,8 +74,32 @@ function addRow(target: ChannelTotals, row: MonthlyChannelRow) {
 const loadOrderMetrics = cache(async (): Promise<MonthlyChannelRow[]> => {
   await connectDB();
 
+  // Two different questions off one scan, and they take different rows:
+  // an order somebody placed is counted even while its cash is still to come
+  // (COD, a pay-later pre-order), but the MONEY columns only add up what was
+  // actually collected. Before this split, a shopper who reached Razorpay and
+  // closed the tab added their basket to this store's sales.
+  //
+  // And only money held in the store's own currency, for the same reason the
+  // payments overview reads it that way: these cards are printed with one
+  // symbol, so adding a rupee order into them reported those rupees as
+  // dollars. The COUNTS stay whole — an order is an order whatever it was
+  // priced in — which is why this is a condition inside the sums rather than a
+  // filter on the scan. Trade in another currency is reported by Finance, in
+  // that currency.
+  const settings = await getSettings();
+  const storeCurrency = settings.general?.defaultCurrency || "USD";
+  const collected = collectedOrderExpr();
+  const collectedOnly = (value: Record<string, unknown>) => ({
+    $cond: [
+      { $and: [collected, inStoreCurrencyExpr(storeCurrency)] },
+      value,
+      0,
+    ],
+  });
+
   return Order.aggregate<MonthlyChannelRow>([
-    { $match: { status: { $ne: "cancelled" } } },
+    { $match: { ...placedOrderMatch(), status: { $ne: "cancelled" } } },
     {
       $group: {
         _id: {
@@ -79,10 +110,25 @@ const loadOrderMetrics = cache(async (): Promise<MonthlyChannelRow[]> => {
           pos: { $eq: ["$channel", "pos"] },
         },
         orders: { $sum: 1 },
-        sales: { $sum: { $ifNull: ["$total", 0] } },
-        discount: { $sum: { $ifNull: ["$discount", 0] } },
+        sales: { $sum: collectedOnly({ $ifNull: ["$total", 0] }) },
+        discount: { $sum: collectedOnly({ $ifNull: ["$discount", 0] }) },
+        // Counted on the same terms as the amount it labels, or the card
+        // would read "1,240.00 from 9 orders" with three of those nine
+        // contributing nothing to the figure.
         discountOrders: {
-          $sum: { $cond: [{ $gt: ["$discount", 0] }, 1, 0] },
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  collected,
+                  inStoreCurrencyExpr(storeCurrency),
+                  { $gt: ["$discount", 0] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
         },
       },
     },
@@ -135,6 +181,9 @@ export const getRecentOrders = cache(async (): Promise<RecentOrder[]> => {
     primaryItemName?: string | null;
     primaryItemImage?: string | null;
   }>([
+    // A gateway checkout nobody completed is not one of the store's five most
+    // recent orders — on a quiet shop it was all five of them.
+    { $match: placedOrderMatch() },
     { $sort: { createdAt: -1 } },
     { $limit: RECENT_ORDERS_LIMIT },
     {
@@ -406,15 +455,44 @@ interface RefundTotals {
  * All-time, this-month and last-month refunds in one pass. Conditional
  * accumulators replace the previous three-branch `$facet`, whose sub-pipelines
  * each re-scanned the matched set.
+ *
+ * Counted from the refund TRANSACTIONS, not from return requests.
+ *
+ * A return is one way money goes back and not the common one: an admin
+ * refunding an order outright, a cancelled pre-order's deposit, a chargeback
+ * the bank took, a Pesapal reversal — none of those raise a ReturnRequest, and
+ * reading that collection made every one of them invisible. On a real store
+ * that is not an understatement, it is a zero: the card read "0" beside a
+ * Payments screen showing eleven thousand.
+ *
+ * `createRefundTransaction` is the one door all of them go through, so this
+ * agrees with the Payments screen and with what the ledger was posted from.
+ * Matched on `{type, status, createdAt}`, which the collection already indexes.
+ *
+ * And in the store's own currency only, like every figure it sits beside. The
+ * sales cards above were narrowed and this was not, so a refund sent back in
+ * rupees was subtracted from a card printed with the store's own symbol —
+ * exactly the arithmetic `lib/intl/currency-scope.ts` exists to stop. The
+ * count goes the same way: "3 cases" beside an amount that only covers two of
+ * them is the kind of disagreement nobody can explain afterwards.
  */
 async function loadRefundTotals(
   currentMonthStart: Date,
   previousMonthStart: Date,
 ): Promise<RefundTotals> {
-  const refundAmount = { $ifNull: ["$actualRefund.amount", 0] };
+  const refundAmount = { $ifNull: ["$grossAmount", 0] };
+  const settings = await getSettings();
+  const storeCurrency = settings.general?.defaultCurrency || "USD";
 
-  const [row] = await ReturnRequest.aggregate<RefundTotals>([
-    { $match: { refundStatus: RETURN_REFUND_STATUS.SUCCEEDED } },
+  const [row] = await PaymentTransaction.aggregate<RefundTotals>([
+    {
+      $match: {
+        $and: [
+          { type: "refund", status: "succeeded" },
+          inStoreCurrencyMatch(storeCurrency),
+        ],
+      },
+    },
     {
       $group: {
         _id: null,
@@ -423,7 +501,7 @@ async function loadRefundTotals(
         currentAmount: {
           $sum: {
             $cond: [
-              { $gte: ["$refundedAt", currentMonthStart] },
+              { $gte: ["$createdAt", currentMonthStart] },
               refundAmount,
               0,
             ],
@@ -434,8 +512,8 @@ async function loadRefundTotals(
             $cond: [
               {
                 $and: [
-                  { $gte: ["$refundedAt", previousMonthStart] },
-                  { $lt: ["$refundedAt", currentMonthStart] },
+                  { $gte: ["$createdAt", previousMonthStart] },
+                  { $lt: ["$createdAt", currentMonthStart] },
                 ],
               },
               refundAmount,

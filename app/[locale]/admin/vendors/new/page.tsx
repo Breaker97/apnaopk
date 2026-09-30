@@ -14,5 +14,5 @@ export default async function NewVendorPage({ params }: PageProps) {
   await requireAdminPageAccess(locale);
   if (!(await isMultiVendorEnabled())) notFound();
 
-  return <VendorForm locale={locale} />;
+  return <VendorForm />;
 }

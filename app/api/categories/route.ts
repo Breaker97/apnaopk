@@ -15,7 +15,7 @@ import { isAdmin } from "@/lib/access/rbac";
 import mongoose from "mongoose";
 import { revalidateCategoryContent } from "@/lib/cache-invalidation";
 import { slugify } from "@/lib/strings";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 function isPlaceholderCategorySlug(value: string) {

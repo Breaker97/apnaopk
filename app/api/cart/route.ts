@@ -1,3 +1,5 @@
+import { cartResponse } from "@/lib/cart/cart-response";
+import { cartSessionCookie } from "@/lib/cart/cart-session-cookie";
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Cart, Product } from "@/models";
@@ -9,9 +11,15 @@ import {
 import { ValidationError, handleApiError } from "@/lib/api/errors";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import { rateLimitByIP, rateLimitByUser } from "@/lib/api/rate-limit-middleware";
+import {
+  SHOPPING_ADDRESS_ALLOWANCE,
+  rateLimitByIP,
+  rateLimitBySession,
+  rateLimitByUser,
+} from "@/lib/api/rate-limit-middleware";
 import { validateBody } from "@/lib/api/validate";
 import { setCartItemQuantity } from "@/lib/cart/cart-item-quantity";
+import { PURCHASE_TYPE, resolvePurchaseType } from "@/lib/orders/preorders";
 import { CartAddItemSchema, CartUpdateItemSchema } from "@/lib/validations";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import {
@@ -28,9 +36,9 @@ import {
 import {
   anySellerOffersPickup,
   cartLineKey,
-  cartVendorIds,
+  cartProductFacts,
   countCartSellers,
-  resolveCartProducts,
+  readCartProducts,
 } from "@/lib/cart/cart-products";
 
 // Cart item type for type annotations
@@ -124,8 +132,29 @@ async function mergeGuestCartIntoUserCart(
   for (const guestItem of guestItems) {
     const existing = byKey.get(keyOf(guestItem));
     if (existing) {
-      existing.quantity =
+      const combined =
         Number(existing.quantity || 0) + Number(guestItem.quantity || 0);
+      if (
+        ((existing as { purchaseType?: string }).purchaseType ||
+          PURCHASE_TYPE.STANDARD) === PURCHASE_TYPE.PREORDER
+      ) {
+        // A pre-order line's deposit and balance are worked out for its
+        // quantity. Adding the guest's units without working them out again
+        // left the terms of the smaller line on the larger one — a pay-later
+        // line of one merged to two owed its whole second unit today. Through
+        // the one path that recomputes them; a merge the quota or the window
+        // no longer allows keeps the account's line as it was.
+        await setCartItemQuantity(
+          { items: merged as unknown as Parameters<typeof setCartItemQuantity>[0]["items"] },
+          {
+            productId: String(existing.productId),
+            variantId: existing.variantId ? String(existing.variantId) : undefined,
+            quantity: combined,
+          },
+        ).catch(() => false);
+        continue;
+      }
+      existing.quantity = combined;
       continue;
     }
     const productKey = guestItem.productId?.toString();
@@ -161,32 +190,40 @@ export async function GET(request: NextRequest) {
     const userId = session?.user?.id;
     const sessionId = request.cookies.get("cart_session")?.value;
 
-    if (userId) {
-      await rateLimitByUser(
-        request,
-        userId,
-        "cart:get",
-        "lenient",
-        session?.user?.role
-      );
-    } else {
-      await rateLimitByIP(request, "lenient");
-    }
+    // Every page load asks for the cart, so its reads are overlapped wherever
+    // one does not need another's answer: the limit check with the cart read,
+    // the shopper's quote offers with the products. A request over its limit
+    // still gets its 429 — the read it started alongside is only a wasted
+    // lookup by an indexed key, and nothing heavier starts before the check.
+    const rateLimited = userId
+      ? rateLimitByUser(
+          request,
+          userId,
+          "cart:get",
+          "lenient",
+          session?.user?.role
+        )
+      : rateLimitByIP(request, "browse");
 
     if (!userId && !sessionId) {
+      await rateLimited;
       return successResponse({ items: [], totalItems: 0, subtotal: 0 });
     }
 
-    let clearGuestCookie = false;
+    // Right after login only: a write, so it waits for the limit check.
+    const clearGuestCookie = Boolean(userId && sessionId);
     if (userId && sessionId) {
+      await rateLimited;
       await mergeGuestCartIntoUserCart(userId, sessionId).catch((err) =>
         console.error("Failed to merge guest cart on login:", err),
       );
-      clearGuestCookie = true;
     }
 
     const query = userId ? { userId } : { sessionId };
-    const cart = await Cart.findOne(query).lean();
+    const [, cart] = await Promise.all([
+      rateLimited,
+      Cart.findOne(query).lean(),
+    ]);
 
     // The guest cart (if any) has been merged into the user cart above, so
     // the stale cookie must not resurface it — especially on a shared browser
@@ -214,15 +251,16 @@ export async function GET(request: NextRequest) {
     // they decide both whether the line survives the visibility filter below
     // and what it is worth right now. A signed-out shopper has none, and the
     // lookup costs nothing.
-    const quoteOffers = matchOffersToLines(
-      storedItems,
-      await loadShopperOffers(userId, {
+    const [shopperOffers, productRows] = await Promise.all([
+      loadShopperOffers(userId, {
         productIds: storedItems
           .map((item) => item.productId?.toString())
           .filter((id): id is string => Boolean(id)),
       }),
-    );
-    const productFacts = await resolveCartProducts(storedItems, {
+      readCartProducts(storedItems),
+    ]);
+    const quoteOffers = matchOffersToLines(storedItems, shopperOffers);
+    const productFacts = cartProductFacts(storedItems, productRows, {
       quotedLineKeys: new Set(quoteOffers.keys()),
     });
     const visibleItems = storedItems.filter(
@@ -275,7 +313,7 @@ export async function GET(request: NextRequest) {
 
     return withCookieCleanup(
       successResponse({
-        ...cart,
+        ...cartResponse(cart),
         // Seller identity is attached per line rather than stored on it: a cart
         // can outlive a vendor rename by weeks, and the name a shopper sees
         // should be the one on the store today.
@@ -285,6 +323,8 @@ export async function GET(request: NextRequest) {
             ...item,
             vendorId: fact?.vendorId,
             vendorName: fact?.vendorName,
+            variantOptions: fact?.variantOptions,
+            finalSale: fact?.finalSale || undefined,
           };
         }),
         totalItems,
@@ -316,9 +356,7 @@ export async function GET(request: NextRequest) {
         sellerCount: countCartSellers(visibleItems, productFacts),
         // Whether the seller mix is genuinely what costs this bag its
         // collection option, rather than the store simply never offering one.
-        anySellerOffersPickup: await anySellerOffersPickup(
-          cartVendorIds(visibleItems, productFacts),
-        ),
+        anySellerOffersPickup: anySellerOffersPickup(visibleItems, productFacts),
       }),
     );
   } catch (error) {
@@ -349,6 +387,14 @@ export async function POST(request: NextRequest) {
         "cart:add",
         "moderate",
         session?.user?.role
+      );
+    } else if (sessionId) {
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:add",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "moderate");
@@ -420,6 +466,18 @@ export async function POST(request: NextRequest) {
     if (availableStock <= 0 || quantity > availableStock) {
       throw new ValidationError("Insufficient stock");
     }
+    // This path writes plain lines and knows nothing of pre-order terms. A
+    // "pre-order only" product with stock is still a pre-order, and adding it
+    // here made a standard line the direct order route then sold outside the
+    // pre-order's quota, deposit and date.
+    const purchase = resolvePurchaseType({
+      product: product as unknown as Parameters<typeof resolvePurchaseType>[0]["product"],
+      variantId: variantId || undefined,
+      requestedQuantity: quantity,
+    });
+    if (purchase?.purchaseType !== PURCHASE_TYPE.STANDARD) {
+      throw new ValidationError("Add pre-order items from the product page");
+    }
 
     const price = selectedVariant ? selectedVariant.price : product.price;
     const name = product.name;
@@ -458,6 +516,19 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Cart is full. Remove some items first.");
     }
 
+    // Pre-order lines carry terms this path cannot work out, and a cart holds
+    // pre-orders or regular items, never both.
+    if (
+      cart.items.some(
+        (item: CartItem & { purchaseType?: string }) =>
+          (item.purchaseType || PURCHASE_TYPE.STANDARD) === PURCHASE_TYPE.PREORDER,
+      )
+    ) {
+      throw new ValidationError(
+        "Regular items must be checked out separately from pre-order items",
+      );
+    }
+
     if (existingItemIndex > -1) {
       // Update quantity
       const nextQuantity = cart.items[existingItemIndex].quantity + quantity;
@@ -487,14 +558,12 @@ export async function POST(request: NextRequest) {
     await cart.save();
 
     // Return response with cookie for guest users
-    const response = createdResponse(cart);
+    const response = createdResponse(cartResponse(cart));
 
     if (!userId && sessionId) {
       response.headers.set(
         "Set-Cookie",
-        `cart_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${
-          60 * 60 * 24 * 30
-        }`
+        cartSessionCookie(request, sessionId),
       );
     }
 
@@ -527,6 +596,14 @@ export async function PUT(request: NextRequest) {
         "cart:update",
         "moderate",
         session?.user?.role
+      );
+    } else if (sessionId) {
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:update",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "moderate");
@@ -564,7 +641,7 @@ export async function PUT(request: NextRequest) {
     cart.status = "active";
     await cart.save();
 
-    return successResponse(cart);
+    return successResponse(cartResponse(cart));
   } catch (error) {
     return handleApiError(error);
   }
@@ -600,6 +677,14 @@ export async function DELETE(request: NextRequest) {
         "moderate",
         session?.user?.role
       );
+    } else if (sessionId) {
+      await rateLimitBySession(
+        request,
+        sessionId,
+        "cart:delete",
+        "moderate",
+        SHOPPING_ADDRESS_ALLOWANCE,
+      );
     } else {
       await rateLimitByIP(request, "moderate");
     }
@@ -632,7 +717,7 @@ export async function DELETE(request: NextRequest) {
 
     await cart.save();
 
-    return successResponse(cart);
+    return successResponse(cartResponse(cart));
   } catch (error) {
     return handleApiError(error);
   }

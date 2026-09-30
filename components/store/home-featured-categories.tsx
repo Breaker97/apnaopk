@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { type FeaturedCategoriesSource } from "@/lib/site-config/home-page-config";
 import type { CategoryTile as FeaturedCategory } from "@/lib/storefront/sections/category-list-style";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 const CATEGORY_SELECT = "_id name slug image order featured";
 
@@ -26,13 +27,13 @@ function mapCategory(cat: {
  * cached entry — a theme changes how the strip looks, never how often the
  * categories are queried.
  */
-export const fetchFeaturedCategories = unstable_cache(
-  async (
-    source: FeaturedCategoriesSource,
-    limit: number,
-    categoryIds: string[],
-  ): Promise<FeaturedCategory[]> => {
-    try {
+export const fetchFeaturedCategories = withFallback(
+  unstable_cache(
+    async (
+      source: FeaturedCategoriesSource,
+      limit: number,
+      categoryIds: string[],
+    ): Promise<FeaturedCategory[]> => {
       await connectDB();
 
       if (source === "manual") {
@@ -92,13 +93,12 @@ export const fetchFeaturedCategories = unstable_cache(
       }
 
       return categories.map(mapCategory);
-    } catch {
-      return [];
-    }
-  },
-  ["home-featured-categories"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.categories],
-  },
+    },
+    ["home-featured-categories"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.categories],
+    },
+  ),
+  () => [],
 );

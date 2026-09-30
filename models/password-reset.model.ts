@@ -12,8 +12,6 @@ interface IPasswordReset extends Document {
   expiresAt: Date;
   used: boolean;
   createdAt: Date;
-  /** Marks the token consumed so it cannot be replayed. */
-  markUsed(): Promise<void>;
 }
 
 const PasswordResetSchema = new Schema<IPasswordReset>(
@@ -47,16 +45,10 @@ const PasswordResetSchema = new Schema<IPasswordReset>(
 // TTL index to auto-delete expired tokens after 24 hours
 PasswordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 86400 });
 
-// Methods
-PasswordResetSchema.methods.isValid = function (): boolean {
-  if (this.used) return false;
-  return new Date() < this.expiresAt;
-};
-
-PasswordResetSchema.methods.markUsed = async function (): Promise<void> {
-  this.used = true;
-  await this.save();
-};
+/** Only a token's hash is stored; the raw token lives in the emailed link. */
+function hashToken(rawToken: string): string {
+  return crypto.createHash("sha256").update(rawToken).digest("hex");
+}
 
 // Static methods
 PasswordResetSchema.statics.createToken = async function (
@@ -68,16 +60,10 @@ PasswordResetSchema.statics.createToken = async function (
   // Generate a random token
   const rawToken = crypto.randomBytes(32).toString("hex");
 
-  // Hash the token for storage
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(rawToken)
-    .digest("hex");
-
   // Create the reset document
   const resetDoc = await this.create({
     userId,
-    token: hashedToken,
+    token: hashToken(rawToken),
     expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
   });
 
@@ -88,20 +74,31 @@ PasswordResetSchema.statics.createToken = async function (
 PasswordResetSchema.statics.verifyToken = async function (
   rawToken: string,
 ): Promise<IPasswordReset | null> {
-  // Hash the provided token
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(rawToken)
-    .digest("hex");
-
-  // Find the matching reset document
-  const resetDoc = await this.findOne({
-    token: hashedToken,
+  return this.findOne({
+    token: hashToken(rawToken),
     used: false,
     expiresAt: { $gt: new Date() },
   });
+};
 
-  return resetDoc;
+/**
+ * Spends a raw token: marks the matching unused, unexpired reset used and
+ * returns it, in one step. Checking and marking were two, so two requests
+ * racing with the same link could both pass the check and both set a
+ * password.
+ */
+PasswordResetSchema.statics.consumeToken = async function (
+  rawToken: string,
+): Promise<IPasswordReset | null> {
+  return this.findOneAndUpdate(
+    {
+      token: hashToken(rawToken),
+      used: false,
+      expiresAt: { $gt: new Date() },
+    },
+    { $set: { used: true } },
+    { returnDocument: "after" },
+  );
 };
 
 interface PasswordResetModel extends Model<IPasswordReset> {
@@ -111,6 +108,8 @@ interface PasswordResetModel extends Model<IPasswordReset> {
   ): Promise<{ token: string; resetDoc: IPasswordReset }>;
   /** The unused, unexpired reset matching a raw token, or null. */
   verifyToken(rawToken: string): Promise<IPasswordReset | null>;
+  /** Marks that reset used and returns it, or null if nothing was left to spend. */
+  consumeToken(rawToken: string): Promise<IPasswordReset | null>;
 }
 
 export const PasswordReset: PasswordResetModel =

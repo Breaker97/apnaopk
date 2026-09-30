@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/data-table";
 import { toast } from "@/components/ui/toast-notification";
 import { Badge } from "@/components/ui/badge";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { useTranslations } from "next-intl";
@@ -553,7 +554,7 @@ export function CategoriesDataTable({
               image={row.image}
               title={row.name}
               subtitle={subtitle}
-              href={`/${locale}/admin/categories/${row._id}/edit`}
+              href={`/admin/categories/${row._id}/edit`}
             />
           );
         },
@@ -608,7 +609,7 @@ export function CategoriesDataTable({
         addAction: {
           id: "add",
           label: t("admin.categoriesDataTable.actions.addCategory"),
-          href: `/${locale}/admin/categories/new`,
+          href: "/admin/categories/new",
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
@@ -683,7 +684,7 @@ export function CategoriesDataTable({
         id: "edit",
         label: t("admin.categoriesDataTable.rowActions.edit"),
         icon: <Pencil className="h-4 w-4" />,
-        href: `/${locale}/admin/categories/${row._id}/edit`,
+        href: `/admin/categories/${row._id}/edit`,
       },
       {
         id: row.featured ? "remove-featured" : "mark-featured",
@@ -753,7 +754,7 @@ export function CategoriesDataTable({
         rowActionsHeader={t("admin.categoriesDataTable.rowActionsHeader")}
         rowActionsVariant="inline"
         onRowClick={(row) =>
-          router.push(`/${locale}/admin/categories/${row._id}/edit`)
+          router.push(`/admin/categories/${row._id}/edit`)
         }
         emptyMessage={t("admin.categoriesDataTable.empty")}
         emptyIcon={<FolderTree className="h-8 w-8" />}

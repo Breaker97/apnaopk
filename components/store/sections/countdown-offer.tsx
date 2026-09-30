@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
-import { CountdownOfferView } from "./countdown-offer-view";
+import { CountdownOfferViewLazy as CountdownOfferView } from "./countdown-offer-view-lazy";
 import {
   isExternalSectionHref,
   resolveSectionHref,

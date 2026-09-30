@@ -46,7 +46,7 @@ export function resolveSubscriptionCurrency(
 }
 
 /** Whole, non-negative trial days a plan grants. */
-export function trialDaysForPlan(
+function trialDaysForPlan(
   plan: Pick<PlanForSubscription, "trialDays">,
 ): number {
   const raw = Number(plan.trialDays ?? 0);

@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ClientSuspense } from "@/components/common/client-suspense";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 
 interface DigitalDownloadFile {
   assetId: string;
@@ -45,29 +46,22 @@ export function OrderDownloads({
   orderId: string;
   paymentStatus?: string;
 }) {
-  const [files, setFiles] = useState<DigitalDownloadFile[]>([]);
+  if (paymentStatus !== undefined && paymentStatus !== "paid") return null;
+  // Its own boundary, with nothing as the fallback: downloads must not hold
+  // up the order around them, and the card simply appears once known.
+  return (
+    <ClientSuspense fallback={null}>
+      <OrderDownloadsList orderId={orderId} />
+    </ClientSuspense>
+  );
+}
 
-  useEffect(() => {
-    if (paymentStatus !== undefined && paymentStatus !== "paid") return;
-    let cancelled = false;
-    async function fetchDownloads() {
-      try {
-        const res = await fetch(
-          `/api/orders/${encodeURIComponent(orderId)}/downloads`,
-        );
-        const data = await res.json();
-        if (!cancelled && data.success && Array.isArray(data.data?.files)) {
-          setFiles(data.data.files);
-        }
-      } catch {
-        // Downloads must not block order rendering.
-      }
-    }
-    void fetchDownloads();
-    return () => {
-      cancelled = true;
-    };
-  }, [orderId, paymentStatus]);
+function OrderDownloadsList({ orderId }: { orderId: string }) {
+  const { data, mutate } = useSuspenseResource<{
+    files?: DigitalDownloadFile[];
+  }>(`/api/orders/${encodeURIComponent(orderId)}/downloads`);
+  // A failed read shows no card — the order is still usable without it.
+  const files = Array.isArray(data?.files) ? data.files : [];
 
   if (files.length === 0) return null;
 
@@ -106,10 +100,12 @@ export function OrderDownloads({
                     <a
                       href={`/api/orders/${encodeURIComponent(orderId)}/downloads/${file.assetId}`}
                       onClick={() => {
-                        // Reflect the spent download locally so a limited
-                        // file's counter stays honest without a refetch.
-                        setFiles((prev) =>
-                          prev.map((f) =>
+                        // Reflect the spent download in the held copy so a
+                        // limited file's counter stays honest without a
+                        // refetch, here and on the next visit.
+                        mutate((current) => ({
+                          ...current,
+                          files: (current.files ?? []).map((f) =>
                             f.assetId === file.assetId &&
                             f.remainingDownloads !== null
                               ? {
@@ -122,7 +118,7 @@ export function OrderDownloads({
                                 }
                               : f,
                           ),
-                        );
+                        }));
                       }}
                     >
                       <Download className="mr-1.5 h-4 w-4" />

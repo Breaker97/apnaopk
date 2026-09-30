@@ -1,8 +1,13 @@
+import { orderContactMatches } from "@/lib/orders/order-contact-match";
 import { connectDB } from "@/lib/db";
 import { Order, ReturnRequest } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
-import { rateLimitByIP } from "@/lib/api/rate-limit-middleware";
+import {
+  SHOPPING_ADDRESS_ALLOWANCE,
+  rateLimitByIP,
+  rateLimitByIPAndSubject,
+} from "@/lib/api/rate-limit-middleware";
 import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
 import { withApi } from "@/lib/api/handler";
 import { sanitizeOrderForCustomer } from "@/lib/orders/order-customer-view";
@@ -110,10 +115,6 @@ type LeanReturnRequest = {
 
 function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizePhone(value: string) {
-  return value.replace(/[^\d+]/g, "");
 }
 
 function maskEmail(value?: string) {
@@ -390,9 +391,12 @@ export const POST = withApi(
   {},
   async ({ request }) => {
     // Public, unauthenticated endpoint. Order numbers are sequential and the
-    // matcher only guards on email/phone, so throttle by IP to prevent
-    // brute-forcing a customer's contact details against a known order.
-    await rateLimitByIP(request, "strict");
+    // matcher only guards on email/phone, so each order is held to a strict
+    // limit per address — guessing one customer's contact details — and the
+    // address to ten times that, for sweeping many orders. A household or a
+    // carrier's shared address tracking different orders no longer shares
+    // five lookups in all.
+    await rateLimitByIP(request, "strict", SHOPPING_ADDRESS_ALLOWANCE);
 
     // An empty or malformed body is routine on a public endpoint — a bot POSTs
     // to it, or the form submits before hydration — and `request.json()` throws
@@ -401,6 +405,14 @@ export const POST = withApi(
     const body = await validateOptionalBody(request, TrackOrderBodySchema);
     const orderNumber = normalizeText(body.orderNumber || body.orderId);
     const identifier = normalizeText(body.identifier);
+
+    if (orderNumber) {
+      await rateLimitByIPAndSubject(
+        request,
+        `order:${orderNumber.toUpperCase().slice(0, 64)}`,
+        "strict",
+      );
+    }
 
     if (!orderNumber || !identifier) {
       throw new ValidationError("Order number and email or phone are required");
@@ -423,24 +435,12 @@ export const POST = withApi(
     }
 
     const customer = order.customerId;
-    const identifierLower = identifier.toLowerCase();
-    const normalizedIdentifierPhone = normalizePhone(identifier);
     // Guest orders populate no customer (customerId points at the guest's
     // cart), so their checkout email lives on the order itself.
-    const knownEmails = [customer?.email, order.guestEmail]
-      .filter(Boolean)
-      .map((email) => email!.toLowerCase());
-    const knownPhones = [
-      customer?.phone,
-      order.contactPhone,
-      order.shippingAddress?.phone,
-    ]
-      .filter(Boolean)
-      .map((phone) => normalizePhone(phone!));
-
-    const identifierMatches =
-      knownEmails.includes(identifierLower) ||
-      knownPhones.some((phone) => phone && phone === normalizedIdentifierPhone);
+    const identifierMatches = orderContactMatches(identifier, {
+      emails: [customer?.email, order.guestEmail],
+      phones: [customer?.phone, order.contactPhone, order.shippingAddress?.phone],
+    });
 
     if (!identifierMatches) {
       return notFoundResponse("Order");

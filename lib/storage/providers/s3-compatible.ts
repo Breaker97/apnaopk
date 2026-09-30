@@ -12,6 +12,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -28,7 +29,8 @@ import {
   ListFilesResult,
   StorageObject,
 } from "../types";
-import { generateStorageKey } from "../key";
+import { generateStorageKey, ownerPrefix } from "../key";
+import { isVectorImageType } from "../content-type";
 import {
   awsRegion,
   clientRegion,
@@ -36,6 +38,29 @@ import {
 } from "../endpoint";
 
 const PRESIGNED_URL_EXPIRES_IN = 300; // 5 minutes
+
+/**
+ * The client for a configuration — the provider's, and the private-storage
+ * migration's, which moves objects between the two buckets directly.
+ */
+export function createS3Client(config: StorageConfig): S3Client {
+  const endpoint = resolveStorageEndpoint(config);
+  return new S3Client({
+    endpoint,
+    // R2 always requires "auto" — ignore any stored region there; Spaces wants
+    // its datacenter slug; the rest want a real AWS-style region.
+    region: clientRegion(config),
+    credentials: {
+      accessKeyId: config.accessKeyId as string,
+      secretAccessKey: config.secretAccessKey as string,
+    },
+    // Path-style addressing for R2 and for any custom endpoint
+    // (MinIO/Spaces/…): virtual-hosted requests to `bucket.<endpoint-host>`
+    // usually fail there, and getPublicUrl builds path-style URLs for
+    // custom endpoints — keep the two consistent.
+    forcePathStyle: config.provider === "cloudflare_r2" || Boolean(endpoint),
+  });
+}
 
 export class S3CompatibleProvider implements StorageService {
   private client: S3Client;
@@ -70,25 +95,8 @@ export class S3CompatibleProvider implements StorageService {
 
     // Shared with getStorageConfig — see lib/storage/endpoint.ts for why the
     // derivation cannot live in this constructor alone.
-    const endpoint = resolveStorageEndpoint(config);
-    this.config.endpoint = endpoint;
-
-    // R2 always requires "auto" — ignore any stored region there; Spaces wants
-    // its datacenter slug; the rest want a real AWS-style region.
-    const region = clientRegion(config);
-    this.client = new S3Client({
-      endpoint,
-      region,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
-      // Path-style addressing for R2 and for any custom endpoint
-      // (MinIO/Spaces/…): virtual-hosted requests to `bucket.<endpoint-host>`
-      // usually fail there, and getPublicUrl builds path-style URLs for
-      // custom endpoints — keep the two consistent.
-      forcePathStyle: config.provider === "cloudflare_r2" || Boolean(endpoint),
-    });
+    this.config.endpoint = resolveStorageEndpoint(config);
+    this.client = createS3Client(config);
   }
 
   /**
@@ -136,6 +144,12 @@ export class S3CompatibleProvider implements StorageService {
 
     const uploadUrl = await getSignedUrl(this.client, command, {
       expiresIn: PRESIGNED_URL_EXPIRES_IN,
+      // The presigner leaves Content-Type out of the signature by default, and
+      // the bucket stores whatever type the PUT sends — so a URL issued for a
+      // photo could store a page as text/html or image/svg+xml, served from the
+      // store's media host. Signed, the PUT must send the type validated when
+      // the URL was issued. (Content-Length is signed already.)
+      signableHeaders: new Set(["content-type"]),
     });
 
     return {
@@ -162,6 +176,11 @@ export class S3CompatibleProvider implements StorageService {
       Body: file,
       ContentType: options.contentType,
       ContentLength: options.fileSize,
+      // A vector kept raw (the logo's exception) still renders in an <img>,
+      // but opened on its own it downloads instead of running as a page.
+      ContentDisposition: isVectorImageType(options.contentType)
+        ? "attachment"
+        : undefined,
       Metadata: options.metadata,
     });
 
@@ -194,16 +213,18 @@ export class S3CompatibleProvider implements StorageService {
   }
 
   /**
-   * List stored files under the path prefix via ListObjectsV2. The cursor is
-   * the S3 continuation token. Order is the bucket's lexicographic key order
-   * (date-partitioned keys ⇒ roughly chronological).
+   * List stored files under the path prefix (or one owner's folder of it) via
+   * ListObjectsV2. The cursor is the S3 continuation token. Order is the
+   * bucket's lexicographic key order (date-partitioned keys ⇒ roughly
+   * chronological).
    */
   async listFiles(options: ListFilesOptions = {}): Promise<ListFilesResult> {
     const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
 
     const command = new ListObjectsV2Command({
       Bucket: this.config.bucketName,
-      Prefix: this.config.pathPrefix || undefined,
+      Prefix:
+        ownerPrefix(this.config.pathPrefix, options.ownerScope) || undefined,
       MaxKeys: limit,
       ContinuationToken: options.cursor || undefined,
     });
@@ -244,6 +265,39 @@ export class S3CompatibleProvider implements StorageService {
   }
 
   /**
+   * The bucket private files are written to: the private bucket when one is
+   * configured, else the public one they used to share.
+   */
+  private get privateBucket(): string {
+    return this.config.privateBucketName || (this.config.bucketName as string);
+  }
+
+  private get hasSeparatePrivateBucket(): boolean {
+    return this.privateBucket !== this.config.bucketName;
+  }
+
+  /**
+   * The bucket holding a private key. A file uploaded before the private
+   * bucket was configured stays in the public one until
+   * `db:migrate private-storage` moves it, so a key the private bucket does
+   * not have is served from where it was written.
+   */
+  private async bucketHoldingPrivateKey(key: string): Promise<string> {
+    if (!this.hasSeparatePrivateBucket) return this.privateBucket;
+    try {
+      await this.client.send(
+        new HeadObjectCommand({ Bucket: this.privateBucket, Key: key }),
+      );
+      return this.privateBucket;
+    } catch (error) {
+      const status = (error as { $metadata?: { httpStatusCode?: number } })
+        .$metadata?.httpStatusCode;
+      if (status === 404) return this.config.bucketName as string;
+      throw error;
+    }
+  }
+
+  /**
    * Store a private file. Uses the caller's key as-is (no public pathPrefix)
    * and never reports a URL — delivery goes through getPrivateDownload's
    * always-signed GET, regardless of any configured public URL.
@@ -256,7 +310,7 @@ export class S3CompatibleProvider implements StorageService {
 
     await this.client.send(
       new PutObjectCommand({
-        Bucket: this.config.bucketName,
+        Bucket: this.privateBucket,
         Key: key,
         Body: file,
         ContentType: options.contentType,
@@ -276,19 +330,21 @@ export class S3CompatibleProvider implements StorageService {
 
   /**
    * Always-signed GET for private files — unlike getDownloadUrl this never
-   * falls back to the public URL, and it forces an attachment disposition so
-   * the browser downloads with the original filename.
+   * falls back to the public URL. The disposition is an attachment, so the
+   * browser downloads with the original filename, unless the caller asks for
+   * "inline".
    */
   async getPrivateDownload(
     key: string,
     options: PrivateDownloadOptions = {},
   ): Promise<PrivateDownload> {
+    const disposition = options.disposition ?? "attachment";
     const command = new GetObjectCommand({
-      Bucket: this.config.bucketName,
+      Bucket: await this.bucketHoldingPrivateKey(key),
       Key: key,
       ResponseContentDisposition: options.filename
-        ? `attachment; filename="${options.filename.replace(/["\\\r\n]/g, "_")}"`
-        : "attachment",
+        ? `${disposition}; filename="${options.filename.replace(/["\\\r\n]/g, "_")}"`
+        : disposition,
     });
     const url = await getSignedUrl(this.client, command, {
       expiresIn: options.expiresInSeconds ?? 300,
@@ -297,9 +353,16 @@ export class S3CompatibleProvider implements StorageService {
   }
 
   /**
-   * Delete a private file — same operation as deleteFile on S3.
+   * Delete a private file — from the public bucket too while one may still
+   * hold a copy written before the private bucket existed. Deleting a key a
+   * bucket does not have succeeds on S3, so this needs no lookup.
    */
   async deletePrivateFile(key: string): Promise<DeleteResult> {
+    if (this.hasSeparatePrivateBucket) {
+      await this.client.send(
+        new DeleteObjectCommand({ Bucket: this.privateBucket, Key: key }),
+      );
+    }
     return this.deleteFile(key);
   }
 
@@ -316,6 +379,25 @@ export class S3CompatibleProvider implements StorageService {
 
       const providerName =
         this.config.provider === "cloudflare_r2" ? "Cloudflare R2" : "AWS S3";
+
+      if (this.hasSeparatePrivateBucket) {
+        try {
+          await this.client.send(
+            new HeadBucketCommand({ Bucket: this.privateBucket }),
+          );
+        } catch (error) {
+          return {
+            success: false,
+            message: `${providerName} connected, but the private bucket "${this.privateBucket}" could not be reached: ${
+              error instanceof Error && error.message ? error.message : "no answer"
+            }. Check its name, and that these keys may use it.`,
+          };
+        }
+        return {
+          success: true,
+          message: `${providerName} connected successfully, with the private bucket "${this.privateBucket}"`,
+        };
+      }
 
       return {
         success: true,

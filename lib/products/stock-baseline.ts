@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { mongoose } from "@/lib/db";
 import { InventoryLocation, Product } from "@/models";
 import { ConflictError } from "@/lib/api/errors";
@@ -22,7 +22,7 @@ import { UpdateProductSchema } from "@/lib/validations";
 
 const quantities = z.record(z.string().max(64), z.number());
 
-export const StockBaselineSchema = z.object({
+const StockBaselineSchema = z.object({
   stock: z.number().optional(),
   locationInventory: quantities.optional(),
   variants: z
@@ -36,7 +36,7 @@ export const StockBaselineSchema = z.object({
     .optional(),
 });
 
-export type StockBaseline = z.infer<typeof StockBaselineSchema>;
+type StockBaseline = z.infer<typeof StockBaselineSchema>;
 
 /** The product update body, plus the baseline the form loaded. */
 export const ProductUpdateWithBaselineSchema = UpdateProductSchema.extend({

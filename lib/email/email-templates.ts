@@ -5,13 +5,15 @@
 
 import { getAppName } from "@/lib/email/email";
 import { formatCurrency } from "@/lib/intl/money";
-import { escapeHtml } from "@/lib/email/escape-html";
+import { emailLinkHref, escapeHtml } from "@/lib/email/escape-html";
 
 interface OrderItem {
   name: string;
   quantity: number;
   price: number;
   image?: string;
+  /** Sold as final sale — see lib/returns/final-sale.ts. */
+  finalSale?: boolean;
 }
 
 interface ShippingAddress {
@@ -32,6 +34,8 @@ interface OrderEmailData {
   shipping: number;
   discount?: number;
   tax: number;
+  /** Import duties collected at checkout (DDP); part of `total`. */
+  duty?: number;
   total: number;
   shippingAddress: ShippingAddress;
   paymentMethod: string;
@@ -148,28 +152,43 @@ function absoluteAssetUrl(url?: string): string | undefined {
   return `${base}${url.startsWith("/") ? url : `/${url}`}`;
 }
 
+/** The store's logo, or its name where there is none. */
+function headerHtml(appName: string, logoUrl?: string): string {
+  const src = absoluteAssetUrl(logoUrl);
+  return src
+    ? `<img src="${escapeHtml(src)}" alt="${appName}" style="max-height: 40px; max-width: 180px;" />`
+    : `<div class="logo">${appName}</div>`;
+}
+
 /**
  * Order Confirmation Email
+ *
+ * Everything printed here that a person typed — a product's name, the
+ * shopper's name and address — is escaped: a guest order can be placed under
+ * anyone's email, so unescaped it put the sender's own markup and links into
+ * a genuine email from the store.
  */
 export function orderConfirmationTemplate(
   data: OrderEmailData,
   options?: EmailTemplateOptions,
 ): string {
-  const appName = options?.storeName || getAppName();
+  const appName = escapeHtml(options?.storeName || getAppName());
   const currency = (options?.currency || "USD").toUpperCase();
   const locale = options?.locale;
+  const orderNumber = escapeHtml(data.orderNumber);
+  const address = data.shippingAddress;
 
   const itemsHtml = data.items
     .map(
       (item) => `
     <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f4f4f5;">
       <div style="flex: 1;">
-        <p style="font-weight: 500; color: #18181b; margin: 0 0 4px 0;">${
-          item.name
-        }</p>
+        <p style="font-weight: 500; color: #18181b; margin: 0 0 4px 0;">${escapeHtml(
+          item.name,
+        )}</p>
         <p style="color: #71717a; font-size: 14px; margin: 0;">Qty: ${
           item.quantity
-        }</p>
+        }${item.finalSale ? " · Final sale" : ""}</p>
       </div>
       <p style="font-weight: 500; color: #18181b; margin: 0;">${formatPrice(
         item.price * item.quantity,
@@ -187,13 +206,13 @@ export function orderConfirmationTemplate(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmation - ${data.orderNumber}</title>
+  <title>Order Confirmation - ${orderNumber}</title>
   <style>${baseStyles}</style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      ${absoluteAssetUrl(options?.logoUrl) ? `<img src="${absoluteAssetUrl(options?.logoUrl)}" alt="${appName}" style="max-height: 40px; max-width: 180px;" />` : `<div class="logo">${appName}</div>`}
+      ${headerHtml(appName, options?.logoUrl)}
     </div>
 
     <div class="card">
@@ -203,9 +222,7 @@ export function orderConfirmationTemplate(
       <div class="divider"></div>
 
       <p style="font-size: 14px; color: #71717a; margin: 0 0 4px 0;">Order Number</p>
-      <p style="font-size: 18px; font-weight: 600; color: #18181b; margin: 0 0 20px 0;">${
-        data.orderNumber
-      }</p>
+      <p style="font-size: 18px; font-weight: 600; color: #18181b; margin: 0 0 20px 0;">${orderNumber}</p>
       
       <h3 style="font-size: 14px; font-weight: 600; color: #18181b; margin: 0 0 12px 0;">Order Summary</h3>
       ${itemsHtml}
@@ -239,6 +256,14 @@ export function orderConfirmationTemplate(
           <span class="summary-label">Tax</span>
           <span class="summary-value">${formatPrice(data.tax, currency, locale)}</span>
         </div>
+        ${
+          data.duty && data.duty > 0
+            ? `<div class="summary-row">
+          <span class="summary-label">Import duties</span>
+          <span class="summary-value">${formatPrice(data.duty, currency, locale)}</span>
+        </div>`
+            : ""
+        }
         <div class="total-row">
           <span>Total</span>
           <span>${formatPrice(data.total, currency, locale)}</span>
@@ -249,27 +274,23 @@ export function orderConfirmationTemplate(
     <div class="card">
       <h3 style="font-size: 14px; font-weight: 600; color: #18181b; margin: 0 0 12px 0;">Shipping Address</h3>
       <div class="address-box">
-        <strong>${data.shippingAddress.fullName || data.customerName || ""}</strong><br>
-        ${data.shippingAddress.street}<br>
-        ${data.shippingAddress.city}, ${data.shippingAddress.state || ""} ${
-    data.shippingAddress.postalCode
-  }<br>
-        ${data.shippingAddress.country}
-        ${
-          data.shippingAddress.phone
-            ? `<br>Phone: ${data.shippingAddress.phone}`
-            : ""
-        }
+        <strong>${escapeHtml(address.fullName || data.customerName)}</strong><br>
+        ${escapeHtml(address.street)}<br>
+        ${escapeHtml(address.city)}, ${escapeHtml(address.state)} ${escapeHtml(
+          address.postalCode,
+        )}<br>
+        ${escapeHtml(address.country)}
+        ${address.phone ? `<br>Phone: ${escapeHtml(address.phone)}` : ""}
       </div>
 
       <div class="divider"></div>
 
       <p style="font-size: 14px; color: #71717a; margin: 0 0 4px 0;">Payment Method</p>
-      <p style="font-size: 14px; color: #18181b; margin: 0; text-transform: capitalize;">${
-        data.paymentMethod
-      }</p>
+      <p style="font-size: 14px; color: #18181b; margin: 0; text-transform: capitalize;">${escapeHtml(
+        data.paymentMethod,
+      )}</p>
     </div>
-    
+
     ${checkoutAnswersCard(data)}
 
     ${
@@ -277,13 +298,13 @@ export function orderConfirmationTemplate(
         ? `<div class="card">
       <h3 style="font-size: 14px; font-weight: 600; color: #18181b; margin: 0 0 8px 0;">Your downloads are ready 📥</h3>
       <p style="font-size: 14px; color: #71717a; margin: 0 0 16px 0;">This order includes digital files. Download them anytime from your order page.</p>
-      <a href="${data.downloadsUrl}" class="button">Download your files</a>
+      <a href="${escapeHtml(data.downloadsUrl)}" class="button">Download your files</a>
     </div>`
         : ""
     }
 
     <div style="text-align: center; padding: 20px 0;">
-      <a href="${data.orderUrl}" class="button">View Order Details</a>
+      <a href="${escapeHtml(data.orderUrl)}" class="button">View Order Details</a>
     </div>
 
     <div class="footer">
@@ -327,8 +348,10 @@ export function orderStatusUpdateTemplate(
   data: OrderStatusEmailData,
   options?: Pick<EmailTemplateOptions, "storeName" | "logoUrl">,
 ): string {
-  const appName = options?.storeName || getAppName();
-  const logoUrl = absoluteAssetUrl(options?.logoUrl);
+  const appName = escapeHtml(options?.storeName || getAppName());
+  const orderNumber = escapeHtml(data.orderNumber);
+  // The carrier, the tracking number and its page can be typed by a vendor.
+  const trackingHref = emailLinkHref(data.trackingUrl);
 
   const statusMessages: Record<string, { title: string; message: string }> = {
     processing: {
@@ -355,7 +378,7 @@ export function orderStatusUpdateTemplate(
 
   const statusInfo = statusMessages[data.newStatus] || {
     title: "Order Status Update",
-    message: `Your order status has been updated to: ${data.newStatus}`,
+    message: `Your order status has been updated to: ${escapeHtml(data.newStatus)}`,
   };
 
   return `
@@ -364,13 +387,13 @@ export function orderStatusUpdateTemplate(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Update - ${data.orderNumber}</title>
+  <title>Order Update - ${orderNumber}</title>
   <style>${baseStyles}</style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" style="max-height: 40px; max-width: 180px;" />` : `<div class="logo">${appName}</div>`}
+      ${headerHtml(appName, options?.logoUrl)}
     </div>
 
     <div class="card">
@@ -382,26 +405,26 @@ export function orderStatusUpdateTemplate(
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <div>
           <p style="font-size: 14px; color: #71717a; margin: 0 0 4px 0;">Order Number</p>
-          <p style="font-size: 16px; font-weight: 600; color: #18181b; margin: 0;">${
-            data.orderNumber
-          }</p>
+          <p style="font-size: 16px; font-weight: 600; color: #18181b; margin: 0;">${orderNumber}</p>
         </div>
         <span class="status-badge ${getStatusClass(
           data.newStatus
-        )}">${getStatusLabel(data.newStatus)}</span>
+        )}">${escapeHtml(getStatusLabel(data.newStatus))}</span>
       </div>
-      
+
       ${
         data.trackingNumber
           ? `
       <div style="background: #f0fdf4; padding: 16px; border-radius: 6px; margin-top: 16px;">
         <p style="font-size: 14px; color: #166534; margin: 0 0 4px 0;">Tracking Number${
-          data.carrier ? ` &middot; ${data.carrier}` : ""
+          data.carrier ? ` &middot; ${escapeHtml(data.carrier)}` : ""
         }</p>
-        <p style="font-size: 16px; font-weight: 600; color: #166534; margin: 0;">${data.trackingNumber}</p>
+        <p style="font-size: 16px; font-weight: 600; color: #166534; margin: 0;">${escapeHtml(
+          data.trackingNumber,
+        )}</p>
         ${
-          data.trackingUrl
-            ? `<p style="margin: 12px 0 0 0;"><a href="${data.trackingUrl}" style="color: #166534; font-weight: 600;">Track your parcel</a></p>`
+          trackingHref
+            ? `<p style="margin: 12px 0 0 0;"><a href="${trackingHref}" style="color: #166534; font-weight: 600;">Track your parcel</a></p>`
             : ""
         }
       </div>
@@ -411,7 +434,7 @@ export function orderStatusUpdateTemplate(
     </div>
 
     <div style="text-align: center; padding: 20px 0;">
-      <a href="${data.orderUrl}" class="button">${
+      <a href="${escapeHtml(data.orderUrl)}" class="button">${
         // The order page is where each delivered item is rated.
         data.newStatus === "delivered" ? "Rate Your Items" : "View Order Details"
       }</a>

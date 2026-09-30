@@ -1,7 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { auth } from "@/lib/auth/auth";
+import { RouteMessages } from "@/components/language/route-messages";
+import { getAccountSession } from "@/lib/customers/account-data";
 import { ConversationInbox } from "@/components/chat/inbox/conversation-inbox";
 import { connectDB } from "@/lib/db";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/lib/conversations/service";
 import { tryResolveConversationViewer } from "@/lib/conversations/viewer";
 import { buildLoginUrl } from "@/lib/auth/return-path";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -24,7 +25,8 @@ export default async function CustomerInboxPage({
   const search = await searchParams;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  // Shared with the account layout's lookup for this request.
+  const session = await getAccountSession();
   if (!session) {
     // Preserve the product context a storefront chat button may have attached,
     // so signing in lands the shopper back on the exact thread they wanted.
@@ -35,9 +37,9 @@ export default async function CustomerInboxPage({
     }
     const query = returnTo.toString();
     redirect(
-      buildLoginUrl(
+      await localeHref(
         locale,
-        `/${locale}/account/inbox${query ? `?${query}` : ""}`,
+        buildLoginUrl(locale, `/account/inbox${query ? `?${query}` : ""}`),
       ),
     );
   }
@@ -110,20 +112,24 @@ export default async function CustomerInboxPage({
         </p>
       </div>
 
-      <ConversationInbox
-        locale={locale}
-        viewerMode="customer"
-        title={chatLabel("inbox.customerTitle", "Store conversations")}
-        emptyTitle={chatLabel(
-          "inbox.emptyCustomer",
-          "You have not started a conversation yet",
-        )}
-        initialConversations={chatConversations}
-        initialSelectedConversationId={
-          existingContextConversation?._id || selectedConversationId
-        }
-        draftContext={draftContext}
-      />
+      {/* The inbox is the one storefront screen that needs every `chat`
+          string; the bundle other storefront pages ship carries a few. */}
+      <RouteMessages namespaces={["chat"]}>
+        <ConversationInbox
+          locale={locale}
+          viewerMode="customer"
+          title={chatLabel("inbox.customerTitle", "Store conversations")}
+          emptyTitle={chatLabel(
+            "inbox.emptyCustomer",
+            "You have not started a conversation yet",
+          )}
+          initialConversations={chatConversations}
+          initialSelectedConversationId={
+            existingContextConversation?._id || selectedConversationId
+          }
+          draftContext={draftContext}
+        />
+      </RouteMessages>
     </div>
   );
 }

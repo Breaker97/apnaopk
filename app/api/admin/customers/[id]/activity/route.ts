@@ -7,6 +7,9 @@ import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import { withApi } from "@/lib/api/handler";
+import type { StaffAccessScope } from "@/lib/access/staff-scope";
+import { isProfileInStaffScope } from "@/lib/customers/customer-staff-scope";
+import { staffScopedProductIds } from "@/lib/catalog/review-staff-scope";
 
 /**
  * GET /api/admin/customers/[id]/activity
@@ -16,11 +19,13 @@ import { withApi } from "@/lib/api/handler";
 export const GET = withApi<{ id: string }>(
   { auth: "user" },
   async ({ request, params, session }) => {
+    let staffScope: StaffAccessScope | undefined;
     if (session.user.role !== USER_ROLES.ADMIN) {
-      await assertAdminOrStaffPermissions(
+      const access = await assertAdminOrStaffPermissions(
         session as unknown as { user: { id: string; role: string } },
         [STAFF_PERMISSIONS.VIEW_CUSTOMERS],
       );
+      staffScope = access.staffScope;
     }
 
     await rateLimitByUser(
@@ -38,8 +43,12 @@ export const GET = withApi<{ id: string }>(
 
     await connectDB();
 
-    const profile = await CustomerProfile.findById(id).select("userId").lean();
-    if (!profile) {
+    const profile = await CustomerProfile.findById(id)
+      .select("userId email")
+      .lean();
+    // A scoped staff member reaches only customers who bought from their scope,
+    // exactly as on the customer's own page; anyone else reads as not found.
+    if (!profile || !(await isProfileInStaffScope(profile, staffScope))) {
       return notFoundResponse("Customer profile");
     }
 
@@ -56,14 +65,21 @@ export const GET = withApi<{ id: string }>(
 
     const userId = String(profile.userId);
 
+    // …and sees only the activity that concerns products in their scope, never
+    // the customer's business with other stores.
+    const scopedProductIds = await staffScopedProductIds(staffScope);
+    const reviewQuery = scopedProductIds
+      ? { userId, productId: { $in: scopedProductIds } }
+      : { userId };
+
     const [reviews, reviewCount, wishlist] = await Promise.all([
-      Review.find({ userId })
+      Review.find(reviewQuery)
         .select("productId rating title comment isApproved createdAt")
         .populate({ path: "productId", select: "name title images slug" })
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
-      Review.countDocuments({ userId }),
+      Review.countDocuments(reviewQuery),
       // Wishlist.userId is stored as a String.
       Wishlist.findOne({ userId }).select("items").lean(),
     ]);
@@ -91,9 +107,17 @@ export const GET = withApi<{ id: string }>(
       };
     });
 
+    const wishlistItems = Array.isArray(wishlist?.items) ? wishlist.items : [];
+    const inScope = scopedProductIds
+      ? new Set(scopedProductIds.map(String))
+      : null;
+
     return successResponse({
       reviewCount,
-      wishlistCount: Array.isArray(wishlist?.items) ? wishlist.items.length : 0,
+      wishlistCount: inScope
+        ? wishlistItems.filter((item) => inScope.has(String(item.productId)))
+            .length
+        : wishlistItems.length,
       recentReviews,
     });
   },

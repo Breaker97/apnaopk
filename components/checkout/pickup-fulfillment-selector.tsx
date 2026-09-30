@@ -210,22 +210,34 @@ export function PickupFulfillmentSelector({
                 // reads as "this store stopped doing collection".
                 const available = branchIsAvailable(location);
                 return (
-                  <button
+                  // A real radio inside its label, the way the delivery /
+                  // collection pair above does it. These used to be buttons
+                  // carrying `aria-pressed` inside a radiogroup, which is a
+                  // toggle's state word in a place that asks for a choice —
+                  // a screen reader announced a row of unrelated switches
+                  // instead of "2 of 3 selected", and arrow keys did not move
+                  // between the branches at all.
+                  <label
                     key={location.id}
-                    type="button"
-                    aria-pressed={selected}
-                    disabled={!available}
-                    onClick={() => onLocationChange?.(location.id)}
                     className={cn(
-                      "rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                      "block rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                      "focus-within:ring-2 focus-within:ring-ring/40",
                       !available
                         ? "cursor-not-allowed border-input opacity-60"
                         : selected
-                          ? "border-primary bg-primary/5"
-                          : "border-input hover:border-primary/40",
+                          ? "cursor-pointer border-primary bg-primary/5"
+                          : "cursor-pointer border-input hover:border-primary/40",
                     )}
                   >
+                    <input
+                      type="radio"
+                      name="pickup-location"
+                      className="sr-only"
+                      value={location.id}
+                      checked={selected}
+                      disabled={!available}
+                      onChange={() => onLocationChange?.(location.id)}
+                    />
                     <span className="block font-medium">{location.name}</span>
                     {/* Neighbourhood and distance on one line, the way the
                         product page prints a collection point. A distance
@@ -252,14 +264,17 @@ export function PickupFulfillmentSelector({
                           "Doesn't have everything in your order"}
                       </span>
                     ) : null}
-                  </button>
+                  </label>
                 );
               })}
             </div>
 
             {/* Every branch is short. Said once, plainly, rather than leaving
-                the shopper to work it out from a grid of greyed-out cards. */}
-            {locations?.length && !locations.some(branchIsAvailable) ? (
+                the shopper to work it out from a grid of greyed-out cards.
+                Compared rather than truthy-tested: a bare `locations?.length`
+                is `0` for an empty list, and React prints a stray 0. */}
+            {(locations?.length ?? 0) > 0 &&
+            !locations!.some(branchIsAvailable) ? (
               <p className="rounded-md border bg-muted/40 p-2 text-xs text-muted-foreground">
                 {labels?.noBranchHasEverything ||
                   "No collection point has every item in your order right now. Choose delivery, or remove an item to collect the rest."}
@@ -278,7 +293,13 @@ export function PickupFulfillmentSelector({
               {selectedLocation?.openingHours?.length ? (
                 <ul className="space-y-0.5 text-xs text-muted-foreground">
                   {selectedLocation.openingHours.map((opening) => (
-                    <li key={opening.weekday} className="flex gap-2">
+                    // Keyed by the window, not the day: a branch that shuts
+                    // for lunch has two rows for one weekday, and keying by
+                    // the day alone made them duplicates to React.
+                    <li
+                      key={`${opening.weekday}-${opening.start}-${opening.end}`}
+                      className="flex gap-2"
+                    >
                       <span className="w-24 shrink-0">
                         {WEEKDAY_LABELS[opening.weekday] ?? ""}
                       </span>

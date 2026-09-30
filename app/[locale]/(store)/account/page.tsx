@@ -1,16 +1,20 @@
 import { Suspense } from "react";
-import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
-import { Conversation, Notification, Order } from "@/models";
+import { Conversation, Order } from "@/models";
 import { CONVERSATION_STATUSES } from "@/models/conversation.model";
 import { setRequestLocale } from "next-intl/server";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerDashboard } from "@/components/account/customer-dashboard";
-import { ensureCustomerProfile } from "@/lib/customers/customer";
+import {
+  countUnreadNotifications,
+  getAccountProfile,
+  getAccountSession,
+} from "@/lib/customers/account-data";
 import { listPendingReviews } from "@/lib/catalog/review-eligibility";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -21,19 +25,16 @@ async function getCustomerStats(userId: string) {
 
   const [profile, pendingOrders, notificationsCount, inboxUnreadCount] =
     await Promise.all([
-      ensureCustomerProfile(userId),
+      // Shared with the account layout's sidebar stats within one request.
+      getAccountProfile(userId),
       // Pending orders is a real-time transient status — keep as live query
       Order.countDocuments({
         customerId: userId,
         status: { $in: ["pending", "processing"] },
       }),
-      // Unread badges for the mobile Activity menu. Same notification filter
-      // as the account layout's sidebar stats.
-      Notification.countDocuments({
-        userId,
-        isRead: false,
-        isArchived: { $ne: true },
-      }),
+      // Unread badges for the mobile Activity menu — the same count the
+      // layout shows in the sidebar, read once for both.
+      countUnreadNotifications(userId),
       // Threads with a reply waiting, not total unread messages — "2" should
       // read as "two conversations to open".
       Conversation.countDocuments({
@@ -89,7 +90,8 @@ export default async function AccountPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  // The layout asked the same question for this request; this is its answer.
+  const session = await getAccountSession();
 
   // The layout redirects anonymous visitors, but Next renders a page in
   // parallel with its layout, so this still runs for a logged-out request.
@@ -98,14 +100,40 @@ export default async function AccountPage({ params }: PageProps) {
   // redirect wins the response.
   if (!session) {
     redirect(
-      buildLoginUrl(
+      await localeHref(
         locale,
-        returnPathFromHeaders(requestHeaders) ?? `/${locale}/account`,
+        buildLoginUrl(locale, returnPathFromHeaders(requestHeaders) ?? "/account"),
       ),
     );
   }
   const user = session.user;
 
+  // The data is read inside the boundary, so the page streams its skeleton
+  // straight away and the dashboard follows. (The boundary used to wrap a
+  // component whose data had already been awaited above it, so its fallback
+  // could never show.)
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <AccountOverview
+        locale={locale}
+        user={{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image || undefined,
+        }}
+      />
+    </Suspense>
+  );
+}
+
+async function AccountOverview({
+  locale,
+  user,
+}: {
+  locale: string;
+  user: { id: string; name: string; email: string; image?: string };
+}) {
   const [stats, recentOrders, pendingReviews] = await Promise.all([
     getCustomerStats(user.id),
     getRecentOrders(user.id),
@@ -113,19 +141,13 @@ export default async function AccountPage({ params }: PageProps) {
   ]);
 
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <CustomerDashboard
-        locale={locale}
-        user={{
-          name: user.name,
-          email: user.email,
-          image: user.image || undefined,
-        }}
-        stats={stats}
-        recentOrders={recentOrders}
-        pendingReviews={pendingReviews}
-      />
-    </Suspense>
+    <CustomerDashboard
+      locale={locale}
+      user={{ name: user.name, email: user.email, image: user.image }}
+      stats={stats}
+      recentOrders={recentOrders}
+      pendingReviews={pendingReviews}
+    />
   );
 }
 

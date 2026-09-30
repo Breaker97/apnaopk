@@ -25,6 +25,18 @@ type StorefrontCollectionDetailQuery = StorefrontCollectionListQuery & {
   sort?: CollectionSortOrder;
 };
 
+type CollectionChannel = NonNullable<StorefrontCollectionListQuery["channel"]>;
+
+/** The storefront shows an active collection published to its channel. */
+const SHOWN_COLLECTION_FILTER = { status: "active" } as const;
+
+function isPublishedTo(
+  collection: { publishing?: Partial<Record<CollectionChannel, boolean>> } | null,
+  channel: CollectionChannel,
+) {
+  return Boolean(collection?.publishing?.[channel]);
+}
+
 function normalizePositiveInteger(value: number | undefined, fallback: number) {
   return Number.isFinite(value) && (value || 0) > 0 ? Math.floor(value!) : fallback;
 }
@@ -91,10 +103,10 @@ export const getStorefrontCollectionDetail = unstable_cache(
 
     const collection = await Collection.findOne({
       slug: query.slug,
-      status: "active",
+      ...SHOWN_COLLECTION_FILTER,
     }).lean();
 
-    if (!collection || !collection.publishing?.[publishingChannel]) {
+    if (!collection || !isPublishedTo(collection, publishingChannel)) {
       return null;
     }
 
@@ -135,4 +147,26 @@ export const getStorefrontCollectionDetail = unstable_cache(
     revalidate: 60,
     tags: [CACHE_TAGS.collections, CACHE_TAGS.products],
   },
+);
+
+/**
+ * Whether the storefront shows the collection at `slug`: the question
+ * `getStorefrontCollectionDetail` asks first, asked alone and with the same
+ * rule, for the route's 404 (lib/storefront/resource-gate.ts). The detail
+ * loader cannot answer it there — it is keyed on the page and sort, which a
+ * layout does not receive.
+ */
+export const isStorefrontCollectionShown = unstable_cache(
+  async (slug: string): Promise<boolean> => {
+    await connectDB();
+    const collection = await Collection.findOne({
+      slug,
+      ...SHOWN_COLLECTION_FILTER,
+    })
+      .select("publishing")
+      .lean();
+    return isPublishedTo(collection, "onlineStore");
+  },
+  ["storefront-collection-shown"],
+  { revalidate: 60, tags: [CACHE_TAGS.collections] },
 );

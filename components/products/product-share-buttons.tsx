@@ -13,16 +13,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-// Shared with the vendor storefront's Store information panel, so a brand mark
-// is defined once rather than per consumer.
-import {
-  FacebookGlyph,
-  LinkedInGlyph,
-  PinterestGlyph,
-  TelegramGlyph,
-  WhatsAppGlyph,
-  XGlyph,
-} from "@/components/ui/brand-glyphs";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import { toast } from "@/components/ui/toast-notification";
 import {
@@ -33,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { useClientValue } from "@/hooks/use-client-value";
+import { SHARE_NETWORKS, shareEmailHref } from "./share-networks";
 
 interface ProductShareButtonsProps {
   productName: string;
@@ -120,76 +111,13 @@ export function ProductShareButtons({
     return "";
   };
 
-  const encodedUrl = encodeURIComponent(pageUrl);
   const shareText =
     shareTextProp ||
     tr("product.shareProduct", "Share this product with friends and family");
-  const encodedText = encodeURIComponent(productName);
-  const encodedImage = image ? encodeURIComponent(image) : "";
 
-  const networks = useMemo(() => {
-    const items: Array<{
-      key: string;
-      enabled: boolean;
-      label: string;
-      href: string;
-      icon: SvgIcon;
-      brandClass: string;
-    }> = [
-      {
-        key: "facebook",
-        enabled: shareSettings.facebook,
-        label: tr("product.share.facebook", "Share on Facebook"),
-        href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-        icon: FacebookGlyph,
-        brandClass: "hover:border-[#1877F2] hover:text-[#1877F2]",
-      },
-      {
-        key: "twitter",
-        enabled: shareSettings.twitter,
-        label: tr("product.share.twitter", "Share on X"),
-        href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
-        icon: XGlyph,
-        brandClass: "hover:border-foreground hover:text-foreground",
-      },
-      {
-        key: "whatsapp",
-        enabled: shareSettings.whatsapp,
-        label: tr("product.share.whatsapp", "Share on WhatsApp"),
-        href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
-        icon: WhatsAppGlyph,
-        brandClass: "hover:border-[#25D366] hover:text-[#25D366]",
-      },
-      {
-        key: "telegram",
-        enabled: shareSettings.telegram,
-        label: tr("product.share.telegram", "Share on Telegram"),
-        href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
-        icon: TelegramGlyph,
-        brandClass: "hover:border-[#229ED9] hover:text-[#229ED9]",
-      },
-      {
-        key: "pinterest",
-        enabled: shareSettings.pinterest,
-        label: tr("product.share.pinterest", "Pin it"),
-        href: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&description=${encodedText}${
-          encodedImage ? `&media=${encodedImage}` : ""
-        }`,
-        icon: PinterestGlyph,
-        brandClass: "hover:border-[#E60023] hover:text-[#E60023]",
-      },
-      {
-        key: "linkedin",
-        enabled: shareSettings.linkedin,
-        label: tr("product.share.linkedin", "Share on LinkedIn"),
-        href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-        icon: LinkedInGlyph,
-        brandClass: "hover:border-[#0A66C2] hover:text-[#0A66C2]",
-      },
-    ];
-    return items.filter((item) => item.enabled && allowed(item.key));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shareSettings, encodedUrl, encodedText, encodedImage, allowedNetworks]);
+  const networks = SHARE_NETWORKS.filter(
+    (network) => shareSettings[network.key] && allowed(network.key),
+  );
 
   const customLinks = useMemo(
     () =>
@@ -236,9 +164,11 @@ export function ProductShareButtons({
     }
   };
 
-  const emailHref = `mailto:?subject=${encodedText}&body=${encodeURIComponent(
-    `${shareText}\n${pageUrl}`,
-  )}`;
+  const emailHref = shareEmailHref({
+    url: pageUrl,
+    title: productName,
+    text: shareText,
+  });
 
   // The gray rounded-rect flavor. Brand hover classes still recolor the
   // glyph; their border hovers are inert here (tiles draw no border).
@@ -267,13 +197,14 @@ export function ProductShareButtons({
       {networks.map((network) => (
         <ShareLink
           key={network.key}
-          href={network.href}
-          getHref={() => buildNetworkShareHref(network.key, {
-            url: getSharePageUrl(),
-            title: productName,
-            image,
-          })}
-          label={network.label}
+          href={network.href({ url: pageUrl, title: productName, image })}
+          getHref={() => {
+            const current = getSharePageUrl();
+            return current
+              ? network.href({ url: current, title: productName, image })
+              : "";
+          }}
+          label={tr(network.labelKey, network.fallbackLabel)}
           icon={network.icon}
           base={shapeClass}
           style={tileStyle}
@@ -443,40 +374,4 @@ function ShareLink(props: {
       )}
     </a>
   );
-}
-
-function buildNetworkShareHref(
-  key: string,
-  values: { url: string; title: string; image?: string },
-) {
-  const encodedCurrentUrl = encodeURIComponent(values.url);
-  const encodedTitle = encodeURIComponent(values.title);
-  const encodedCurrentImage = values.image
-    ? encodeURIComponent(values.image)
-    : "";
-
-  if (!encodedCurrentUrl) return "";
-
-  if (key === "facebook") {
-    return `https://www.facebook.com/sharer/sharer.php?u=${encodedCurrentUrl}`;
-  }
-  if (key === "twitter") {
-    return `https://twitter.com/intent/tweet?url=${encodedCurrentUrl}&text=${encodedTitle}`;
-  }
-  if (key === "whatsapp") {
-    return `https://wa.me/?text=${encodedTitle}%20${encodedCurrentUrl}`;
-  }
-  if (key === "telegram") {
-    return `https://t.me/share/url?url=${encodedCurrentUrl}&text=${encodedTitle}`;
-  }
-  if (key === "pinterest") {
-    return `https://pinterest.com/pin/create/button/?url=${encodedCurrentUrl}&description=${encodedTitle}${
-      encodedCurrentImage ? `&media=${encodedCurrentImage}` : ""
-    }`;
-  }
-  if (key === "linkedin") {
-    return `https://www.linkedin.com/sharing/share-offsite/?url=${encodedCurrentUrl}`;
-  }
-
-  return "";
 }

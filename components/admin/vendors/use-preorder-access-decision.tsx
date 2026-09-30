@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import { toast } from "@/components/ui/toast-notification";
 import {
   InputDialog,
@@ -14,11 +15,14 @@ type RefusalKind = "decline" | "revoke";
 /** Same cap the route validates; checked here so the dialog can say so. */
 const NOTE_MAX_LENGTH = 500;
 
-export function formatPreorderAccessDate(value?: string | null) {
+export function formatPreorderAccessDate(
+  value: string | null | undefined,
+  locale: string,
+) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -36,6 +40,7 @@ export function formatPreorderAccessDate(value?: string | null) {
 export function usePreorderAccessDecision(
   onDecided: () => void | Promise<void>,
 ) {
+  const t = useTranslations("admin.preorderAccess");
   const [busyVendorId, setBusyVendorId] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<{
     vendor: DecisionVendor;
@@ -46,7 +51,7 @@ export function usePreorderAccessDecision(
 
   const submit = useCallback(
     async (vendor: DecisionVendor, allow: boolean, note?: string) => {
-      const name = vendor.storeName || "Vendor";
+      const name = vendor.storeName || t("vendorFallback");
       setBusyVendorId(vendor._id);
       try {
         await apiClient.put(`/api/admin/vendors/${vendor._id}/preorder`, {
@@ -55,22 +60,20 @@ export function usePreorderAccessDecision(
         });
         toast.success(
           allow
-            ? `${name} can now open pre-orders`
+            ? t("approvedToast", { name })
             : refusal?.kind === "decline"
-              ? `${name}'s pre-order request was declined`
-              : `${name} can no longer open new pre-orders`,
+              ? t("declinedToast", { name })
+              : t("revokedToast", { name }),
         );
         setRefusal(null);
         await onDecided();
       } catch (error) {
-        toast.error(
-          describeApiError(error, "Failed to update pre-order access"),
-        );
+        toast.error(describeApiError(error, t("updateFailed")));
       } finally {
         setBusyVendorId(null);
       }
     },
-    [onDecided, refusal],
+    [onDecided, refusal, t],
   );
 
   const approve = useCallback(
@@ -84,7 +87,7 @@ export function usePreorderAccessDecision(
     setRefusal({ vendor, kind });
   }, []);
 
-  const name = refusal?.vendor.storeName || "this vendor";
+  const name = refusal?.vendor.storeName || t("thisVendor");
   const dialog = (
     <InputDialog
       open={refusal !== null}
@@ -93,19 +96,19 @@ export function usePreorderAccessDecision(
       }}
       title={
         refusal?.kind === "revoke"
-          ? `Withdraw pre-order access from ${name}?`
-          : `Decline ${name}'s pre-order request?`
+          ? t("revokeTitle", { name })
+          : t("declineTitle", { name })
       }
       description={
         refusal?.kind === "revoke"
-          ? "They will not be able to open new pre-orders. Pre-orders already selling keep running — shoppers have paid deposits against them."
-          : "They can send a new request later."
+          ? t("revokeDescription")
+          : t("declineDescription")
       }
       fields={[
         {
           name: "note",
-          label: "Reason (sent to the vendor)",
-          placeholder: "Optional",
+          label: t("reasonLabel"),
+          placeholder: t("reasonPlaceholder"),
           multiline: true,
           rows: 3,
         },
@@ -118,12 +121,14 @@ export function usePreorderAccessDecision(
       onSubmit={(submitted) => {
         if (!refusal) return;
         if ((submitted.note || "").trim().length > NOTE_MAX_LENGTH) {
-          setNoteError(`Keep the reason under ${NOTE_MAX_LENGTH} characters.`);
+          setNoteError(t("reasonTooLong", { max: NOTE_MAX_LENGTH }));
           return;
         }
         void submit(refusal.vendor, false, submitted.note);
       }}
-      submitText={refusal?.kind === "revoke" ? "Withdraw access" : "Decline"}
+      submitText={
+        refusal?.kind === "revoke" ? t("revokeSubmit") : t("declineSubmit")
+      }
       submitVariant="destructive"
       loading={busyVendorId !== null}
       errors={{ note: noteError }}

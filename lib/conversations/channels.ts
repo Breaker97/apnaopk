@@ -249,11 +249,6 @@ export function channelLabel(channel: string) {
   return channelCapability(channel).label;
 }
 
-/** Providers are the external channels; derived so the two cannot drift. */
-export const MESSAGE_PROVIDERS = (
-  Object.keys(CHANNEL_CAPABILITIES) as ConversationChannel[]
-).filter(isExternalChannel);
-
 export function providerLabel(provider: string) {
   return channelLabel(provider);
 }

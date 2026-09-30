@@ -1,13 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   ModernProductCard,
+  ModernProductCardSkeleton,
   type ModernProduct,
 } from "@/components/products/modern-product-card";
 import { Button } from "@/components/ui/button";
+import { useWhenIdle } from "@/hooks/use-idle-preload";
 import { useRailEdges } from "@/components/store/scroll-rail";
 import { cn } from "@/lib/utils";
 import { type Locale } from "@/config/i18n.config";
@@ -20,7 +28,17 @@ import {
 export interface ProductGroupTab {
   id: string;
   label: string;
-  products: ModernProduct[];
+  /** The first tab's, sent with the page; the others are fetched. */
+  products?: ModernProduct[];
+  /** The tab's GET /api/product-cards query string. */
+  query: string;
+}
+
+async function fetchTabProducts(query: string): Promise<ModernProduct[]> {
+  const response = await fetch(`/api/product-cards?${query}`);
+  if (!response.ok) throw new Error(`product-cards ${response.status}`);
+  const body = (await response.json()) as { data?: ModernProduct[] };
+  return Array.isArray(body.data) ? body.data : [];
 }
 
 /**
@@ -36,9 +54,10 @@ export type ProductGroupAppearance = "standard" | "centered";
 const DESKTOP_COLUMN_CLASSES = PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES;
 
 /**
- * Client half of the tabbed product group: every tab's products are already
- * fetched and inlined by the server component, so switching tabs is instant
- * and works from the streamed HTML.
+ * Client half of the tabbed product group. The first tab's products come with
+ * the page; the other tabs' are fetched once the page is idle — so switching
+ * is still instant by the time a shopper scrolls this far — or as soon as a
+ * pointer, a touch or focus reaches a tab, if that comes first.
  */
 export function ProductGroupTabs({
   locale,
@@ -56,6 +75,39 @@ export function ProductGroupTabs({
 }) {
   const t = useTranslations();
   const [activeId, setActiveId] = useState(tabs[0]?.id);
+  const [productsByTab, setProductsByTab] = useState<
+    Record<string, ModernProduct[]>
+  >(() =>
+    Object.fromEntries(
+      tabs.flatMap((tab) => (tab.products ? [[tab.id, tab.products]] : [])),
+    ),
+  );
+  const [failedTabs, setFailedTabs] = useState<Set<string>>(new Set());
+  const requestedRef = useRef(new Set<string>());
+
+  const loadTab = useCallback((tab: ProductGroupTab) => {
+    if (tab.products || requestedRef.current.has(tab.id)) return;
+    requestedRef.current.add(tab.id);
+    setFailedTabs((current) => {
+      if (!current.has(tab.id)) return current;
+      const next = new Set(current);
+      next.delete(tab.id);
+      return next;
+    });
+    fetchTabProducts(tab.query)
+      .then((products) =>
+        setProductsByTab((current) => ({ ...current, [tab.id]: products })),
+      )
+      .catch(() => {
+        // Asked for again the next time the tab is reached for.
+        requestedRef.current.delete(tab.id);
+        setFailedTabs((current) => new Set(current).add(tab.id));
+      });
+  }, []);
+  const loadAllTabs = useCallback(() => {
+    for (const tab of tabs) loadTab(tab);
+  }, [tabs, loadTab]);
+  useWhenIdle(loadAllTabs);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   // The tab row scrolls once a merchant adds more tabs than fit. The arrows
   // beside it are pointer-only, so on a phone the fade is the only thing that
@@ -65,6 +117,13 @@ export function ProductGroupTabs({
   const { measure: measureTabRail } = useRailEdges(tabRailRef);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  // The centered rail's pill is ONE element that slides between tabs, rather
+  // than each tab painting its own — so a switch glides instead of snapping.
+  // Null until measured: the server HTML paints the pill on the active tab.
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(
+    null,
+  );
 
   // Same mechanics as the related-products shelf: step by one card plus the
   // gap so a click always lands on a card edge rather than mid-product.
@@ -103,9 +162,27 @@ export function ProductGroupTabs({
   }, [updateScrollState, activeId]);
 
   const active = tabs.find((tab) => tab.id === activeId) ?? tabs[0];
-  if (!active) return null;
-
   const centered = appearance === "centered";
+  const activeTabId = active?.id;
+
+  useLayoutEffect(() => {
+    const rail = tabRailRef.current;
+    if (!centered || !rail || !activeTabId) return;
+    const measure = () => {
+      const tab = tabRefs.current.get(activeTabId);
+      if (tab) setPill({ left: tab.offsetLeft, width: tab.offsetWidth });
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    // Web fonts landing and viewport changes both re-flow the labels.
+    const observer = new ResizeObserver(measure);
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, [centered, activeTabId]);
+
+  if (!active) return null;
+  const activeProducts = productsByTab[active.id];
+
   const safeDesktopColumns = Math.min(
     6,
     Math.max(
@@ -150,27 +227,61 @@ export function ProductGroupTabs({
               onScroll={measureTabRail}
               className={cn(
                 "flex items-center overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                centered ? "min-w-0 gap-6 sm:gap-12" : "gap-2 pb-1",
+                // Every centered tab carries the pill's padding, so the
+                // labels hold still while the pill moves; the padding IS the
+                // spacing between them.
+                centered ? "relative min-w-0" : "gap-2 pb-1",
               )}
             >
+              {centered && pill ? (
+                <span
+                  aria-hidden
+                  // Positioned by the inline transform alone: Tailwind's
+                  // translate utilities write the separate `translate`
+                  // property, which would stack on top of it.
+                  className="pointer-events-none absolute left-0 top-1/2 h-[37.5px] rounded-button bg-foreground transition-[transform,width] duration-300 ease-out motion-reduce:transition-none"
+                  style={{
+                    width: pill.width,
+                    transform: `translate(${pill.left}px, -50%)`,
+                  }}
+                />
+              ) : null}
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
+                  ref={(node) => {
+                    if (node) tabRefs.current.set(tab.id, node);
+                    else tabRefs.current.delete(tab.id);
+                  }}
                   type="button"
                   role="tab"
                   aria-selected={tab.id === active.id}
-                  onClick={() => setActiveId(tab.id)}
+                  onPointerEnter={() => loadTab(tab)}
+                  onPointerDown={() => loadTab(tab)}
+                  onFocus={() => loadTab(tab)}
+                  onClick={() => {
+                    loadTab(tab);
+                    setActiveId(tab.id);
+                  }}
                   className={cn(
                     "shrink-0 transition-colors",
                     centered
-                      ? tab.id === active.id
-                        ? // The design dresses only the ACTIVE tab as a
+                      ? cn(
+                          // The design dresses only the ACTIVE tab as a
                           // button (theme radius); the rest sit bare on the
                           // hairline rail — and they stay near-black, not
                           // muted, so the row reads as a set of choices
                           // rather than one live and six dead.
-                          "h-[37.5px] rounded-button bg-foreground px-6 text-[15.4px] font-bold text-background"
-                        : "h-[37.5px] text-[15.4px] font-semibold text-foreground hover:opacity-70"
+                          "relative h-[37.5px] rounded-button px-4 text-[15.4px] duration-300 motion-reduce:transition-none sm:px-6",
+                          tab.id === active.id
+                            ? cn(
+                                "font-bold text-background",
+                                // Before the pill is measured (the server
+                                // render), the tab paints its own.
+                                !pill && "bg-foreground",
+                              )
+                            : "font-semibold text-foreground hover:opacity-70",
+                        )
                       : cn(
                           "rounded-button border px-4 py-1.5 text-sm font-medium",
                           tab.id === active.id
@@ -226,12 +337,30 @@ export function ProductGroupTabs({
             DESKTOP_COLUMN_CLASSES[safeDesktopColumns],
           )}
         >
-          {active.products.map((product) => (
-            <div key={product._id} className="snap-start">
-              <ModernProductCard product={product} locale={locale} />
-            </div>
-          ))}
+          {activeProducts
+            ? activeProducts.map((product) => (
+                <div key={product._id} className="snap-start">
+                  <ModernProductCard product={product} locale={locale} />
+                </div>
+              ))
+            : failedTabs.has(active.id)
+              ? null
+              : Array.from({ length: safeDesktopColumns }, (_, index) => (
+                  <ModernProductCardSkeleton key={index} />
+                ))}
         </div>
+        {!activeProducts && failedTabs.has(active.id) ? (
+          <div className="flex justify-center py-6">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => loadTab(active)}
+            >
+              {t("common.tryAgain")}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </section>
   );

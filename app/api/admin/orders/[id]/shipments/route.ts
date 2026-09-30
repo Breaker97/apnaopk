@@ -1,11 +1,14 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Order, Shipment, Vendor } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";
 import { validateBody, isValidObjectId } from "@/lib/api/validate";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import {
+  assertAdminOrStaffPermissions,
+  assertVendorStaffMayChangeOrder,
+} from "@/lib/access/staff-authz";
 import {
   buildStaffOrderScopeFilter,
   mergeScopeFilter,
@@ -57,6 +60,7 @@ export const POST = withApi<{ id: string }>(
       mergeScopeFilter({ _id: params.id }, buildStaffOrderScopeFilter(access.staffScope)),
     ).lean();
     if (!order) return notFoundResponse("Order");
+    assertVendorStaffMayChangeOrder(access, order);
 
     const subOrder = body.subOrderId
       ? order.subOrders?.find(

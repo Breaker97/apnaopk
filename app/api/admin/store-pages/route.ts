@@ -12,7 +12,7 @@ import {
 } from "@/lib/storefront/pages/handles";
 import { getSettings } from "@/models/settings.model";
 import { buildStorePageIdentity, StorePage } from "@/models/store-page.model";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 /** Landing + home page summaries for the admin Pages screen. */

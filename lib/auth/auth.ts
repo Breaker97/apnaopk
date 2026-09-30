@@ -16,8 +16,11 @@ import {
   isOAuthCallbackPath,
   assertOAuthCustomerOnlySession,
 } from "@/lib/auth/auth-oauth-guards";
-import { resolveOAuthCredentials } from "@/lib/settings/credentials";
+import { buildSocialProviders } from "@/lib/auth/social-providers";
+import { readLiveSessionUser } from "@/lib/auth/live-session";
+import { CLIENT_IP_HEADER } from "@/lib/api/client-ip";
 import { resolveAuthBaseUrl } from "@/lib/auth/oauth-callback";
+import { isPrivateNetworkHost } from "@/lib/app-url";
 import { assertAuthSecret } from "@/lib/auth/auth-secret";
 import {
   DEFAULT_PASSWORD_POLICY,
@@ -98,27 +101,6 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
-/**
- * Whether a hostname belongs to a private network — the ranges a router
- * hands out at home or in an office, plus loopback. Used to widen the
- * trusted origins for LAN testing outside production; anything routable
- * from the internet answers false.
- */
-function isPrivateNetworkHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".localhost")) return true;
-  if (host === "[::1]" || host === "::1") return true;
-  // A name, not an address (a tunnel or a staging domain): not our call.
-  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
-  const [a, b] = host.split(".").map(Number);
-  if (a === 127 || a === 10) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  // 169.254.0.0/16 — link-local, what a device picks with no DHCP.
-  if (a === 169 && b === 254) return true;
-  return false;
-}
-
 function createAuth(
   db: Db,
   client?: MongoClient,
@@ -187,38 +169,7 @@ function createAuth(
       : configuredOrigins;
   };
 
-  const socialProviders: Record<
-    string,
-    { clientId: string; clientSecret: string }
-  > = {};
-
-  // Resolve OAuth credentials from two sources: DB settings win, .env is the
-  // per-field fallback. The admin toggle is the single source of truth for
-  // whether a provider is active — .env only supplies credentials, it never
-  // auto-enables the provider (otherwise the admin could not disable it).
-  const oauth = resolveOAuthCredentials(securitySettings);
-
-  if (
-    oauth.google.clientId &&
-    oauth.google.clientSecret &&
-    securitySettings.googleOAuthEnabled
-  ) {
-    socialProviders.google = {
-      clientId: oauth.google.clientId,
-      clientSecret: oauth.google.clientSecret,
-    };
-  }
-
-  if (
-    oauth.facebook.appId &&
-    oauth.facebook.appSecret &&
-    securitySettings.facebookOAuthEnabled
-  ) {
-    socialProviders.facebook = {
-      clientId: oauth.facebook.appId,
-      clientSecret: oauth.facebook.appSecret,
-    };
-  }
+  const socialProviders = buildSocialProviders(securitySettings);
 
   return betterAuth({
     baseURL,
@@ -268,11 +219,25 @@ function createAuth(
       },
     },
 
+    // The rate limits above key on the client's address. Better Auth's own
+    // reading of X-Forwarded-For gives up on a chain of more than one address,
+    // so behind a CDN and a proxy every visitor shared one sign-in bucket.
+    // proxy.ts resolves the address from the right of the chain
+    // (lib/api/client-ip.ts) and records it here; every /api/auth request
+    // passes through it, and a client-sent value is overwritten.
+    advanced: {
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
+    },
+
     emailVerification: {
       expiresIn: 60 * 60 * 24,
       sendOnSignUp: requireCustomerVerification || requireVendorVerification,
       sendOnSignIn: false,
-      autoSignInAfterVerification: true,
+      // Off: the link proves the address, not the password. Signing in on it
+      // let whoever opened the email — an invited staff member's included —
+      // into the account without the password or its second factor. The
+      // verified page sends people on to sign in (via /role-redirect).
+      autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
         const audience = (user as { emailVerificationAudience?: string })
           .emailVerificationAudience;
@@ -306,6 +271,18 @@ function createAuth(
           email: user.email,
           name: user.name,
         });
+        // The address is proven now, so the guest history kept under it is
+        // theirs — without waiting for a sign-in (see the session hook).
+        if ((user as { role?: string }).role === USER_ROLES.CUSTOMER) {
+          try {
+            const { claimGuestCustomerData } = await import(
+              "@/lib/customers/customer"
+            );
+            await claimGuestCustomerData(user.id, user.email);
+          } catch (error) {
+            console.error("Failed to claim guest customer data:", error);
+          }
+        }
       },
     },
 
@@ -494,16 +471,14 @@ function createAuth(
             // Fold any guest checkout history under this email into the
             // account — the Shopify "account activation" moment: guest orders
             // relink to the user and the email-keyed guest customer row is
-            // absorbed. Gated on the same verification decision that admitted
-            // the session, with one exception: the courtesy session a
-            // verification-required signup gets (blocked_pending) has not
-            // proven the email yet, so its claim waits for the login that
-            // follows verification. Never blocks sign-in.
-            if (
-              role === USER_ROLES.CUSTOMER &&
-              email &&
-              verificationStatus !== "blocked_pending"
-            ) {
+            // absorbed. Only once the email is PROVEN, whatever the sign-in
+            // policy: a store that does not require verification (or is in
+            // its grace period) still admits the session, but anyone can
+            // sign up under someone else's address, and the claim handed them
+            // that shopper's orders, addresses and points. The login after
+            // verification — or the verification itself — claims instead.
+            // Never blocks sign-in.
+            if (role === USER_ROLES.CUSTOMER && email && emailVerified) {
               try {
                 const { claimGuestCustomerData } = await import(
                   "@/lib/customers/customer"
@@ -606,20 +581,12 @@ async function hydrateSessionUserFromDb(
       return isPrivilegedRole(session.user.role) ? null : session;
     }
 
-    const userDoc = await db.collection("user").findOne(
-      { _id: new ObjectId(session.user.id) },
-      {
-        projection: {
-          role: 1,
-          roles: 1,
-          status: 1,
-          emailVerified: 1,
-          createdAt: 1,
-          emailVerificationRequiredAt: 1,
-          emailVerificationAudience: 1,
-        },
-      },
-    );
+    // Also proves the session row still exists, so a revoked session stops
+    // here instead of riding the cookie cache — see readLiveSessionUser.
+    const userDoc = await readLiveSessionUser(db, {
+      userId: session.user.id,
+      sessionId: session.session.id,
+    });
 
     if (!userDoc) return null;
 
@@ -688,14 +655,12 @@ async function getAuthInstance(): Promise<AuthInstance> {
     authInitPromise = (async () => {
       await connectDB();
 
-      const db = mongoose.connection.db as unknown as Db | undefined;
+      const db = mongoose.connection.db;
       if (!db) {
         throw new Error("MongoDB is not connected");
       }
 
-      const client = mongoose.connection.getClient() as unknown as
-        | MongoClient
-        | undefined;
+      const client = mongoose.connection.getClient();
 
       // Try to load security settings from database
       let securitySettings: AuthSecuritySettings | undefined;
@@ -825,6 +790,8 @@ interface AuthSession {
     id: string;
     userId: string;
     expiresAt: Date;
+    /** When this sign-in happened; see lib/auth/recent-sign-in.ts. */
+    createdAt?: Date;
   };
 }
 

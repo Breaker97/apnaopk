@@ -1,6 +1,6 @@
-import { AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { cn } from "@/lib/utils";
 
 /** Delivery going wrong, as the API serialises it. */
@@ -41,20 +41,11 @@ export function DeliveryException({
   const title = exceptionTitles[exception.code] || "Delivery issue";
 
   return (
-    <div
-      className={cn(
-        "mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-800 dark:text-amber-300",
-        className,
-      )}
-    >
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-      <div className="min-w-0">
-        <p className="text-xs font-semibold">{title}</p>
-        <p className="mt-0.5 text-xs">{exception.message}</p>
-        <p className="mt-0.5 text-xs opacity-80">
-          {format(new Date(exception.at), "MMM d, yyyy 'at' h:mm a")}
-        </p>
-      </div>
-    </div>
+    <WarningBanner title={title} className={cn("mt-3", className)}>
+      <p>{exception.message}</p>
+      <p className="text-muted-foreground">
+        {format(new Date(exception.at), "MMM d, yyyy 'at' h:mm a")}
+      </p>
+    </WarningBanner>
   );
 }

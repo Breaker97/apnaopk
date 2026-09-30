@@ -12,7 +12,8 @@ import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import { resolveStorageCredentials } from "@/lib/settings/credentials";
 import { normalizePathPrefix } from "./key";
-import { resolveStorageEndpoint } from "./endpoint";
+import { mimeEssence } from "./content-type";
+import { normalizePublicUrl, resolveStorageEndpoint } from "./endpoint";
 import { S3CompatibleProvider } from "./providers/s3-compatible";
 import { LegacyLocalProvider } from "./providers/legacy-local";
 
@@ -121,19 +122,6 @@ export async function getStorageConfig(): Promise<StorageConfig> {
   const maxVideoSizeMB = storage.maxVideoSizeMB || fallback || 1024;
   const maxModelSizeMB = storage.maxModelSizeMB || fallback || 500;
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[Storage] Config loaded:", {
-      provider,
-      maxImageSizeMB,
-      maxVideoSizeMB,
-      maxModelSizeMB,
-      allowedTypesCount: allowedMimeTypes.length,
-      hasImageTypes: allowedMimeTypes.some((t: string) =>
-        t.startsWith("image/"),
-      ),
-    });
-  }
-
   const config = {
     provider,
     accountId: creds.accountId,
@@ -149,13 +137,15 @@ export async function getStorageConfig(): Promise<StorageConfig> {
     }),
     region: creds.region || "auto",
     bucketName: creds.bucketName,
+    privateBucketName: creds.privateBucketName?.trim() || undefined,
     accessKeyId: creds.accessKeyId,
     secretAccessKey: creds.secretAccessKey,
     // publicUrl applies to R2/S3 only. Local storage always serves same-site
     // relative URLs — a leftover R2 public URL (in the DB or via
     // STORAGE_PUBLIC_URL / CLOUDFLARE_R2_PUBLIC_URL env fallback) must not
     // prefix local file paths, or every stored URL would 404.
-    publicUrl: provider === "local" ? undefined : creds.publicUrl,
+    publicUrl:
+      provider === "local" ? undefined : normalizePublicUrl(creds.publicUrl),
     maxFileSizeMB: fallback,
     maxImageSizeMB,
     maxVideoSizeMB,
@@ -200,14 +190,8 @@ function normalizeMimeType(contentType: string): string {
   // Handle empty or undefined
   if (!contentType) return "";
 
-  // Lowercase and trim
-  let normalized = contentType.toLowerCase().trim();
-
-  // Remove charset and other parameters (e.g., "image/png; charset=utf-8" -> "image/png")
-  const semicolonIndex = normalized.indexOf(";");
-  if (semicolonIndex !== -1) {
-    normalized = normalized.substring(0, semicolonIndex).trim();
-  }
+  // "Image/PNG; charset=utf-8" -> "image/png"
+  const normalized = mimeEssence(contentType);
 
   // Handle common variations
   if (normalized === "image/jpg") return "image/jpeg";

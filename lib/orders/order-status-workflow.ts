@@ -94,6 +94,24 @@ export const DISPATCHED_ORDER_STATUSES: string[] = [
   ORDER_STATUS.DELIVERED,
 ];
 
+export function isDispatchedStatus(status: string | null | undefined): boolean {
+  return DISPATCHED_ORDER_STATUSES.includes(String(status || ""));
+}
+
+/**
+ * Whether any of an order's goods have left — the order itself, or any one
+ * consignment of a split order, whose parent can still read `preordered`.
+ */
+export function hasDispatchedGoods(order: {
+  status?: string | null;
+  subOrders?: Array<{ status?: string | null } | null> | null;
+}): boolean {
+  return (
+    isDispatchedStatus(order.status) ||
+    (order.subOrders || []).some((sub) => isDispatchedStatus(sub?.status))
+  );
+}
+
 export function getOrderStatusActions(
   status: string,
 ): OrderStatusActionDefinition[] {

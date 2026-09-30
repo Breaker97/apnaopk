@@ -1,8 +1,8 @@
+import { ProductGroup } from "@/components/store/sections/product-group";
 import {
   PRODUCT_GROUP_SOURCES,
-  ProductGroup,
   type ProductGroupSource,
-} from "@/components/store/sections/product-group";
+} from "@/lib/storefront/sections/product-group-query";
 import { NewArrivalsSkeleton } from "@/components/store/home-section-skeletons";
 import {
   NEW_ARRIVALS_COLUMNS_MAX,
@@ -119,6 +119,16 @@ export const productGroup: SectionDefinition = {
       { type: "tab", settings: { label: "On Sale", source: "discounted" } },
     ],
   },
+  // No tab that can fill: none visible, or only hand-picked ones with no
+  // products picked. ProductGroup draws nothing then.
+  isEmpty: ({ blocks }) =>
+    !blocks.some(
+      (block) =>
+        block.visible &&
+        (block.settings.source !== "manual" ||
+          (Array.isArray(block.settings.productIds) &&
+            block.settings.productIds.some(Boolean))),
+    ),
   Render: standard,
   Skeleton,
 };

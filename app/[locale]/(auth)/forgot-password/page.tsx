@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { z } from "zod";
+import * as z from "zod";
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -35,8 +34,6 @@ type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
   const t = useTranslations();
-  const params = useParams();
-  const locale = params.locale as string;
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +61,8 @@ export default function ForgotPasswordPage() {
 
       if (!response.ok) {
         if (response.status === 429) {
-          setError(
-            `Too many requests. Please try again in ${result.resetIn} seconds.`,
-          );
+          // The server words the wait in this page's language.
+          setError(result.message || t("errors.tooManyRequests"));
         } else {
           setError(result.message || "An error occurred");
         }
@@ -102,7 +98,7 @@ export default function ForgotPasswordPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button variant="outline" className="w-full" asChild>
-            <Link href={`/${locale}/login`}>
+            <Link href="/login">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("auth.backToLogin")}
             </Link>
@@ -171,7 +167,7 @@ export default function ForgotPasswordPage() {
       </CardContent>
       <CardFooter>
         <Button variant="link" className="w-full" asChild>
-          <Link href={`/${locale}/login`}>
+          <Link href="/login">
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t("auth.backToLogin")}
           </Link>

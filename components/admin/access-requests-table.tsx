@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   ArrowUpRight,
   Check,
@@ -217,7 +217,7 @@ export function AccessRequestsTable({ locale }: { locale: string }) {
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        href={`/${locale}/admin/vendors/${row.vendorId}`}
+                        href={`/admin/vendors/${row.vendorId}`}
                         className="font-medium hover:underline"
                       >
                         {row.storeName}
@@ -335,7 +335,7 @@ export function AccessRequestsTable({ locale }: { locale: string }) {
                             className="h-7 px-2 text-xs"
                           >
                             <Link
-                              href={`/${locale}/admin/vendors/${row.vendorId}?tab=subscription`}
+                              href={`/admin/vendors/${row.vendorId}?tab=subscription`}
                             >
                               {t("suggestUpgrade")}
                             </Link>

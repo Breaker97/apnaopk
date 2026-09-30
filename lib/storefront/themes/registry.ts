@@ -2,11 +2,12 @@ import {
   ELECTRONICS_GROUP_PRESETS,
   ELECTRONICS_HOME_PRESET,
   ELECTRONICS_PRODUCT_PRESET,
+  FURNITURE_GROUP_PRESETS,
+  FURNITURE_HOME_PRESET,
+  FURNITURE_PRODUCT_PRESET,
   ESSENTIAL_GROUP_PRESETS,
   ESSENTIAL_HOME_PRESET,
   ESSENTIAL_PRODUCT_PRESET,
-  LUXE_HOME_PRESET,
-  LUXE_PRODUCT_PRESET,
   WOMEN_FASHION_GROUP_PRESETS,
   WOMEN_FASHION_HOME_PRESET,
   WOMEN_FASHION_PRODUCT_PRESET,
@@ -69,21 +70,64 @@ const WOMEN_FASHION_TOKENS: ThemeTokenOverrides = {
   buttons: { height: 44 },
 };
 
-const LUXE_TOKENS: ThemeTokenOverrides = {
-  // Editorial serif display, softer radii, airier headings.
-  type: {
-    headingFont: "cormorant-garamond",
-    headingWeight: "600",
-    headingTracking: 0.01,
+const FURNITURE_TOKENS: ThemeTokenOverrides = {
+  // The demo store's own look (scripts/seed-data/furniture), so "Use this
+  // template" dresses a store the way the gallery screenshot shows it: a warm
+  // oatmeal page, walnut-and-amber accents, the colours of the rooms the
+  // catalogue is photographed in. Dark mode is left to the engine.
+  colors: {
+    light: {
+      background: "#f5f2ed",
+      surface: "#f4f1eb",
+      surfaceAlt: "#e6d6bc",
+      text: "#2f2f2f",
+      border: "#a9a3a0",
+      primary: "#f19429",
+      secondary: "#cfc5b3",
+      accent: "#ddac73",
+      sale: "#dd472c",
+      rating: "#404040",
+      link: "#e1a056",
+    },
   },
-  shape: { cardRadius: 14 },
+  // A rounded geometric sans over a rounded body: calm, legible headings
+  // that let the furniture carry the page.
+  type: {
+    headingFont: "manrope",
+    bodyFont: "dm-sans",
+    headingWeight: "600",
+    headingTracking: -0.01,
+    buttonWeight: "500",
+    buttonTracking: 0.02,
+  },
+  // Soft edges and a light shadow: the pieces are photographed in rooms, and
+  // a card with a hard border reads as a spec sheet rather than a setting.
+  shape: {
+    cardRadius: 14,
+    buttonRadius: 8,
+    badgeRadius: 6,
+    cardBorder: 0,
+    cardShadow: "soft",
+    overlayShadow: "soft",
+  },
+  // A wide page for room photography, and a hero inset from the edges that
+  // shows a whole setting without pushing the first products off a laptop
+  // fold.
+  layout: {
+    pageWidth: "1440",
+    pagePadding: 20,
+    sliderWidth: "fullPadding",
+    sliderHeight: "threeFifths",
+    scrollbarThumb: "#dbd4d1",
+  },
+  buttons: { height: 46 },
 };
 
 /**
  * The theme catalog. Themes differentiate through design tokens (globals.css
  * blocks keyed by data-store-theme), per-theme presets for fresh installs,
- * and targeted section overrides (themes/overrides.tsx) — never through
- * content, which survives every switch untouched.
+ * and the section designs a template prefers — never through content, which
+ * survives every switch untouched, nor through code only one theme runs.
  */
 export const essentialTheme: ThemeManifest = {
   id: "essential",
@@ -159,50 +203,15 @@ const electronicsTheme: ThemeManifest = {
 };
 
 /**
- * The Fashion bundle, parked. v2.0 ships TWO templates — Electronics
- * (default) and Classic — because this theme never got a design of its own:
- * two CSS declarations, one variant, one override, and Classic's chrome.
- * Shown in the gallery as coming-soon rather than deleted, so the work it
- * already has survives to v2.1, when it gets the design that makes it a
- * third template. It already sells under its v2.1 name — "Fashion" — but
- * keeps the internal id "luxe" (CSS blocks, preset instance keys, stored
- * themeSettings). No `preview`: there is nothing real to screenshot yet, so
- * the card renders its accent gradient instead of a capture of Classic.
- * `coming-soon` is load-bearing here — the activation route, the install
- * picker, the demo surface and the preset parity test all key off it, so
- * this one word is the whole scope gate.
- */
-const luxeTheme: ThemeManifest = {
-  id: "luxe",
-  version: "2.0.0",
-  status: "coming-soon",
-  name: "Fashion",
-  description:
-    "Editorial-style visual treatment for premium fashion, beauty, and lifestyle brands.",
-  accent: "from-amber-600 to-rose-600",
-  extends: "essential",
-  tokens: LUXE_TOKENS,
-  preferredVariants: {
-    testimonials: "luxe",
-  },
-  presets: {
-    // Plain product page for the same reason as the plain bars below:
-    // switching to Luxe must undo another theme's product layout too.
-    templates: { home: LUXE_HOME_PRESET, product: LUXE_PRODUCT_PRESET },
-    // Plain bars: switching to Luxe must undo another theme's chrome too.
-    groups: ESSENTIAL_GROUP_PRESETS,
-  },
-};
-
-/**
- * Women's Fashion — the apparel template. Editorial by design: the
- * photography carries the page and the chrome gets out of its way.
+ * Fashion — the apparel template. Editorial by design: the photography
+ * carries the page and the chrome gets out of its way. It ships its own
+ * token set, a starter for every surface the other stable themes state, and
+ * the minimal product card its listings are drawn around.
  *
- * A sibling of Luxe, not a replacement for it. Luxe stays parked at
- * `coming-soon` with the two declarations and the one override it already
- * has; this ships as a template in its own right, with its own token set, a
- * starter for every surface the other stable themes state, and the minimal
- * product card its listings are drawn around.
+ * It sells as "Fashion" but keeps the internal id "women-fashion" (CSS
+ * blocks, preset instance keys, stored themeSettings, seed snapshot folder,
+ * preview URLs) — the id is data every installed store already holds, so
+ * only the display name changed.
  */
 const womenFashionTheme: ThemeManifest = {
   id: "women-fashion",
@@ -210,7 +219,7 @@ const womenFashionTheme: ThemeManifest = {
   // the cache stamp on those URLs (themes/preview.ts).
   version: "1.0.1",
   status: "stable",
-  name: "Women Fashion",
+  name: "Fashion",
   description:
     "Editorial apparel merchandising: full-bleed campaign imagery, lookbook tiles, and seasonal edits.",
   accent: "from-rose-500 to-fuchsia-600",
@@ -241,12 +250,69 @@ const womenFashionTheme: ThemeManifest = {
   },
 };
 
-/** Gallery order — the default template leads. */
+/**
+ * Furniture — home goods, sold by the room.
+ *
+ * The category's own shape rather than apparel's: one full-bleed interior
+ * instead of a rotating offer reel, rooms as departments with their names
+ * UNDER the picture (a caption over a sofa hides what is being sold), the
+ * materials story as a two-panel grid, and "shop the room" where an apparel
+ * theme puts the outfit. A considered purchase, so the reassurance strip —
+ * delivery, assembly, guarantee — is part of the starter, not an extra.
+ *
+ * Shares Classic's engine (`extends: "essential"`) and differs in tokens,
+ * starters and the card its listings are drawn around, the way every other
+ * theme here does. Content survives a switch to it untouched.
+ */
+const furnitureTheme: ThemeManifest = {
+  id: "furniture",
+  // Bumped with every re-capture of its preview screenshots: the version is
+  // the cache stamp on those URLs (themes/preview.ts). The desktop shot is
+  // taken in a 1440x900 window: the hero is 85% of the window's height, so a
+  // 1080-high one hid the category row the other templates' shots show.
+  version: "1.0.2",
+  status: "stable",
+  name: "Furniture",
+  description:
+    "Home goods sold by the room: full-bleed interiors, room departments, materials stories and shop-the-room sets.",
+  accent: "from-amber-700 to-stone-700",
+  preview: {
+    card: "/templates/furniture/preview-card.jpg",
+    mobile: "/templates/furniture/preview-mobile.jpg",
+  },
+  extends: "essential",
+  tokens: FURNITURE_TOKENS,
+  // Stated rather than inherited, so switching here FROM Electronics
+  // actually undoes its configurator card.
+  productCard: "minimal",
+  preferredVariants: {
+    // A block added after activation arrives in the template's look: room
+    // cards with the name under the picture, the centered tab row, and the
+    // plain logo strip.
+    "category-list": "cards",
+    "product-group": "centered",
+    "brand-list": "strip",
+    "countdown-offer": "deals-panel",
+  },
+  presets: {
+    templates: {
+      home: FURNITURE_HOME_PRESET,
+      product: FURNITURE_PRODUCT_PRESET,
+    },
+    groups: FURNITURE_GROUP_PRESETS,
+  },
+};
+
+/**
+ * Gallery order — the default template leads, the designed niche templates
+ * follow, and Classic, the general-purpose one, closes the row. Any template
+ * still coming soon goes after the ones a store can use.
+ */
 export const THEME_MANIFESTS: ThemeManifest[] = [
   electronicsTheme,
   womenFashionTheme,
+  furnitureTheme,
   essentialTheme,
-  luxeTheme,
 ];
 
 /**

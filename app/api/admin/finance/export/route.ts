@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { LedgerEntry } from "@/models/ledger-entry.model";
 import { Expense } from "@/models/expense.model";
 import { withApi } from "@/lib/api/handler";

@@ -16,43 +16,54 @@ import type { StaffPermission } from "@/config/permissions.config";
 import {
   GRANTABLE_STAFF_PERMISSIONS,
   PERMISSION_ACTIONS,
-  PERMISSION_RESOURCES,
   STAFF_ROLE_PRESETS,
+  grantableInArea,
   hasResourceAction,
   hasResourceView,
   matchStaffRolePreset,
   normalizeStaffPermissions,
+  permissionResourcesFor,
   toggleResourceAction,
   toggleResourceView,
 } from "../staff-permissions";
+import type { StaffArea } from "../staff-detail-types";
 
 interface PermissionsTabProps {
   permissions: StaffPermission[];
   onChange: (next: StaffPermission[]) => void;
   readOnly?: boolean;
+  /** The vendor area offers only what a vendor may grant its own staff. */
+  area?: StaffArea;
 }
 
 export function PermissionsTab({
   permissions,
   onChange,
   readOnly = false,
+  area = "admin",
 }: PermissionsTabProps) {
+  const resources = permissionResourcesFor(area);
+  const grantable = useMemo(
+    () => grantableInArea(GRANTABLE_STAFF_PERMISSIONS, area),
+    [area],
+  );
+
   const activePreset = useMemo(
-    () => matchStaffRolePreset(permissions),
-    [permissions],
+    () => matchStaffRolePreset(permissions, area),
+    [permissions, area],
   );
 
   const granted = useMemo(
     () =>
       new Set(
         normalizeStaffPermissions(permissions).filter((permission) =>
-          GRANTABLE_STAFF_PERMISSIONS.includes(permission),
+          grantable.includes(permission),
         ),
       ),
-    [permissions],
+    [permissions, grantable],
   );
 
-  const total = GRANTABLE_STAFF_PERMISSIONS.length;
+  const total = grantable.length;
   const selected = granted.size;
   const percent = total === 0 ? 0 : Math.round((selected / total) * 100);
 
@@ -74,7 +85,9 @@ export function PermissionsTab({
                   <button
                     key={preset.key}
                     type="button"
-                    onClick={() => onChange([...preset.permissions])}
+                    onClick={() =>
+                      onChange(grantableInArea([...preset.permissions], area))
+                    }
                     disabled={readOnly}
                     aria-pressed={isActive}
                     className={cn(
@@ -118,7 +131,7 @@ export function PermissionsTab({
                   variant="outline"
                   size="sm"
                   disabled={readOnly}
-                  onClick={() => onChange([...GRANTABLE_STAFF_PERMISSIONS])}
+                  onClick={() => onChange([...grantable])}
                 >
                   Select all
                 </Button>
@@ -163,7 +176,7 @@ export function PermissionsTab({
                     </tr>
                   </thead>
                   <tbody>
-                    {PERMISSION_RESOURCES.map((resource, index) => (
+                    {resources.map((resource, index) => (
                       <tr
                         key={resource.key}
                         className={cn(
@@ -264,7 +277,7 @@ export function PermissionsTab({
                 question a manager asks is "what can they do to orders?", not
                 "is edit_orders in the list?". */}
             <div className="mt-4">
-              {PERMISSION_RESOURCES.map((resource) => {
+              {resources.map((resource) => {
                 const viewOn = hasResourceView(permissions, resource);
                 const actions = PERMISSION_ACTIONS.filter(
                   (action) => resource[action.key],

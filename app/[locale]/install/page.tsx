@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, setRequestLocale } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import { InstallWizard } from "@/components/install/install-wizard";
 import { isInstalled } from "@/lib/install/status";
 import { isoCurrencyOptions } from "@/lib/intl/iso-currencies";
@@ -41,6 +45,15 @@ export default async function InstallPage({ params }: PageProps) {
   // `admin.*` — but the wizard renders admin components (the Storage tab's
   // provider picker). A one-visit page, so it gets the whole bundle.
   const messages = await getMessages();
+  // Template names and blurbs in the buyer's language, as the Themes page
+  // shows them; the manifest's English stands in for a template no locale
+  // file names yet.
+  const tThemes = await getTranslations("admin.onlineStoreThemePage.themes");
+  const themeText = (
+    id: string,
+    field: "name" | "description",
+    fallback: string,
+  ) => (tThemes.has(`${id}.${field}`) ? tThemes(`${id}.${field}`) : fallback);
 
   return (
     <NextIntlClientProvider messages={messages}>
@@ -51,8 +64,12 @@ export default async function InstallPage({ params }: PageProps) {
           (manifest) => manifest.status === "stable",
         ).map((manifest) => ({
           id: manifest.id,
-          name: manifest.name,
-          description: manifest.description,
+          name: themeText(manifest.id, "name", manifest.name),
+          description: themeText(
+            manifest.id,
+            "description",
+            manifest.description,
+          ),
           accent: manifest.accent,
           preview: themePreviewSrc(manifest, "card"),
         }))}

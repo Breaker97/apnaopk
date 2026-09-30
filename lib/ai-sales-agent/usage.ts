@@ -12,7 +12,7 @@ import { AISalesUsage, type IAISalesUsage } from "@/models/ai-sales-usage.model"
  * instead (see engine.ts), until the month turns.
  */
 
-export type AISalesMonthlyUsage = Pick<
+type AISalesMonthlyUsage = Pick<
   IAISalesUsage,
   "requests" | "inputTokens" | "outputTokens" | "totalTokens" | "fallbacks"
 > & { month: string };

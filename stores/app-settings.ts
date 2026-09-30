@@ -12,14 +12,10 @@ import {
   DEFAULT_PRESET_COLOR,
   DEFAULT_PRIMARY_COLOR,
   DEFAULT_SECONDARY_COLOR,
-  DEFAULT_THEME_MODE,
-  normalizeThemeMode,
   type ThemeMode,
 } from "@/config/branding.config";
-import { apiClient } from "@/lib/api/client";
 
-export type NavLayout = "vertical" | "horizontal" | "mini";
-export type NavColor = "integrate" | "apparent";
+type NavColor = "integrate" | "apparent";
 export type PresetColor =
   | "default"
   | "cyan"
@@ -28,18 +24,26 @@ export type PresetColor =
   | "orange"
   | "red";
 
+/**
+ * Two kinds of state live here, and they never mix:
+ *
+ * - The viewer's own dashboard preferences: contrast, right-to-left, a
+ *   collapsed sidebar, the sidebar colour. They stay in this browser —
+ *   nothing writes them to the store's settings, so one admin's choice never
+ *   reaches another admin, a vendor, staff or a shopper. Light/dark is the
+ *   ThemeProvider's, kept the same way.
+ * - The store's brand colours, from the settings (Online Store → Themes →
+ *   Branding). Never cached here: a colour kept in one browser would outlive
+ *   a change to the brand.
+ */
 interface AppSettingsState {
-  // Theme
-  themeMode: ThemeMode;
+  // The viewer's preferences
   contrast: boolean;
-
-  // Layout
   rtl: boolean;
   collapsedSidebar: boolean;
-  navLayout: NavLayout;
   navColor: NavColor;
 
-  // Colors
+  // The store's brand
   presetColor: PresetColor;
   primaryColor: string;
   secondaryColor: string;
@@ -48,29 +52,18 @@ interface AppSettingsState {
   dbHydrated: boolean;
 
   // Actions
-  setThemeMode: (mode: ThemeMode) => void;
   setContrast: (enabled: boolean) => void;
   setRtl: (enabled: boolean) => void;
   setCollapsedSidebar: (enabled: boolean) => void;
-  setNavLayout: (layout: NavLayout) => void;
   setNavColor: (color: NavColor) => void;
-  setPresetColor: (color: PresetColor) => void;
-  setPrimaryColor: (color: string) => void;
-  setSecondaryColor: (color: string) => void;
-  setAccentColor: (color: string) => void;
-  resetSettings: () => void;
+  resetPreferences: () => void;
   hydrateFromDb: (settings: InitialAppearanceSettings) => void;
   loadFromDb: () => Promise<void>;
-  saveToDb: () => Promise<boolean>;
 }
 
 export interface InitialAppearanceSettings {
+  /** The storefront's default light/dark: the ThemeProvider's default. */
   themeMode?: ThemeMode;
-  contrast?: boolean;
-  rtl?: boolean;
-  collapsedSidebar?: boolean;
-  navLayout?: NavLayout;
-  navColor?: NavColor;
   presetColor?: PresetColor;
   primaryColor?: string;
   secondaryColor?: string;
@@ -79,25 +72,26 @@ export interface InitialAppearanceSettings {
   skeletonColor?: string;
 }
 
-const defaultSettings = {
-  themeMode: DEFAULT_THEME_MODE,
+type Preferences = Pick<
+  AppSettingsState,
+  "contrast" | "rtl" | "collapsedSidebar" | "navColor"
+>;
+
+const DEFAULT_PREFERENCES: Preferences = {
   contrast: false,
   rtl: false,
   collapsedSidebar: false,
-  navLayout: "mini" as NavLayout,
-  navColor: "integrate" as NavColor,
+  navColor: "integrate",
+};
+
+const DEFAULT_BRAND = {
   presetColor: DEFAULT_PRESET_COLOR as PresetColor,
   primaryColor: DEFAULT_PRIMARY_COLOR,
   secondaryColor: DEFAULT_SECONDARY_COLOR,
   accentColor: DEFAULT_ACCENT_COLOR,
-  dbHydrated: false,
 };
 
 let appSettingsStoreHydrationStarted = false;
-
-function isNavLayout(value: unknown): value is NavLayout {
-  return value === "vertical" || value === "horizontal" || value === "mini";
-}
 
 function isNavColor(value: unknown): value is NavColor {
   return value === "integrate" || value === "apparent";
@@ -114,63 +108,66 @@ function isPresetColor(value: unknown): value is PresetColor {
   );
 }
 
-function normalizeAppearanceSettings(settings?: InitialAppearanceSettings) {
+/** The brand colours out of a settings payload, each checked or defaulted. */
+function normalizeBrand(settings?: {
+  presetColor?: unknown;
+  primaryColor?: unknown;
+  secondaryColor?: unknown;
+  accentColor?: unknown;
+}) {
   return {
-    // Folds the legacy "system" value (and anything unrecognized) to light —
-    // the app never resolves a theme from the OS preference.
-    themeMode: normalizeThemeMode(settings?.themeMode),
-    contrast:
-      typeof settings?.contrast === "boolean"
-        ? settings.contrast
-        : defaultSettings.contrast,
-    rtl:
-      typeof settings?.rtl === "boolean" ? settings.rtl : defaultSettings.rtl,
-    collapsedSidebar:
-      typeof settings?.collapsedSidebar === "boolean"
-        ? settings.collapsedSidebar
-        : defaultSettings.collapsedSidebar,
-    navLayout: isNavLayout(settings?.navLayout)
-      ? settings.navLayout
-      : defaultSettings.navLayout,
-    navColor: isNavColor(settings?.navColor)
-      ? settings.navColor
-      : defaultSettings.navColor,
     presetColor: isPresetColor(settings?.presetColor)
       ? settings.presetColor
-      : defaultSettings.presetColor,
+      : DEFAULT_BRAND.presetColor,
     primaryColor: isValidCssColor(settings?.primaryColor)
       ? settings.primaryColor
-      : defaultSettings.primaryColor,
+      : DEFAULT_BRAND.primaryColor,
     secondaryColor: isValidCssColor(settings?.secondaryColor)
       ? settings.secondaryColor
-      : defaultSettings.secondaryColor,
+      : DEFAULT_BRAND.secondaryColor,
     accentColor: isValidCssColor(settings?.accentColor)
       ? settings.accentColor
-      : defaultSettings.accentColor,
+      : DEFAULT_BRAND.accentColor,
+  };
+}
+
+/**
+ * The preferences out of a stored blob. Blobs written before 2.4 also cached
+ * the theme default and the brand colours from the database; only the
+ * preferences carry over.
+ */
+export function pickPreferences(stored: unknown): Preferences {
+  const value = (stored ?? {}) as Partial<Record<keyof Preferences, unknown>>;
+  return {
+    contrast:
+      typeof value.contrast === "boolean"
+        ? value.contrast
+        : DEFAULT_PREFERENCES.contrast,
+    rtl: typeof value.rtl === "boolean" ? value.rtl : DEFAULT_PREFERENCES.rtl,
+    collapsedSidebar:
+      typeof value.collapsedSidebar === "boolean"
+        ? value.collapsedSidebar
+        : DEFAULT_PREFERENCES.collapsedSidebar,
+    navColor: isNavColor(value.navColor)
+      ? value.navColor
+      : DEFAULT_PREFERENCES.navColor,
   };
 }
 
 export const useAppSettings = create<AppSettingsState>()(
   persist(
     (set, get) => ({
-      ...defaultSettings,
+      ...DEFAULT_PREFERENCES,
+      ...DEFAULT_BRAND,
+      dbHydrated: false,
 
-      setThemeMode: (mode) => set({ themeMode: mode }),
       setContrast: (enabled) => set({ contrast: enabled }),
       setRtl: (enabled) => set({ rtl: enabled }),
       setCollapsedSidebar: (enabled) => set({ collapsedSidebar: enabled }),
-      setNavLayout: (layout) => set({ navLayout: layout }),
       setNavColor: (color) => set({ navColor: color }),
-      setPresetColor: (color) => set({ presetColor: color }),
-      setPrimaryColor: (color) => set({ primaryColor: color }),
-      setSecondaryColor: (color) => set({ secondaryColor: color }),
-      setAccentColor: (color) => set({ accentColor: color }),
-      resetSettings: () => set(defaultSettings),
+      resetPreferences: () => set(DEFAULT_PREFERENCES),
       hydrateFromDb: (settings) =>
-        set({
-          ...normalizeAppearanceSettings(settings),
-          dbHydrated: true,
-        }),
+        set({ ...normalizeBrand(settings), dbHydrated: true }),
       loadFromDb: async () => {
         if (get().dbHydrated) return;
         try {
@@ -181,98 +178,12 @@ export const useAppSettings = create<AppSettingsState>()(
             data?: { appearance?: Record<string, unknown> };
           };
           if (!payload?.success || !payload.data?.appearance) return;
-          const a = payload.data.appearance;
           set({
-            ...normalizeAppearanceSettings({
-              themeMode: normalizeThemeMode(a.theme),
-              contrast: typeof a.contrast === "boolean" ? a.contrast : undefined,
-              rtl: typeof a.rtl === "boolean" ? a.rtl : undefined,
-              collapsedSidebar:
-                typeof a.collapsedSidebar === "boolean"
-                  ? a.collapsedSidebar
-                  : undefined,
-              navLayout: isNavLayout(a.navLayout) ? a.navLayout : undefined,
-              navColor: isNavColor(a.navColor) ? a.navColor : undefined,
-              presetColor: isPresetColor(a.presetColor)
-                ? a.presetColor
-                : undefined,
-              primaryColor: isValidCssColor(a.primaryColor)
-                ? a.primaryColor
-                : undefined,
-              secondaryColor: isValidCssColor(a.secondaryColor)
-                ? a.secondaryColor
-                : undefined,
-              accentColor: isValidCssColor(a.accentColor)
-                ? a.accentColor
-                : undefined,
-            }),
+            ...normalizeBrand(payload.data.appearance),
             dbHydrated: true,
           });
         } catch {
           set({ dbHydrated: true });
-        }
-      },
-      saveToDb: async () => {
-        // One write path: the API client's error handling (401/429/network)
-        // rather than a second hand-rolled fetch of the settings endpoint.
-        try {
-          const state = get();
-          const saved = await apiClient.put<{
-            appearance?: Record<string, unknown>;
-          }>("/api/admin/settings", {
-            section: "appearance",
-            data: {
-                theme: state.themeMode,
-                contrast: state.contrast,
-                rtl: state.rtl,
-                collapsedSidebar: state.collapsedSidebar,
-                navLayout: state.navLayout,
-                navColor: state.navColor,
-                presetColor: state.presetColor,
-                primaryColor: state.primaryColor,
-                secondaryColor: state.secondaryColor,
-                accentColor: state.accentColor,
-            },
-          });
-          const a = saved?.appearance;
-          if (a) {
-            set({
-              themeMode: normalizeThemeMode(
-                typeof a.theme === "string" ? a.theme : state.themeMode,
-              ),
-              contrast:
-                typeof a.contrast === "boolean" ? a.contrast : state.contrast,
-              rtl: typeof a.rtl === "boolean" ? a.rtl : state.rtl,
-              collapsedSidebar:
-                typeof a.collapsedSidebar === "boolean"
-                  ? a.collapsedSidebar
-                  : state.collapsedSidebar,
-              navLayout:
-                (typeof a.navLayout === "string"
-                  ? a.navLayout
-                  : state.navLayout) as NavLayout,
-              navColor:
-                (typeof a.navColor === "string"
-                  ? a.navColor
-                  : state.navColor) as NavColor,
-              presetColor:
-                (typeof a.presetColor === "string"
-                  ? a.presetColor
-                  : state.presetColor) as PresetColor,
-              primaryColor: isValidCssColor(a.primaryColor)
-                ? a.primaryColor
-                : state.primaryColor,
-              secondaryColor: isValidCssColor(a.secondaryColor)
-                ? a.secondaryColor
-                : state.secondaryColor,
-              accentColor: isValidCssColor(a.accentColor)
-                ? a.accentColor
-                : state.accentColor,
-            });
-          }
-          return true;
-        } catch {
-          return false;
         }
       },
     }),
@@ -280,42 +191,16 @@ export const useAppSettings = create<AppSettingsState>()(
       name: "app-settings",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
-      partialize: (state) => ({
-        themeMode: state.themeMode,
+      partialize: (state): Preferences => ({
         contrast: state.contrast,
         rtl: state.rtl,
         collapsedSidebar: state.collapsedSidebar,
-        navLayout: state.navLayout,
         navColor: state.navColor,
-        presetColor: state.presetColor,
-        primaryColor: state.primaryColor,
-        secondaryColor: state.secondaryColor,
-        accentColor: state.accentColor,
       }),
-      merge: (persistedState, currentState) => {
-        const persisted = persistedState as Partial<AppSettingsState> | null;
-
-        return {
-          ...currentState,
-          // Older persisted blobs can still hold "system"; normalize on rehydrate
-          // so it never reaches the applier as an OS-following mode.
-          themeMode: normalizeThemeMode(
-            persisted?.themeMode ?? currentState.themeMode,
-          ),
-          contrast: persisted?.contrast ?? currentState.contrast,
-          rtl: persisted?.rtl ?? currentState.rtl,
-          collapsedSidebar:
-            persisted?.collapsedSidebar ?? currentState.collapsedSidebar,
-          navLayout: persisted?.navLayout ?? currentState.navLayout,
-          navColor: persisted?.navColor ?? currentState.navColor,
-          presetColor: persisted?.presetColor ?? currentState.presetColor,
-          primaryColor: persisted?.primaryColor ?? currentState.primaryColor,
-          secondaryColor:
-            persisted?.secondaryColor ?? currentState.secondaryColor,
-          accentColor: persisted?.accentColor ?? currentState.accentColor,
-          dbHydrated: currentState.dbHydrated,
-        };
-      },
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...pickPreferences(persistedState),
+      }),
     }
   )
 );
@@ -421,6 +306,10 @@ export function applyCustomColors(colors: {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   for (const [varName, value] of Object.entries(buildCustomColorVars(colors))) {
+    // The root layout inlines these on <html> for the first paint. Writing an
+    // identical value again still re-styles the whole page — on a phone, over
+    // a hundred milliseconds in the middle of hydration.
+    if (root.style.getPropertyValue(varName) === value) continue;
     root.style.setProperty(varName, value);
   }
 }

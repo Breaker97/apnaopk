@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   ArrowLeft,
   GalleryHorizontalEnd,
@@ -551,7 +551,7 @@ function FeatureContentDialog({
 }) {
   const str = (value: unknown) => (typeof value === "string" ? value : "");
   const currentSlider = str(block.settings.slider);
-  const slidersHref = `/${locale}/admin/online-store/sliders`;
+  const slidersHref = "/admin/online-store/sliders";
   const title =
     state.mode === "sliders"
       ? tSafe("admin.storeBuilder.sliderBlock.pickSlider", "Pick a slider")

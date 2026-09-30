@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import * as z from "zod";
+import Link from "@/components/language/link";
+import { useTranslations } from "next-intl";
 import { ChevronRight, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { authClient } from "@/lib/auth/auth-client";
+import { normalizeDemoModeState } from "@/lib/demo-mode-shared";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 import {
-  DEFAULT_PROFILE_DEMO_MODE,
-  normalizeDemoModeState,
-} from "@/lib/demo-mode-shared";
+  USER_PROFILE_URL,
+  type UserProfilePayload,
+} from "@/components/account/user-profile-resource";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -44,63 +46,49 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
+function profileFormValues(user: UserProfilePayload["user"]): ProfileFormData {
+  const nameParts = (user?.name || "").split(" ");
+  return {
+    firstName: nameParts[0] || "",
+    lastName: nameParts.slice(1).join(" ") || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    birthday: user?.birthday || "",
+    gender: user?.gender || "",
+  };
+}
+
+/**
+ * Suspends until the profile is known — render it inside `<ClientSuspense>`,
+ * whose fallback is the loading state. A later visit fills the form from the
+ * held copy without asking again (see `useSuspenseResource`).
+ */
 export function ProfileForm() {
   const t = useTranslations();
-  const locale = useLocale();
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    data: profile,
+    error: loadError,
+    mutate: mutateProfile,
+  } = useSuspenseResource<UserProfilePayload>(USER_PROFILE_URL);
   const [isSaving, setIsSaving] = useState(false);
-  const [demoMode, setDemoMode] = useState(DEFAULT_PROFILE_DEMO_MODE);
+  const demoMode = normalizeDemoModeState(profile?.demoMode);
   const isDemoMode = demoMode.enabled;
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      birthday: "",
-      gender: "",
-    },
+    // Read once, on mount: a background refresh of the held profile must not
+    // wipe what the shopper is typing.
+    defaultValues: profileFormValues(profile?.user),
   });
 
+  const loadFailure = loadError
+    ? loadError.message || "Failed to load profile"
+    : profile?.user
+      ? null
+      : "Failed to load";
   useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await fetch("/api/user/profile");
-        const json = await res.json();
-        const user = json?.data?.user;
-
-        if (!res.ok || !json?.success || !user) {
-          throw new Error(json?.error || json?.message || "Failed to load");
-        }
-
-        const loadedDemoMode = json?.data?.demoMode;
-        setDemoMode(normalizeDemoModeState(loadedDemoMode));
-
-        const nameParts = (user.name || "").split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
-
-        profileForm.reset({
-          firstName,
-          lastName,
-          email: user.email || "",
-          phone: user.phone || "",
-          birthday: user.birthday || "",
-          gender: user.gender || "",
-        });
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Failed to load profile",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchProfile();
-  }, [profileForm]);
+    if (loadFailure) toast.error(loadFailure, { id: "profile-load-error" });
+  }, [loadFailure]);
 
   const onProfileSubmit = async (data: ProfileFormData) => {
     if (isDemoMode) {
@@ -156,6 +144,19 @@ export function ProfileForm() {
 
       await authClient.updateUser({ name: fullName }).catch(() => null);
 
+      // The held copy is what the next visit fills the form from.
+      mutateProfile((current) => ({
+        ...current,
+        user: current.user
+          ? {
+              ...current.user,
+              name: fullName,
+              phone: data.phone,
+              birthday: data.birthday,
+              gender: data.gender,
+            }
+          : current.user,
+      }));
       profileForm.reset(data);
       toast.success(json?.message || t("common.saved"));
     } catch (error) {
@@ -165,28 +166,12 @@ export function ProfileForm() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-14" />
-          ))}
-        </div>
-        <Skeleton className="h-10 w-32" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       {isDemoMode && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-          <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
-          <p className="min-w-0 text-sm leading-5 text-amber-800 dark:text-amber-200">
-            {demoMode.message}
-          </p>
-        </div>
+        <WarningBanner icon={LockKeyhole} className="shadow-sm">
+          {demoMode.message}
+        </WarningBanner>
       )}
 
       {/* Personal Information */}
@@ -358,7 +343,7 @@ export function ProfileForm() {
       </Card>
 
       <Link
-        href={`/${locale}/account/security`}
+        href="/account/security"
         aria-label={t("account.security")}
         className="flex min-h-11 items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-accent"
       >

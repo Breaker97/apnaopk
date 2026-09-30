@@ -1,9 +1,17 @@
-import { z } from "zod";
+import * as z from "zod";
 import { getSettings, Order, PaymentTransaction, Payout } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { validateQuery } from "@/lib/api/validate";
 import { resolveRequestedPeriod } from "@/lib/finance/reports";
+import {
+  inStoreCurrencyMatch,
+  narrowedToStoreCurrency,
+} from "@/lib/intl/currency-scope";
+import {
+  COLLECTED_ORDER_MATCH,
+  placedOrderMatch,
+} from "@/lib/orders/order-payment-status";
 
 const OverviewQuerySchema = z.object({
   period: z.string().default("30d"),
@@ -32,6 +40,21 @@ export const GET = withApi(
     const inPeriod = {
       createdAt: { $gte: period.from, $lte: period.to },
     };
+    // Money taken is dated by when it ARRIVED. Dated by when the order was
+    // placed, it sat beside refunds dated by when they went out, and "net
+    // collected" took one away from the other across two different calendars.
+    // An order from before `paidAt` existed falls back to its creation.
+    const paidInPeriod = {
+      $or: [
+        { paidAt: { $gte: period.from, $lte: period.to } },
+        {
+          $and: [
+            { $or: [{ paidAt: null }, { paidAt: { $exists: false } }] },
+            inPeriod,
+          ],
+        },
+      ],
+    };
 
     const settings = await getSettings();
     const storeCurrency = (
@@ -42,14 +65,11 @@ export const GET = withApi(
     // anything genuinely in another currency is reported by Finance, in that
     // currency. Refunds and payouts used to be summed across every currency and
     // printed with this one's symbol.
-    const inStoreCurrency = {
-      $or: [
-        { currency: { $in: [storeCurrency, storeCurrency.toLowerCase()] } },
-        { currency: { $exists: false } },
-        { currency: null },
-        { currency: "" },
-      ],
-    };
+    //
+    // The rule itself lives in `lib/intl/currency-scope.ts`: the dashboard and
+    // the analytics page ask the same question, and three copies of it is how
+    // two of them came to answer it differently.
+    const inStoreCurrency = inStoreCurrencyMatch(storeCurrency);
 
     const [orderAgg, txnAgg, payoutAgg, recentTransactions] =
       await Promise.all([
@@ -68,9 +88,9 @@ export const GET = withApi(
               paidRevenue: [
                 {
                   $match: {
-                    ...inPeriod,
                     ...inStoreCurrency,
                     $and: [
+                      paidInPeriod,
                       {
                         $or: [
                           {
@@ -112,24 +132,36 @@ export const GET = withApi(
                   },
                 },
               ],
+              // Deliberately without a period — it is a balance, see the note
+              // at the top of this file — but not without the placed match: a
+              // checkout somebody walked away from at a gateway sits on
+              // `pending` too, and counting those told an admin they had
+              // payments to chase that nobody had ever started. The same fix
+              // the dashboard and the analytics page already carry.
               pendingOrders: [
                 {
                   $match: {
+                    ...placedOrderMatch(),
                     paymentStatus: { $in: ["pending", "partially_paid"] },
                   },
                 },
                 { $count: "count" },
               ],
-              refundedOrders: [
-                {
-                  $match: {
-                    paymentStatus: { $in: ["refunded", "partially_refunded"] },
-                  },
-                },
-                { $count: "count" },
-              ],
+              // Money taken, by how it was taken. It summed `total` over every
+              // order ever written — unpaid ones, cancelled ones and abandoned
+              // gateway checkouts alike — so "Cash on delivery: 41,900" was
+              // partly orders nobody had paid for and partly orders from two
+              // years before the period on the screen. `COLLECTED_ORDER_MATCH`
+              // is the one definition of money actually collected, and it
+              // carries its own `$or`, so the currency rule is combined with
+              // it rather than spread over it.
               methodBreakdown: [
-                { $match: inStoreCurrency },
+                {
+                  $match: narrowedToStoreCurrency(
+                    { ...inPeriod, ...COLLECTED_ORDER_MATCH },
+                    storeCurrency,
+                  ),
+                },
                 {
                   $group: {
                     _id: "$paymentMethod",
@@ -144,15 +176,28 @@ export const GET = withApi(
         PaymentTransaction.aggregate([
           {
             $facet: {
+              // Money, so only the rows that moved any: a charge row now
+              // exists for payments that were REFUSED (`recordChargeFailure`),
+              // carrying the amount that was asked for, and summing those put
+              // every declined card into the store's takings. Scoped to the
+              // period for the same reason the refund total is — these are
+              // things that happened.
               byType: [
-                { $match: inStoreCurrency },
+                {
+                  $match: { status: "succeeded", ...inPeriod, ...inStoreCurrency },
+                },
                 { $group: { _id: "$type", count: { $sum: 1 }, total: { $sum: "$grossAmount" } } },
               ],
+              // Every status, on purpose: this is the census that answers "how
+              // many payments failed today", so filtering it by status would
+              // leave it with nothing to say.
               byStatus: [
                 { $group: { _id: "$status", count: { $sum: 1 } } },
               ],
               byProvider: [
-                { $match: inStoreCurrency },
+                {
+                  $match: { status: "succeeded", ...inPeriod, ...inStoreCurrency },
+                },
                 { $group: { _id: "$provider", count: { $sum: 1 }, total: { $sum: "$grossAmount" } } },
               ],
               refundTotal: [
@@ -165,6 +210,23 @@ export const GET = withApi(
                   },
                 },
                 { $group: { _id: null, total: { $sum: "$grossAmount" } } },
+              ],
+              // Printed beside the refunded AMOUNT, so counted from the same
+              // rows: the orders a refund went out on in the period, in the
+              // store's currency. Counted from the orders' own state it was
+              // the orders PLACED in the period that read refunded — in any
+              // currency — beside money refunded in it.
+              refundedOrders: [
+                {
+                  $match: {
+                    type: "refund",
+                    status: "succeeded",
+                    ...inPeriod,
+                    ...inStoreCurrency,
+                  },
+                },
+                { $group: { _id: "$orderId" } },
+                { $count: "count" },
               ],
             },
           },
@@ -218,7 +280,7 @@ export const GET = withApi(
         paidRevenue: Number(orderMetrics.paidRevenue?.[0]?.total || 0),
         refundedAmount: Number(txnMetrics.refundTotal?.[0]?.total || 0),
         pendingPayments: Number(orderMetrics.pendingOrders?.[0]?.count || 0),
-        refundedOrders: Number(orderMetrics.refundedOrders?.[0]?.count || 0),
+        refundedOrders: Number(txnMetrics.refundedOrders?.[0]?.count || 0),
         pendingPayoutAmount: Number(payoutMetrics.pendingAmount?.[0]?.total || 0),
         paidPayoutAmount: Number(payoutMetrics.paidAmount?.[0]?.total || 0),
       },

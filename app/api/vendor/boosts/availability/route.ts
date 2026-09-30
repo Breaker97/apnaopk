@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Types } from "mongoose";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { assertVendorPermission } from "@/lib/access/rbac";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,10 +41,8 @@ type Payload = {
 };
 
 export function VendorPayoutDetails({
-  locale,
   payoutId,
 }: {
-  locale: string;
   payoutId: string;
 }) {
   const { formatPrice } = useCurrency();
@@ -200,7 +198,7 @@ export function VendorPayoutDetails({
           </div>
           <div className="mt-4">
             <Button variant="outline" asChild>
-              <Link href={`/${locale}/vendor/payouts`}>Back to Payouts</Link>
+              <Link href="/vendor/payouts">Back to Payouts</Link>
             </Button>
           </div>
         </CardContent>

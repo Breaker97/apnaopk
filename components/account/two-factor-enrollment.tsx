@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Smartphone, Loader2, Copy, XCircle } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
 
@@ -272,13 +273,21 @@ export function TwoFactorEnrollment(props: {
         <div className="space-y-4">
           <Separator />
 
-          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <h3 className="font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
-              {t("account.backupCodes")}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t("account.backupCodesDescription")}
-            </p>
+          <WarningBanner
+            title={t("account.backupCodes")}
+            action={
+              <Button
+                variant="outline"
+                onClick={() =>
+                  copyToClipboard(setupData.backupCodes.join("\n"))
+                }
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                {t("account.copyBackupCodes")}
+              </Button>
+            }
+          >
+            <p className="mb-4">{t("account.backupCodesDescription")}</p>
             <div className="grid grid-cols-2 gap-2">
               {setupData.backupCodes.map((code, index) => (
                 <code
@@ -289,15 +298,7 @@ export function TwoFactorEnrollment(props: {
                 </code>
               ))}
             </div>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => copyToClipboard(setupData.backupCodes.join("\n"))}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              {t("account.copyBackupCodes")}
-            </Button>
-          </div>
+          </WarningBanner>
 
           <Button onClick={() => props.onDone?.()}>
             {props.doneLabel ?? t("common.done")}

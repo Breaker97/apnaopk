@@ -1,10 +1,10 @@
 "use client";
 
-import { z } from "zod";
+import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Loader2,
@@ -20,6 +20,7 @@ import {
   Check,
   LockKeyhole,
 } from "lucide-react";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -395,15 +396,9 @@ export function AdminProfileContent({
       />
 
       {isDemoMode && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
-          <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold leading-5">Demo mode</p>
-            <p className="text-xs leading-5 text-amber-800 dark:text-amber-200">
-              {demoMode.message}
-            </p>
-          </div>
-        </div>
+        <WarningBanner icon={LockKeyhole} title="Demo mode">
+          {demoMode.message}
+        </WarningBanner>
       )}
 
       {/* Bento Grid */}

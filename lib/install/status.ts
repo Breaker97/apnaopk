@@ -6,6 +6,7 @@ import { resolveStorageCredentials } from "@/lib/settings/credentials";
 import { connectDB } from "@/lib/db";
 import { USER_ROLES } from "@/config/app.config";
 import { Settings, User } from "@/models";
+import { installTokenProblem } from "./install-token";
 import {
   INSTALL_CLAIM_LEASE_MS,
   isInstallLocked,
@@ -22,7 +23,11 @@ import {
 export async function isInstalled(): Promise<boolean> {
   await connectDB();
   const [admin, settings] = await Promise.all([
-    User.exists({ role: USER_ROLES.ADMIN }),
+    // Either field: an admin held only in `roles` (a promotion that left the
+    // legacy `role` behind) is still the store's admin.
+    User.exists({
+      $or: [{ role: USER_ROLES.ADMIN }, { roles: USER_ROLES.ADMIN }],
+    }),
     Settings.findOne({}).select("installedAt").lean<{ installedAt?: Date } | null>(),
   ]);
   return isInstallLocked({
@@ -103,6 +108,8 @@ interface InstallPreflight {
   databaseOk: boolean;
   /** null = healthy; otherwise a human-readable problem the buyer must fix. */
   authSecretProblem: string | null;
+  /** Same shape: INSTALL_TOKEN missing or too short. */
+  installTokenProblem: string | null;
   /**
    * BETTER_AUTH_URL as the server sees it. The browser compares it, and its
    * own build-time NEXT_PUBLIC_APP_URL, against the address it is open on
@@ -134,6 +141,7 @@ export async function getInstallPreflight(): Promise<InstallPreflight> {
     // green tick there sends the buyer hunting in the wrong place.
     databaseOk: await pingDatabase(),
     authSecretProblem: problem ? describeAuthSecretProblem(problem) : null,
+    installTokenProblem: installTokenProblem(),
     authUrl: process.env.BETTER_AUTH_URL?.trim() || null,
   };
 }

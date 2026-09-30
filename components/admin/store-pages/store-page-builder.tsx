@@ -37,10 +37,11 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "@/components/ui/toast-notification";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { apiClient, ApiClientError } from "@/lib/api/client";
@@ -582,7 +583,6 @@ export function StorePageBuilder({
         {switcher ? (
           <PageSwitcherSelect
             switcher={switcher}
-            locale={locale}
             variant="title"
             className="max-w-[60vw] sm:max-w-none"
           />
@@ -678,8 +678,7 @@ export function StorePageBuilder({
       ) : null}
 
       {!isPublished ? (
-        <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <WarningBanner icon={AlertCircle}>
           {isHome
             ? tSafe(
                 "admin.storeBuilder.cutoverNote",
@@ -700,7 +699,7 @@ export function StorePageBuilder({
                     "This page is not live yet. Publish it to put it at /pages/{handle}.",
                     { handle },
                   )}
-        </div>
+        </WarningBanner>
       ) : hasUnpublishedChanges ? (
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -803,7 +802,7 @@ export function StorePageBuilder({
                       </p>
                       <Button asChild type="button" variant="outline" className="gap-1.5">
                         <a
-                          href={`/${locale}/admin/online-store/menus/${entry.type === "header-bar" ? "header" : "footer"}`}
+                          href={`/admin/online-store/menus/${entry.type === "header-bar" ? "header" : "footer"}`}
                         >
                           <ExternalLink className="h-4 w-4" />
                           {entry.type === "header-bar"

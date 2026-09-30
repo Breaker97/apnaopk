@@ -18,9 +18,9 @@
     "login": "Ngena ngemvume",
     "register": "Bhalisa",
     "logout": "Phuma",
-    "search": "Sesha",
+    "search": "Khangela",
     "sitemap": "Imephu yesayithi",
-    "searchPlaceholder": "Sesha iimveliso...",
+    "searchPlaceholder": "Khangela iimveliso...",
     "loading": "Iyalayisha...",
     "error": "Kumenye iphutha",
     "success": "Impumelelo",
@@ -36,7 +36,7 @@
     "back": "Emva",
     "goBack": "Buyela Emva",
     "backToHome": "Buyela Ekhaya",
-    "backToDashboard": "Buyela Edoshini",
+    "backToDashboard": "Buyela kwideshibhodi",
     "suggestedPages": "Amakhasi acwangcwisiwe",
     "quickLinks": "Izixhumanisi Ezisheshayo",
     "popularPages": "Amakhasi Athandwayo",
@@ -82,13 +82,13 @@
     "allStatus": "Wonke Amajamo",
     "browseProducts": "Hlola Iimveliso",
     "guest": "Isivakashi",
-    "overview": "Uchungechunge",
+    "overview": "Isishwankathelo",
     "management": "Ulawulo",
     "multiVendorMarketplace": "Indawo Yokuthengisa Yabathengisi Abaningi",
     "onlineStore": "Store Ku-intanethi",
     "notifications": "Izaziso",
     "account": "Akaunti",
-    "profile": "Iphrofayela",
+    "profile": "Iprofayile",
     "selectLanguage": "Khetha Ulimi",
     "enabled": "Vuliwe",
     "disabled": "Valiwe",
@@ -138,7 +138,16 @@
     "decreaseQuantity": "Nciphisa isixa",
     "increaseQuantity": "Yandisa isixa",
     "name": "Igama",
-    "email": "I-imeyile"
+    "email": "I-imeyile",
+    "countryPicker": {
+      "placeholder": "Khetha ilizwe",
+      "search": "Khangela amazwe...",
+      "empty": "Akukho mazwe afunyenweyo.",
+      "clear": "Cima ilizwe",
+      "selected": "{count, plural, one {Kukhethwe ilizwe eli-#} other {Kukhethwe amazwe ali-#}}",
+      "remove": "Susa {country}"
+    },
+    "clear": "Cima"
   },
   "ui": {
     "dataTable": {
@@ -338,7 +347,7 @@
     "aboutUs": "Mayelana Nathi",
     "contactUs": "Xhumana Nathi",
     "help": "Usizo",
-    "faq": "I-FAQ",
+    "faq": "Imibuzo ebuzwa rhoqo",
     "allProducts": "Wonke Iimveliso",
     "wishlist": "Ukhonzi",
     "blog": "I-Blogi",
@@ -432,7 +441,7 @@
     "orContinueWith": "Noma uqhubeke nge",
     "termsAgreement": "Ngokudala i-akaunti, uvuma",
     "termsOfService": "Imigomo Yesevisi",
-    "privacyPolicy": "Inqubomgomo Yobumfihlo",
+    "privacyPolicy": "Umgaqo-nkqubo wabucala",
     "and": "kanye",
     "shopAsCustomer": "Thenga Njengesivakashi",
     "sellAsVendor": "Thengisa Njengombuki",
@@ -553,7 +562,6 @@
     "shareProduct": "Yabelana ngale mveliso nabangani",
     "sizeGuide": "Umgca wezinga",
     "fabricCare": "I-Fabric + Ungalo",
-    "faq": "I-FAQ",
     "productDetails": "Imininingwane Yomveliso",
     "returnPolicy": "Inqubomgomo yokubuyela",
     "freeReturns": "Ukubuyela mahhala kwezinsuku ezingama-30",
@@ -810,6 +818,9 @@
     "shipments": "Iimpahla ezithunyelwayo",
     "shipmentsDescription": "Iimpahla zabathengisi abahlukeneyo zithunyelwa zihlawulwe ngokwahlukeneyo.",
     "tracking": "Ukulandelela",
+    "trackingNumber": "Inombolo yokulandelela",
+    "latestFromCarrier": "Uhlaziyo lwamva oluvela ku-{carrier}",
+    "latestUpdate": "Uhlaziyo lwamva",
     "payment": {
       "pending": "Intlawulo ilindile",
       "paid": "Ihlawulwe",
@@ -840,108 +851,174 @@
     "browseWebsite": "Hlola Iwebhusayithi",
     "settings": {
       "title": "Izicwangciso",
-      "description": "Lawula ucwaningi lwamastor",
-      "tabs": {
-        "general": "Jikelele",
-        "security": "Ukuphepha",
-        "appearance": "Ukubukeka",
-        "payment": "Ukubhadala",
-        "email": "I-imeyili",
-        "orders": "I-oderi",
-        "seo": "I-SEO",
-        "social": "Social",
-        "maintenance": "Ukunakekelwa",
-        "storage": "I-Storage"
-      },
       "search": "Sesha izicwangciso",
-      "close": "Vala izicwangciso",
-      "openMenu": "Open settings menu",
-      "closeMenu": "Close settings menu",
-      "storeNameFallback": "Istore lakho",
-      "attention": "Isenzo Siyadingeka",
-      "disabled": "Kvaliwe",
       "unsaved": "Ayigciniwe",
       "general": {
         "title": "Izicwangciso Zesijikelele",
         "description": "Cwangcisa ulwazi lwangaphambilini lwestore yakho",
-        "storeName": "Igama Lestore",
+        "storeName": "Igama levenkile",
         "storeEmail": "I-imeyili Yestore",
         "phone": "Inombolo Yefoni",
-        "storeDomain": "I-domain Yestore",
+        "storeDomain": "Idomeyini yevenkile",
         "address": "Ikheli",
         "storeDescription": "Incazelo Yestore",
         "defaultLanguage": "Ulimi Oqanjiwe",
-        "defaultCurrency": "Imali Eqanjiwe",
-        "logoUrl": "I-URL Yelogo",
-        "faviconUrl": "I-URL ye-favicon",
-        "timezone": "I-timezone",
-        "timezonePlaceholder": "I-UTC",
+        "defaultCurrency": "Imali yevenkile",
         "supportedLanguages": "Ulimi olusekelwayo",
         "supportedLanguagesDesc": "Amalimi atholakala efowuni lakho.",
-        "supportedCurrencies": "Imali elusekelwayo",
-        "supportedCurrenciesDesc": "Ikhodi zemali ezivunyelwe ngokubili nokukhombisa.",
-        "save": "Landa Shintsho"
+        "save": "Landa Shintsho",
+        "storeInfoTitle": "Iinkcukacha zeVenkile",
+        "storeInfoDescription": "Iinkcukacha ezisisiseko ngevenkile yakho",
+        "languageCurrencyTitle": "Ulwimi nemali",
+        "languageCurrencyDescription": "Ulwimi evula ngalo ivenkile yakho, kunye nemali enye ethengisa ngayo",
+        "searchLanguage": "Khangela ulwimi...",
+        "searchCurrency": "Khangela imali...",
+        "storeCurrencyHint": "Onke amaxabiso, ii-odolo neentlawulo zikule mali. Ukuyitshintsha kutshintsha uphawu lwexabiso kuphela; akuwaguquli.",
+        "countries": {
+          "title": "Amazwe afumanekayo",
+          "description": "Lawula uluhlu lwamazwe olusetyenziswa ekuhlawuleni, ekubhaliseni abathengisi, kwiidilesi, ekuthumeleni nakwiifom zemveliso.",
+          "all": "Onke amazwe",
+          "allHint": "Bonisa onke amazwe axhaswayo ({count}) kuzo zonke izikhethi zelizwe.",
+          "specific": "Amazwe athile",
+          "specificHint": "Bonisa kuphela amazwe owakhethe ngezantsi.",
+          "label": "Amazwe",
+          "placeholder": "Khetha amazwe",
+          "search": "Khangela ilizwe okanye ikhowudi ye-ISO...",
+          "empty": "Akukho lizwe lifunyenweyo.",
+          "required": "Khetha ubuncinane ilizwe elinye phambi kokugcina.",
+          "selected": "{count, plural, one {Kukhethwe ilizwe eli-#.} other {Kukhethwe amazwe ali-#.}}"
+        },
+        "defaultBadge": "Esiseko",
+        "countryRequired": "Khetha ubuncinane ilizwe elinye, okanye ukhethe Onke amazwe."
       },
       "appearance": {
-        "title": "Ukubukeka",
-        "description": "Yenza store yakho ibe nokubukeka nokuzizwa okukuyo",
+        "title": "Uphawu",
         "primaryColor": "Umbala Ophambili",
         "secondaryColor": "Umbala Wesibili",
         "accentColor": "Umbala we-Accent",
-        "theme": "I-Theme Eqanjiwe",
         "themes": {
           "light": "Ukukhanya",
-          "dark": "Okumnyama",
-          "system": "Isistimu"
-        },
-        "borderRadius": "I-border radius",
-        "mode": "Indlela",
-        "contrast": "I-contrast",
-        "rtl": "Kwesokudla ukuya kokunxele",
-        "collapsedSidebar": "Collapsed sidebar",
-        "nav": "Ukuhamba",
-        "layout": "I-Layout",
-        "color": "Umbala",
-        "navColor": {
-          "integrate": "Xhumana",
-          "apparent": "Okucacileyo"
+          "dark": "Okumnyama"
         },
         "presets": "I-presets",
-        "save": "Landa Shintsho"
+        "skeletonColor": "Umbala wesakhelo",
+        "skeletonColorHint": "Izibonakaliso zokulayisha. Ukuyishiya ingenanto kugcina ingwevu engathathi cala."
       },
       "payment": {
         "title": "Izicwangciso Zokubhadala",
         "description": "Cwangcisa ama-gateways wokubhadala nama-optiyeni",
         "stripe": {
           "title": "I-Stripe",
-          "description": "Cwangcisa i-Stripe payment gateway",
-          "enable": "Vula Ukubhadala nge-Stripe",
-          "publishableKey": "I-Publishable Key",
+          "description": "Yamkela amakhadi etyala nawedebhithi kwihlabathi liphela",
           "secretKey": "I-Secret Key",
-          "webhookSecret": "I-Webhook Secret",
           "webhookSecretHint": "Iyadingeka ukuze lap handling payment events."
         },
         "paypal": {
           "title": "I-PayPal",
-          "description": "Cwangcisa i-PayPal payment gateway",
-          "enablePayPal": "Vula I-PayPal",
-          "paypalClientId": "I-Client ID",
+          "description": "Iintlawulo neepaji ezithenjwayo kwihlabathi liphela",
           "clientSecret": "I-Client Secret",
-          "paypalMode": "Indlela",
-          "paypalSandbox": "I-Sandbox",
-          "paypalLive": "I-Live",
-          "paypalWebhookId": "I-Webhook ID"
+          "clientIdPlaceholder": "PayPal Client ID",
+          "webhookIdPlaceholder": "I-ID ye-webhook ye-PayPal"
         },
         "cod": {
           "title": "Ukubhadala Ngemali Ekufakweni",
-          "description": "Cwangcisa i-COD payment option",
-          "enable": "Vula Ukubhadala Ngemali Ekufakweni",
-          "instructions": "Imeko ye-COD",
-          "placeholder": "Imeko ebekwe abathengi...",
-          "codMinOrder": "Inani Lorder Elincane",
-          "codMaxOrder": "Inani Lorder Elikhulu"
+          "description": "Vumela abathengi bahlawule xa i-odolo yabo ifika",
+          "placeholder": "umz.: Nceda ulungiselele imali echanekileyo xa umthuthi efika.",
+          "offline": "Ngaphandle kwe-intanethi"
         },
-        "save": "Landa Izicwangciso Zokubhadala"
+        "pesapal": {
+          "ipnRegistered": "I-Pesapal IPN ibhalisiwe",
+          "ipnFailed": "Akukwazekanga ukubhalisa i-Pesapal IPN",
+          "description": "Imali yefowuni neentlawulo zamakhadi kuMpuma Afrika",
+          "registerIpn": "Bhalisa i-IPN",
+          "consumerKeyPlaceholder": "Pesapal consumer key",
+          "consumerSecretPlaceholder": "Pesapal consumer secret",
+          "ipnId": "I-ID ye-IPN",
+          "ipnIdPlaceholder": "I-ID ye-Pesapal IPN ebhalisiweyo",
+          "ipnHint": "Bhalisa <code>{path}</code> njenge-URL ye-IPN ye-POST, uze ufake i-ID abayibuyisayo."
+        },
+        "testConnection": "Vavanya uqhagamshelo",
+        "activeCount": "{count} ezisebenzayo",
+        "checkout": {
+          "currencyListed": "Ifihliwe ekuhlawuleni: ayikwazi ukwamkela i-{currency}, imali yevenkile. Yamkela kuphela i-{currencies}. Tshintsha imali kwiiSetingi Ngokubanzi ukuze uyinike.",
+          "currency": "Ifihliwe ekuhlawuleni: ayikwazi ukwamkela i-{currency}, imali yevenkile. Tshintsha imali kwiiSetingi Ngokubanzi ukuze uyinike.",
+          "keys": "Ifihliwe ekuhlawuleni de izitshixo zayo zigcinwe."
+        },
+        "fields": {
+          "keyId": "Key ID",
+          "keySecret": "Key Secret",
+          "webhookSecret": "Imfihlo ye-webhook",
+          "webhookUrl": "I-URL ye-webhook",
+          "publicKey": "Isitshixo sikawonke-wonke",
+          "secretKey": "Isitshixo esiyimfihlo",
+          "consumerKey": "Consumer Key",
+          "consumerSecret": "Consumer Secret",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "walletId": "I-ID yesipaji",
+          "merchantKey": "Isitshixo somrhwebi",
+          "countryCode": "Ikhowudi yelizwe",
+          "subscriptionKey": "Isitshixo somrhumo",
+          "apiUser": "Umsebenzisi we-API",
+          "apiKey": "Isitshixo se-API",
+          "targetEnvironment": "Imeko ekujoliswe kuyo",
+          "callbackHost": "I-host ye-callback (akunyanzelekanga)"
+        },
+        "razorpay": {
+          "description": "Iintlawulo zase-India, nezase-Malaysia nge-Razorpay Curlec",
+          "internationalNote": "Yamkela i-{currency} kuphela xa i-International Payments ivuliwe kwi-akhawunti yakho ye-Razorpay.",
+          "keySecretPlaceholder": "Key secret",
+          "webhookSecretPlaceholder": "Imfihlo ye-webhook",
+          "webhookSecretHint": "Imfihlo oyimisele kuloo webhook. Ngenxa yokhuseleko, iimfihlo ezigciniweyo azibonakaliswa kwakhona.",
+          "webhookUrlHint": "Yongeze kwi-Razorpay Dashboard → Account & Settings → Webhooks, kunye neziganeko payment.captured, order.paid, refund.created, refund.processed kunye ne-refund.failed. Iqinisekisa intlawulo nokuba umthengi akabuyeli kwivenkile yakho, nto leyo eqhelekileyo nge-FPX nezinye izijikiso zebhanki."
+        },
+        "paystack": {
+          "description": "Iintlawulo zale mihla zase-Afrika"
+        },
+        "iotec": {
+          "description": "Imali yefowuni ye-MTN ne-Airtel kunye neentlawulo zamakhadi (e-Uganda)",
+          "clientIdPlaceholder": "ioTec client ID",
+          "clientSecretPlaceholder": "ioTec client secret",
+          "walletIdPlaceholder": "I-UUID yesipaji se-ioTec Pay",
+          "walletIdHint": "Ifumaneka kwi-portal ye-ioTec Pay phantsi kweesetingi zesipaji sakho.",
+          "callbackHint": "Akunyanzelekanga: kwi-portal ye-ioTec Pay, misela i-URL ye-callback yokuqokelela ibe <code>{path}</code> ukuze ufumane uhlaziyo lobume kwangoko. Iintlawulo ziqinisekiswa ngokubuza rhoqo nokuba ayikho."
+        },
+        "orangeMoney": {
+          "description": "Imali yefowuni ye-Orange kuNtshona nakuMbindi we-Afrika",
+          "clientIdPlaceholder": "Orange developer client ID",
+          "clientSecretPlaceholder": "Orange developer client secret",
+          "merchantKeyPlaceholder": "Isitshixo somrhwebi se-Orange Money",
+          "merchantKeyHint": "Inikezwa ngumqhubi we-Orange wommandla wakho emva kokuba isivumelwano somrhwebi sisayiniwe — asikho kwi-portal yabaphuhlisi.",
+          "countryHint": "Ikhowudi yeeleta ezimbini yelizwe apho umqhubi we-Orange wakunika isitshixo somrhwebi (ci, sn, cm, ml, mg…). Iyafuneka kwimowudi ebukhoma; ayihoywa kwi-sandbox, esoloko isebenzisa i-endpoint ye-Orange <code>{endpoint}</code>.",
+          "callbackHint": "Kwi-portal yabaphuhlisi ye-Orange, misela i-URL yesaziso ibe <code>{path}</code>. Iintlawulo zikwaqinisekiswa ngokubuza rhoqo kwiphepha lempumelelo yentlawulo."
+        },
+        "mtnMomo": {
+          "description": "Iintlawulo ze-MTN MoMo ezine-PIN kulo lonke elase-Afrika",
+          "subscriptionKeyHint": "Isitshixo esiphambili somrhumo wakho wemveliso ye-Collections.",
+          "apiUserPlaceholder": "I-UUID yomsebenzisi we-API",
+          "apiKeyPlaceholder": "Isitshixo se-API esinxulumene nomsebenzisi",
+          "targetEnvironmentHint": "I-X-Target-Environment enikwe yi-OpCo yakho ye-MTN ekubhaliseni (mtnuganda, mtnghana, …). Iyafuneka kwimowudi ebukhoma; ayihoywa kwi-sandbox, esoloko ithumela <code>{value}</code>.",
+          "callbackHostHint": "Idomeyini oyibhalise ku-MTN njenge-host ye-callback yomboneleli, ngaphandle kwe-<code>{scheme}</code> nangaphandle kwendlela. I-MTN iyazikhaba iintlawulo ezine-URL ye-callback ekhankanya enye i-host, ngoko yishiye ingenanto ngaphandle kokuba ihambelana ncam — iintlawulo ziqinisekiswa ngokubuza rhoqo nangokuthelekisa rhoqo kwimizuzu eyi-15 nokuba kunjalo.",
+          "callbackHint": "Xa imiselwe, i-MTN iceliwa ukuba yazise <code>{path}</code> — kube kanye kuphela, ngaphandle kokuzama kwakhona, yiyo loo nto ingaze ibe kuphela kwesiqinisekiso."
+        },
+        "paypalMode": "Imowudi",
+        "paypalSandbox": "Sandbox",
+        "paypalLive": "Bukhoma",
+        "codInstructions": "Imiyalelo yokuhlawula ekufikeni",
+        "codMaxOrder": "Isixa esiphezulu se-odolo",
+        "codMinOrder": "Isixa esincinci se-odolo",
+        "paypalClientId": "Client ID",
+        "paypalWebhookId": "Webhook ID",
+        "stripePublishableKey": "Publishable Key",
+        "stripeWebhookSecret": "Webhook Secret",
+        "turnstile": {
+          "description": "I-Cloudflare Turnstile, ecelwa kuphela emva kokukhatywa kwekhadi kaninzi",
+          "explainer": "Ukuhlawula kucela ukuqinisekiswa kokuba ungumntu xa amakhadi omthengi ekhatywe kathathu kwisiqingatha seyure, kwaye kumisa ukuhlawula emva kwesithandathu. Ukumisa kusebenza nangaphandle koku; ukuqinisekiswa kufuna izitshixo zakho ze-Cloudflare Turnstile. Uninzi lwabathengi aluze lukubone.",
+          "missingKeys": "Kuvulwe ngaphandle kwezitshixo zombini, ngoko akukho kuqinisekiswa kuceliwe — kusebenza ukumisa kuphela.",
+          "secretKey": "Isitshixo esiyimfihlo",
+          "siteKey": "Isitshixo sesayithi",
+          "title": "Ukujonga ukuvavanywa kwamakhadi"
+        }
       },
       "email": {
         "title": "I-Email Configuration (SMTP)",
@@ -949,11 +1026,10 @@
         "enable": "Vula I-Email SMTP",
         "host": "I-SMTP Host",
         "port": "I-SMTP Port",
-        "username": "I-SMTP Username",
-        "password": "I-SMTP Password",
+        "username": "Igama lomsebenzisi le-SMTP",
+        "password": "Igama lokugqitha le-SMTP",
         "fromEmail": "Kusuka I-imeyili",
         "fromName": "Kusuka Igama",
-        "secure": "Sebenzisa I-SSL/TLS",
         "test": {
           "label": "I-imeyili yezivavanyo",
           "placeholder": "test@example.com",
@@ -961,48 +1037,47 @@
           "success": "I-imeyili yezivavanyo ithunyelwe ngempumelelo!",
           "error": "Kuhlulekile ukuthumela i-imeyili yezivavanyo"
         },
-        "save": "Landa Izicwangciso Ze-imeyili"
+        "save": "Landa Izicwangciso Ze-imeyili",
+        "passwordPlaceholder": "Faka iphasiwedi",
+        "fromNamePlaceholder": "Igama levenkile yakho",
+        "encryptionNote": "Ukufihla (encryption) kwenzeka ngokuzenzekelayo: i-port 465 isebenzisa i-TLS ngqo, i-port 587 ifuna i-STARTTLS."
       },
       "security": {
         "title": "Ukuphepha Nokufinyelela",
         "description": "Cwangcisa indlela ye-multivendor, ukuphepha kwe-session, namajamo aphathekayo",
-        "tabs": {
-          "general": "Jikelele",
-          "2fa": "Ukuziqinisekisa Ngokumbalwa",
-          "oauth": "I-OAuth",
-          "pos": "Ukufinyelela OkuPOS",
-          "vendor": "Amalungelo Ombuki"
-        },
         "multiVendor": {
-          "title": "Indlela Yestore",
-          "label": "Indlela Ye-Multi-Vendor",
-          "description": "Vula izici zemakethe: ukubhaliswa kwabathengisi, amasitore amaningi, i-dashboard yombuki"
+          "label": "Imowudi yabathengisi abaninzi",
+          "description": "Vula izici zemakethe: ukubhaliswa kwabathengisi, amasitore amaningi, i-dashboard yombuki",
+          "manageLink": "Lawula ubhaliso lwabathengisi, izicwangciso nemigaqo-nkqubo"
         },
         "emailVerification": {
           "title": "Ukuziqinisekisa I-imeyili",
           "required": "Udinga Ukuziqinisekisa I-imeyili",
           "requiredDesc": "Abasebenzisi kudinga baqinisekise i-imeyili ngaphambi kokufinyelela store",
-          "vendorRequired": "Udinga for Abathengisi",
-          "vendorRequiredDesc": "Abathengisi kudinga baqinisekise i-imeyili ngaphambi kokuhlela iimveliso"
+          "vendorRequired": "Udinga for Abathengisi"
         },
         "session": {
-          "title": "Ukuphepha Kwe-Session",
           "duration": "Isikhashana Se-session (izinsuku)",
           "maxAttempts": "Izinzame Zokungena Eziphakeme",
           "lockout": "Isikhashana sokukhiywa (min)"
         },
         "rateLimiting": {
           "enabled": "Vula Ukuhlukahluka Kokulinganiselwa",
-          "adminPreset": "I-Admin API",
-          "vendorPreset": "I-Vendor API",
+          "adminPreset": "I-API yabaphathi",
+          "vendorPreset": "I-API yabathengisi",
           "checkoutPreset": "I-Checkout / Ukubhadala",
           "cartPreset": "Indwangu",
           "couponPreset": "Amakhophu",
           "authPreset": "I-Auth / Ukungena",
-          "ipPreset": "Isivakashi / Kulord"
+          "ipPreset": "Isivakashi / Kulord",
+          "presets": {
+            "default": "Esiseko",
+            "lenient": "Ethambileyo (100/imizuzu eyi-15)",
+            "moderate": "Ephakathi (20/imizuzu eyi-15)",
+            "strict": "Engqongqo (5/imizuzu eyi-15)"
+          }
         },
         "passwordPolicy": {
-          "title": "I-Password Policy",
           "minLength": "Ubude Be-password Obuncane",
           "uppercase": "Udinga UCL",
           "numbers": "Udinga Amanani",
@@ -1012,29 +1087,75 @@
         "unlock": {
           "label": "Vula i-akhawunti",
           "action": "Vula",
-          "hint": "Icima ubalo lweenzame zokungena ezisilelayo zale dilesi kuso sonke isixhobo etshixwe kuso. Isebenza ngoko nangoko — akukho mfuneko yokugcina."
+          "hint": "Icima ubalo lweenzame zokungena ezisilelayo zale dilesi kuso sonke isixhobo etshixwe kuso. Isebenza ngoko nangoko — akukho mfuneko yokugcina.",
+          "done": "I-akhawunti ivuliwe. Banokungena kwakhona ngoku.",
+          "notLocked": "Loo dilesi ibingatshixwanga. Akukho nto yokucoca.",
+          "failed": "Akukwazekanga ukuvula loo akhawunti"
         }
       },
       "orders": {
         "title": "Izicwangciso Ze-oderi",
         "description": "Cwangcisa izicwangciso ze-order namakomishini",
-        "prefix": "I-Order Number Prefix",
-        "taxRate": "I-Tax Rate (%)",
+        "prefix": "Isiqalo senombolo yeodolo",
+        "taxRate": "Izinga lerhafu (%)",
         "shippingCost": "Inani Lokuthunyelwa Okujwayelekile ($)",
         "freeShippingThreshold": "Inani Lekhulu Lekuthunyelwa Mahhala ($)",
-        "freeShippingPlaceholder": "Shiya iligcine ukuze ivaliwe",
+        "freeShippingPlaceholder": "Seta ku-0 ukuze uyicime",
         "shippingHandledByZones": "Iindawo zokuthumela zivuliwe, ngoko la maxabiso mabini akasetyenziswa. Amaxabiso avela kwiisetingi zoThumelo noHanjiso.",
-        "vendorCommission": "Ikhomishini Yombuki",
-        "commissionRate": "I-Rate Yekhomishini (%)",
+        "commissionRate": "Izinga lekhomishini (%)",
         "minWithdrawal": "Inani Lokukusukumisa Okuncane ($)",
-        "save": "Landa Izicwangciso Ze-oderi"
+        "returnInstructions": "Imiyalelo yokubuyisa",
+        "returnInstructionsHint": "Ithunyelwa kumthengi kunye nedilesi yokubuyisa xa ukubuyisa kuvunyiwe. Sebenzisa {returnNumber} kwinombolo yokubuyisa. Yishiye ingenanto ukuze kusetyenziswe amagama aboniswayo.",
+        "finalSaleCollections": "Iingqokelela zentengiso yokugqibela",
+        "finalSaleCollectionsSearch": "Khangela iingqokelela",
+        "finalSaleCollectionsNone": "Akukho ngqokelela ifunyenweyo",
+        "finalSaleCollectionMissing": "Ingqokelela esusiweyo",
+        "finalSaleCollectionUnnamed": "Ingqokelela",
+        "finalSaleCollectionsHint": "Iimveliso ezikwezi ngqokelela ziyintengiso yokugqibela: abathengi abanakuzibuyisa. Ii-odolo esele zenziwe zigcina imithetho ezathengiswa phantsi kwayo.",
+        "billVendorCodShipping": "Hlawulisa abathengisi ngokuthunyelwa kokuhlawula ekufikeni",
+        "billVendorCodShippingHint": "Xa umthengisi eqokelela imali emnyango uphinde abambe nentlawulo yokuhanjiswa. Vula oku ukuze ubahlawulise ngeepasile ezithwelwe ngumthuthi wakho, kunye nekhomishini abayityalayo.",
+        "loyaltyHeading": "Amanqaku okunyaniseka",
+        "loyaltySpendPerPoint": "Inkcitho ngenqaku ngalinye lokunyaniseka",
+        "loyaltySpendPerPointHint": "Abathengi bafumana inqaku eli-1 kuyo yonke le mali bayichithayo. Amanqanaba aqala kumanqaku ali-{silver, number} kwiSilver, ali-{gold, number} kwiGold kunye nali-{platinum, number} kwiPlatinum. Ireyithi entsha ibalwa ukusuka kwi-odolo ehlawulweyo elandelayo; amanqaku asele enikiwe agcina ireyithi afunyenwe ngayo.",
+        "refundAdminFee": "Intlawulo yolawulo lokubuyisela imali (%)",
+        "refundAdminFeeCap": "Umda wentlawulo kubuyiselo ngalunye ({currency})",
+        "refundAdminFeeCapHint": "Seta ku-0 ukuze kungabikho mda.",
+        "refundAdminFeeHint": "Isabelo sekhomishini yakho osigcinayo xa intengiso ibuyiswa. Umthengi ubuyiselwa imali yonke nokuba kunjalo; iindleko ziya kumthengisi.",
+        "restockingFee": "Intlawulo yokubuyisela esitokhweni (%)",
+        "restockingFeeHint": "Ithathwa kwimpahla ebuyisiweyo, ingaze ithathwe kwirhafu.",
+        "returnShippingFee": "Intlawulo yokuthumela ukubuyisa ({currency})",
+        "returnShippingFeeHint": "Ihlawuliswa kanye kumthengisi ngamnye umthengi abuyisela kuye.",
+        "returnWindowDays": "Ixesha lokubuyisa (iintsuku)",
+        "returnWindowDaysHint": "Ixesha emva kokuhanjiswa umthengi asenokucela ngalo ukubuyisa i-odolo. Libonakaliswa kwiphepha lemveliso nganye.",
+        "windowUnlimited": "Akukho mda wexesha",
+        "windowStart": "Ixesha liqala",
+        "windowStartParcel": "Xa ipasile nganye ihanjisiwe",
+        "windowStartLast": "Xa ipasile yokugqibela ye-odolo ihanjisiwe",
+        "windowStartHint": "Ukubala ukusuka kwipasile yokugqibela kunika ixesha elinye kwi-odolo nganye, kwaye kubambe intlawulo yokukhupha yomthengisi ngamnye de kufike ipasile yokugqibela.",
+        "payoutHoldMaxDays": "Elona xesha lide lokubamba intlawulo yokukhupha (iintsuku)",
+        "payoutHoldMaxDaysHint": "Xa kungekho mda wexesha, intengiso yomthengisi ihlawulwa emva kwezi ntsuku zokuhanjiswa. Imbuyiselo-mali emva koko ithatyathwa kwintlawulo yakhe elandelayo.",
+        "windowOverrides": "Amaxesha okubuyisa ngokwengqokelela",
+        "windowOverrideDays": "Iintsuku",
+        "windowOverrideDaysUnit": "iintsuku",
+        "windowOverrideRemove": "Susa",
+        "windowOverridesSearch": "Yongeza ingqokelela",
+        "windowOverridesHint": "Iimveliso ezikwezi ngqokelela zingabuyiswa kwezi ntsuku endaweni yoko. Imveliso nayo ingamisela elayo ixesha; xa amaninzi esebenza, elona lifutshane liyasebenza.",
+        "returnsHeading": "Ukubuyisa nokubuyiselwa kwemali",
+        "returnsHint": "Ezi ziqala kwindlela ebisebenza ngayo i-Storify phambi kokuba zibe ziisetingi, ngoko akukho nto itshintshayo de uyitshintshe.",
+        "selfServe": "Abathengi banokucela ukubuyisa",
+        "selfServeHint": "Xa kucinyiwe, abathengi baqhagamshelana nawe kwaye wena uvula ukubuyisa egameni labo ukusuka kwi-odolo. Basabona ukubuyisa kwabo kwaye banokukurhoxisa.",
+        "shippingRefund": "Buyisela imali yokuhanjiswa xa kubuyiswa",
+        "shippingRefundAlways": "Rhoqo",
+        "shippingRefundHint": "Impazamo yethu ithetha into eyonakeleyo okanye enesiphene, engafaniyo nenkcazo, okanye into engeyiyo ethunyelweyo.",
+        "shippingRefundMerchantFault": "Kuphela xa ukubuyisa kungenxa yempazamo yethu",
+        "shippingRefundNever": "Nakanye — umthengi ukufumene ukuhanjiswa"
       },
       "seo": {
         "title": "Izicwangciso Ze-SEO",
         "description": "Cwangcisa ukusebenza kwe-search engine",
-        "metaTitle": "I-Meta Title",
+        "metaTitle": "Isihloko se-meta",
         "metaTitlePlaceholder": "Istore Yakho - Indawo Yokuthengisa Ku-intanethi",
-        "metaDescription": "I-Meta Description",
+        "metaDescription": "Inkcazelo ye-meta",
         "metaDescriptionPlaceholder": "Chaza store yakho nge-150-160 onxantathu...",
         "metaKeywords": "I-Meta Keywords",
         "metaKeywordsPlaceholder": "ecommerce, ukuthenga online, indawo yokuthengisa",
@@ -1043,8 +1164,8 @@
         "save": "Landa Izicwangciso Ze-SEO"
       },
       "social": {
-        "title": "Amalinki We-Social Media",
-        "description": "Faka amaphrofayela akho e-social media",
+        "title": "Amakhonkco emidiya yoluntu",
+        "description": "Yongeza iiprofayile zakho zemidiya yoluntu",
         "facebook": "I-Facebook",
         "facebookPlaceholder": "https://facebook.com/yakho",
         "twitter": "I-Twitter/X",
@@ -1057,7 +1178,35 @@
         "tiktokPlaceholder": "https://tiktok.com/@yakho",
         "linkedin": "I-LinkedIn",
         "linkedinPlaceholder": "https://linkedin.com/company/yakho",
-        "save": "Landa Amalinki E-Social"
+        "save": "Gcina amakhonkco emidiya yoluntu",
+        "share": {
+          "copyLink": "Kopa ikhonkco",
+          "copyLinkDesc": "Iqhosha elikopa ikhonkco lemveliso liye kwibhodi yeklip.",
+          "customAdd": "Yongeza iqonga",
+          "customGroup": "Amaqonga akho",
+          "customHint": "Yongeza nayiphi na enye iqonga elinekhonkco lalo lokwabelana.",
+          "customIcon": "Uphawu",
+          "customIconHint": "Akunyanzelekanga. Layisha umfanekiso onesikwere, okanye uncamathisele i-URL yomfanekiso. Kubuyelwa kuphawu oluqhelekileyo lokwabelana.",
+          "customLabel": "Ileyibhile",
+          "customLabelPlaceholder": "umz. Reddit",
+          "customRemove": "Susa iqonga",
+          "customUntitled": "Iqonga elingenagama",
+          "customUrl": "Ikhonkco lokwabelana",
+          "customUrlHint": "Faka ikhonkco lemveliso nesihloko ngezi thokheni:",
+          "description": "Khetha ukuba ngawaphi amaqhosha okwabelana avela kumaphepha eemveliso zakho.",
+          "email": "I-imeyile",
+          "enable": "Vula amaqhosha okwabelana",
+          "enableDesc": "Bonisa umqolo wamaqhosha okwabelana kumaphepha eenkcukacha zemveliso.",
+          "facebook": "Facebook",
+          "linkGroup": "Ikhonkco",
+          "linkedin": "LinkedIn",
+          "pinterest": "Pinterest",
+          "socialGroup": "Uthungelwano lwentlalo",
+          "telegram": "Telegram",
+          "title": "Amaqhosha Okwabelana",
+          "twitter": "X / Twitter",
+          "whatsapp": "WhatsApp"
+        }
       },
       "maintenance": {
         "title": "Indlela Yokunakekelwa",
@@ -1065,8 +1214,24 @@
         "enable": "Vula Indlela Yokunakekelwa",
         "enableDesc": "Lapho kuvuliwe, abavakashi bazobona umyalezo wokunakekelwa",
         "message": "Umyalezo Wonakekelwa",
-        "messagePlaceholder": "Sikusapho ukwenzayana nokunakekelwa. Sicela ubuyekeze kamsinya!",
-        "save": "Landa Izicwangciso Zokunakekelwa"
+        "save": "Landa Izicwangciso Zokunakekelwa",
+        "preview": {
+          "label": "Imbonakalo Ephilayo",
+          "countdownEmpty": "Khetha ixesha lokubuya ukuze uqalise ukubala ngasemva.",
+          "countdownHidden": "Ukubala ngasemva kufihliwe. Iindwendwe ziza kubona isihloko nomyalezo kuphela.",
+          "bypassTitle": "Ukufikelela kuvunyiwe",
+          "bypassCount": "{count, plural, one {# idilesi ye-IP isenokungena evenkileni.} other {# iidilesi ze-IP zisenokungena evenkileni.}}"
+        },
+        "allowedIPs": "Iidilesi ze-IP ezivunyelweyo",
+        "allowedIPsHint": "I-IP enye kumgca ngamnye. Ezi ndwendwe zisenokungena evenkileni ngelixa imowudi yolondolozo ivuliwe.",
+        "backgroundImage": "Umfanekiso ongasemva",
+        "backgroundImageHint": "Xa kusetwe umfanekiso, iindwendwe ziwubona ufiphele ngasemva kombhalo wolondolozo, ngaphandle kwekhadi.",
+        "backgroundImagePreviewAlt": "Imbonakalo yomfanekiso ongasemva wolondolozo",
+        "countdown": "Bonisa ukubala ngasemva",
+        "countdownDesc": "Bonisa ukubala ngasemva de ivenkile ilindeleke ukuba ibuyele kwi-intanethi.",
+        "countdownEndsAt": "Ilindeleke ukubuyela kwi-intanethi",
+        "countdownEndsAtHint": "Seta umhla nexesha lendawo abathengi ekufuneka babale ukuya kulo.",
+        "titleLabel": "Isihloko"
       },
       "shipping": {
         "title": "Ukuthunyelwa Nokudayiswa",
@@ -1079,7 +1244,6 @@
           "title": "Umsuka wokuthunyelwa",
           "description": "Isetenziselwa ukubhekiselene nokusetshenziswa.",
           "country": "Izwe",
-          "countryPlaceholder": "I-United States",
           "state": "Isifundazwe / I-Provision",
           "statePlaceholder": "CA",
           "city": " 도大开",
@@ -1109,7 +1273,7 @@
           "namePlaceholder": "Kwasekhaya",
           "remove": "Susa",
           "countries": "Amazwe",
-          "countriesPlaceholder": "I-United States, Canada",
+          "countriesPlaceholder": "Khetha amazwe",
           "noCountriesWarning": "Ayikabikho amazwe akhetiwe.",
           "regions": "Amaphelangana (okhethiwe)",
           "regionsPlaceholder": "Onke amaphondo",
@@ -1118,7 +1282,9 @@
           "noRegionMatches": "Akukho maphondo afunyenweyo.",
           "conditionalRatesWarning": "⚠️ Onke amaxabiso kule ndawo axhomekeke kwiimeko. Inqwelo engahlangabezani nanye kwezi meko ayizukufumana xabiso kule ndawo — iya kuwela kwixabiso lokusabela, okanye umthengi axelelwe ukuba ukuthunyelwa akufumaneki. Yongeza ixabiso elifanayo ukugubungela okuseleyo.",
           "isFallback": "Elinye ihlabathi lonke",
-          "isFallbackHint": "Ibeka amaxabiso kuyo nayiphi na idilesi engagutyungelwanga yenye indawo. Amazwe namaphondo ayo ayathiywa, kwaye ithatha indawo yexabiso elinye lokusabela elingezantsi."
+          "isFallbackHint": "Ibeka amaxabiso kuyo nayiphi na idilesi engagutyungelwanga yenye indawo. Amazwe namaphondo ayo ayathiywa, kwaye ithatha indawo yexabiso elinye lokusabela elingezantsi.",
+          "noCountryMatches": "Akukho mazwe afunyenweyo.",
+          "searchCountries": "Khangela amazwe..."
         },
         "rates": {
           "title": "Amazinga",
@@ -1132,7 +1298,8 @@
           "type": {
             "flat": "I-rate emile",
             "freeOver": "Mahhala ngaphezulu kwe-subtotal",
-            "subtotalRange": "I-subtotal range"
+            "subtotalRange": "I-subtotal range",
+            "weightRange": "Uluhlu lobunzima"
           },
           "typePlaceholder": "Khetha uhlobo",
           "price": "Ibili",
@@ -1141,7 +1308,10 @@
           "maxSubtotal": "I-subtotal enkulu",
           "minDays": "Izinsuku zokudayiswa (okuncane)",
           "maxDays": "Izinsuku zokudayiswa (okukhulu)",
-          "active": "Isebenzayo"
+          "active": "Isebenzayo",
+          "maxWeight": "Ubunzima obuphezulu",
+          "minWeight": "Ubunzima obuncinci",
+          "pricePerWeightUnit": "Ixabiso nge"
         },
         "fallback": {
           "title": "I-fallback rate",
@@ -1153,38 +1323,166 @@
           "minDays": "Izinsuku ezincane",
           "maxDays": "Izinsuku ezinkulu"
         },
-        "pickup": {
-          "title": "Ukudonsa kwendawo",
-          "description": "Nikeza ukudonsa kwendawo njengendlela eyengeziwe yokugcwalisa.",
-          "address": "Ikheli lokudonsa",
-          "instructions": "Imeko",
-          "readyMin": "Ilungele emini (izinsuku ezincane)",
-          "readyMax": "Ilungele emini (izinsuku ezinkulu)"
-        },
         "codCollectedBy": {
           "title": "Ngubani oqokelela imali xa kuhanjiswa",
           "description": "Ukuba umthengisi uhambisa ngezithuthi zakhe, uthatha imali kwaye ukutyala ikhomishini. Ukuba umthwali wakho uhambisa, uthatha imali kwaye utyala umthengisi inzuzo yakhe — kwaye ngumlawuli kuphela onokuphawula loo maodolo njengahlawulweyo. Isebenza kumaodolo amatsha.",
           "vendor": "Umthengisi",
           "platform": "Ivenkile"
+        },
+        "carriers": {
+          "saveFirst": {
+            "test": "Gcina iisetingi zokuthumela phambi kokuvavanya uqhagamshelo",
+            "webhook": "Gcina iisetingi zokuthumela phambi kokwenza i-URL ye-webhook",
+            "disconnect": "Gcina iisetingi zokuthumela phambi kokunqamula inkampani yokuthumela",
+            "pickupLocations": "Gcina iisetingi zokuthumela phambi kokulayisha iindawo zokuthatha"
+          },
+          "webhookGenerated": "I-URL ye-webhook yenziwe",
+          "webhookFailed": "Akukwazekanga ukwenza i-URL ye-webhook",
+          "disconnected": "Inkampani yokuthumela inqanyuliwe",
+          "disconnectFailed": "Akukwazekanga ukunqamula inkampani yokuthumela",
+          "pickupLocationsFailed": "Akukwazekanga ukulayisha iindawo zokuthatha",
+          "shippo": {
+            "labelFormats": {
+              "pdf4x6": "PDF 4×6 (thermal)",
+              "pdf": "PDF (A4 / Letter)"
+            },
+            "description": "I-USPS, UPS, FedEx, DHL kunye neenkampani zokuthumela ezingaphezu kwama-40 kwihlabathi liphela.",
+            "labelFormat": "Ifomathi yelebheli",
+            "liveToken": "Ithokheni ye-API ebukhoma",
+            "modeHint": "I-Shippo ayinayo i-sandbox eyahlukileyo — ithokheni oyisebenzisayo igqiba ukuba ilebheli yeyokwenyani na. Gcina zombini uze utshintshe apha.",
+            "testToken": "Ithokheni ye-API yovavanyo"
+          },
+          "shiprocket": {
+            "pickupPlaceholder": "Khetha indawo yokuthatha",
+            "description": "Iqela leenkampani zokuthumela zase-India — Delhivery, Bluedart, Ekart nezinye.",
+            "email": "I-imeyile yomsebenzisi we-API",
+            "password": "Iphasiwedi yomsebenzisi we-API",
+            "pickupHint": "I-Shiprocket ithumela ukusuka kwigama elibhalise kwidashboard yabo, hayi kwidilesi ebhalwe ngokukhululekileyo. Akukho nto inokuthunyelwa de kukhethwe enye.",
+            "webhookHint": "Seta ixabiso elifanayo kwiisetingi ze-webhook ze-Shiprocket; uhlaziyo lokulandelela olungenalo luyakhatywa.",
+            "webhookToken": "Ithokheni ye-webhook (x-api-key)"
+          },
+          "authFailed": "Le nkampani yokuthumela iyazikhaba iinkcukacha zakho zokungena — akukho nto inokuthunyelwa ngayo.",
+          "authFailedHint": "Hlaziya iinkcukacha zokungena ezingezantsi, uze ucofe Vavanya uqhagamshelo. Isilumkiso siyazicima xa inkampani yokuthumela iyamkela.",
+          "description": "Qhagamshela i-akhawunti yenkampani yokuthumela ukuze uthenge iilebheli zokwenyani kwaye ulandelele iipasile ngokuzenzekelayo. Ukuhlawula kuqhubeka kusebenzisa amaxabiso akho okuthumela.",
+          "disconnect": "Nqamula",
+          "enable": "Vula iinkampani zokuthumela",
+          "mode": "Imeko",
+          "modeLive": "Bukhoma",
+          "modeTest": "Uvavanyo",
+          "originNotSupported": "I-Shiprocket ithumela kuphela ukusuka e-India. Seta ilizwe lemvelaphi yokuthumela ukuba libe yi-India ukuze uyivule.",
+          "pickupLocation": "Indawo yokuthatha",
+          "refreshPickupLocations": "Hlaziya iindawo zokuthatha",
+          "registerWebhook": "Yenza i-URL ye-webhook",
+          "testConnection": "Vavanya uqhagamshelo",
+          "title": "Iinkampani zokuthumela",
+          "webhookUrl": "I-URL ye-webhook — yincamathisele kwidashboard yenkampani yokuthumela"
+        },
+        "addressHold": {
+          "title": "Iidilesi ezingakwazi ukuhanjiselwa",
+          "description": "Xa umthuthi engakwazi ukuhambisa kwidilesi ye-odolo, ukuthunyelwa kuyamiswa kwaye umthengi ucelwa ukuba ayilungise.",
+          "suggestAtCheckout": "Jonga iidilesi ekuhlawuleni",
+          "suggestAtCheckoutHint": "Cebisa ulungiso phambi kokuba i-odolo ifakwe. Umthengi usenokugcina oko akubhalileyo. Kufuna i-akhawunti ye-Shippo eqhagamshelweyo.",
+          "checkAfterOrder": "Jonga iidilesi zee-odolo ezintsha",
+          "checkAfterOrderHint": "Misa i-odolo kwangoko xa idilesi yayo isilela ekujongweni, endaweni yokulinda ukuba umthuthi alikhabe ilebheli.",
+          "autoRequest": "Buza umthengi ngokuzenzekelayo",
+          "autoRequestHint": "Thumela umthengi i-imeyile enekhonkco lokulungisa idilesi kwangoko xa i-odolo imisiwe. Xa icinyiwe, abasebenzi bayayenza.",
+          "reminderDays": "Khumbuza emva (iintsuku)",
+          "reminderDaysHint": "Iintsuku emva kwesicelo sokuqala, zahlulwe ngeekoma. Shiya kungenanto ukuba akufuneki zikhumbuzo.",
+          "deadlineDays": "Umhla wokugqibela (iintsuku)",
+          "deadlineDaysHint": "Ixesha umthengi analo lokuphendula, ukusuka kwisicelo sokuqala.",
+          "onDeadline": "Xa umhla wokugqibela udlula",
+          "onDeadlineNotify": "Yazisa ivenkile uze uyigcine i-odolo imisiwe",
+          "onDeadlineCancel": "Rhoxisa i-odolo uze ubuyisele imali yonke",
+          "keepReturnShipping": "Gcina imali yokubuyisa impahla xa ipasile ibuya",
+          "keepReturnShippingHint": "Xa ipasile ibuyiselwa kumthumeli ngenxa yedilesi embi, ixabiso lelebheli lithatyathwa kwimali ebuyiselwayo. Ii-odolo ezimisiweyo azikaze zithunyelwe, ngoko zisoloko zibuyiselwa imali yonke."
+        },
+        "automation": {
+          "buyLabel": "Thenga ilebheli ngokuzenzekelayo",
+          "buyLabelHint": "Xa icinyiwe kwenziwa idrafti emva kokuthelekisa amaxabiso ize ime, ukuthenga kushiyelwe umntu.",
+          "description": "Yenza uthumelo kwangoko xa i-odolo ihlawulwe yaza yasiwa ekuqhubekeni. Ungasoloko uthumela i-odolo kumthuthi ngesandla endaweni yoko.",
+          "enable": "Vula ukuthumela ngokuzenzekelayo",
+          "fixedServiceHint": "Isazisi senkonzo sakwinkampani yokuthumela. Thumela i-odolo enye kumthuthi ngesandla ukuze ubone iithokheni ezibuyiswa yi-akhawunti yakho.",
+          "fixedServiceToken": "Ithokheni yenkonzo",
+          "includeCod": "Faka ii-odolo zokuhlawula ekufikeni",
+          "includeCodHint": "I-odolo yokuhlawula ekufikeni ayize iphawulwe njengehlawulweyo, ngoko ithunyelwa ngokuzenzekelayo kuphela xa oku kuvuliwe.",
+          "markShipped": "Phawula i-odolo njengethunyelweyo xa ilebheli ithengiwe",
+          "markShippedHint": "Ithumela umthengi inombolo yakhe yokulandelela.",
+          "maxLabelCost": "Yeka xa ixabiso lelebheli lingaphezulu",
+          "maxLabelCostHint": "Ngemali ye-akhawunti yakho yenkampani yokuthumela, hayi eyevenkile.",
+          "maxOrderValue": "Ixabiso eliphezulu le-odolo",
+          "minOrderValue": "Ixabiso elincinci le-odolo",
+          "noLimit": "Akukho mda",
+          "rateChoice": "Leliphi ixabiso ekufuneka lithengwe",
+          "rateChoiceCheapest": "Elona litshiphu",
+          "rateChoiceFastest": "Elona likhawulezayo",
+          "rateChoiceFixed": "Inkonzo ethile",
+          "requiresCarrier": "Qala uqhagamshele inkampani yokuthumela — ngaphandle koko ukuzenzekelayo akunandawo yokuthenga ilebheli.",
+          "restrictCountries": "Yenza ngokuzenzekelayo kuphela ezi ndawo ziyiwayo",
+          "restrictCountriesHint": "Shiya kungenanto ukuze kwenziwe ngokuzenzekelayo zonke iindawo ziyiwayo.",
+          "title": "Ukuthumela ngokuzenzekelayo"
+        },
+        "courierLinks": {
+          "add": "Yongeza umthuthi",
+          "builtIn": "Sele zidityanisiwe ngaphandle kokuseta:",
+          "carrier": "Igama lomthuthi",
+          "description": "Kwiipasile ozifaka ngesandla. Sebenzisa {tracking} apho kufuneka khona inombolo yokulandelela; ikhonkco elingenalo isibambi-ndawo liyongezelelwa inombolo ekugqibeleni.",
+          "remove": "Susa ikhonkco lomthuthi",
+          "title": "Amakhonkco okulandelela abathuthi",
+          "urlTemplate": "I-URL yokulandelela"
+        },
+        "customs": {
+          "ddp": "DDP — qokelela irhafu ekuhlawuleni",
+          "ddu": "DDU — umthengi uhlawula ekufikeni",
+          "deMinimis": "De-minimis (akukho rhafu ngaphantsi kwe)",
+          "description": "Lawula irhafu yokungenisa kwii-odolo eziwela imida. I-DDP iqokelela irhafu eqikelelwayo ekuhlawuleni; i-DDU/DAP ishiyela umthengi ukuba ahlawule irhafu ekufikeni.",
+          "dutyMode": "Ukuphathwa kwerhafu",
+          "dutyRatePercent": "Ireyithi yerhafu eqikelelwayo (%)",
+          "title": "Imithetho yempahla nerhafu"
+        },
+        "packages": {
+          "active": "Iyasebenza",
+          "add": "Yongeza ipakethe",
+          "default": "Ibhokisi esisiseko",
+          "description": "Iibhokisi ekunokuxatyiswa ngazo ikowuti yenkampani yokuthumela. Esisiseko isetyenziswa nanini na xa izinto ze-odolo zingenabo ubukhulu bazo.",
+          "empty": "Akukabikho zipakethe. Amaxabiso eenkampani zokuthumela afuna ubuncinane ibhokisi enye.",
+          "emptyWeight": "Ubunzima xa ingenanto",
+          "height": "Ukuphakama",
+          "length": "Ubude",
+          "maxWeight": "Ubunzima obuphezulu",
+          "name": "Igama",
+          "newName": "Ibhokisi entsha",
+          "noLimit": "Akukho mda",
+          "remove": "Susa ipakethe",
+          "title": "Iipakethe ezigciniweyo",
+          "unit": "Iyunithi",
+          "width": "Ububanzi"
+        },
+        "vendorShipping": {
+          "description": "Xa ivuliwe, izinto zomthengisi ngamnye kwinqwelo yabathengisi abaninzi zixatyiswa ngokweprofayile yokuthumela yomthengisi ngokwakhe (kubuyelwe kule profayile yeqonga). Ukuthumela kuhlawuliswa kwaye kwabiwe ngomthengisi ngamnye.",
+          "title": "Ukuthumela ngomthengisi ngamnye"
+        },
+        "weightUnit": {
+          "help": "Iyunithi esetyenziselwa ubunzima beemveliso namaxabiso okuthumela ngokobunzima.",
+          "kg": "Iikhilogram (kg)",
+          "label": "Iyunithi yobunzima",
+          "lb": "Iiponti (lb)"
         }
       },
       "twoFactor": {
         "title": "Ukuziqinisekisa Ngokumbalwa",
-        "description": "Vula futhi cwangcisa amajamo e-2FA nangabahluki bet roles",
+        "description": "Vula ungqinisiso lwamanyathelo amabini uze ukhethe ukuba zeziphi iindima ezinokulumisela",
         "enable": "Vula Ukuziqinisekisa Ngokumbalwa",
-        "enableDesc": "Vumela abasebenzisi ukuthi basethe i-2FA kuma-accounts abo",
-        "requirements": "Amajamo e-2FA Ngokusekelwe Kumhlulukiso",
-        "admin": "Adingekayo for Abaphathi",
-        "adminDesc": "Amaccouts omphathi kudinga avule i-2FA",
-        "vendor": "Adingekayo for Abathengisi",
-        "vendorDesc": "Amaccouts omthengisi kudinga avule i-2FA",
-        "save": "Landa Izicwangciso Ze-2FA"
+        "admin": "Vula kubaphathi",
+        "vendor": "Vula kubathengisi",
+        "save": "Gcina izicwangciso ze-2FA",
+        "enableFirstHint": "Vula ukuqinisekisa ngeendlela ezimbini ukuze uyinike abalawuli, abathengisi okanye abasebenzi.",
+        "staff": "Vula kubasebenzi"
       },
       "oauth": {
         "title": "I-OAuth / Ukungena Kwe-Social",
         "description": "Cwangcisa abahlinzeki bokungena nge-social (Google, Facebook)",
         "google": {
-          "label": "I-Google Sign-In",
+          "label": "Ukungena nge-Google",
           "description": "Vumela abasebenzisi ukuthi bangene nge-akhawunti ye-Google",
           "clientId": "I-Google Client ID",
           "clientSecret": "I-Google Client Secret",
@@ -1197,7 +1495,7 @@
           "step6": "Khuphela i-Client ID ne-Client secret kwiindawo ezingasentla, ugcine, uze ucofe u-Qinisekisa iinkcukacha. Abathengi abatsha be-Google banokuthatha imizuzu embalwa ngaphambi kokuba basebenze."
         },
         "facebook": {
-          "label": "I-Facebook Sign-In",
+          "label": "Ukungena nge-Facebook",
           "description": "Vumela abasebenzisi ukuthi bangene nge-akhawunti ye-Facebook",
           "appId": "I-Facebook App ID",
           "appSecret": "I-Facebook App Secret",
@@ -1209,7 +1507,8 @@
           "step4b": "uze wongeze",
           "step4c": "phantsi kwe-App domains. I-Meta ikwafuna i-URL yoMgaqo-nkqubo wabucala ngaphambi kokuba usetyenziso lube semoyeni.",
           "step5": "Khuphela i-App ID ne-App Secret kwiindawo ezingasentla, ugcine, uze ucofe u-Qinisekisa iinkcukacha.",
-          "step6": "Tshintsha usetyenziso ukusuka ku-Development uye ku-Live. Ude wenze njalo, ngabantu abanendima kusetyenziso kuphela abanokungena nge-Facebook."
+          "step6": "Tshintsha usetyenziso ukusuka ku-Development uye ku-Live. Ude wenze njalo, ngabantu abanendima kusetyenziso kuphela abanokungena nge-Facebook.",
+          "appIdPlaceholder": "I-ID ye-app ye-Facebook"
         },
         "save": "Landa Izicwangciso Ze-OAuth",
         "activeCount": "{count} esebenzayo",
@@ -1224,7 +1523,9 @@
         "copyFailed": "Ayikwazanga ukukhuphela i-URL",
         "setupGuide": "Indlela yokuyiseta (inyathelo ngenyathelo)",
         "verify": "Qinisekisa iinkcukacha",
-        "verifyHint": "Ukuqinisekisa kuvavanya i-ID nemfihlo kumboneleli. Ukuba i-redirect URI ibhalisiwe kusiba nobungqina kuphela ngokungena kokwenyani."
+        "verifyHint": "Ukuqinisekisa kuvavanya i-ID nemfihlo kumboneleli. Ukuba i-redirect URI ibhalisiwe kusiba nobungqina kuphela ngokungena kokwenyani.",
+        "verified": "Iinkcukacha zokungena ziqinisekisiwe",
+        "verifyFailed": "Ukuqinisekisa kusilele"
       },
       "pos": {
         "title": "Ukufinyelela Oku-POS",
@@ -1237,21 +1538,19 @@
         "vendor": "Abathengisi",
         "vendorDesc": "Vumela abathengisi ukuthi bathengise nge-POS",
         "general": "Jikelele",
-        "language": "Ulimi",
         "defaultLocation": "I-ID Yendawo Ye-POS Eqanjiwe",
         "customize": "Yenza ngokwezifiso",
         "printedReceipts": "Amarekhidi akhiwe",
         "checkout": "Checkulti",
         "offlinePayments": "Ukubhadala ngaphandle kwe-intanethi",
         "orders": "I-oderi",
-        "orderNumberPrefix": "I-Order number prefix",
+        "orderNumberPrefix": "Isiqalo senombolo yeodolo",
         "orderNumberPrefixHint": "I-POS entsha isebenzisa le prefix nenombolo ye-6-digit.",
         "save": "Landa Izicwangciso Ze-POS",
         "enabled": "Isebenzayo",
         "disabled": "Kvaliwe",
         "accessDesc": "Lawula ukuthi yibaphi abasebenzisi abangafinyelela kuleterminal ye-POS",
         "generalDesc": "Cwangcisa ulimi lwangaphambilini nendawo ye-POS",
-        "languageHint": "Ulimi olusetshenziswa kulterminal ye-POS",
         "selectLocation": "Khetha indawo",
         "noLocation": "Ayikabikho indawo ejwayelekile",
         "defaultBadge": "Okujwayelekile",
@@ -1261,18 +1560,16 @@
         "paymentMethods": "Indlela Yokubhadala Evumelekile",
         "paymentCash": "Imali",
         "paymentCashDesc": "Yamukela ukubhadala ngemali",
-        "paymentCard": "Ikhadi",
-        "paymentCardDesc": "Yamukela amakhadi ekhredithi/debithi",
+        "paymentCard": "Ikhadi (Stripe)",
+        "paymentCardDesc": "Yamkela iintlawulo zekhadi lekhredithi/ledebhithi nge-Stripe",
         "paymentManual": "Okuzenzakalelayo",
         "paymentManualDesc": "Indlela yokubhadala eqanjiwe",
         "offlinePaymentsDesc": "Process payments uma idivayisi iphumeile",
         "customizeDesc": "Yenza ngokwezifiso ukubukeka nokwenza kwaluterminal ye-POS",
         "printedReceiptsDesc": "Printa amarekhidi ngemuva kwanoma yiluphi udluliselo",
-        "minutes": "izinsuku",
         "receiptPrinter": "I-Receipt Printer",
-        "receiptPrinterPlaceholder": "e.g. Star TSP143",
+        "receiptPrinterPlaceholder": "umz. Star TSP143",
         "ordersDesc": "Cwangcisa amajamo okubuyisela we-POS orders",
-        "days": "izinsuku",
         "sound": "Ukusebenza kwe-Sound",
         "soundDesc": "Cwangcisa ukunikezwa kwe-audio kulterminal ye-POS",
         "soundEnable": "Vula Ukusebenza Kwe-Sound",
@@ -1285,59 +1582,44 @@
         "soundOrderComplete": "I-oderi Iphelele",
         "soundOrderCompleteDesc": "Chime lapho order iphelile",
         "soundError": "I-Alert Yephutha",
-        "soundErrorDesc": "I-alert sound yephutha ne warnings zestock"
-      },
-      "locations": {
-        "title": "Izindawo Ze-Inventri",
-        "description": "Lawula izindawo ze-warehouse namastor",
-        "add": "Faka Indawo Entsha",
-        "new": "Indawo Entsha",
-        "name": "Igama Lendawo",
-        "address": "Ikheli",
-        "setAsDefault": "Faka njengendawo ejwayelekile",
-        "create": "Yenza Indawo",
-        "existing": "Izindawo Ezikhona",
-        "empty": "Ayikabikho indawo ecwangcwisiwe namhlanje",
-        "emptyHint": "Faka indawo yakho yokuqala ukuze uqale ukulandelwa kweinventri endaweni",
-        "active": "Isebenzayo",
-        "default": "Okujwayelekile",
-        "defaultBadge": "Okujwayelekile",
-        "inactive": "Ayisebenzi",
-        "infoTitle": "Mayelana Nezindawo",
-        "info1": "Izindawo zisebenziselwa ukulandelwa kweinventri endaweni ezingenantambo nasemastoreni",
-        "info2": "Indawo ejwayelekile isetshenziswa we-POS nokwanda kweinventri entsha",
-        "info3": "Izindawo ezingasebenziyo azizoveza kwi-forms ze-product inventri",
-        "info4": "Ungasisu indawo esethiwe njengokujwayelekile"
+        "soundErrorDesc": "I-alert sound yephutha ne warnings zestock",
+        "paymentBank": "Ukudlulisela ngebhanki",
+        "paymentBankDesc": "Yamkela ukudluliselwa ngebhanki ngesalathiso",
+        "seller": "Abasebenzi",
+        "sellerDesc": "Vumela abasebenzi ukuba benze intengiso nge-POS"
       },
       "vendorPermissions": {
-        "title": "Amalungeloombuki Ajwayelekile",
-        "description": "Cwangcisa amalungelo ajwayelekile abathengisi abasha",
-        "warning": "Vula Indlela Ye-Multi-Vendor ukuze ulawule amalungeloombuki.",
-        "manageProducts": "Lawula Iimveliso",
-        "viewOrders": "Buka I-oderi",
-        "manageOrders": "Lawula I-oderi",
-        "manageSettings": "Lawula Izicwangciso Zestore",
-        "viewAnalytics": "Buka I-Analytics",
-        "manageDiscounts": "Manage Discounts",
-        "managePayouts": "Lawula Ukupayav",
-        "accessPOS": "Finyelela I-POS",
-        "save": "Landa Amallungeloombuki"
+        "title": "Umgaqo-nkqubo wemarike",
+        "description": "Iswitshi enye kwisakhono ngasinye, kulo lonke iqonga. Ezi aziyiyo imimiselo esisiseko yabathengisi abatsha — nganye isebenza kwangoko kuyo yonke ivenkile ekhoyo.",
+        "warning": "Vula imowudi yabathengisi abaninzi ukuze umisele umgaqo-nkqubo wemarike.",
+        "liveWarning": "Ukucima enye kususa eso sakhono kuwo wonke umthengisi kule marike ngaxeshanye, hayi kwabatsha kuphela. Umthengisi odibana nayo ubona iphepha elichaza le setingi njengesizathu.",
+        "packAiStudio": "Ukubhala nge-AI kwiintengiso nemidiya",
+        "packAnalytics": "Iingxelo zentengiso nezendwendwe",
+        "packBoosts": "Ukuthenga iindawo ezixhaswayo",
+        "packCatalog": "Iimveliso neebrendi",
+        "packDiscounts": "Iikhuphoni namaphulo esaphulelo",
+        "packInbox": "Imiyalezo ngeendlela ezininzi nokuseta iindlela",
+        "packOrders": "Uluhlu lwee-odolo, ukuzalisekisa, ukubuyisa",
+        "packPayouts": "Ibhalansi nezicelo zokurhoxisa imali ngokwakho",
+        "packPos": "Ukuthengisa ubuso ngobuso",
+        "packStaff": "Ukumema nokulawula izihlalo zevenkile",
+        "packStorefront": "Iphepha levenkile, uphawu, iisetingi zokuthumela"
       },
       "storage": {
-        "title": "Izicwangciso Ze-Storage",
+        "title": "Izicwangciso zokugcina",
         "description": "Cwangcisa umhlinzeki we-file storage we-media uploads",
         "accountId": "I-R2 Account ID",
         "cloudflareR2": "Cloudflare R2",
         "cloudflareR2Desc": "I-S3-compatible storage ngaphandle kwe-egress fees",
         "awsS3": "AWS S3",
-        "awsS3Desc": "Amazon S3 object storage",
-        "endpoint": "Endpoint URL",
+        "awsS3Desc": "Indawo yokugcina izinto ye-Amazon S3",
+        "endpoint": "I-URL ye-endpoint",
         "region": "I-AWS Region",
-        "bucketName": "Igama Lebhukhis",
+        "bucketName": "Igama lebhakethi",
         "accessKeyId": "I-Access Key ID",
         "secretAccessKey": "I-Secret Access Key",
-        "publicUrl": "I-URL Yomphakatho / I-CDN (Okhethiwe)",
-        "testConnection": "Test Connection",
+        "publicUrl": "I-URL yoluntu / CDN (ayinyanzelekanga)",
+        "testConnection": "Vavanya uqhagamshelo",
         "uploadSettings": "Izicwangciso Zokulayisha",
         "pathPrefix": "I-Path Prefix",
         "save": "Landa Izicwangciso Zestorage",
@@ -1360,23 +1642,25 @@
           "r2SecretKey": "I-R2 Secret Access Key yakho",
           "r2AccountId": "1234567890abcdef",
           "cdnUrl": "https://cdn.example.com",
-          "r2Url": "https://pub-xxxx.r2.dev"
+          "r2Url": "https://pub-xxxx.r2.dev",
+          "privateBucket": "my-store-private"
         },
         "help": {
           "cloudfront": "CloudFront noma i-domain yendaba yokukhonsa amafayela alayishiwe",
-          "r2Domain": "I-R2.dev subdomain noma i-domain yendaba yokukhonsa amafayela alayishiwe",
-          "r2FindOverview": "Fumana lokhu ku-Cloudflare Dashboard"
+          "r2Domain": "I-subdomain ye-R2.dev yebhakethi lakho okanye idomeyini yakho eqhagamshelweyo — iyafuneka ukuze iifayile ezilayishiweyo zinikezelwe esidlangalaleni",
+          "r2FindOverview": "Fumana lokhu ku-Cloudflare Dashboard",
+          "privateBucket": "Amaxwebhu obuqu, iimveliso zedijithali neerisithi zeendleko zigcinwa apha, kwaye zivulwa kuphela likhonkco elisayiniweyo. Yenze kwi-akhawunti enye, ufikelelo lukawonke-wonke lucinyiwe kwaye kungekho domeyini idityanisiweyo; izitshixo ezingasentla kufuneka zivunyelwe ukuyisebenzisa."
         },
         "minio": "MinIO",
-        "minioDesc": "Self-hosted S3 on your own server — no cloud account needed",
+        "minioDesc": "I-S3 ebanjwe nguwe kwiseva yakho — akufuneki akhawunti yefu",
         "digitalocean": "DigitalOcean Spaces",
-        "digitaloceanDesc": "Spaces object storage with a built-in CDN",
-        "providerConfig": "{provider} Configuration",
-        "minioEndpointHelp": "The MinIO API URL — port 9000 by default. Must be reachable from this server.",
-        "minioPublicUrlHelp": "Where browsers load the files from. Usually the same host; add a CDN or reverse-proxy URL here if you use one.",
-        "spacesPublicUrlHelp": "Leave blank to serve from the Space directly, or paste the CDN endpoint (…cdn.digitaloceanspaces.com) for edge caching.",
+        "digitaloceanDesc": "Indawo yokugcina izinto ye-Spaces ene-CDN eyakhelwe ngaphakathi",
+        "providerConfig": "Uqwalaselo lwe-{provider}",
+        "minioEndpointHelp": "I-URL ye-MinIO API — i-port 9000 ngokungagqibekanga. Kufuneka ifikeleleke ukusuka kule seva.",
+        "minioPublicUrlHelp": "Apho iibhrawuza zilayisha khona iifayile. Ngokuqhelekileyo yi-host efanayo; yongeza i-CDN okanye i-URL ye-reverse-proxy apha ukuba uyayisebenzisa.",
+        "spacesPublicUrlHelp": "Shiya kungenanto ukuze kunikwe ngqo ukusuka kwi-Space, okanye uncamathisele i-endpoint ye-CDN (…cdn.digitaloceanspaces.com) ukuze kugcinwe kufutshane nabasebenzisi.",
         "localRetired": {
-          "title": "Local storage has been retired",
+          "title": "Indawo yokugcina yasekuhlaleni isusiwe",
           "body": "Iifayile esele zikule seva ziyaqhubeka zilayisha, kodwa ulayisho olutsha lufuna omnye wababoneleli abangezantsi. Khetha omnye, ufake iinkcukacha zakhe, uze uvule “Fudusa iifayile onazo kakade” — kukho imiyalelo kunye nokugcinwa okufuneka ukwenze phambi kokuthunyelwa okulandelayo."
         },
         "setup": {
@@ -1394,14 +1678,14 @@
             "bucket": "Kwideshbhodi ye-Cloudflare vula i-R2 → Create bucket. Igama layo lifakwa kwiGama lebhakethi apha ngentla.",
             "token": "R2 → Manage R2 API Tokens → Create API token, imvume Object Read & Write, ibekelwe loo bhakethi kuphela. Khuphela zombini iindawo kwi-Access Key ID nakwi-Secret Access Key apha ngentla — imfihlo iboniswa kanye kuphela.",
             "account": "Khuphela i-Account ID eneempawu ezingama-32 kwibha esecaleni yephepha le-R2 uyifake kwi-R2 Account ID.",
-            "public": "Ibhakethi → Settings → Public access: vula i-subdomain ye-r2.dev okanye udibanise idomeyini yakho, uze uncamathisele elo dilesi kwi-Public URL.",
+            "public": "Ibhakethi → Settings → Public access: vula i-subdomain ye-r2.dev okanye udibanise idomeyini yakho, uze uncamathisele elo dilesi kwi-URL yoluntu.",
             "test": "Cofa uVavanyo lonxibelelwano, uze ugcine. Uvavanyo lulayisha ifayile yovavanyo luze luyifunde kwakhona nge-public URL, ngoko luyasilela ukuba unqumle inyathelo elidlulileyo.",
-            "caution": "Ngaphandle kwe-Public URL wonke umfanekiso wemveliso ubuyisela u-403 kwibhrawuza nangona iinkcukacha zokungena zibonakala zilungile — iifayile zisuka kwi-endpoint yabucala ye-R2, engafundekiyo ngaphandle kokungena. Idomeyini yakho ingcono kune-r2.dev: i-CDN ye-Cloudflare iphendula izicelo ezigciniweyo ingayibizi mali ibhakethi."
+            "caution": "Ngaphandle kwe-URL yoluntu wonke umfanekiso wemveliso ubuyisela u-403 kwibhrawuza nangona iinkcukacha zokungena zibonakala zilungile — iifayile zisuka kwi-endpoint yabucala ye-R2, engafundekiyo ngaphandle kokungena. Idomeyini yakho ingcono kune-r2.dev: i-CDN ye-Cloudflare iphendula izicelo ezigciniweyo ingayibizi mali ibhakethi."
           },
           "s3": {
             "bucket": "Yenza ibhakethi kwikhonsoli ye-S3 uze uqaphele ummandla wayo — kufuneka ufane nommandla okhethwe apha ngentla.",
             "iam": "IAM → yenza umsebenzisi onofikelelo lweenkqubo kunye nomgaqo onika ezi zenzo kuloo bhakethi:",
-            "public": "Vumela ukufundwa ngabantu ngomgaqo webhakethi, okanye ubeke i-CloudFront ngaphambili, uze uncamathisele idilesi efumanekayo kwi-Public URL.",
+            "public": "Vumela ukufundwa ngabantu ngomgaqo webhakethi, okanye ubeke i-CloudFront ngaphambili, uze uncamathisele idilesi efumanekayo kwi-URL yoluntu.",
             "test": "Ncamathisela isibini sezitshixo apha ngentla, ucofe uVavanyo lonxibelelwano, uze ugcine.",
             "caution": "Iibhakethi ezintsha zifika i-Block all public access ivuliwe. Yiyeke ivuliwe kuphela ukuba usebenzisa i-CloudFront — kungenjalo wonke umfanekiso evenkileni uya kubuyisela u-403."
           },
@@ -1409,7 +1693,7 @@
             "run": "Qhuba i-MinIO ecaleni kwe-app — i-Coolify ne-Dokploy zombini zinetemplethi yokucofa kanye. Faka i-volume ku-/data, kungenjalo ukuthunyelwa okulandelayo kuya kuthatha zonke iifayile ezilayishiweyo.",
             "keys": "Vula ikhonsoli ye-MinIO (isiqhagamshelanisi 9001 ngokumiselweyo), yenza ibhakethi, uze uye kwi-Access Keys → Create access key.",
             "public": "Vumela iibhrawuza zifunde ibhakethi:",
-            "fields": "I-Endpoint URL yidilesi ye-API (isiqhagamshelanisi 9000), ayisiyo ikhonsoli. Ummandla unokuhlala ungu-us-east-1 — i-MinIO ayiwuhoyi. I-Public URL yindawo iibhrawuza ezifikelela kuyo ibhakethi.",
+            "fields": "I-Endpoint URL yidilesi ye-API (isiqhagamshelanisi 9000), ayisiyo ikhonsoli. Ummandla unokuhlala ungu-us-east-1 — i-MinIO ayiwuhoyi. I-URL yoluntu yindawo iibhrawuza ezifikelela kuyo ibhakethi.",
             "test": "Cofa uVavanyo lonxibelelwano, uze ugcine.",
             "caution": "Nikezela i-MinIO nge-HTTPS kwi-subdomain yayo. Iibhrawuza zivala umxholo oxubeneyo, ngoko i-endpoint ye-http:// yonakalisa yonke imifanekiso kwivenkile ye-HTTPS."
           },
@@ -1417,7 +1701,7 @@
             "space": "Spaces Object Storage → Create a Space. Iziko ledatha olikhethayo liyi-endpoint (nyc3, fra1, sgp1…), ngoko khetha elikufuphi nabathengi bakho uze ukhethe loo mmandla mnye apha ngentla.",
             "keys": "API → Spaces Keys → Generate New Key, uze ukhuphele zombini iindawo kwi-Access Key ID nakwi-Secret Access Key.",
             "public": "Space → Settings → misela i-File Listing ibe yeyoluntu, okanye uvule i-CDN.",
-            "test": "Yiyeke i-Public URL ingenanto ukuze unikezele ngqo ukusuka kwi-Space, okanye uncamathisele i-endpoint ye-CDN (…cdn.digitaloceanspaces.com) ukuze unikezele ukusuka emaphethelweni. Emva koko vavanya unxibelelwano uze ugcine.",
+            "test": "Yiyeke i-URL yoluntu ingenanto ukuze unikezele ngqo ukusuka kwi-Space, okanye uncamathisele i-endpoint ye-CDN (…cdn.digitaloceanspaces.com) ukuze unikezele ukusuka emaphethelweni. Emva koko vavanya unxibelelwano uze ugcine.",
             "caution": "Igama le-Space liGama lebhakethi apha ngentla, kwaye i-Space ayinakushenxiselwa kwelinye iziko ledatha emva koko — ummandla wayo umiselwa xa uyenza."
           }
         },
@@ -1427,10 +1711,21 @@
           "step1": "Misela umboneleli apha ngentla uze ucofe uVavanyo lonxibelelwano — ufuduso lulayisha kuko oko kugciniweyo apha.",
           "step2": "Fudusa iinkcukacha zokungena ezigciniweyo ziye kubume bomboneleli ngamnye. Kukhuselekile kuyo nayiphi na inguqulelo, kwaye akwenzi nto emva kokusebenza kanye.",
           "step3": "Layisha iifayile zalapha uze ubhale ngokutsha ii-URL zazo kuyo yonke idatabheyisi. Uvavanyo olomileyo ludwelisa yonke ifayile lungabhali nto.",
-          "step4": "Jonga ivenkile kunye ne-Media Library. Akukho nto isuswayo kwidiski, ngoko susa iikopi zalapha ngesandla xa imifanekiso isele ivela.",
+          "step4": "Jonga ivenkile kunye neThala leMidiya. Akukho nto isuswayo kwidiski, ngoko susa iikopi zalapha ngesandla xa imifanekiso isele ivela.",
           "backup": "Ngaphambi kokuthunyelwa okulandelayo: ukuba indlela yakho yokuhlaziya ibuyisela ifolda ye-app — ukulayisha nge-cPanel, ukubhala phezu kwe-zip, isikhongozeli esingenayo i-volume — qala ngokukhuphela iifayile zemidiya zisuke kwiseva. Ukutshintsha ifolda kuyazicima.",
           "note": "Ifayile engalayishekiyo igcina i-URL yayo yalapha, ngoko ukusebenza okungaphelelanga kushiya ivenkile esebenzayo endaweni yesonakeleyo. Ukuyiphinda kukhuselekile."
-        }
+        },
+        "testSucceeded": "Uqhagamshelo lwendawo yokugcina luphumelele!",
+        "testRejected": "Uqhagamshelo lusilele",
+        "testFailed": "Akukwazekanga ukuvavanya uqhagamshelo",
+        "statusFailed": "Akukwazekanga ukujonga ubume bendawo yokugcina",
+        "maxImageSize": "Ubungakanani Obuphezulu Bomfanekiso (MB)",
+        "maxVideoSize": "Ubungakanani Obuphezulu Bevidiyo (MB)",
+        "maxModelSize": "Ubungakanani Obuphezulu Bemodeli ye-3D (MB)",
+        "privateBucketMissing": "Akukho bhakethi yabucala: amaxwebhu obuqu, iimveliso zedijithali neerisithi zeendleko zigcinwa kwibhakethi kawonke-wonke engasentla, apho nabani na onedilesi yefayile anokuyivula. Yongeza ibhakethi yabucala, uze usebenzise pnpm db:migrate private-storage ukuze ususe iifayile esele zigciniwe.",
+        "privateBucketName": "Ibhakethi yabucala",
+        "publicUrlR2": "I-URL kawonke-wonke / CDN (Iyafuneka)",
+        "r2PublicUrlMissing": "Ngaphandle kwe-URL kawonke-wonke, iifayile ezilayishiweyo azinakubonakaliswa kwivenkile yakho — ii-URL zemifanekiso nezevidiyo ziza kukhomba kwi-endpoint yabucala ye-R2 zize zingalayishi. Kwi-Cloudflare Dashboard → R2 → ibhakethi yakho → Settings → Public access, vula i-subdomain ye-R2.dev (okanye udibanise idomeyini yakho) uze uncamathisele loo URL apha."
       },
       "analytics": {
         "title": "Ukuhlanganiswa Kwe-Analytics",
@@ -1444,7 +1739,7 @@
         "tiktokPixelId": "I-TikTok Pixel ID",
         "tiktokPixelIdPlaceholder": "C1234567890ABCDEF",
         "plausibleTitle": "I-Plausible Analytics",
-        "plausibleDomain": "I-Domain Site",
+        "plausibleDomain": "Idomeyini yesayithi",
         "plausibleDomainPlaceholder": "i-domain yakho.com",
         "plausibleDomainHelp": "Faka i-domain kuphela.",
         "plausibleApiKey": "I-API Key",
@@ -1454,9 +1749,6 @@
         "plausibleBaseUrl": "I-Custom Instance URL",
         "plausibleBaseUrlPlaceholder": "https://plausible.yakho.com",
         "save": "Landa Izicwangciso Ze-Analytics"
-      },
-      "abandonedCarts": {
-        "title": "Izinqwama Ezishiywe"
       },
       "loadError": "Kuhlulekile ukulayisha izicwangciso",
       "unsavedChanges": {
@@ -1470,12 +1762,12 @@
         "description": "Indawo enye yokucwangcisa umxholo we-AI Studio, i-SEO, kunye nokuvelisa imifanekiso.",
         "statusConfigured": "Kucwangcisiwe",
         "statusNotConfigured": "Ayikacwangciswa",
-        "enabled": "Vula iinkonzo ze-AI",
-        "enabledHint": "Ivula okanye icime i-AI Studio kunye nawo onke amaqhosha e-AI kwi-dashboard yonke.",
+        "enabled": "Vula i-AI Studio",
+        "enabledHint": "Ivula okanye icime i-AI Studio kunye nawo onke amaqhosha e-AI kwi-dashboard yonke. UMncedisi weNtengiso we-AI unoqhosha lwakhe olwahlukileyo kwiphepha lakhe.",
         "apiKey": "Isitshixo se-OpenAI API",
         "apiKeySetPlaceholder": "••••••••  (kugciniwe — faka isitshixo esitsha ukuze utshintshe)",
         "apiKeyHint": "Isetyenziswa yi-AI Studio kunye noMncedisi weNtengiso we-AI. Yiyeke ingenanto ukuze uqhubeke usebenzisa i-environment variable ethi OPENAI_API_KEY.",
-        "testConnection": "Test Connection",
+        "testConnection": "Vavanya uqhagamshelo",
         "testFailed": "Kuhlulekile uvavanyo lokuxhuma",
         "textModel": "Imodeli yombhalo",
         "imageModel": "Imodeli yomfanekiso",
@@ -1516,7 +1808,13 @@
         "primaryColor": "Umbala Ophambili Wophawu",
         "secondaryColor": "Umbala Wesibili Wophawu",
         "logoUrl": "I-URL Yelogo Yophawu",
-        "logoUrlHint": "Layisha ilogo yakho kwivenkile, emva koko ufake i-URL yayo apha. Isetyenziswa njengophawu olukhethekayo kwimifanekiso ekhutshelwa unxibelelwano lwabantu."
+        "logoUrlHint": "Layisha ilogo yakho kwivenkile, emva koko ufake i-URL yayo apha. Isetyenziswa njengophawu olukhethekayo kwimifanekiso ekhutshelwa unxibelelwano lwabantu.",
+        "modelNotes": {
+          "fastLowCost": "ekhawulezayo, iindleko eziphantsi",
+          "higherQuality": "umgangatho ophezulu",
+          "bestQuality": "umgangatho ophezulu kakhulu",
+          "lowerCost": "iindleko eziphantsi"
+        }
       },
       "saveChanges": "Landa Shintsho",
       "boosting": {
@@ -1557,6 +1855,396 @@
         "authentication": "Ukuziqinisekisa",
         "growth": "Ukukhula",
         "advanced": "Okuhambele Phambili"
+      },
+      "fields": {
+        "envSourceHint": "Isetwe nge-environment variable. Ixabiso eligcinwe apha liyayithatha indawo yayo.",
+        "configured": "Imiselwe",
+        "notConfigured": "Ayikamiselwa",
+        "mode": {
+          "live": "Bukhoma",
+          "sandbox": "Sandbox",
+          "test": "Uvavanyo"
+        },
+        "savedPlaceholder": "Kugciniwe (shiya kungenanto ukuze kugcinwe)",
+        "savedKeysHint": "Ngenxa yokhuseleko, izitshixo ezigciniweyo azibonakaliswa kwakhona.",
+        "savedSecretsHint": "Ngenxa yokhuseleko, iimfihlo ezigciniweyo azibonakaliswa kwakhona.",
+        "savedPasswordsHint": "Ngenxa yokhuseleko, iiphasiwedi ezigciniweyo azibonakaliswa kwakhona.",
+        "enableProvider": "Vula {name}"
+      },
+      "demoMode": "Imowudi yomboniso",
+      "vendorConfig": {
+        "paymentMethods": {
+          "description": "Iindlela zokuhlawula abathengisi abanokuzisebenzisa ukuhlawulela umrhumo wesicwangciso sabo. I-Stripe iyazihlaziya ngokwayo; ezinye iindlela zihlawulisa ixesha elinye ngexesha, kunye nesikhumbuzo sokuhlaziya. Iinkcukacha zokungena zimiselwa kwiiSetingi zeNtlawulo.",
+          "title": "Iindlela zokuhlawula umrhumo"
+        },
+        "allowRegistration": {
+          "description": "Vumela abantu bafake isicelo sokuba ngabathengisi ukusuka evenkileni.",
+          "label": "Vumela ubhaliso lwabathengisi"
+        },
+        "commission": {
+          "byCurrencyAdd": "Yongeza imali",
+          "byCurrencyAmount": "Intlawulo encinci nge-{currency}",
+          "byCurrencyCode": "Ikhowudi yemali",
+          "byCurrencyDescription": "Iintlawulo ngemali engeyiyo i-{currency} zisebenzisa owazo umda omncinci. Imali engadweliswanga apha ayinamda mncinci.",
+          "byCurrencyLabel": "Umda omncinci kwezinye iimali",
+          "byCurrencyRemove": "Susa umda omncinci we-{currency}",
+          "description": "Isebenza kubathengisi abangenaso isicwangciso. Ikwalungiseka phantsi kweeSetingi zee-Odolo.",
+          "minWithdrawalDescription": "Eyona bhalansi incinci umthengisi anokuyicela njengentlawulo, ngemali yevenkile yakho.",
+          "minWithdrawalLabel": "Isixa esincinci sokurhoxisa imali",
+          "rateDescription": "Ipesenti eqongwa liqonga kwintengiso nganye yomthengisi.",
+          "rateLabel": "Ireyithi yekhomishini",
+          "title": "Ikhomishini esisiseko"
+        },
+        "description": "Umgaqo-nkqubo wobhaliso, ukuvunywa kunye nezicwangciso zomrhumo zabathengisi.",
+        "documents": {
+          "manageLink": "Vula Indlela Yokungeniswa",
+          "movedDescription": "Amaxwebhu afunekayo — nayo yonke intsimi yokungeniswa — ngoku alawulwa kumakhi weNdlela Yokungeniswa, apho unokwenza nayiphi na intsimi ibe nyanzelekile, uyifihle, ulungelelanise amanyathelo ngokutsha, okanye wongeze iintsimi zakho.",
+          "title": "Amaxwebhu neentsimi ezifunekayo"
+        },
+        "marketplaceOff": "Vula uLawulo lwaBathengisi Abaninzi ukuze umisele umgaqo-nkqubo wabathengisi.",
+        "plans": {
+          "title": "Izicwangciso nemirhumo"
+        },
+        "plansEnabled": {
+          "description": "Bonisa abathengisi inyathelo lesicwangciso ngexesha lokungeniswa. Xa icinyiwe, abathengisi basebenzisa ikhomishini esisiseko.",
+          "label": "Vula izicwangciso zomrhumo"
+        },
+        "registration": {
+          "title": "Ubhaliso nokuvunywa"
+        },
+        "requirePlanSelection": {
+          "description": "Abafaki-zicelo kufuneka bakhethe isicwangciso phambi kokugqiba. Kungenjalo kusetyenziswa isicwangciso esisiseko.",
+          "label": "Funa isicwangciso ekubhaliseni"
+        },
+        "title": "Uqwalaselo lwaBathengisi"
+      },
+      "sms": {
+        "authTokenPlaceholder": "Faka i-Auth Token",
+        "authTokenHint": "Ikwaqinisekisa iirisithi zokuhanjiswa kwe-Twilio. Iithokheni ezigciniweyo azibonakaliswa kwakhona.",
+        "messagingServiceSidHint": "Kuyacetyiswa. I-Twilio ikhetha umthumeli ofanelekileyo kwindawo nganye kwaye iphatha iimpendulo ze-STOP.",
+        "fromNumberHint": "Isetyenziswa xa kungekho Messaging Service: inombolo ye-Twilio, okanye i-ID yomthumeli eneeleta kunye nenombolo apho amazwe othumela kuwo ayivumelayo.",
+        "defaultCountryPlaceholder": "Sebenzisa ilizwe lemvelaphi yokuthumela",
+        "defaultCountryHint": "Ifunda iinombolo ze-akhawunti ezigciniweyo ngaphandle kwekhowudi yelizwe. Iifowuni zee-odolo zihlala zifundwa ngokwelizwe lazo lokuthunyelwa.",
+        "includeLinksHint": "Yongeza iphepha le-odolo okanye lokulandelela. Ikhonkco lidla ngokutyhalela umyalezo kwinxalenye yesibini, ehlawulwa njengomnye umyalezo.",
+        "consentNote": "Abathengi bafumana i-SMS kwifowuni ekwi-odolo yabo, kwaye banokuphuma kwi-Akaunti → Izinto Ezithandwayo okanye ngokuphendula STOP. Abalawuli, abasebenzi nabathengisi bayifumana kwifowuni ye-akhawunti okanye yevenkile yabo. Khetha iziganeko kwi-<link>Iisetingi zezaziso</link>. Bhalela kuphela abo bavumileyo ukuva kuwe.",
+        "testSent": "I-SMS yovavanyo ithunyelwe",
+        "testFailed": "Akukwazekanga ukuthumela i-SMS yovavanyo",
+        "accountSid": "Account SID",
+        "authToken": "Auth Token",
+        "defaultCountry": "Ilizwe elisisiseko leenombolo zefowuni",
+        "description": "Thumela uhlaziyo lwee-odolo, ukubuyisa neentlawulo njengemiyalezo ebhaliweyo nge-akhawunti yakho ye-Twilio.",
+        "enable": "Vula izaziso ze-SMS",
+        "enableHint": "I-Twilio ihlawulisa umyalezo ngamnye. Akukho SMS ithunyelwayo de ukhethe iziganeko kwiisetingi zezaziso.",
+        "fromNumber": "Inombolo yomthumeli okanye i-ID yomthumeli",
+        "includeLinks": "Faka ikhonkco",
+        "messagingServiceSid": "Messaging Service SID",
+        "save": "Gcina iisetingi ze-SMS",
+        "testButton": "Thumela i-SMS yovavanyo",
+        "testLabel": "Thumela umyalezo wovavanyo ku",
+        "title": "SMS (Twilio)"
+      },
+      "brandAssets": {
+        "wrongFormat": "Kufuneka ibe yifayile ye-{formats}",
+        "tooLarge": "Kufuneka ibe ngaphantsi kwe-{max} MB — le fayile yi-{size} MB",
+        "tooSmall": "Ingaphantsi kwe-{dimension}x{dimension}px ({width}x{height}px) — iza kwandiswa kwaye isenokungacaci",
+        "uploadingProgress": "Iyalayisha… {progress}%",
+        "dropHint": "Rhuqa uze uwise, okanye cofa ukuze ukhethe",
+        "maxSize": "Ubungakanani obuphezulu:",
+        "formats": "Iifomathi:",
+        "recommended": "Kuyacetyiswa:",
+        "lightLogo": {
+          "label": "Ilogo Ekhanyayo",
+          "alt": "Ilogo ekhanyayo",
+          "upload": "Layisha ilogo ekhanyayo",
+          "replace": "Tshintsha ilogo ekhanyayo"
+        },
+        "darkLogo": {
+          "label": "Ilogo Emnyama",
+          "alt": "Ilogo emnyama",
+          "upload": "Layisha ilogo emnyama",
+          "replace": "Tshintsha ilogo emnyama"
+        },
+        "favicon": {
+          "label": "I-Favicon",
+          "alt": "I-favicon yevenkile",
+          "upload": "Layisha i-favicon",
+          "replace": "Tshintsha i-favicon"
+        },
+        "appIcon": {
+          "label": "Uphawu lwe-App",
+          "alt": "Uphawu lwe-app efakiweyo",
+          "upload": "Layisha uphawu lwe-app",
+          "replace": "Tshintsha uphawu lwe-app",
+          "recommended": "Isikwere se-512x512px",
+          "note": "Uphawu lwe-app yile nto iibhrawuza ziyibonisayo xa umntu efaka ivenkile yakho kwisixhobo sakhe. Lubonakaliswa nge-512x512px, ngoko umfanekiso omncinci usasebenza — uba mfiliba kancinci. Shiya kungenanto ukuze kusetyenziswe i-favicon endaweni yalo."
+        }
+      },
+      "preorder": {
+        "title": "Ii-odolo zangaphambili",
+        "description": "Oko umthengisi anokukuthembisa xa ethengisa into engekafumaneki — kunye nokuba ngubani ovunyelweyo.",
+        "storeOff": "Ii-odolo zangaphambili zicinyiwe kuyo yonke ivenkile. Zivule kwi-<link>Izicwangciso → Iimveliso</link> ukuze umisele oko abathengisi abanokukuthembisa.",
+        "requireApproval": {
+          "title": "Phonononga abathengisi phambi kokuba bathengise ii-odolo zangaphambili",
+          "description": "Xa ivuliwe, umthengisi ufuna imvume yakho phambi kokuvula i-odolo yakhe yokuqala yangaphambili. Iimveliso esele zikhona ziyaqhubeka nokuthengiswa nokuba kunjalo."
+        },
+        "maxLead": {
+          "label": "Umhla wokukhutshwa okude kakhulu",
+          "unit": "iintsuku phambili",
+          "hint": "Okukhona ukulinda kude, kokukhona umthengi enokuphikisa intlawulo ixesha elide."
+        },
+        "maxDeposit": {
+          "label": "Idiphozithi ephezulu",
+          "unit": "% yexabiso",
+          "hint": "Kusebenza nakwizixa ezizinzileyo, ezilinganiswa nexabiso."
+        },
+        "expiry": {
+          "label": "Vala iibhalansi ezingahlawulwanga emva",
+          "unit": "iintsuku emva komhla wokukhutshwa",
+          "hint": "I-odolo iyarhoxiswa, indawo yayo iyakhululwa, kwaye idiphozithi ibuyiselwa yonke."
+        },
+        "autoRelease": {
+          "title": "Cela ibhalansi ngokuzenzekelayo",
+          "description": "Ngomhla wokukhutshwa, cela ibhalansi kwi-odolo nganye yangaphambili uze ukhulule ezo sele zihlawulwe zonke. Yishiye icinyiwe ukuba umhla wakho usenokutshintsha — ukucela ibhalansi kuthetha ukuba imveliso ilungile.",
+          "unit": "iintsuku emva komhla wokukhutshwa",
+          "hint": "I-odolo yangaphambili ehlawulwe yonke ikhululwa kuphela xa imveliso yayo ifakwe esitokweni ngokwenene — ikhalenda yodwa ayithumeli nto."
+        },
+        "reserve": {
+          "label": "Bamba kwiintlawulo zee-odolo zangaphambili",
+          "percentUnit": "% de kudlule",
+          "daysUnit": "iintsuku",
+          "hint": "Iingxabano zamakhadi zibalwa ukusuka kumhla wokuhanjiswa olindelekileyo, ngoko imali ye-odolo yangaphambili inokubuyiselwa ixesha elide emva kokuba umthengisi ehlawulwe. U-zero ucima ugcino."
+        },
+        "access": {
+          "title": "Ufikelelo lwabathengisi",
+          "waiting": "{count} ezilindileyo",
+          "reviewOff": "Uphononongo lucinyiwe, ngoko wonke umthengisi sele enokuvula ii-odolo zangaphambili. Ukuvuma apha akutshintshi nto de uvule uphononongo ngasentla, kwaye umthengisi akazukwaziswa.",
+          "empty": "Akukho mthengisi ukhe wacela ufikelelo lwee-odolo zangaphambili.",
+          "revokeNote": "Ukurhoxisa kumisa i-odolo yangaphambili elandelayo. Iimveliso abazithengisayo ngoku zigcina izithembiso zazo — abathengi sele behlawule iidiphozithi kuzo."
+        }
+      },
+      "notifications": {
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "Ii-odolo ezintsha",
+              "description": "Yazisa abalawuli xa kufakwa i-odolo."
+            },
+            "newCustomers": {
+              "title": "Abathengi abatsha",
+              "description": "Yazisa abalawuli xa kusenziwa i-akhawunti yomthengi."
+            },
+            "newVendors": {
+              "title": "Izicelo zabathengisi ezintsha",
+              "description": "Yazisa abalawuli xa isicelo somthengisi silindile."
+            },
+            "returns": {
+              "title": "Izicelo zokubuyisa",
+              "description": "Yazisa abalawuli xa isicelo sokubuyisa sifuna uphononongo."
+            },
+            "payments": {
+              "title": "Iintlawulo",
+              "description": "Yazisa abalawuli xa kubhalwa umsebenzi wentlawulo."
+            },
+            "preorderAccessRequests": {
+              "title": "Izicelo zofikelelo lwee-odolo zangaphambili",
+              "description": "Yazisa abalawuli xa umthengisi ecela ukuthengisa ii-odolo zangaphambili."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "Ubume besicelo somthengisi",
+              "description": "Yazisa abathengisi xa ii-akhawunti zabo zivunywa okanye zisaliwa."
+            },
+            "newOrders": {
+              "title": "Ii-odolo ezintsha zabathengisi",
+              "description": "Yazisa abathengisi xa befumana ii-odolo ezintsha."
+            },
+            "returns": {
+              "title": "Izicelo zokubuyisa zabathengisi",
+              "description": "Yazisa abathengisi xa izicelo zokubuyisa zizezabo."
+            },
+            "preorderAccess": {
+              "title": "Ufikelelo lomthengisi lwee-odolo zangaphambili",
+              "description": "Yazisa abathengisi xa ufikelelo lwabo lwee-odolo zangaphambili luvunywa, lusaliwa, okanye lurhoxiswa."
+            }
+          },
+          "staff": {
+            "newOrders": {
+              "title": "Ii-odolo ezintsha zabasebenzi",
+              "description": "Yazisa abasebenzi abanofikelelo kwii-odolo xa kufakwa i-odolo."
+            },
+            "newCustomers": {
+              "title": "Abathengi abatsha babasebenzi",
+              "description": "Yazisa abasebenzi abanofikelelo kubathengi xa kusenziwa i-akhawunti yomthengi."
+            },
+            "returns": {
+              "title": "Izicelo zokubuyisa zabasebenzi",
+              "description": "Yazisa abasebenzi abanofikelelo kwii-odolo xa izicelo zokubuyisa zifuna uphononongo."
+            },
+            "payments": {
+              "title": "Iintlawulo zabasebenzi",
+              "description": "Yazisa abasebenzi be-POS nabee-odolo xa kubhalwa umsebenzi wentlawulo."
+            },
+            "lowStock": {
+              "title": "Isitokhwe esiphantsi sabasebenzi",
+              "description": "Yazisa abasebenzi besitokhwe xa iimveliso zifuna ukugcwaliswa kwakhona."
+            }
+          },
+          "customer": {
+            "orderUpdates": {
+              "title": "Uhlaziyo lwee-odolo zabathengi",
+              "description": "Yazisa abathengi xa ubume be-odolo butshintsha."
+            },
+            "returnUpdates": {
+              "title": "Uhlaziyo lokubuyisa lwabathengi",
+              "description": "Yazisa abathengi xa ubume bokubuyisa butshintsha."
+            }
+          }
+        },
+        "event": "Isiganeko",
+        "channels": {
+          "inApp": "Ngaphakathi kwe-app",
+          "email": "I-imeyile",
+          "browserPush": "Push",
+          "sms": "SMS"
+        },
+        "smsSettingsLink": "Iisetingi ze-SMS",
+        "smsOffWarning": "Ezinye iziganeko zimiselwe ukuthumela i-SMS, kodwa i-SMS icinyiwe okanye ayikamiselwa ngokupheleleyo, ngoko akukho nanye eza kuhamba.",
+        "smsSetupHint": "Ukuthumela i-SMS, qala umisele i-Twilio.",
+        "groups": {
+          "admin": {
+            "title": "Izaziso zabalawuli",
+            "description": "Iziganeko ekufuneka zilumkise iqela labalawuli bevenkile."
+          },
+          "vendor": {
+            "title": "Izaziso zabathengisi",
+            "description": "Iziganeko ezithunyelwa kwii-akhawunti zabathengisi."
+          },
+          "staff": {
+            "title": "Izaziso zabasebenzi",
+            "description": "Iziganeko ezithunyelwa kubasebenzi ngokweemvume zabo zeemodyuli."
+          },
+          "customer": {
+            "title": "Izaziso zabathengi",
+            "description": "Iziganeko ezithunyelwa kwii-akhawunti zabathengi."
+          }
+        },
+        "description": "Khetha iziganeko ezenza izaziso zedashboard, ii-imeyile, izilumkiso ze-push kunye ne-SMS.",
+        "title": "Iisetingi zezaziso"
+      },
+      "deliveryLogs": {
+        "email": {
+          "title": "Iirekhodi zokuthunyelwa kwe-imeyile",
+          "description": "Umxholo othunyelweyo ususwa kwangoko; kugcinwa kuphela iinkcukacha zokuthunyelwa. Gcina iisetingi ze-imeyile emva kokutshintsha ixesha lokugcina.",
+          "summaryLabel": "Isihloko",
+          "searchPlaceholder": "Umamkeli, isihloko okanye udidi",
+          "clearTitle": "Cima iirekhodi zee-imeyile ezithunyelweyo?",
+          "deleteTitle": "Cima iirekhodi ze-imeyile ezikhethiweyo?",
+          "clearDescription": "{count, plural, one {Oku kuza kucima ngokusisigxina # irekhodi le-imeyile ethunyelweyo. Esi senzo asinakurhoxiswa.} other {Oku kuza kucima ngokusisigxina zonke # iirekhodi zee-imeyile ezithunyelweyo. Esi senzo asinakurhoxiswa.}}",
+          "deleteDescription": "{count, plural, one {Oku kuza kucima ngokusisigxina # irekhodi eligqityiweyo elikhethiweyo. Ii-imeyile ezisemgceni okanye ezithunyelwayo azize zicinywe.} other {Oku kuza kucima ngokusisigxina # iirekhodi ezigqityiweyo ezikhethiweyo. Ii-imeyile ezisemgceni okanye ezithunyelwayo azize zicinywe.}}",
+          "queuedForRetry": "{count, plural, one {# i-imeyile esilelileyo ifakwe emgceni ukuze kuzanywe kwakhona.} other {# ii-imeyile ezisileleyo zifakwe emgceni ukuze kuzanywe kwakhona.}}"
+        },
+        "sms": {
+          "title": "Iirekhodi zokuthunyelwa kwe-SMS",
+          "description": "I-SMS nganye igcinwa kunye nesigqibo senkampani yefowuni de kuphele ixesha lokugcina. Gcina iisetingi ze-SMS emva kokutshintsha ixesha lokugcina.",
+          "summaryLabel": "Umyalezo",
+          "searchPlaceholder": "Inombolo yefowuni, umyalezo okanye udidi",
+          "clearTitle": "Cima iirekhodi ze-SMS ezithunyelweyo?",
+          "deleteTitle": "Cima iirekhodi ze-SMS ezikhethiweyo?",
+          "clearDescription": "{count, plural, one {Oku kuza kucima ngokusisigxina # irekhodi le-SMS ethunyelweyo. Esi senzo asinakurhoxiswa.} other {Oku kuza kucima ngokusisigxina zonke # iirekhodi ze-SMS ezithunyelweyo. Esi senzo asinakurhoxiswa.}}",
+          "deleteDescription": "{count, plural, one {Oku kuza kucima ngokusisigxina # irekhodi eligqityiweyo elikhethiweyo. Ii-SMS ezisemgceni okanye ezithunyelwayo azize zicinywe.} other {Oku kuza kucima ngokusisigxina # iirekhodi ezigqityiweyo ezikhethiweyo. Ii-SMS ezisemgceni okanye ezithunyelwayo azize zicinywe.}}",
+          "queuedForRetry": "{count, plural, one {# i-SMS esilelileyo ifakwe emgceni ukuze kuzanywe kwakhona.} other {# ii-SMS ezisileleyo zifakwe emgceni ukuze kuzanywe kwakhona.}}"
+        },
+        "status": {
+          "sent": "Ithunyelwe",
+          "delivered": "Ifikile",
+          "undelivered": "Ayifikanga",
+          "failed": "Isilele",
+          "queued": "Isemgceni",
+          "retrying": "Iyazama kwakhona",
+          "sending": "Iyathunyelwa"
+        },
+        "keepSentLogs": "Gcina iirekhodi ezithunyelweyo",
+        "retentionDays": "{count, plural, one {usuku olu-#} other {iintsuku ezi-#}}",
+        "refresh": "Hlaziya",
+        "stats": {
+          "total": "Iyonke",
+          "sent": "Ithunyelwe",
+          "failed": "Isilele",
+          "pending": "Ilindile"
+        },
+        "allStatuses": "Bonke ubume",
+        "range": {
+          "today": "Namhlanje",
+          "last7": "Iintsuku ezi-7 ezidlulileyo",
+          "last30": "Iintsuku ezi-30 ezidlulileyo",
+          "last90": "Iintsuku ezi-90 ezidlulileyo",
+          "all": "Lonke ixesha"
+        },
+        "deleteSelected": "Cima ezikhethiweyo",
+        "retrySelectedFailed": "Zama kwakhona ezisileleyo ezikhethiweyo",
+        "retryAllFailed": "Zama kwakhona zonke ezisileleyo",
+        "clearSent": "Cima iirekhodi ezithunyelweyo",
+        "deleteLogs": "Cima iirekhodi",
+        "selectPage": "Khetha iirekhodi ezigqityiweyo kweli phepha",
+        "selectRow": "Khetha {name}",
+        "columns": {
+          "created": "Yenziwe",
+          "recipient": "Umamkeli",
+          "status": "Ubume",
+          "tries": "Iinzame",
+          "action": "Isenzo"
+        },
+        "empty": "Akukho kuthunyelwa kuhambelanayo.",
+        "segments": "{count, plural, one {inxalenye e-#} other {iinxalenye ezi-#}}",
+        "retryNow": "Zama kwakhona ngoku",
+        "retryFailed": "Ukuzama kwakhona kusilele",
+        "retrySent": "Ithunyelwe ngempumelelo",
+        "actionFailed": "Isenzo sisilele",
+        "updated": "Iirekhodi zokuthunyelwa zihlaziyiwe",
+        "deleted": "{count, plural, one {Kucinywe irekhodi eli-#.} other {Kucinywe iirekhodi ezi-#.}}"
+      },
+      "demoModeMessage": "Imowudi yomboniso ivuliwe. Ukutshintsha iisetingi kuvaliwe kule sayithi yomboniso.",
+      "toasts": {
+        "connected": "Iqhagamshelwe",
+        "connectionFailed": "Uqhagamshelo lusilele",
+        "saveEmailFirst": "Gcina iisetingi ze-imeyile phambi kokuthumela i-imeyile yovavanyo",
+        "savePaymentBeforeTest": "Gcina iisetingi zentlawulo phambi kokuvavanya uqhagamshelo",
+        "deliveryLogsLoadFailed": "Akukwazekanga ukulayisha iirekhodi zokuthunyelwa",
+        "loadFailed": "Akukwazekanga ukulayisha iisetingi",
+        "saveFailed": "Akukwazekanga ukugcina iisetingi",
+        "saveOauthFirst": "Gcina iisetingi ze-OAuth phambi kokuqinisekisa iinkcukacha zokungena",
+        "savePaymentFirst": "Gcina iisetingi zentlawulo phambi kokubhalisa i-URL ye-Pesapal IPN",
+        "saveSmsFirst": "Gcina iisetingi ze-SMS phambi kokuthumela umyalezo wovavanyo",
+        "saved": "Iisetingi zigciniwe"
+      },
+      "conflict": {
+        "description": "Ezi setingi zitshintshwe ngomnye umntu okoko wazivulayo. Layisha kwakhona ukuze ubone ezona zintsha, okanye uphinde ugcine ukuze uzibhale ngaphezulu.",
+        "overwrite": "Gcina nokuba kunjalo",
+        "reload": "Layisha kwakhona",
+        "title": "Iisetingi zitshintshwe kwenye indawo"
+      },
+      "messaging": {
+        "description": "Iiyure zencoko ephilayo, ukudluliselwa phezulu, kunye nee-akhawunti ze-WhatsApp, Messenger, Instagram ne-Telegram eziphendula ngazo imarike",
+        "title": "Imiyalezo Ngeendlela Ezininzi"
+      },
+      "needsAttention": "Kufuna ingqwalasela",
+      "noResults": "Akukho setingi zifunyenweyo",
+      "products": {
+        "description": "Khetha oko umhleli wemveliso akunikezelayo. Nantoni na oyicimayo iyaphuma kumhleli kwaye ayinakuphinda ivulwe kwimveliso.",
+        "digital": "Iimveliso neenkonzo zedijithali",
+        "digitalDesc": "Izinto ezikhutshelwayo ezifana nee-ebook nezitshixo zelayisensi, okanye iinkonzo ezingenanto yokuthunyelwa.",
+        "existingNote": "Ukucima into akuze kutshintshe imveliso ebukhoma: i-odolo yangaphambili eqhubekayo iyaqhubeka nokuthengisa, imveliso yekowuti kuphela igcina iqhosha layo lekowuti, kwaye imveliso yedijithali ihlala iyedijithali.",
+        "physical": "Iimveliso eziphathekayo",
+        "physicalDesc": "Zithunyelwa kumthengi, kunye neenkcukacha zesitokhwe, ubunzima nemithetho yempahla.",
+        "preorders": "Ii-odolo zangaphambili",
+        "preordersDesc": "Thatha ii-odolo phambi kokuba isitokhwe sifike, kunye nomhla wokukhutshwa nediphozithi ekhethekayo. Imvume yabathengisi nemida iphantsi koLawulo lwaBathengisi Abaninzi.",
+        "priceOnRequest": "Ixabiso ngesicelo",
+        "priceOnRequestDesc": "Fihla ixabiso lemveliso uze ubonise iqhosha elithi “Cela ikowuti” endaweni yalo.",
+        "sellingHeading": "Iindlela zokuthengisa",
+        "title": "Iimveliso",
+        "typesHeading": "Iintlobo zeemveliso",
+        "typesHint": "Ubuncinane uhlobo olunye lwemveliso luhlala luvuliwe."
       }
     },
     "addToCart": "Faka Endwangu",
@@ -1686,7 +2374,7 @@
       "collections": "Iingqokelela",
       "categories": "Iindidi",
       "inventory": "Iimpahla",
-      "transfers": "Ukudlulisa",
+      "transfers": "Ukudlulisela",
       "reviews": "Uphononongo",
       "aiSalesAgent": "Umncedisi weNtengiso we-AI",
       "payments": "Iintlawulo",
@@ -1699,26 +2387,48 @@
       "blogPosts": "Iiposti zebhlog",
       "salesChannels": "Iitshaneli zentengiso",
       "onlineStore": "Ivenkile ye-intanethi",
-      "themes": "Iithemes",
+      "themes": "Imixholo",
       "pages": "Amaphepha",
       "pos": "Indawo Yokuthengisa",
       "posStaff": "Abasebenzi be-POS",
       "posLocations": "Iindawo ze-POS",
       "addPage": "Yongeza Iphepha",
-      "aiStudio": "AI Studio",
+      "aiStudio": "Istudiyo se-AI",
       "boosts": "Ukukhuthaza",
       "boostCampaigns": "Amaphulo okukhuthaza",
-      "boostPositions": "Izikhundla zokukhuthaza",
-      "customize": "Customize",
-      "navigation": "Navigation",
-      "checkout": "Checkulti",
+      "boostPositions": "Iindawo zokukhuthaza",
+      "customize": "Lungiselela",
+      "navigation": "Imenyu yokuhamba",
+      "checkout": "Ukuhlawula",
       "productCard": "Ikhadi lemveliso",
       "finance": "Ezemali",
       "financeOverview": "Isishwankathelo",
       "expenses": "Iindleko",
       "receivables": "Amatyala ekufuneka ehlawulwe kuwe",
       "financeReports": "Iingxelo",
-      "quotes": "Amaxabiso"
+      "quotes": "Amaxabiso",
+      "abandonedCheckouts": "Iintlawulo ezishiyiweyo",
+      "accessRequests": "Izicelo zokufikelela",
+      "allOrders": "Zonke ii-odolo",
+      "brands": "Iimpawu zorhwebo",
+      "dashboard": "Ideshibhodi",
+      "globalVariants": "Iintlobo ezabelwana ngazo",
+      "inbox": "Ibhokisi yemiyalezo",
+      "landmark": "Imenyu ephambili",
+      "markets": "Iimarike",
+      "mobileTitle": "Imenyu",
+      "mobileDescription": "Amakhonkco aya kwinxalenye nganye yedeshibhodi.",
+      "preorders": "Ii-odolo zangaphambili",
+      "returns": "Ukubuyiswa",
+      "searchInsights": "Ulwazi ngokukhangela",
+      "shipping": "Ukuthumela",
+      "sliders": "Izilayida",
+      "staff": "Iqela",
+      "toggle": "Bonisa okanye ufihle ibha esecaleni",
+      "traffic": "Iindwendwe",
+      "vendorConfiguration": "Uqwalaselo",
+      "vendorOnboarding": "Inkqubo yokujoyina",
+      "vendorPlans": "Izicwangciso zabathengisi"
     },
     "seoChecklist": {
       "title": "Uluhlu Lokuqinisekisa i-SEO",
@@ -2194,19 +2904,19 @@
           "name": "Electronics",
           "styleNote": "Ilungiselelwe iimveliso zetekhnoloji, izixhobo namaphepha eemveliso anenkcazelo eninzi."
         },
+        "furniture": {
+          "name": "Furniture",
+          "description": "Iimpahla zasekhaya ezithengiswa ngokwegumbi: imifanekiso yangaphakathi ebanzi ngokupheleleyo, amacandelo ngokwamagumbi, amabali ngezinto ezenziwe ngazo neeseti zokuthenga igumbi lonke.",
+          "styleNote": "Yakhelwe iisofa, iibhedi neeseti zokutyela — amagumbi ayakhokela, iimveliso ziyalandela."
+        },
         "essential": {
           "description": "Ivenkile elungeleleneyo yeekhathalogu ngokubanzi nokuthengisa iindidi ezininzi.",
           "name": "Classic Marketplace",
           "styleNote": "Ulwakhiwo olucacileyo, ukujonga okukhawulezayo noyilo olulungele intengiso."
         },
-        "luxe": {
-          "description": "Imbonakalo yephephancwadi yeempawu zefashoni, ubuhle nobomi obusemgangathweni.",
-          "name": "Fashion",
-          "styleNote": "Igxile ekuthengiseni ngokubonakalayo namabali eengqokelela acolekileyo."
-        },
         "women-fashion": {
           "description": "Ukuboniswa kweempahla ngohlobo lwephephancwadi: imifanekiso yephulo ebubanzi obupheleleyo, iithayile zelookbook nokhetho lwamaxesha onyaka.",
-          "name": "Women Fashion",
+          "name": "Fashion",
           "styleNote": "Yakhelwe iimpahla, izihlangu nezixhobo — imifanekiso iyakhokela, konke okunye kuyahlehla."
         }
       },
@@ -2671,7 +3381,167 @@
       "starterPublish": "Sebenzisa uyilo lokuqala lomxholo (kucetyiswa)",
       "starterPublishHint": "Ivenkile yakho itshintsha ngoko nangoko, amacandelo omxholo edityaniswe neengqokelela neemveliso zakho. Uyilo lwakho oludala luhlala kwimbali yeenguqulelo.",
       "subtitle": "Iinketho zoyilo zomxholo osebenzayo. Zitshintsha imbonakalo yevenkile — umxholo wamaphepha uhlala koomakhi bePhepha Lekhaya namaPhepha.",
-      "title": "Iisetingi zomxholo"
+      "title": "Iisetingi zomxholo",
+      "tabs": {
+        "theme": "Khetha umxholo",
+        "branding": "Uphawu",
+        "settings": "Iisetingi zomxholo",
+        "css": "I-CSS yakho"
+      }
+    },
+    "returnsPage": {
+      "stats": {
+        "needsReview": {
+          "title": "Kufuna ukuphononongwa",
+          "description": "Vuma okanye wale"
+        },
+        "onTheWayBack": {
+          "title": "Kusendleleni kubuya",
+          "description": "Kuvunyiwe, akukafunyanwa"
+        },
+        "refundDue": {
+          "title": "Imbuyekezo elindileyo",
+          "description": "Kufunyenwe, akukabuyekezwa",
+          "problems": "Kusilele okanye ngesandla: {count}"
+        },
+        "refunded": {
+          "title": "Kubuyekeziwe (iintsuku ezingama-30)",
+          "description": "{value} kubuyiselwe"
+        }
+      }
+    },
+    "media": {
+      "loadFailed": "Akukwazekanga ukulayisha imidiya",
+      "copyFailed": "Akukwazekanga ukukopa i-URL",
+      "demoDeleteBlocked": "Imowudi yomboniso ivuliwe. Ukucima iifayile kuvaliwe kule sayithi yomboniso.",
+      "deleteFailed": "Ukucima kusilele",
+      "copyUrl": "Kopa i-URL",
+      "count": "{count, plural, one {ifayile e-#} other {iifayile ezi-#}}",
+      "deleteDescription": "{count, plural, one {Ifayile iza kususwa ngokusisigxina kwindawo yokugcina. Naphi na apho i-URL yayo isasetyenziswa khona (iimveliso, amaphepha, ii-imeyile) kuya kubonakala ifayile eyaphukileyo.} other {Iifayile ziza kususwa ngokusisigxina kwindawo yokugcina. Naphi na apho ii-URL zazo zisasetyenziswa khona (iimveliso, amaphepha, ii-imeyile) kuya kubonakala iifayile ezaphukileyo.}}",
+      "deleteSelected": "Cima ezikhethiweyo",
+      "deleteTitle": "{count, plural, one {Cima le fayile?} other {Cima iifayile ezi-#?}}",
+      "deleted": "{count, plural, one {Kucinywe ifayile e-#} other {Kucinywe iifayile ezi-#}}",
+      "empty": "Akukho midiya ifunyenweyo",
+      "emptyHint": "Iifayile ezilayishiweyo ziza kubonakala apha kumboneleli wendawo yokugcina osebenzayo.",
+      "key": "Isitshixo sendawo yokugcina",
+      "loadMore": "Layisha ngaphezulu",
+      "modified": "Kulungiswe",
+      "open": "Vula",
+      "refresh": "Hlaziya",
+      "searchPlaceholder": "Khangela iifayile…",
+      "selectedCount": "{count} ezikhethiweyo",
+      "size": "Ubungakanani",
+      "tabLibrary": "Ithala leMidiya",
+      "tabStorage": "Indawo yokugcina",
+      "type": "Uhlobo",
+      "upload": "Layisha",
+      "uploaded": "Iifayile zilayishiwe",
+      "urlCopied": "I-URL ikhutshelwe",
+      "filter": {
+        "all": "Zonke",
+        "documents": "Amaxwebhu",
+        "images": "Imifanekiso",
+        "models": "Iimodeli ze-3D",
+        "videos": "Iividiyo"
+      }
+    },
+    "preferences": {
+      "title": "Izinto ozikhethayo",
+      "fullscreenUnavailable": "Isikrini esipheleleyo asifumaneki kule bhrawuza",
+      "enterFullscreen": "Isikrini esipheleleyo",
+      "exitFullscreen": "Phuma kwisikrini esipheleleyo",
+      "reset": "Buyisela kwesiseko",
+      "personalNote": "Ezakho kuphela, kule bhrawuza. Iilogo, imibala kunye nenkangeleko esisiseko yevenkile yakho zimiselwa kwi-Ivenkile ye-intanethi → Imixholo → Uphawu.",
+      "darkMode": "Imowudi emnyama",
+      "contrast": "Umahluko wemibala",
+      "rtl": "Ekunene ukuya ekhohlo",
+      "collapsedSidebar": "Ibha esecaleni esongiweyo",
+      "sidebar": "Ibha esecaleni",
+      "sidebarColor": "Umbala",
+      "sidebarIntegrate": "Idityanisiwe",
+      "sidebarApparent": "Iyabonakala"
+    },
+    "preorderAccess": {
+      "vendorFallback": "Umthengisi",
+      "thisVendor": "lo mthengisi",
+      "unnamedStore": "Ivenkile engenagama",
+      "approvedToast": "{name} ivunyelwe ukuvula ii-odolo zangaphambili ngoku",
+      "declinedToast": "Isicelo sika-{name} sokuthengisa ii-odolo zangaphambili saliwe",
+      "revokedToast": "{name} ayisakwazi ukuvula ii-odolo zangaphambili ezintsha",
+      "updateFailed": "Akukwazekanga ukuhlaziya ufikelelo lwee-odolo zangaphambili",
+      "revokeTitle": "Rhoxisa ufikelelo lwee-odolo zangaphambili lika-{name}?",
+      "declineTitle": "Yala isicelo sika-{name} see-odolo zangaphambili?",
+      "revokeDescription": "Abasayi kukwazi ukuvula ii-odolo zangaphambili ezintsha. Ii-odolo zangaphambili abazithengisayo ngoku ziyaqhubeka — abathengi sele behlawule iidiphozithi kuzo.",
+      "declineDescription": "Banokuthumela isicelo esitsha kamva.",
+      "reasonLabel": "Isizathu (siya kuthunyelwa kumthengisi)",
+      "reasonPlaceholder": "Akunyanzelekanga",
+      "reasonTooLong": "Gcina isizathu singaphantsi kweempawu ezi-{max}.",
+      "revokeSubmit": "Rhoxisa ufikelelo",
+      "declineSubmit": "Yala",
+      "approve": "Vuma",
+      "grant": "Nika ufikelelo",
+      "revoke": "Rhoxisa",
+      "since": "Ukususela ngo-{date}",
+      "asked": "Kuceliwe ngo-{date}",
+      "askedRecently": "Kuceliwe kutsha nje",
+      "notAsked": "Akukaceli fikelelo",
+      "approvedBadge": "Kuvunyiwe",
+      "waitingBadge": "Kulindwe uphononongo",
+      "noAccessBadge": "Akukho fikelelo",
+      "lastNote": "Inqaku lokugqibela: {note}",
+      "card": {
+        "title": "Ufikelelo lwee-odolo zangaphambili",
+        "description": "Nokuba lo mthengisi unokuvula ii-odolo zangaphambili. Ii-odolo zangaphambili zithatha imali yabathengi phambi kokuba imveliso ifumaneke, ngoko ivenkile ingaphonononga ukuba ngubani ovunyelweyo.",
+        "rulesLink": "Imithetho yee-odolo zangaphambili",
+        "loadFailed": "Akukwazekanga ukulayisha ufikelelo lwee-odolo zangaphambili.",
+        "storeOff": "Ii-odolo zangaphambili zicinyiwe kuyo yonke ivenkile, ngoko akukho mntu unokuvula enye ngoku. Oko ukumisela apha kuya kuqala ukusebenza xa zivulwa kwakhona, kwaye umthengisi akazukwaziswa.",
+        "reviewOff": "Uphononongo lucinyiwe, ngoko lo mthengisi sele enokuvula ii-odolo zangaphambili. Oko ukumisela apha kuya kuqala ukusebenza xa uphononongo luvulwa, kwaye umthengisi akazukwaziswa.",
+        "limits": "Emva kokuvunywa, umhla wokukhutshwa unokuba ukuya kutsho {days, plural, one {kusuku olu-#} other {kwiintsuku ezi-#}} phambili, kwaye idiphozithi inokufikelela kwi-{percent}% yexabiso. Ukurhoxisa akuze kususe imveliso abayithengisayo ngoku."
+      }
+    },
+    "branding": {
+      "colorPicker": "Khetha {label}",
+      "removePreset": "Susa isicwangciso esigciniweyo",
+      "removeNamedPreset": "Susa isicwangciso {name}",
+      "savePreset": "Gcina imibala yangoku njengesicwangciso",
+      "customPresetName": "Okwakho {number}",
+      "preview": {
+        "title": "Imbonakalo",
+        "subtitle": "indlela imibala yakho esebenza ngayo kuyo yonke i-app",
+        "primary": "Ephambili",
+        "secondary": "Yesibini",
+        "accent": "Egqamileyo",
+        "outline": "Umda",
+        "link": "Ikhonkco",
+        "accentSurface": "Umphezulu ogqamileyo"
+      },
+      "appearanceMode": "Imowudi",
+      "appearanceSubtitle": "Indlela evula ngayo ivenkile phambi kokuba undwendwe azikhethele ukukhanya okanye ubumnyama.",
+      "appearanceTitle": "Inkangeleko esisiseko",
+      "assetsSubtitle": "Iilogo, i-favicon kunye nophawu lwe-app ezisetyenziswa kwivenkile yakho nakwidashboard.",
+      "assetsTitle": "Izinto zophawu",
+      "colorsSubtitle": "Amaqhosha, amakhonkco nezinto ezigqamisiweyo evenkileni, nakwidashboard, ekuhlawuleni nakwii-imeyile. Khetha isicwangciso okanye usete owakho ngesikhethi sombala, hex okanye rgb().",
+      "colorsTitle": "Imibala yophawu",
+      "globalHint": "Uphawu lwakho lusebenza kuyo yonke indawo — luhlala nokuba utshintsha umxholo, kwaye lusetyenziswa evenkileni, kwidashboard, ekuhlawuleni nakwii-imeyile.",
+      "save": "Gcina uphawu"
+    },
+    "mediaPicker": {
+      "uploadFailed": "Ukulayisha kusilele",
+      "uploading": "Iyalayisha…",
+      "addVideoUrl": "Yongeza ividiyo ukusuka kwi-URL",
+      "added": "Yongeziwe",
+      "description": "Khetha kwithala lakho lemidiya, okanye ulayishe iifayile ezintsha kulo.",
+      "dropToUpload": "Wisa iifayile ukuze uzilayishe",
+      "empty": "Ithala lakho lemidiya alinanto",
+      "emptyHint": "Layisha iifayile apha kwaye ziya kuhlala ethaleni, zilungele ukusetyenziswa kwakhona.",
+      "forbidden": "I-akhawunti yakho ayikwazi ukukhangela ithala lemidiya. Usenokulayisha iifayile ezintsha.",
+      "loadFailed": "Akukwazekanga ukulayisha ithala lemidiya",
+      "noMatches": "Akukho fayile ihambelanayo",
+      "retry": "Zama kwakhona",
+      "searchPlaceholder": "Khangela iifayile…",
+      "selectUpTo": "{max, plural, one {Khetha ifayile e-# ubuninzi} other {Khetha ukuya kutsho kwiifayile ezi-#}}",
+      "selectedCount": "{count} kwezi-{max} zikhethiwe",
+      "title": "Khetha iifayile"
     }
   },
   "vendor": {
@@ -2705,9 +3575,9 @@
     "applicationForm": "Ifomu Lombuki",
     "applicationDesc": "Gcwalisa ifomu ngezantsi ukuze usebenze njengombuki.",
     "vendorPanel": "Iphaneli Yomthengisi",
-    "dashboard": "Idoshi",
+    "dashboard": "Ideshibhodi",
     "products": "Iimveliso",
-    "orders": "I-oderi",
+    "orders": "Ii-odolo",
     "settings": "Izicwangciso",
     "goToDashboard": "Iya Edoshini Yomthengisi",
     "overview": "Uchungechunge",
@@ -2915,7 +3785,7 @@
       "ordersCount": "{count} i-order",
       "noRecentOrders": "Ayikabikho i-order zakwamva"
     },
-    "payouts": "Ukukhokha",
+    "payouts": "Iintlawulo",
     "storefront": {
       "title": "{storeName}",
       "subtitle": "Hlola iimveliso kuleli store.",
@@ -3016,7 +3886,10 @@
         "refunded": "Ibuyiselwe"
       }
     },
-    "boosts": "Ukukhuthaza"
+    "boosts": "Ukukhuthaza",
+    "finance": "Ezemali",
+    "owedToPlatform": "Ityala kwiqonga",
+    "statements": "Iingxelo zeakhawunti"
   },
   "footer": {
     "aboutUs": "Mayelana Nathi",
@@ -3027,10 +3900,10 @@
     "contactUs": "Xhumana Nathi",
     "shippingInfo": "Ulwazi Lokuthunyelwa",
     "returns": "Ukubuyela",
-    "termsOfService": "Imigomo Yesevisi",
+    "termsOfService": "Imiqathango yenkonzo",
     "privacyPolicy": "Inqubomgomo Yobumfihlo",
-    "cookiePolicy": "Inqubomgomo Ye-Cookie",
-    "accessibility": "Ukufinyeleleka",
+    "cookiePolicy": "Umgaqo-nkqubo weekhukhi",
+    "accessibility": "Ukufikeleleka",
     "newsletter": "I-Newsletter",
     "subscribeDescription": "Subscribe kwi-imeyili yethu ukuze uthole izibuyekezo nezivakalo.",
     "subscribe": "Subscribe",
@@ -3048,6 +3921,8 @@
     "needAccessDescription": "Xhumana {email}.",
     "networkError": "Iphutha Wanethiwekhi",
     "networkErrorDescription": "Sicela uhlaziye i-inthanethi yakho futhi uzame.",
+    "tooManyRequestsIn": "Kukho izicelo ezininzi. Linda {duration} uze uzame kwakhona.",
+    "tooManyRequests": "Kukho izicelo ezininzi. Linda kancinci uze uzame kwakhona.",
     "needHelp": "udinga usizo? Thola i-documentation okanye xhumana ne-support.",
     "adminPageNotFoundDescription": "Ikhasi le-admin ofunayo alikho.",
     "vendorPageNotFoundDescription": "Ikhasi lombuki ofunayo alikho.",
@@ -3088,7 +3963,7 @@
     "orderNumber": "I-oderi",
     "orderFailed": "Kuhlulekile ukusula i-order",
     "printReceipt": "Printa Ireceipt",
-    "newSale": "Ukuthengisa Okusha",
+    "newSale": "Intengiso entsha",
     "errorLoadingProducts": "Kuhlulekile ukulayisha iimveliso",
     "customer": {
       "addCustomer": "Yongeza Umthengi",
@@ -3114,7 +3989,7 @@
     }
   },
   "locations": {
-    "title": "Izindawo",
+    "title": "Iindawo",
     "name": "Igama",
     "address": "Ikheli",
     "status": "Isimo",
@@ -3392,9 +4267,9 @@
       "quickReplyOption": "Impendulo ekhawulezileyo",
       "textHeaderOptional": "Umxholo wombhalo (akunyanzelekanga)",
       "websiteUrlOption": "Idilesi yewebhusayithi",
-      "headerPlaceholder": "Uhlaziyo lweOda {{1}}",
-      "bodyPlaceholder": "Molo {{1}}, i-oda yakho ngoku ingu-{{2}}.",
-      "placeholderHint": "Sebenzisa izikhewu ezilandelelanayo: {{1}}, {{2}}, njalo njalo.",
+      "headerPlaceholder": "Uhlaziyo lweOda '{{1}}'",
+      "bodyPlaceholder": "Molo '{{1}}', i-oda yakho ngoku ingu-'{{2}}'.",
+      "placeholderHint": "Sebenzisa izikhewu ezilandelelanayo: '{{1}}', '{{2}}', njalo njalo.",
       "authenticationNote": "I-Meta ilawula amagama etemplethi yokuqinisekisa kwaye yongeza iqhosha lokukopa ikhowudi elifunekayo.",
       "bodyExampleLabel": "Umzekelo we-{variable} yomzimba",
       "submitForReview": "Ngenisela ukuhlolwa yi-Meta",
@@ -3635,7 +4510,7 @@
     "title": "Ukukhuthaza",
     "empty": "Akukho kukhuthaza okukho okwangoku. Khuthaza imveliso ukuze ufikelele kubathengi abaninzi.",
     "addAction": "Khuthaza imveliso",
-    "searchPlaceholder": "Khangela ngesikhundla okanye ileyibhile",
+    "searchPlaceholder": "Khangela imveliso, isikhundla okanye ilebhile",
     "tabs": {
       "all": "Konke",
       "active": "Kuyasebenza",
@@ -3643,7 +4518,8 @@
       "paused": "Kunqunyanyisiwe",
       "expired": "Kuphelile",
       "canceled": "Kurhoxisiwe",
-      "scheduled": "Ezizayo"
+      "scheduled": "Ezizayo",
+      "creditOwed": "Ityala elifunekayo"
     },
     "status": {
       "active": "Kuyasebenza",
@@ -3665,7 +4541,8 @@
       "actions": "Izenzo",
       "position": "Isithuba",
       "startsIn": "Iqala kwiintsuku ezingu-{days}",
-      "startsToday": "Iqala namhlanje"
+      "startsToday": "Iqala namhlanje",
+      "credit": "Ityala elifunekayo"
     },
     "stats": {
       "active": "Ukukhuthaza okusebenzayo",
@@ -3679,13 +4556,16 @@
       "revenue": "Ingeniso yokukhuthaza",
       "revenueDescription": "Iibhukisho ezihlawulweyo ngaphandle kwezibuyekezo, ixesha lonke (imali yevenkile)",
       "upcoming": "Ezizayo",
-      "upcomingDescription": "Zibhukishiwe, azikaqali"
+      "upcomingDescription": "Zibhukishiwe, azikaqali",
+      "creditOwed": "Ityala elifunekayo",
+      "creditOwedDescription": "iibhukhingi ekufuneka zihlawulwe",
+      "creditOwedNone": "akukho nto isalindileyo"
     },
     "admin": {
       "title": "Amaphulo okukhuthaza",
       "empty": "Akukho maphulo okukhuthaza okwangoku",
+      "searchPlaceholder": "Khangela ivenkile, imveliso, isikhundla okanye ilebhile",
       "create": "Yenza ubhukisho",
-      "createTitle": "Yenza ubhukisho (intlawulo engaphandle)",
       "createDescription": "Kwiintlawulo eziqokelelwe ngaphandle kweengcango zentlawulo, okanye ukupha isithuba simahla. Iintsuku zibhukishwa ngoko nangoko yaye azinakuthengiswa nakubani na.",
       "createConfirm": "Yenza ubhukisho",
       "created": "Ubhukisho lwenziwe",
@@ -3697,34 +4577,24 @@
       "cancelDescription": "Yonke imini ebhukishiweyo ukusuka ngomso iyakhululwa ngoko nangoko ibuyele kwikhalenda kwaye ingathengiswa kwakhona. Iintsuku sele zisebenzile zihlala zibhaliwe; nantoni na ekhululwayo yongezwa kwityala lomthengisi ukuze uyibuyise kwigeyithi.",
       "pause": "Nqumamisa",
       "resume": "Qhubeka",
-      "product": "Imveliso",
-      "vendor": "Umthengisi",
-      "selectVendor": "Khetha umthengisi…",
-      "selectVendorFirst": "Khetha umthengisi ukuze ubone iimveliso zakhe",
-      "searchProducts": "Khangela iimveliso…",
       "updated": "Iphulo lihlaziyiwe",
       "updateFailed": "Ayikwazanga ukuhlaziya iphulo",
       "position": "Isikhundla",
       "dates": "Imihla (UTC)",
-      "heldBy": "Kubhukishwe kwesi sikhundla:",
-      "amountOverride": "Imali emaqondwe",
-      "amountOverrideHint": "Yishiye ingenanto ukuze ubize ixabiso loluhlu elingu-{amount}. Inani elisezantsi linika umahluko simahla; u-0 uyenza ibe simahla. Ayinakugqitha ixabiso loluhlu.",
-      "recordingBooking": "Isikhundla {position} · iintsuku ezingu-{days} · kubhalwa {amount} njengehlawulweyo",
       "markRefunded": "Phawula njengebuyiselweyo",
       "markRefundedTitle": "Phawula njengebuyiselweyo",
-      "markRefundedDescription": "Ibhala ukuba sele uyibuyisile imali esalayo kumboneleli weentlawulo. Oku kuhlaziya incwadi yeengxelo kuphela — akushukumisi mali."
+      "markRefundedDescription": "Ibhala ukuba sele uyibuyisile imali esalayo kumboneleli weentlawulo. Oku kuhlaziya incwadi yeengxelo kuphela — akushukumisi mali.",
+      "creditLedger": "Incwadi yamatyala",
+      "outstanding": "Esasilindileyo",
+      "paymentAttempts": "Iinzame zentlawulo"
     },
     "purchase": {
       "subtitle": "Bhukisha isithuba esinenani kwileli exhasiweyo kwiintsuku ozikhethileyo.",
-      "pickProduct": "Khetha imveliso",
-      "pickPayment": "Khetha indlela yokuhlawula",
       "stepProduct": "Imveliso",
       "stepPayment": "Ukuhlawula",
       "searchProducts": "Khangela iimveliso zakho…",
       "noProducts": "Akukho meveliso isebenzayo ifunyenweyo",
       "noMethods": "Akukho ndlela zokuhlawula. Qhagamshelana nomlawuli wemarike.",
-      "boosting": "Kukhuthazwa:",
-      "days": "iintsuku ezi-{days}",
       "payNow": "Hlawula ubhukishe",
       "card": "Ikhadi",
       "mobileMoney": "Imali yeselula",
@@ -3738,34 +4608,68 @@
       "failed": "Ayikwazanga ukuqalisa intlawulo",
       "loadFailed": "Ayikwazanga ukulayisha ileli yezikhundla",
       "pollTimeout": "Asikakwazi ukuqinisekisa intlawulo. Iya kuqala ngokuzenzekelayo xa iqinisekisiwe.",
-      "stepSlot": "Isithuba nemihla",
-      "pickSlot": "Khetha isikhundla nemihla",
       "perDay": "/usuku",
       "noPositions": "Akukho zikhundla ezixhasiweyo ezithengiswayo okwangoku",
       "pickPositionFirst": "Khetha isikhundla ukubona ukuba yiziphi iintsuku ezikhululekileyo.",
-      "legendFree": "Ikhululekile",
       "legendBooked": "Ibhukishiwe",
       "legendYours": "Eyakho",
-      "conflictInline": "Loo mihla ayikhululekanga kwesi sikhundla — khetha kwakhona.",
       "slotTaken": "Umntu usanda kubhukisha {days} kwesi sikhundla.",
       "slotTakenRetry": "Umntu ubhukishe {days} ngelixa ubukhetha. Khetha kwakhona.",
       "productBusy": "Le mveliso sele icwangcisiwe ngo-{days}. Khetha eminye imihla, okanye enye imveliso.",
-      "strictIndexNote": "Uthenga isithuba esibonakalayo {position}. Ukuba isikhundla esingaphezulu kwesakho asithengiswanga ngaloo mini, eso sithuba sibonisa imveliso eqhelekileyo — esakho asinyuki.",
-      "reachDetail": "Kumaphepha oluhlu imveliso yakho ivela kwiphepha elingundoqo levenkile nakwiphepha lodidi lwayo. Iziphumo ezicocwe nezosetsho azizange zibonise iimveliso ezixhasiweyo.",
-      "refundPolicy": "Iintsuku sele zidlulile azibuyiselwa mali. Iintsuku ezizayo zinokukhululwa — imarike izibala ngexabiso losuku ize ibuyise ngomboneleli wakho weentlawulo. Ukuba imveliso yakho iphelile evenkileni okanye ayipapashwanga, loo mini ibalwa ngokulinganayo.",
-      "utcNote": "Iintsuku ziqala ziphele ezinzulwini zobusuku, nge-UTC.",
-      "utcShort": "iintsuku ze-UTC",
-      "oneCheckout": "Ungaba nokuhlawula okunye okuvulekileyo ngemveliso nganye. Ukutshintsha isikhundla okanye imihla kushenxisela ugcino lwakho kwisikhetho esitsha.",
       "holdExpires": "Le mihla igcinelwe wena ixesha elingu-{clock}",
       "holdExpired": "Ugcino lwakho luphelelwe lixesha yaye imihla ibuyele kwintengiso.",
-      "observedReach": "Umyinge we-{n} yeempawu/usuku kwiintsuku ezingama-30 ezigqithileyo",
       "positionStale": "Ixatyisiwe ngenye imali — cela imarike ukuba iyixabise kwakhona.",
-      "summaryLine": "Isikhundla {position}",
       "overMaxDays": "Ubhukisho alunakugqitha kwiintsuku ezingu-{days}.",
-      "alreadyBooked": "{count} iibhukisho ezenziwe",
       "availabilityFailed": "Ayikwazanga ukulayisha ikhalenda yobhukisho",
       "booked": "Ubhukisho lwakho luqinisekisiwe.",
-      "tooManyHolds": "Sele unokuhlawula okuninzi kakhulu okuvulekileyo. Gqiba okanye urhoxise olunye kuqala."
+      "tooManyHolds": "Sele unokuhlawula okuninzi kakhulu okuvulekileyo. Gqiba okanye urhoxise olunye kuqala.",
+      "gatewayUnavailable": "{gateway} ayikwazanga ukuqalisa intlawulo. Zama kwakhona, okanye ukhethe enye indlela yokuhlawula."
+    },
+    "booking": {
+      "vendorTitle": "Khuthaza imveliso",
+      "offlinePayment": "Intlawulo engekho kwi-intanethi",
+      "steps": "Amanyathelo okubhukisha",
+      "stepPositionDates": "Isikhundla nemihla",
+      "stepRecordPayment": "Bhala intlawulo",
+      "searchAll": "Khangela ngegama lemveliso okanye levenkile…",
+      "allStores": "Zonke iivenkile",
+      "filterByStore": "Hluza ngevenkile",
+      "showingSome": "Kuboniswa {shown} kwezingu-{total} — khangela ukuze ufumane ezinye",
+      "notOnHome": "Ayiboniswa kwiphepha lasekhaya",
+      "notOnListings": "Ayiboniswa kumaphepha oluhlu",
+      "notOnProductPages": "Ayiboniswa kumaphepha eemveliso",
+      "daysTaken": "Iintsuku ezingu-{taken} kwezingu-{total} sele zithathiwe",
+      "noFreeDays": "Akukho suku lukhululekileyo kwiintsuku ezi-{days} ezizayo",
+      "blockedNowhere": "Ayiboniswa kulo naliphi na iphepha ngoku — qala wongeze inani lezithuba zendawo yokubonisa.",
+      "blockedStale": "Ixabiso likwenye imali — qala ulungise ixabiso kwileli.",
+      "pickFirstDay": "Cofa usuku lokuqala, emva koko olokugqibela.",
+      "pickLastDay": "Ngoku cofa usuku lokugqibela.",
+      "datesTaken": "Sele ibhukishiwe kwesi sikhundla: {days}. Khetha eminye imihla okanye esinye isikhundla.",
+      "legendThisProduct": "Le mveliso sele ikhuthazwa",
+      "dayCount": "{count, plural, one {usuku #} other {iintsuku ezingu-#}}",
+      "total": "Iyonke",
+      "summary": "Isishwankathelo",
+      "dates": "Imihla",
+      "price": "Ixabiso",
+      "recordedAsPaid": "Iza kubhalwa njengehlawulwe",
+      "totalDue": "Iyonke ekufuneka ihlawulwe",
+      "amountReceived": "Imali efunyenweyo",
+      "fullPrice": "Ixabiso elipheleleyo",
+      "partPayment": "Intlawulo eyinxalenye okanye isaphulelo",
+      "free": "Simahla",
+      "amountYouReceived": "Imali oyifumeneyo",
+      "comped": "{amount} ixolelwe",
+      "sameAsFullPrice": "Iyafana nexabiso elipheleleyo",
+      "enterAmountRange": "Faka ukusuka ku-{min} ukuya ku-{max}",
+      "note": "Inqaku",
+      "optional": "ukhetho",
+      "notePlaceholder": "I-ID yokudlulisa ebhankini, inombolo yerisithi…",
+      "bookedAtOnce": "Iintsuku zibhukishwa kwangoko xa uyidala — akukho mntu wumbi onokuzithenga.",
+      "payWith": "Hlawula nge",
+      "termSlot": "Uthenga isithuba #{position}. Ukuba isithuba esingaphezulu asithengwanga, esakho asinyuki.",
+      "termListings": "Kuluhlu sibonakala kwiphepha levenkile nelodidi, zange kwiziphumo zokukhangela.",
+      "termRefund": "Iintsuku esele zidlulile azibuyiselwa mali. Iintsuku ezizayo zinokukhululwa ukuze ufumane ikhredithi.",
+      "termHold": "Imihla yakho igcinelwe wena imizuzu eyi-{minutes} ngelixa uhlawula."
     },
     "performance": {
       "back": "Konke ukukhuthaza",
@@ -3798,41 +4702,80 @@
       "deleteFailed": "Ayikwazanga ukucima",
       "deleteTitle": "Cima esi sikhundla?",
       "deleted": "Isikhundla sicinyiwe",
-      "derivedPrices": "Iintsuku ezi-7 {week} · Iintsuku ezingama-30 {month}",
       "description": "Inkcazo (ayinyanzelekanga)",
       "dialogDescription": "Abathengisi bahlawula eli xabiso ngosuku ngalunye ababhukisha kwesi sikhundla.",
       "editTitle": "Hlela isikhundla",
       "empty": "Akukho zikhundla okwangoku",
       "emptyHint": "Yenza iSikhundla 1 ukuze uvule indawo ephezulu exhaswayo ithengiswe.",
-      "horizonDays": "Iintsuku ezi-{days}",
       "label": "Ilebhile",
       "labelPlaceholder": "Indawo ephezulu",
       "labelRequired": "Faka ilebhile",
       "ladderGap": "Izikhundla {positions} azichazwanga — ezo ndawo zihlala zibonisa imveliso eqhelekileyo.",
-      "occupancy": "Ukusetyenziswa",
-      "occupancyBooked": "Iintsuku ezi-{booked} kwezi-{total} zibhukishiwe",
-      "occupancyFull": "izele",
-      "occupancyNextFree": "usuku olulandelayo olukhululekileyo {day}",
-      "perDay": "/ usuku",
       "position": "Isikhundla",
       "positionLocked": "Inombolo yesikhundla ayinakutshintshwa emva kokudalwa — yigcine kwaye wenze entsha.",
       "positionRequired": "Isikhundla kufuneka sibe phakathi ko-1 no-50",
       "pricePerDay": "Ixabiso ngosuku",
       "pricePerDayHint": "Iintsuku ezi-7 = {week} · Iintsuku ezingama-30 = {month}",
       "priceRequired": "Ixabiso losuku kufuneka libe ngaphezu kweqanda",
-      "reach": "Ibonakala kwi",
       "reachHome": "Ikhaya (eziphezulu {n})",
       "reachListing": "Uluhlu (eziphezulu {n})",
       "reachProductPage": "Amaphepha emveliso (eziphezulu {n})",
-      "reachesNothing": "Isikhundla {position} asibonakali ndawo. Yandisa inani leendawo kwenye indawo okanye ugcine esi sikhundla.",
       "saveFailed": "Ayikwazanga ukugcina isikhundla",
       "status": "Imeko",
       "subtitle": "Abathengisi babhukisha isikhundla esinye kangangeentsuku ezithile. Isikhundla N sibonakala kwindawo N; isikhundla esingathengiswanga sibonisa imveliso eqhelekileyo, kwaye ezingezantsi azinyuki.",
       "title": "Ileli yezikhundla",
       "unarchive": "Buyisela",
       "updated": "Isikhundla sihlaziyiwe",
-      "delivery": "Umyinge we-{n} yeempawu/usuku kwiintsuku ezingama-30 ezigqithileyo",
-      "deliveryNone": "Akukho kuhanjiswa okurekhodiweyo okwangoku"
+      "ladderGapOne": "Isikhundla {positions} asichazwanga — eso sithuba sihlala sibonisa imveliso eqhelekileyo.",
+      "defineGap": "Chaza #{position}",
+      "windowLabel": "Iintsuku ezizayo",
+      "ladderSummary": "{percent}% yeleli ibhukiwe · iintsuku ezi-{booked} kwezi-{total}",
+      "slotsPerSurface": "Izithuba ezixhaswayo kwiphepha ngalinye:",
+      "surfaceHome": "Ikhaya",
+      "surfaceListing": "Uluhlu",
+      "surfaceProductPage": "Amaphepha emveliso",
+      "surfaceOff": "ivaliwe",
+      "settingsLink": "Izicwangciso",
+      "colPrice": "Ixabiso",
+      "colPerDay": "ngosuku",
+      "colBooked": "Ibhukiwe",
+      "colNextDays": "iintsuku ezi-{days} ezizayo",
+      "colImpressions": "Ukubonwa",
+      "colImpressionsHint": "ngosuku · umndilili weentsuku ezingama-30",
+      "axisToday": "Namhlanje",
+      "statusNowhere": "Ayiboniswa ndawo",
+      "statusReprice": "Kufuneka ixabiso elitsha",
+      "chipOn": "{surface} ibonisa izikhundla eziphezulu ezi-{n} — kuquka nesi",
+      "chipOff": "{surface} ibonisa kuphela izikhundla eziphezulu ezi-{n}",
+      "chipDisabled": "{surface} ayibonisi mveliso ixhaswayo okwangoku",
+      "freeFrom": "Ikhululekile ukususela ngo-{day}",
+      "freeToday": "Ikhululekile namhlanje",
+      "freeWindow": "Ikhululekile — akukho kubhukisha kwiintsuku ezi-{days} ezizayo",
+      "freeShort": "Ikhululekile",
+      "notForSale": "Ayithengiswa",
+      "nowhereTrack": "Ayiboniswa kwiphepha lalo naliphi na — abathengisi abanakuyibhukisha.",
+      "nowhereFix": "Tshintsha inani lezithuba",
+      "staleTrack": "Abathengisi abanakuhlawula de ibe nexabiso elitsha",
+      "segmentUntil": "kude kube ngu-{day}",
+      "segmentHold": "Ibanjiwe · ayihlawulwanga",
+      "segmentRange": "{from} – {to} · {count, plural, one {usuku olu-#} other {iintsuku ezi-#}}",
+      "segmentOpen": "Vula ubhukisho",
+      "segmentHoldHint": "Intlawulo engagqitywanga — iintsuku ziyakhululwa ukuba intlawulo ayifiki",
+      "bookedOf": "iintsuku ezi-{booked} kwezi-{total}",
+      "bookedOfHeld": "iintsuku ezi-{booked} kwezi-{total}, ezi-{held} zibanjiwe",
+      "freeFromShort": "ikhululekile ukususela ngo-{day}",
+      "noFreeDay": "akukho suku lukhululekileyo kwiintsuku ezi-{days} ezizayo",
+      "noNewBookings": "akukho kubhukisha kutsha",
+      "noData": "akukho datha okwangoku",
+      "storeCurrency": "imali yevenkile yi-{currency}",
+      "editAria": "Hlela isikhundla {position}",
+      "moreActions": "Ezinye izenzo zesikhundla {position}",
+      "viewBookings": "Jonga iibhukingi",
+      "deleteBlockedBooked": "Sineebhukingi ukususela namhlanje — sigcine endaweni yoko.",
+      "deleteBlockedClaimed": "Ibhukingi emisiweyo, ecwangcisiweyo okanye engahlawulwanga isasibambile — sigcine endaweni yoko.",
+      "gapTitle": "Ayichazwanga",
+      "gapHint": "Isithuba {position} sibonisa imveliso eqhelekileyo yonke imihla — akukho sikhundla singezantsi esinyukela kuso.",
+      "gapRangeHint": "Izithuba {from}–{to} zibonisa imveliso eqhelekileyo yonke imihla — akukho sikhundla singezantsi esinyukela kuzo."
     },
     "cancel": {
       "action": "Rhoxisa ubhukisho",
@@ -3841,6 +4784,15 @@
       "confirm": "Rhoxisa ubhukisho",
       "done": "Ubhukisho lurhoxisiwe",
       "failed": "Ayikwazanga ukurhoxisa ubhukisho"
+    },
+    "disabled": {
+      "title": "Ukukhuthazwa kweemveliso kucimile",
+      "campaigns": "Vula ukukhuthaza kwiiSetingi → Ukukhuthazwa kweeMveliso ukuze uthengise iindawo ezixhaswayo kubathengisi.",
+      "positions": "Vula ukukhuthaza kwiiSetingi → Ukukhuthazwa kweeMveliso ukuze ulawule ileli yezikhundla."
+    },
+    "filters": {
+      "allVendors": "Bonke abathengisi",
+      "allPositions": "Zonke izikhundla"
     }
   },
   "install": {
@@ -3911,5 +4863,18 @@
     "short": "Thelekisa",
     "bar": "Thelekisa {count}",
     "clear": "Sula"
+  },
+  "permissionPacks": {
+    "aiStudio": "I-AI Studio",
+    "analytics": "Uhlalutyo",
+    "boosts": "Ukukhuthaza",
+    "catalog": "Ikhathalogu",
+    "discounts": "Izaphulelo",
+    "inbox": "Ibhokisi yemiyalezo",
+    "orders": "Ii-odolo",
+    "payouts": "Iintlawulo",
+    "pos": "Indawo Yentengiso",
+    "staff": "Abasebenzi",
+    "storefront": "Ivenkile"
   }
 }

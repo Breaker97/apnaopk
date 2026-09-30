@@ -1,5 +1,20 @@
 import { appConfig, USER_ROLES } from "@/config/app.config";
 import { isStaffRole } from "@/lib/access/staff-role";
+import { splitLocalePath } from "@/lib/i18n/locale-prefix";
+
+/** The back office, as the first segment of a locale-less path. */
+const DASHBOARD_AREAS = new Set(["admin", "vendor", "staff"]);
+
+/**
+ * Whether a path — prefixed with its language or not — is one of the
+ * dashboards rather than the storefront (whose vendor directory is
+ * `/vendors/…`, plural).
+ */
+export function isDashboardPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  const area = splitLocalePath(pathname).rest.split("/")[1] ?? "";
+  return DASHBOARD_AREAS.has(area);
+}
 
 /**
  * The customer account area (`/[locale]/account`) is customer-only: every

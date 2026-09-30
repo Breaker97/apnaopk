@@ -1,0 +1,117 @@
+[
+  {
+    "_id": {
+      "$oid": "6ab6790b696ed2484e3a35f6"
+    },
+    "name": "Main Header",
+    "handle": "main-header",
+    "location": "header",
+    "description": "Primary navigation links shown in the store header.",
+    "items": [
+      {
+        "label": "Blog",
+        "url": "/blog",
+        "type": "page",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Track Order",
+        "url": "/track-order",
+        "type": "page",
+        "target": "_self",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-25T13:37:15.400Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T13:37:15.400Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6ab6790b696ed2484e3a35f7"
+    },
+    "name": "Mega Menu",
+    "handle": "main-mega-menu",
+    "location": "header-mega",
+    "description": "Layered storefront mega menu shown from the header category menu.",
+    "items": [
+      {
+        "label": "Antic",
+        "url": "/products?category=antic",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790442027959-6smtqy/Rectangle_236.png",
+        "children": []
+      },
+      {
+        "label": "Bed",
+        "url": "/products?category=bed",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790442002071-jbr4vq/Rectangle_242.png",
+        "children": []
+      },
+      {
+        "label": "Cabinate",
+        "url": "/products?category=cabinate",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441980190-i1fa8p/Rectangle_240.png",
+        "children": []
+      },
+      {
+        "label": "Chair",
+        "url": "/products?category=chair",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441882249-31uv45/Rectangle_237.png",
+        "children": []
+      },
+      {
+        "label": "Decore",
+        "url": "/products?category=decore",
+        "type": "category",
+        "target": "_self",
+        "children": []
+      },
+      {
+        "label": "Shelves",
+        "url": "/products?category=shelves",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441991993-oror3g/Rectangle_241.png",
+        "children": []
+      },
+      {
+        "label": "Sofa",
+        "url": "/products?category=sofa",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441953253-7vsyl3/Rectangle_238.png",
+        "children": []
+      },
+      {
+        "label": "Table",
+        "url": "/products?category=table",
+        "type": "category",
+        "target": "_self",
+        "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441969236-w5cjho/Rectangle_239.png",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-25T13:37:15.400Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-26T17:00:53.053Z"
+    }
+  }
+]

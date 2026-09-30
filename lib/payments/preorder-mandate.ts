@@ -29,6 +29,8 @@
  * stored copy too, not just the rendered one.
  */
 
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
+
 /**
  * Tags the SetupIntent that collects a card for a pre-order whose whole total
  * falls due later, so the route that turns it into an order can tell it from
@@ -54,14 +56,9 @@ function formatMandateAmount(amount: number, currency: string): string {
 }
 
 function formatMandateDate(value?: Date | string | null): string {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  // The same day the shopper was shown next to the checkbox — see
+  // `formatPreorderReleaseDate` for why that means UTC.
+  return formatPreorderReleaseDate(value, { locale: "en" });
 }
 
 /**
@@ -88,7 +85,7 @@ export function buildPreorderMandateText(params: {
   return (
     `I authorise this store to securely save my card and charge the remaining ${amount} to it ` +
     `when my pre-order is ready to ship${date ? `, expected around ${date}` : ""}. ` +
-    `I will be told before the balance is taken, and I can cancel before it ships for a full refund.`
+    `I will be told before the balance is taken, and I can cancel until it is released for fulfilment for a full refund.`
   );
 }
 

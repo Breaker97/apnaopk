@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
@@ -5,17 +6,18 @@ import { resolveListingSort } from "@/lib/products/listing-sort";
 import { StickySidebar } from "@/components/ui/sticky-sidebar";
 import { WithGridResultCount } from "@/components/products/grid-result-count";
 import { ProductGrid } from "@/components/products/product-grid";
-import { ProductsSort } from "@/components/products/products-sort";
+import { ProductsSortLazy as ProductsSort } from "@/components/products/products-sort-lazy";
 import { PRODUCTS_MOBILE_TOOLBAR_SORT_CLASS } from "@/components/products/products-mobile-toolbar";
 import { ProductSkeleton } from "@/components/products/product-skeleton";
 import { SearchOutcome } from "@/components/products/search-outcome";
-import { ListingFilterBar } from "@/components/products/listing-filter-bar";
+import { ListingFilterBarLazy as ListingFilterBar } from "@/components/products/listing-filter-bar-lazy";
+import { listingCoverBanner } from "@/components/store/sections/listing/cover-banner";
 import {
   LISTING_GRID_COLUMNS_CLASS,
   LISTING_PREVIEW_ROW,
   ListingShell,
 } from "@/components/products/listing-view";
-import { ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products";
+import { ListingFeaturedProductsLazy as ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products-lazy";
 import {
   FilterSectionLazy,
   ListingFiltersLazy,
@@ -24,7 +26,6 @@ import {
 import { ListingCategories } from "@/components/store/sections/listing/listing-categories";
 import { ListingHeader } from "@/components/store/sections/listing/listing-header";
 import { ProductsBreadcrumb } from "@/components/store/sections/listing/products-breadcrumb";
-import { SavedSliderLazy as SavedSlider } from "@/components/store/saved-slider-lazy";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { getStorefrontOutOfStockDisplay } from "@/lib/catalog/product-visibility";
 import { fetchListingFeaturedProducts } from "@/lib/storefront/listing-featured";
@@ -38,13 +39,10 @@ import {
   getStorefrontProductBrands,
   getStorefrontProductFilters,
 } from "@/lib/products/storefront-product-filters";
-import { buildRenderSlides } from "@/lib/sliders/render";
 import {
   listingCategoryTrail,
   resolveListingCategory,
 } from "@/lib/storefront/listing-category";
-import { resolveCellData } from "@/lib/storefront/sections/section-grid";
-import { readSliderCell } from "@/lib/storefront/sections/slider-grids";
 import {
   listingBreadcrumbAlignClass,
   listingBreadcrumbInCover,
@@ -101,6 +99,7 @@ export async function ProductsListing({
   preview?: boolean;
 }) {
   const t = await getTranslations({ locale });
+  const { storeDefault } = await getLocaleRouting();
   const search = resource.searchParams;
   const location = resource.location;
   const electronics = design === "electronics";
@@ -157,7 +156,7 @@ export async function ProductsListing({
   const filterProps = {
     locale,
     categories,
-    categoriesIndexHref: `/${locale}/categories`,
+    categoriesIndexHref: "/categories",
     collections,
     brands,
     priceRange,
@@ -246,7 +245,7 @@ export async function ProductsListing({
           param: "category",
           items: categories,
           current: category || undefined,
-          viewAllHref: `/${locale}/categories`,
+          viewAllHref: "/categories",
         }),
         optionsFacet({
           id: "collections",
@@ -254,7 +253,7 @@ export async function ProductsListing({
           param: "collection",
           items: collections,
           current: collection || undefined,
-          viewAllHref: `/${locale}/collections`,
+          viewAllHref: "/collections",
         }),
         showStockFacet
           ? {
@@ -281,7 +280,7 @@ export async function ProductsListing({
           param: "brand",
           items: brands,
           current: brand || undefined,
-          viewAllHref: `/${locale}/brands`,
+          viewAllHref: "/brands",
         }),
       ].filter(Boolean) as ListingFacet[]);
 
@@ -308,6 +307,7 @@ export async function ProductsListing({
   const breadcrumb = (
     <ProductsBreadcrumb
       locale={locale}
+      storeDefault={storeDefault}
       searchQuery={searchQuery}
       trail={trail}
       className={crumbAlign}
@@ -321,24 +321,7 @@ export async function ProductsListing({
 
   // A saved slider as the banner above the title — the same resolution the
   // slider grid does for a cell, so its products and counts behave alike.
-  let banner: React.ReactNode = null;
-  if (layout.coverSlider) {
-    const cell = readSliderCell({ kind: "slider", slider: layout.coverSlider });
-    const { sliders, products } = await resolveCellData([cell]);
-    const slider = sliders.get(layout.coverSlider);
-    if (slider) {
-      banner = (
-        <SavedSlider
-          slides={buildRenderSlides(slider.slides, products, { locale })}
-          className="h-full w-full aspect-auto"
-          transition={slider.transition}
-          controls={slider.controls}
-          handle={slider.handle}
-          autoplayDelayMs={slider.autoplaySeconds * 1000}
-        />
-      );
-    }
-  }
+  const banner = await listingCoverBanner({ layout, locale });
 
   const titleAlignClass = align === "center" ? "text-center" : "text-left";
   const title = electronics ? (
@@ -380,7 +363,7 @@ export async function ProductsListing({
     featured.length > 0 ? (
       <div className="border-t border-border/70">
         <FilterSectionLazy title={t("storeProductsPage.featuredProducts")}>
-          <ListingFeaturedProducts locale={locale} products={featured} />
+          <ListingFeaturedProducts products={featured} />
         </FilterSectionLazy>
       </div>
     ) : null;

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -6,5 +7,5 @@ interface PageProps {
 
 export default async function AdminSettingsIndex({ params }: PageProps) {
   const { locale } = await params;
-  redirect(`/${locale}/admin/settings/general`);
+  redirect(await localeHref(locale, "/admin/settings/general"));
 }

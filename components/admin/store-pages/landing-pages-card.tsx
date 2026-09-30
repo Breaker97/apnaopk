@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   ExternalLink,
   FileText,
@@ -21,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -88,7 +88,7 @@ export function LandingPagesCard({
       setHandle("");
       setHandleTouched(false);
       router.push(
-        `/${locale}/admin/online-store/customize?page=${encodeURIComponent(page.handle)}`,
+        `/admin/online-store/customize?page=${encodeURIComponent(page.handle)}`,
       );
     } catch (error) {
       toast.error(
@@ -187,7 +187,7 @@ export function LandingPagesCard({
                     className="h-8 w-8 text-muted-foreground"
                   >
                     <Link
-                      href={`/${locale}/pages/${page.handle}`}
+                      href={`/pages/${page.handle}`}
                       target="_blank"
                     >
                       <ExternalLink className="h-4 w-4" />
@@ -201,7 +201,7 @@ export function LandingPagesCard({
                   className="gap-1.5"
                 >
                   <Link
-                    href={`/${locale}/admin/online-store/customize?page=${encodeURIComponent(page.handle)}`}
+                    href={`/admin/online-store/customize?page=${encodeURIComponent(page.handle)}`}
                   >
                     <PencilLine className="h-3.5 w-3.5" />
                     {tSafe("admin.storeBuilder.landing.edit", "Edit")}

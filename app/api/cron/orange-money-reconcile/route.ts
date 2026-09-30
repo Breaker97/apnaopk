@@ -13,16 +13,7 @@ import { withCronRun } from "@/lib/cron/health";
  *
  * Guarded by CRON_SECRET, mirroring /api/cron/vendor-subscriptions.
  */
-export const GET = withCronRun("orange-money-reconcile", async (request) => {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
+export const GET = withCronRun("orange-money-reconcile", async () => {
   await connectDB();
   const reconciliation = await reconcileOrangeMoneyPayments(50);
 

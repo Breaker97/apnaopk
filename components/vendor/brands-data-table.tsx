@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { Eye, Pencil, Plus, Tag } from "lucide-react";
 import {
   DataTable,
@@ -151,7 +151,7 @@ export function VendorBrandsDataTable({
           id: "view-products",
           label: "View products",
           icon: <Eye className="h-4 w-4" />,
-          href: `/${locale}/vendor/products?search=${encodeURIComponent(row.name)}`,
+          href: `/vendor/products?search=${encodeURIComponent(row.name)}`,
         },
       ];
 
@@ -161,7 +161,7 @@ export function VendorBrandsDataTable({
           id: "edit",
           label: "Edit",
           icon: <Pencil className="h-4 w-4" />,
-          href: `/${locale}/vendor/brands/${row._id}/edit`,
+          href: `/vendor/brands/${row._id}/edit`,
         });
       }
 
@@ -177,7 +177,7 @@ export function VendorBrandsDataTable({
         id: "add",
         label: "Add brand",
         icon: <Plus className="h-4 w-4" />,
-        href: `/${locale}/vendor/brands/new`,
+        href: "/vendor/brands/new",
         variant: "default",
       },
     ];

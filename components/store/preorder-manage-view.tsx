@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { CalendarClock, Loader2, MapPin, XCircle } from "lucide-react";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
@@ -217,7 +217,7 @@ export function PreorderManageView({
             <p className="text-muted-foreground">
               {tf(
                 "orders.preorderManage.cancelHint",
-                "Changed your mind? Cancel before it ships for a full refund of anything you have paid.",
+                "Changed your mind? Cancel until it is released for fulfilment for a full refund of anything you have paid.",
               )}
             </p>
             <Button variant="outline" onClick={() => setConfirming(true)}>

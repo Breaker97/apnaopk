@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { connectDB } from "@/lib/db";
 import { Review } from "@/models";
 import { SectionHeading } from "./section-shell";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 export interface TestimonialEntry {
   id: string;
@@ -20,9 +21,9 @@ export interface TestimonialEntry {
  * for reviews, so this leans on time-based revalidation alone — fine for a
  * social-proof strip. Exported so theme overrides restyle the same data.
  */
-export const fetchTestimonials = unstable_cache(
-  async (minRating: number, limit: number): Promise<TestimonialEntry[]> => {
-    try {
+export const fetchTestimonials = withFallback(
+  unstable_cache(
+    async (minRating: number, limit: number): Promise<TestimonialEntry[]> => {
       await connectDB();
       const reviews = await Review.find({
         isApproved: true,
@@ -45,12 +46,11 @@ export const fetchTestimonials = unstable_cache(
           reviewerName: user?.name || undefined,
         };
       });
-    } catch {
-      return [];
-    }
-  },
-  ["section-testimonials"],
-  { revalidate: 300 },
+    },
+    ["section-testimonials"],
+    { revalidate: 300 },
+  ),
+  () => [],
 );
 
 interface TestimonialsProps {

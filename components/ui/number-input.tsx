@@ -131,7 +131,7 @@ export function useNumberDraft({
   };
 }
 
-export type NumberInputProps = Omit<
+type NumberInputProps = Omit<
   ComponentProps<typeof Input>,
   "value" | "onChange" | "type" | "min" | "max"
 > &

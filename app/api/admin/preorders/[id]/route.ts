@@ -6,7 +6,10 @@ import { ORDER_STATUS, USER_ROLES } from "@/config/app.config";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { isValidObjectId, validateOptionalBody } from "@/lib/api/validate";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
-import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import {
+  assertAdminOrStaffPermissions,
+  assertVendorStaffMayChangeOrder,
+} from "@/lib/access/staff-authz";
 import {
   buildStaffOrderScopeFilter,
   mergeScopeFilter,
@@ -18,8 +21,18 @@ import {
   releaseOrderPreorders,
 } from "@/lib/orders/preorders";
 import { restoreOrderInventory } from "@/lib/orders/order-inventory";
+import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
+import {
+  DISPATCHED_ORDER_STATUSES,
+  hasDispatchedGoods,
+  isDispatchedStatus,
+} from "@/lib/orders/order-status-workflow";
+import { voidLabelsForCancellation } from "@/lib/shipping/cancel-labels";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
-import { notifyPreorderCustomerUpdate } from "@/lib/notifications/notifications";
+import {
+  manualBalanceReminderStage,
+  notifyPreorderCustomerUpdate,
+} from "@/lib/notifications/notifications";
 import { refundCancelledPreorder } from "@/lib/orders/preorder-cancel-refund";
 import { canIssueRefunds } from "@/lib/access/rbac";
 import { createAuditContext } from "@/lib/audit";
@@ -31,7 +44,7 @@ import { collectPreorderBalanceOnRequest } from "@/lib/payments/preorder-balance
 import { queueAutoShipForOrder } from "@/lib/shipping/carriers/shipment-worker";
 import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 
 const PreorderActionSchema = z.object({
   action: z.enum(["ready", "payment_due", "cancel", "delay"]).optional(),
@@ -67,6 +80,7 @@ export const PUT = withApi<{ id: string }>(
     );
     const before = await Order.findOne(scopeQuery).lean();
     if (!before) return notFoundResponse("Pre-order");
+    assertVendorStaffMayChangeOrder(access, before);
 
     // A cancelled pre-order already had its stock restored and quota released
     // — flipping it to ready/processing would ship units that are back in
@@ -82,11 +96,32 @@ export const PUT = withApi<{ id: string }>(
     }
 
     if (body.action === "ready" || body.action === "payment_due") {
+      // Past the pre-order already. Both actions write the order-level status,
+      // so either one dragged a shipped or delivered order back to processing
+      // (or to "pay now") — the same refusal the vendor route makes.
+      if (isDispatchedStatus(before.status)) {
+        throw new ValidationError(
+          "This pre-order has already shipped, so it is past the pre-order stage",
+        );
+      }
       // Zero once the balance has been recorded as paid — the raw figure
       // stays on the order for good and would re-request money already in.
       const outstandingAmount = getPreorderBalanceDue(before);
+      if (body.action === "payment_due" && outstandingAmount <= 0) {
+        throw new ValidationError(
+          "Nothing is owed on this pre-order — move it to fulfillment instead",
+        );
+      }
       const shouldRequestPayment =
         body.action === "payment_due" || outstandingAmount > 0;
+      // Nothing is owed by the balance rule, but that rule also reads a
+      // deposit or full payment that never captured as "nothing owed" — and
+      // releasing it consumed stock and packed goods nobody paid for. The
+      // vendor route and the orders screen already asked this.
+      if (!shouldRequestPayment) {
+        const paymentBlock = getFulfillmentPaymentBlock(before, null);
+        if (paymentBlock) throw new ValidationError(paymentBlock);
+      }
       const nextOrderStatus = shouldRequestPayment
         ? ORDER_STATUS.PREORDERED
         : ORDER_STATUS.PROCESSING;
@@ -117,8 +152,14 @@ export const PUT = withApi<{ id: string }>(
 
       const order = await Order.findOneAndUpdate(
         // Status guard closes the race with a concurrent cancel — without it
-        // this update would resurrect a just-cancelled order.
-        { ...scopeQuery, status: { $ne: ORDER_STATUS.CANCELLED } },
+        // this update would resurrect a just-cancelled order — and with a
+        // shipment landing after the read.
+        {
+          ...scopeQuery,
+          status: {
+            $nin: [ORDER_STATUS.CANCELLED, ...DISPATCHED_ORDER_STATUSES],
+          },
+        },
         {
           $set: {
             status: nextOrderStatus,
@@ -196,6 +237,11 @@ export const PUT = withApi<{ id: string }>(
             releaseDate: order.preorderReleaseDate,
             outstandingAmount,
             balanceRequestedAt: order.preorderBalanceRequestedAt,
+            // Asked again by hand: its own event, not a copy of the first
+            // request the dedupe gate would drop.
+            ...(shouldRequestPayment && !startsTheBalanceClock
+              ? { reminderStage: manualBalanceReminderStage() }
+              : {}),
             // A guest order's `customerId` is its cart, so this is the only
             // address the update can reach.
             guestEmail: order.guestEmail,
@@ -217,20 +263,47 @@ export const PUT = withApi<{ id: string }>(
       if (!releaseDate || Number.isNaN(releaseDate.getTime())) {
         throw new ValidationError("A valid release date is required");
       }
+      // A day of slack for a date input's midnight UTC, as the vendor route
+      // allows — but a date already gone is no new promise to give anyone.
+      if (releaseDate.getTime() < Date.now() - 24 * 60 * 60 * 1000) {
+        throw new ValidationError("The new release date cannot be in the past");
+      }
       const reason =
         typeof body.reason === "string" && body.reason.trim()
           ? body.reason.trim().slice(0, 500)
           : undefined;
       const previousReleaseDate = before.preorderReleaseDate;
+      // A balance already asked for stays asked for. `delayed` is read by
+      // nothing that collects money, so writing it over `payment_due` stopped
+      // the card retries, the reminders and the expiry, and a balance paid
+      // afterwards released nothing — the order sat there for good. Only a
+      // reservation still waiting on its goods becomes `delayed`.
+      const keepsBalanceRequest =
+        before.preorderStatus === PREORDER_ITEM_STATUS.PAYMENT_DUE;
+      const delayStatus = keepsBalanceRequest
+        ? {}
+        : {
+            preorderStatus: PREORDER_ITEM_STATUS.DELAYED,
+            "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.DELAYED,
+            "subOrders.$[].items.$[subItem].preorderStatus":
+              PREORDER_ITEM_STATUS.DELAYED,
+          };
 
       // Not over a cancellation that landed after the read: a new date on an
       // order the shopper has already been refunded for tells them to wait for
-      // goods that are not coming.
+      // goods that are not coming. Nor over a balance request or release that
+      // landed after it, which the status choice above did not see.
       const order = await Order.findOneAndUpdate(
-        { ...scopeQuery, status: { $ne: ORDER_STATUS.CANCELLED } },
+        {
+          ...scopeQuery,
+          status: { $ne: ORDER_STATUS.CANCELLED },
+          preorderStatus: keepsBalanceRequest
+            ? PREORDER_ITEM_STATUS.PAYMENT_DUE
+            : { $in: [PREORDER_ITEM_STATUS.RESERVED, PREORDER_ITEM_STATUS.DELAYED] },
+        },
         {
           $set: {
-            preorderStatus: PREORDER_ITEM_STATUS.DELAYED,
+            ...delayStatus,
             preorderReleaseDate: releaseDate,
             preorderOriginalReleaseDate:
               before.preorderOriginalReleaseDate ||
@@ -241,10 +314,7 @@ export const PUT = withApi<{ id: string }>(
             preorderCustomerNotifiedAt: new Date(),
             statusChangedBy: session.user.id,
             "items.$[item].preorderReleaseDate": releaseDate,
-            "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.DELAYED,
             "subOrders.$[].items.$[subItem].preorderReleaseDate": releaseDate,
-            "subOrders.$[].items.$[subItem].preorderStatus":
-              PREORDER_ITEM_STATUS.DELAYED,
           },
           // A new date is a new promise, so the reminders already sent against
           // the old one must not silence the new ones. Without this a shopper
@@ -262,7 +332,7 @@ export const PUT = withApi<{ id: string }>(
       );
       if (!order) {
         throw new ValidationError(
-          "This pre-order was cancelled while you were updating it, so its date cannot move",
+          "This pre-order was cancelled or released while you were updating it — reload it before moving its date",
         );
       }
       await notifyPreorderCustomerUpdate(
@@ -304,8 +374,24 @@ export const PUT = withApi<{ id: string }>(
         );
       }
 
+      // Goods that have left are a return, not a cancellation. This blanket
+      // cancel refunded everything, wrote every consignment cancelled — so the
+      // restore below no longer recognised the shipped ones and put their units
+      // back on sale — and the shopper kept the parcel.
+      if (hasDispatchedGoods(before)) {
+        throw new ValidationError(
+          "Part of this order has already shipped, so it can no longer be cancelled here — cancel the remaining consignments from the order page, or handle it as a return",
+        );
+      }
+
       const order = await Order.findOneAndUpdate(
-        scopeQuery,
+        // The same refusal, held at the write: a parcel dispatched after the
+        // read must not be cancelled underneath the courier.
+        {
+          ...scopeQuery,
+          status: { $nin: DISPATCHED_ORDER_STATUSES },
+          "subOrders.status": { $nin: DISPATCHED_ORDER_STATUSES },
+        },
         {
           $set: {
             status: ORDER_STATUS.CANCELLED,
@@ -326,7 +412,16 @@ export const PUT = withApi<{ id: string }>(
           ],
         },
       );
-      if (!order) return notFoundResponse("Pre-order");
+      if (!order) {
+        throw new ValidationError(
+          "This pre-order shipped while it was being cancelled — reload it and handle it as a return",
+        );
+      }
+
+      // A released pre-order may already have a label bought for it.
+      await voidLabelsForCancellation({ orderId: order._id }).catch((err) =>
+        console.error("Failed to void labels on pre-order cancel:", err),
+      );
 
       // If the pre-order was already marked ready, its stock was consumed
       // (sub-orders carry inventoryReserved) — put those units back. The

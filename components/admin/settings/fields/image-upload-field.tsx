@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { Loader2, Upload, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,7 @@ export function ImageUploadField(props: {
   /** Optional trailing control rendered inline with the upload/clear buttons (e.g. an AI Studio launcher). */
   action?: ReactNode;
 }) {
+  const t = useTranslations("admin.mediaPicker");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,8 @@ export function ImageUploadField(props: {
       });
       const json = (await res.json()) as UploadResponse;
       if (json?.success !== true) {
-        const msg = typeof json?.message === "string" ? json.message : "Upload failed";
+        const msg =
+          typeof json?.message === "string" ? json.message : t("uploadFailed");
         setError(msg);
         return;
       }
@@ -57,12 +60,12 @@ export function ImageUploadField(props: {
       const first = (items[0] || {}) as UploadedFile;
       const url = typeof first.url === "string" ? first.url : "";
       if (!url) {
-        setError("Upload failed");
+        setError(t("uploadFailed"));
         return;
       }
       props.onChange(url);
     } catch {
-      setError("Upload failed");
+      setError(t("uploadFailed"));
     } finally {
       setIsUploading(false);
     }

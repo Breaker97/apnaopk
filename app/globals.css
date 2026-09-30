@@ -1,4 +1,8 @@
-@import "tailwindcss";
+/*
+ * The app's own styles — fonts, theme tokens, base rules, the storefront's
+ * surfaces. Not an entry: storefront.css (every page) and dashboard.css (the
+ * admin, vendor and staff areas, on top) each import it next to Tailwind.
+ */
 @import "./fonts/storefront-faces.css";
 @import "tw-animate-css";
 
@@ -187,6 +191,120 @@
   animation: spin-slow 2s linear infinite;
 }
 
+/* Navigation progress (components/layout/navigation-progress.tsx): the bar
+   grows toward 80% while the next page is on its way, then fills and fades
+   when it commits. It never claims to be done before the page is. */
+@keyframes nav-progress-grow {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.8);
+  }
+}
+[data-navigation-progress] {
+  transform-origin: left;
+}
+[dir="rtl"] [data-navigation-progress] {
+  transform-origin: right;
+}
+[data-navigation-progress="running"] {
+  animation: nav-progress-grow 2.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+[data-navigation-progress="done"] {
+  transform: scaleX(1);
+  opacity: 0;
+  transition:
+    transform 150ms ease-out,
+    opacity 250ms ease-out 100ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-navigation-progress="running"] {
+    animation: none;
+    transform: scaleX(0.8);
+  }
+}
+
+/* Template demo switcher tab (components/store/template-demo-pill.tsx, demo
+   deployments only). Noticed without constant motion: the glow breathes, and
+   once per 6 s cycle the tab nudges out from the edge, its icon wiggles and a
+   shine crosses it; the rest of the cycle is still. The first cycle waits for
+   the page to settle, and `both` holds the shine off the tab meanwhile. */
+@keyframes demo-pill-nudge {
+  0%,
+  16%,
+  100% {
+    transform: translateX(0);
+  }
+  5% {
+    transform: translateX(12px);
+  }
+  10% {
+    transform: translateX(3px);
+  }
+  13% {
+    transform: translateX(7px);
+  }
+}
+@keyframes demo-pill-wiggle {
+  0%,
+  16%,
+  100% {
+    transform: rotate(0deg);
+  }
+  4% {
+    transform: rotate(-14deg);
+  }
+  8% {
+    transform: rotate(10deg);
+  }
+  12% {
+    transform: rotate(-5deg);
+  }
+}
+@keyframes demo-pill-shine {
+  0%,
+  14% {
+    transform: translateX(-110%) skewX(-20deg);
+  }
+  34%,
+  100% {
+    transform: translateX(260%) skewX(-20deg);
+  }
+}
+@keyframes demo-pill-glow {
+  from {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+}
+.demo-pill-nudge {
+  animation: demo-pill-nudge 6s ease-in-out 1.5s infinite both;
+}
+.demo-pill-wiggle {
+  animation: demo-pill-wiggle 6s ease-in-out 1.5s infinite both;
+}
+.demo-pill-shine {
+  animation: demo-pill-shine 6s ease-in-out 1.5s infinite both;
+}
+.demo-pill-glow {
+  animation: demo-pill-glow 2.2s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-pill-nudge,
+  .demo-pill-wiggle,
+  .demo-pill-glow {
+    animation: none;
+  }
+  .demo-pill-shine {
+    display: none;
+  }
+}
+
 .scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -214,6 +332,7 @@ html::-webkit-scrollbar-thumb {
 html::-webkit-scrollbar-thumb:hover {
   background-color: var(--border);
 }
+
 
 /*
  * Always-on scrollbar for scroll areas nested inside dialogs and panels, where
@@ -607,6 +726,16 @@ html::-webkit-scrollbar-thumb:hover {
   --store-link: var(--store-d-link);
 }
 
+/* The surface's own text colour. `color` inherits as a computed value, so
+   redefining --foreground above reaches no text that merely inherits: in-flow
+   text wore the page's foreground instead — the admin's in the builder
+   previews, and on the storefront the app default until the <body> mirror
+   landed, when every element on the page transitioned to the theme's colour
+   at once (over half a second of style work on a phone). */
+.store-surface {
+  color: var(--foreground);
+}
+
 /* A panel that paints its own field owns the light inside it. The deals
    panel's ground is a colour the merchant picked (or the design's own
    gradient) and is the same in both modes — its countdown cards are fixed
@@ -764,6 +893,7 @@ body[data-store-theme]
   align-items: var(--sl-ai-s);
   text-align: var(--sl-ta-s);
   padding: var(--sl-pad-s);
+  --sl-pad: var(--sl-pad-s);
   --sl-plate-pad: var(--sl-plate-pad-s);
   --sl-jc: var(--sl-jc-s);
   --sl-gap: var(--sl-gap-s);
@@ -800,12 +930,38 @@ body[data-store-theme]
   --sl-art-t: var(--sl-art-t-s);
 }
 
+/* TILE — a square-ish frame at least 560px wide: a half-width desktop cell,
+   not a phone. It wears the stacked arrangement the small band wears, at the
+   size the big band is authored at. Stated first so the two bands below can
+   claim the ratios they share a boundary with. */
+@container slide ((min-width: 560px) and (min-aspect-ratio: 5/7) and (max-aspect-ratio: 7/4)) {
+  .sl-content {
+    justify-content: var(--sl-jc-t);
+    align-items: var(--sl-ai-t);
+    text-align: var(--sl-ta-t);
+    padding: var(--sl-pad-t);
+    --sl-pad: var(--sl-pad-t);
+    --sl-plate-pad: var(--sl-plate-pad-t);
+    --sl-jc: var(--sl-jc-t);
+    --sl-gap: var(--sl-gap-t);
+    --sl-scale: var(--sl-scale-t);
+  }
+  .sl-art {
+    justify-content: var(--sl-art-jc-t);
+    align-items: var(--sl-art-ai-t);
+    padding: var(--sl-art-pad-t);
+    --sl-art-w: var(--sl-art-w-t);
+    --sl-art-t: var(--sl-art-t-t);
+  }
+}
+
 @container slide ((min-aspect-ratio: 7/4) or ((min-width: 900px) and (min-aspect-ratio: 5/4))) {
   .sl-content {
     justify-content: var(--sl-jc-l);
     align-items: var(--sl-ai-l);
     text-align: var(--sl-ta-l);
     padding: var(--sl-pad-l);
+    --sl-pad: var(--sl-pad-l);
     --sl-plate-pad: var(--sl-plate-pad-l);
     --sl-jc: var(--sl-jc-l);
     --sl-gap: var(--sl-gap-l);
@@ -826,6 +982,7 @@ body[data-store-theme]
     align-items: var(--sl-ai-p);
     text-align: var(--sl-ta-p);
     padding: var(--sl-pad-p);
+    --sl-pad: var(--sl-pad-p);
     --sl-plate-pad: var(--sl-plate-pad-p);
     --sl-jc: var(--sl-jc-p);
     --sl-gap: var(--sl-gap-p);
@@ -840,7 +997,13 @@ body[data-store-theme]
   }
 }
 
+/* The artwork's box. It is a flex ITEM of `.sl-art`, so with the default
+   shrink a width over 100% was pulled straight back to the line: Scale
+   climbed past 100 in the panel and the picture stopped growing, silently.
+   `flex: none` lets it take the width it was given and overflow, which is
+   what scaling artwork past the frame means — the slide clips it. */
 .sl-art-box {
+  flex: none;
   width: var(--sl-art-w);
   transform: var(--sl-art-t);
 }
@@ -852,6 +1015,12 @@ body[data-store-theme]
    slide, so adding a text element needs no CSS at all. Bands must match the
    container queries above. */
 .sl-text {
+  /* A word wider than its box BREAKS rather than hanging out of the slide.
+     Display type in a narrow cell — a 116px headline in a 257px column —
+     put half of every word past the edge on the shop, while the editor's
+     field broke it, so the board showed a headline four lines longer than
+     the one that shipped. The field already had this; now both do. */
+  overflow-wrap: break-word;
   --fs: var(--fs-s);
   --wt: var(--wt-s);
   --it: var(--it-s);
@@ -894,6 +1063,42 @@ body[data-store-theme]
   --br: var(--br-s);
   --bg: var(--bg-s);
   --bd: var(--bd-s);
+}
+@container slide ((min-width: 560px) and (min-aspect-ratio: 5/7) and (max-aspect-ratio: 7/4)) {
+  .sl-text {
+    --fs: var(--fs-t);
+    --wt: var(--wt-t);
+    --it: var(--it-t);
+    --co: var(--co-t);
+    --wd: var(--wd-t);
+    --ls: var(--ls-t);
+    --lh: var(--lh-t);
+    --tt: var(--tt-t);
+    --sh: var(--sh-t);
+    --hl: var(--hl-t);
+    --hi: var(--hi-t);
+    --hu: var(--hu-t);
+    --hm: var(--hm-t);
+  }
+  .sl-band {
+    --sh: var(--sh-t);
+  }
+  .sl-bg--band {
+    --sl-bgi: var(--sl-bgi-t);
+    --sl-bgp: var(--sl-bgp-t);
+    --sl-bgf: var(--sl-bgf-t);
+    --sl-bgc: var(--sl-bgc-t);
+    --sl-bgg: var(--sl-bgg-t);
+    --sl-bgo: var(--sl-bgo-t);
+  }
+  .sl-cta {
+    --px: var(--px-t);
+    --py: var(--py-t);
+    --mh: var(--mh-t);
+    --br: var(--br-t);
+    --bg: var(--bg-t);
+    --bd: var(--bd-t);
+  }
 }
 @container slide ((min-aspect-ratio: 7/4) or ((min-width: 900px) and (min-aspect-ratio: 5/4))) {
   .sl-text {
@@ -1537,6 +1742,29 @@ body[data-store-theme]
     grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     grid-template-areas: "a b c d" "a b e e";
+  }
+}
+
+
+/* A footer row states its own tracks, in `fr`, from the widths its
+   columns carry (components/layout/store-footer.tsx). Only from `lg`: below
+   it the footer keeps the two- and four-track grids it has always used, and
+   a column wider than one track says so by spanning. Stated here because a
+   track list cannot be a Tailwind class — it is data, not a design choice. */
+@media (min-width: 1024px) {
+  .footer-row {
+    grid-template-columns: var(--footer-cols);
+  }
+}
+
+/* A STRIP — every column one track, like the legal line — takes its tracks
+   from the TABLET up rather than the desktop: it is one line of small
+   things, and it has spread across the width from that breakpoint since
+   before it was a layout. (An `auto-fit` utility stood here and, with a
+   zero minimum, drew fifty-three tracks at 900px.) */
+@media (min-width: 768px) {
+  .footer-row--strip {
+    grid-template-columns: var(--footer-cols);
   }
 }
 

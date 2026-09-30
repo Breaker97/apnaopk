@@ -21,6 +21,7 @@ import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
 import { refundOrderCancellation } from "@/lib/orders/preorder-cancel-refund";
 import { notifyOrderStatus } from "@/lib/notifications/notifications";
 import { voidLabelsForCancellation } from "@/lib/shipping/cancel-labels";
+import { getPendingPaymentLock } from "@/lib/orders/pending-payment-lock";
 
 /**
  * Calling off one seller's consignment on a split order, from the store side.
@@ -37,7 +38,7 @@ import { voidLabelsForCancellation } from "@/lib/shipping/cancel-labels";
  * — the goods have left, so nothing is restocked — and the whole-order paths
  * stay the way to cancel a single-consignment order.
  */
-export interface ConsignmentCancellation {
+interface ConsignmentCancellation {
   orderStatus: string;
   refund?: {
     refunded: boolean;
@@ -62,6 +63,12 @@ export async function cancelConsignment(params: {
 }): Promise<ConsignmentCancellation> {
   const order = await Order.findOne({ ...(params.scopeFilter || {}), _id: params.orderId });
   if (!order) throw new NotFoundError("Order");
+
+  // Held while a mobile-money payment is still in flight, for the same reason
+  // a whole order is: the refund this cancellation raises cannot be sent back
+  // automatically by these providers. See `lib/orders/pending-payment-lock.ts`.
+  const pendingPaymentLock = getPendingPaymentLock(order);
+  if (pendingPaymentLock) throw new ValidationError(pendingPaymentLock);
 
   const index = order.subOrders.findIndex(
     (sub: { _id?: unknown }) => String(sub._id) === params.subOrderId,

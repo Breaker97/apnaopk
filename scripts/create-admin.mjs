@@ -196,6 +196,22 @@ async function setCredentialPasswordForUser(
   await db.collection("session").deleteMany({ userId: userObjectId });
 }
 
+/**
+ * Close the install wizard for good, as its own finish step does: an admin
+ * made here locks it already, and the stamp keeps it locked should that
+ * admin later be removed. Only the first settings document, never a second.
+ */
+async function stampInstalled(db) {
+  const settings = db.collection("settings");
+  const existing = await settings.findOne({}, { projection: { installedAt: 1 } });
+  if (existing?.installedAt) return;
+  await settings.updateOne(
+    existing ? { _id: existing._id } : {},
+    { $set: { installedAt: new Date() } },
+    { upsert: !existing },
+  );
+}
+
 async function createAdmin() {
   const email = process.argv[2]?.trim().toLowerCase();
   const providedPassword = process.argv[3]?.trim();
@@ -248,6 +264,7 @@ async function createAdmin() {
         `Successfully upgraded ${upgraded.name || "user"} (${email}) to Admin.`,
       );
       await ensureAdminProfile(db, upgraded._id);
+      await stampInstalled(db);
       if (desiredPassword) {
         const existingUser = await getUserByEmail(db, email);
         if (!existingUser?._id) {
@@ -315,6 +332,7 @@ async function createAdmin() {
     if (finalUser?._id) {
       await ensureAdminProfile(db, finalUser._id);
     }
+    await stampInstalled(db);
 
     console.log(`Successfully created and upgraded ${email} to Admin.`);
     if (!desiredPassword) {

@@ -157,7 +157,6 @@ function sanitizeUpdate(data: unknown) {
 
 type ConversationSummaryDoc = {
   _id: unknown;
-  sessionId?: string;
   userId?: unknown;
   locale?: string;
   status?: string;
@@ -189,8 +188,9 @@ export const GET = withApi(
       AISalesConversation.find({})
         .sort({ updatedAt: -1 })
         .limit(10)
+        // No `sessionId` — see the conversations list route.
         .select(
-          "sessionId userId locale status messages actions cartItemCount updatedAt lastMessageAt",
+          "userId locale status messages actions cartItemCount updatedAt lastMessageAt",
         )
         .lean(),
       AISalesConversation.aggregate([
@@ -246,7 +246,6 @@ export const GET = withApi(
       },
       conversations: (conversations as ConversationSummaryDoc[]).map((conversation) => ({
         id: String(conversation._id),
-        sessionId: conversation.sessionId,
         userId: conversation.userId ? String(conversation.userId) : undefined,
         locale: conversation.locale,
         status: conversation.status,

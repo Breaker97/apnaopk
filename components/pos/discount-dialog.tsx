@@ -113,7 +113,12 @@ export function POSDiscountDialog({
         if (e.target === e.currentTarget) onOpenChange(false);
       }}
     >
-      <div className="bg-background w-full max-w-md rounded-2xl border shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Order-level discount"
+        className="bg-background w-full max-w-md rounded-2xl border shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-base font-semibold">Order-level discount</h2>

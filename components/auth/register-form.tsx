@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useLocaleHref } from "@/hooks/use-locale-navigation";
+import Link from "@/components/language/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { signInWithFacebook, signInWithGoogle, signUp } from "@/lib/auth/auth-client";
+import {
+  describeAuthError,
+  type AuthErrorPayload,
+  type Translate,
+} from "@/lib/auth/auth-error-message";
 import { RegisterSchema, type RegisterInput } from "@/lib/validations/auth";
 import { FacebookIcon, GoogleIcon } from "@/components/auth/oauth-icons";
 import type { OAuthEnabled } from "@/components/auth/login-form";
@@ -79,11 +85,20 @@ export function useRegisterForm({
         name: data.name,
         email: data.email,
         password: data.password,
-        callbackURL: `/${locale}/email-verified`,
+        callbackURL: localeHref(`/${locale}/email-verified`),
       });
 
       if (result.error) {
-        setError(result.error.message || t("common.error"));
+        // Better Auth's own request limit answers a bare, English 429; the
+        // sign-in form already words it in the visitor's language.
+        setError(
+          result.error.status === 429
+            ? describeAuthError(
+                result.error as unknown as AuthErrorPayload,
+                t as unknown as Translate,
+              )
+            : result.error.message || t("common.error"),
+        );
         return;
       }
 
@@ -110,10 +125,13 @@ export function useRegisterForm({
     }
   };
 
+  const localeHref = useLocaleHref();
   const oauthCallbackUrl = () =>
-    `/${locale}/role-redirect${
-      redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""
-    }`;
+    localeHref(
+      `/${locale}/role-redirect${
+        redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""
+      }`,
+    );
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -124,7 +142,7 @@ export function useRegisterForm({
       await signInWithGoogle({
         callbackURL,
         newUserCallbackURL: callbackURL,
-        errorCallbackURL: `/${locale}/login`,
+        errorCallbackURL: localeHref(`/${locale}/login`),
       });
       // OAuth redirects automatically
     } catch {
@@ -142,7 +160,7 @@ export function useRegisterForm({
       await signInWithFacebook({
         callbackURL,
         newUserCallbackURL: callbackURL,
-        errorCallbackURL: `/${locale}/login`,
+        errorCallbackURL: localeHref(`/${locale}/login`),
       });
       // OAuth redirects automatically
     } catch {
@@ -332,17 +350,17 @@ export function RegisterFields({ state }: { state: RegisterFormState }) {
 }
 
 /** Terms + privacy line. Legally part of the form, so both hosts show it. */
-export function RegisterTermsNotice({ locale }: { locale: string }) {
+export function RegisterTermsNotice() {
   const t = useTranslations();
 
   return (
     <p className="text-center text-sm text-muted-foreground">
       {t("auth.termsAgreement")}{" "}
-      <Link href={`/${locale}/terms`} className="text-primary hover:underline">
+      <Link href="/terms" className="text-primary hover:underline">
         {t("auth.termsOfService")}
       </Link>{" "}
       {t("auth.and")}{" "}
-      <Link href={`/${locale}/privacy`} className="text-primary hover:underline">
+      <Link href="/privacy" className="text-primary hover:underline">
         {t("auth.privacyPolicy")}
       </Link>
     </p>

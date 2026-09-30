@@ -2,7 +2,6 @@ import { Types } from "mongoose";
 import { Payout } from "@/models";
 import { roundMoney } from "@/lib/intl/money";
 import {
-  emptyRefundBreakdown,
   payableInCurrency,
   sumVendorPayable,
   type OrderRefundBreakdown,
@@ -190,5 +189,3 @@ export async function sumHeldReserve(params: {
     rows.reduce((sum, row) => sum + Number(row.preorderReserveHeld || 0), 0),
   );
 }
-
-export { emptyRefundBreakdown };

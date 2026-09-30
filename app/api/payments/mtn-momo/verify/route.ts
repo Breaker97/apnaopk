@@ -16,13 +16,14 @@ import {
   verifyPlatformPayment,
 } from "@/lib/payments/platform-payments";
 import {
+  SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
   rateLimitBySession,
   rateLimitByUser,
 } from "@/lib/api/rate-limit-middleware";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const MtnMomoVerifySchema = z.object({
@@ -51,6 +52,7 @@ export const POST = withApi(
         cartSessionId,
         "payments:mtn-momo-verify",
         "lenient",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "lenient");

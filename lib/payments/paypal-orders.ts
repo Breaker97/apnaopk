@@ -8,9 +8,12 @@ import {
 import { gatewayFeeUpdate, paypalFee } from "@/lib/payments/gateway-fee";
 import {
   amountDueNow,
-  finalizeCapturedOrder,
   type SettingsDocument,
 } from "@/lib/payments/finalize-order";
+import {
+  finalizeCapturedAttempt,
+  findAttemptByGatewayRef,
+} from "@/lib/payments/finalize-attempt";
 
 type FinalizePayPalOrderParams = {
   /** PayPal's order id, stored on the order at checkout. */
@@ -36,7 +39,12 @@ type FinalizePayPalOrderParams = {
  * for an order nobody can fulfil.
  */
 export function finalizePayPalOrder(params: FinalizePayPalOrderParams) {
-  return finalizeCapturedOrder({
+  return finalizeCapturedAttempt({
+    // Attempt first, then the pending order a pre-attempt checkout wrote —
+    // both are asked whatever the rollout flag says (`finalize-attempt.ts`).
+    findAttempt: (scope) =>
+      findAttemptByGatewayRef("paypalOrderId", params.paypalOrderId, scope),
+    orderPrefix: params.settings.orders?.prefix,
     provider: {
       paymentMethod: "paypal",
       label: "PayPal",

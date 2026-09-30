@@ -194,6 +194,22 @@ export function carrierRouteRefusal(
 export const CARRIER_MODES = ["test", "live"] as const;
 export type CarrierMode = (typeof CARRIER_MODES)[number];
 
+/**
+ * A label bought on a carrier's test environment.
+ *
+ * It costs nothing and moves no parcel, so it must not do what a real label
+ * does: post a shipping cost, take the delivery charge off a vendor, move the
+ * order to shipped or tell the customer a tracking number. Merchants try the
+ * test mode on their live store and real orders, so every one of those used to
+ * happen for free labels. The shipment itself is still recorded — that is the
+ * test.
+ */
+export function isTestLabel(
+  shipment: { providerMode?: string | null } | null | undefined,
+): boolean {
+  return shipment?.providerMode === "test";
+}
+
 export const CARRIER_LABEL_FILE_TYPES = [
   "PDF",
   "PDF_4x6",
@@ -286,6 +302,15 @@ export const CARRIER_RATE_TTL_MS = 30 * 60 * 1000;
  * duplicate order id.
  */
 export const CARRIER_PURCHASE_CLAIM_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * How long a carrier may leave a refund undecided before we stop asking.
+ *
+ * Shippo settles most within days, but a postal refund can take weeks. Past
+ * this the refund is marked expired and the label's cost stays on the books —
+ * the conservative answer, since nothing says the money came back.
+ */
+export const CARRIER_REFUND_SETTLE_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
  * True when a `purchasing` claim is old enough to be treated as abandoned.

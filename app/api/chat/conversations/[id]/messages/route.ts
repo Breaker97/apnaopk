@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";

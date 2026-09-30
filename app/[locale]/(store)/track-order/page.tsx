@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { RouteMessages } from "@/components/language/route-messages";
 import { TrackOrderContent } from "@/components/store/track-order-content";
 
 interface TrackOrderPageProps {
@@ -21,8 +22,8 @@ export default async function TrackOrderPage({
   setRequestLocale(locale);
 
   return (
-    <TrackOrderContent
-      initialOrderNumber={orderNumber || orderId || ""}
-    />
+    <RouteMessages namespaces={["orders"]}>
+      <TrackOrderContent initialOrderNumber={orderNumber || orderId || ""} />
+    </RouteMessages>
   );
 }

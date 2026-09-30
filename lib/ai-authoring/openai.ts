@@ -14,10 +14,6 @@ type OpenAIResponseLike = {
   output?: OpenAIMessageItem[];
 };
 
-export function isAIAuthoringConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY?.trim());
-}
-
 /**
  * Build the OpenAI client from a resolved key (Settings → AI, DB wins with
  * OPENAI_API_KEY env fallback). Callers that already ran the authoring gate

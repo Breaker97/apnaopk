@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { Button } from "@/components/ui/button";
 import { CountrySelect } from "@/components/common/country-multi-select";
 import type {
@@ -234,6 +234,13 @@ export function ShippingCard({
                     searchPlaceholder={t(
                       "checkout.searchCountry",
                     )}
+                    // Where the goods were made, which has nothing to do with
+                    // where the store sells them: a shirt made in Vietnam is
+                    // still made in Vietnam in a store that only delivers to
+                    // Bangladesh. Restricting this to the countries on offer
+                    // also let the single-country lock stamp the selling
+                    // country onto every product's customs data.
+                    restrictToAvailableCountries={false}
                     // Country of origin is optional customs data, so a picked
                     // country has to be un-pickable again.
                     clearable

@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import {
@@ -21,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
 import { getSession } from "@/lib/auth/auth-client";
+import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
 /**
  * "Request a quote" — the form behind the button a `priceOnRequest` product
@@ -28,15 +28,21 @@ import { getSession } from "@/lib/auth/auth-client";
  *
  * A lead-capture form, not a checkout: nothing here is priced, no stock is
  * held, and the shopper is not asked to sign in. Signing in is used to save
- * them typing — the fields are prefilled from the session when the dialog
- * opens (in the open handler, so a page full of quote products subscribes to
- * nothing until someone actually asks) — and to tell them where the answer
- * will turn up. A signed-out request still reaches the merchant, and reaches
- * its sender by email; it joins their account the first time they sign in with
- * that address.
+ * them typing — the fields are prefilled from the session each time the dialog
+ * opens (read then, so a page full of quote products subscribes to nothing
+ * until someone actually asks) — and to tell them where the answer will turn
+ * up. A signed-out request still reaches the merchant, and reaches its sender
+ * by email; it joins their account the first time they sign in with that
+ * address.
+ *
+ * The page opens it by setting `open`, and Radix only calls `onOpenChange` for
+ * a close, so the reset and the prefill follow `open` itself. They used to sit
+ * in the open handler, which never ran: the form was never prefilled, and once
+ * a request was sent every later opening showed the "sent" screen again, so a
+ * second request needed a page reload.
  */
 
-export type QuoteRequestTarget = {
+type QuoteRequestTarget = {
   productId: string;
   productName: string;
   variantId?: string;
@@ -91,31 +97,35 @@ export function QuoteRequestDialog({
     value: QuoteFormState[K],
   ) => setForm((current) => ({ ...current, [key]: value }));
 
-  const params = useParams();
-  const locale = typeof params?.locale === "string" ? params.locale : "";
 
-  const handleOpenChange = useCallback(
-    async (next: boolean) => {
-      onOpenChange(next);
-      if (!next) return;
+  // Fresh form on every opening, seeded with the buy box's current quantity,
+  // so a second request is never a re-send of the first one's fields.
+  useApplyOnChange([open], () => {
+    if (!open) return;
+    setForm(emptyForm(target.quantity ?? 1));
+    setIsSent(false);
+  });
 
-      // Fresh form on every open, seeded with the buy box's current quantity,
-      // so a second request is never a re-send of the first one's fields.
-      setForm(emptyForm(target.quantity ?? 1));
-      setIsSent(false);
-
-      const session = await getSession().catch(() => null);
-      const user = session?.data?.user;
-      setHasAccount(Boolean(user));
-      if (!user) return;
-      setForm((current) => ({
-        ...current,
-        name: current.name || user.name || "",
-        email: current.email || user.email || "",
-      }));
-    },
-    [onOpenChange, target.quantity],
-  );
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getSession()
+      .catch(() => null)
+      .then((session) => {
+        if (cancelled) return;
+        const user = session?.data?.user;
+        setHasAccount(Boolean(user));
+        if (!user) return;
+        setForm((current) => ({
+          ...current,
+          name: current.name || user.name || "",
+          email: current.email || user.email || "",
+        }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -152,7 +162,7 @@ export function QuoteRequestDialog({
     : target.productName;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("product.requestQuote")}</DialogTitle>
@@ -167,12 +177,12 @@ export function QuoteRequestDialog({
           <DialogFooter className="gap-2">
             {hasAccount ? (
               <Button asChild variant="outline">
-                <Link href={`/${locale}/account/quotes`}>
+                <Link href="/account/quotes">
                   {t("product.quoteTrackInAccount")}
                 </Link>
               </Button>
             ) : null}
-            <Button type="button" onClick={() => handleOpenChange(false)}>
+            <Button type="button" onClick={() => onOpenChange(false)}>
               {t("common.close")}
             </Button>
           </DialogFooter>
@@ -275,7 +285,7 @@ export function QuoteRequestDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => handleOpenChange(false)}
+                onClick={() => onOpenChange(false)}
               >
                 {t("common.cancel")}
               </Button>

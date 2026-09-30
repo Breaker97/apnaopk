@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useState } from "react";
 import { ArrowRight, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import type { Settings } from "@/components/admin/settings/types";
 import { PlatformPaymentMethodsField } from "@/components/admin/settings/fields/platform-payment-methods-field";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 function ToggleRow(props: {
   label: string;
@@ -148,7 +148,6 @@ export function VendorConfigSettingsTab(props: {
 }) {
   const anyDirty = props.isDirty || props.commissionDirty;
   const t = useTranslations();
-  const locale = useLocale();
   const cfg = props.settings.vendorConfig;
   const commission = props.settings.orders.commission;
   const disabled = Boolean(props.disabled);
@@ -189,15 +188,6 @@ export function VendorConfigSettingsTab(props: {
                 props.updateField("vendorConfig.allowRegistration", v)
               }
             />
-            <ToggleRow
-              label={t("admin.settings.vendorConfig.autoApprove.label")}
-              description={t(
-                "admin.settings.vendorConfig.autoApprove.description",
-              )}
-              checked={Boolean(cfg.autoApprove)}
-              disabled={disabled}
-              onChange={(v) => props.updateField("vendorConfig.autoApprove", v)}
-            />
           </CardContent>
         </Card>
 
@@ -227,29 +217,6 @@ export function VendorConfigSettingsTab(props: {
                 props.updateField("vendorConfig.requirePlanSelection", v)
               }
             />
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">
-                  {t("admin.settings.vendorConfig.freeTrialDays.label")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.settings.vendorConfig.freeTrialDays.description")}
-                </p>
-              </div>
-              <NumberInput
-                min={0}
-                max={365}
-                step={1}
-                className="h-9 w-24"
-                value={Number(cfg.freeTrialDays ?? 0)}
-                disabled={disabled || !plansOn}
-                whenEmpty={0}
-                normalize={Math.floor}
-                onValueChange={(next) =>
-                  props.updateField("vendorConfig.freeTrialDays", next ?? 0)
-                }
-              />
-            </div>
           </CardContent>
         </Card>
 
@@ -261,18 +228,10 @@ export function VendorConfigSettingsTab(props: {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm font-semibold">
-                  {t.has("admin.settings.vendorConfig.paymentMethods.title")
-                    ? t("admin.settings.vendorConfig.paymentMethods.title")
-                    : "Subscription payment methods"}
+                  {t("admin.settings.vendorConfig.paymentMethods.title")}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {t.has(
-                    "admin.settings.vendorConfig.paymentMethods.description",
-                  )
-                    ? t(
-                        "admin.settings.vendorConfig.paymentMethods.description",
-                      )
-                    : "Which gateways vendors may pay plan subscriptions through. Stripe renews automatically; other gateways bill one period at a time with renewal reminders. Credentials are configured in Payment Settings."}
+                  {t("admin.settings.vendorConfig.paymentMethods.description")}
                 </p>
               </div>
               <PlatformPaymentMethodsField
@@ -299,7 +258,7 @@ export function VendorConfigSettingsTab(props: {
               </p>
             </div>
             <Button asChild variant="outline" className="shrink-0">
-              <Link href={`/${locale}/admin/vendors/onboarding`}>
+              <Link href="/admin/vendors/onboarding">
                 {t("admin.settings.vendorConfig.documents.manageLink")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

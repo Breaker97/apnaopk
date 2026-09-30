@@ -90,6 +90,13 @@ export const announcementBar: SectionDefinition = {
       options: CHROME_ALIGN_OPTIONS,
       default: "center",
     },
+    // The bar's own inset, and the space between it and the header. The
+    // defaults are the `px-4 py-2` the component used to hard-code.
+    { key: "paddingTop", type: "number", default: 8, min: 0, max: 120 },
+    { key: "paddingRight", type: "number", default: 16, min: 0, max: 120 },
+    { key: "paddingBottom", type: "number", default: 8, min: 0, max: 120 },
+    { key: "paddingLeft", type: "number", default: 16, min: 0, max: 120 },
+    { key: "spaceBelow", type: "number", default: 0, min: 0, max: 120 },
     // Unset keeps the bar's own foreground.
     { key: "textFill", type: "background" },
     { key: "fontSize", type: "number", default: 13, min: 8, max: 40 },
@@ -134,7 +141,7 @@ export const announcementBar: SectionDefinition = {
   Render({ settings, ctx }) {
     return (
       <AnnouncementBar
-        locale={ctx.locale}
+
         text={lt(
           settings.text as LocalizedText,
           ctx.locale,

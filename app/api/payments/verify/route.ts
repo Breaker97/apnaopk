@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   getStripeForSecretKey,
   isStripeSecretKeyConfigured,
@@ -6,9 +6,8 @@ import {
 } from "@/lib/payments/stripe";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import { Order } from "@/models";
-import { connectDB } from "@/lib/db";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
-import { handleApiError } from "@/lib/api/errors";
+import { withApi } from "@/lib/api/handler";
 import { getSettings } from "@/models/settings.model";
 import {
   finalizeStripeCheckoutSessionOrder,
@@ -111,9 +110,21 @@ function verificationResponse(
  * per call: the order lookup runs alongside the retrieve (it does not need
  * Stripe's answer, only the response does), and the intent comes back with its
  * fee expanded so creating the order needs no second Stripe call.
+ *
+ * Through `withApi` rather than a bare export, for the rate limit: this is the
+ * one payment route a browser calls in a loop, it reaches Stripe's API on
+ * every call, and it CREATES the order when the webhook has not. A lenient
+ * preset, because a shopper watching the success page legitimately polls it
+ * several times a minute; it is there to stop a script, not the shopper.
+ *
+ * Deliberately still open to anyone holding the id: a guest's success page has
+ * no session to check against, and the ids are Stripe's own long random
+ * strings. Scoping it properly belongs with the checkout-attempt work, where
+ * the attempt is owned by a cart session.
  */
-export async function GET(request: NextRequest) {
-  try {
+export const GET = withApi(
+  { rateLimit: { action: "payments:verify", preset: "lenient" } },
+  async ({ request }) => {
     const sessionId = request.nextUrl.searchParams.get("session_id");
     const paymentIntentId = request.nextUrl.searchParams.get("payment_intent_id");
 
@@ -124,7 +135,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await connectDB();
     const settings = await getSettings();
     const stripeSettings = settings.payment?.stripe;
     if (!stripeSettings?.enabled) {
@@ -188,7 +198,5 @@ export async function GET(request: NextRequest) {
     }
 
     return verificationResponse(session.payment_status, existingOrder);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+);

@@ -10,7 +10,13 @@ import type { LocalizedText, SectionDefinition } from "../types";
 /** How many rows a spec table may carry before it stops being a summary. */
 const MAX_ROWS = 40;
 
-function readRows(product: Record<string, unknown>): ProductSpecificationRow[] {
+/**
+ * The rows the table draws. Exported for product-main: the buy box's tab
+ * strip offers "Specifications" only while this section has rows to land on.
+ */
+export function readSpecificationRows(
+  product: Record<string, unknown>,
+): ProductSpecificationRow[] {
   const attributes = product.attributes;
   if (!Array.isArray(attributes)) return [];
   return attributes
@@ -56,7 +62,7 @@ async function renderSpecification({
   const resource = ctx.resource;
   if (resource?.type !== "product") return null;
 
-  const rows = readRows(resource.product);
+  const rows = readSpecificationRows(resource.product);
   const custom = lt(
     settings.title as LocalizedText,
     ctx.locale,

@@ -8,13 +8,14 @@ import {
 } from "@/lib/payments/razorpay";
 import { finalizeRazorpayOrder } from "@/lib/payments/razorpay-orders";
 import {
+  SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
   rateLimitBySession,
   rateLimitByUser,
 } from "@/lib/api/rate-limit-middleware";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const RazorpayVerifySchema = z.object({
@@ -42,6 +43,7 @@ export const POST = withApi(
         cartSessionId,
         "payments:razorpay-verify",
         "strict",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "strict");

@@ -38,6 +38,7 @@ import {
   ListFilesResult,
   StorageObject,
 } from "../types";
+import { ownerPrefix } from "../key";
 
 const RETIRED =
   "Local storage was retired in v1.5. Configure Cloudflare R2, AWS S3, MinIO " +
@@ -113,7 +114,10 @@ export class LegacyLocalProvider implements StorageService {
     const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
     const offset = Math.max(parseInt(options.cursor ?? "0", 10) || 0, 0);
 
-    const prefix = (this.config.pathPrefix || "uploads/").replace(/^\/+/, "");
+    const prefix = ownerPrefix(
+      (this.config.pathPrefix || "uploads/").replace(/^\/+/, ""),
+      options.ownerScope,
+    );
     const root = this.resolve(this.baseDir, prefix);
 
     const entries: { key: string; size: number; mtimeMs: number }[] = [];

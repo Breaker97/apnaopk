@@ -15,12 +15,8 @@ import {
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import {
   Form,
   FormControl,
@@ -67,6 +63,7 @@ import { AiStudioMenu } from "@/components/ai-authoring/ai-studio-menu";
 import { useAiStudio } from "@/components/ai-authoring/use-ai-studio";
 import { findColorOption } from "@/lib/products/color-swatch";
 import { useAiAuthoring } from "@/components/ai-authoring/use-ai-authoring";
+import { useAiSurfaceAllowed } from "@/components/ai-authoring/ai-availability-provider";
 import type {
   AIAuthoringMediaResponse,
   AIAuthoringRequest,
@@ -93,6 +90,7 @@ import {
 } from "@/components/admin/product-form/preorder-card";
 import { ShippingCard } from "@/components/admin/product-form/shipping-card";
 import { ProductFormatCard } from "@/components/admin/product-form/product-format-card";
+import { ReturnsCard } from "@/components/admin/product-form/returns-card";
 import { InventoryCard } from "@/components/admin/product-form/inventory-card";
 import { OrganizationCard } from "@/components/admin/product-form/organization-card";
 import { DetailsCard } from "@/components/admin/product-form/details-card";
@@ -102,17 +100,38 @@ import {
   type DigitalPreviewItem,
 } from "@/components/admin/product-form/digital-files-card";
 import { ProductFormSkeleton } from "@/components/admin/product-form/product-form-skeleton";
+import { preventEnterSubmit } from "@/components/admin/product-form/prevent-enter-submit";
 import { apiClient, describeApiError } from "@/lib/api/client";
 import type {
   ProductFormOptions,
   VendorPreorderAccess,
 } from "@/lib/products/form-options-types";
+import type { ProductFeatures } from "@/lib/products/product-features";
 
 interface ProductFormProps {
   productId?: string;
   isVendor?: boolean;
   area?: "admin" | "staff";
+  /**
+   * What this store offers (Settings → Products), resolved by the page so the
+   * form is right on its first paint: the formats a new product may take, and
+   * whether pre-orders and "Price on request" can be switched on.
+   */
+  productFeatures: ProductFeatures;
 }
+
+/**
+ * The pre-order lock the admin editor shows once the store has switched
+ * pre-orders off. A vendor's own access already says so; the admin editor is
+ * otherwise never gated, so it gets the same "store" lock to show.
+ */
+const PREORDERS_SWITCHED_OFF: VendorPreorderAccess = {
+  allowed: false,
+  blockedBy: "store",
+  requestedAt: null,
+  maxLeadDays: 0,
+  maxDepositPercent: 100,
+};
 
 type ProductFormMediaItem = {
   _id: string;
@@ -150,6 +169,7 @@ export function ProductForm({
   productId,
   isVendor = false,
   area = "admin",
+  productFeatures,
 }: ProductFormProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -224,6 +244,19 @@ export function ProductForm({
   // still refuses a pre-order this vendor may not open.
   const [preorderAccess, setPreorderAccess] =
     useState<VendorPreorderAccess | null>(null);
+  // Switched off in Settings → Products, pre-orders are locked for everyone —
+  // the admin editor included — and a vendor's own access no longer matters.
+  const effectivePreorderAccess = productFeatures.preorders
+    ? preorderAccess
+    : PREORDERS_SWITCHED_OFF;
+  // What this product already used when it loaded. Pre-orders the store has
+  // since switched off stay on screen for such a product, so they can be
+  // turned off; price on request, chosen at creation, shows on an existing
+  // product only when it had it.
+  const [storedFeatureUse, setStoredFeatureUse] = useState({
+    preorder: false,
+    priceOnRequest: false,
+  });
   const [productLocationInventory, setProductLocationInventory] = useState<
     LocationInventory[]
   >([]);
@@ -259,6 +292,7 @@ export function ProductForm({
       // POS availability is an explicit decision for everyone: a product only
       // reaches the register once someone confirms it is physically in the shop.
       publishing: { onlineStore: true, pointOfSale: false },
+      returns: { finalSale: false, windowDays: null },
       pricing: {
         price: 0,
         comparePrice: undefined,
@@ -274,7 +308,8 @@ export function ProductForm({
         barcode: "",
         barcodeFormat: "auto",
         barcodeSource: "unspecified",
-        tracked: true,
+        // A digital product tracks no stock — see ProductFormatCard.
+        tracked: productFeatures.physical,
         quantity: 0,
         continueSellingWhenOutOfStock: false,
       },
@@ -293,7 +328,9 @@ export function ProductForm({
         batchName: "",
       },
       shipping: {
-        isPhysicalProduct: true,
+        // A new product starts in a format the store sells: physical, unless
+        // Settings → Products has it switched off.
+        isPhysicalProduct: productFeatures.physical,
         weight: undefined,
         weightUnit: "kg",
         countryOfOrigin: "",
@@ -318,6 +355,10 @@ export function ProductForm({
     contentEndpoint: aiContentEndpoint,
     mediaEndpoint: aiMediaEndpoint,
   });
+  // Settings → AI, resolved by the dashboard layout. The text menus gate
+  // themselves from the entity in their request; the media studio and the alt
+  // generator are passed in as props, so this form decides for them.
+  const aiAllowed = useAiSurfaceAllowed("products");
 
 
   // Every dropdown the editor needs — categories, brands, collections,
@@ -626,6 +667,10 @@ export function ProductForm({
                     typeof variant.requiresShipping === "boolean"
                       ? variant.requiresShipping
                       : undefined,
+                  finalSale:
+                    typeof variant.finalSale === "boolean"
+                      ? variant.finalSale
+                      : undefined,
                   weight:
                     typeof variant.weight === "number"
                       ? variant.weight
@@ -744,6 +789,13 @@ export function ProductForm({
                 typeof product.publishing?.pointOfSale === "boolean"
                   ? product.publishing.pointOfSale
                   : false,
+            },
+            returns: {
+              finalSale: product.returns?.finalSale === true,
+              windowDays:
+                typeof product.returns?.windowDays === "number"
+                  ? product.returns.windowDays
+                  : null,
             },
             pricing: {
               price: product.price,
@@ -933,6 +985,12 @@ export function ProductForm({
             },
           });
 
+          setStoredFeatureUse({
+            preorder: Boolean(
+              (product.preorder as RawPreorderSettings | undefined)?.enabled,
+            ),
+            priceOnRequest: product.priceOnRequest === true,
+          });
           updateMediaItems(loadedMedia);
           setDigitalAssets(
             Array.isArray(product.digitalAssets)
@@ -1168,6 +1226,8 @@ export function ProductForm({
                   }))
                 : [],
               requiresShipping: v.requiresShipping,
+              // Absent follows the product.
+              finalSale: v.finalSale,
               weight:
                 typeof v.weight === "number" ? Math.max(0, v.weight) : undefined,
               weightUnit: v.weightUnit,
@@ -1657,8 +1717,8 @@ export function ProductForm({
     persistKey: `product:${isVendor ? "vendor" : "admin"}:${productId ?? "new"}`,
     breadcrumbRoot: productId ? "Edit product" : "Add product",
     savedMessage: "Saved to product media",
-    posHref: `/${locale}/${isVendor ? "vendor" : area}/pos`,
-    browseHref: `/${locale}`,
+    posHref: `/${isVendor ? "vendor" : area}/pos`,
+    browseHref: "/",
     onUpload: handleEditDialogUpload,
     onDelete: (mediaId) =>
       updateMediaItems((prev) =>
@@ -1698,12 +1758,13 @@ export function ProductForm({
   const autoOpenedStudioRef = useRef(false);
   const openProductStudio = productStudio.openStudio;
   useEffect(() => {
-    if (autoOpenedStudioRef.current || isFetching) return;
+    if (autoOpenedStudioRef.current || isFetching || !aiAllowed) return;
     if (searchParams.get("ai-studio") !== "image") return;
     autoOpenedStudioRef.current = true;
     openProductStudio(editableImages[0]?._id ?? null);
     router.replace(pathname, { scroll: false });
   }, [
+    aiAllowed,
     isFetching,
     searchParams,
     openProductStudio,
@@ -1777,6 +1838,7 @@ export function ProductForm({
     <Form {...form}>
       <form
         onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+        onKeyDown={preventEnterSubmit}
         className="mx-auto w-full max-w-6xl space-y-4"
       >
         <AdminFormStickyHeader
@@ -1917,23 +1979,38 @@ export function ProductForm({
               }
             />
 
-            {/* Format is fixed once the product exists — see ProductFormatCard. */}
-            <ProductFormatCard form={form} locked={!!productId} />
-
-            {watchedIsPhysicalProduct && (
-              <PreorderCard
-                form={form}
-                setVariants={setVariants}
-                deferredBalanceSupported={deferredBalanceSupported}
-                access={preorderAccess}
-              />
+            {/* Chosen once, when the product is created, and fixed after —
+                the edit page has nothing to offer here (see ProductFormatCard). */}
+            {!productId && (
+              <ProductFormatCard form={form} formats={productFeatures} />
             )}
+
+            {watchedIsPhysicalProduct &&
+              (productFeatures.preorders || storedFeatureUse.preorder) && (
+                <PreorderCard
+                  form={form}
+                  setVariants={setVariants}
+                  deferredBalanceSupported={deferredBalanceSupported}
+                  access={effectivePreorderAccess}
+                />
+              )}
 
             <Card className="gap-2">
               <CardHeader>
-                <CardTitle>
-                  {t("admin.productForm.sections.media")}
-                </CardTitle>
+                <div className="flex items-center justify-between gap-4">
+                  <CardTitle>
+                    {t("admin.productForm.sections.media")}
+                  </CardTitle>
+                  {aiAllowed ? (
+                    <AiStudioMenu
+                      onOpenStudio={() =>
+                        productStudio.openStudio(
+                          editableImages[0]?._id ?? null,
+                        )
+                      }
+                    />
+                  ) : null}
+                </div>
               </CardHeader>
               <CardContent>
                 <MediaUploader
@@ -1982,14 +2059,8 @@ export function ProductForm({
                   }}
                   maxFiles={10}
                   allowExternalVideo
-                  aiGenerateAction={
-                    <AiStudioMenu
-                      onOpenStudio={() =>
-                        productStudio.openStudio(editableImages[0]?._id ?? null)
-                      }
-                    />
-                  }
-                  onGenerateAlt={generateMediaAltText}
+                  allowMediaLibrary
+                  onGenerateAlt={aiAllowed ? generateMediaAltText : undefined}
                 />
                 {productStudio.studio}
               </CardContent>
@@ -2021,6 +2092,14 @@ export function ProductForm({
               setPricingAccordionValue={setPricingAccordionValue}
               unitPricePopoverOpen={unitPricePopoverOpen}
               setUnitPricePopoverOpen={setUnitPricePopoverOpen}
+              // Chosen at creation, like the format: an existing product
+              // offers the switch only while it is priced on request.
+              showPriceOnRequest={
+                productId
+                  ? storedFeatureUse.priceOnRequest
+                  : productFeatures.priceOnRequest
+              }
+              priceOnRequestSwitchedOff={!productFeatures.priceOnRequest}
             />
 
             {watchedIsPhysicalProduct && (
@@ -2064,7 +2143,10 @@ export function ProductForm({
                   locations={activeLocations}
                   defaultRequiresShipping={watchedIsPhysicalProduct}
                   defaultWeightUnit={watchedWeightUnit}
-                  preorderLockedReason={preorderLockMessage(preorderAccess)}
+                  preorderLockedReason={preorderLockMessage(
+                    effectivePreorderAccess,
+                  )}
+                  preordersOff={!productFeatures.preorders}
                 />
               </CardContent>
             </Card>
@@ -2265,6 +2347,9 @@ export function ProductForm({
                 />
               </CardContent>
             </Card>
+
+            {/* A download never comes back, so only goods can be final sale. */}
+            {watchedIsPhysicalProduct && <ReturnsCard form={form} />}
 
             <OrganizationCard
               form={form}

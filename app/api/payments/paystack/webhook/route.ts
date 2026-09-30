@@ -85,6 +85,29 @@ export async function POST(request: NextRequest) {
         refund: event.data as PaystackRefundPayload,
         secretKey: creds.secretKey,
       });
+      // Or one of the marketplace's own payments — a boost, a subscription —
+      // which only Stripe's refunds ever reached.
+      const refundData = event.data as PaystackRefundPayload;
+      const transaction = refundData.transaction;
+      await import("@/lib/payments/platform-refund-sync")
+        .then(({ syncPaystackPlatformRefund }) =>
+          syncPaystackPlatformRefund({
+            transaction: {
+              id:
+                transaction && typeof transaction === "object" && transaction.id
+                  ? String(transaction.id)
+                  : undefined,
+              reference:
+                (transaction && typeof transaction === "object"
+                  ? transaction.reference
+                  : undefined) || refundData.transaction_reference,
+            },
+            secretKey: creds.secretKey,
+          }),
+        )
+        .catch((error) =>
+          console.error("Failed to apply a Paystack platform refund:", error),
+        );
     } catch (error) {
       // 5xx so Paystack retries: a refund the books never learned about is
       // exactly the failure this handler exists to stop.

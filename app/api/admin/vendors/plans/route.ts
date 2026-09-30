@@ -103,8 +103,24 @@ export const POST = withApi(
       );
     }
 
+    // Plans are ordered by dragging them in the catalogue, so a new one joins
+    // at the end rather than tying with whichever plan sits first.
+    let sortOrder = body.sortOrder;
+    if (sortOrder === undefined) {
+      const last = await VendorPlan.findOne()
+        .sort({ sortOrder: -1 })
+        .select("sortOrder")
+        .lean();
+      sortOrder = last ? (last.sortOrder ?? 0) + 1 : 0;
+    }
+
+    // An archived plan is never offered, so it cannot be the one new vendors
+    // are steered to.
+    const isDefault =
+      Boolean(body.isDefault) && (body.status ?? "active") === "active";
+
     // At most one active default plan — clear any existing default first.
-    if (body.isDefault) {
+    if (isDefault) {
       await VendorPlan.updateMany(
         { isDefault: true },
         { $set: { isDefault: false } },
@@ -123,9 +139,9 @@ export const POST = withApi(
       features: body.features ?? [],
       limits: body.limits ?? {},
       capabilities: body.capabilities ?? {},
-      isDefault: Boolean(body.isDefault),
+      isDefault,
       status: body.status ?? "active",
-      sortOrder: body.sortOrder ?? 0,
+      sortOrder,
       stripeProductId: body.stripeProductId || undefined,
       stripePriceId: body.stripePriceId || undefined,
       createdBy: session.user.id,

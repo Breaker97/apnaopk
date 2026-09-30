@@ -5,21 +5,20 @@ import { Product, Vendor } from "@/models";
 import { type Locale } from "@/config/i18n.config";
 import { VENDOR_STATUS, PRODUCT_STATUS } from "@/config/app.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
-import {
-  getExternalVendorFilter,
-  isMultiVendorEnabled,
-} from "@/lib/vendors/multi-vendor";
+import { isStorefrontMultiVendorEnabled } from "@/lib/catalog/product-visibility";
+import { getExternalVendorFilter } from "@/lib/vendors/multi-vendor";
 import {
   EMPTY_VENDOR_REVIEW_STATS,
   getVendorReviewStatsMap,
   getVendorUnitsSoldMap,
 } from "@/lib/storefront/storefront-vendors";
 import { getStoreCurrency } from "@/lib/intl/server-currency";
-import {
-  HomeTopVendorsCarousel,
-  type TopVendorCard,
-  type TopVendorsLabels,
+import { HomeTopVendorsCarouselLazy as HomeTopVendorsCarousel } from "@/components/store/home-top-vendors-carousel-lazy";
+import type {
+  TopVendorCard,
+  TopVendorsLabels,
 } from "@/components/store/home-top-vendors-carousel";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 interface HomeTopVendorsProps {
   locale: Locale;
@@ -56,12 +55,12 @@ function priceTier(
     : `${symbol}${"+".repeat(level - 1)}`;
 }
 
-const fetchTopVendors = unstable_cache(
-  async (limit: number): Promise<TopVendorCard[]> => {
-    try {
+const fetchTopVendors = withFallback(
+  unstable_cache(
+    async (limit: number): Promise<TopVendorCard[]> => {
       await connectDB();
 
-      const enabled = await isMultiVendorEnabled();
+      const enabled = await isStorefrontMultiVendorEnabled();
       if (!enabled) return [];
 
       // Cached alongside the cards and invalidated by CACHE_TAGS.settings, so
@@ -158,15 +157,14 @@ const fetchTopVendors = unstable_cache(
           .sort((a, b) => b.rating - a.rating || b.unitsSold - a.unitsSold)
           .slice(0, limit)
       );
-    } catch {
-      return [];
-    }
-  },
-  ["home-top-vendors"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.products, CACHE_TAGS.settings],
-  },
+    },
+    ["home-top-vendors"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.products, CACHE_TAGS.settings],
+    },
+  ),
+  () => [],
 );
 
 async function getLabels(locale: Locale): Promise<TopVendorsLabels> {

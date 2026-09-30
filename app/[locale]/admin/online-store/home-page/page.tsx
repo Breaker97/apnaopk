@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -10,5 +11,5 @@ interface PageProps {
  */
 export default async function OnlineStoreHomePage({ params }: PageProps) {
   const { locale } = await params;
-  redirect(`/${locale}/admin/online-store/customize`);
+  redirect(await localeHref(locale, "/admin/online-store/customize"));
 }

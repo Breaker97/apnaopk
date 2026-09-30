@@ -2,7 +2,8 @@
 
 import Script from "next/script";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import {
   getAnalyticsConsent,
   trackPageView,

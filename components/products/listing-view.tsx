@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
  * markup never changes: the toolbar flips this context and the cards
  * rearrange. Anything outside a listing reads the default and is a grid.
  */
-export type ListingViewMode = "grid" | "list";
+type ListingViewMode = "grid" | "list";
 
 const ListingViewContext = createContext<ListingViewMode>("grid");
 

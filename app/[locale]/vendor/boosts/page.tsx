@@ -26,6 +26,7 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { parsePageQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema } from "@/lib/validations";
 import { fetchBoostCampaignList } from "@/lib/boosts/boost-campaign-list";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -46,7 +47,7 @@ export default async function VendorBoostsPage({
   await connectDB();
   const settings = await getSettings();
   if (!settings.multiVendorMode?.enabled || !settings.boosting?.enabled) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
 
   // Checked against the resolution the guard already loaded, not via a second
@@ -133,7 +134,7 @@ export default async function VendorBoostsPage({
           Suspense wrapper around already-resolved props never suspends. */}
       <Suspense
         fallback={
-          <AdminListSkeleton stats={0} columns={7} tabs={6} thumbnail />
+          <AdminListSkeleton stats={0} columns={8} tabs={7} thumbnail />
         }
       >
         <VendorBoostsSection

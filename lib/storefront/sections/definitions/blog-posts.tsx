@@ -26,7 +26,7 @@ export const blogPosts: SectionDefinition = {
   Render({ settings, ctx }) {
     return (
       <HomeTopArticles
-        locale={ctx.locale}
+
         title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
         limit={settings.limit as number}
         desktopColumns={settings.desktopColumns as number}

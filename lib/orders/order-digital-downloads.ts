@@ -8,8 +8,10 @@
  * counters against the product's downloadLimit.
  */
 
-import { PAYMENT_STATUS } from "@/config/app.config";
-import { Product } from "@/models";
+import { RETURN_STATUS } from "@/lib/returns/returns";
+import { refundedQuantitiesByIndex } from "@/lib/returns/return-plan";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
+import { Product, ReturnRequest } from "@/models";
 import { isSubOrderPaid } from "@/lib/orders/order-payment-status";
 
 type DigitalEntitlementFile = {
@@ -27,10 +29,14 @@ type DigitalEntitlementFile = {
 };
 
 type OrderLike = {
-  items?: { productId?: unknown; vendorId?: unknown }[];
+  _id?: unknown;
+  items?: { productId?: unknown; vendorId?: unknown; quantity?: number }[];
+  status?: string;
   paymentStatus?: string;
   subOrders?: { vendorId?: unknown; status?: string; paymentStatus?: string | null }[];
   digitalDownloads?: { assetId: string; count?: number }[];
+  /** Everything refundable has gone back — see the order model. */
+  goodsRefundedAt?: Date | string | null;
 };
 
 /**
@@ -44,6 +50,8 @@ function paidVendorIds(order: OrderLike): Set<string> | null {
 
   const paid = new Set<string>();
   for (const subOrder of subOrders) {
+    // A called-off consignment was refunded; its sub-order still reads paid.
+    if (subOrder.status === ORDER_STATUS.CANCELLED) continue;
     if (subOrder.vendorId && isSubOrderPaid(order, subOrder)) {
       paid.add(String(subOrder.vendorId));
     }
@@ -60,7 +68,24 @@ function paidVendorIds(order: OrderLike): Set<string> | null {
  * refund could take it back.
  */
 export function isOrderEntitledToDownloads(order: OrderLike): boolean {
-  if (order.paymentStatus === PAYMENT_STATUS.PAID) return true;
+  // Money that went back takes the files with it. A refund is only written on
+  // the order, so the split order's sub-orders kept reading paid and kept the
+  // downloads open.
+  if (
+    order.status === ORDER_STATUS.CANCELLED ||
+    order.paymentStatus === PAYMENT_STATUS.REFUNDED ||
+    // A delivered order refunded in full but for the delivery it keeps.
+    Boolean(order.goodsRefundedAt)
+  ) {
+    return false;
+  }
+  // A partial refund (one returned item) leaves the rest of the order paid for.
+  if (
+    order.paymentStatus === PAYMENT_STATUS.PAID ||
+    order.paymentStatus === PAYMENT_STATUS.PARTIALLY_REFUNDED
+  ) {
+    return true;
+  }
   const paidVendors = paidVendorIds(order);
   return paidVendors !== null && paidVendors.size > 0;
 }
@@ -72,11 +97,16 @@ export function isOrderEntitledToDownloads(order: OrderLike): boolean {
  * an asset belongs to the order, and it used to build its own — two copies of
  * an entitlement rule, one of which would inevitably stop matching the other.
  */
-export function orderEntitledProductIds(order: OrderLike): string[] {
+export function orderEntitledProductIds(
+  order: OrderLike,
+  /** Lines refunded in full — see `fullyRefundedLines`. */
+  refundedLines: ReadonlySet<number> = new Set(),
+): string[] {
   const paidVendors = paidVendorIds(order);
   const ids = new Set<string>();
-  for (const item of order.items ?? []) {
+  for (const [index, item] of (order.items ?? []).entries()) {
     if (!item.productId) continue;
+    if (refundedLines.has(index)) continue;
     // A partially collected order entitles only the collected vendors' items.
     // With no split to speak of, `isOrderEntitledToDownloads` has already
     // settled it for the whole order.
@@ -89,13 +119,49 @@ export function orderEntitledProductIds(order: OrderLike): string[] {
 }
 
 /**
+ * The lines every unit of which has been refunded — itemised on the order's
+ * refund screen, or through a refunded return. Their files go back with the
+ * money: a partial refund left the order paid as far as downloads went, so a
+ * refunded ebook stayed downloadable. A line partly refunded keeps its files;
+ * the shopper still owns what they paid for.
+ */
+export async function fullyRefundedLines(order: OrderLike): Promise<Set<number>> {
+  if (order.paymentStatus !== PAYMENT_STATUS.PARTIALLY_REFUNDED || !order._id) {
+    return new Set();
+  }
+  const [itemised, refundedReturns] = await Promise.all([
+    refundedQuantitiesByIndex(order._id),
+    ReturnRequest.find({ orderId: order._id, status: RETURN_STATUS.REFUNDED })
+      .select("items.orderItemIndex items.quantityApproved")
+      .lean<Array<{ items?: Array<{ orderItemIndex?: number; quantityApproved?: number }> }>>(),
+  ]);
+  const refunded = new Map(itemised);
+  for (const request of refundedReturns) {
+    for (const item of request.items ?? []) {
+      const index = Number(item.orderItemIndex);
+      if (!Number.isInteger(index) || index < 0) continue;
+      refunded.set(index, (refunded.get(index) ?? 0) + Math.max(0, Number(item.quantityApproved ?? 0)));
+    }
+  }
+  const lines = new Set<number>();
+  for (const [index, item] of (order.items ?? []).entries()) {
+    const ordered = Number(item.quantity ?? 0);
+    if (ordered > 0 && (refunded.get(index) ?? 0) >= ordered) lines.add(index);
+  }
+  return lines;
+}
+
+/**
  * List every digital file the given (already ownership-checked) order grants
  * access to, with usage counters applied.
  */
 export async function getOrderDigitalEntitlements(
   order: OrderLike,
 ): Promise<DigitalEntitlementFile[]> {
-  const productIds = orderEntitledProductIds(order);
+  const productIds = orderEntitledProductIds(
+    order,
+    await fullyRefundedLines(order),
+  );
   if (productIds.length === 0) return [];
 
   const products = await Product.find({

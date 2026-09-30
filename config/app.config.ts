@@ -118,6 +118,23 @@ export const PAYMENT_STATUS = {
   PARTIALLY_PAID: "partially_paid",
   REFUNDED: "refunded",
   PARTIALLY_REFUNDED: "partially_refunded",
+  /**
+   * The gateway was asked for this money, said no or said nothing, and the
+   * window has closed — the shopper walked out of PayPal, or the MoMo prompt
+   * was never answered.
+   *
+   * A separate state from `cancelled`, which is an order-level status meaning
+   * a PERSON called the order off. Told apart because the merchant treats them
+   * differently: a cancelled order may need a refund and an apology, an expired
+   * one needs neither, and counting the second as the first buried the
+   * cancellation rate under abandoned checkouts. Shopify draws the same line.
+   *
+   * Only `expireStalePaymentOrders` writes it (`lib/orders/checkout-expiry.ts`),
+   * and only after the gateway itself has confirmed the money never arrived.
+   * No admin form offers it: an expiry is something the store OBSERVES, so
+   * `AdminUpdateOrderSchema` deliberately leaves it out.
+   */
+  EXPIRED: "expired",
 } as const;
 
 export type PaymentStatus =
@@ -324,6 +341,14 @@ export type BoostCancelReason =
 // Stripe requires checkout.session.expires_at to be at least 30 minutes after
 // session creation, and the hold is stamped before the session is created, so
 // a flat 30 lands inside the floor and every Stripe boost checkout would fail.
+/**
+ * The boost campaigns list tab that is not a status: rows with an unsettled
+ * credit. Lives here so the list query, the route and the table agree on one
+ * string, and so the table can read it without importing a module that pulls
+ * mongoose into the client bundle.
+ */
+export const BOOST_CREDIT_OWED_TAB = "credit_owed";
+
 export const BOOST_HOLD_MIN_MINUTES = 35;
 export const BOOST_HOLD_MAX_MINUTES = 120;
 
@@ -409,3 +434,82 @@ export const PLATFORM_PAYMENT_STATUS = {
 
 export type PlatformPaymentStatus =
   (typeof PLATFORM_PAYMENT_STATUS)[keyof typeof PLATFORM_PAYMENT_STATUS];
+
+/**
+ * Email and SMS marketing consent, as a state rather than a tick-box.
+ *
+ * A boolean could not say the three things a consent record has to say: that a
+ * shopper asked to leave (which is not the same as never having asked to join,
+ * and must survive their next order), that a confirmation is still outstanding,
+ * and that the address itself has gone bad. The names follow Shopify's own
+ * customer consent states so a store moving between the two reads the same
+ * words on both sides.
+ *
+ * `invalid` and `redacted` are written by the system only — a bounce or spam
+ * report, and an erasure request — and no admin or shopper action moves a
+ * record out of them.
+ */
+export const MARKETING_CONSENT_STATE = {
+  NOT_SUBSCRIBED: "not_subscribed",
+  PENDING: "pending",
+  SUBSCRIBED: "subscribed",
+  UNSUBSCRIBED: "unsubscribed",
+  INVALID: "invalid",
+  REDACTED: "redacted",
+} as const;
+
+export type MarketingConsentState =
+  (typeof MARKETING_CONSENT_STATE)[keyof typeof MARKETING_CONSENT_STATE];
+
+export const MARKETING_CONSENT_STATES = Object.values(
+  MARKETING_CONSENT_STATE,
+) as MarketingConsentState[];
+
+/**
+ * How the consent was obtained: straight from the tick-box, or confirmed by
+ * following a link sent to the address afterwards (double opt-in). `unknown`
+ * is for consent inherited from before this was recorded — an import, or the
+ * boolean this replaced.
+ */
+export const MARKETING_OPT_IN_LEVEL = {
+  SINGLE: "single_opt_in",
+  CONFIRMED: "confirmed_opt_in",
+  UNKNOWN: "unknown",
+} as const;
+
+export type MarketingOptInLevel =
+  (typeof MARKETING_OPT_IN_LEVEL)[keyof typeof MARKETING_OPT_IN_LEVEL];
+
+export const MARKETING_OPT_IN_LEVELS = Object.values(
+  MARKETING_OPT_IN_LEVEL,
+) as MarketingOptInLevel[];
+
+/** Where a consent change came from. Kept with the record, for audits. */
+export const MARKETING_CONSENT_SOURCE = {
+  CHECKOUT: "checkout",
+  ACCOUNT: "account",
+  ADMIN: "admin",
+  STOREFRONT_FORM: "storefront_form",
+  POS: "pos",
+  IMPORT: "import",
+  UNSUBSCRIBE_LINK: "unsubscribe_link",
+  /** The link in a double opt-in confirmation email. */
+  CONFIRMATION_LINK: "confirmation_link",
+  SYSTEM: "system",
+} as const;
+
+export type MarketingConsentSource =
+  (typeof MARKETING_CONSENT_SOURCE)[keyof typeof MARKETING_CONSENT_SOURCE];
+
+export const MARKETING_CONSENT_SOURCES = Object.values(
+  MARKETING_CONSENT_SOURCE,
+) as MarketingConsentSource[];
+
+/** The two channels a shopper can be marketed to on, each consented separately. */
+export const MARKETING_CHANNEL = {
+  EMAIL: "email",
+  SMS: "sms",
+} as const;
+
+export type MarketingChannel =
+  (typeof MARKETING_CHANNEL)[keyof typeof MARKETING_CHANNEL];

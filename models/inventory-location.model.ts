@@ -44,6 +44,7 @@ if (
     !existingLocationModel.schema.path("pickupEnabled") ||
     !existingLocationModel.schema.path("fulfillsOnlineOrders") ||
     !existingLocationModel.schema.path("sellsAtCounter") ||
+    !existingLocationModel.schema.path("acceptsReturns") ||
     !existingLocationModel.schema.path("mapsUrl") ||
     // A field this file has REMOVED. A stale schema still carrying it would
     // keep stamping `stocksInventory: true` onto every location created in
@@ -125,12 +126,28 @@ const InventoryLocationSchema = new Schema<IInventoryLocation>(
      * ever shown to the merchant's own staff, and every register that worked
      * before this field existed has to keep working. Defaulting false would
      * offer a cashier no counter at all and send the whole estate back to
-     * aggregate stock. `lib/locations/counter-location.ts` owns the reading, so
-     * the badge on the locations screen and the POS picker cannot disagree.
+     * aggregate stock. Read as `!== false` everywhere — the POS picker and the
+     * register's own location check (`lib/pos/list-locations.ts`,
+     * `lib/pos/resolve-location.ts`) and the "No till" badge on the locations
+     * screen — so a row written before the field existed stays a counter.
      */
     sellsAtCounter: {
       type: Boolean,
       default: true,
+    },
+    /**
+     * Returned parcels may be sent here, and it is offered as the "Return to"
+     * address when a return is approved.
+     *
+     * Defaults **false**, and no migration sets it: while none of an owner's
+     * locations says yes, a return goes back to the place its parcel was
+     * dispatched from, or to the default location — which is where a store
+     * with one address expects it. Ticking one location makes it the answer.
+     * `lib/returns/return-destination.ts` owns the reading.
+     */
+    acceptsReturns: {
+      type: Boolean,
+      default: false,
     },
     /**
      * Dispatch order. Lower goes first; ties fall back to `isDefault`, then

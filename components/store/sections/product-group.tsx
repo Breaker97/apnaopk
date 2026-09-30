@@ -1,25 +1,16 @@
 import { type Locale } from "@/config/i18n.config";
+import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
 import {
-  NEW_ARRIVALS_LIMIT_MAX,
-  NEW_ARRIVALS_LIMIT_MIN,
-} from "@/lib/site-config/home-page-config";
-import {
-  getStorefrontProductCards,
-  type StorefrontProductCardQuery,
-} from "@/lib/products/storefront-product-cards";
-import {
-  ProductGroupTabs,
-  type ProductGroupAppearance,
-  type ProductGroupTab,
+  buildProductGroupQuery,
+  productGroupLimit,
+  productGroupSearchParams,
+  type ProductGroupSource,
+} from "@/lib/storefront/sections/product-group-query";
+import { ProductGroupTabsLazy as ProductGroupTabs } from "./product-group-tabs-lazy";
+import type {
+  ProductGroupAppearance,
+  ProductGroupTab,
 } from "./product-group-tabs";
-
-export const PRODUCT_GROUP_SOURCES = [
-  "latest",
-  "featured",
-  "discounted",
-  "manual",
-] as const;
-export type ProductGroupSource = (typeof PRODUCT_GROUP_SOURCES)[number];
 
 interface ProductGroupTabInput {
   id: string;
@@ -28,30 +19,12 @@ interface ProductGroupTabInput {
   productIds: string[];
 }
 
-function buildQuery(
-  source: ProductGroupSource,
-  productIds: string[],
-  limit: number,
-): StorefrontProductCardQuery | null {
-  if (source === "manual") {
-    const ids = productIds.filter(Boolean);
-    if (ids.length === 0) return null;
-    return { ids, limit: Math.min(ids.length, limit) };
-  }
-  const query: StorefrontProductCardQuery = {
-    limit,
-    sortBy: "createdAt",
-    sortOrder: "desc",
-  };
-  if (source === "discounted") query.onSale = true;
-  if (source === "featured") query.featured = true;
-  return query;
-}
-
 /**
- * Server half of the tabbed product group ("Best Selling"-style): fetches
- * every tab's products up front (each tab query goes through the shared
- * cached card fetcher), then hands the lot to the client tab switcher.
+ * Server half of the tabbed product group ("Best Selling"-style). Every tab is
+ * queried — through the shared cached card fetcher — so an empty one can be
+ * left out, but only the first tab's products travel with the page: the others
+ * were a third of the home page's inline data for rows nobody had opened. The
+ * client fetches them once the page is idle, or when a tab is reached for.
  */
 export async function ProductGroup({
   locale,
@@ -70,27 +43,31 @@ export async function ProductGroup({
   /** Cards sharing the visible row on desktop; the tabs component clamps. */
   desktopColumns?: number;
 }) {
-  const perTab = Math.min(
-    NEW_ARRIVALS_LIMIT_MAX,
-    Math.max(NEW_ARRIVALS_LIMIT_MIN, Math.floor(limit ?? 8) || 8),
-  );
-  const resolved: ProductGroupTab[] = (
+  const perTab = productGroupLimit(limit);
+  const resolved = (
     await Promise.all(
       tabs.map(async (tab) => {
-        const query = buildQuery(tab.source, tab.productIds, perTab);
+        const query = buildProductGroupQuery(tab.source, tab.productIds, perTab);
         const products = query ? await getStorefrontProductCards(query) : [];
-        return { id: tab.id, label: tab.label, products };
+        return { tab, products };
       }),
     )
-  ).filter((tab) => tab.label && tab.products.length > 0);
+  ).filter(({ tab, products }) => tab.label && products.length > 0);
 
   if (resolved.length === 0) return null;
+
+  const shelfTabs: ProductGroupTab[] = resolved.map(({ tab, products }, index) => ({
+    id: tab.id,
+    label: tab.label,
+    ...(index === 0 ? { products } : {}),
+    query: productGroupSearchParams(tab.source, tab.productIds, perTab),
+  }));
 
   return (
     <ProductGroupTabs
       locale={locale}
       title={title}
-      tabs={resolved}
+      tabs={shelfTabs}
       appearance={appearance}
       desktopColumns={desktopColumns}
     />

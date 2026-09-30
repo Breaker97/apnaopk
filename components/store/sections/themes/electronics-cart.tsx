@@ -9,7 +9,8 @@
  * shipping) renders here too, so switching theme loses nothing.
  */
 
-import Link from "next/link";
+import { useStoreDefaultLocale } from "@/hooks/use-locale-navigation";
+import Link from "@/components/language/link";
 import type { CartItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,6 +113,7 @@ function QtyStepper({
 }
 
 export function ElectronicsCart() {
+  const storeDefault = useStoreDefaultLocale();
   const {
     t,
     locale,
@@ -174,7 +176,7 @@ export function ElectronicsCart() {
             {t("cart.emptyCartDescription")}
           </p>
           <Button asChild className="mt-2">
-            <Link href={`/${locale}/products`}>
+            <Link href="/products">
               {t("common.shopNow")}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
@@ -196,6 +198,9 @@ export function ElectronicsCart() {
    * article rearranged by breakpoint, so the list renders once whether it
    * is flat or under per-seller headers.
    */
+  // Said before they pay: a final-sale line cannot be sent back.
+  const finalSaleLabel = t("cart.finalSale");
+
   const renderCartLine = (item: CartItem) => {
     // Same heading arithmetic as Classic: a product name sits one level
     // below whatever introduces it — the page's <h1> on a single-seller
@@ -291,6 +296,11 @@ export function ElectronicsCart() {
                   Only {stock} left
                 </p>
               )}
+              {item.finalSale ? (
+                <p className="mt-1.5 text-[12.5px] leading-4 text-muted-foreground">
+                  {finalSaleLabel}
+                </p>
+              ) : null}
             </div>
             {removeButton("grid md:hidden")}
           </div>
@@ -343,6 +353,7 @@ export function ElectronicsCart() {
       <StoreBreadcrumb
         className="mb-5 sm:mb-7"
         locale={locale}
+        storeDefault={storeDefault}
         jsonLd={false}
         items={[{ label: t("common.cart") }]}
       />
@@ -558,7 +569,7 @@ export function ElectronicsCart() {
           </div>
 
           <Link
-            href={`/${locale}/products`}
+            href="/products"
             data-slot="button"
             className="flex h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border border-primary/25 bg-background px-4 text-[14px] font-semibold leading-none text-primary transition-colors hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/20"
           >

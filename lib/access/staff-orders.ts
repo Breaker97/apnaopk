@@ -2,6 +2,7 @@ import type { Types } from "mongoose";
 import { Order } from "@/models";
 import { connectDB } from "@/lib/db";
 import { PAYMENT_STATUS } from "@/config/app.config";
+import { placedOrderMatch } from "@/lib/orders/order-payment-status";
 
 /**
  * Orders attributed to one staff member.
@@ -52,7 +53,13 @@ function buildFilter({
   channel,
   vendorId,
 }: Pick<StaffOrdersParams, "staffId" | "channel" | "vendorId">) {
-  const filter: Record<string, unknown> = { staffId: String(staffId) };
+  // Abandoned gateway checkouts never belong to a member of staff's record:
+  // they were nobody's sale, and counting them inflated the till totals the
+  // store pays commission on.
+  const filter: Record<string, unknown> = {
+    staffId: String(staffId),
+    ...placedOrderMatch(),
+  };
 
   if (channel === "pos" || channel === "online") {
     filter.channel = channel;

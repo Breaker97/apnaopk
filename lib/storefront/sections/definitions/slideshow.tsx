@@ -1,5 +1,9 @@
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
-import { SectionGrid, SectionGridSkeleton } from "../section-grid";
+import {
+  SectionGrid,
+  SectionGridSkeleton,
+  resolveGridCells,
+} from "../section-grid";
 import {
   DEFAULT_SLIDER_GRID,
   DEFAULT_SLIDER_HEIGHT,
@@ -11,10 +15,10 @@ import {
   THEME_SLIDER_INHERIT,
   getSliderGrid,
   migrateSlideshowV1,
+  readGridCells,
   readSectionGridSpacing,
-  readSliderCell,
   resolveSliderLayout,
-  sliderCellIsFilled,
+  sliderGridIsUnassigned,
 } from "../slider-grids";
 import type { SectionDefinition } from "../types";
 
@@ -64,9 +68,8 @@ export const slideshow: SectionDefinition = {
       default: DEFAULT_SLIDER_GRID,
     },
     // Width and height per the Figma "Slider Width/Height Style" panels.
-    // "theme" (the default for new heroes) inherits the global values from
-    // Themes → Theme settings; an explicit pick overrides them for this
-    // section only.
+    // "theme" (the default for new heroes) takes the size the active theme
+    // ships with; an explicit pick overrides it for this section only.
     {
       key: "width",
       type: "select",
@@ -111,24 +114,20 @@ export const slideshow: SectionDefinition = {
   ],
   starter: { blocks: [] },
   migrate: migrateSlideshowV1,
+  isEmpty: ({ settings, blocks }) => sliderGridIsUnassigned(settings, blocks),
   async Render({ settings, blocks, ctx }) {
     const grid = getSliderGrid(settings.grid);
-    const cells = grid.slots.map((_, index) => {
-      const block = blocks[index];
-      return block && block.visible ? readSliderCell(block.settings) : null;
-    });
+    const cells = await resolveGridCells(readGridCells(grid, blocks), ctx.locale);
     const spacing = readSectionGridSpacing(settings);
 
-    // A grid with no assigned cell (and no category rail to carry it) has
-    // nothing to show: null on the live storefront, a labelled outline in
-    // the draft preview.
-    if (
-      !grid.category &&
-      !cells.some((cell) => cell && sliderCellIsFilled(cell))
-    ) {
+    // A grid with nothing to draw (no cell assigned, or only sliders that
+    // are switched off or out of live slides) and no category rail to carry
+    // it shows nothing: null on the live storefront — never a grey box — and
+    // a labelled outline in the draft preview.
+    if (!grid.category && !cells.some(Boolean)) {
       return sectionEmptyState(ctx, {
         title: "Slider",
-        hint: "Pick a saved slider or an image for each grid cell in the builder.",
+        hint: "Pick a saved slider or an image for each grid cell in the builder. A slider shows only while it is active and has a visible slide.",
       });
     }
 

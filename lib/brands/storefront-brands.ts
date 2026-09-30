@@ -184,3 +184,19 @@ export const getStorefrontBrandDetail = unstable_cache(
     tags: [CACHE_TAGS.brands, CACHE_TAGS.products],
   },
 );
+
+/**
+ * Whether the storefront shows the brand at `slug`: the question
+ * `getStorefrontBrandDetail` asks first, asked alone and with the same filter,
+ * for the route's 404 (lib/storefront/resource-gate.ts). The detail loader
+ * cannot answer it there — it is keyed on the page and sort, which a layout
+ * does not receive.
+ */
+export const isStorefrontBrandShown = unstable_cache(
+  async (slug: string): Promise<boolean> => {
+    await connectDB();
+    return Boolean(await Brand.exists({ slug, ...STOREFRONT_BRAND_FILTER }));
+  },
+  ["storefront-brand-shown"],
+  { revalidate: 60, tags: [CACHE_TAGS.brands] },
+);

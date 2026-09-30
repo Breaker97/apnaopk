@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast-notification";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tabs,
@@ -33,6 +34,11 @@ import {
   valuesForAttribute,
   type AttributeSuggestion,
 } from "@/lib/products/attribute-suggestions";
+import {
+  applySpecificationPaste,
+  isSpecificationPaste,
+  parseSpecificationsPaste,
+} from "@/lib/products/parse-specifications";
 import {
   generateSearchHandle,
   sanitizeSearchHandle,
@@ -128,7 +134,37 @@ export function DetailsCard({
     fields: attributeFields,
     append: appendAttribute,
     remove: removeAttribute,
+    replace: replaceAttributes,
   } = useFieldArray({ control: form.control, name: "attributes" });
+
+  /**
+   * A spec table pasted into either box fills the whole list.
+   *
+   * Thirty rows copied from a supplier's page arrive as one string; typing
+   * them back in pair by pair is the slowest part of listing a product, so
+   * a paste that looks like a table is read as one (see
+   * `parse-specifications.ts`) and written from this row down. A paste that
+   * is just a word still lands in the box, untouched.
+   */
+  const handleSpecPaste = (
+    event: React.ClipboardEvent<HTMLInputElement>,
+    index: number,
+    field: "name" | "value",
+  ) => {
+    const text = event.clipboardData.getData("text/plain");
+    if (!isSpecificationPaste(text, field)) return;
+    const pasted = parseSpecificationsPaste(text);
+    if (pasted.length === 0) return;
+    event.preventDefault();
+    const current = (form.getValues("attributes") ?? []).map((row) => ({
+      name: row?.name ?? "",
+      value: row?.value ?? "",
+    }));
+    replaceAttributes(applySpecificationPaste(current, index, pasted));
+    toast.success(
+      t("admin.productForm.specificationsPasted", { count: pasted.length }),
+    );
+  };
 
   useEffect(() => {
     const generatedHandle = generateSearchHandle(watchedTitle);
@@ -323,6 +359,9 @@ export function DetailsCard({
               <p className="text-sm text-muted-foreground">
                 {t("admin.productForm.specificationsHelp")}
               </p>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.productForm.specificationsPasteHelp")}
+              </p>
 
               {attributeFields.length === 0 ? (
                 <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -351,6 +390,9 @@ export function DetailsCard({
                                 list={specLabelListId}
                                 autoComplete="off"
                                 {...field}
+                                onPaste={(event) =>
+                                  handleSpecPaste(event, index, "name")
+                                }
                               />
                             </FormControl>
                             <FormMessage />
@@ -372,6 +414,9 @@ export function DetailsCard({
                                 list={`${specValueListId}-${index}`}
                                 autoComplete="off"
                                 {...field}
+                                onPaste={(event) =>
+                                  handleSpecPaste(event, index, "value")
+                                }
                               />
                             </FormControl>
                             <datalist id={`${specValueListId}-${index}`}>

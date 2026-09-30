@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { nanoid } from "nanoid";
 import { useTranslations } from "next-intl";
 import { ExternalLink, Loader2, Save } from "lucide-react";

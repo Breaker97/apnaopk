@@ -37,7 +37,7 @@ type ShipmentLike = {
 };
 
 const ORDER_FIELDS =
-  "orderNumber currency total tax shippingCost discount coupon.type customs.dutyAmount paymentMethod paymentStatus preorderOutstandingAmount channel stripePaymentIntentId subOrders._id subOrders.vendorId subOrders.status subOrders.paymentStatus subOrders.codCollectedBy subOrders.fulfillment.method subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.payoutStatus";
+  "orderNumber currency total tax shippingCost discount coupon.type customs.dutyAmount paymentMethod paymentStatus preorderOutstandingAmount storeCredit channel paymentCustody stripePaymentIntentId subOrders._id subOrders.vendorId subOrders.status subOrders.paymentStatus subOrders.codCollectedBy subOrders.fulfillment.method subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.payoutStatus";
 
 export async function moveShippingToStoreForLabel(
   shipment: ShipmentLike,
@@ -62,6 +62,7 @@ export async function moveShippingToStoreForLabel(
     paymentMethod: order.paymentMethod,
     channel: order.channel,
     stripePaymentIntentId: order.stripePaymentIntentId,
+    paymentCustody: order.paymentCustody,
   };
   if (!isConsignmentCollected(order, sub)) return false;
 
@@ -71,6 +72,10 @@ export async function moveShippingToStoreForLabel(
   // commission they already owe. Only where the store says to — it depends on
   // who arranged the carrier, and a store that arranges it as a service to
   // its sellers charges nothing.
+  //
+  // Asked here only to decide whether to bill at all. Which entry that becomes
+  // is `postShippingToStore`'s to work out, from this same rule on this same
+  // order — see the note there on why it is not passed in.
   const billToVendor = !isPlatformSettled(custody, sub);
   if (billToVendor) {
     const { resolveReturnPolicy } = await import("@/lib/returns/return-policy");
@@ -106,7 +111,6 @@ export async function moveShippingToStoreForLabel(
     subOrderId: shipment.subOrderId,
     shipmentId: shipment._id,
     bookingSequence: shipment.bookingSequence,
-    billToVendor,
   });
   return true;
 }
@@ -127,26 +131,9 @@ export async function returnShippingForVoidedLabel(
   if (!shipment.orderId || !shipment.subOrderId) return false;
 
   // Which way the charge moved when the label was bought decides which way it
-  // moves back: out of the seller's payable, or off their bill.
-  const billed = await Order.findById(shipment.orderId)
-    .select(ORDER_FIELDS)
-    .lean<(PostingOrder & { subOrders?: Array<Record<string, unknown>> }) | null>();
-  const billedSub = billed?.subOrders?.find(
-    (entry) => String(entry._id) === String(shipment.subOrderId),
-  );
-  const billToVendor = Boolean(
-    billed &&
-      billedSub &&
-      !isPlatformSettled(
-        {
-          paymentMethod: billed.paymentMethod,
-          channel: billed.channel,
-          stripePaymentIntentId: billed.stripePaymentIntentId,
-        },
-        billedSub,
-      ),
-  );
-
+  // moves back: out of the seller's payable, or off their bill. Not worked out
+  // here — `postShippingToStore` reads it off the order, which is the only way
+  // the reversal is guaranteed to name the key the charge was posted under.
   const cleared = await Order.updateOne(
     {
       _id: shipment.orderId,
@@ -174,7 +161,6 @@ export async function returnShippingForVoidedLabel(
     shipmentId: shipment._id,
     bookingSequence: shipment.bookingSequence,
     reversal: true,
-    billToVendor,
   });
   return true;
 }

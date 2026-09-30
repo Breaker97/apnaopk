@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import {
@@ -86,11 +86,6 @@ export const GET = withApi(
         ...(location.distanceKm === undefined
           ? {}
           : { distanceKm: location.distanceKm }),
-        // Kept for one release. A checkout tab loaded before this deploy runs
-        // the previous bundle, whose submit guard reads a missing `scheduling`
-        // as "this branch still owes a booked time" and would leave its Pay
-        // button disabled forever. The current client ignores the key.
-        scheduling: "open_hours",
       })),
     });
   },

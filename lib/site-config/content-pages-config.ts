@@ -14,28 +14,97 @@ export type ContentPageKey = (typeof CONTENT_PAGE_KEYS)[number];
 
 export type NonFaqContentPageKey = "terms" | "privacy" | "cookies" | "accessibility";
 
-/** The values `{storeName}` and `{returnWindow}` stand for. */
+/** The values `{storeName}`, `{returnWindow}` and `{windowDays}` stand for. */
 export interface ContentPlaceholders {
   storeName: string;
+  /** The Returns page's own "Return window" wording. */
   returnWindow: string;
+  /**
+   * The return window in days as the store enforces it (Settings → Orders →
+   * Returns), so copy that quotes it cannot drift from the rule.
+   */
+  windowDays: string;
+  /**
+   * The store takes returns with no time limit: `{windowDays}` has no number
+   * to stand for, and the sentences around it are said over instead.
+   */
+  windowUnlimited?: boolean;
+}
+
+/** `{windowDays}` and its no-limit flag, from the window in days or null. */
+export function windowPlaceholders(
+  windowDays: number | null,
+): Pick<ContentPlaceholders, "windowDays" | "windowUnlimited"> {
+  return windowDays === null
+    ? { windowDays: "", windowUnlimited: true }
+    : { windowDays: String(windowDays), windowUnlimited: false };
+}
+
+/** "Any" at the start of a sentence, "any" inside one. */
+function anyAt(text: string, offset: number): string {
+  return /(^|[.!?]\s*)$/.test(text.slice(0, offset)) ? "Any" : "any";
+}
+
+/**
+ * `{windowDays}` for a store with no time limit on returns. No number is
+ * honest there, so the phrases the default copy is written in are said over
+ * — "within {windowDays} days of delivery" becomes "any time after delivery"
+ * — and any other use reads "unlimited".
+ */
+function withoutTimeLimit(value: string): string {
+  return value
+    .replace(
+      /\bwithin\s+\{windowDays\}\s+days?\s+(?:of|from|after)\s+(delivery|receipt|purchase)\b/gi,
+      (_match, event: string, offset: number, text: string) =>
+        `${anyAt(text, offset)} time after ${event}`,
+    )
+    .replace(
+      /\{windowDays\}\s+days?\s+(?:of|from|after)\s+(delivery|receipt|purchase)\b/gi,
+      (_match, event: string, offset: number, text: string) =>
+        `${anyAt(text, offset)} time after ${event}`,
+    )
+    .replace(/\bwithin\s+\{windowDays\}\s+days?\b/gi, "at any time")
+    .replace(/\{windowDays\}\s+days?\b/gi, "any number of days")
+    .replace(/\{windowDays\}/g, "unlimited");
 }
 
 /**
  * Fill the placeholders a merchant may leave in page copy.
  *
- * The default About and Returns text is written with `{storeName}` and
- * `{returnWindow}` in it so a fresh install reads correctly under any store
- * name, and the admin editor tells merchants they may use them. Every reader
- * of that copy has to fill them — the page views, and the AI sales agent,
- * which would otherwise quote "{storeName}" back at the customer.
+ * The default About, Returns and FAQ text is written with them so a fresh
+ * install reads correctly under any store name and window, and the admin
+ * editors tell merchants they may use them. Every reader of that copy has to
+ * fill them — the page views, and the AI sales agent, which would otherwise
+ * quote "{storeName}" back at the customer. `{returnWindow}` is filled first:
+ * the wording it stands for may itself say `{windowDays}`.
  */
 export function fillContentPlaceholders(
   value: string,
   vars: ContentPlaceholders,
 ): string {
-  return value
+  const filled = value
     .replace(/\{storeName\}/g, vars.storeName)
     .replace(/\{returnWindow\}/g, vars.returnWindow);
+  return vars.windowUnlimited
+    ? withoutTimeLimit(filled)
+    : filled.replace(/\{windowDays\}/g, vars.windowDays);
+}
+
+/** Every string in a page's data, placeholders filled — for a page view. */
+export function fillContentPagePlaceholders<T>(value: T, vars: ContentPlaceholders): T {
+  if (typeof value === "string") return fillContentPlaceholders(value, vars) as T;
+  if (Array.isArray(value)) {
+    return value.map((entry) => fillContentPagePlaceholders(entry, vars)) as T;
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        fillContentPagePlaceholders(entry, vars),
+      ]),
+    ) as T;
+  }
+  return value;
 }
 
 interface ContentPageData {
@@ -528,7 +597,8 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
     primaryActionLabel: "View my orders",
     secondaryActionLabel: "Track an order",
     returnWindowLabel: "Return window",
-    returnWindowValue: "30 days from delivery",
+    // `{windowDays}` is the window Settings → Orders enforces.
+    returnWindowValue: "{windowDays} days from delivery",
     summaryItems: [
       {
         id: "summary-eligible",
@@ -540,7 +610,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
       },
       {
         id: "summary-exclusions",
-        text: "Final sale, digital, and unsafe-to-resell items may be excluded.",
+        text: "Items marked final sale and digital goods can't be returned.",
       },
     ],
     howItWorksTitle: "How a return works",
@@ -551,13 +621,13 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
         id: "step-open-order",
         title: "Open your order",
         description:
-          "Go to your account order history or track your order using the order number and checkout contact details.",
+          "Go to your order history. Checked out as a guest? Sign in or create an account with your checkout email, and your orders are there.",
       },
       {
         id: "step-choose-items",
         title: "Choose eligible items",
         description:
-          "Select the item quantity you want to return and share the reason, notes, and photos when needed.",
+          "Select the items and quantities to return, pick a reason, and add a note if it helps.",
       },
       {
         id: "step-review",
@@ -569,7 +639,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
         id: "step-send-back",
         title: "Send the item back",
         description:
-          "After approval, follow the return instructions. Keep your carrier receipt until the return is closed.",
+          "Once it is approved, your order page shows where to send it, a return label, or that nothing needs sending. Add the tracking number there, and keep your carrier receipt until the return is closed.",
       },
       {
         id: "step-inspection",
@@ -582,7 +652,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
     eligibleItems: [
       {
         id: "eligible-delivered",
-        text: "Delivered physical products requested within 30 days of delivery.",
+        text: "Delivered physical products requested within {windowDays} days of delivery.",
       },
       {
         id: "eligible-condition",
@@ -605,7 +675,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
       },
       {
         id: "excluded-final-sale",
-        text: "Final sale, clearance, customized, or personalized products.",
+        text: "Products marked final sale — the product page and your cart say so before you pay.",
       },
       {
         id: "excluded-sensitive",
@@ -624,7 +694,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
         id: "refund-original-method",
         title: "Original payment method",
         description:
-          "Card, PayPal, Razorpay, and Paystack refunds are sent back through the original payment provider when possible.",
+          "Card, PayPal, Razorpay, Paystack, and Pesapal refunds are sent back through the original payment provider when possible.",
       },
       {
         id: "refund-partial",
@@ -636,7 +706,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
         id: "refund-manual",
         title: "Manual refunds",
         description:
-          "COD, cash, POS, and manual payments may be handled outside the payment gateway and recorded by the store team.",
+          "Cash on delivery, cash, mobile money, POS, and manual payments are refunded by the store team outside the payment gateway; you'll be asked where to send the money.",
       },
       {
         id: "refund-inventory",
@@ -686,7 +756,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
     helpTitle: "Need help?",
     ctaTitle: "Ready to review an order?",
     ctaDescription:
-      "Start from your order history if you have an account. If you checked out without signing in, use the tracking page with your order number and checkout email or phone.",
+      "Start from your order history. Checked out as a guest? Sign in or create an account with your checkout email, and your orders appear there automatically.",
     ctaPrimaryLabel: "My orders",
     ctaSecondaryLabel: "Track order",
     visible: true,
@@ -749,7 +819,7 @@ const DEFAULT_CONTENT_PAGES_SETTINGS: ContentPagesSettings = {
         id: "faq-returns",
         question: "What is your return policy?",
         answer:
-          "You can return eligible items within 30 days of delivery. Items must be unused and in original packaging.",
+          "You can return eligible items within {windowDays} days of delivery. Items must be unused and in original packaging.",
       },
       {
         id: "faq-tracking",

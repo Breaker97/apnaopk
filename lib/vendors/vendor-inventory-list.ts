@@ -11,6 +11,8 @@ import type { InventoryListResult } from "@/lib/inventory/inventory-list";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { escapeRegExp } from "@/lib/strings";
 import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
+import { attachStockBreakdown } from "@/lib/inventory/stock-breakdown";
+import { productTracksStock } from "@/lib/products/stock-policy";
 
 /**
  * Vendor inventory list query.
@@ -25,6 +27,10 @@ import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
  * Callers resolve and authorise the vendor first and pass its id in.
  */
 
+/**
+ * A row before the page's committed / unavailable figures are read — see
+ * `attachStockBreakdown`, which turns `stock` into the four public figures.
+ */
 interface InventoryItem {
   productId: string;
   productName: string;
@@ -36,10 +42,10 @@ interface InventoryItem {
   barcodeFormat?: BarcodeFormat;
   barcodeSource?: BarcodeSource;
   price: number;
-  unavailable: number;
-  committed: number;
   available: number;
-  onHand: number;
+  /** The sellable counter as stored; negative on a product that oversells. */
+  stock: number;
+  tracksStock: boolean;
   locationInventory: Array<{
     locationId: string;
     locationName: string;
@@ -126,7 +132,7 @@ export async function fetchVendorInventoryList(
   );
 
   const products = await Product.find(query)
-    .select("name title images media variants sku barcode barcodeFormat barcodeSource price stock locationInventory")
+    .select("name title images media variants sku barcode barcodeFormat barcodeSource price stock locationInventory shipping.isPhysicalProduct inventory")
     .sort({ name: 1 })
     .lean();
 
@@ -135,6 +141,7 @@ export async function fetchVendorInventoryList(
   for (const product of products) {
     const productImage = product.media?.[0]?.url || product.images?.[0] || null;
     const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+    const tracksStock = productTracksStock(product);
 
     if (hasVariants) {
       for (const variant of product.variants!) {
@@ -143,10 +150,8 @@ export async function fetchVendorInventoryList(
           locationMap,
         );
 
-        const onHand = variant.stock || 0;
-        const committed = 0;
-        const unavailable = 0;
-        const available = Math.max(0, onHand - committed - unavailable);
+        const stock = variant.stock || 0;
+        const available = Math.max(0, stock);
         const barcode = variant.barcode || product.barcode || "";
 
         if (!matchesStockLevel(stockLevel, available)) continue;
@@ -177,10 +182,9 @@ export async function fetchVendorInventoryList(
           barcodeFormat: variant.barcodeFormat || product.barcodeFormat,
           barcodeSource: variant.barcodeSource || product.barcodeSource,
           price: variant.price ?? product.price ?? 0,
-          unavailable,
-          committed,
           available,
-          onHand,
+          stock,
+          tracksStock,
           locationInventory: variantLocationInventory,
         });
       }
@@ -189,10 +193,8 @@ export async function fetchVendorInventoryList(
         product.locationInventory,
         locationMap,
       );
-      const onHand = product.stock || 0;
-      const committed = 0;
-      const unavailable = 0;
-      const available = Math.max(0, onHand - committed - unavailable);
+      const stock = product.stock || 0;
+      const available = Math.max(0, stock);
       const barcode = product.barcode || "";
 
       if (!matchesStockLevel(stockLevel, available)) continue;
@@ -216,10 +218,9 @@ export async function fetchVendorInventoryList(
         barcodeFormat: product.barcodeFormat,
         barcodeSource: product.barcodeSource,
         price: product.price || 0,
-        unavailable,
-        committed,
         available,
-        onHand,
+        stock,
+        tracksStock,
         locationInventory: productLocationInventory,
       });
     }
@@ -230,9 +231,8 @@ export async function fetchVendorInventoryList(
     sku: (item) => item.sku || "",
     barcode: (item) => item.barcode || "",
     available: (item) => item.available || 0,
-    onHand: (item) => item.onHand || 0,
-    committed: (item) => item.committed || 0,
-    unavailable: (item) => item.unavailable || 0,
+    // On hand adds figures read after paging, so it sorts by the stock under it.
+    onHand: (item) => item.stock || 0,
   };
   const getSortValue = sortSelectors[sortBy];
 
@@ -255,9 +255,11 @@ export async function fetchVendorInventoryList(
 
   const skip = (page - 1) * limit;
   const total = inventoryItems.length;
-  const paginatedItems = await attachIncomingStock(
-    inventoryItems.slice(skip, skip + limit),
-    locationId || undefined,
+  const paginatedItems = await attachStockBreakdown(
+    await attachIncomingStock(
+      inventoryItems.slice(skip, skip + limit),
+      locationId || undefined,
+    ),
   );
   const totalPages = Math.ceil(total / limit);
 

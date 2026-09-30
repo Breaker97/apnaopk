@@ -60,7 +60,7 @@ type WaitlistProduct = Parameters<typeof getPreorderAvailability>[0] & {
   slug?: string;
 };
 
-export type JoinWaitlistResult =
+type JoinWaitlistResult =
   | { joined: true }
   | { joined: false; reason: "not_preorder" | "closed" | "available" };
 

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { FiscalPeriod } from "@/models/fiscal-period.model";
 import { successResponse } from "@/lib/api/response";
 import { ConflictError, ValidationError } from "@/lib/api/errors";

@@ -7,6 +7,7 @@ import { POSPageShell } from "@/components/pos/pos-page-shell";
 import { buildPOSSettings } from "@/lib/pos/build-pos-settings";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -24,10 +25,10 @@ export default async function AdminPosPage({ params }: PageProps) {
   await connectDB();
   const settings = await getSettings();
   if (!settings.pos?.enabled) {
-    redirect(`/${locale}/admin`);
+    redirect(await localeHref(locale, "/admin"));
   }
   if (!(await canAccessPOS(session.user))) {
-    redirect(`/${locale}/admin`);
+    redirect(await localeHref(locale, "/admin"));
   }
 
   // The shell streams a skeleton while it resolves the product list, so the

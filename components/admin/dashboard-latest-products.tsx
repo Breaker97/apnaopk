@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "@/components/language/link";
+import { useTranslations } from "next-intl";
 import { PackageCheck } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { truncateByWords } from "@/lib/utils";
@@ -15,9 +14,6 @@ export function DashboardLatestProducts({
   products: LatestProduct[];
 }) {
   const t = useTranslations();
-  const intlLocale = useLocale();
-  const params = useParams<{ locale: string }>();
-  const locale = params?.locale || intlLocale || "en";
   const { formatPrice } = useCurrency();
 
   return (
@@ -42,7 +38,7 @@ export function DashboardLatestProducts({
             return (
               <Link
                 key={product._id}
-                href={`/${locale}/admin/products/${product._id}/edit`}
+                href={`/admin/products/${product._id}/edit`}
                 className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors first:pt-0 last:pb-0 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-muted">

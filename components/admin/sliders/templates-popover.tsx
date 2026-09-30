@@ -27,7 +27,7 @@ import {
  * so every slider on every device sees the same shelf.
  */
 
-export interface TemplateLabels {
+interface TemplateLabels {
   title: string;
   builtIn: string;
   saved: string;

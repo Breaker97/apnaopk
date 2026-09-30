@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowUp, Eye, Palette, Plus, Sliders } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
@@ -169,16 +170,17 @@ export function WidgetTab({ settings, setSettings, faviconUrl }: WidgetTabProps)
               <div className="space-y-2">
                 <Label>{t("widget.appearance.primaryColor")}</Label>
                 <div className="flex items-center gap-3">
-                  <Input
-                    type="color"
-                    className="h-10 w-16 cursor-pointer p-1"
+                  <ColorSwatchPicker
+                    className="h-10 w-16"
+                    alpha={false}
+                    ariaLabel={t("widget.appearance.primaryColor")}
                     value={settings.widget.primaryColor}
-                    onChange={(event) =>
+                    onChange={(hex) =>
                       setSettings((prev) => ({
                         ...prev,
                         widget: {
                           ...prev.widget,
-                          primaryColor: event.target.value,
+                          primaryColor: hex,
                         },
                       }))
                     }
@@ -201,16 +203,17 @@ export function WidgetTab({ settings, setSettings, faviconUrl }: WidgetTabProps)
               <div className="space-y-2">
                 <Label>{t("widget.appearance.accentColor")}</Label>
                 <div className="flex items-center gap-3">
-                  <Input
-                    type="color"
-                    className="h-10 w-16 cursor-pointer p-1"
+                  <ColorSwatchPicker
+                    className="h-10 w-16"
+                    alpha={false}
+                    ariaLabel={t("widget.appearance.accentColor")}
                     value={settings.widget.accentColor}
-                    onChange={(event) =>
+                    onChange={(hex) =>
                       setSettings((prev) => ({
                         ...prev,
                         widget: {
                           ...prev.widget,
-                          accentColor: event.target.value,
+                          accentColor: hex,
                         },
                       }))
                     }

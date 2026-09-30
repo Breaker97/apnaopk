@@ -11,6 +11,7 @@ import { getTranslations } from "next-intl/server";
 import { connectDB } from "@/lib/db";
 import { Product } from "@/models";
 import { InventoryLocation } from "@/models/inventory-location.model";
+import { offShelfStockTotals } from "@/lib/inventory/stock-breakdown";
 import {
   AdminStatsStrip,
   type AdminStatsStripItem,
@@ -110,7 +111,7 @@ async function getInventoryStats(): Promise<InventoryStats> {
 
   // Counted in the database: loading every product document just to tally SKUs
   // grew linearly with the catalogue on every render of this page.
-  const [[totals], activeLocations] = await Promise.all([
+  const [[totals], activeLocations, offShelf] = await Promise.all([
     Product.aggregate<Omit<InventoryStats, "activeLocations">>([
       {
         // One quantity per SKU row: a variant each when the product has
@@ -175,13 +176,17 @@ async function getInventoryStats(): Promise<InventoryStats> {
       { $project: { _id: 0 } },
     ]),
     InventoryLocation.countDocuments({ isActive: true }),
+    offShelfStockTotals(),
   ]);
 
   return {
     totalSkus: totals?.totalSkus ?? 0,
     lowStockSkus: totals?.lowStockSkus ?? 0,
     outOfStockSkus: totals?.outOfStockSkus ?? 0,
-    onHandUnits: totals?.onHandUnits ?? 0,
+    // Physical units, as the table's On hand reads them: the stock plus what
+    // is sold and not yet gone, and what came back unsellable.
+    onHandUnits:
+      (totals?.onHandUnits ?? 0) + offShelf.committed + offShelf.unavailable,
     activeLocations,
   };
 }

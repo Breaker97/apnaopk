@@ -1,8 +1,10 @@
 "use client";
 
+import { useLocaleHref } from "@/hooks/use-locale-navigation";
 import { useState } from "react";
 import { AlertCircle, Loader2, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import type { EmailVerificationStatus } from "@/lib/auth/email-verification-policy";
 
 export function EmailVerificationNotice({
@@ -14,6 +16,7 @@ export function EmailVerificationNotice({
   status?: EmailVerificationStatus;
   locale: string;
 }) {
+  const localeHref = useLocaleHref();
   const [isSending, setIsSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -28,7 +31,7 @@ export function EmailVerificationNotice({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          callbackURL: `/${locale}/email-verified`,
+          callbackURL: localeHref(`/${locale}/email-verified`),
         }),
       });
       if (!response.ok) throw new Error();
@@ -41,31 +44,28 @@ export function EmailVerificationNotice({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:flex-row sm:items-center sm:justify-between dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-      <div className="flex gap-3">
-        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-        <div>
-          <p className="font-medium">Your email address is not verified</p>
-          <p className="text-sm opacity-80">
-            Your account remains accessible. Verify {email} to secure it.
-          </p>
-          {message && <p className="mt-1 text-sm font-medium">{message}</p>}
-        </div>
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        className="shrink-0 bg-background"
-        disabled={isSending}
-        onClick={() => void resend()}
-      >
-        {isSending ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <MailCheck className="mr-2 h-4 w-4" />
-        )}
-        Verify email
-      </Button>
-    </div>
+    <WarningBanner
+      icon={AlertCircle}
+      title="Your email address is not verified"
+      action={
+        <Button
+          type="button"
+          variant="outline"
+          className="shrink-0 bg-background"
+          disabled={isSending}
+          onClick={() => void resend()}
+        >
+          {isSending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <MailCheck className="mr-2 h-4 w-4" />
+          )}
+          Verify email
+        </Button>
+      }
+    >
+      <p>Your account remains accessible. Verify {email} to secure it.</p>
+      {message && <p className="mt-1 font-medium">{message}</p>}
+    </WarningBanner>
   );
 }

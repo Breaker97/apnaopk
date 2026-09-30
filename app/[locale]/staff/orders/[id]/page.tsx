@@ -8,6 +8,7 @@ import { OrderCustomer } from "@/components/admin/order-details/order-customer";
 import { OrderTimeline } from "@/components/admin/order-details/order-timeline";
 import { OrderTimelineSkeleton } from "@/components/admin/order-details/order-details-skeleton";
 import { OrderShipmentsCard } from "@/components/shipping/order-shipments-card";
+import { OrderAddressHoldBanner } from "@/components/orders/order-address-hold-banner";
 import { getOrderDetails, getOrderReturnRequests } from "@/lib/orders/order-details";
 import { requireStaffAreaAccess } from "@/lib/access/staff-area-guard";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
@@ -52,6 +53,15 @@ export default async function StaffOrderDetailsPage({ params }: PageProps) {
         readOnly={readOnly}
         canCancel={canCancel}
         returnRequests={returnRequests}
+      />
+      <OrderAddressHoldBanner
+        orderId={String(order._id)}
+        orderNumber={order.orderNumber}
+        address={order.shippingAddress}
+        hold={order.addressHold}
+        apiBase="/api/admin"
+        readOnly={readOnly}
+        canCancel={canCancel}
       />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

@@ -1,17 +1,22 @@
+import { assertRecentSignIn } from "@/lib/auth/recent-sign-in";
 import { connectDB, mongoose } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
+import * as z from "zod";
 import { successResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { validateBody } from "@/lib/api/validate";
-import { getAuthContext } from "@/lib/auth/auth";
+import { getActivePasswordPolicy, getAuthContext } from "@/lib/auth/auth";
 import { getCredentialAccount, upsertCredentialPassword } from "@/lib/auth/auth-credentials";
+import { checkPasswordPolicy } from "@/lib/auth/password-policy";
+import { revokeOtherSessions } from "@/lib/auth/session-revocation";
 import { withApi } from "@/lib/api/handler";
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(8),
+  // Length and complexity are the admin's policy, checked in the handler. A
+  // fixed minimum here would answer first, with a different rule and message.
+  newPassword: z.string(),
 });
 
 export const POST = withApi(
@@ -31,6 +36,18 @@ export const POST = withApi(
       });
     }
 
+    // The account page changes passwords here, not through Better Auth's own
+    // /change-password, so the catch-all route's policy check never sees these
+    // requests. Without this, "require a number" held at sign-up and was
+    // skipped on every change afterwards.
+    const policyError = checkPasswordPolicy(
+      newPassword,
+      await getActivePasswordPolicy(),
+    );
+    if (policyError) {
+      throw new ValidationError({ newPassword: [policyError] });
+    }
+
     await connectDB();
     const db = mongoose.connection.db;
     if (!db) throw new Error("Database not connected");
@@ -48,6 +65,10 @@ export const POST = withApi(
     const legacyPasswordHash = (legacyUser as { password?: string } | null)?.password;
 
     const currentHash = credentialPasswordHash || legacyPasswordHash;
+    // No password to confirm (an account that signs in with Google, say): a
+    // first one is set only by a recent sign-in, or a stolen session could
+    // give itself a way back in.
+    if (!currentHash) assertRecentSignIn(session);
     if (currentHash) {
       if (!currentPassword) {
         throw new ValidationError({
@@ -72,10 +93,8 @@ export const POST = withApi(
 
     await upsertCredentialPassword(db, userId, newPassword);
 
-    await db.collection("session").deleteMany({
-      userId: session.user.id,
-      _id: { $ne: new ObjectId(session.session.id) },
-    });
+    // Every other device signs in again with the new password; this one stays.
+    await revokeOtherSessions(session.user.id, session.session.id);
 
     return successResponse(
       { updated: true, mode: currentHash ? "changed" : "set" },

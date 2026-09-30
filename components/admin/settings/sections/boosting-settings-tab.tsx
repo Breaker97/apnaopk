@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,8 +32,6 @@ export function BoostingSettingsTab(props: {
   onSave: () => void | Promise<unknown>;
 }) {
   const t = useTranslations();
-  const params = useParams();
-  const locale = typeof params?.locale === "string" ? params.locale : "en";
   const boosting = props.settings.boosting;
   const enabled = boosting?.enabled ?? false;
 
@@ -63,7 +60,7 @@ export function BoostingSettingsTab(props: {
           />
           {enabled ? (
             <Link
-              href={`/${locale}/admin/boosts/positions`}
+              href="/admin/boosts/positions"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               {label(

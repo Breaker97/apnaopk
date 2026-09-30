@@ -59,6 +59,11 @@ import {
   DialogTitle,
 } from "./dialog";
 import { Input } from "./input";
+import { YouTubeGlyph } from "./brand-glyphs";
+import {
+  MediaLibraryPicker,
+  type PickedLibraryFile,
+} from "./media-library-picker";
 import { ModelViewer } from "./model-viewer";
 
 export type UploadedMedia = {
@@ -106,6 +111,14 @@ interface MediaUploaderProps {
   onGenerateAlt?: (media: UploadedMedia) => Promise<string | null>;
   /** Offer "Add from URL" for YouTube/Vimeo videos (Shopify's ExternalVideo). */
   allowExternalVideo?: boolean;
+  /**
+   * Offer the media library, Shopify's "Select existing": a click on the zone
+   * opens a picker of files already in storage, which has its own upload
+   * button. "Upload new" still opens the file browser, and a drop or a paste
+   * still uploads straight away. The two buttons take the zone title's place.
+   * The picker filters by `acceptTypes`, not by `allowedFileExtensions`.
+   */
+  allowMediaLibrary?: boolean;
   /**
    * Offer a per-image fit in the detail modal (Fill / Fit with padding). Off
    * by default: only the product gallery reads it, and a collection or
@@ -159,6 +172,33 @@ function formatBytes(bytes?: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/**
+ * An image's natural size, or null when it cannot be loaded in time. A file
+ * picked from the library arrives without one — the listing reads keys, not
+ * pixels — and the storefront gallery sizes its frames by it.
+ */
+function measureImage(
+  url: string,
+): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    const timer = setTimeout(() => resolve(null), 15_000);
+    image.onload = () => {
+      clearTimeout(timer);
+      resolve(
+        image.naturalWidth && image.naturalHeight
+          ? { width: image.naturalWidth, height: image.naturalHeight }
+          : null,
+      );
+    };
+    image.onerror = () => {
+      clearTimeout(timer);
+      resolve(null);
+    };
+    image.src = url;
+  });
+}
+
 function getFileExtension(filename: string) {
   const ext = filename.split(".").pop()?.toLowerCase();
   return ext && ext !== filename.toLowerCase() ? ext : "";
@@ -203,6 +243,7 @@ export function MediaUploader({
   onEditWithAi,
   onGenerateAlt,
   allowExternalVideo = false,
+  allowMediaLibrary = false,
   allowImageFit = false,
   hideUploadZoneWhenFull = true,
   showFileCount,
@@ -217,6 +258,7 @@ export function MediaUploader({
   const [activeMedia, setActiveMedia] = useState<UploadedMedia | null>(null);
   const [topLevelError, setTopLevelError] = useState<string | null>(null);
   const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -487,6 +529,67 @@ export function MediaUploader({
     [appendMedia],
   );
 
+  // Dimension lookups for picked images finish after the picker has closed,
+  // and possibly after this uploader has too.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const attachedUrls = useMemo(
+    () => new Set(value.map((media) => media.url)),
+    [value],
+  );
+
+  const handleLibrarySelect = useCallback(
+    (files: PickedLibraryFile[]) => {
+      setTopLevelError(null);
+      const list = currentOrder();
+      // Uploads finishing while the picker was open may have used the room
+      // it was opened with.
+      const room = Math.max(0, maxFiles - list.length - pendingUploads.length);
+      if (files.length > room) {
+        setTopLevelError(t("admin.productForm.media.maxFiles", { max: maxFiles }));
+      }
+      const picked = files.slice(0, room).map((file) => ({
+        file,
+        media: {
+          _id: crypto.randomUUID(),
+          // The stored address — `file.url` may be a signed preview URL that
+          // expires within the hour.
+          url: file.publicUrl,
+          type: file.kind,
+          mimeType: file.mimeType,
+          filename: file.filename,
+          size: file.size,
+          width: file.width,
+          height: file.height,
+        } satisfies UploadedMedia,
+      }));
+      if (picked.length === 0) return;
+      commitValue([...list, ...picked.map(({ media }) => media)]);
+
+      for (const { file, media } of picked) {
+        if (media.type !== "image" || (media.width && media.height)) continue;
+        void measureImage(file.url).then((size) => {
+          if (!size || !mountedRef.current) return;
+          const current = currentOrder();
+          // Removed again before its size came back: nothing to fill in.
+          if (!current.some((item) => item._id === media._id)) return;
+          commitValue(
+            current.map((item) =>
+              item._id === media._id ? { ...item, ...size } : item,
+            ),
+          );
+        });
+      }
+    },
+    [commitValue, currentOrder, maxFiles, pendingUploads.length, t],
+  );
+
   const handleRemove = useCallback(
     (id: string) => {
       commitValue(currentOrder().filter((m) => m._id !== id));
@@ -561,6 +664,9 @@ export function MediaUploader({
   }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    // Moving onto one of the zone's own children is not leaving it; treating
+    // it as such flickered the drop state on every button crossed.
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
     setIsDragging(false);
   }, []);
 
@@ -616,6 +722,27 @@ export function MediaUploader({
     };
   }, []);
 
+  const hasGalleryItems = sortedValue.length > 0 || pendingUploads.length > 0;
+
+  // A chip rather than a text link: a faint link read as a caption, and this
+  // is where people look for a YouTube or Vimeo video. `relative z-10` lifts
+  // it above the classic zone's invisible file input.
+  const embedVideoButton = allowExternalVideo ? (
+    <Button
+      type="button"
+      variant="outline"
+      disabled={disabled}
+      className="relative z-10 rounded-full bg-card"
+      onClick={(event) => {
+        event.stopPropagation();
+        setIsUrlDialogOpen(true);
+      }}
+    >
+      <YouTubeGlyph className="text-red-600 dark:text-red-500" />
+      {t("admin.productForm.media.embedVideoAction")}
+    </Button>
+  ) : null;
+
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -668,11 +795,46 @@ export function MediaUploader({
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          // With the library on, a click on the zone is "Select existing";
+          // its buttons keep their own clicks from reaching it.
+          onClick={
+            allowMediaLibrary
+              ? (event) => {
+                  // "Upload new" clicks the hidden input, and that click
+                  // bubbles up here as well.
+                  if (disabled || event.target === fileInputRef.current) return;
+                  setIsLibraryOpen(true);
+                }
+              : undefined
+          }
+          onKeyDown={
+            allowMediaLibrary
+              ? (event) => {
+                  // Still focusable while disabled (paste listens on it).
+                  if (disabled || event.target !== event.currentTarget) return;
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  setIsLibraryOpen(true);
+                }
+              : undefined
+          }
           className={cn(
-            "relative rounded-lg border-2 border-dashed p-6 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-muted-foreground/50",
+            "relative outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+            allowMediaLibrary
+              ? cn(
+                  "cursor-pointer rounded-xl border border-dashed px-4 text-center sm:px-6",
+                  // Room to breathe while empty; a slim bar above a gallery.
+                  hasGalleryItems ? "py-5" : "py-10",
+                  isDragging
+                    ? "border-primary bg-primary/5"
+                    : "border-foreground/20 hover:border-foreground/35 hover:bg-muted/40",
+                )
+              : cn(
+                  "rounded-lg border-2 border-dashed p-6",
+                  isDragging
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50",
+                ),
             disabled && "pointer-events-none opacity-50",
             uploadZoneClassName,
           )}
@@ -684,39 +846,105 @@ export function MediaUploader({
             accept={acceptString}
             onChange={handleFileSelect}
             disabled={disabled}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            className={
+              allowMediaLibrary
+                ? "hidden"
+                : "absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            }
           />
-          <div className="flex flex-col items-center justify-center gap-2 text-center">
-            <Upload className="h-8 w-8 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">{resolvedUploadTitle}</p>
-              {resolvedUploadDescription ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {resolvedUploadDescription}
-                </p>
-              ) : null}
-              {sizeGuide ? (
-                <p className="mt-1 text-xs font-medium text-muted-foreground">
-                  {sizeGuide}
-                </p>
-              ) : null}
-            </div>
-            {allowExternalVideo && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={disabled}
-                // Above the invisible file input so the click doesn't open
-                // the file picker.
-                className="relative z-10 mt-1 h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setIsUrlDialogOpen(true)}
+          {allowMediaLibrary ? (
+            <>
+              {/* Kept in place while a drag is over the zone, so the zone
+                  does not change size under the pointer. */}
+              <div
+                className={cn(
+                  "flex flex-col items-center gap-3",
+                  isDragging && "invisible",
+                )}
               >
-                <Video className="mr-1.5 h-3.5 w-3.5" />
-                {t("admin.productForm.media.embedVideo")}
-              </Button>
-            )}
-          </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled}
+                    className="bg-card font-semibold"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    <Upload />
+                    {t("admin.productForm.media.uploadNew")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={disabled}
+                    className="font-semibold"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsLibraryOpen(true);
+                    }}
+                  >
+                    {t("admin.productForm.media.selectExisting")}
+                  </Button>
+                  {embedVideoButton && hasGalleryItems ? (
+                    <>
+                      <span aria-hidden className="mx-1 hidden h-6 w-px bg-border sm:block" />
+                      {embedVideoButton}
+                    </>
+                  ) : null}
+                </div>
+                {resolvedUploadDescription ? (
+                  <p className="text-xs text-muted-foreground">
+                    {resolvedUploadDescription}
+                  </p>
+                ) : null}
+                {sizeGuide ? (
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {sizeGuide}
+                  </p>
+                ) : null}
+                {embedVideoButton && !hasGalleryItems ? (
+                  <>
+                    <div
+                      aria-hidden
+                      className="flex w-full max-w-xs items-center gap-3 text-xs text-muted-foreground"
+                    >
+                      <span className="h-px flex-1 bg-border" />
+                      {t("common.or")}
+                      <span className="h-px flex-1 bg-border" />
+                    </div>
+                    {embedVideoButton}
+                  </>
+                ) : null}
+              </div>
+              {isDragging ? (
+                <p className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-sm font-semibold text-primary">
+                  <Upload className="h-4 w-4" />
+                  {t("admin.mediaPicker.dropToUpload")}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 text-center">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">{resolvedUploadTitle}</p>
+                {resolvedUploadDescription ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {resolvedUploadDescription}
+                  </p>
+                ) : null}
+                {sizeGuide ? (
+                  <p className="mt-1 text-xs font-medium text-muted-foreground">
+                    {sizeGuide}
+                  </p>
+                ) : null}
+              </div>
+              {embedVideoButton ? <div className="mt-1">{embedVideoButton}</div> : null}
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -788,6 +1016,22 @@ export function MediaUploader({
           )}
         </p>
       ) : null}
+
+      {allowMediaLibrary && (
+        <MediaLibraryPicker
+          open={isLibraryOpen}
+          onOpenChange={setIsLibraryOpen}
+          kinds={acceptTypes}
+          maxSelectable={remainingSlots}
+          attachedUrls={attachedUrls}
+          accept={acceptString}
+          validateFile={validate}
+          onSelect={handleLibrarySelect}
+          onAddFromUrl={
+            allowExternalVideo ? () => setIsUrlDialogOpen(true) : undefined
+          }
+        />
+      )}
 
       {allowExternalVideo && (
         <ExternalVideoUrlDialog
@@ -890,7 +1134,7 @@ function ExternalVideoUrlDialog({
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("admin.productForm.media.embedVideo")}</DialogTitle>
           <DialogDescription>
@@ -1325,15 +1569,20 @@ function MediaDetailModal({
 
   return (
     <Dialog open={!!media} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="truncate">
+      <DialogContent className="sm:max-w-3xl">
+        {/* `min-w-0` on the dialog's grid children: a filename is one
+            unbreakable word and `truncate` makes it `nowrap`, so its
+            min-content is the whole string — an auto grid track grows to that
+            past the dialog's own max-width and pushes the detail column
+            outside it. */}
+        <DialogHeader className="min-w-0">
+          <DialogTitle className="truncate pr-8" title={media.filename || undefined}>
             {media.filename || "Media details"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-          <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-muted">
+        <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="flex aspect-square min-w-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
             {media.type === "image" ? (
               // eslint-disable-next-line @next/next/no-img-element -- uploader tiles show blob: previews and any storage host, and measure natural size
               <img
@@ -1377,7 +1626,7 @@ function MediaDetailModal({
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             {media.type === "image" && (
               <div>
                 <div className="flex items-center justify-between gap-2">

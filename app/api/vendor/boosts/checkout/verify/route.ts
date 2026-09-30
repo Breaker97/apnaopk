@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { ObjectIdSchema } from "@/lib/validations";
 import {
   PLATFORM_PAYMENT_KIND,

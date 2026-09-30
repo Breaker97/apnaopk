@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { Loader2, Trash2, Shield, Mail, Send, Store, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,9 @@ import type { StaffPermission } from "@/config/permissions.config";
 import {
   GRANTABLE_STAFF_PERMISSIONS,
   PERMISSION_LABELS,
-  PERMISSION_RESOURCES,
+  grantableInArea,
   normalizeStaffPermissions,
+  permissionResourcesFor,
   type PermissionResource,
 } from "@/components/admin/staff/staff-permissions";
 import { cn } from "@/lib/utils";
@@ -95,6 +96,12 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
   const { confirm } = useConfirmation();
   const apiBasePath = area === "vendor" ? "/api/vendor/staff" : "/api/admin/staff";
   const staffListPath = `/${locale}/${area}/staff`;
+  // The vendor area offers only what a vendor may grant its own staff.
+  const permissionResources = permissionResourcesFor(area);
+  const grantablePermissions = useMemo(
+    () => grantableInArea(GRANTABLE_STAFF_PERMISSIONS, area),
+    [area],
+  );
 
   const [isFetching, setIsFetching] = useState(!!staffId);
   const [isSaving, setIsSaving] = useState(false);
@@ -299,7 +306,7 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
   const selectAllPermissions = () => {
     setForm((prev) => ({
       ...prev,
-      permissions: [...GRANTABLE_STAFF_PERMISSIONS],
+      permissions: [...grantablePermissions],
     }));
   };
 
@@ -706,7 +713,10 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
                     if (preset) {
                       setField(
                         "permissions",
-                        normalizeStaffPermissions(preset.permissions),
+                        grantableInArea(
+                          normalizeStaffPermissions(preset.permissions),
+                          area,
+                        ),
                       );
                     }
                   }}
@@ -756,7 +766,7 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {PERMISSION_RESOURCES.map((resource, idx) => {
+                      {permissionResources.map((resource, idx) => {
                         const canView = hasPermission(resource.view);
                         const canCreate = hasActionPermission(
                           resource,
@@ -779,6 +789,11 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
                               <p className="font-medium text-sm">
                                 {resource.label}
                               </p>
+                              {resource.hint ? (
+                                <p className="text-xs text-muted-foreground">
+                                  {resource.hint}
+                                </p>
+                              ) : null}
                             </td>
                             <td className="px-2 py-3 text-center">
                               <Checkbox
@@ -1046,7 +1061,7 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-2">
                 {form.permissions.length} of{" "}
-                {GRANTABLE_STAFF_PERMISSIONS.length} permissions selected
+                {grantablePermissions.length} permissions selected
               </p>
               <div className="flex flex-wrap gap-1">
                 {form.permissions.map((p) => (

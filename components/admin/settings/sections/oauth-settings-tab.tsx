@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { toast } from "@/components/ui/toast-notification";
 import {
   AlertTriangle,
@@ -159,14 +160,13 @@ export function OAuthSettingsTab(props: {
       />
 
       {originMismatch ? (
-        <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
-          <AlertTriangle className="mt-px size-3.5 shrink-0" />
+        <WarningBanner>
           {tSafe(
             "admin.settings.oauth.originMismatch",
             `You are browsing on ${browserOrigin}, but sign-in runs on ${configuredOrigin}. Register the URLs shown below — or point BETTER_AUTH_URL / NEXT_PUBLIC_APP_URL at the domain you actually use.`,
             { browser: browserOrigin, configured: configuredOrigin },
           )}
-        </p>
+        </WarningBanner>
       ) : null}
 
       <ProviderCard
@@ -193,9 +193,8 @@ export function OAuthSettingsTab(props: {
               onClear={() => props.updateField("security.googleClientId", null)}
               secretSet={cred("security.googleClientId").set}
               maskedHint={cred("security.googleClientId").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
               placeholderWhenUnset="1234567890-abc.apps.googleusercontent.com"
-              helperText="Saved keys are not shown again for security."
+              helperText={t("admin.settings.fields.savedKeysHint")}
               revealTyped
             />
             <EnvSourceHint show={Boolean(env?.googleClientId)} />
@@ -213,9 +212,8 @@ export function OAuthSettingsTab(props: {
               }
               secretSet={cred("security.googleClientSecret").set}
               maskedHint={cred("security.googleClientSecret").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
               placeholderWhenUnset="GOCSPX-..."
-              helperText="Saved secrets are not shown again for security."
+              helperText={t("admin.settings.fields.savedSecretsHint")}
             />
             <EnvSourceHint show={Boolean(env?.googleClientSecret)} />
           </div>
@@ -264,9 +262,8 @@ export function OAuthSettingsTab(props: {
               onClear={() => props.updateField("security.facebookAppId", null)}
               secretSet={cred("security.facebookAppId").set}
               maskedHint={cred("security.facebookAppId").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
-              placeholderWhenUnset="Facebook app ID"
-              helperText="Saved keys are not shown again for security."
+              placeholderWhenUnset={t("admin.settings.oauth.facebook.appIdPlaceholder")}
+              helperText={t("admin.settings.fields.savedKeysHint")}
               revealTyped
             />
             <EnvSourceHint show={Boolean(env?.facebookAppId)} />
@@ -284,8 +281,7 @@ export function OAuthSettingsTab(props: {
               }
               secretSet={cred("security.facebookAppSecret").set}
               maskedHint={cred("security.facebookAppSecret").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
-              helperText="Saved secrets are not shown again for security."
+              helperText={t("admin.settings.fields.savedSecretsHint")}
             />
             <EnvSourceHint show={Boolean(env?.facebookAppSecret)} />
           </div>

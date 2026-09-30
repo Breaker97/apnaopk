@@ -3,10 +3,7 @@ import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import {
   restoreOrderInventory,
 } from "@/lib/orders/order-inventory";
-import {
-  getOrderPreorderLines,
-  releasePreorderQuantity,
-} from "@/lib/orders/preorders";
+import { releaseOrderPreorders } from "@/lib/orders/preorders";
 import { createRefundTransaction } from "@/lib/payments/payment-transactions";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
 import { ValidationError } from "@/lib/api/errors";
@@ -16,9 +13,12 @@ import {
 } from "@/lib/payments/pesapal";
 import {
   amountDueNow,
-  finalizeCapturedOrder,
   type SettingsDocument,
 } from "@/lib/payments/finalize-order";
+import {
+  finalizeCapturedAttempt,
+  findAttemptByGatewayRef,
+} from "@/lib/payments/finalize-attempt";
 
 type FinalizePesapalOrderParams = {
   orderTrackingId: string;
@@ -32,7 +32,12 @@ type FinalizePesapalOrderParams = {
 
 /** Settles the order behind a completed Pesapal transaction. */
 export function finalizePesapalOrder(params: FinalizePesapalOrderParams) {
-  return finalizeCapturedOrder({
+  return finalizeCapturedAttempt({
+    // Attempt first, then the pending order a pre-attempt checkout wrote —
+    // both are asked whatever the rollout flag says (`finalize-attempt.ts`).
+    findAttempt: (scope) =>
+      findAttemptByGatewayRef("pesapalOrderTrackingId", params.orderTrackingId, scope),
+    orderPrefix: params.settings.orders?.prefix,
     provider: {
       paymentMethod: "pesapal",
       label: "Pesapal",
@@ -230,19 +235,22 @@ export async function reversePesapalOrder(params: {
   // whose balance was paid has been released for fulfilment on that payment,
   // and may already be on its way to the shopper.
   if (!balancePaidElsewhere) {
+    // Both claim-based, so each only gives back what this order still holds.
+    // Releasing the pre-order lines by hand ignored that claim: an order
+    // already marked ready had freed its places when its stock was consumed,
+    // and releasing them again under-counted the product and oversold it —
+    // while the consumed units themselves were never put back.
     if (order.hasPreorder) {
-      await releasePreorderQuantity(getOrderPreorderLines(order.items)).catch(
-        (err) =>
-          console.error(
-            "Failed to release preorder quantity on Pesapal reversal:",
-            err,
-          ),
-      );
-    } else {
-      await restoreOrderInventory(String(order._id)).catch((err) =>
-        console.error("Failed to restore inventory on Pesapal reversal:", err),
+      await releaseOrderPreorders(String(order._id)).catch((err) =>
+        console.error(
+          "Failed to release preorder quantity on Pesapal reversal:",
+          err,
+        ),
       );
     }
+    await restoreOrderInventory(String(order._id)).catch((err) =>
+      console.error("Failed to restore inventory on Pesapal reversal:", err),
+    );
 
     await reverseCouponUsageForOrder(String(order._id)).catch((err) =>
       console.error("Failed to reverse coupon usage on Pesapal reversal:", err),

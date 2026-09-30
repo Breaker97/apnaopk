@@ -1,5 +1,10 @@
 import { toFile } from "openai";
 import { getStorageConfig, getStorageService } from "@/lib/storage";
+import {
+  StoredFileFetchError,
+  fetchStoredFile,
+  readCappedBody,
+} from "@/lib/storage/fetch-stored-file";
 import type {
   AIAuthoringMediaOptions,
   AIAuthoringMediaResponse,
@@ -8,6 +13,8 @@ import type {
 import { createAIAuthoringOpenAIClient } from "./openai";
 
 const MAX_SOURCE_IMAGE_BYTES = 25 * 1024 * 1024;
+/** A source image has this long to arrive whole. */
+const SOURCE_IMAGE_DEADLINE_MS = 30_000;
 
 type OpenAIImageData = {
   b64_json?: string;
@@ -363,28 +370,37 @@ export async function assertOwnStorageUrl(sourceUrl: string): Promise<URL> {
 
 /**
  * Fetch a source image for editing. Guards against SSRF by only allowing URLs
- * served from this store's own configured storage origin. Exported so the
- * social-export pipeline can fetch the same class of own-storage images
- * (the export source and the brand logo).
+ * served from this store's own configured storage origin, and by never
+ * following a redirect away from it (lib/storage/fetch-stored-file.ts).
+ * Exported so the social-export pipeline and hero banners can fetch the same
+ * class of own-storage images (the export source and the brand logo).
  */
 export async function fetchSourceImage(
   sourceUrl: string,
 ): Promise<{ buffer: Buffer; contentType: string }> {
   const url = await assertOwnStorageUrl(sourceUrl);
 
-  const response = await fetch(url.toString());
-  if (!response.ok) {
+  const response = await fetchStoredFile(url, {
+    signal: AbortSignal.timeout(SOURCE_IMAGE_DEADLINE_MS),
+  }).catch(() => null);
+  if (!response?.ok) {
+    await response?.body?.cancel().catch(() => undefined);
     throw new Error("Could not load the source image");
   }
   const contentType = response.headers.get("content-type") || "image/png";
   if (!contentType.startsWith("image/")) {
+    await response.body?.cancel().catch(() => undefined);
     throw new Error("Source URL is not an image");
   }
-  const arrayBuffer = await response.arrayBuffer();
-  if (arrayBuffer.byteLength > MAX_SOURCE_IMAGE_BYTES) {
-    throw new Error("Source image is too large to edit");
-  }
-  return { buffer: Buffer.from(arrayBuffer), contentType };
+  const buffer = await readCappedBody(response, MAX_SOURCE_IMAGE_BYTES).catch(
+    (error: unknown) => {
+      throw error instanceof StoredFileFetchError &&
+        error.failure === "too_large"
+        ? new Error("Source image is too large to edit")
+        : new Error("Could not load the source image");
+    },
+  );
+  return { buffer, contentType };
 }
 
 export async function editAuthoringMedia(

@@ -8,6 +8,7 @@ import { AdminUpdateReviewSchema } from "@/lib/validations";
 import { auditUpdate, auditDelete, createAuditContext } from "@/lib/audit";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import { recomputeProductRating } from "@/lib/catalog/reviews";
+import { isReviewInStaffScope } from "@/lib/catalog/review-staff-scope";
 import { withApi } from "@/lib/api/handler";
 
 /**
@@ -17,7 +18,7 @@ import { withApi } from "@/lib/api/handler";
 export const GET = withApi<{ id: string }>(
   { auth: "user" },
   async ({ request, params, session }) => {
-    await assertAdminOrStaffPermissions(
+    const { staffScope } = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.VIEW_REVIEWS, STAFF_PERMISSIONS.MANAGE_REVIEWS],
     );
@@ -40,7 +41,10 @@ export const GET = withApi<{ id: string }>(
       .populate("productId", "name slug images")
       .lean();
 
-    if (!review) return notFoundResponse("Review");
+    // Out of a scoped staff member's reach reads as not found, not forbidden.
+    if (!review || !(await isReviewInStaffScope(review.productId, staffScope))) {
+      return notFoundResponse("Review");
+    }
 
     return successResponse(review);
   },
@@ -53,7 +57,7 @@ export const GET = withApi<{ id: string }>(
 export const PATCH = withApi<{ id: string }>(
   { auth: "user" },
   async ({ request, params, session }) => {
-    await assertAdminOrStaffPermissions(
+    const { staffScope } = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.EDIT_REVIEWS, STAFF_PERMISSIONS.MANAGE_REVIEWS],
     );
@@ -74,7 +78,9 @@ export const PATCH = withApi<{ id: string }>(
     const body = await validateBody(request, AdminUpdateReviewSchema);
 
     const before = await Review.findById(id).lean();
-    if (!before) return notFoundResponse("Review");
+    if (!before || !(await isReviewInStaffScope(before.productId, staffScope))) {
+      return notFoundResponse("Review");
+    }
 
     const set: Record<string, unknown> = {};
     const unset: Record<string, ""> = {};
@@ -136,7 +142,7 @@ export const PATCH = withApi<{ id: string }>(
 export const DELETE = withApi<{ id: string }>(
   { auth: "user" },
   async ({ request, params, session }) => {
-    await assertAdminOrStaffPermissions(
+    const { staffScope } = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.DELETE_REVIEWS, STAFF_PERMISSIONS.MANAGE_REVIEWS],
     );
@@ -155,7 +161,9 @@ export const DELETE = withApi<{ id: string }>(
     if (!isValidObjectId(id)) return notFoundResponse("Review");
 
     const before = await Review.findById(id).lean();
-    if (!before) return notFoundResponse("Review");
+    if (!before || !(await isReviewInStaffScope(before.productId, staffScope))) {
+      return notFoundResponse("Review");
+    }
 
     await Review.findByIdAndDelete(id);
 

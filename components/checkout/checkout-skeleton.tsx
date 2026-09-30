@@ -186,16 +186,16 @@ export function CheckoutSkeleton() {
 
               <Separator />
 
-              {/* Cart line items — 72px thumb, then title / qty / price all
+              {/* Cart line items — 56px thumb, then title / qty / price all
                   stacked in the same text column (no right-hand price cell) */}
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <Skeleton className="h-18 w-18 shrink-0 rounded-lg" />
+                  <div key={i} className="flex items-start gap-3">
+                    <Skeleton className="h-14 w-14 shrink-0 rounded-lg" />
                     <div className="min-w-0 flex-1">
-                      <Skeleton className="mb-1 h-5 w-4/5" />
-                      <Skeleton className="h-4 w-1/3" />
-                      <Skeleton className="mt-1 h-5 w-20" />
+                      <Skeleton className="mb-1.5 h-4 w-4/5" />
+                      <Skeleton className="h-3 w-1/3" />
+                      <Skeleton className="mt-1.5 h-4 w-16" />
                     </div>
                   </div>
                 ))}

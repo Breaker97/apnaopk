@@ -310,7 +310,10 @@ export async function ingestInboundMessage(
             lastMessagePreview: {
               $cond: [
                 isLatest,
-                event.body.slice(0, 240),
+                // A literal: in a pipeline a string starting with "$" is a
+                // field path, so a message reading "$lastMessageId" wrote an
+                // id — or "$$ROOT" the whole document — into the preview.
+                { $literal: event.body.slice(0, 240) },
                 "$lastMessagePreview",
               ],
             },

@@ -2,7 +2,7 @@ import { mongoose } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import { successResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 import { withApi } from "@/lib/api/handler";
 import {

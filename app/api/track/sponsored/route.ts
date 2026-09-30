@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Types } from "mongoose";
 import { NextResponse } from "next/server";
 import { withApi } from "@/lib/api/handler";

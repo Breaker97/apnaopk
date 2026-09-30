@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import Link from "@/components/language/link";
+import { useTranslations } from "next-intl";
 import { ArrowUpRight, BarChart3, ShoppingBag } from "lucide-react";
 
 type GreetingKey = "goodMorning" | "goodAfternoon" | "goodEvening";
@@ -22,9 +21,6 @@ function resolveGreetingKey(): GreetingKey {
  */
 export function DashboardHeader({ userName }: { userName?: string }) {
   const t = useTranslations();
-  const intlLocale = useLocale();
-  const params = useParams<{ locale: string }>();
-  const locale = params?.locale || intlLocale || "en";
 
   const [greetingKey, setGreetingKey] = React.useState<GreetingKey>(
     resolveGreetingKey,
@@ -60,7 +56,7 @@ export function DashboardHeader({ userName }: { userName?: string }) {
       </div>
       <div className="flex w-full items-stretch gap-2 sm:w-auto">
         <Link
-          href={`/${locale}/admin/analytics`}
+          href="/admin/analytics"
           className="group inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-[10px] border border-border bg-card px-3.5 text-sm font-semibold text-foreground shadow-xs transition-all hover:border-foreground/20 hover:bg-muted/60 hover:shadow-sm sm:flex-none"
         >
           <BarChart3 className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
@@ -68,7 +64,7 @@ export function DashboardHeader({ userName }: { userName?: string }) {
           <ArrowUpRight className="size-3.5 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground rtl:-scale-x-100" />
         </Link>
         <Link
-          href={`/${locale}/admin/orders`}
+          href="/admin/orders"
           className="group inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:shadow-sm sm:flex-none"
         >
           <ShoppingBag className="size-4" />

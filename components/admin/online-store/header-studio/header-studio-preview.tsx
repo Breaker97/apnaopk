@@ -34,11 +34,14 @@ import {
   announcementTextCss,
 } from "@/lib/site-config/announcement-style";
 import {
+  headerCurrencyLabel,
   headerLocationSlot,
   linkGlyph,
   visibleColumns,
   type HeaderCategoriesItem,
+  type HeaderCurrencyItem,
   type HeaderIconsItem,
+  type HeaderLanguageItem,
   type HeaderLayout,
   type HeaderLayoutItem,
   type HeaderLayoutRow,
@@ -149,7 +152,6 @@ export function HeaderStudioPreview({
       {showAnnouncement && announcement ? (
         <div
           className={cn(
-            "px-4 py-2",
             announcementPainted
               ? undefined
               : "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-white",
@@ -189,7 +191,7 @@ function PreviewRow({
 }) {
   const rowTone = surfaceTone(row.background);
   return (
-    <div className="relative px-4 py-2" style={rowStyle(row)}>
+    <div className="relative px-4" style={rowStyle(row)}>
       {visibleColumns(row).map((column) => (
         <div key={column.id} style={columnStyle(column, row)}>
           {column.items.map((item) => (
@@ -476,6 +478,12 @@ function PreviewItem({
 
     case "location":
       return <PreviewLocation item={item} />;
+
+    case "language":
+      return <PreviewLanguage item={item} pad={pad} />;
+
+    case "currency":
+      return <PreviewCurrency item={item} pad={pad} />;
 
     case "menuButton":
       return (
@@ -803,5 +811,54 @@ function LinkIcon({ icon }: { icon: string }) {
       height={16}
       className="h-4 w-4 shrink-0 object-contain"
     />
+  );
+}
+
+/** The language switcher's trigger, in the admin's own locale. */
+function PreviewLanguage({
+  item,
+  pad,
+}: {
+  item: HeaderLanguageItem;
+  pad: CSSProperties;
+}) {
+  const locale = useLocale() as Locale;
+  const config = localeConfig[locale];
+  return (
+    <span
+      className="flex shrink-0 items-center gap-2 leading-none"
+      style={{ ...pad, ...fillColorCss(item.foreground) }}
+    >
+      {item.showFlag ? (
+        <FlagIcon countryCode={config.countryCode} size={item.size} aria-hidden="true" />
+      ) : null}
+      <span style={{ ...textStyleCss(item.textStyle), ...fillTextCss(item.textStyle.fill) }}>
+        {item.display === "name" ? config.nativeName : locale.toUpperCase()}
+      </span>
+      {item.showChevron ? <ChevronDown className="h-3.5 w-3.5 opacity-70" /> : null}
+    </span>
+  );
+}
+
+/** The store currency, as the storefront shows it. */
+function PreviewCurrency({
+  item,
+  pad,
+}: {
+  item: HeaderCurrencyItem;
+  pad: CSSProperties;
+}) {
+  const { currency } = useCurrency();
+  return (
+    <span
+      className="shrink-0 leading-none"
+      style={{
+        ...pad,
+        ...textStyleCss(item.textStyle),
+        ...fillTextCss(item.textStyle.fill),
+      }}
+    >
+      {headerCurrencyLabel(item.display, currency)}
+    </span>
   );
 }

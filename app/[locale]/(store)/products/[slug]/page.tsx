@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { appConfig } from "@/config/app.config";
@@ -8,9 +9,11 @@ import { StoreSections } from "@/components/store/store-sections";
 import { generateProductJsonLd, JsonLd } from "@/lib/site-config/seo";
 import {
   buildStorefrontAlternates,
+  buildStorefrontUrl,
   getStorefrontIcons,
   getStorefrontMetadataSettings,
   normalizeMetadataText,
+  resolveStorefrontBaseUrl,
   truncateMetadataText,
 } from "@/lib/storefront/storefront-metadata";
 import { getStorefrontProductBySlug } from "@/lib/products/storefront-product-detail";
@@ -18,15 +21,35 @@ import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import { getTemplateSections } from "@/lib/storefront/pages/get-template";
 import type { SectionRenderContext } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
-import { resolveRequestLocation } from "@/lib/locations/resolve-request-location";
+import { isProductAvailable } from "@/lib/products/stock-policy";
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 async function getProduct(slug: string) {
   return getStorefrontProductBySlug(slug);
+}
+
+/**
+ * Served from the cache, like the home page. Nothing is built ahead (no
+ * database at build time): each product page, in each language, is rendered
+ * on its first visit and kept until an edit expires a tag it read
+ * (lib/cache-invalidation.ts) or its shortest-lived read runs out (a minute),
+ * whichever comes first. What turns on a clock — a pre-order's release date, a
+ * paid placement's window — is therefore decided when the page is rendered, up
+ * to that minute late; checkout decides it again, live.
+ *
+ * So nothing on the way down may read the request: a `headers()`, `cookies()`
+ * or search-param read in this page, its layouts, its loading file or a
+ * section it renders turns it back into a per-request render, silently, and
+ * whatever answers to the shopper — their place, session, wishlist, quote
+ * price, review eligibility — would be baked into HTML every visitor shares.
+ * Those are asked from the browser after hydration instead.
+ * tests/storefront-isr-product.test.ts guards the files it can.
+ */
+export function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({
@@ -39,8 +62,6 @@ export async function generateMetadata({
   ]);
 
   if (!product) return {};
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const page = `/products/${slug}`;
   // Title priority: admin-set SEO pageTitle → product.title → product.name → store name.
   const title =
@@ -111,13 +132,17 @@ export async function generateMetadata({
       ? product.price
       : undefined;
   const productPriceMax = hasPriceRange ? product.priceRange.max : undefined;
-  const productAvailability = product.stock > 0 ? "instock" : "oos";
+  // The stock-policy rule, not `stock > 0`: a download or an untracked product
+  // sits at 0 forever and is on sale all the same.
+  const inStock = isProductAvailable(product, product.stock);
 
   // Brand for OG/social: populated product.brand first, then vendor storeName.
   const productBrand =
     normalizeMetadataText(
       (product.brand as { name?: string } | undefined)?.name,
     ) || normalizeMetadataText(product.vendorId?.storeName);
+
+  const baseUrl = resolveStorefrontBaseUrl();
 
   return {
     title,
@@ -138,7 +163,7 @@ export async function generateMetadata({
       type: "website",
       title,
       description,
-      url: `${baseUrl}/${locale}${page}`,
+      url: await buildStorefrontUrl(locale, page),
       siteName: storeMetadata.storeName,
       images:
         images.length > 0
@@ -162,8 +187,7 @@ export async function generateMetadata({
       ...(productPriceMax && productPriceMax !== productPrice
         ? { "product:price:amount:max": String(productPriceMax) }
         : {}),
-      "product:availability":
-        productAvailability === "instock" ? "instock" : "oos",
+      "product:availability": inStock ? "instock" : "oos",
       "product:retailer_item_id": product.sku || product.slug,
       ...(productBrand ? { "product:brand": productBrand } : {}),
     },
@@ -179,14 +203,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductDetailPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function ProductDetailPage({ params }: PageProps) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
-  const location = resolveRequestLocation(await searchParams);
   const [t, product, storeMetadata, template, storefront] = await Promise.all([
     getTranslations({ locale }),
     getProduct(slug),
@@ -201,9 +222,9 @@ export default async function ProductDetailPage({
   }
 
   // The template's sections render everything below the breadcrumb. The
-  // product and the shopper's coarse location are resolved ONCE here and
-  // shared through the render context; per-section data (collection offer,
-  // related picks, sponsored lane) stays with the sections that need it.
+  // product is resolved ONCE here and shared through the render context;
+  // per-section data (related picks, sponsored lane) stays with the sections
+  // that need it.
   const ctx: SectionRenderContext = {
     locale: locale as Locale,
     defaultLanguage: storefront.defaultLanguage,
@@ -211,18 +232,8 @@ export default async function ProductDetailPage({
     themeId: storefront.theme.id,
     themeSettings: storefront.theme.settings,
     templateType: "product",
-    resource: {
-      type: "product",
-      product,
-      location: {
-        lat: location.lat,
-        lng: location.lng,
-        radius: location.radius,
-      },
-    },
+    resource: { type: "product", product },
   };
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   // Shared by the structured data and the breadcrumb, so the category a shopper
   // walks back up through is the same one Google is told this product sits in.
@@ -258,9 +269,9 @@ export default async function ProductDetailPage({
           currency: defaultCurrency,
           image: product.images?.[0] || "",
           images: product.images,
-          url: `${baseUrl}/${locale}/products/${slug}`,
+          url: await buildStorefrontUrl(locale, `/products/${slug}`),
           sku: product.sku,
-          inStock: product.stock > 0,
+          inStock: isProductAvailable(product, product.stock),
           rating: product.rating,
           reviewCount: product.reviewCount,
           // Brand (manufacturer) takes precedence over vendor storeName.
@@ -280,6 +291,7 @@ export default async function ProductDetailPage({
           grid — the page it prints under the search result. */}
       <StoreBreadcrumb
         locale={locale}
+        storeDefault={storeDefault}
         hidden
         items={[
           { label: t("nav.products"), href: "/products" },

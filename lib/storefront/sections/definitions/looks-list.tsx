@@ -1,9 +1,26 @@
-import { LooksList, type LooksShape } from "@/components/store/sections/looks-list";
+import { LooksListLazy as LooksList } from "@/components/store/sections/looks-list-lazy";
+import type { LooksShape } from "@/components/store/sections/looks-list";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStorefrontLooks } from "@/lib/storefront/storefront-looks";
 import { lt } from "../localized";
-import type { LocalizedText, SectionDefinition } from "../types";
+import type {
+  BlockInstance,
+  LocalizedText,
+  SectionDefinition,
+} from "../types";
+
+/** The hand-picked collection ids, in order; `undefined` when automatic. */
+function pickedLookIds(
+  settings: Record<string, unknown>,
+  blocks: BlockInstance[],
+): string[] | undefined {
+  if (settings.source !== "manual") return undefined;
+  return blocks
+    .filter((block) => block.visible)
+    .map((block) => block.settings.collection)
+    .filter((id): id is string => typeof id === "string" && id !== "");
+}
 
 /**
  * "More Looks to Love": a scrolling row of Looks. Automatic by default —
@@ -83,15 +100,10 @@ export const looksList: SectionDefinition = {
     },
   ],
   starter: { blocks: [] },
+  isEmpty: ({ settings, blocks }) => pickedLookIds(settings, blocks)?.length === 0,
   async Render({ settings, blocks, ctx }) {
     const limit = settings.limit as number;
-    const ids =
-      settings.source === "manual"
-        ? blocks
-            .filter((block) => block.visible)
-            .map((block) => block.settings.collection)
-            .filter((id): id is string => typeof id === "string" && id !== "")
-        : undefined;
+    const ids = pickedLookIds(settings, blocks);
     // A hand-pick with nothing picked is an empty row, not the automatic one.
     const looks =
       ids && ids.length === 0 ? [] : await getStorefrontLooks({ limit, ids });
@@ -105,7 +117,7 @@ export const looksList: SectionDefinition = {
 
     return (
       <LooksList
-        locale={ctx.locale}
+
         title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
         looks={looks}
         layout={{

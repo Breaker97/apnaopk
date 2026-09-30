@@ -9,13 +9,7 @@ import {
   type ModernProduct,
 } from "@/components/products/modern-product-card";
 import { CollectionProductsGrid } from "@/components/products/collection-products-grid";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SortLinkSelectLazy } from "@/components/products/sort-link-select-lazy";
 import type { CollectionTemplateResource } from "@/lib/storefront/sections/types";
 import {
   CARD_GRID_GAP,
@@ -199,34 +193,19 @@ function SortSelect({
   };
 
   return (
-    <Select defaultValue={currentSort || "manual"}>
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder={labels.placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="manual">
-          <a href={sortHref()}>{labels.featured}</a>
-        </SelectItem>
-        <SelectItem value="best-selling">
-          <a href={sortHref("best-selling")}>{labels.bestSelling}</a>
-        </SelectItem>
-        <SelectItem value="title-asc">
-          <a href={sortHref("title-asc")}>{labels.aToZ}</a>
-        </SelectItem>
-        <SelectItem value="title-desc">
-          <a href={sortHref("title-desc")}>{labels.zToA}</a>
-        </SelectItem>
-        <SelectItem value="price-asc">
-          <a href={sortHref("price-asc")}>{labels.priceLowHigh}</a>
-        </SelectItem>
-        <SelectItem value="price-desc">
-          <a href={sortHref("price-desc")}>{labels.priceHighLow}</a>
-        </SelectItem>
-        <SelectItem value="created-desc">
-          <a href={sortHref("created-desc")}>{labels.newest}</a>
-        </SelectItem>
-      </SelectContent>
-    </Select>
+    <SortLinkSelectLazy
+      value={currentSort || "manual"}
+      placeholder={labels.placeholder}
+      options={[
+        { value: "manual", label: labels.featured, href: sortHref() },
+        { value: "best-selling", label: labels.bestSelling, href: sortHref("best-selling") },
+        { value: "title-asc", label: labels.aToZ, href: sortHref("title-asc") },
+        { value: "title-desc", label: labels.zToA, href: sortHref("title-desc") },
+        { value: "price-asc", label: labels.priceLowHigh, href: sortHref("price-asc") },
+        { value: "price-desc", label: labels.priceHighLow, href: sortHref("price-desc") },
+        { value: "created-desc", label: labels.newest, href: sortHref("created-desc") },
+      ]}
+    />
   );
 }
 

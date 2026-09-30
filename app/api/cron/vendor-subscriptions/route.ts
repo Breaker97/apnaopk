@@ -17,16 +17,7 @@ import { withCronRun } from "@/lib/cron/health";
  *
  * Guarded by CRON_SECRET, mirroring /api/cron/email-deliveries.
  */
-export const GET = withCronRun("vendor-subscriptions", async (request) => {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
+export const GET = withCronRun("vendor-subscriptions", async () => {
   await connectDB();
   const settings = await getSettings();
   // Takeovers settle FIRST, before the dunning sweep runs. A vendor mid-handover

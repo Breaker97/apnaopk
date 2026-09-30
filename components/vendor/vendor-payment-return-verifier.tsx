@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { toast } from "@/components/ui/toast-notification";
 import { RAZORPAY_RETURN_PARAM } from "@/lib/payments/razorpay-callback";
 
@@ -45,7 +46,7 @@ export function VendorPaymentReturnVerifier({ locale }: { locale: string }) {
               "The payment was received, but synchronization is still pending.",
           );
         }
-        router.replace(`/${locale}/vendor/dashboard`);
+        router.replace("/vendor/dashboard");
         router.refresh();
       })
       .catch(() => {

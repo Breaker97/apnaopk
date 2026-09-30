@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { ExternalLink } from "lucide-react";
 import {
   DataTable,
@@ -81,6 +81,7 @@ const PAYMENT_STATUS_MAP = {
   paid: { label: "Paid", variant: "default" as const },
   partially_paid: { label: "Partially paid", variant: "secondary" as const },
   refunded: { label: "Refunded", variant: "destructive" as const },
+  expired: { label: "Expired", variant: "destructive" as const },
   partially_refunded: {
     label: "Partially refunded",
     variant: "secondary" as const,

@@ -3,7 +3,7 @@
 import { IOrder } from "@/types";
 import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, Store } from "lucide-react";
+import { AlertTriangle, Mail, Phone, Store } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
@@ -131,6 +131,14 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
                   >
                     {shipping.phone}
                   </a>
+                ) : null}
+                {/* Beside the address it is about, so nobody copies it onto a
+                    parcel while the banner above says it can't be delivered to. */}
+                {order.addressHold?.state === "open" ? (
+                  <p className="mt-2 flex items-start gap-1.5 text-xs text-destructive">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                    <span>{order.addressHold.message || "The courier can't deliver to this address"}</span>
+                  </p>
                 ) : null}
               </div>
             )}

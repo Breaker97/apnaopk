@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2, Store } from "lucide-react";
@@ -65,7 +65,7 @@ function RegisterContent({
         <RegisterFields state={state} />
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <RegisterTermsNotice locale={locale} />
+        <RegisterTermsNotice />
 
         {/* Want to sell? Link - now uses dynamic setting */}
         {isMultiVendor && (
@@ -74,7 +74,7 @@ function RegisterContent({
             <span className="text-sm text-muted-foreground">
               {t("auth.wantToSell")}{" "}
               <Link
-                href={`/${locale}/become-vendor`}
+                href="/become-vendor"
                 className="text-primary font-medium hover:underline"
               >
                 {t("auth.becomeVendor")}

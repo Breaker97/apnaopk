@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { successResponse } from "@/lib/api/response";
 import { validateQuery } from "@/lib/api/validate";
 import { ValidationError } from "@/lib/api/errors";

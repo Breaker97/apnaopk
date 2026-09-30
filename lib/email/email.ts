@@ -3,6 +3,7 @@
  * Using Nodemailer with SMTP (Gmail compatible)
  */
 
+import { createHash } from "node:crypto";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import type { ISettingsData } from "@/models/settings.model";
@@ -40,10 +41,29 @@ function buildFromHeader(settings?: ISettingsData | null): string {
 }
 
 /**
- * Get email transporter
+ * One pooled transport per SMTP configuration, on a server that keeps running.
+ *
+ * A transport per email opened a fresh connection — TCP, TLS and a login — for
+ * every message, and an order sends several (the shopper's confirmation, each
+ * seller's notice). Pooled, they share connections that stay open between
+ * messages. A changed configuration gets a new pool; the old one is closed.
+ *
+ * Not on a serverless host (Vercel): a frozen function wakes to sockets the
+ * mail server has long since dropped, and the send would fail on them.
  */
+let pooledTransport: { key: string; transporter: Transporter } | null = null;
+
 function getTransporter(config: EmailConfig): Transporter {
-  return nodemailer.createTransport(config);
+  if (process.env.VERCEL) return nodemailer.createTransport(config);
+  const key = createHash("sha256").update(JSON.stringify(config)).digest("hex");
+  if (pooledTransport?.key !== key) {
+    pooledTransport?.transporter.close();
+    pooledTransport = {
+      key,
+      transporter: nodemailer.createTransport({ ...config, pool: true }),
+    };
+  }
+  return pooledTransport.transporter;
 }
 
 /**
@@ -122,6 +142,37 @@ function toAttachmentContent(content: unknown): Buffer | string {
   throw new Error("Queued email attachment content is unreadable");
 }
 
+/**
+ * Whether the mail server refused this recipient for good — the SMTP shape of
+ * a hard bounce.
+ *
+ * Deliberately narrow. A 5xx also covers "relay access denied" and other
+ * sender-side misconfiguration, and treating those as dead addresses would
+ * unsubscribe a store's whole list the first time their SMTP credentials
+ * lapsed. Only a rejection naming this recipient, or the "no such mailbox"
+ * enhanced codes, counts. Exported for the test that pins that line.
+ */
+export function isHardBounce(error: unknown, recipient: string): boolean {
+  const err = error as {
+    responseCode?: number;
+    response?: string;
+    rejected?: unknown[];
+  } | null;
+  if (!err) return false;
+  const code = Number(err.responseCode || 0);
+  if (code < 500 || code >= 600) return false;
+
+  const rejected = Array.isArray(err.rejected)
+    ? err.rejected.map((value) => String(value).toLowerCase())
+    : [];
+  if (rejected.includes(recipient.toLowerCase())) return true;
+
+  const response = String(err.response || "");
+  return /5\.1\.[0-6]|unknown user|user unknown|no such user|mailbox (?:unavailable|not found)|recipient (?:rejected|not found)|does not exist/i.test(
+    response,
+  );
+}
+
 function retryDelayMs(attempts: number) {
   const minutes = [1, 5, 30, 120];
   return minutes[Math.min(Math.max(attempts - 1, 0), minutes.length - 1)] * 60_000;
@@ -165,6 +216,8 @@ async function deliverEmailJob(
       replyTo: job.replyTo,
       html: job.html,
       text: job.text || job.html.replace(/<[^>]*>/g, ""),
+      // `List-Unsubscribe` and friends: set per message by the caller.
+      ...(job.headers ? { headers: job.headers } : {}),
       attachments: job.attachments?.map((attachment) => ({
         filename: attachment.filename,
         contentType: attachment.contentType,
@@ -186,10 +239,14 @@ async function deliverEmailJob(
     job.text = undefined;
     job.attachments = undefined;
     await job.save();
-    console.log("Email sent:", info.messageId);
     return true;
   } catch (error) {
-    const exhausted = job.attempts >= job.maxAttempts;
+    // A refused recipient will be refused again, so it ends the job here
+    // rather than after four more attempts, and takes the address off the
+    // marketing list: continuing to send to a dead mailbox is what ruins a
+    // store's sending reputation for the addresses that do work.
+    const hardBounce = isHardBounce(error, job.to);
+    const exhausted = hardBounce || job.attempts >= job.maxAttempts;
     job.status = exhausted ? "failed" : "retrying";
     job.lastError = sanitizeEmailError(error);
     job.nextAttemptAt = exhausted
@@ -199,6 +256,14 @@ async function deliverEmailJob(
       job.expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
     }
     await job.save();
+    if (hardBounce) {
+      const { suppressEmailAddress } = await import(
+        "@/lib/customers/marketing-consent"
+      );
+      await suppressEmailAddress({ email: job.to }).catch((suppressError) =>
+        console.error("Failed to suppress bounced address:", suppressError),
+      );
+    }
     console.error("Failed to send email:", job.lastError);
     return false;
   }
@@ -269,6 +334,13 @@ export async function sendEmail(options: {
   attachments?: EmailAttachment[];
   category?: string;
   /**
+   * Extra SMTP headers. Marketing mail sets `List-Unsubscribe` and
+   * `List-Unsubscribe-Post` here: Gmail and Outlook show their own one-click
+   * unsubscribe from them, and bulk senders that do not offer one get their
+   * mail filed as spam — including, eventually, the store's order updates.
+   */
+  headers?: Record<string, string>;
+  /**
    * The event this email announces, for this recipient. A second call with
    * the same key queues nothing and reports the first as sent: an event that
    * fires twice — a courier webhook racing a merchant's "mark shipped" — must
@@ -289,6 +361,17 @@ export async function sendEmail(options: {
     if (options.dedupeKey && (await EmailDelivery.exists({ dedupeKey: options.dedupeKey }))) {
       return true;
     }
+    // Marketing is the one category consent governs. Order updates, password
+    // resets and invoices are transactional and go out regardless — an
+    // unsubscribe is from news and offers, not from being told where a parcel
+    // is. The caller decides who to mail; this is the backstop that keeps an
+    // unsubscribed or bounced address off a campaign whoever built it.
+    if (options.category === "marketing") {
+      const { isMarketingSuppressed } = await import(
+        "@/lib/customers/marketing-consent"
+      );
+      if (await isMarketingSuppressed(options.to)) return false;
+    }
     const job = await EmailDelivery.create({
       to: options.to,
       subject: options.subject,
@@ -302,6 +385,7 @@ export async function sendEmail(options: {
         contentType: att.contentType || "application/pdf",
       })),
       category: options.category || "transactional",
+      ...(options.headers ? { headers: options.headers } : {}),
       ...(options.dedupeKey ? { dedupeKey: options.dedupeKey } : {}),
       status: "queued",
       nextAttemptAt: new Date(),

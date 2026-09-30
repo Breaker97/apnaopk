@@ -13,6 +13,8 @@ import { parsePageQuery } from "@/lib/api/validate";
 import { serializeRows } from "@/lib/api/list-query";
 import { AdminReviewListQuerySchema } from "@/lib/validations";
 import { fetchAdminReviewList } from "@/lib/catalog/review-list";
+import { staffReviewScopeFilter } from "@/lib/catalog/review-staff-scope";
+import { mergeScopeFilter, type StaffAccessScope } from "@/lib/access/staff-scope";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -28,7 +30,7 @@ export default async function AdminReviewsPage({
   const search = await searchParams;
   setRequestLocale(locale);
 
-  await requireAdminOrStaffPageAccess({
+  const { staffScope } = await requireAdminOrStaffPageAccess({
     locale,
     required: [
       STAFF_PERMISSIONS.VIEW_REVIEWS,
@@ -45,7 +47,7 @@ export default async function AdminReviewsPage({
           <Skeleton className="h-[300px] w-full rounded-[12px] lg:h-[181px]" />
         }
       >
-        <ReviewsStats />
+        <ReviewsStats staffScope={staffScope} />
       </Suspense>
 
       <Suspense
@@ -59,7 +61,11 @@ export default async function AdminReviewsPage({
           />
         }
       >
-        <ReviewsTable locale={locale} searchParams={search} />
+        <ReviewsTable
+          locale={locale}
+          searchParams={search}
+          staffScope={staffScope}
+        />
       </Suspense>
     </div>
   );
@@ -68,16 +74,18 @@ export default async function AdminReviewsPage({
 async function ReviewsTable({
   locale,
   searchParams,
+  staffScope,
 }: {
   locale: string;
   searchParams: { [key: string]: string | string[] | undefined };
+  staffScope?: StaffAccessScope;
 }) {
   // Parsed with the schema the API route uses, so the page and the endpoint
   // can never read one query string two different ways.
   const query = parsePageQuery(searchParams, AdminReviewListQuerySchema);
   const view =
     typeof searchParams.view === "string" ? searchParams.view : "all";
-  const list = await fetchAdminReviewList({ ...query, view });
+  const list = await fetchAdminReviewList({ ...query, view }, staffScope);
 
   return (
     <ReviewsDataTable
@@ -93,17 +101,27 @@ async function ReviewsTable({
   );
 }
 
-async function ReviewsStats() {
-  return <ReviewsStatsCard stats={await getReviewsStats()} />;
+async function ReviewsStats({
+  staffScope,
+}: {
+  staffScope?: StaffAccessScope;
+}) {
+  return <ReviewsStatsCard stats={await getReviewsStats(staffScope)} />;
 }
 
-async function getReviewsStats(): Promise<ReviewsStats> {
+async function getReviewsStats(
+  staffScope?: StaffAccessScope,
+): Promise<ReviewsStats> {
   await connectDB();
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  // Staff limited to vendors count only their products' reviews — the
+  // marketplace-wide figures are not theirs to see.
+  const scopeFilter = await staffReviewScopeFilter(staffScope);
 
   const [agg, weekDelta] = await Promise.all([
     Review.aggregate([
+      { $match: scopeFilter },
       {
         $group: {
           _id: null,
@@ -123,7 +141,9 @@ async function getReviewsStats(): Promise<ReviewsStats> {
         },
       },
     ]),
-    Review.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+    Review.countDocuments(
+      mergeScopeFilter({ createdAt: { $gte: sevenDaysAgo } }, scopeFilter),
+    ),
   ]);
 
   const s = agg[0] || {

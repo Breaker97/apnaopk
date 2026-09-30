@@ -1,6 +1,7 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Types } from "mongoose";
 import {
+  addDays,
   BOOST_DAY_PATTERN,
   dayEndExclusiveUtc,
   dayStartUtc,
@@ -23,7 +24,7 @@ import {
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { paginatedResponse, successResponse } from "@/lib/api/response";
 import { validateBody, validateQuery } from "@/lib/api/validate";
-import { AdminListQuerySchema, ObjectIdSchema } from "@/lib/validations";
+import { BoostCampaignListQuerySchema, ObjectIdSchema } from "@/lib/validations";
 import { withApi } from "@/lib/api/handler";
 import { auditCreate, createAuditContext } from "@/lib/audit";
 import { BoostCampaign, BoostPosition, Product, Vendor } from "@/models";
@@ -33,6 +34,8 @@ import {
   cancelBoostCampaign,
 } from "@/lib/boosts/boosts";
 import { fetchBoostCampaignList } from "@/lib/boosts/boost-campaign-list";
+import { isPositionUnreachable } from "@/lib/boosts/boost-placement-depths";
+import { getSponsoredPlacementDepths } from "@/lib/boosts/sponsored-products";
 import {
   createPlatformPaymentAttempt,
   finalizePlatformPayment,
@@ -52,6 +55,8 @@ const ManualCampaignSchema = z.object({
    * floor that governs vendor checkout does not apply here.
    */
   amountOverride: z.number().min(0).optional(),
+  /** The admin's reference for the offline payment (bank transfer id, receipt). */
+  note: z.string().trim().max(200).optional(),
 });
 
 /**
@@ -65,11 +70,18 @@ export const GET = withApi(
   },
   async ({ request }) => {
     await assertBoostingEnabled();
-    const { page, limit, search, status } = validateQuery(
-      request,
-      AdminListQuerySchema,
-    );
-    const list = await fetchBoostCampaignList({ page, limit, search, status });
+    const { page, limit, search, status, vendor, position, sortBy, sortOrder } =
+      validateQuery(request, BoostCampaignListQuerySchema);
+    const list = await fetchBoostCampaignList({
+      page,
+      limit,
+      search,
+      status,
+      vendor,
+      position,
+      sortBy,
+      sortOrder,
+    });
     return paginatedResponse(list.items, page, limit, list.total);
   },
 );
@@ -123,6 +135,16 @@ export const POST = withApi(
       );
     }
 
+    // The vendor catalogue withholds a rung that renders on no placement; the
+    // admin form has to obey the same rule, or the one path left open is the
+    // marketplace selling itself a placement that shows on no page.
+    const depths = await getSponsoredPlacementDepths();
+    if (isPositionUnreachable(positionDoc.position, depths)) {
+      throw new ValidationError(
+        `Position ${positionDoc.position} renders on no placement at the current depths, so a booking on it would never be shown. Raise a placement's slot count first.`,
+      );
+    }
+
     const currency = (settings.general?.defaultCurrency || "USD").toUpperCase();
     if (positionDoc.currency && positionDoc.currency.toUpperCase() !== currency) {
       throw new ValidationError(
@@ -140,7 +162,18 @@ export const POST = withApi(
     if (body.startDay < today) {
       throw new ValidationError("Bookings cannot start in the past");
     }
+    const horizonDays = settings.boosting?.bookingHorizonDays ?? 60;
+    const maxBookingDays = settings.boosting?.maxBookingDays ?? 60;
     const billedDays = daysBetweenInclusive(body.startDay, body.endDay);
+    // The same two limits vendor checkout applies. An offline booking is still
+    // inventory off the same calendar, and a 200-day manual booking on
+    // Position 1 is exactly the hoard the horizon exists to prevent.
+    if (billedDays > maxBookingDays) {
+      throw new ValidationError(`A booking cannot exceed ${maxBookingDays} days`);
+    }
+    if (body.endDay > addDays(today, horizonDays)) {
+      throw new ValidationError(`Bookings open ${horizonDays} days ahead`);
+    }
 
     const scale = currencyPriceScale(currency);
     const factor = 10 ** scale;
@@ -237,6 +270,7 @@ export const POST = withApi(
         provider: PLATFORM_PAYMENT_PROVIDER.MANUAL,
         amount,
         currency,
+        note: body.note,
         boostTerms: {
           position: positionDoc.position,
           startDay: body.startDay,

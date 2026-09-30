@@ -168,7 +168,7 @@ export function BrandListEditor({
         key: brand._id,
         image: brand.logo ?? "",
         name: brand.name,
-        href: `/${locale}/brands/${brand.slug}`,
+        href: `/brands/${brand.slug}`,
       }));
     }
 
@@ -183,7 +183,7 @@ export function BrandListEditor({
         key: brand._id,
         image: brand.logo ?? "",
         name: brand.name,
-        href: `/${locale}/products?brand=${encodeURIComponent(brand.slug)}`,
+        href: `/products?brand=${encodeURIComponent(brand.slug)}`,
       }));
   }, [brands, blocks, locale]);
 

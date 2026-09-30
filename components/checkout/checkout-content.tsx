@@ -1,10 +1,11 @@
 "use client";
 
-import { z } from "zod";
-import Link from "next/link";
+import * as z from "zod";
+import Link from "@/components/language/link";
 import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import {
+  useCallback,
   useState,
   useEffect,
   useMemo,
@@ -34,7 +35,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   CreditCard,
@@ -54,6 +56,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useCart } from "@/hooks/use-cart";
+import { formatVariantOptionLines } from "@/lib/cart/variant-options";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/providers/currency-provider";
 import {
@@ -61,6 +64,7 @@ import {
   preorderMandateRequired,
 } from "@/lib/payments/preorder-mandate";
 import { toast } from "@/components/ui/toast-notification";
+import { refusalMessage } from "@/lib/api/client";
 import { AppImage } from "@/components/ui/app-image";
 import { CouponInput } from "@/components/checkout/coupon-input";
 import {
@@ -68,7 +72,20 @@ import {
   type CheckoutPickupLocation,
 } from "@/components/checkout/pickup-fulfillment-selector";
 import { SavedAddressSelector } from "@/components/checkout/saved-address-selector";
+import { TurnstileCheck } from "@/components/checkout/turnstile-check";
+import {
+  FAILURE_MESSAGE_FALLBACK,
+  isCardTestingFailure,
+  normalizeFailureCode,
+} from "@/lib/payments/failure-codes";
 import { CheckoutSkeleton } from "@/components/checkout/checkout-skeleton";
+import {
+  AddressReviewDialog,
+  checkoutAddressKey,
+  reviewCheckoutAddress,
+  type CheckoutAddress,
+  type CheckoutAddressReview,
+} from "@/components/checkout/address-review-dialog";
 import { CountrySelect } from "@/components/common/country-multi-select";
 import {
   RegionSelect,
@@ -77,7 +94,7 @@ import {
 import { useAppTheme } from "@/providers/theme-provider";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import {
-  getAllowedCountryOptions,
+  defaultCountryForAddressForms,
   isCountryAllowed,
 } from "@/lib/intl/country-availability";
 import {
@@ -113,6 +130,8 @@ import {
   type ConfigurableAddressField,
   type PublicCheckoutSettings,
 } from "@/lib/checkout/checkout-config";
+import { marketingBoxDefaultChecked } from "@/lib/checkout/marketing-preselect";
+import { contactChannelOf } from "@/lib/checkout/contact-channel";
 import {
   CHECKOUT_NOTE_MAX,
   activeCheckoutCustomFields,
@@ -154,6 +173,14 @@ import {
   type CheckoutVendorRateGroup,
   type SavedCheckoutAddress,
 } from "@/components/checkout/checkout-helpers";
+import {
+  ShippingMethodSelector,
+  type ShipmentItemSummary,
+} from "@/components/checkout/shipping-method-selector";
+import {
+  reconcileVendorSelections,
+  sameSelections,
+} from "@/lib/checkout/shipping-presets";
 import { resolveInitialPickupLocationId } from "@/lib/checkout/pickup-distance";
 import {
   shopperLocationCity,
@@ -161,7 +188,12 @@ import {
 } from "@/lib/locations/shopper-location";
 import { readStoredShopperLocationFromBrowser } from "@/lib/locations/shopper-location-client";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useIdlePreload } from "@/hooks/use-idle-preload";
 import { preorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
+import { canCollectDeferredBalance } from "@/lib/payments/balance-methods";
+import { codLimitBreach } from "@/lib/checkout/cod-limits";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { invalidateResources } from "@/hooks/use-suspense-resource";
 
 type PickupAvailabilityState = {
   loading: boolean;
@@ -208,27 +240,42 @@ const BILLING_FORM_FIELD = {
   phone: "billingPhone",
 } as const satisfies Record<ConfigurableAddressField, keyof CheckoutFormData>;
 
+/**
+ * libphonenumber and its metadata, 110 KB of JavaScript, only for a store that
+ * takes a phone number as the contact: fetched once the page is idle, and
+ * awaited by the validation that reads it.
+ */
+const loadPhoneNumbers = () => import("@/lib/sms/phone");
+
 interface CheckoutContentProps {
   /**
    * The admin's checkout settings, server-rendered by the page so the form
    * opens with the right fields instead of re-laying itself out after a fetch.
    */
   settings: PublicCheckoutSettings;
+  /**
+   * Whether the store asks a courier about the delivery address before an
+   * order is placed. Off, checkout never asks the server.
+   */
+  addressCheck: boolean;
 }
 
-export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentProps) {
+export function CheckoutContent({
+  settings: checkoutSettings,
+  addressCheck,
+}: CheckoutContentProps) {
   const t = useTranslations();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = params.locale as string;
-  const { countryAvailability, mtnMomoPhoneExample } = useAppSettings();
-  const defaultCountry = useMemo(() => {
-    if (isCountryAllowed("United States", countryAvailability)) {
-      return "United States";
-    }
-    return getAllowedCountryOptions(countryAvailability)[0]?.label || "";
-  }, [countryAvailability]);
+  const { countryAvailability, shippingOriginCountry, mtnMomoPhoneExample } =
+    useAppSettings();
+  const defaultCountry = useMemo(
+    () =>
+      defaultCountryForAddressForms(countryAvailability, shippingOriginCountry),
+    [countryAvailability, shippingOriginCountry],
+  );
   const couponCodeFromCart = (searchParams.get("coupon") || "")
     .trim()
     .toUpperCase();
@@ -251,7 +298,41 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
 
   const { formatPrice, currency } = useCurrency();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  // The shopper's store credit (R8): what it can pay at this checkout, and
+  // whether they use it — on unless they untick it.
+  const [storeCreditFetched, setStoreCreditFetched] = useState(0);
+  const [useStoreCredit, setUseStoreCredit] = useState(true);
+  // A guest holds none; a shopper who signed out holds none here either.
+  const storeCreditAvailable = isAuthenticated ? storeCreditFetched : 0;
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    fetch("/api/checkout/store-credit")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.success) return;
+        setStoreCreditFetched(Math.max(0, Number(data.data?.available) || 0));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, items.length]);
   const collects = contactModeCollects(checkoutSettings.contact.mode);
+  /**
+   * Shopify's "phone number or email" is one field, not two optional ones —
+   * a shopper asked for "email (optional)" and "phone (optional)" has been
+   * told nothing about what the store actually needs. A signed-in shopper
+   * keeps their account's contact block instead.
+   */
+  const combinedContactField =
+    checkoutSettings.contact.mode === "email_or_phone";
+  /**
+   * A phone input of its own, shown to everyone — signed in or not. The
+   * account's number may only be pre-filled into the contact phone where this
+   * is true, so the shopper can see it and correct it (see the account effect).
+   */
+  const contactPhoneFieldShown = collects.phone && !combinedContactField;
   const { guestCheckout, signupAtCheckout } = checkoutSettings.accounts;
   // With guest checkout off, a guest's only way through is the account this
   // checkout creates for them.
@@ -260,13 +341,22 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     digitalOnly: isDigitalOnly,
   });
 
-  const tr = (key: string, fallback: string) => (t.has(key) ? t(key) : fallback);
+  // The shared one, not a second copy of it. This file grew its own two-line
+  // version while `useFallbackTranslator` already existed a folder away, and
+  // the two had already drifted: the hook interpolates `{placeholders}` into
+  // the fallback and is memoised, so it is safe in a dependency array.
+  const tr = useFallbackTranslator(t);
   const issueMessage = (code: CheckoutIssueCode) => {
     switch (code) {
       case "invalid_email":
         return t("validation.email");
       case "invalid_phone":
         return tr("validation.phone", "Enter a valid phone number");
+      case "unresolvable_phone":
+        return tr(
+          "validation.phoneUnresolvable",
+          "Enter a full mobile number with its country code, or an email address",
+        );
       case "invalid_number":
         return tr("validation.number", "Enter a number");
       case "invalid_date":
@@ -279,6 +369,10 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         return t("validation.required");
     }
   };
+
+  // A number is checked only where it can be the shopper's contact.
+  const phoneContact = checkoutSettings.contact.mode === "email_or_phone";
+  useIdlePreload(phoneContact ? loadPhoneNumbers : null);
 
   const checkoutSchema = z
     .object({
@@ -328,7 +422,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
       billingCountry: z.string(),
       billingPhone: z.string(),
     })
-    .superRefine((data, ctx) => {
+    .superRefine(async (data, ctx) => {
       const issue = (path: string, message: string) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -352,6 +446,11 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         requireFields(["billingAddress", "billingCity", "billingCountry"]);
       }
 
+      const phoneNumbers =
+        phoneContact && data.contactPhone.trim()
+          ? await loadPhoneNumbers().catch(() => null)
+          : null;
+
       // Everything the admin configured — the same evaluation the payment
       // routes run, so the form cannot accept what the server refuses.
       const { issues } = evaluateCheckoutSubmission({
@@ -362,6 +461,18 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         digitalOnly: isDigitalOnly,
         email: data.email,
         phone: data.contactPhone,
+        // The same resolution the payment route will run. A number it cannot
+        // make sense of is caught here, in the field, rather than by an order
+        // that quietly drops the text-message consent ticked beside it. Should
+        // the library not load, the looser rule applies and the payment
+        // route still holds the number to the strict one.
+        resolvePhone: phoneNumbers
+          ? (value) =>
+              phoneNumbers.normalizePhoneNumber(value, {
+                country: data.country,
+                defaultCountry,
+              }) ?? null
+          : undefined,
         accountEmail: user?.email,
         accountPhone: user?.phone,
         paymentMethod: data.paymentMethod,
@@ -433,15 +544,65 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * The human check, shown only after the server has asked for it — which it
+   * does once this shopper's cards have been refused several times. Until then
+   * nothing about it is rendered and its script is never fetched.
+   */
+  const [turnstileRequired, setTurnstileRequired] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  // Opt-in by default; only the admin's "pre-ticked" setting starts it on.
-  const [emailMarketingOptIn, setEmailMarketingOptIn] = useState(
-    checkoutSettings.contact.marketingOptIn.enabled &&
-      checkoutSettings.contact.marketingOptIn.defaultChecked,
-  );
+  /**
+   * The shopper's own answer to the news-and-offers box, once they have given
+   * one. Until then the box follows the delivery country — pre-ticking counts
+   * as consent in some markets and not at all in others, and which applies is
+   * unknown until an address is typed. Kept as "their answer" plus "have they
+   * answered" rather than one value an effect keeps rewriting, so a shopper
+   * who unticks the box never sees it tick itself again.
+   */
+  const [marketingOptInChoice, setMarketingOptInChoice] = useState(false);
+  const [marketingOptInTouched, setMarketingOptInTouched] = useState(false);
+  // Its own consent, on its own record, and never pre-ticked anywhere.
+  const [smsMarketingOptIn, setSmsMarketingOptIn] = useState(false);
+  /**
+   * The one "email or mobile phone number" field, in the mode that offers it.
+   * What the shopper types is split into the form's own `email` and
+   * `contactPhone` from here, so everything downstream — validation, the
+   * payment routes, the order — sees exactly what it always has.
+   */
+  const [contactValue, setContactValue] = useState("");
+  /**
+   * Which marketing box to show, decided by what the shopper has given us to
+   * reach them on. Two consents, never one standing for both: agreeing to
+   * email is not agreeing to be texted.
+   *
+   * A phone with the SMS box switched off shows nothing — a store that does
+   * not text has nothing to ask permission for.
+   */
+  const contactChannel: "email" | "phone" | null = combinedContactField
+    ? contactChannelOf(contactValue)
+    : collects.email
+      ? "email"
+      : "phone";
+  /**
+   * What the shopper is actually being asked, and therefore the only consent
+   * the form may send. Both answers are kept in state while they edit — a
+   * shopper who ticks the SMS box and then types an email instead must not
+   * have that tick recorded against the delivery phone they never offered it
+   * for, and the reverse must not subscribe an address they replaced.
+   */
+  const marketingChannel: "email" | "sms" | null =
+    contactChannel === "phone"
+      ? checkoutSettings.contact.smsOptIn.enabled
+        ? "sms"
+        : null
+      : checkoutSettings.contact.marketingOptIn.enabled
+        ? "email"
+        : null;
+
   const [preorderAccepted, setPreorderAccepted] = useState(false);
   // Separate from the shipping acknowledgement above on purpose: one says
   // "I know this ships later", the other hands the store a card to keep.
@@ -472,6 +633,8 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     codInstructions?: string;
     codMinOrderAmount?: number;
     codMaxOrderAmount?: number;
+    /** Cloudflare Turnstile's public key; absent when the store has none. */
+    turnstileSiteKey?: string;
   }>({
     stripeEnabled: false,
     paypalEnabled: false,
@@ -602,7 +765,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         }
         await refreshCart();
         toast.success("Checkout restored");
-        router.replace(`/${locale}/checkout`);
+        router.replace("/checkout");
       } catch (error) {
         toast.error(
           error instanceof Error
@@ -734,7 +897,13 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     if (!currentEmail && user?.email) {
       form.setValue("email", user.email, { shouldValidate: true });
     }
-    if (!form.getValues("contactPhone") && user?.phone) {
+    // Only into a field the shopper can see. Elsewhere the account backs the
+    // order on its own — the policy's `accountPhone`, the delivery address's
+    // phone — while a copy in a field nobody sees is still held to the rules
+    // for a typed number: a saved "+1 555-0100", or a local number on a
+    // foreign address, failed them with no field to show the error under, and
+    // "Complete order" silently did nothing.
+    if (contactPhoneFieldShown && !form.getValues("contactPhone") && user?.phone) {
       form.setValue("contactPhone", user.phone);
     }
 
@@ -756,6 +925,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         if (!active || !json?.success) return;
         const addresses = filterUsableSavedCheckoutAddresses(
           (json.data?.addresses || []) as SavedCheckoutAddress[],
+          countryAvailability,
         );
         setSavedAddresses(addresses);
 
@@ -805,7 +975,14 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     return () => {
       active = false;
     };
-  }, [countryAvailability, defaultCountry, isAuthenticated, user, form]);
+  }, [
+    contactPhoneFieldShown,
+    countryAvailability,
+    defaultCountry,
+    isAuthenticated,
+    user,
+    form,
+  ]);
 
   // Pre-fill the city from the place the shopper set in the header — the
   // "Deliver to" of this store — once, for a form the shopper is typing into
@@ -939,7 +1116,56 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
   const watchedCity = useWatch({ control: form.control, name: "city" });
   const watchedPostalCode = useWatch({ control: form.control, name: "postalCode" });
   const watchedCountry = useWatch({ control: form.control, name: "country" });
+
+  const emailMarketingOptIn = marketingOptInTouched
+    ? marketingOptInChoice
+    : marketingBoxDefaultChecked(
+        checkoutSettings.contact.marketingOptIn,
+        watchedCountry,
+      );
   const watchedState = useWatch({ control: form.control, name: "state" });
+
+  // "Did you mean…", asked while the shopper is still filling in the page
+  // rather than when they press the button: asking a courier takes up to a
+  // second, and the answer is waiting by then. Once per address, a moment
+  // after they stop typing; the button reuses it while the address is the
+  // same.
+  const addressReviewRef = useRef<{
+    key: string;
+    review: Promise<CheckoutAddressReview | null>;
+  } | null>(null);
+  useEffect(() => {
+    if (!addressCheck || fulfillmentMethod !== "delivery" || isDigitalOnly) {
+      return;
+    }
+    const entered: CheckoutAddress = {
+      address: watchedAddress,
+      apartment: watchedApartment,
+      city: watchedCity,
+      state: watchedState,
+      postalCode: watchedPostalCode,
+      country: watchedCountry,
+    };
+    if (!entered.address?.trim() || !entered.city?.trim() || !entered.country) {
+      return;
+    }
+    const key = checkoutAddressKey(entered);
+    if (addressReviewRef.current?.key === key) return;
+    const timer = window.setTimeout(() => {
+      addressReviewRef.current = { key, review: reviewCheckoutAddress(entered) };
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [
+    addressCheck,
+    fulfillmentMethod,
+    isDigitalOnly,
+    watchedAddress,
+    watchedApartment,
+    watchedCity,
+    watchedState,
+    watchedPostalCode,
+    watchedCountry,
+  ]);
   const watchedPhone = useWatch({ control: form.control, name: "phone" });
 
   // Placeholder shown until the server quote lands (the server's answer wins
@@ -1017,6 +1243,27 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
       }),
     );
   }, [perVendorMode, vendorRateGroups, vendorShippingSelections]);
+
+  /**
+   * The cart lines behind each shipment, keyed the way the rate engine keys its
+   * groups — a store-owned line carries no vendor and is rated under "".
+   * Shown in the shipment row so "Express for Tech Corner" is a decision about
+   * recognisable things rather than about a seller's name alone.
+   */
+  const shipmentItemsByVendor = useMemo(() => {
+    const map: Record<string, ShipmentItemSummary[]> = {};
+    for (const item of items) {
+      const vendorId = item.vendorId ? String(item.vendorId) : "";
+      const list = map[vendorId] || (map[vendorId] = []);
+      list.push({
+        name: item.name,
+        image: item.image,
+        quantity: item.quantity,
+        isPreorder: item.purchaseType === "preorder",
+      });
+    }
+    return map;
+  }, [items]);
 
   const selectedSingleOption =
     shippingOptions.find((option) => option.id === selectedShippingOptionId) ||
@@ -1192,9 +1439,18 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
             vendorGroups?: CheckoutVendorRateGroup[];
           };
           setServerShippingResolution(resolution);
-          setVendorRateGroups(
-            resolution.mode === "vendor" ? resolution.vendorGroups || [] : [],
-          );
+          const groups =
+            resolution.mode === "vendor" ? resolution.vendorGroups || [] : [];
+          setVendorRateGroups(groups);
+          // A rate id belongs to the zone it was priced in, so a quote for
+          // another region replaces every one of them. Selections held over
+          // from the old quote then matched nothing: the cost fell back to the
+          // server's default while no option read as chosen, and the presets
+          // would call that untouched selection "Custom".
+          setVendorShippingSelections((previous) => {
+            const next = reconcileVendorSelections(groups, previous);
+            return sameSelections(previous, next) ? previous : next;
+          });
           setIsShippingRateLoading(false);
         } else {
           setVendorRateGroups([]);
@@ -1318,7 +1574,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
       toast.success(t("cart.itemRemoved"));
     } catch (error) {
       console.error("Failed to remove checkout line:", error);
-      toast.error(t("common.error"));
+      toast.error(refusalMessage(error) ?? t("common.error"));
     } finally {
       setRemovingLineKey(null);
     }
@@ -1335,6 +1591,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           categoryId: checkoutItem.categoryId
             ? String(checkoutItem.categoryId)
             : undefined,
+          quoted: Boolean(checkoutItem.quoteId),
         };
       }),
     [items],
@@ -1362,10 +1619,14 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           purchaseType: item.purchaseType,
           preorderOutstandingAmount: item.preorderOutstandingAmount,
           vendorId: item.vendorId ?? null,
+          productId: getCheckoutProductId(
+            (item as CheckoutCartItem).productId,
+          ),
         })),
         {
           goodsDiscount: totals.subtotalDiscount,
           vendorShares: appliedCoupon?.vendorShares,
+          eligibleProductIds: appliedCoupon?.eligibleProductIds,
         },
         currency.code,
       )
@@ -1375,6 +1636,18 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     0,
   );
   const preorderDueNow = Math.max(0, total - preorderOutstandingAmount);
+
+  // What the shopper's store credit pays here (R8) — see the state above.
+  // Never on a pre-order, whose balance is charged later on its own terms.
+  // Plain arithmetic: shown here and nothing more — the server works out the
+  // credit itself, to the currency's own precision.
+  const storeCreditApplied =
+    useStoreCredit && !hasPreorderItems
+      ? Math.min(storeCreditAvailable, Math.max(0, total))
+      : 0;
+  const amountToPay = Math.max(0, total - storeCreditApplied);
+  const storeCreditCoversAll = storeCreditApplied > 0 && amountToPay < 0.005;
+
   const appliedCouponForDisplay = appliedCoupon
     ? {
         ...appliedCoupon,
@@ -1468,6 +1741,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           discountTarget: data.data.discountTarget,
           maxDiscount: data.data.maxDiscount,
           vendorShares: data.data.vendorShares,
+          eligibleProductIds: data.data.eligibleProductIds,
           shippingVendorId: data.data.shippingVendorId,
         });
       } catch (error) {
@@ -1496,74 +1770,95 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
   ]);
 
   const trackAbandonedCheckout = checkoutSettings.abandonedCheckouts.enabled;
+  // The marketing tick-box is React state, not a form field, so a change to it
+  // reaches the snapshot below only because this remembers the value the last
+  // run sent. Without it a shopper who filled the form and ticked the box last
+  // — the usual order — left a snapshot saying they had not, and a store
+  // emailing only those who agreed never wrote to them.
+  const sentMarketingOptIn = useRef<boolean | null>(null);
   useEffect(() => {
     // Switched off in the checkout settings: nothing about this checkout is
     // recorded for recovery.
     if (!items.length || !trackAbandonedCheckout) return;
 
     let timer: ReturnType<typeof setTimeout> | null = null;
+    const sendSnapshot = (value: Partial<CheckoutFormData>) => {
+      const email = typeof value.email === "string" ? value.email.trim() : "";
+      const phone =
+        (typeof value.contactPhone === "string" && value.contactPhone.trim()) ||
+        (typeof value.phone === "string" ? value.phone.trim() : "");
+      if (!email && !phone) return;
+
+      const shippingAddress = buildCheckoutAddressPayload({
+        firstName: value.firstName,
+        lastName: value.lastName,
+        address: value.address,
+        apartment: value.apartment,
+        city: value.city,
+        state: value.state,
+        postalCode: value.postalCode,
+        country: value.country,
+        phone,
+      });
+      const billingAddress =
+        value.billingSameAsShipping === "different"
+          ? buildCheckoutAddressPayload(
+              {
+                firstName: value.billingFirstName,
+                lastName: value.billingLastName,
+                address: value.billingAddress,
+                apartment: value.billingApartment,
+                city: value.billingCity,
+                state: value.billingState,
+                postalCode: value.billingPostalCode,
+                country: value.billingCountry,
+                phone: value.billingPhone,
+              },
+              phone,
+            )
+          : shippingAddress;
+
+      void fetch("/api/checkout/abandoned", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locale,
+          email,
+          phone,
+          customerName: shippingAddress.fullName,
+          buyerAcceptsMarketing:
+            marketingChannel === "email" ? emailMarketingOptIn : false,
+          shippingAddress,
+          billingAddress,
+          subtotalPrice: subtotal,
+          shippingPrice: discountedShippingCost,
+          totalTax: tax,
+          totalDiscounts: totals.discount,
+          totalPrice: total,
+          presentmentCurrency: currency.code,
+        }),
+      }).catch(() => undefined);
+    };
+
     const unsubscribe = form.subscribe({
       formState: { values: true },
       callback: ({ values: value }) => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        const email = typeof value.email === "string" ? value.email.trim() : "";
-        const phone =
-          (typeof value.contactPhone === "string" && value.contactPhone.trim()) ||
-          (typeof value.phone === "string" ? value.phone.trim() : "");
-        if (!email && !phone) return;
-
-        const shippingAddress = buildCheckoutAddressPayload({
-          firstName: value.firstName,
-          lastName: value.lastName,
-          address: value.address,
-          apartment: value.apartment,
-          city: value.city,
-          state: value.state,
-          postalCode: value.postalCode,
-          country: value.country,
-          phone,
-        });
-        const billingAddress =
-          value.billingSameAsShipping === "different"
-            ? buildCheckoutAddressPayload(
-                {
-                  firstName: value.billingFirstName,
-                  lastName: value.billingLastName,
-                  address: value.billingAddress,
-                  apartment: value.billingApartment,
-                  city: value.billingCity,
-                  state: value.billingState,
-                  postalCode: value.billingPostalCode,
-                  country: value.billingCountry,
-                  phone: value.billingPhone,
-                },
-                phone,
-              )
-            : shippingAddress;
-
-        void fetch("/api/checkout/abandoned", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            locale,
-            email,
-            phone,
-            customerName: shippingAddress.fullName,
-            buyerAcceptsMarketing: emailMarketingOptIn,
-            shippingAddress,
-            billingAddress,
-            subtotalPrice: subtotal,
-            shippingPrice: discountedShippingCost,
-            totalTax: tax,
-            totalDiscounts: totals.discount,
-            totalPrice: total,
-            presentmentCurrency: currency.code,
-          }),
-        }).catch(() => undefined);
-      }, 900);
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => sendSnapshot(value), 900);
       },
     });
+
+    // This effect re-runs whenever the consent value changes (it is a
+    // dependency), but ticking the box fires no form event — so send once
+    // here, and only for that reason: a cart total changing re-runs it too.
+    // Compared on the answer the snapshot would carry, not on the box's own
+    // state, so switching channel does not count as a change of mind.
+    const answer = marketingChannel === "email" ? emailMarketingOptIn : false;
+    const previous = sentMarketingOptIn.current;
+    sentMarketingOptIn.current = answer;
+    if (previous !== null && previous !== answer) {
+      sendSnapshot(form.getValues());
+    }
 
     return () => {
       if (timer) clearTimeout(timer);
@@ -1573,6 +1868,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     currency.code,
     discountedShippingCost,
     emailMarketingOptIn,
+    marketingChannel,
     form,
     items.length,
     locale,
@@ -1930,20 +2226,86 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     return methods;
   }, [paymentConfig, fulfillmentMethod, hasDigitalItems, hasPreorderItems, t]);
 
+  // A pre-order that leaves a balance can only be placed on a method that can
+  // come back for it (`lib/payments/balance-methods.ts`). The rest stay on the
+  // list, greyed out with the reason — the server refuses them anyway, and it
+  // used to do so only after the shopper had filled in the whole form.
+  const owesBalanceLater = hasPreorderItems && preorderOutstandingAmount > 0;
+  // What the store will let a courier carry cash for. The public settings have
+  // always sent these two, and checkout has always ignored them — so a cart
+  // outside them offered cash on delivery, took the whole form, and was
+  // refused at submit by a server message quoting a bare number with no
+  // currency on it. Measured against the same total the server checks
+  // (`assertCashOnDeliveryAllowed`), duty included.
+  const codMinOrderAmount = paymentConfig.codMinOrderAmount;
+  const codMaxOrderAmount = paymentConfig.codMaxOrderAmount;
+  const codBreach = codLimitBreach({
+    total,
+    minOrderAmount: codMinOrderAmount,
+    maxOrderAmount: codMaxOrderAmount,
+  });
+  const codOutsideLimits = codBreach !== null;
+  // Worded here so the greyed-out row, the empty state and the submit guard
+  // all say the same sentence, with the amount formatted in the store's
+  // currency rather than printed raw.
+  const codLimitReason =
+    codBreach === "below_minimum"
+      ? t.has("checkout.payment.codBelowMinimum")
+        ? t("checkout.payment.codBelowMinimum", {
+            amount: formatPrice(codMinOrderAmount as number),
+          })
+        : `Orders under ${formatPrice(
+            codMinOrderAmount as number,
+          )} can't be paid on delivery`
+      : codBreach === "above_maximum"
+        ? t.has("checkout.payment.codAboveMaximum")
+          ? t("checkout.payment.codAboveMaximum", {
+              amount: formatPrice(codMaxOrderAmount as number),
+            })
+          : `Orders over ${formatPrice(
+              codMaxOrderAmount as number,
+            )} can't be paid on delivery`
+        : "";
+  const isMethodBlocked = useCallback(
+    (value: string) =>
+      (owesBalanceLater && !canCollectDeferredBalance(value)) ||
+      (value === "cod" && codOutsideLimits),
+    [owesBalanceLater, codOutsideLimits],
+  );
+  const selectablePaymentMethods = useMemo(
+    () => paymentMethods.filter((method) => !isMethodBlocked(method.value)),
+    [paymentMethods, isMethodBlocked],
+  );
+
   // Keep the selection inside what is actually on offer. The form opens on COD
   // and a live settings refresh can narrow the list, so the selected method can
   // end up being one the shopper can no longer see — including COD on a cart
-  // that turned out to carry a digital item.
+  // that turned out to carry a digital item, or a gateway that cannot take a
+  // pre-order's balance.
   useEffect(() => {
-    if (paymentMethods.length === 0) return;
+    if (selectablePaymentMethods.length === 0) return;
     const current = form.getValues("paymentMethod");
-    if (paymentMethods.some((method) => method.value === current)) return;
-    form.setValue("paymentMethod", paymentMethods[0].value);
-  }, [paymentMethods, form]);
+    if (selectablePaymentMethods.some((method) => method.value === current)) return;
+    form.setValue("paymentMethod", selectablePaymentMethods[0].value);
+  }, [selectablePaymentMethods, form]);
 
   // A store whose only method is COD has nothing left to charge a downloads-only
   // cart with, so say that instead of rendering an empty radio group.
-  const noPaymentMethodAvailable = settingsLoaded && paymentMethods.length === 0;
+  const noPaymentMethodAvailable =
+    settingsLoaded && selectablePaymentMethods.length === 0;
+  // Methods exist, just none that can take this pre-order's balance. Held to
+  // the pre-order case: a store whose only method is cash on delivery and
+  // whose limits rule this cart out would otherwise be told to pay by card,
+  // which is not on offer either.
+  const noBalanceMethodAvailable =
+    noPaymentMethodAvailable && paymentMethods.length > 0 && owesBalanceLater;
+  // The same empty radio group, but because cash on delivery was the only
+  // method and this order sits outside its limits.
+  const noCodLimitMethodAvailable =
+    noPaymentMethodAvailable &&
+    paymentMethods.length > 0 &&
+    !owesBalanceLater &&
+    codOutsideLimits;
 
   const redirectPaymentProvider = (
     ["paypal", "razorpay", "paystack", "pesapal", "orange_money"] as const
@@ -1970,7 +2332,20 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     "--checkout-summary-offset": `${checkoutStickyOffset}px`,
   } as CSSProperties;
 
-  const onSubmit = async (data: CheckoutFormData) => {
+  // "Did you mean…": the review on screen, and the address the shopper chose
+  // to keep as typed — that one is not checked again on the next submit.
+  const [addressReview, setAddressReview] = useState<{
+    review: CheckoutAddressReview;
+    entered: CheckoutAddress;
+  } | null>(null);
+  const keptAddressKeyRef = useRef<string | null>(null);
+
+  const onSubmit = async (submitted: CheckoutFormData) => {
+    // Store credit covering all of it is the way this order is paid (R8): no
+    // gateway, and none of the chosen method's own checks.
+    const data: Omit<CheckoutFormData, "paymentMethod"> & {
+      paymentMethod: CheckoutFormData["paymentMethod"] | "store_credit";
+    } = storeCreditCoversAll ? { ...submitted, paymentMethod: "store_credit" } : submitted;
     setIsSubmitting(true);
     setError(null);
     // Once the order is in, the button keeps spinning until the success page
@@ -1980,6 +2355,10 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
     let handedOff = false;
     const goToSuccess = (href: string) => {
       handedOff = true;
+      // The account pages keep what they read (useSuspenseResource). A new
+      // order changes the order list, and can spend store credit or save an
+      // address, so they read afresh after this navigation.
+      invalidateResources();
       router.push(href);
     };
     // A payment route refused because a price moved since this summary was
@@ -2092,6 +2471,12 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           "Cash on Delivery is not available for pre-order items",
         );
       }
+      // The row is greyed out and the selection moves off it on its own, so
+      // this only catches a total that moved between render and submit — and
+      // it says the same sentence the row does, not the server's bare number.
+      if (data.paymentMethod === "cod" && codOutsideLimits) {
+        throw new Error(codLimitReason);
+      }
       if (hasPreorderItems && !preorderAccepted) {
         throw new Error("Please confirm the pre-order shipping terms");
       }
@@ -2101,7 +2486,34 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         );
       }
 
-      // "Create an account": signed up before payment, so the order belongs
+      // Last, so every other refusal comes first: asking a courier about an
+      // address is the slowest check here. It fails open, and it is not asked
+      // at all where the store does not check addresses.
+      if (addressCheck && fulfillmentMethod === "delivery" && !isDigitalOnly) {
+        const entered: CheckoutAddress = {
+          address: data.address,
+          apartment: data.apartment,
+          city: data.city,
+          state: data.state,
+          postalCode: data.postalCode,
+          country: data.country,
+        };
+        const key = checkoutAddressKey(entered);
+        if (keptAddressKeyRef.current !== key) {
+          // Asked already while the shopper typed, when the address has not
+          // changed since.
+          const asked = addressReviewRef.current;
+          const review = await (asked?.key === key
+            ? asked.review
+            : reviewCheckoutAddress(entered));
+          if (review) {
+            setAddressReview({ review, entered });
+            return;
+          }
+        }
+      }
+
+            // "Create an account": signed up before payment, so the order belongs
       // to the account from the start. The session the sign-up opens is picked
       // up by the requests below; the cart refresh (silent — a loading flip
       // would unmount the card fields) folds the guest cart into the account's.
@@ -2230,6 +2642,16 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         ...contactPayload,
         couponCode: appliedCoupon?.code,
         locale,
+        // The shopper's answer to the marketing tick-box. Sent with the order
+        // rather than only with the abandoned-checkout snapshot, which is
+        // where it used to stop — a completed order lost the consent, and a
+        // store with abandoned tracking off never recorded it at all.
+        buyerAcceptsMarketing:
+          marketingChannel === "email" ? emailMarketingOptIn : false,
+        // Its own consent, on its own record: a shopper reachable by text
+        // agreed to texts, not to email.
+        smsAcceptsMarketing:
+          marketingChannel === "sms" ? smsMarketingOptIn : false,
         fulfillmentMethod,
         pickupLocationId: selectedPickupLocationId ?? undefined,
         selectedShippingOptionId,
@@ -2240,6 +2662,45 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         preorderMandateAccepted: needsPreorderMandate
           ? preorderMandateAccepted
           : undefined,
+        // Whether the shopper's store credit pays what it can (R8).
+        useStoreCredit: !hasPreorderItems && storeCreditAvailable > 0 ? useStoreCredit : false,
+      };
+
+      // Saved only once the order is accepted, and deliberately not awaited:
+      // this is a convenience write to the account, and a failing address API
+      // must never strand a shopper whose payment is already in flight.
+      //
+      // A function rather than a straight line of the happy path because the
+      // card branches below return before that line is ever reached — a
+      // shopper paying by card, the commonest way through this form, ticked
+      // "save this address" and got nothing. Every branch that ends with an
+      // accepted order calls this.
+      const saveDeliveryAddressToAccount = () => {
+        if (!saveDeliveryAddress || !showSaveAddressOption || !shippingAddress) {
+          return;
+        }
+        void fetch("/api/user/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: {
+              firstName: shippingAddress.firstName,
+              lastName: shippingAddress.lastName,
+              street: shippingAddress.street,
+              apartment: shippingAddress.apartment,
+              city: shippingAddress.city,
+              state: shippingAddress.state,
+              postalCode: shippingAddress.postalCode,
+              country: shippingAddress.country,
+              phone: shippingAddress.phone,
+              label: "home",
+            },
+          }),
+        }).catch((saveError) => {
+          // Surfaced in the log only. The order succeeded, and an error toast
+          // about a side effect would read as the order having failed.
+          console.error("Failed to save delivery address:", saveError);
+        });
       };
 
       if (
@@ -2257,12 +2718,17 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            ...(turnstileToken ? { turnstileToken } : {}),
             shippingAddress: isDigitalOnly ? undefined : shippingAddress,
             billingAddress,
             locale,
             email: data.email.trim() || undefined,
             ...contactPayload,
             couponCode: appliedCoupon?.code,
+            buyerAcceptsMarketing:
+              marketingChannel === "email" ? emailMarketingOptIn : false,
+            smsAcceptsMarketing:
+              marketingChannel === "sms" ? smsMarketingOptIn : false,
             fulfillmentMethod,
           pickupLocationId: selectedPickupLocationId ?? undefined,
             selectedShippingOptionId,
@@ -2275,12 +2741,19 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
             preorderMandateAccepted: needsPreorderMandate
               ? preorderMandateAccepted
               : undefined,
+            useStoreCredit:
+              !hasPreorderItems && storeCreditAvailable > 0 ? useStoreCredit : false,
           }),
         });
         const intentJson = await intentRes.json().catch(() => null);
         if (!intentRes.ok || !intentJson?.success) {
           if (isCartPricesChangedResponse(intentJson)) {
             throw await pricesChangedError();
+          }
+          // Repeated refusals on the card path — the one card testing uses.
+          if (intentJson?.errors?.turnstile) {
+            setTurnstileRequired(true);
+            setTurnstileToken("");
           }
           throw new Error(
             intentJson?.message || "Failed to initialize card payment",
@@ -2354,6 +2827,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
               placeJson?.message || "Failed to place the pre-order",
             );
           }
+          saveDeliveryAddressToAccount();
           toast.success(t("checkout.orderPlaced"));
           goToSuccess(
             placeJson.data?.redirectUrl ||
@@ -2367,7 +2841,20 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         });
 
         if (confirm.error) {
-          throw new Error(confirm.error.message || "Payment failed");
+          // Stripe's own sentence is written for developers and only ever in
+          // English. The shopper gets the store's wording for what actually
+          // happened, in their language — see `lib/payments/failure-codes.ts`.
+          const failure = normalizeFailureCode(
+            confirm.error.decline_code || confirm.error.code,
+            confirm.error.message,
+          );
+          setTurnstileRequired((required) => required || isCardTestingFailure(failure));
+          throw new Error(
+            tr(
+              `checkout.payment.failure.${failure}`,
+              FAILURE_MESSAGE_FALLBACK[failure],
+            ),
+          );
         }
 
         const status = confirm.paymentIntent?.status;
@@ -2375,6 +2862,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           throw new Error("Payment was not completed");
         }
 
+        saveDeliveryAddressToAccount();
         goToSuccess(
           `/${locale}/checkout/success?payment_intent=${encodeURIComponent(
             confirm.paymentIntent?.id || paymentIntentId,
@@ -2388,6 +2876,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...checkoutPayload,
+          ...(turnstileToken ? { turnstileToken } : {}),
           ...(data.paymentMethod === "iotec"
             ? {
                 iotecChannel: data.iotecChannel || "mobile_money",
@@ -2406,40 +2895,21 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
         if (isCartPricesChangedResponse(result)) {
           throw await pricesChangedError();
         }
+        // The server asks for a human check once this shopper's payments have
+        // been refused too often. Show it, and let them try again — the token
+        // is good once, so a failed attempt needs a fresh one.
+        if (result?.errors?.turnstile) {
+          setTurnstileRequired(true);
+          setTurnstileToken("");
+        }
         throw new Error(result.message || "Failed to process checkout");
       }
 
-      // Saved only once the order is accepted, and deliberately not awaited:
-      // this is a convenience write to the account, and a failing address API
-      // must never strand a shopper whose payment is already in flight. Placed
-      // here rather than in each payment branch because every provider —
-      // including the ones that redirect away next — passes through this point.
-      if (saveDeliveryAddress && showSaveAddressOption && shippingAddress) {
-        void fetch("/api/user/addresses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address: {
-              firstName: shippingAddress.firstName,
-              lastName: shippingAddress.lastName,
-              street: shippingAddress.street,
-              apartment: shippingAddress.apartment,
-              city: shippingAddress.city,
-              state: shippingAddress.state,
-              postalCode: shippingAddress.postalCode,
-              country: shippingAddress.country,
-              phone: shippingAddress.phone,
-              label: "home",
-            },
-          }),
-        }).catch((saveError) => {
-          // Surfaced in the log only. The order succeeded, and an error toast
-          // about a side effect would read as the order having failed.
-          console.error("Failed to save delivery address:", saveError);
-        });
-      }
+      // Every non-card provider — the ones that redirect away next included —
+      // passes through this point with the order accepted.
+      saveDeliveryAddressToAccount();
 
-      if (data.paymentMethod === "cod") {
+      if (data.paymentMethod === "cod" || data.paymentMethod === "store_credit") {
         toast.success(
           t("checkout.orderPlaced"),
         );
@@ -2564,7 +3034,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
             </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/${locale}/register`}>
+            <Link href="/register">
               {tr("common.register", "Create account")}
             </Link>
           </Button>
@@ -2583,7 +3053,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
           {t("checkout.emptyCartMessage")}
         </p>
         <Button asChild>
-          <Link href={`/${locale}/products`}>
+          <Link href="/products">
             {t("common.shopNow")}
           </Link>
         </Button>
@@ -2642,6 +3112,69 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
       )}
     />
   );
+  /**
+   * "Email or mobile phone number" — one field, two channels.
+   *
+   * An "@" means the shopper typed an address; anything else is read as a
+   * number. The value is written into the form's own `email` or
+   * `contactPhone` from here, so the validation, the payment routes and the
+   * order see the same two fields they always have — only the shopper sees
+   * one. Errors from either side surface under this field, since it is the
+   * only one on the page to put them under.
+   */
+  const renderCombinedContactField = () => {
+    const errors = form.formState.errors;
+    const message =
+      (errors.email?.message as string | undefined) ||
+      (errors.contactPhone?.message as string | undefined);
+    return (
+      <div className="space-y-0">
+        <div className="relative">
+          <Input
+            id="checkout-contact"
+            type="text"
+            inputMode="email"
+            autoComplete="email"
+            placeholder=" "
+            value={contactValue}
+            aria-invalid={message ? true : undefined}
+            aria-describedby={message ? "checkout-contact-error" : undefined}
+            className={floatingInputClass}
+            onChange={(event) => {
+              const next = event.target.value;
+              setContactValue(next);
+              const isEmail = contactChannelOf(next) === "email";
+              form.setValue("email", isEmail ? next.trim() : "", {
+                shouldDirty: true,
+              });
+              form.setValue("contactPhone", isEmail ? "" : next.trim(), {
+                shouldDirty: true,
+              });
+            }}
+            onBlur={() => {
+              void form.trigger(["email", "contactPhone"]);
+            }}
+          />
+          <label htmlFor="checkout-contact" className={floatingLabelClass}>
+            {checkoutSettings.contact.emailLabel ||
+              tr(
+                "checkout.emailOrPhone",
+                "Email or mobile phone number",
+              )}
+          </label>
+        </div>
+        {message ? (
+          <p
+            id="checkout-contact-error"
+            className="text-sm font-medium text-destructive"
+          >
+            {message}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
+
   const optionalSuffix = ` ${tr("checkout.optionalSuffix", "(optional)")}`;
   const addressFieldShown = (key: ConfigurableAddressField) =>
     checkoutSettings.fields[key].visibility !== "hidden";
@@ -2868,6 +3401,37 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
             void form.handleSubmit(onSubmit, onInvalid)(event)
           }
         >
+          <AddressReviewDialog
+            review={addressReview?.review ?? null}
+            entered={addressReview?.entered ?? null}
+            onEdit={() => setAddressReview(null)}
+            onKeep={() => {
+              if (addressReview) {
+                keptAddressKeyRef.current = checkoutAddressKey(addressReview.entered);
+              }
+              setAddressReview(null);
+              void form.handleSubmit(onSubmit, onInvalid)();
+            }}
+            onUseSuggestion={() => {
+              const suggestion = addressReview?.review.suggestion;
+              setAddressReview(null);
+              if (!suggestion) return;
+              form.setValue("address", suggestion.street, { shouldDirty: true });
+              if (suggestion.apartment) {
+                form.setValue("apartment", suggestion.apartment, { shouldDirty: true });
+              }
+              form.setValue("city", suggestion.city, { shouldDirty: true });
+              form.setValue("postalCode", suggestion.postalCode, { shouldDirty: true });
+              // The carrier's own spelling of the address: no need to ask again.
+              keptAddressKeyRef.current = checkoutAddressKey({
+                ...addressReview!.entered,
+                address: suggestion.street,
+                apartment: suggestion.apartment || addressReview!.entered.apartment,
+                city: suggestion.city,
+                postalCode: suggestion.postalCode,
+              });
+            }}
+          />
           <div className="mx-auto  lg:grid lg:grid-cols-2">
             {/* Left column - Form */}
             <div className="px-4 py-8 lg:px-10 lg:py-12 lg:pr-16">
@@ -2945,48 +3509,77 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                             {t("common.logout")}
                           </Button>
                         </div>
+                      ) : combinedContactField ? (
+                        renderCombinedContactField()
                       ) : collects.email ? (
                         renderFloatingField(
                           "email",
-                          (checkoutSettings.contact.emailLabel ||
-                            tr("checkout.email", "Email")) +
-                            (checkoutSettings.contact.mode === "email_or_phone" &&
-                            !(watchedCreateAccount || accountRequired)
-                              ? optionalSuffix
-                              : ""),
+                          checkoutSettings.contact.emailLabel ||
+                            tr("checkout.email", "Email"),
                           "email",
                           "email",
                         )
                       ) : null}
-                      {collects.phone
+                      {contactPhoneFieldShown
                         ? renderFloatingField(
                             "contactPhone",
-                            (checkoutSettings.contact.phoneLabel ||
-                              t("checkout.phone")) +
-                              (checkoutSettings.contact.mode === "email_or_phone"
-                                ? optionalSuffix
-                                : ""),
+                            checkoutSettings.contact.phoneLabel ||
+                              t("checkout.phone"),
                             "tel",
                             "tel",
                           )
                         : null}
-                      {checkoutSettings.contact.mode === "email_or_phone" &&
-                      !isAuthenticated ? (
+                      {combinedContactField ? (
                         <p className="text-xs text-muted-foreground">
-                          {tr(
-                            "checkout.emailOrPhoneHint",
-                            "Enter an email or a phone number — we'll send order updates there.",
-                          )}
+                          {watchedCreateAccount || accountRequired
+                            ? tr(
+                                "checkout.emailOrPhoneAccountHint",
+                                "An account is created with an email address, so enter one here.",
+                              )
+                            : tr(
+                                "checkout.emailOrPhoneHint",
+                                "Enter an email or a phone number — we'll send order updates there.",
+                              )}
                         </p>
                       ) : null}
-                      {checkoutSettings.contact.marketingOptIn.enabled ? (
+                      {marketingChannel === "sms" ? (
+                        <div className="space-y-1 pt-1">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="checkout-sms-marketing"
+                              checked={smsMarketingOptIn}
+                              onCheckedChange={(checked) =>
+                                setSmsMarketingOptIn(checked === true)
+                              }
+                            />
+                            <Label
+                              htmlFor="checkout-sms-marketing"
+                              className="cursor-pointer text-sm font-normal"
+                            >
+                              {checkoutSettings.contact.smsOptIn.label ||
+                                tr(
+                                  "checkout.smsOptIn",
+                                  "Text me with news and offers",
+                                )}
+                            </Label>
+                          </div>
+                          <p className="pl-6 text-xs text-muted-foreground">
+                            {checkoutSettings.contact.smsOptIn.fineprint ||
+                              tr(
+                                "checkout.smsOptInFineprint",
+                                "Message and data rates may apply. Reply STOP to stop at any time.",
+                              )}
+                          </p>
+                        </div>
+                      ) : marketingChannel === "email" ? (
                         <div className="flex items-center gap-2 pt-1">
                           <Checkbox
                             id="checkout-newsletter"
                             checked={emailMarketingOptIn}
-                            onCheckedChange={(checked) =>
-                              setEmailMarketingOptIn(checked === true)
-                            }
+                            onCheckedChange={(checked) => {
+                              setMarketingOptInTouched(true);
+                              setMarketingOptInChoice(checked === true);
+                            }}
                           />
                           <Label
                             htmlFor="checkout-newsletter"
@@ -3169,6 +3762,10 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                                     });
                                   }
                                 }}
+                                ariaLabel={addressFieldLabel(
+                                  "country",
+                                  t("checkout.country"),
+                                )}
                                 placeholder=" "
                                 searchPlaceholder={t("checkout.searchCountry")}
                                 triggerClassName="h-14 rounded-lg pt-6 pb-2 items-end [&>span]:text-base"
@@ -3283,6 +3880,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                                   setSelectedSavedAddressIndex(null);
                                 }}
                                 label={addressFieldLabel("state", t("checkout.state"))}
+                                searchPlaceholder={t("checkout.searchState")}
                                 autoComplete="shipping address-level1"
                               />
                             </FormControl>
@@ -3447,83 +4045,21 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                         </div>
                       ) : null}
                       {perVendorMode ? (
-                        vendorRateGroups.map((group) => {
-                          const selectedId =
-                            vendorShippingSelections[group.vendorId] ??
-                            group.selectedOptionId;
-                          return (
-                            <div key={group.vendorId} className="space-y-2">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                {group.vendorName}
-                              </p>
-                              {group.options.length === 0 ? (
-                                // This vendor is the reason the whole quote is
-                                // unavailable (the server ANDs availability
-                                // across vendors), so it must read as the
-                                // problem, not as a hint the eye skips over.
-                                <div
-                                  role="alert"
-                                  className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
-                                >
-                                  <AlertCircle
-                                    className="mt-0.5 h-4 w-4 shrink-0"
-                                    aria-hidden="true"
-                                  />
-                                  <span>{t("checkout.noShippingRates")}</span>
-                                </div>
-                              ) : (
-                                group.options.map((option) => {
-                                  const checked = selectedId === option.id;
-                                  return (
-                                    <label
-                                      key={option.id}
-                                      className={cn(
-                                        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-4 text-sm transition-colors hover:bg-muted/40",
-                                        checked
-                                          ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                          : "border-border",
-                                      )}
-                                    >
-                                      <span className="flex items-center gap-3">
-                                        <input
-                                          type="radio"
-                                          name={`shippingOption-${group.vendorId}`}
-                                          className="accent-primary"
-                                          checked={checked}
-                                          onChange={() =>
-                                            setVendorShippingSelections(
-                                              (prev) => ({
-                                                ...prev,
-                                                [group.vendorId]: option.id,
-                                              }),
-                                            )
-                                          }
-                                        />
-                                        <span>
-                                          <span className="font-medium">
-                                            {option.name}
-                                          </span>
-                                          {option.deliveryDays ? (
-                                            <span className="block text-xs text-muted-foreground">
-                                              {option.deliveryDays.min}-
-                                              {option.deliveryDays.max}{" "}
-                                              {t("checkout.days")}
-                                            </span>
-                                          ) : null}
-                                        </span>
-                                      </span>
-                                      <span className="font-semibold">
-                                        {option.cost > 0
-                                          ? formatPrice(option.cost)
-                                          : t("checkout.free")}
-                                      </span>
-                                    </label>
-                                  );
-                                })
-                              )}
-                            </div>
-                          );
-                        })
+                        <ShippingMethodSelector
+                          groups={vendorRateGroups}
+                          selections={vendorShippingSelections}
+                          onSelectionsChange={setVendorShippingSelections}
+                          itemsByVendor={shipmentItemsByVendor}
+                          showEstimates={Boolean(
+                            shippingConfig?.delivery?.showEstimatedDelivery ??
+                              true,
+                          )}
+                          formatPrice={formatPrice}
+                          tr={tr}
+                          shippingCost={shippingCost}
+                          shippingDiscount={shippingDiscount}
+                          discountedShippingCost={discountedShippingCost}
+                        />
                       ) : shippingUnavailable ? (
                         // Single-shipment mode with no destination coverage:
                         // the alert above already says it, and the collapsed
@@ -3671,10 +4207,42 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                       </p>
                     </div>
 
-                    {noPaymentMethodAvailable ? (
+                    {storeCreditAvailable > 0 && !hasPreorderItems ? (
+                      <div className="flex items-start gap-3 rounded-lg border px-4 py-3">
+                        <Checkbox
+                          id="checkout-use-store-credit"
+                          checked={useStoreCredit}
+                          onCheckedChange={(checked) => setUseStoreCredit(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <Label
+                          htmlFor="checkout-use-store-credit"
+                          className="cursor-pointer text-sm font-normal leading-5"
+                        >
+                          {tr("checkout.useStoreCredit", "Use my store credit ({amount} available)", {
+                            amount: formatPrice(storeCreditAvailable),
+                          })}
+                        </Label>
+                      </div>
+                    ) : null}
+
+                    {storeCreditCoversAll ? (
+                      <div className="rounded-lg border bg-muted/20 px-4 py-4 text-sm text-muted-foreground">
+                        {tr(
+                          "checkout.storeCreditCoversOrder",
+                          "Your store credit covers this order — nothing else to pay.",
+                        )}
+                      </div>
+                    ) : noPaymentMethodAvailable ? (
                       <div className="rounded-lg border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
-                        No payment method is available for this order. Please
-                        contact support.
+                        {noBalanceMethodAvailable
+                          ? tr(
+                              "checkout.payment.noBalanceMethod",
+                              "This pre-order needs card or PayPal to collect its balance later. Contact the store to order it.",
+                            )
+                          : noCodLimitMethodAvailable
+                            ? codLimitReason
+                            : "No payment method is available for this order. Please contact support."}
                       </div>
                     ) : (
                     <FormField
@@ -3690,6 +4258,18 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                             >
                               {paymentMethods.map((method, index) => {
                                 const isSelected = field.value === method.value;
+                                const blocked = isMethodBlocked(method.value);
+                                // Why this one is off: its own limits before
+                                // the pre-order rule, since a cash-on-delivery
+                                // row can be blocked by either.
+                                const blockedReason = !blocked
+                                  ? ""
+                                  : method.value === "cod" && codOutsideLimits
+                                    ? codLimitReason
+                                    : tr(
+                                        "checkout.payment.cannotCollectBalance",
+                                        "Can't take the balance later — for full-payment orders only",
+                                      );
                                 const isCard =
                                   method.value === "card" &&
                                   paymentConfig.stripeEnabled &&
@@ -3706,15 +4286,26 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                                   >
                                     <Label
                                       htmlFor={`pm_${method.value}`}
-                                      className="flex min-h-12 cursor-pointer items-center gap-3 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/40"
+                                      className={cn(
+                                        "flex min-h-12 items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                                        blocked
+                                          ? "cursor-not-allowed bg-muted/30 text-muted-foreground"
+                                          : "cursor-pointer hover:bg-muted/40",
+                                      )}
                                     >
                                       <RadioGroupItem
                                         value={method.value}
                                         id={`pm_${method.value}`}
+                                        disabled={blocked}
                                         className="size-4 shrink-0 border-muted-foreground/30"
                                       />
-                                      <span className="min-w-0 flex-1">
-                                        {method.label}
+                                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span>{method.label}</span>
+                                        {blockedReason ? (
+                                          <span className="text-xs font-normal">
+                                            {blockedReason}
+                                          </span>
+                                        ) : null}
                                       </span>
                                       <method.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                                     </Label>
@@ -4048,6 +4639,10 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                                             <CountrySelect
                                               value={field.value || ""}
                                               onChange={field.onChange}
+                                              ariaLabel={addressFieldLabel(
+                                                "country",
+                                                t("checkout.country"),
+                                              )}
                                               placeholder=" "
                                               searchPlaceholder={t(
                                                 "checkout.searchCountry",
@@ -4142,6 +4737,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                                                 value={field.value || ""}
                                                 onChange={field.onChange}
                                                 label={addressFieldLabel("state", t("checkout.state"))}
+                                                searchPlaceholder={t("checkout.searchState")}
                                                 autoComplete="billing address-level1"
                                               />
                                             </FormControl>
@@ -4225,6 +4821,19 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                     </div>
                   )}
 
+                  {turnstileRequired ? (
+                    <div className="mb-4">
+                      <TurnstileCheck
+                        siteKey={paymentConfig.turnstileSiteKey}
+                        onToken={setTurnstileToken}
+                        label={tr(
+                          "checkout.payment.humanCheck",
+                          "Please confirm you are not a robot, then try the payment again.",
+                        )}
+                      />
+                    </div>
+                  ) : null}
+
                   {/* Submit */}
                   <Button
                     type="submit"
@@ -4236,7 +4845,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                       shippingRateFailed ||
                       shippingQuotePending ||
                       pickupSelectionRequired ||
-                      noPaymentMethodAvailable
+                      (noPaymentMethodAvailable && !storeCreditCoversAll)
                     }
                   >
                     {isSubmitting ? (
@@ -4269,7 +4878,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                           link.href.startsWith("/") ? (
                             <Link
                               key={`${link.href}-${index}`}
-                              href={`/${locale}${link.href}`}
+                              href={`${link.href}`}
                               className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
                             >
                               {link.label}
@@ -4297,10 +4906,13 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
               </div>
             </div>
 
-            {/* Right column - Order Summary */}
+            {/* Right column - Order Summary. On desktop it scrolls up and
+                down only: pr-2 covers the remove button's -mr-2, and
+                overflow-x-hidden keeps anything wider from adding a
+                sideways scrollbar under the items. */}
             <aside className="border-t bg-zinc-50 px-4 py-8 lg:border-t-0 lg:px-12 lg:py-12 dark:bg-background">
               <div
-                className="mx-auto max-w-[440px] lg:sticky lg:top-[var(--checkout-summary-offset)] lg:mx-0 lg:max-h-[calc(100dvh-var(--checkout-summary-offset)-1rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1"
+                className="mx-auto max-w-[440px] lg:sticky lg:top-[var(--checkout-summary-offset)] lg:mx-0 lg:max-h-[calc(100dvh-var(--checkout-summary-offset)-1rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-2"
                 style={checkoutSummaryStyle}
               >
                 <div className="space-y-6">
@@ -4310,7 +4922,7 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                       {t("checkout.orderSummary")}
                     </h3>
                     <Link
-                      href={`/${locale}/cart`}
+                      href="/cart"
                       className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
                     >
                       {t("checkout.editCart")}
@@ -4363,6 +4975,29 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                       </span>
                       <span>{formatPrice(tax)}</span>
                     </div>
+                    {/* Duties belong with the other charges, not below the
+                        basket. They are part of `total`, so printing them
+                        under the item list left the rows above the Total
+                        adding up to less than the Total itself — on an
+                        international order, by the whole duty. A duty is only
+                        ever quoted here when the store collects it at
+                        checkout (DDP); see estimateCustomsDuty. */}
+                    {customsDutyAmount > 0 ? (
+                      <div className="space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            {t("checkout.estimatedDuties")}
+                          </span>
+                          <span>{formatPrice(customsDutyAmount)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {tr(
+                            "checkout.dutiesCollectedNow",
+                            "Collected now — nothing to pay on delivery",
+                          )}
+                        </p>
+                      </div>
+                    ) : null}
                     {hasPreorderItems && preorderOutstandingAmount > 0 ? (
                       <>
                         <div className="flex items-center justify-between text-blue-700 dark:text-blue-300">
@@ -4396,9 +5031,16 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                     />
                   </div>
 
+                  {storeCreditApplied > 0 ? (
+                    <div className="flex items-center justify-between text-sm text-green-700 dark:text-green-400">
+                      <span>{tr("checkout.storeCredit", "Store credit")}</span>
+                      <span>-{formatPrice(storeCreditApplied)}</span>
+                    </div>
+                  ) : null}
+
                   <Separator />
 
-                  {/* Total */}
+                  {/* Total — what is left to pay once the store credit is in */}
                   <div className="flex items-baseline justify-between">
                     <span className="font-semibold">
                       {t("common.total")}
@@ -4408,28 +5050,22 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                         {currency.code}
                       </span>
                       <span className="text-2xl font-bold">
-                        {formatPrice(total).replace(/[^\d.,]/g, "")}
+                        {formatPrice(amountToPay).replace(/[^\d.,]/g, "")}
                       </span>
                     </div>
                   </div>
 
                   <Separator />
 
-                  {/* Cart items */}
-                  <div className="space-y-5">
+                  {/* Cart items — sized like the summary rows above them
+                      (14px name, 12px details), not like the form fields */}
+                  <div className="space-y-4">
                     {items.map((item, lineIndex) => {
                       const checkoutItem = item as CheckoutCartItem;
-                      const rawVariant =
-                        checkoutItem.variantLabel ||
-                        (item.name.includes(" - ")
-                          ? item.name.split(" - ").slice(1).join(" - ")
-                          : "");
-
-                      // Split by common separators and process each part
-                      const variantParts = String(rawVariant)
-                        .split(/[,|/]/)
-                        .map((part) => part.trim())
-                        .filter(Boolean);
+                      // One line per option, captioned with the option's own
+                      // name ("Color: White"). The cart endpoints resolve the
+                      // pairs from the product; this only formats them.
+                      const variantParts = formatVariantOptionLines(checkoutItem);
 
                       // Check for sale price
                       const compareAtPrice =
@@ -4450,11 +5086,11 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                         <div
                           key={lineKey}
                           className={cn(
-                            "flex items-start gap-4 transition-opacity",
+                            "flex items-start gap-3 transition-opacity",
                             isRemovingLine && "opacity-50",
                           )}
                         >
-                          <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-muted">
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-muted">
                             {item.image ? (
                               <AppImage
                                 src={item.image}
@@ -4466,8 +5102,8 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium leading-snug mb-1">
-                              {item.name.split(" - ")[0]}
+                            <p className="mb-0.5 text-sm font-medium leading-snug">
+                              {item.name}
                             </p>
                             <div className="space-y-0.5 text-xs text-muted-foreground">
                               {checkoutItem.purchaseType === "preorder" ? (
@@ -4517,6 +5153,12 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                                 </p>
                               ))}
                               <p>Qty: {item.quantity}</p>
+                              {/* Said before they pay: it cannot be sent back. */}
+                              {item.finalSale ? (
+                                <p>
+                                  {tr("cart.finalSale", "Final sale — can't be returned")}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="mt-1">
                               {hasDiscount ? (
@@ -4548,29 +5190,20 @@ export function CheckoutContent({ settings: checkoutSettings }: CheckoutContentP
                               )
                             }
                             disabled={Boolean(removingLineKey)}
-                            aria-label={`${t("common.remove")} ${item.name.split(" - ")[0]}`}
+                            aria-label={`${t("common.remove")} ${item.name}`}
                             title={t("common.remove")}
-                            className="-mr-1 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-zinc-200 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-muted"
+                            className="-mr-2 -mt-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-zinc-200 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-muted"
                           >
                             {isRemovingLine ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             )}
                           </button>
                         </div>
                       );
                     })}
                   </div>
-
-                  {customsDutyAmount > 0 ? (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {t("checkout.estimatedDuties")}
-                      </span>
-                      <span>{formatPrice(customsDutyAmount)}</span>
-                    </div>
-                  ) : null}
 
                   {deliveryEstimate ? (
                     <div className="text-xs text-muted-foreground">

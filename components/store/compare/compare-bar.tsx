@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/components/language/link";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { ArrowRight, Scale } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type Locale } from "@/config/i18n.config";

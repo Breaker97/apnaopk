@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Suspense, useState } from "react";
@@ -21,18 +21,19 @@ import {
   LoginFields,
   LoginOAuthButtons,
   TwoFactorFields,
-  demoCredentials,
   useLoginForm,
+  type DemoCredential,
   type OAuthEnabled,
 } from "@/components/auth/login-form";
 
 interface LoginPageProps {
   /** Resolved on the server so the buttons render in the initial HTML. */
   oauthEnabled: OAuthEnabled;
-  demoModeEnabled: boolean;
+  /** Empty unless the deployment runs with DEMO_MODE — see `demoLoginCredentials`. */
+  demoCredentials: DemoCredential[];
 }
 
-function LoginContent({ oauthEnabled, demoModeEnabled }: LoginPageProps) {
+function LoginContent({ oauthEnabled, demoCredentials }: LoginPageProps) {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as string;
@@ -42,7 +43,7 @@ function LoginContent({ oauthEnabled, demoModeEnabled }: LoginPageProps) {
     string | null
   >(null);
 
-  const showDemoCredentials = demoModeEnabled && demoCredentials.length > 0;
+  const showDemoCredentials = demoCredentials.length > 0;
 
   const formatRoleLabel = (role: string) => {
     const value = role.trim();
@@ -180,7 +181,7 @@ function LoginContent({ oauthEnabled, demoModeEnabled }: LoginPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-2">
-            <DemoCredentialsList state={state} />
+            <DemoCredentialsList state={state} credentials={demoCredentials} />
           </CardContent>
         </Card>
       )}

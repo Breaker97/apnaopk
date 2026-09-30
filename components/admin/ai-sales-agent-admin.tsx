@@ -82,7 +82,6 @@ import {
 
 type ConversationSummary = {
   id: string;
-  sessionId: string;
   userId?: string;
   locale: string;
   status?: string;
@@ -119,7 +118,6 @@ type AdminPayload = {
 
 type ConversationListItem = {
   id: string;
-  sessionId: string;
   userId?: string;
   locale: string;
   status?: string;
@@ -134,7 +132,6 @@ type ConversationListItem = {
 
 type ConversationDetail = {
   id: string;
-  sessionId: string;
   locale: string;
   status?: string;
   cartItemCount: number;
@@ -1618,7 +1615,7 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
             <SheetDescription>
               {activeConversation
                 ? t("drawer.session", {
-                    id: activeConversation.sessionId,
+                    id: activeConversation.id,
                   })
                 : t("drawer.loading")}
             </SheetDescription>

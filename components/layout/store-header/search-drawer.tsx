@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { Loader2, Search, X } from "lucide-react";
 import {
@@ -16,7 +16,7 @@ import type { ModernProduct } from "@/lib/products/modern-product";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
 
-export interface SearchDrawerShelf {
+interface SearchDrawerShelf {
   id: string;
   title: string;
   slug: string;
@@ -74,12 +74,12 @@ function loadShelves(collectionIds: string[]): Promise<SearchDrawerShelf[]> {
 export function SearchDrawer({
   open,
   onOpenChange,
-  locale,
   query,
   onQueryChange,
   onSubmit,
   suggestions,
   isSearching,
+  failed,
   correctedTo,
   placeholder,
   trending,
@@ -90,12 +90,13 @@ export function SearchDrawer({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  locale: string;
   query: string;
   onQueryChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
   suggestions: SearchDrawerSuggestion[];
   isSearching: boolean;
+  /** The last suggestion request failed: say how to search, not "none". */
+  failed: boolean;
   correctedTo: string | null;
   placeholder: string;
   trending: string[];
@@ -232,7 +233,7 @@ export function SearchDrawer({
               {trending.map((term) => (
                 <Link
                   key={term}
-                  href={`/${locale}/products?search=${encodeURIComponent(term)}`}
+                  href={`/products?search=${encodeURIComponent(term)}`}
                   onClick={() => onOpenChange(false)}
                   className="transition-opacity hover:opacity-70"
                 >
@@ -269,7 +270,7 @@ export function SearchDrawer({
                   return (
                     <li key={product._id}>
                       <Link
-                        href={`/${locale}/products/${product.slug}`}
+                        href={`/products/${product.slug}`}
                         onClick={() => onOpenChange(false)}
                         className="flex items-center gap-4 rounded-lg p-2 transition-colors hover:bg-muted/60"
                       >
@@ -292,7 +293,15 @@ export function SearchDrawer({
               </ul>
             ) : (
               <p className="text-center text-sm text-muted-foreground">
-                {isSearching ? t("common.loading") : t("common.noProductsFound")}
+                {isSearching ? (
+                  t("common.loading")
+                ) : failed ? (
+                  <>
+                    {t("common.pressEnterToSearch")} &quot;{query}&quot;
+                  </>
+                ) : (
+                  t("common.noProductsFound")
+                )}
               </p>
             )}
           </section>
@@ -301,7 +310,7 @@ export function SearchDrawer({
             {shelves.map((shelf) => (
               <section key={shelf.id} className="pt-2">
                 <Link
-                  href={`/${locale}/collections/${shelf.slug}`}
+                  href={`/collections/${shelf.slug}`}
                   onClick={() => onOpenChange(false)}
                   className="mb-4 inline-block px-4 text-base transition-opacity hover:opacity-70 sm:px-10"
                 >
@@ -314,7 +323,7 @@ export function SearchDrawer({
                       className="shrink-0 snap-start basis-[46%] sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
                     >
                       <Link
-                        href={`/${locale}/products/${product.slug}`}
+                        href={`/products/${product.slug}`}
                         onClick={() => onOpenChange(false)}
                         className="group block bg-muted/50"
                       >

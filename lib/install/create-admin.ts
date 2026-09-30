@@ -6,6 +6,7 @@ import { ValidationError } from "@/lib/api/errors";
 import { getActivePasswordPolicy, getAuthContext } from "@/lib/auth/auth";
 import { checkPasswordPolicy } from "@/lib/auth/password-policy";
 import { AdminProfile, User } from "@/models";
+import { DEMO_PASSWORDS } from "@/lib/install/demo-seed-guard";
 
 /**
  * Create the FIRST admin — the install wizard's account step.
@@ -27,6 +28,12 @@ export async function createInstallAdmin(input: {
   const problem = checkPasswordPolicy(input.password, policy);
   if (problem) {
     throw new ValidationError(problem);
+  }
+  // They meet the policy, and they are printed in the README for anyone.
+  if (DEMO_PASSWORDS.includes(input.password)) {
+    throw new ValidationError(
+      "That is one of the published demo passwords. Choose your own.",
+    );
   }
 
   const ctx = await getAuthContext();

@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -113,6 +114,7 @@ function resolveMapExternalUrl(page: ContactPageData, contact: StoreContactData)
 export default async function ContactPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const {
     contentPages,
@@ -147,7 +149,7 @@ export default async function ContactPage({ params }: PageProps) {
       {/* Above the hero rather than over it: the trail is chrome, and laying it
           on a photograph costs it the contrast it needs to stay readable. */}
       <div className="container mx-auto px-4 pt-6">
-        <StoreBreadcrumb locale={locale} items={[{ label: page.title }]} />
+        <StoreBreadcrumb locale={locale} storeDefault={storeDefault} items={[{ label: page.title }]} />
       </div>
 
       <section className="relative isolate overflow-hidden">

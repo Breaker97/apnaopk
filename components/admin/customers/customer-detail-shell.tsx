@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   Loader2,
   Trash2,
@@ -10,6 +10,7 @@ import {
   Activity,
   Award,
   StickyNote,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ import { OrdersTab } from "./tabs/orders-tab";
 import { ActivityTab } from "./tabs/activity-tab";
 import { LoyaltyTab } from "./tabs/loyalty-tab";
 import { NotesTab } from "./tabs/notes-tab";
+import { StoreCreditTab } from "./tabs/store-credit-tab";
 import {
   defaultCustomerFormValues,
   defaultEmailNotifications,
@@ -37,6 +39,7 @@ import {
   type CustomerFormValues,
   type CustomerHeaderData,
   type CustomerStatus,
+  type CustomerConsentInfo,
   type LoyaltyTier,
 } from "./customer-detail-types";
 import { USER_ACCOUNT_STATUS } from "@/config/app.config";
@@ -46,6 +49,8 @@ interface CustomerDetailShellProps {
   customerId: string;
   readOnly?: boolean;
   area?: "admin" | "staff";
+  /** Set for staff viewers — see `CustomerTabProps.emailLocked`. */
+  emailLocked?: boolean;
 }
 
 interface CustomerDetailsResponse {
@@ -57,6 +62,21 @@ interface CustomerDetailsResponse {
   notes?: string;
   acquisitionSource?: string;
   marketingOptIn?: boolean;
+  emailMarketing?: {
+    state?: CustomerConsentInfo["state"];
+    optInLevel?: CustomerConsentInfo["optInLevel"];
+    consentUpdatedAt?: string;
+    source?: CustomerConsentInfo["source"];
+    sourceOrderId?: string;
+    sourceCountry?: string;
+    confirmedAt?: string;
+  };
+  smsMarketing?: {
+    state?: CustomerConsentInfo["state"];
+    phone?: string;
+    consentUpdatedAt?: string;
+  };
+  marketingConsentHistory?: NonNullable<CustomerConsentInfo["history"]>;
   emailNotifications?: Partial<CustomerEmailNotifications>;
   stats?: CustomerHeaderData["stats"];
   lastActiveAt?: string;
@@ -162,6 +182,7 @@ export function CustomerDetailShell({
   customerId,
   readOnly,
   area = "admin",
+  emailLocked,
 }: CustomerDetailShellProps) {
   const router = useRouter();
   const { confirm } = useConfirmation();
@@ -176,6 +197,14 @@ export function CustomerDetailShell({
     defaultCustomerFormValues,
   );
   const [header, setHeader] = useState<CustomerHeaderData | null>(null);
+  const [consent, setConsent] = useState<CustomerConsentInfo | undefined>();
+  /**
+   * A guest row has no User behind it, so the name and email fields are not
+   * the account's — they are whatever the shopper typed at checkout, and a
+   * digital-only order leaves the name blank. Requiring one to save blocked an
+   * admin from so much as unsubscribing that customer.
+   */
+  const [isGuestProfile, setIsGuestProfile] = useState(false);
   const [lifetimePoints, setLifetimePoints] = useState(0);
 
   const isDirty = useMemo(
@@ -234,6 +263,26 @@ export function CustomerDetailShell({
 
         setForm(loaded);
         setSavedForm(loaded);
+        setIsGuestProfile(Boolean(profile.isGuest) || !user);
+        // Rows written before consent became a record carry only the boolean;
+        // read them as the state they mean rather than as "never asked".
+        setConsent({
+          state:
+            profile.emailMarketing?.state ??
+            (profile.marketingOptIn ? "subscribed" : "not_subscribed"),
+          optInLevel: profile.emailMarketing?.optInLevel,
+          consentUpdatedAt: profile.emailMarketing?.consentUpdatedAt,
+          source: profile.emailMarketing?.source,
+          sourceOrderId: profile.emailMarketing?.sourceOrderId,
+          sourceCountry: profile.emailMarketing?.sourceCountry,
+          confirmedAt: profile.emailMarketing?.confirmedAt,
+          history: profile.marketingConsentHistory || [],
+          sms: {
+            state: profile.smsMarketing?.state ?? "not_subscribed",
+            phone: profile.smsMarketing?.phone,
+            consentUpdatedAt: profile.smsMarketing?.consentUpdatedAt,
+          },
+        });
         setLifetimePoints(profile.lifetimePoints || 0);
         setHeader({
           name: loaded.name,
@@ -302,12 +351,12 @@ export function CustomerDetailShell({
 
   const handleSubmit = useCallback(async () => {
     if (readOnly) return;
-    if (!form.name.trim()) {
+    if (!isGuestProfile && !form.name.trim()) {
       toast.error("Name is required");
       setActiveTab("profile");
       return;
     }
-    if (!form.email.trim()) {
+    if (!isGuestProfile && !form.email.trim()) {
       toast.error("Email is required");
       setActiveTab("profile");
       return;
@@ -323,11 +372,19 @@ export function CustomerDetailShell({
     setIsSaving(true);
     try {
       const payload = {
-        name: form.name.trim(),
-        email: form.email.trim(),
-        image: form.image.trim(),
-        phone: form.phone.trim() || undefined,
-        status: form.status,
+        // Name, email, image, phone and status belong to the User record. A
+        // guest row has none, the API ignores them for one, and sending the
+        // empty strings the form holds for a guest fails validation — which
+        // is what used to make a nameless guest unsaveable.
+        ...(isGuestProfile
+          ? {}
+          : {
+              name: form.name.trim(),
+              email: form.email.trim(),
+              image: form.image.trim(),
+              phone: form.phone.trim() || undefined,
+              status: form.status,
+            }),
         loyaltyPoints: Number.isFinite(form.loyaltyPoints)
           ? Math.max(0, Math.floor(form.loyaltyPoints))
           : 0,
@@ -375,7 +432,7 @@ export function CustomerDetailShell({
     } finally {
       setIsSaving(false);
     }
-  }, [customerId, form, readOnly, router]);
+  }, [customerId, form, isGuestProfile, readOnly, router]);
 
   const handleDelete = useCallback(async () => {
     if (!customerId || readOnly) return;
@@ -461,6 +518,7 @@ export function CustomerDetailShell({
             { value: "orders", label: "Orders", icon: ShoppingBag },
             { value: "activity", label: "Activity", icon: Activity },
             { value: "loyalty", label: "Loyalty", icon: Award },
+            { value: "store-credit", label: "Store credit", icon: Wallet },
             { value: "notes", label: "Notes", icon: StickyNote },
           ].map((tab) => (
             <TabsTrigger
@@ -478,7 +536,13 @@ export function CustomerDetailShell({
           {isFetching ? (
             <DetailFormSkeleton />
           ) : (
-            <ProfileTab form={form} setField={setField} readOnly={readOnly} />
+            <ProfileTab
+              form={form}
+              setField={setField}
+              readOnly={readOnly}
+              consent={consent}
+              emailLocked={emailLocked}
+            />
           )}
         </TabsContent>
 
@@ -511,6 +575,10 @@ export function CustomerDetailShell({
               lifetimePoints={lifetimePoints}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="store-credit">
+          <StoreCreditTab customerId={customerId} />
         </TabsContent>
 
         <TabsContent value="notes" className="space-y-6">

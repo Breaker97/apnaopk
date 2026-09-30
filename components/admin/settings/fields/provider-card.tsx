@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { CheckCircle2, CircleDashed } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function ProviderCard(props: {
   testButton?: ReactNode;
   children?: ReactNode;
 }) {
+  const t = useTranslations("admin.settings.fields");
   return (
     <div
       className={cn(
@@ -63,7 +65,7 @@ export function ProviderCard(props: {
           checked={props.enabled && !props.disabled}
           onCheckedChange={props.onToggle}
           disabled={props.disabled}
-          aria-label={`Enable ${props.title}`}
+          aria-label={t("enableProvider", { name: props.title })}
         />
       </div>
       {props.enabled && !props.disabled && (props.children || props.testButton) && (
@@ -79,6 +81,7 @@ export function ProviderCard(props: {
 }
 
 export function StatusBadge(props: { configured: boolean }) {
+  const t = useTranslations("admin.settings.fields");
   if (props.configured) {
     return (
       <Badge
@@ -86,23 +89,24 @@ export function StatusBadge(props: { configured: boolean }) {
         className="gap-1 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400"
       >
         <CheckCircle2 className="h-3 w-3" />
-        Configured
+        {t("configured")}
       </Badge>
     );
   }
   return (
     <Badge variant="outline" className="gap-1 text-muted-foreground">
       <CircleDashed className="h-3 w-3" />
-      Not configured
+      {t("notConfigured")}
     </Badge>
   );
 }
 
 export function ModeBadge(props: { mode: "test" | "live" | "sandbox" }) {
+  const t = useTranslations("admin.settings.fields.mode");
   if (props.mode === "live") {
     return (
       <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 dark:text-emerald-400">
-        Live
+        {t("live")}
       </Badge>
     );
   }
@@ -111,7 +115,7 @@ export function ModeBadge(props: { mode: "test" | "live" | "sandbox" }) {
       variant="secondary"
       className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/15 dark:text-amber-400"
     >
-      {props.mode === "sandbox" ? "Sandbox" : "Test"}
+      {t(props.mode)}
     </Badge>
   );
 }

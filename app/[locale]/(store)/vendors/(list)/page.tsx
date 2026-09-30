@@ -1,5 +1,6 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { BadgeCheck, Star, Store } from "lucide-react";
@@ -38,6 +39,7 @@ export async function generateMetadata({
 export default async function VendorsPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const [t, search] = await Promise.all([
     getTranslations({ locale }),
@@ -62,6 +64,7 @@ export default async function VendorsPage({ params, searchParams }: PageProps) {
       <StoreBreadcrumb
         className="mb-4"
         locale={locale}
+        storeDefault={storeDefault}
         items={[{ label: t("nav.vendors") }]}
       />
 
@@ -129,7 +132,7 @@ function VendorCard({
 }) {
   return (
     <Link
-      href={`/${locale}/vendors/${vendor.slug}`}
+      href={`/vendors/${vendor.slug}`}
       className="group overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-md"
     >
       <div className="relative aspect-293/132 w-full overflow-hidden bg-muted">

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { AppImage } from "@/components/ui/app-image";
 import { useTranslations } from "next-intl";
 import {
@@ -513,7 +513,7 @@ export function StaffDashboardContent({
               </h2>
             </div>
             <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href={`/${locale}/staff/pos`}>
+              <Link href="/staff/pos">
                 <ShoppingCart className="h-3.5 w-3.5" />
                 {tf("pos.newSale", "New Sale")}
               </Link>
@@ -568,7 +568,7 @@ export function StaffDashboardContent({
               </p>
             </div>
             <Button asChild variant="ghost" size="sm" className="gap-1 text-sm">
-              <Link href={`/${locale}/staff/pos`}>
+              <Link href="/staff/pos">
                 {tf("pos.openRegister", "Open register")}
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
@@ -672,7 +672,7 @@ export function StaffDashboardContent({
               </p>
             </div>
             <Button asChild variant="ghost" size="sm" className="gap-1 text-sm">
-              <Link href={`/${locale}/staff/orders`}>
+              <Link href="/staff/orders">
                 {tf("common.viewAll", "View all")}
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
@@ -693,7 +693,7 @@ export function StaffDashboardContent({
                   return (
                     <Link
                       key={order._id}
-                      href={`/${locale}/staff/orders/${order._id}`}
+                      href={`/staff/orders/${order._id}`}
                       className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40"
                     >
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
@@ -771,7 +771,7 @@ export function StaffDashboardContent({
                   size="sm"
                   className="gap-1 text-sm"
                 >
-                  <Link href={`/${locale}/staff/products`}>
+                  <Link href="/staff/products">
                     {tf("common.viewAll", "View all")}
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   </Link>
@@ -853,7 +853,7 @@ export function StaffDashboardContent({
                   size="sm"
                   className="gap-1 text-sm"
                 >
-                  <Link href={`/${locale}/staff/inventory`}>
+                  <Link href="/staff/inventory">
                     {tf("common.viewAll", "View all")}
                     <ArrowUpRight className="h-3.5 w-3.5" />
                   </Link>
@@ -939,7 +939,7 @@ export function StaffDashboardContent({
               </div>
             </div>
             <Button asChild variant="ghost" size="sm" className="gap-1 text-sm">
-              <Link href={`/${locale}/staff/customers`}>
+              <Link href="/staff/customers">
                 {tf("common.viewAll", "View all")}
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
@@ -963,7 +963,7 @@ export function StaffDashboardContent({
                   return (
                     <Link
                       key={customer._id}
-                      href={`/${locale}/staff/customers/${customer._id}`}
+                      href={`/staff/customers/${customer._id}`}
                       className="flex items-center gap-4 px-6 py-3 transition-colors hover:bg-muted/40"
                     >
                       <Avatar className="h-10 w-10 border border-border">

@@ -7,6 +7,7 @@ export const CACHE_TAGS = {
   brands: "brands",
   categories: "categories",
   collections: "collections",
+  coupons: "coupons",
   menus: "menus",
   products: "products",
   settings: "settings",
@@ -19,6 +20,33 @@ type CacheTag = (typeof CACHE_TAGS)[keyof typeof CACHE_TAGS];
 
 const IMMEDIATE_REVALIDATION = { expire: 0 } as const;
 
+/**
+ * How a change reaches the next visitor.
+ *
+ * - `"now"`: the tags expire, and the next request renders with fresh data.
+ *   For a change a person just made and expects to see — an admin saving.
+ * - `"background"`: the tags go stale, and the next request is answered from
+ *   the cache while a fresh copy renders behind it (Next's
+ *   stale-while-revalidate for `revalidateTag` with a cacheLife profile). For
+ *   changes nobody is watching happen — a sale moving stock, a review moving a
+ *   rating, a cron ending a campaign. Expiring those sent the next shopper
+ *   through a cold render: 6.6 s for the live demo's home page, caught by a
+ *   probe the minute the catalogue changed. Background changes never bust
+ *   paths either: a path's implicit tag is on every cached read that page
+ *   makes (settings, header, sections), so it would force the cold render
+ *   anyway.
+ */
+type Freshness = "now" | "background";
+
+const BACKGROUND_REVALIDATION = "max";
+
+function expireTag(tag: string, freshness: Freshness) {
+  revalidateTag(
+    tag,
+    freshness === "background" ? BACKGROUND_REVALIDATION : IMMEDIATE_REVALIDATION,
+  );
+}
+
 function normalizePath(path: string) {
   if (!path || path === "/") return "/";
   return path.startsWith("/") ? path : `/${path}`;
@@ -28,9 +56,12 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
-export function revalidateCacheTags(tags: CacheTag[]) {
+export function revalidateCacheTags(
+  tags: CacheTag[],
+  freshness: Freshness = "now",
+) {
   for (const tag of new Set(tags)) {
-    revalidateTag(tag, IMMEDIATE_REVALIDATION);
+    expireTag(tag, freshness);
   }
 }
 
@@ -70,13 +101,25 @@ export function revalidateStorefrontLayouts() {
 
 export function revalidateProductContent(options?: {
   slugs?: Array<string | null | undefined>;
+  freshness?: Freshness;
 }) {
-  revalidateCacheTags([
-    CACHE_TAGS.products,
-    CACHE_TAGS.collections,
-    CACHE_TAGS.categories,
-    CACHE_TAGS.brands,
-  ]);
+  const freshness = options?.freshness ?? "now";
+  revalidateCacheTags(
+    [
+      CACHE_TAGS.products,
+      CACHE_TAGS.collections,
+      CACHE_TAGS.categories,
+      CACHE_TAGS.brands,
+    ],
+    freshness,
+  );
+
+  if (freshness === "background") {
+    for (const slug of uniqueStrings(options?.slugs ?? [])) {
+      expireTag(productSlugTag(slug), freshness);
+    }
+    return;
+  }
 
   revalidateLocalizedPaths([
     "/",
@@ -132,19 +175,20 @@ export function productSlugTag(slug: string) {
  * live, so a stale listing can never oversell.
  *
  * Busting everything on every sale meant each order sent the next visitor to
- * every product, listing and home page down the uncached path.
+ * every product, listing and home page down the uncached path. A sale is also
+ * nobody's edit to watch land, so it refreshes in the background.
  */
 export function revalidateProductStock(options: {
   slugs: Array<string | null | undefined>;
   availabilityChanged: boolean;
 }) {
   if (options.availabilityChanged) {
-    revalidateProductContent({ slugs: options.slugs });
+    revalidateProductContent({ slugs: options.slugs, freshness: "background" });
     return;
   }
 
   for (const slug of uniqueStrings(options.slugs)) {
-    revalidateTag(productSlugTag(slug), IMMEDIATE_REVALIDATION);
+    expireTag(productSlugTag(slug), "background");
   }
 }
 
@@ -154,10 +198,29 @@ export function revalidateSettingsContent() {
 }
 
 /**
- * Expire the sponsored-product pools after a boost campaign transition
+ * Expire everything the storefront has cached, for a store that has just been
+ * written wholesale: the install wizard's finish, which stores settings and,
+ * with sample data, a whole catalog through raw inserts no content helper
+ * sees.
+ *
+ * Until the lock the proxy sends every page to the wizard, but the wizard's
+ * own render caches the store settings through the root layout, and a store
+ * reinstalled on a running server still has the previous store cached. Every
+ * tag goes, for the reads route handlers make (their entries carry no layout
+ * tag), and the root layout, whose implicit tag every page's cached reads
+ * carry — Next's documented "revalidate all data".
+ */
+export function revalidateAllStorefrontContent() {
+  revalidateCacheTags(Object.values(CACHE_TAGS));
+  revalidatePath("/", "layout");
+}
+
+/**
+ * Refresh the sponsored-product pools after a boost campaign transition
  * (activate / pause / resume / cancel / expire). Scoped to its own tag so a
- * campaign starting or ending never busts the whole products cache; the home
- * page and listing page 1 render sponsored slots, so their URLs expire too.
+ * campaign starting or ending never busts the whole products cache, and in
+ * the background: the pools are read through that tag wherever a sponsored
+ * slot renders, and most transitions are a cron's, with nobody watching.
  *
  * **Never throws.** Every caller invokes this AFTER the state change is already
  * written, and `revalidateTag` raises an invariant when there is no static
@@ -170,14 +233,23 @@ export function revalidateSettingsContent() {
  */
 export function revalidateSponsoredProducts() {
   try {
-    revalidateCacheTags([CACHE_TAGS.sponsoredProducts]);
-    revalidateLocalizedPaths(["/", "/products"]);
+    revalidateCacheTags([CACHE_TAGS.sponsoredProducts], "background");
   } catch (error) {
     console.warn(
       "Sponsored-product cache bust skipped (no revalidation scope):",
       error instanceof Error ? error.message : error,
     );
   }
+}
+
+/**
+ * A discount was created, edited, deleted or switched off. The storefront
+ * reads coupons in one place, the coupon banner, and that read carries this
+ * tag wherever the banner renders — so the tag is the whole blast radius. A
+ * path bust would also make every other cached read on those pages miss.
+ */
+export function revalidateCouponContent() {
+  revalidateCacheTags([CACHE_TAGS.coupons]);
 }
 
 export function revalidateMenuContent() {

@@ -1,55 +1,42 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import { use, useEffect } from "react";
+import Link from "@/components/language/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useWishlist } from "@/hooks/use-wishlist";
+import { useWishlist, wishlistFirstSync } from "@/hooks/use-wishlist";
+import { DEFAULT_STALE_TIME_MS } from "@/hooks/use-suspense-resource";
 import {
   ModernProductCard,
-  ModernProductCardSkeleton,
   type ModernProduct,
 } from "@/components/products/modern-product-card";
-import { ProductQuickViewModal } from "@/components/products/product-quick-view-modal";
 import { type Locale } from "@/config/i18n.config";
 import {
   CARD_GRID_GAP,
 } from "@/components/store/product-grid-columns";
 
+/**
+ * The first visit in a tab suspends — the page's `<ClientSuspense>` shows the
+ * card skeletons — until the server's list is known. After that the store
+ * holds it (adds and removes keep it current), so coming back shows it at once
+ * with no request, and a list older than a minute is refreshed behind it.
+ */
 export function WishlistItems() {
   const t = useTranslations();
   const params = useParams();
   const locale = params.locale as Locale;
-  const { items, isLoading, fetchWishlist, hydrated } = useWishlist();
-  const [quickViewProduct, setQuickViewProduct] = useState<ModernProduct | null>(
-    null
-  );
-
-  const handleQuickView = useCallback((product: ModernProduct) => {
-    setQuickViewProduct(product);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setQuickViewProduct(null);
-  }, []);
+  const { items, isSynced, syncedAt, fetchWishlist } = useWishlist();
+  // The first sync suspends: the page's `<ClientSuspense>` shows the skeleton
+  // until it lands, so the persisted list never flashes the empty state.
+  if (!isSynced) use(wishlistFirstSync());
 
   useEffect(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
-
-  // `hydrated` is part of the gate so the persisted list never flashes the
-  // empty state: before mount every consumer reads an empty wishlist.
-  if (!hydrated || isLoading) {
-    return (
-      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
-        {[1, 2, 3, 4].map((i) => (
-          <ModernProductCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
+    if (isSynced && Date.now() - syncedAt > DEFAULT_STALE_TIME_MS) {
+      void fetchWishlist();
+    }
+  }, [isSynced, syncedAt, fetchWishlist]);
 
   if (items.length === 0) {
     return (
@@ -62,7 +49,7 @@ export function WishlistItems() {
           {t("wishlist.emptyDescription")}
         </p>
         <Button asChild>
-          <Link href={`/${locale}/products`}>
+          <Link href="/products">
             {t("common.browseProducts")}
           </Link>
         </Button>
@@ -108,24 +95,15 @@ export function WishlistItems() {
   });
 
   return (
-    <>
-      <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
-        {products.map((product) => (
-          <ModernProductCard
-            key={product._id}
-            product={product}
-            locale={locale}
-            showQuickView={true}
-            onQuickView={handleQuickView}
-          />
-        ))}
-      </div>
-      <ProductQuickViewModal
-        product={quickViewProduct}
-        locale={locale}
-        open={!!quickViewProduct}
-        onClose={handleCloseModal}
-      />
-    </>
+    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${CARD_GRID_GAP}`}>
+      {products.map((product) => (
+        <ModernProductCard
+          key={product._id}
+          product={product}
+          locale={locale}
+          showQuickView={true}
+        />
+      ))}
+    </div>
   );
 }

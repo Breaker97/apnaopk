@@ -5,6 +5,10 @@ import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { NotFoundError } from "@/lib/api/errors";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { getSettings } from "@/models/settings.model";
+import {
+  resolveReturnPolicy,
+  type ReturnTermsLike,
+} from "@/lib/returns/return-policy";
 import { isDefaultVendorRecord } from "@/lib/vendors/multi-vendor";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { getVendorSalesBreakdowns } from "@/lib/vendors/vendor-sales";
@@ -13,15 +17,18 @@ import {
   buildCommissionOwedOrderFilter,
   buildPayableOrderFilter,
   fetchRefundTotalsByOrder,
-  fetchVendorCommissionCredit,
+  fetchVendorCommissionCreditBalance,
+  fetchVendorEarnedCommission,
   fetchVendorOverpayment,
   isCommissionOwedSubOrder,
   isPastPayoutHold,
-  payoutHoldCutoff,
+  orderPayoutHoldCutoff,
+  loadOrderIdsHeldForReturns,
   payableInCurrency,
   sumVendorPayable,
 } from "@/lib/vendors/vendor-earnings";
 import { withApi } from "@/lib/api/handler";
+import { applyCommissionCredit } from "@/lib/finance/commission-invoices";
 import { roundMoney } from "@/lib/intl/money";
 import { resolveMinWithdrawal } from "@/lib/orders/order-settings";
 
@@ -168,7 +175,19 @@ export const GET = withApi<{ id: string }>(
     // Split at the payout hold, so "owed" is what a payout created now would
     // actually carry, and the rest is shown as waiting on the return window
     // rather than silently missing from both.
-    const holdCutoff = payoutHoldCutoff(settings);
+    const now = new Date();
+    // A sale a return is still open on waits with the ones inside the window,
+    // as payout creation leaves it out.
+    const returnOpen = new Set(
+      (await loadOrderIdsHeldForReturns(vendorObjectId)).map(String),
+    );
+    // Each sale waits out the window it was sold with, not today's.
+    const waiting = (
+      sub: Parameters<typeof isPastPayoutHold>[0],
+      order: { _id?: unknown; returnTerms?: ReturnTermsLike | null },
+    ) =>
+      !isPastPayoutHold(sub, orderPayoutHoldCutoff(order, settings, now, id)) ||
+      returnOpen.has(String(order._id));
     const isUnpaidDelivered = (sub: {
       status?: string;
       payoutStatus?: string;
@@ -182,7 +201,7 @@ export const GET = withApi<{ id: string }>(
       refundByOrderId,
       // Everything still unpaid and past the hold, which is what payout
       // creation would claim.
-      (sub) => isUnpaidDelivered(sub) && isPastPayoutHold(sub, holdCutoff),
+      (sub, order) => isUnpaidDelivered(sub) && !waiting(sub, order),
       currency,
     );
     const owed = payableInCurrency(owedByCurrency, currency);
@@ -191,7 +210,7 @@ export const GET = withApi<{ id: string }>(
         payableOrders,
         id,
         refundByOrderId,
-        (sub) => isUnpaidDelivered(sub) && !isPastPayoutHold(sub, holdCutoff),
+        (sub, order) => isUnpaidDelivered(sub) && waiting(sub, order),
         currency,
       ),
       currency,
@@ -199,19 +218,25 @@ export const GET = withApi<{ id: string }>(
     // Only `commissionAmount` is meaningful here. `netAmount` is what the
     // platform would owe the vendor, and on these orders it owes them nothing —
     // they were paid at the counter.
+    // With the store billing COD delivery back, the delivery joins the debt —
+    // the same figure the invoice and a payout's deduction charge.
     const commissionOwedByCurrency = sumVendorPayable(
       selfCollectedOrders,
       id,
       refundByOrderId,
       isCommissionOwedSubOrder,
       currency,
+      {
+        billVendorCodShipping:
+          resolveReturnPolicy(settings).billVendorCodShipping,
+      },
     );
     const commissionOwed = payableInCurrency(commissionOwedByCurrency, currency);
     // Commission the vendor already PAID on sales refunded afterwards. The
     // invoice settled and the sale left the owed query the moment it was
     // stamped, so nothing was giving it back — the ledger recorded the debt as
     // a negative receivable and no screen turned it into anything actionable.
-    const commissionCredit = await fetchVendorCommissionCredit({
+    const commissionCredit = await fetchVendorCommissionCreditBalance({
       vendorId: id,
       currency,
     });
@@ -222,8 +247,9 @@ export const GET = withApi<{ id: string }>(
     const commissionAfterPromotions = roundMoney(
       commissionGrossOwed - commissionPromotionCredit,
     );
-    const commissionCreditApplied = roundMoney(
-      Math.min(commissionCredit, Math.max(0, commissionAfterPromotions)),
+    const commissionCreditApplied = applyCommissionCredit(
+      commissionCredit,
+      commissionAfterPromotions,
     );
     // What is owed in currencies this screen is NOT reporting. Dropping them
     // silently is how a balance goes uncollected forever, so they are named
@@ -274,7 +300,12 @@ export const GET = withApi<{ id: string }>(
     // directly. Reported together because any one of them read alone
     // understates what the vendor is worth — a plan fee can exceed a year of
     // commission. Revenue, not profit: gateway costs are not netted here.
-    const commissionRevenue = roundMoney(lifetime?.commission ?? 0);
+    // Earned, not booked at checkout: refunds, vendor-paid coupons and unpaid
+    // orders come out. The checkout figure stays on `lifetime.commission`.
+    const commissionRevenue = await fetchVendorEarnedCommission({
+      vendorId: id,
+      currency,
+    });
     const shippingRetained = roundMoney(lifetime?.shipping ?? 0);
 
     const bank = (vendor.bankDetails ?? {}) as Record<string, unknown>;
@@ -315,7 +346,10 @@ export const GET = withApi<{ id: string }>(
         promotionCredit: commissionPromotionCredit,
         // Where they outweigh the commission: what the store owes on balance,
         // which the next payout pays.
-        storeOwes: Math.max(0, roundMoney(-commissionAfterPromotions)),
+        storeOwes: Math.max(
+          0,
+          roundMoney(-(commissionAfterPromotions - commissionCreditApplied)),
+        ),
         grossSales: roundMoney(commissionOwed.grossSales),
         orderCount: commissionOwed.orderIds.length,
         // Reported as well as deducted: a vendor whose whole bill is covered
@@ -331,7 +365,7 @@ export const GET = withApi<{ id: string }>(
       },
       lifetime: {
         grossSales: roundMoney(lifetime?.grossSales ?? 0),
-        commission: commissionRevenue,
+        commission: roundMoney(lifetime?.commission ?? 0),
         vendorEarnings: roundMoney(lifetime?.vendorEarnings ?? 0),
         // What buyers paid for this vendor's shipments that the store kept —
         // the ones its own courier or carrier account delivered.

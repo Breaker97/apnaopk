@@ -1,6 +1,9 @@
+import { appUrlForRequest } from "@/lib/app-url";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { NextRequest } from "next/server";
 import { headers } from "next/headers";
-import { z } from "zod";
+import * as z from "zod";
 import type Stripe from "stripe";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
@@ -67,14 +70,6 @@ const CheckoutBodySchema = z.object({
   iotecPhone: z.string().max(30).optional(),
   mtnMomoPhone: z.string().max(30).optional(),
 });
-
-function appUrlForRequest(request: NextRequest) {
-  return (
-    request.headers.get("origin") ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
-}
 
 async function reusableCheckoutUrl(
   stripe: Stripe,
@@ -376,8 +371,11 @@ export async function POST(request: NextRequest) {
       stripeCustomerId = customer.id;
     }
 
-    const locale = body.locale || "en";
+    const { storeDefault } = await getLocaleRouting();
+    const locale = body.locale || storeDefault;
     const origin = appUrlForRequest(request);
+    // The store default has no prefix; see lib/i18n/locale-prefix.ts.
+    const dashboardUrl = `${origin}${buildLocalePath(locale, "/vendor/dashboard", storeDefault)}`;
     const metadata = buildVendorCheckoutMetadata({
       applicationId,
       vendorId: String(vendor._id),
@@ -400,8 +398,8 @@ export async function POST(request: NextRequest) {
         subscription_data: { metadata },
         metadata,
         expires_at: checkoutExpiresAt,
-        success_url: `${origin}/${locale}/vendor/dashboard?vendor_payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/${locale}/vendor/dashboard?vendor_payment=cancelled`,
+        success_url: `${dashboardUrl}?vendor_payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${dashboardUrl}?vendor_payment=cancelled`,
       },
       {
         idempotencyKey: `vendor-billing-checkout-${applicationId}-${previousSessionKey}`,
@@ -506,7 +504,7 @@ export async function POST(request: NextRequest) {
     if (disposition === "dashboard") {
       await expireOpenCheckoutSession(stripe, checkoutSession.id);
       return successResponse({
-        url: `${origin}/${locale}/vendor/dashboard`,
+        url: dashboardUrl,
         sessionId: claim.state.applicationCheckoutSessionId,
         applicationId,
         synchronized: true,

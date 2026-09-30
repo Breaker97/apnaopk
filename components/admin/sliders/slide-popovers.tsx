@@ -40,7 +40,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 /* The plate                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export interface PlateLabels {
+interface PlateLabels {
   title: string;
   enabled: string;
   color: string;
@@ -110,7 +110,7 @@ export function PlateFields({
 /* The schedule                                                               */
 /* -------------------------------------------------------------------------- */
 
-export interface ScheduleLabels {
+interface ScheduleLabels {
   title: string;
   start: string;
   end: string;
@@ -178,7 +178,7 @@ export function scheduleState(
 /* The carousel's controls                                                    */
 /* -------------------------------------------------------------------------- */
 
-export interface ControlsLabels {
+interface ControlsLabels {
   title: string;
   arrows: string;
   arrowsPosition: string;
@@ -244,7 +244,7 @@ export function ControlsFields({
 /* The reveal                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export interface AnimationLabels {
+interface AnimationLabels {
   title: string;
   reveal: string;
   reveals: Record<string, string>;

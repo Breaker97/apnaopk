@@ -6,6 +6,7 @@ import { fetchCouponList } from "@/lib/catalog/coupon-list";
 import { validateBody, validateQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema, CreateCouponSchema } from "@/lib/validations";
 import { auditCreate, createAuditContext } from "@/lib/audit";
+import { revalidateCouponContent } from "@/lib/cache-invalidation";
 
 /**
  * GET /api/admin/coupons
@@ -72,6 +73,8 @@ export const POST = withApi(
       perUserLimit,
       createdBy: session.user.id,
     });
+    // A banner may already advertise this code.
+    revalidateCouponContent();
 
     const auditContext = createAuditContext(request, session);
     await auditCreate(

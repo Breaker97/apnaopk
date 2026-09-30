@@ -8,7 +8,9 @@ import {
 import { validateBody } from "@/lib/api/validate";
 import { ValidateCouponSchema } from "@/lib/validations";
 import { validateAndCalculateCoupon } from "@/lib/catalog/coupons";
+import { carriedEligibleProductIds } from "@/lib/orders/coupon-line-split";
 import { withApi } from "@/lib/api/handler";
+import { getSettings } from "@/models/settings.model";
 
 /**
  * POST /api/coupons/validate
@@ -37,6 +39,7 @@ export const POST = withApi(
 
     const { code, cartItems, subtotal, shippingCost, shippingByVendor } =
       await validateBody(request, ValidateCouponSchema);
+    const settings = await getSettings();
     const result = await validateAndCalculateCoupon({
       code,
       subtotal,
@@ -44,6 +47,7 @@ export const POST = withApi(
       shippingByVendor,
       cartItems,
       userId: session?.user?.id,
+      currency: settings.general?.defaultCurrency,
     });
 
     return successResponse({
@@ -59,6 +63,9 @@ export const POST = withApi(
       // free-shipping coupon covers their delivery, and a scoped coupon's
       // discount falls on that seller's lines.
       vendorShares: result.vendorShares,
+      // As far as a card payment can carry it, so the page shows the balance
+      // checkout will charge by — see `carriedEligibleProductIds`.
+      eligibleProductIds: carriedEligibleProductIds(result.eligibleProductIds),
       shippingVendorId: result.shippingVendorId,
     });
   },

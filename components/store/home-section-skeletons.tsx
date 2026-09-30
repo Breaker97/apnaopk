@@ -16,21 +16,11 @@ const ARTICLE_DESKTOP_COLUMN_CLASSES: Record<number, string> = {
   4: "lg:basis-[calc((100%_-_3.75rem)_/_4)]",
 };
 
-// Per-section skeletons shared by the route-level `loading.tsx` fallback and the
-// per-section <Suspense> boundaries in the home page. Keeping them here gives a
-// single source of truth so the placeholder dimensions stay matched to the real
-// sections (minimal CLS when the streamed content swaps in).
-
-export function HeroSkeleton() {
-  return (
-    <section className="py-4 lg:py-6">
-      <div className="container mx-auto px-4">
-        {/* Matches HeroSlider's aspect ratio to avoid layout shift. */}
-        <Skeleton className="aspect-[1248/450] w-full rounded-md" />
-      </div>
-    </section>
-  );
-}
+// Per-section skeletons: the section definitions hand them to their <Suspense>
+// boundaries, and a route's loading frame draws the same ones through the
+// definitions. Keeping them here gives a single source of truth so the
+// placeholder dimensions stay matched to the real sections (minimal CLS when
+// the streamed content swaps in).
 
 export function FeaturedCategoriesSkeleton() {
   return (
@@ -107,22 +97,6 @@ export function NewArrivalsSkeleton({
           {Array.from({ length: 6 }).map((_, i) => (
             <ProductCardSkeleton key={i} />
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function PromotionsOffersSkeleton() {
-  return (
-    <section className="py-5 lg:py-8">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-5 md:grid-cols-4 md:grid-rows-2">
-          <Skeleton className="col-span-1 row-span-2 aspect-317/565 rounded-sm sm:rounded-md" />
-          <Skeleton className="col-span-1 row-span-2 aspect-317/565 rounded-sm sm:rounded-md" />
-          <Skeleton className="col-span-1 row-span-1 aspect-317/272 rounded-sm sm:rounded-md" />
-          <Skeleton className="col-span-1 row-span-1 aspect-317/272 rounded-sm sm:rounded-md" />
-          <Skeleton className="col-span-2 row-span-1 aspect-654/272 rounded-sm sm:rounded-md" />
         </div>
       </div>
     </section>
@@ -254,24 +228,6 @@ export function TopArticlesSkeleton({
               </div>
             </div>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function BecomeVendorSkeleton() {
-  return (
-    <section className="py-6 lg:py-10">
-      <div className="container mx-auto px-4">
-        <div className="rounded-sm border p-6 sm:p-8 lg:p-10">
-          <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
-            <div className="space-y-4">
-              <Skeleton className="h-9 w-3/4 sm:w-2/3" />
-              <Skeleton className="h-4 w-full sm:w-5/6" />
-            </div>
-            <Skeleton className="h-12 w-44 rounded-full" />
-          </div>
         </div>
       </div>
     </section>

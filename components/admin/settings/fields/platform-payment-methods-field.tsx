@@ -31,9 +31,7 @@ export function PlatformPaymentMethodsField(props: {
   onChange: (key: keyof PlatformPaymentMethodToggles, enabled: boolean) => void;
 }) {
   const t = useTranslations();
-  const notConfigured = t.has("admin.settings.boosting.gatewayDisabledHint")
-    ? t("admin.settings.boosting.gatewayDisabledHint")
-    : "Enable this gateway in Payment Settings first";
+  const notConfigured = t("admin.settings.boosting.gatewayDisabledHint");
 
   return (
     <div className="space-y-3">

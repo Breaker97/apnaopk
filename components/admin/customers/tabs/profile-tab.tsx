@@ -4,6 +4,7 @@ import { CountrySelect } from "@/components/common/country-multi-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -57,7 +58,61 @@ const EMAIL_NOTIFICATION_OPTIONS: {
   },
 ];
 
-export function ProfileTab({ form, setField, readOnly }: CustomerTabProps) {
+const CONSENT_STATE_LABELS: Record<string, string> = {
+  subscribed: "Subscribed",
+  pending: "Pending confirmation",
+  unsubscribed: "Unsubscribed",
+  not_subscribed: "Not subscribed",
+  invalid: "Invalid address",
+  redacted: "Redacted",
+};
+
+const CONSENT_STATE_BADGES: Record<
+  string,
+  "default" | "secondary" | "outline" | "destructive"
+> = {
+  subscribed: "default",
+  pending: "secondary",
+  unsubscribed: "outline",
+  not_subscribed: "secondary",
+  invalid: "destructive",
+  redacted: "outline",
+};
+
+const CONSENT_SOURCE_LABELS: Record<string, string> = {
+  checkout: "Checkout",
+  account: "Account preferences",
+  admin: "Admin",
+  storefront_form: "Storefront form",
+  pos: "Point of sale",
+  import: "Import",
+  unsubscribe_link: "Unsubscribe link",
+  system: "System",
+};
+
+const CONSENT_LEVEL_LABELS: Record<string, string> = {
+  single_opt_in: "Single opt-in",
+  confirmed_opt_in: "Confirmed opt-in",
+  unknown: "Unknown",
+};
+
+function formatConsentDate(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function ProfileTab({
+  form,
+  setField,
+  readOnly,
+  consent,
+  emailLocked,
+}: CustomerTabProps) {
   const setNotification = (
     key: keyof CustomerEmailNotifications,
     value: boolean,
@@ -94,8 +149,13 @@ export function ProfileTab({ form, setField, readOnly }: CustomerTabProps) {
               value={form.email}
               onChange={(e) => setField("email", e.target.value)}
               placeholder="e.g. jane@example.com"
-              disabled={readOnly}
+              disabled={readOnly || emailLocked}
             />
+            {emailLocked && !readOnly ? (
+              <p className="text-xs text-muted-foreground">
+                Only an admin can change a customer&apos;s login email.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -178,18 +238,114 @@ export function ProfileTab({ form, setField, readOnly }: CustomerTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5 pr-4">
-              <Label className="text-sm">Marketing opt-in</Label>
-              <p className="text-xs text-muted-foreground">
-                Customer agreed to receive marketing communications
-              </p>
+          <div className="space-y-3 rounded-lg border p-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5 pr-4">
+                <Label className="text-sm">Email marketing</Label>
+                <p className="text-xs text-muted-foreground">
+                  Switching this off records an unsubscribe, the same as the
+                  link at the foot of a marketing email.
+                </p>
+              </div>
+              <Switch
+                checked={form.marketingOptIn}
+                disabled={readOnly}
+                onCheckedChange={(value) => setField("marketingOptIn", value)}
+              />
             </div>
-            <Switch
-              checked={form.marketingOptIn}
-              disabled={readOnly}
-              onCheckedChange={(value) => setField("marketingOptIn", value)}
-            />
+
+            {consent ? (
+              <div className="space-y-2 border-t pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={CONSENT_STATE_BADGES[consent.state] || "secondary"}>
+                    {CONSENT_STATE_LABELS[consent.state] || consent.state}
+                  </Badge>
+                  {consent.optInLevel ? (
+                    <span className="text-xs text-muted-foreground">
+                      {CONSENT_LEVEL_LABELS[consent.optInLevel] ||
+                        consent.optInLevel}
+                    </span>
+                  ) : null}
+                </div>
+                <dl className="grid gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
+                  <div className="flex gap-1">
+                    <dt>Updated:</dt>
+                    <dd className="text-foreground">
+                      {formatConsentDate(consent.consentUpdatedAt) || "never"}
+                    </dd>
+                  </div>
+                  <div className="flex gap-1">
+                    <dt>Source:</dt>
+                    <dd className="text-foreground">
+                      {consent.source
+                        ? CONSENT_SOURCE_LABELS[consent.source] || consent.source
+                        : "—"}
+                    </dd>
+                  </div>
+                  {consent.sourceOrderId ? (
+                    <div className="flex gap-1">
+                      <dt>Order:</dt>
+                      <dd className="text-foreground">
+                        #{consent.sourceOrderId}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {consent.sourceCountry ? (
+                    <div className="flex gap-1">
+                      <dt>Country:</dt>
+                      <dd className="text-foreground">{consent.sourceCountry}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </div>
+            ) : null}
+
+            {consent?.sms && consent.sms.state !== "not_subscribed" ? (
+              <div className="flex items-center gap-2 border-t pt-3 text-xs">
+                <span className="text-muted-foreground">SMS marketing:</span>
+                <Badge
+                  variant={CONSENT_STATE_BADGES[consent.sms.state] || "secondary"}
+                >
+                  {CONSENT_STATE_LABELS[consent.sms.state] || consent.sms.state}
+                </Badge>
+                {consent.sms.phone ? (
+                  <span className="text-muted-foreground">
+                    {consent.sms.phone}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+
+            {consent?.history && consent.history.length > 0 ? (
+              <details className="border-t pt-3">
+                <summary className="cursor-pointer text-xs font-medium">
+                  Consent history ({consent.history.length})
+                </summary>
+                <ul className="mt-2 space-y-1.5">
+                  {[...consent.history].reverse().map((entry, index) => (
+                    <li
+                      key={`${entry.at}-${index}`}
+                      className="flex flex-wrap gap-x-2 text-xs text-muted-foreground"
+                    >
+                      <span className="text-foreground">
+                        {CONSENT_STATE_LABELS[entry.state] || entry.state}
+                      </span>
+                      <span>·</span>
+                      <span>{formatConsentDate(entry.at)}</span>
+                      {entry.source ? (
+                        <>
+                          <span>·</span>
+                          <span>
+                            {CONSENT_SOURCE_LABELS[entry.source] || entry.source}
+                          </span>
+                        </>
+                      ) : null}
+                      {entry.channel === "sms" ? <span>· SMS</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </div>
 
           <div className="space-y-3">

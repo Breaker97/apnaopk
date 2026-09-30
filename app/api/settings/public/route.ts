@@ -33,7 +33,6 @@ import {
   DEFAULT_PRIMARY_COLOR,
   DEFAULT_SECONDARY_COLOR,
   DEFAULT_STORE_NAME,
-  DEFAULT_TIMEZONE,
   normalizeThemeMode,
   resolveFaviconUrl,
 } from "@/config/branding.config";
@@ -41,9 +40,8 @@ import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { isDemoModeEnabled } from "@/lib/demo-mode";
 import { API_CACHE_CONTROL } from "@/lib/http-cache-policy";
 import {
-  DEFAULT_FREE_SHIPPING_THRESHOLD,
   DEFAULT_ORDER_SHIPPING_COST,
-  DEFAULT_ORDER_TAX_RATE,
+  resolveCartOrderConfig,
 } from "@/lib/orders/order-settings";
 import { isCurrentSmtpConfigurationVerified } from "@/lib/email/smtp-verification";
 import { normalizeCountryAvailability } from "@/lib/intl/country-availability";
@@ -56,6 +54,7 @@ const getPublicSettingsPayload = unstable_cache(
     const header = normalizeHeaderSettings(settings.header);
     const footer = normalizeFooterSettings(settings.footer);
     const checkout = normalizeCheckoutSettings(settings.checkout);
+    const cartOrder = resolveCartOrderConfig(settings);
 
     // Resolve credentials from two sources (DB wins, .env is the fallback).
     const oauth = resolveOAuthCredentials(settings.security);
@@ -90,6 +89,8 @@ const getPublicSettingsPayload = unstable_cache(
         countryAvailability: normalizeCountryAvailability(
           settings.general?.countryAvailability,
         ),
+        // Where the store ships from, which is what an address form opens on.
+        shippingOriginCountry: settings.shipping?.origin?.country || "",
         // Drives the login page's demo-credentials card. Env-derived, so it is
         // constant for the life of the deployment and safe to cache alongside
         // the DB settings.
@@ -112,7 +113,6 @@ const getPublicSettingsPayload = unstable_cache(
         logoUrl: settings.general?.logoUrl,
         darkModeLogoUrl: settings.general?.darkModeLogoUrl,
         faviconUrl: resolveFaviconUrl(settings.general?.faviconUrl),
-        timezone: settings.general?.timezone || DEFAULT_TIMEZONE,
 
         // Appearance
         appearance: {
@@ -122,14 +122,7 @@ const getPublicSettingsPayload = unstable_cache(
             settings.appearance?.secondaryColor || DEFAULT_SECONDARY_COLOR,
           accentColor: settings.appearance?.accentColor || DEFAULT_ACCENT_COLOR,
           theme: normalizeThemeMode(settings.appearance?.theme),
-          contrast: settings.appearance?.contrast || false,
-          rtl: settings.appearance?.rtl || false,
-          collapsedSidebar: settings.appearance?.collapsedSidebar || false,
-          navLayout: settings.appearance?.navLayout || "mini",
-          navColor: settings.appearance?.navColor || "integrate",
           presetColor: settings.appearance?.presetColor || DEFAULT_PRESET_COLOR,
-          fontFamily: settings.appearance?.fontFamily,
-          borderRadius: settings.appearance?.borderRadius,
         },
 
         // Payment (only enabled status, no keys)
@@ -148,12 +141,17 @@ const getPublicSettingsPayload = unstable_cache(
           paypalMode: paypalCreds.mode,
           razorpayKeyId: razorpayCreds.keyId,
           paystackPublicKey: paystackCreds.publicKey,
+          // The site key alone, never the secret: the checkout only renders
+          // the widget with it, and only when the server has asked for one.
+          turnstileSiteKey: settings.payment?.turnstile?.enabled
+            ? settings.payment?.turnstile?.siteKey || undefined
+            : undefined,
           codInstructions: settings.payment?.cod?.instructions,
           codMinOrderAmount: settings.payment?.cod?.minOrderAmount,
           codMaxOrderAmount: settings.payment?.cod?.maxOrderAmount,
-          // Switched on AND able to take the payment — credentials resolve and,
-          // for the per-country wallets, the store currency is one they
-          // settle. Offering one that is not would fail at submit instead.
+          // Switched on AND able to take the payment — credentials resolve and
+          // the store currency is one the gateway settles. Offering one that
+          // is not would fail at submit instead.
           stripeConfigured:
             Boolean(settings.payment?.stripe?.enabled) && gateways.stripe.ready,
           paypalConfigured:
@@ -184,7 +182,6 @@ const getPublicSettingsPayload = unstable_cache(
         // POS
         pos: {
           enabled: settings.pos?.enabled || false,
-          language: settings.pos?.language || "en",
           defaultPosLocationId: settings.pos?.defaultPosLocationId,
           printedReceiptsEnabled:
             settings.pos?.customize?.printedReceiptsEnabled || false,
@@ -214,20 +211,19 @@ const getPublicSettingsPayload = unstable_cache(
 
         // Orders
         orders: {
-          taxRate: settings.orders?.taxRate ?? DEFAULT_ORDER_TAX_RATE,
-          freeShippingThreshold:
-            settings.orders?.freeShippingThreshold ?? DEFAULT_FREE_SHIPPING_THRESHOLD,
+          taxRate: cartOrder.taxRate,
+          freeShippingThreshold: cartOrder.freeShippingThreshold,
           defaultShippingCost:
             settings.orders?.defaultShippingCost ?? DEFAULT_ORDER_SHIPPING_COST,
         },
 
         shipping: {
-          enabled: settings.shipping?.enabled ?? false,
+          enabled: cartOrder.zoneShippingEnabled,
           weightUnit: settings.shipping?.weightUnit ?? "kg",
           delivery: {
             processingDaysMin: settings.shipping?.delivery?.processingDaysMin ?? 0,
             processingDaysMax: settings.shipping?.delivery?.processingDaysMax ?? 0,
-            showEstimatedDelivery: settings.shipping?.delivery?.showEstimatedDelivery ?? true,
+            showEstimatedDelivery: cartOrder.showEstimatedDelivery,
           },
           zones: settings.shipping?.zones ?? [],
           fallbackRate: settings.shipping?.fallbackRate,

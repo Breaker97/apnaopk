@@ -1,6 +1,18 @@
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import { withRequestScope } from "@/lib/api/request-scope";
+import { assertWholeQuantities } from "@/lib/cart/cart-item-quantity";
+import { appUrlForRequest } from "@/lib/app-url";
 import { after, NextRequest, NextResponse } from "next/server";
+import { afterResponse } from "@/lib/after-response";
 import { connectDB } from "@/lib/db";
-import { Cart, Product, Order, User } from "@/models";
+import {
+  Cart,
+  Product,
+  Order,
+  CHECKOUT_ATTEMPT_STATUS,
+} from "@/models";
+import { findAccountForGuestCheckout } from "@/lib/customers/customer";
 import {
   getStripeForSecretKey,
   isStripeSecretKeyConfigured,
@@ -15,10 +27,11 @@ import {
   resolveOrangeMoneyCredentials,
   resolveStripeCredentials,
 } from "@/lib/settings/credentials";
-import { createPayPalOrder } from "@/lib/payments/paypal";
+import { createPayPalOrder, readPayPalOrderCapture } from "@/lib/payments/paypal";
 import {
   createRazorpayOrder,
   getRazorpayCredentials,
+  toRazorpayAmountSubunits,
 } from "@/lib/payments/razorpay";
 import { buildRazorpayCallbackUrl } from "@/lib/payments/razorpay-callback";
 import {
@@ -27,14 +40,11 @@ import {
 } from "@/lib/payments/paystack";
 import {
   getPesapalCredentials,
-  isPesapalCurrency,
   normalizePesapalCountryCode,
-  PESAPAL_CURRENCIES,
   submitPesapalOrder,
 } from "@/lib/payments/pesapal";
 import {
   getIotecCredentials,
-  IOTEC_CURRENCY,
   IOTEC_MIN_AMOUNT,
   IotecApiError,
   normalizeUgandaMsisdn,
@@ -44,16 +54,12 @@ import {
 } from "@/lib/payments/iotec";
 import {
   getOrangeMoneyCredentials,
-  isOrangeMoneyCurrency,
-  ORANGE_MONEY_CURRENCIES,
   orangeMoneyChargeCurrency,
   orangeMoneyLang,
   submitOrangeMoneyPayment,
 } from "@/lib/payments/orange-money";
 import {
   getMtnMomoCredentials,
-  isMtnMomoCurrency,
-  MTN_MOMO_CURRENCIES,
   MtnMomoApiError,
   mtnMomoCallbackUrl,
   mtnMomoChargeCurrency,
@@ -80,16 +86,34 @@ import {
   resolvePurchaseType,
   type PreorderSettingsShape,
 } from "@/lib/orders/preorders";
-import { getNextOnlineOrderNumber } from "@/lib/orders/order-number";
+import { persistOrderFromDocument } from "@/lib/orders/persist-order";
+import {
+  carriedEligibleProductIds,
+  couponVendorKey,
+  encodeEligibleProductIds,
+  remapVendorShares,
+} from "@/lib/orders/coupon-line-split";
 import {
   DEFAULT_FREE_SHIPPING_THRESHOLD,
   DEFAULT_ORDER_SHIPPING_COST,
   DEFAULT_ORDER_TAX_RATE,
+  DEFAULT_VENDOR_COMMISSION_RATE,
 } from "@/lib/orders/order-settings";
+import { returnTermsForNewOrder } from "@/lib/returns/return-policy";
+import { returnRuleCollections } from "@/lib/returns/final-sale-lines";
+import {
+  finalSaleCollectionIdsOf,
+  isFinalSaleProduct,
+} from "@/lib/returns/final-sale";
+import {
+  productReturnWindowDays,
+  returnWindowOverridesOf,
+} from "@/lib/returns/return-window";
 import {
   couponHoldKey,
   holdCouponUse,
   releaseCouponUse,
+  resolveCouponLineDiscounts,
   takeCouponUse,
   splitCouponDiscount,
   validateAndCalculateCoupon,
@@ -125,10 +149,26 @@ import {
   cartLinePriceChanged,
   type CartPriceChange,
 } from "@/lib/checkout/cart-price-change";
+import {
+  assertCartPreorderQuota,
+  preorderLineCartSet,
+  refreshPreorderCartLine,
+} from "@/lib/checkout/preorder-cart-lines";
+import {
+  checkoutAttemptFingerprint,
+  retireCartCheckoutAttempts,
+  retireCheckoutAttempt,
+  takeOverCheckoutAttempt,
+} from "@/lib/checkout/checkout-attempts";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import {
+  MARKETING_CONSENT_STATE,
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+} from "@/config/app.config";
+import {
+  SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
   rateLimitBySession,
   rateLimitByUser,
@@ -142,7 +182,6 @@ import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
 import { isStorefrontProductSourceAllowed } from "@/lib/catalog/product-visibility";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import {
-  bindOffersToOrder,
   loadShopperOffers,
   matchOffersToLines,
   quoteOfferLineKey,
@@ -151,7 +190,9 @@ import {
   buildVendorSubOrders,
   getOrderItemVendorId,
   groupItemsByOrderVendor,
+  readSubOrderVendors,
   resolveOrderVendorContext,
+  type SubOrderVendor,
 } from "@/lib/orders/order-vendors";
 import { ensurePendingChargeTransaction } from "@/lib/payments/payment-transactions";
 import {
@@ -171,6 +212,7 @@ import {
   markCheckoutRecovered,
   updateCheckoutSnapshot,
 } from "@/lib/orders/abandoned-checkouts";
+import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
 import { assertStorefrontWriteAllowed } from "@/lib/maintenance";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
@@ -186,6 +228,34 @@ import {
   type PickupFulfillmentSnapshot,
 } from "@/lib/checkout/checkout-pickup";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
+import { retireRefusedGatewayOrder } from "@/lib/orders/refused-gateway-order";
+import { reserveAsyncPushInventory } from "@/lib/orders/async-push-inventory";
+import { isAttemptGateway } from "@/lib/payments/attempt-gateways";
+import {
+  assertPaymentMethodSettles,
+  storeCurrencyCode,
+} from "@/lib/payments/gateway-currencies";
+import {
+  closeCheckoutAttempt,
+  openCheckoutAttempt,
+  recordAttemptGatewayRefs,
+  recordAttemptTry,
+  takeOverOpenAttempt,
+} from "@/lib/checkout/checkout-attempt-store";
+import {
+  assessCardTesting,
+  CARD_TESTING_BLOCKED_MESSAGE,
+  CARD_TESTING_CAPTCHA_MESSAGE,
+} from "@/lib/checkout/card-testing-guard";
+import { verifyTurnstileToken } from "@/lib/checkout/turnstile";
+import { getClientIP } from "@/lib/api/rate-limit-middleware";
+import { quantizeToCurrency } from "@/lib/intl/money";
+import { checkoutStoreCredit } from "@/lib/store-credit/checkout-credit";
+import { checkoutCreditAvailable } from "@/lib/store-credit/store-credit";
+import {
+  holdCheckoutCredit,
+  linkStoreCreditHold,
+} from "@/lib/store-credit/store-credit";
 
 interface CartItem {
   productId: {
@@ -197,7 +267,15 @@ interface CartItem {
     sku?: string;
     slug?: string;
     shipping?: ProductShippingData;
-    variants?: Array<VariantShippingData & { _id: { toString: () => string } }>;
+    variants?: Array<
+      VariantShippingData & { _id: { toString: () => string }; finalSale?: boolean }
+    >;
+    /**
+     * Read to mark the order line final sale — see lib/returns/final-sale.ts —
+     * and to give it its own return window (lib/returns/return-window.ts).
+     */
+    returns?: { finalSale?: boolean; windowDays?: number | null };
+    collectionIds?: unknown[];
   };
   variantId?: string;
   quantity: number;
@@ -227,6 +305,7 @@ function preorderSplitLines(items: CartItem[]): PreorderSplitLine[] {
       purchaseType: item.purchaseType,
       preorderOutstandingAmount: item.preorderOutstandingAmount,
       vendorId: vendor ? String(typeof vendor === "object" ? vendor._id : vendor) : null,
+      productId: String(item.productId._id),
     };
   });
 }
@@ -270,7 +349,42 @@ type CheckoutShippingAddress = {
  * POST /api/payments/checkout
  * Create checkout payment session/order
  */
+/**
+ * One order per cart on the paths that write the order before any gateway is
+ * involved — cash on delivery, store credit, pay-later. Nothing is charged
+ * there, so nothing stops a second click: a double submit placed the cart
+ * twice, took its stock twice, and let both orders count the same store
+ * credit hold. A claim left by a crashed request goes stale.
+ */
+async function claimCartForOrder(cartId: unknown): Promise<() => Promise<void>> {
+  const claimed = await Cart.findOneAndUpdate(
+    {
+      _id: cartId,
+      "items.0": { $exists: true },
+      $or: [
+        { checkoutClaimedAt: null },
+        { checkoutClaimedAt: { $exists: false } },
+        { checkoutClaimedAt: { $lt: new Date(Date.now() - 30_000) } },
+      ],
+    },
+    { $set: { checkoutClaimedAt: new Date() } },
+  ).lean();
+  if (!claimed) {
+    throw new ValidationError("This order is already being placed. Please wait a moment.");
+  }
+  return () =>
+    Cart.updateOne({ _id: cartId }, { $unset: { checkoutClaimedAt: "" } })
+      .then(() => undefined)
+      .catch((err) => console.error("Failed to release a checkout claim:", err));
+}
+
 export async function POST(request: NextRequest) {
+  // One read of the store's settings for the whole checkout — see
+  // lib/api/request-scope.ts. This route never writes them.
+  return withRequestScope(() => placeCheckout(request));
+}
+
+async function placeCheckout(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     const cartSessionId = request.cookies?.get("cart_session")?.value;
@@ -289,6 +403,7 @@ export async function POST(request: NextRequest) {
         cartSessionId,
         "payments:checkout",
         "strict",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "strict");
@@ -303,6 +418,8 @@ export async function POST(request: NextRequest) {
       locale,
       email,
       couponCode,
+      buyerAcceptsMarketing,
+      smsAcceptsMarketing,
       preorderAcknowledged,
       preorderMandateAccepted,
       setupIntentId,
@@ -316,6 +433,8 @@ export async function POST(request: NextRequest) {
       phone,
       customerNote,
       customFields,
+      turnstileToken,
+      useStoreCredit,
     } = await validateBody(
       request,
       CheckoutSchema,
@@ -344,6 +463,29 @@ export async function POST(request: NextRequest) {
         }
       : shippingAddressInput;
 
+    const cartQuery = session?.user?.id
+      ? { userId: session.user.id }
+      : cartSessionId
+        ? { sessionId: cartSessionId }
+        : null;
+    // The cart (customer or guest) is read alongside the settings: neither
+    // needs the other. Awaited below, after the store-level checks.
+    const cartRead = cartQuery
+      ? Cart.findOne(cartQuery)
+          .populate({
+            path: "items.productId",
+            // `shipping` + `inventory` decide whether `stock` is a limit at all
+            // (lib/products/stock-policy.ts) — resolvePurchaseType() reads them.
+            // `returns` + `collectionIds` mark a final-sale line on the order.
+            select:
+              "name price images vendorId stock inventory sku slug shipping variants returns collectionIds",
+            populate: { path: "vendorId", select: "_id" },
+          })
+          .lean()
+          .exec()
+      : null;
+    cartRead?.catch(() => undefined);
+
     const settings = await getSettings();
     assertStorefrontWriteAllowed(settings.maintenance, settings.general?.storeName);
     if (
@@ -370,6 +512,13 @@ export async function POST(request: NextRequest) {
     }
     const isMultiVendorEnabled = Boolean(settings.multiVendorMode?.enabled);
 
+    // Checkout offers only the gateways that settle the store currency, but a
+    // page opened before the currency changed still posts the old choice.
+    // Refused here, before the cart is used or any stock is held, and in words
+    // meant for the shopper — the per-gateway checks this replaces told them
+    // to change the store's settings.
+    assertPaymentMethodSettles(paymentMethod, storeCurrencyCode(settings));
+
     const paymentSettings = settings.payment || {};
     const stripeSettings = paymentSettings.stripe;
     const paypalSettings = paymentSettings.paypal;
@@ -381,42 +530,39 @@ export async function POST(request: NextRequest) {
     const mtnMomoSettings = paymentSettings.mtn_momo;
     const codSettings = paymentSettings.cod;
 
-    const cartQuery = session?.user?.id
-      ? { userId: session.user.id }
-      : cartSessionId
-        ? { sessionId: cartSessionId }
-        : null;
-
-    if (!cartQuery) {
+    if (!cartRead) {
       throw new ValidationError({ cart: ["Cart is empty"] });
     }
 
-    // Get current cart (customer or guest)
-    const cart = await Cart.findOne(cartQuery)
-      .populate({
-        path: "items.productId",
-        // `shipping` + `inventory` decide whether `stock` is a limit at all
-        // (lib/products/stock-policy.ts) — resolvePurchaseType() reads them.
-        select:
-          "name price images vendorId stock inventory sku slug shipping variants",
-        populate: { path: "vendorId", select: "_id" },
-      })
-      .lean();
+    const cart = await cartRead;
 
     if (!cart || !cart.items || cart.items.length === 0) {
       throw new ValidationError({ cart: ["Cart is empty"] });
     }
 
     const items = cart.items as unknown as CartItem[];
-    // A guest checkout whose email already belongs to a registered account is
+    assertWholeQuantities(items);
+    // The shopper's spendable store credit (R8), read alongside the product
+    // and seller reads that follow: it needs only the shopper, the store
+    // currency and this cart. `checkoutStoreCredit` below decides what of it
+    // this order takes. A shopper who unticked it, and a guest, read nothing.
+    const storeCreditAvailable =
+      session?.user?.id && (useStoreCredit !== false || paymentMethod === "store_credit")
+        ? checkoutCreditAvailable({
+            customerId: session.user.id,
+            currency: settings.general?.defaultCurrency || "USD",
+            cartId: cart._id,
+          })
+        : null;
+    storeCreditAvailable?.catch(() => undefined);
+    // A guest checkout whose email belongs to a shopper's verified account is
     // attached to that account, the way Shopify attaches orders by email —
     // the order shows up in their history immediately instead of waiting for
-    // the login-time claim. Only emails with no account stay guest orders.
+    // the login-time claim. Any other email stays a guest order; see
+    // `findAccountForGuestCheckout`.
     const guestAccount =
       !session?.user?.id && customerEmail
-        ? await User.findOne({ email: customerEmail.trim().toLowerCase() })
-            .select("_id")
-            .lean()
+        ? await findAccountForGuestCheckout(customerEmail)
         : null;
     const customerId =
       session?.user?.id ||
@@ -443,25 +589,37 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (isMultiVendorEnabled) {
-      const vendorIds = Array.from(
-        new Set(
-          items
-            .map((item) => String((item.productId.vendorId as { _id?: string })?._id || item.productId.vendorId || ""))
-            .filter(Boolean),
-        ),
-      );
-      await assertCartVendorsSellable(vendorIds);
-    }
+    // Before any gateway is asked for money: has this shopper's card been
+    // refused so often that the refusals look like a script's? Read now, in
+    // parallel with everything below, and acted on where it always was — the
+    // verdict only needs the cart and the email, which are settled here.
+    // See `lib/checkout/card-testing-guard.ts`.
+    const cardTestingVerdict = assessCardTesting({
+      checkoutToken: cart.checkoutToken,
+      email: customerEmail,
+      clientIp: getClientIP(request),
+    }).catch((err) => {
+      // A counter that cannot be read must not stop a sale.
+      console.error("Failed to assess repeated payment failures:", err);
+      return null;
+    });
+    // The hydrated cart the checkout snapshot is written to, fetched alongside
+    // the reads below. Read again further down if the re-pricing writes to the
+    // cart, since the snapshot copies its lines.
+    let cartDocForSnapshot = Cart.findById(cart._id).exec();
+    cartDocForSnapshot.catch(() => undefined);
 
     const couponCartItems: Array<{
       productId: string;
       price: number;
       quantity: number;
       categoryId?: string;
+      /** Priced by a quote offer — a discount code never comes off it. */
+      quoted?: boolean;
     }> = [];
     // Lines whose live price differs from the one the shopper was shown.
     const priceChanges: CartPriceChange[] = [];
+    const preorderQuotaLines: Parameters<typeof assertCartPreorderQuota>[0] = [];
 
     // Accumulate shippable weight (in the store's weight unit) overall and per
     // vendor, so the rate engine can price weight-based and per-vendor shipping.
@@ -484,31 +642,44 @@ export async function POST(request: NextRequest) {
           "",
       );
 
-    // Validate stock against selected variant (when present) to match inventory decrement rules.
-    // Fetch every cart product in one query instead of one round-trip per item.
-    const stockCheckProducts = await Product.find({
-      _id: { $in: items.map((item) => item.productId._id) },
-    }).lean<Array<StockCheckProduct & { _id: { toString: () => string } }>>();
-    const stockCheckProductById = new Map(
-      stockCheckProducts.map((product) => [product._id.toString(), product]),
-    );
-
+    // Three reads that depend only on the cart, made together rather than one
+    // after another: whether its sellers may sell, every product's live stock
+    // and price (one query, not one per item — validated against the selected
+    // variant to match the inventory decrement rules), and the quote offers.
+    //
     // Quoted lines are priced by the merchant's offer, not by the catalogue —
     // a "price on request" product carries price 0, so the re-pricing below
     // would hand the shopper the whole order for nothing. Offers belong to an
     // account, so a guest checkout resolves none and any quoted line in it is
     // refused (a shopper who was quoted signs in; that is how the price found
     // them in the first place).
+    const [, stockCheckProducts, shopperOffers] = await Promise.all([
+      isMultiVendorEnabled
+        ? assertCartVendorsSellable(
+            Array.from(new Set(items.map(itemVendorId).filter(Boolean))),
+          )
+        : undefined,
+      Product.find({
+        _id: { $in: items.map((item) => item.productId._id) },
+      }).lean<Array<StockCheckProduct & { _id: { toString: () => string } }>>(),
+      loadShopperOffers(session?.user?.id, {
+        productIds: items.map((item) => String(item.productId._id)),
+      }),
+    ]);
+    const stockCheckProductById = new Map(
+      stockCheckProducts.map((product) => [product._id.toString(), product]),
+    );
     const quoteOffers = matchOffersToLines(
       items.map((item) => ({
         productId: item.productId._id,
         variantId: item.variantId,
         quantity: item.quantity,
       })),
-      await loadShopperOffers(session?.user?.id, {
-        productIds: items.map((item) => String(item.productId._id)),
-      }),
+      shopperOffers,
     );
+    // The price each line was stored with, so the re-pricing below writes back
+    // only the lines whose price actually moved.
+    const storedLinePrice = new Map(items.map((item) => [item, item.price]));
 
     for (const item of items) {
       const product = stockCheckProductById.get(String(item.productId._id));
@@ -561,6 +732,7 @@ export async function POST(request: NextRequest) {
         product,
         variantId: item.variantId,
         requestedQuantity: item.quantity,
+        quoted: Boolean(lineOffer),
       });
       const expectedPurchaseType = item.purchaseType || PURCHASE_TYPE.STANDARD;
       if (!purchase || purchase.purchaseType !== expectedPurchaseType) {
@@ -585,15 +757,36 @@ export async function POST(request: NextRequest) {
       // Re-price standard lines from the LIVE product so a stale cart snapshot
       // (carts live up to 30 days) can't lock an old price in either direction.
       // Variant-aware: product.price is only the cheapest-variant mirror.
-      // Pre-order lines are left untouched — their deposit/outstanding amounts
-      // were computed against the price quoted at reservation time.
+      // Pre-order lines get the same, terms and date included — see
+      // `refreshPreorderCartLine`.
       if (lineOffer) {
         // Not a price change: GET /api/cart already shows the shopper the
         // offer, so this is the figure on their screen.
         item.price = lineOffer.unitPrice;
-      } else if (
-        (item.purchaseType || PURCHASE_TYPE.STANDARD) !== PURCHASE_TYPE.PREORDER
-      ) {
+      } else if (purchase.purchaseType === PURCHASE_TYPE.PREORDER) {
+        const refreshed = refreshPreorderCartLine({
+          item,
+          product: product as unknown as Parameters<typeof refreshPreorderCartLine>[0]["product"],
+          purchase,
+          currency: settings.general?.defaultCurrency || "USD",
+        });
+        if (refreshed.changed) {
+          priceChanges.push({
+            productId: String(item.productId._id),
+            variantId: item.variantId ? String(item.variantId) : undefined,
+            name: item.productId.name,
+            previousPrice: refreshed.previousPrice,
+            price: refreshed.price,
+          });
+        }
+        preorderQuotaLines.push({
+          productId: String(item.productId._id),
+          product: product as unknown as Parameters<typeof refreshPreorderCartLine>[0]["product"],
+          variantId: item.variantId ? String(item.variantId) : undefined,
+          quantity: item.quantity,
+          name: item.productId.name,
+        });
+      } else {
         const liveVariant = item.variantId
           ? (
               product.variants as
@@ -626,6 +819,7 @@ export async function POST(request: NextRequest) {
         price: item.price,
         quantity: item.quantity,
         categoryId: product.category ? String(product.category) : undefined,
+        quoted: Boolean(lineOffer),
       });
 
       const selectedVariant = item.variantId
@@ -718,12 +912,29 @@ export async function POST(request: NextRequest) {
     // the cart (notably the Stripe Checkout Session finalizer) charge and
     // record the same price, and the cart-tampering guard doesn't reject a
     // legitimately re-priced order. Idempotent when nothing changed.
+    // Only the lines whose stored price moved (or pre-order lines, whose terms
+    // are worked out again): an unchanged cart used to be rewritten on every
+    // checkout.
     const repriceOps = items
       .filter((item) => (item as unknown as { _id?: unknown })._id)
+      .filter(
+        (item) =>
+          item.price !== storedLinePrice.get(item) ||
+          (item.purchaseType || PURCHASE_TYPE.STANDARD) === PURCHASE_TYPE.PREORDER,
+      )
       .map((item) => ({
         updateOne: {
           filter: { _id: cart._id },
-          update: { $set: { "items.$[el].price": item.price } },
+          update: {
+          $set: {
+            "items.$[el].price": item.price,
+            // A pre-order line's terms were worked out again with its price.
+            ...((item.purchaseType || PURCHASE_TYPE.STANDARD) ===
+            PURCHASE_TYPE.PREORDER
+              ? preorderLineCartSet(item, (field) => `items.$[el].${field}`)
+              : {}),
+          },
+        },
           arrayFilters: [
             { "el._id": (item as unknown as { _id: unknown })._id },
           ],
@@ -733,6 +944,8 @@ export async function POST(request: NextRequest) {
     // or ordered unseen: stop before any gateway is asked for anything. The
     // new prices are written first — and awaited, since the page re-reads the
     // cart to show them and the next attempt must find them there.
+    // Every option of a product sharing one pre-order counter, together.
+    assertCartPreorderQuota(preorderQuotaLines);
     if (priceChanges.length > 0) {
       await Cart.bulkWrite(repriceOps);
       throw new ConflictError(CART_PRICES_CHANGED_MESSAGE, {
@@ -744,6 +957,8 @@ export async function POST(request: NextRequest) {
       await Cart.bulkWrite(repriceOps).catch((err) =>
         console.error("Failed to persist re-priced cart items:", err),
       );
+      cartDocForSnapshot = Cart.findById(cart._id).exec();
+      cartDocForSnapshot.catch(() => undefined);
     }
 
     // Calculate totals
@@ -767,6 +982,7 @@ export async function POST(request: NextRequest) {
           discount: number;
           maxDiscount?: number;
           vendorShares?: Record<string, number>;
+          eligibleProductIds?: string[];
           shippingShares?: Record<string, number>;
           shippingVendorId?: string;
           fundedBy: "platform" | "vendor";
@@ -808,6 +1024,7 @@ export async function POST(request: NextRequest) {
           isMultiVendorEnabled,
           selectedShippingOptionId,
           vendorShippingSelections,
+          currency: settings.general?.defaultCurrency,
         });
     if (shippingResolution && !shippingResolution.available) {
       throw new ValidationError(SHIPPING_UNAVAILABLE_MESSAGE);
@@ -844,6 +1061,7 @@ export async function POST(request: NextRequest) {
         shippingByVendor,
         cartItems: couponCartItems,
         userId: session?.user?.id || (guestAccount ? String(guestAccount._id) : undefined),
+        currency: settings.general?.defaultCurrency,
         email: customerEmail,
       });
     }
@@ -864,14 +1082,27 @@ export async function POST(request: NextRequest) {
     const couponVendorShares = appliedCoupon?.vendorShares
       ? discount === appliedCoupon.discount
         ? appliedCoupon.vendorShares
-        : splitCouponDiscount(discount, appliedCoupon.vendorShares)
+        : splitCouponDiscount(
+            discount,
+            appliedCoupon.vendorShares,
+            settings.general?.defaultCurrency,
+          )
       : undefined;
     // The same for a free-shipping coupon: whose delivery it actually paid
     // for — see `shippingDiscount` on the sub-order.
     const couponShippingShares = appliedCoupon?.shippingShares
       ? discount === appliedCoupon.discount
         ? appliedCoupon.shippingShares
-        : splitCouponDiscount(discount, appliedCoupon.shippingShares)
+        : splitCouponDiscount(
+            discount,
+            appliedCoupon.shippingShares,
+            settings.general?.defaultCurrency,
+          )
+      : undefined;
+    // The products a scoped coupon applied to, as the card payment will carry
+    // them — see `carriedEligibleProductIds`.
+    const couponEligibleProductIds = couponVendorShares
+      ? carriedEligibleProductIds(appliedCoupon?.eligibleProductIds)
       : undefined;
     // What is owed later, after the coupon — which comes off the deposit and
     // the balance in proportion rather than all off the deposit. See
@@ -881,10 +1112,55 @@ export async function POST(request: NextRequest) {
       {
         goodsDiscount: totals.subtotalDiscount,
         vendorShares: couponVendorShares,
+        eligibleProductIds: couponEligibleProductIds,
       },
       settings.general?.defaultCurrency || "USD",
     );
-    const paymentDueNow = Math.max(0, total - preorderOutstandingAmount);
+    const dueBeforeStoreCredit = Math.max(0, total - preorderOutstandingAmount);
+    // What the shopper's store credit pays of this order (R8), held for it
+    // below and spent when its payment lands. The gateway is asked for the
+    // rest; a cash courier collects the rest.
+    const storeCreditApplied = await checkoutStoreCredit({
+      userId: session?.user?.id,
+      useStoreCredit,
+      currency: settings.general?.defaultCurrency || "USD",
+      cartId: cart._id,
+      dueNow: dueBeforeStoreCredit,
+      hasPreorder,
+      paymentMethod,
+      vendorIds:
+        paymentMethod === "cod"
+          ? [
+              ...groupItemsByOrderVendor(
+                items,
+                await resolveOrderVendorContext({ isMultiVendorEnabled }),
+                (item) => item.productId.vendorId,
+              ).keys(),
+            ]
+          : undefined,
+      codCollectedByDefault: settings.shipping?.codCollectedBy,
+      available: storeCreditAvailable,
+    });
+    const paymentDueNow = quantizeToCurrency(
+      Math.max(0, dueBeforeStoreCredit - storeCreditApplied),
+      settings.general?.defaultCurrency || "USD",
+    );
+    if (paymentMethod === "store_credit" && paymentDueNow > 0) {
+      throw new ValidationError({
+        paymentMethod: [
+          "Your store credit doesn't cover this order. Choose how to pay the rest.",
+        ],
+      });
+    }
+    // Nothing left for the chosen method to take: the checkout places such an
+    // order as paid with store credit, and a gateway asked for nothing fails.
+    if (paymentMethod !== "store_credit" && storeCreditApplied > 0 && !(paymentDueNow > 0)) {
+      throw new ValidationError({
+        paymentMethod: [
+          "Your store credit covers this order. Place it without choosing a payment method.",
+        ],
+      });
+    }
 
     if (!paymentMethod) {
       throw new ValidationError({
@@ -936,24 +1212,123 @@ export async function POST(request: NextRequest) {
     const activeLocale =
       typeof locale === "string" && locale.length > 0 ? locale : "en";
 
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+    const origin = appUrlForRequest(request);
+    // Where a gateway, or this answer, sends the shopper back — in the store's
+    // own spelling of the path: the default language has no prefix, and
+    // `/en/checkout/success` cost every default-language checkout a redirect.
+    const { storeDefault } = await getLocaleRouting();
+    const checkoutUrl = (path: string) =>
+      `${origin}${buildLocalePath(activeLocale, path, storeDefault)}`;
 
-    const cartDoc = await Cart.findById(cart._id);
-    if (cartDoc) {
-      // Stripe's hosted page creates the order later, from the webhook, and
-      // only the cart survives until then.
+    // "Email me with news and offers", but only where the store actually
+    // offers the box — a tampered payload may not subscribe a shopper who was
+    // never shown it. Written to the customer record rather than left on the
+    // cart snapshot, which is all it used to reach: a shopper who completed
+    // the order lost the consent, and with abandoned tracking off nothing kept
+    // it at all. See `recordCheckoutMarketingConsent` for why it never
+    // unsubscribes.
+    const marketingConsented =
+      buyerAcceptsMarketing === true &&
+      submission.checkout.contact.marketingOptIn.enabled;
+    if (marketingConsented) {
+      const { recordCheckoutMarketingConsent } = await import(
+        "@/lib/customers/customer"
+      );
+      const doubleOptIn =
+        submission.checkout.contact.marketingOptIn.doubleOptIn;
+      const consent = await recordCheckoutMarketingConsent({
+        accepted: true,
+        // Where they were when they agreed — the country decides whether a
+        // pre-ticked box was lawful, which is the first thing an audit asks.
+        sourceCountry: normalizedShippingAddress?.country,
+        doubleOptIn,
+        userId: session?.user?.id || (guestAccount ? String(guestAccount._id) : null),
+        guestEmail: customerEmail,
+      }).catch((err) => {
+        console.error("Failed to record checkout marketing consent:", err);
+        return null;
+      });
+      // Pending is not a subscriber: ask for the confirmation that makes it
+      // one. Sent after the response, because it is an SMTP round trip and
+      // the shopper is waiting on an order — the comment above used to claim
+      // this and the `await` said otherwise, so a slow mail server delayed
+      // every checkout and a failing one could lose the order to a timeout.
+      const confirmationEmail = customerEmail;
+      // Owed once, on the way INTO pending: a shopper already on the list is
+      // left there (`setMarketingConsent`, rule 4), and one who is still
+      // pending already holds a link that works — a declined card retried
+      // three times must not send three of them.
+      if (
+        doubleOptIn &&
+        confirmationEmail &&
+        consent?.state === MARKETING_CONSENT_STATE.PENDING &&
+        consent.previousState !== MARKETING_CONSENT_STATE.PENDING
+      ) {
+        afterResponse(async () => {
+          const { sendMarketingConfirmationEmail } = await import(
+            "@/lib/customers/marketing-confirmation"
+          );
+          await sendMarketingConfirmationEmail({
+            email: confirmationEmail,
+            settings,
+            locale: activeLocale,
+          });
+        });
+      }
+    }
+
+    // The same for "text me with news and offers", which is shown instead of
+    // the email box when the shopper's contact is a number. The number is
+    // resolved to E.164 here rather than taken from the browser, so a consent
+    // is only ever recorded against something the store can actually text.
+    if (
+      smsAcceptsMarketing === true &&
+      submission.checkout.contact.smsOptIn.enabled
+    ) {
+      const [{ recordCheckoutSmsConsent }, { normalizePhoneNumber }] =
+        await Promise.all([
+          import("@/lib/customers/customer"),
+          import("@/lib/sms/phone"),
+        ]);
+      await recordCheckoutSmsConsent({
+        accepted: true,
+        userId:
+          session?.user?.id || (guestAccount ? String(guestAccount._id) : null),
+        guestEmail: customerEmail,
+        phone:
+          normalizePhoneNumber(
+            submission.contactPhone || normalizedShippingAddress?.phone,
+            {
+              country: normalizedShippingAddress?.country,
+              defaultCountry:
+                settings.sms?.defaultCountry ||
+                settings.shipping?.origin?.country,
+            },
+          ) ?? null,
+        sourceCountry: normalizedShippingAddress?.country,
+      }).catch((err) =>
+        console.error("Failed to record checkout SMS consent:", err),
+      );
+    }
+
+    // Stripe's hosted page creates the order later, from the webhook, and only
+    // the cart survives until then — so every method but cash on delivery waits
+    // for this write before the shopper is sent to pay. A COD order is created
+    // right here, and for it the snapshot is only the abandoned-checkout list's
+    // record of the attempt: written while the stock moves and waited for just
+    // before the answer — or, should the order fail first, finished after it.
+    const snapshotWritten = (async () => {
+      const cartDoc = await cartDocForSnapshot;
+      if (!cartDoc) return;
       cartDoc.checkoutDetails = checkoutDetails;
       await updateCheckoutSnapshot(cartDoc, {
         trackAbandoned: submission.checkout.abandonedCheckouts.enabled,
-        origin,
         locale: activeLocale,
         email: customerEmail,
         phone: normalizedShippingAddress.phone,
         customerName: normalizedShippingAddress.fullName,
         customerLocale: activeLocale,
+        buyerAcceptsMarketing: marketingConsented,
         shippingAddress: normalizedShippingAddress,
         billingAddress: normalizedBillingAddress,
         gateway: paymentMethod,
@@ -969,11 +1344,83 @@ export async function POST(request: NextRequest) {
           message: "Checkout payment started",
         },
       });
-    }
+    })();
+    const codSnapshotWritten =
+      paymentMethod === "cod"
+        ? snapshotWritten.catch((err) =>
+            console.error("Failed to record the COD checkout snapshot:", err),
+          )
+        : undefined;
+    if (codSnapshotWritten) afterResponse(() => codSnapshotWritten);
+    else await snapshotWritten;
 
     // One use of a limited coupon, kept for this shopper while they pay. Every
     // branch below either takes a payment or commits the order, and each is
     // refused here, before any of that, when the coupon has no use to spare.
+    // The card-testing verdict (read in parallel since the cart loaded), acted
+    // on here: after the cart and the prices are settled and before the first
+    // gateway call, so a paused checkout costs nobody a gateway request — and
+    // so the answer is the same whichever payment method was chosen. See
+    // `lib/checkout/card-testing-guard.ts` for why the pause follows the
+    // session and the email rather than the address.
+    const cardTesting = await cardTestingVerdict;
+
+    if (cardTesting?.blocked) {
+      throw new ValidationError({
+        payment: [CARD_TESTING_BLOCKED_MESSAGE],
+      });
+    }
+
+    if (cardTesting?.requireCaptcha) {
+      const check = await verifyTurnstileToken({
+        settings,
+        token: turnstileToken,
+        clientIp: getClientIP(request),
+      });
+      if (!check.ok) {
+        throw new ValidationError({
+          turnstile: [CARD_TESTING_CAPTCHA_MESSAGE],
+        });
+      }
+    }
+
+    // Everything a redirect-gateway order is written from. The same hash on a
+    // retry from the same cart means the order already made can stand in for
+    // a new one — see `lib/checkout/checkout-attempts.ts`.
+    const attemptFingerprint = checkoutAttemptFingerprint({
+      customerId,
+      guestEmail,
+      currency: settings.general?.defaultCurrency || "USD",
+      items: items.map((item) => ({
+        productId: item.productId._id,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.price,
+        quoteId: item.quoteId,
+        purchaseType: item.purchaseType,
+        deposit: item.preorderDepositAmount,
+        outstanding: item.preorderOutstandingAmount,
+      })),
+      subtotal,
+      discount,
+      shippingCost,
+      tax,
+      total,
+      paymentDueNow,
+      storeCredit: storeCreditApplied,
+      coupon: appliedCoupon?.code,
+      shippingAddress: normalizedShippingAddress,
+      billingAddress: normalizedBillingAddress,
+      shippingMethod: selectedShippingMethod,
+      customs: customsEstimate,
+      fulfillment: pickupFulfillment,
+      checkoutDetails,
+    });
+    const attemptFields = {
+      checkoutCartId: cart._id,
+      checkoutFingerprint: attemptFingerprint,
+    };
+
     const checkoutCouponHoldKey = couponHoldKey(customerId);
     if (appliedCoupon) {
       await holdCouponUse({
@@ -981,6 +1428,27 @@ export async function POST(request: NextRequest) {
         holdKey: checkoutCouponHoldKey,
       });
     }
+
+    // The shopper's store credit, held for this checkout until its payment
+    // lands (R8) — one hold per cart, picked up again by a retry of the same
+    // checkout. See `holdCheckoutCredit`.
+    const orderStoreCredit =
+      storeCreditApplied > 0 && session?.user?.id
+        ? {
+            applied: storeCreditApplied,
+            holdKey: (
+              await holdCheckoutCredit({
+                customerId: session.user.id,
+                currency: settings.general?.defaultCurrency || "USD",
+                amount: storeCreditApplied,
+                cartId: cart._id,
+                method: paymentMethod,
+                fingerprint: attemptFingerprint,
+              })
+            ).holdKey,
+            state: "held" as const,
+          }
+        : undefined;
 
     // Handle COD (Cash on Delivery)
     if (paymentMethod === "cod") {
@@ -990,14 +1458,21 @@ export async function POST(request: NextRequest) {
         hasDigitalItems,
         hasPreorder,
       });
+      // One order per cart — see `claimCartForOrder`.
+      const releaseCartClaim = await claimCartForOrder(cart._id);
 
       // The order is the commitment, so the coupon's use is taken now — and
       // refused now if it has none — rather than counted once the order exists.
       if (appliedCoupon) {
-        await takeCouponUse({
-          couponId: appliedCoupon.couponId,
-          holdKey: checkoutCouponHoldKey,
-        });
+        try {
+          await takeCouponUse({
+            couponId: appliedCoupon.couponId,
+            holdKey: checkoutCouponHoldKey,
+          });
+        } catch (err) {
+          await releaseCartClaim();
+          throw err;
+        }
       }
       const giveBackCouponUse = () =>
         appliedCoupon
@@ -1005,6 +1480,19 @@ export async function POST(request: NextRequest) {
               console.error("Failed to give back a COD coupon use:", err),
             )
           : Promise.resolve();
+
+      // The sellers' commission and COD records the order's consignments are
+      // built from, read while the stock moves rather than after it.
+      const subOrderVendors = isMultiVendorEnabled
+        ? readSubOrderVendors(
+            Array.from(new Set(items.map(itemVendorId).filter(Boolean))),
+          )
+        : undefined;
+      subOrderVendors?.catch(() => undefined);
+      // Where the stock landed, the storefront refresh and low-stock alerts:
+      // run alongside the order's creation and waited for before the answer —
+      // or, should the order fail first, finished after it.
+      let stockAftermath: Promise<void> | undefined;
 
       // Every line is a standard purchase here — the pre-order guard above
       // keeps reservation-type lines off the COD path entirely.
@@ -1019,14 +1507,21 @@ export async function POST(request: NextRequest) {
         // whichever branch happens to hold the most. The order does not exist
         // yet on this path, so the snapshot is read directly rather than
         // through `orderInventoryOpts`.
-        await decrementInventory(
-          inventoryLines,
-          pickupFulfillment
+        await decrementInventory(inventoryLines, {
+          ...(pickupFulfillment
             ? { locationId: pickupFulfillment.pickup.pickupLocationId }
-            : {},
-        );
+            : {}),
+          onAftermath: (aftermath) => {
+            const settled = aftermath.catch((err) =>
+              console.error("Failed to finish a COD stock movement:", err),
+            );
+            stockAftermath = settled;
+            afterResponse(() => settled);
+          },
+        });
       } catch (err) {
         await giveBackCouponUse();
+        await releaseCartClaim();
         if (err instanceof InsufficientStockError) {
           const failedItem = items.find(
             (item) => String(item.productId._id) === String(err.line.productId),
@@ -1045,6 +1540,7 @@ export async function POST(request: NextRequest) {
       try {
         order = await createOrder({
           ...checkoutDetails,
+          storeCredit: orderStoreCredit,
           customerId,
           guestEmail,
           items,
@@ -1070,11 +1566,13 @@ export async function POST(request: NextRequest) {
                 value: appliedCoupon.value,
                 couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
                 fundedBy: appliedCoupon.fundedBy,
               }
             : undefined,
           isMultiVendorEnabled,
+          subOrderVendors,
           orderPrefix: orderSettings.prefix,
           currency: settings.general?.defaultCurrency || "USD",
         });
@@ -1089,17 +1587,27 @@ export async function POST(request: NextRequest) {
             : {},
         ).catch(() => undefined);
         await giveBackCouponUse();
+        await releaseCartClaim();
         throw err;
       }
 
       // Mark sub-orders as having inventory reserved so cancel/refund paths
-      // know which lines to restore.
-      await markOrderInventoryReserved(String(order._id)).catch((err) =>
-        console.error("Failed to mark inventory reserved on COD order:", err),
-      );
-
-      // Clear cart only after order + inventory succeed.
-      await Cart.findByIdAndUpdate(cart._id, { $set: { items: [] } });
+      // know which lines to restore — and clear the cart, which waits only on
+      // the order and the inventory having succeeded. Independent, so together,
+      // with the snapshot and the stock follow-up started earlier. The cart is
+      // emptied and its claim released in one write: the empty cart is what
+      // refuses a late duplicate from here on.
+      await Promise.all([
+        markOrderInventoryReserved(String(order._id)).catch((err) =>
+          console.error("Failed to mark inventory reserved on COD order:", err),
+        ),
+        Cart.findByIdAndUpdate(cart._id, {
+          $set: { items: [] },
+          $unset: { checkoutClaimedAt: "" },
+        }),
+        codSnapshotWritten,
+        stockAftermath,
+      ]);
 
       // Bookkeeping, confirmation email (PDF invoice + SMTP), and
       // notifications run after the response streams so the customer
@@ -1121,6 +1629,7 @@ export async function POST(request: NextRequest) {
           currency: settings.general?.defaultCurrency,
           channel: "online",
           createdAt: order.createdAt,
+          storeCredit: order.storeCredit ?? null,
         }).catch((err) => {
           console.error("Failed to sync pending COD payment transaction:", err);
         });
@@ -1128,6 +1637,7 @@ export async function POST(request: NextRequest) {
         await markCheckoutRecovered({
           cartId: cart._id,
           orderId: order._id,
+          total: order.total,
           paymentEvent: {
             gateway: "cod",
             status: "succeeded",
@@ -1183,7 +1693,7 @@ export async function POST(request: NextRequest) {
           orderId: order._id,
           orderNumber: order.orderNumber,
           paymentMethod: "cod",
-          redirectUrl: `${origin}/${activeLocale}/checkout/success?order=${order.orderNumber}`,
+          redirectUrl: `${checkoutUrl("/checkout/success")}?order=${order.orderNumber}`,
         },
       });
     }
@@ -1232,15 +1742,24 @@ export async function POST(request: NextRequest) {
           "Pay-later pre-order accepted the card mandate without a saved card",
         );
       }
+      // One order per cart: a double-submit created two orders from the same
+      // cart and reserved its places twice — see `claimCartForOrder`.
+      const releaseCartClaim = await claimCartForOrder(cart._id);
+
       const preorderLines = getOrderPreorderLines(items);
       // Nothing is captured later that would count the coupon, so its use is
       // taken with the order, as cash on delivery's is; cancelling or expiring
       // the pre-order gives it back.
       if (appliedCoupon) {
-        await takeCouponUse({
-          couponId: appliedCoupon.couponId,
-          holdKey: checkoutCouponHoldKey,
-        });
+        try {
+          await takeCouponUse({
+            couponId: appliedCoupon.couponId,
+            holdKey: checkoutCouponHoldKey,
+          });
+        } catch (err) {
+          await releaseCartClaim();
+          throw err;
+        }
       }
       const giveBackCouponUse = () =>
         appliedCoupon
@@ -1252,12 +1771,14 @@ export async function POST(request: NextRequest) {
         await reservePreorderQuantity(preorderLines);
       } catch (err) {
         await giveBackCouponUse();
+        await releaseCartClaim();
         throw err;
       }
       let order: Awaited<ReturnType<typeof createOrder>>;
       try {
         order = await createOrder({
           ...checkoutDetails,
+          storeCredit: orderStoreCredit,
           customerId,
           guestEmail,
           items,
@@ -1286,6 +1807,7 @@ export async function POST(request: NextRequest) {
                 value: appliedCoupon.value,
                 couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
                 fundedBy: appliedCoupon.fundedBy,
               }
@@ -1297,12 +1819,22 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         await releasePreorderQuantity(preorderLines).catch(() => undefined);
         await giveBackCouponUse();
+        await releaseCartClaim();
         throw err;
       }
       await markOrderPreorderReserved(String(order._id)).catch((err) =>
         console.error("Failed to mark pay-later preorder reserved:", err),
       );
-      await Cart.findByIdAndUpdate(cart._id, { $set: { items: [] } });
+      // Emptied and released together: the empty cart is what refuses a late
+      // duplicate from here on.
+      await Cart.findByIdAndUpdate(cart._id, {
+        $set: { items: [] },
+        $unset: { checkoutClaimedAt: "" },
+      });
+      // Any redirect-gateway attempt from this cart will never be paid now.
+      await retireCartCheckoutAttempts(cart._id, order._id).catch((err) =>
+        console.error("Failed to retire the cart's gateway attempts:", err),
+      );
       after(async () => {
         await notifyOrderCreatedParticipants(order).catch((err) =>
           console.error(
@@ -1317,6 +1849,212 @@ export async function POST(request: NextRequest) {
           orderId: order._id,
           orderNumber: order.orderNumber,
           paymentMethod: "pay_later",
+          redirectUrl: `${checkoutUrl("/checkout/success")}?order=${order.orderNumber}`,
+        },
+      });
+    }
+
+
+    /**
+     * Everything an order document needs except the gateway's own part, so a
+     * checkout attempt's snapshot is built from exactly what a pre-created
+     * order would have been. Each gateway spreads it and adds `paymentMethod`
+     * and its own references.
+     *
+     * The legacy `createOrder` calls below still spell this out inline; they
+     * go away as each gateway is switched over, and changing both shapes at
+     * once would be a large diff across seven branches for no gain.
+     */
+    const baseOrderDocumentParams = {
+      ...checkoutDetails,
+      storeCredit: orderStoreCredit,
+      customerId,
+      guestEmail,
+      items,
+      shippingAddress: normalizedShippingAddress,
+      digitalOnly,
+      billingAddress: normalizedBillingAddress,
+      shippingMethod: selectedShippingMethod,
+      customs: customsEstimate,
+      vendorShippingCosts,
+      fulfillment: pickupFulfillment,
+      paymentStatus: PAYMENT_STATUS.PENDING,
+      subtotal,
+      discount,
+      shippingCost,
+      tax,
+      total,
+      coupon: appliedCoupon
+        ? {
+            code: appliedCoupon.code,
+            type: appliedCoupon.type,
+            value: appliedCoupon.value,
+            couponId: appliedCoupon.couponId,
+            vendorShares: couponVendorShares,
+            eligibleProductIds: couponEligibleProductIds,
+            shippingShares: couponShippingShares,
+            fundedBy: appliedCoupon.fundedBy,
+          }
+        : undefined,
+      ...attemptFields,
+      isMultiVendorEnabled,
+      orderPrefix: orderSettings.prefix,
+      currency: settings.general?.defaultCurrency || "USD",
+    };
+
+    /**
+     * Open an attempt for this cart on a gateway that has been switched over,
+     * and hold its goods for the payment window.
+     *
+     * The hold is what keeps two shoppers from both paying for the last unit
+     * while each is away at a gateway — the one failure a redirect gateway
+     * cannot undo gracefully. It lapses on its own clock, long before the
+     * attempt does; see `lib/checkout/attempt-stock-hold.ts`.
+     */
+    const openAttemptFor = async (
+      method: string,
+      gatewayFields: Record<string, unknown> = {},
+    ) => {
+      const attempt = await openCheckoutAttempt({
+        snapshot: await buildOrderDocument({
+          ...baseOrderDocumentParams,
+          paymentMethod: method,
+          ...gatewayFields,
+        }),
+        paymentMethod: method,
+        cartId: cart._id,
+        checkoutToken: cart.checkoutToken,
+        customerId,
+        guestEmail,
+        sessionId: cart.sessionId,
+        fingerprint: attemptFingerprint,
+        clientIp: getClientIP(request),
+        userAgent: request.headers.get("user-agent") || undefined,
+      });
+
+      const holdSettings = normalizeCheckoutSettings(settings.checkout).stockHold;
+      // A pre-order holds quota, not stock, and that quota is taken by the
+      // path that owns it (`reservePreorderQuantity`, above).
+      if (holdSettings.enabled && !hasPreorder) {
+        const { holdAttemptStock } = await import(
+          "@/lib/checkout/attempt-stock-hold"
+        );
+        const soldOut = await holdAttemptStock({
+          attemptId: attempt._id,
+          items,
+          minutes: holdSettings.minutes,
+          inventoryOpts: pickupFulfillment
+            ? { locationId: pickupFulfillment.pickup.pickupLocationId }
+            : {},
+        });
+        if (soldOut) {
+          // Nothing was taken (the decrement rolls its own partial work
+          // back), and the attempt is closed rather than left holding a
+          // gateway session for goods that are gone.
+          await abandonAttempt(attempt._id);
+          const failedItem = items.find(
+            (item) => String(item.productId._id) === soldOut.soldOutProductId,
+          );
+          throw new ValidationError({
+            stock: [
+              `${failedItem?.productId.name || "Product"} is out of stock or has insufficient quantity`,
+            ],
+          });
+        }
+      }
+
+      return attempt;
+    };
+
+    /**
+     * Close an attempt whose gateway never gave it a session.
+     *
+     * Without this the attempt sits open holding the shopper's goods until the
+     * hold sweep comes round — a quarter of an hour of a shop being short of
+     * stock because a payment provider answered with an error. Nothing can
+     * ever be paid against it either: no reference was recorded, so no
+     * finalizer could find it.
+     */
+    const abandonAttempt = async (attemptId: unknown) => {
+      await closeCheckoutAttempt(
+        attemptId,
+        CHECKOUT_ATTEMPT_STATUS.SUPERSEDED,
+      ).catch((error) =>
+        console.error(
+          "Failed to close a checkout attempt the gateway refused:",
+          error,
+        ),
+      );
+    };
+
+    /** Run the gateway's own call, closing the attempt if it refuses. */
+    const withAttempt = async <T>(
+      attemptId: unknown,
+      call: () => Promise<T>,
+    ): Promise<T> => {
+      try {
+        return await call();
+      } catch (error) {
+        await abandonAttempt(attemptId);
+        throw error;
+      }
+    };
+
+    // Store credit covers all of it (R8): there is nothing to ask a gateway
+    // for. The order is written paid and settled the way a captured payment
+    // is — stock taken, coupon used, cart closed, the shopper told — and the
+    // credit's hold is spent with it.
+    if (paymentMethod === "store_credit") {
+      if (!orderStoreCredit) {
+        throw new ValidationError({
+          paymentMethod: ["You have no store credit to pay with. Choose another way to pay."],
+        });
+      }
+      // One order per cart — see `claimCartForOrder`. Released once settled:
+      // by then the cart is closed, which refuses a late duplicate.
+      const releaseCartClaim = await claimCartForOrder(cart._id);
+      let settled: { ok: boolean };
+      let order: Awaited<ReturnType<typeof createOrder>>;
+      try {
+        order = await createOrder({
+          ...baseOrderDocumentParams,
+          paymentMethod: "store_credit",
+          paymentStatus: PAYMENT_STATUS.PAID,
+          paidAt: new Date(),
+        });
+        const [{ settleCapturedOrder }, { customerActor }] = await Promise.all([
+          import("@/lib/payments/finalize-order"),
+          import("@/lib/orders/audit-order"),
+        ]);
+        settled = await settleCapturedOrder({
+          order: order as unknown as Parameters<typeof settleCapturedOrder>[0]["order"],
+          provider: { label: "Store credit", recoveryGateway: "store_credit" },
+          paymentId: orderStoreCredit.holdKey,
+          auditTransactionId: null,
+          recordPlacement: true,
+          settings,
+          actor: customerActor(request, session),
+          cart: { cartId: cart._id },
+          recoveryMessage: "Paid with store credit",
+          customerEmail,
+        });
+      } finally {
+        await releaseCartClaim();
+      }
+      if (!settled.ok) {
+        // Called off with the credit given back — see `settleCapturedOrder`.
+        throw new ValidationError({
+          stock: [
+            "Some items in your cart sold out just now. Your store credit has been given back.",
+          ],
+        });
+      }
+      return NextResponse.json({
+        success: true,
+        data: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          paymentMethod: "store_credit",
           redirectUrl: `${origin}/${activeLocale}/checkout/success?order=${order.orderNumber}`,
         },
       });
@@ -1330,6 +2068,124 @@ export async function POST(request: NextRequest) {
         throw new ValidationError("PayPal is not configured");
       }
 
+      if (isAttemptGateway(settings, "paypal")) {
+        const reusable = await takeOverOpenAttempt({
+          cartId: cart._id,
+          paymentMethod: "paypal",
+          fingerprint: attemptFingerprint,
+        });
+        const reusableOrderId = String(reusable?.gateway?.paypalOrderId || "");
+        const reusableUrl = String(reusable?.gateway?.checkoutUrl || "");
+        if (reusable && reusableOrderId && reusableUrl) {
+          // Only a PayPal order still waiting for the payer is worth going
+          // back to. One already approved or captured is settled by the
+          // finalizer, not restarted.
+          const state = await readPayPalOrderCapture({
+            creds: {
+              clientId: paypalCreds.clientId,
+              clientSecret: paypalCreds.clientSecret,
+              mode: paypalCreds.mode,
+            },
+            orderId: reusableOrderId,
+          }).catch(() => null);
+          const status = String(
+            (state?.raw as { status?: string } | undefined)?.status || "",
+          ).toUpperCase();
+          if (status === "CREATED" || status === "PAYER_ACTION_REQUIRED") {
+            await recordAttemptTry(reusable._id);
+            return NextResponse.json({
+              success: true,
+              data: {
+                orderId: reusable._id,
+                orderNumber: "",
+                paymentMethod: "paypal",
+                paypalOrderId: reusableOrderId,
+                url: reusableUrl,
+                resumed: true,
+              },
+            });
+          }
+          await closeCheckoutAttempt(reusable._id, "superseded");
+        } else if (reusable) {
+          await closeCheckoutAttempt(reusable._id, "superseded");
+        }
+
+        const attempt = await openAttemptFor("paypal");
+        // Read out here rather than inside the closure: the guard above proved
+        // they are set, and a deferred call loses that narrowing.
+        const paypalCall = {
+          clientId: paypalCreds.clientId,
+          clientSecret: paypalCreds.clientSecret,
+          mode: paypalCreds.mode,
+        };
+        const created = await withAttempt(attempt._id, () =>
+          createPayPalOrder({
+            creds: paypalCall,
+            currency: (settings.general?.defaultCurrency || "USD").toUpperCase(),
+            total: paymentDueNow,
+            returnUrl: `${checkoutUrl("/checkout/success")}`,
+            cancelUrl: `${checkoutUrl("/checkout")}?canceled=true`,
+            // PayPal quotes this back on the capture, so it names the attempt.
+            referenceId: String(attempt._id),
+          }),
+        );
+        await recordAttemptGatewayRefs(attempt._id, {
+          paypalOrderId: created.orderId,
+          checkoutUrl: created.approvalUrl,
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: attempt._id,
+            orderNumber: "",
+            paymentMethod: "paypal",
+            paypalOrderId: created.orderId,
+            url: created.approvalUrl,
+          },
+        });
+      }
+
+      // A retry of the same checkout goes back to the PayPal order already
+      // made, while PayPal will still take a payment on it.
+      const previous = await takeOverCheckoutAttempt({
+        cartId: cart._id,
+        paymentMethod: "paypal",
+        fingerprint: attemptFingerprint,
+      });
+      if (previous?.paypalOrderId && previous.gatewayCheckoutUrl) {
+        const state = await readPayPalOrderCapture({
+          creds: {
+            clientId: paypalCreds.clientId,
+            clientSecret: paypalCreds.clientSecret,
+            mode: paypalCreds.mode,
+          },
+          orderId: previous.paypalOrderId,
+        }).catch(() => null);
+        const status = String(
+          (state?.raw as { status?: string } | undefined)?.status || "",
+        ).toUpperCase();
+        if (status === "CREATED" || status === "PAYER_ACTION_REQUIRED") {
+          return NextResponse.json({
+            success: true,
+            data: {
+              orderId: previous._id,
+              orderNumber: previous.orderNumber,
+              paymentMethod: "paypal",
+              paypalOrderId: previous.paypalOrderId,
+              url: previous.gatewayCheckoutUrl,
+              resumed: true,
+            },
+          });
+        }
+        // Approved, captured, voided or unreadable: not a page to send anyone
+        // back to. A capture still in flight settles against the cancelled
+        // order and is refunded.
+        await retireCheckoutAttempt(previous._id);
+      } else if (previous) {
+        await retireCheckoutAttempt(previous._id);
+      }
+
       const { orderId: paypalOrderId, approvalUrl } = await createPayPalOrder({
         creds: {
           clientId: paypalCreds.clientId,
@@ -1338,13 +2194,14 @@ export async function POST(request: NextRequest) {
         },
         currency: (settings.general?.defaultCurrency || "USD").toUpperCase(),
         total: paymentDueNow,
-        returnUrl: `${origin}/${activeLocale}/checkout/success`,
-        cancelUrl: `${origin}/${activeLocale}/checkout?canceled=true`,
+        returnUrl: `${checkoutUrl("/checkout/success")}`,
+        cancelUrl: `${checkoutUrl("/checkout")}?canceled=true`,
         referenceId: String(cart._id),
       });
 
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -1369,11 +2226,14 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         paypalOrderId,
+        ...attemptFields,
+        gatewayCheckoutUrl: approvalUrl,
         isMultiVendorEnabled,
         orderPrefix: orderSettings.prefix,
         currency: settings.general?.defaultCurrency || "USD",
@@ -1401,6 +2261,112 @@ export async function POST(request: NextRequest) {
         keySecret: razorpaySettings.keySecret,
       });
       const currency = (settings.general?.defaultCurrency || "INR").toUpperCase();
+      const razorpayResponse = (order: {
+        _id: unknown;
+        orderNumber: string;
+        razorpayOrderId: string;
+        amount: number;
+        currency: string;
+        resumed?: boolean;
+      }) =>
+        NextResponse.json({
+          success: true,
+          data: {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            paymentMethod: "razorpay",
+            keyId: razorpayCreds.keyId,
+            razorpayOrderId: order.razorpayOrderId,
+            amount: order.amount,
+            currency: order.currency,
+            name: settings.general?.storeName || "Store",
+            description: `Order ${order.orderNumber}`,
+            // A failed payment lands on the same page, which shows the failure
+            // instead of verifying.
+            callbackUrl: buildRazorpayCallbackUrl({
+              successUrl: `${checkoutUrl("/checkout/success")}`,
+              failureUrl: `${checkoutUrl("/checkout/success")}`,
+            }),
+            ...(order.resumed ? { resumed: true } : {}),
+          },
+        });
+
+      // Switched over to checkout attempts? Then nothing is written to the
+      // orders collection here at all: the attempt carries the snapshot and
+      // the gateway's reference, and an order is written when the money lands
+      // (`lib/payments/finalize-attempt.ts`). The shopper's journey is
+      // unchanged — the client only needs the Razorpay session — and the
+      // verify route settles on `razorpayOrderId` either way.
+      if (isAttemptGateway(settings, "razorpay")) {
+        const reusable = await takeOverOpenAttempt({
+          cartId: cart._id,
+          paymentMethod: "razorpay",
+          fingerprint: attemptFingerprint,
+        });
+        const reusableRazorpayOrderId = String(
+          reusable?.gateway?.razorpayOrderId || "",
+        );
+        if (reusable && reusableRazorpayOrderId) {
+          await recordAttemptTry(reusable._id);
+          return razorpayResponse({
+            _id: reusable._id,
+            orderNumber: "",
+            razorpayOrderId: reusableRazorpayOrderId,
+            amount: toRazorpayAmountSubunits(paymentDueNow, currency),
+            currency,
+            resumed: true,
+          });
+        }
+
+        // The attempt exists before the gateway is asked, so its id can be the
+        // receipt Razorpay quotes back and nothing can be paid for that has no
+        // record here.
+        const attempt = await openAttemptFor("razorpay");
+
+        const session = await withAttempt(attempt._id, () =>
+          createRazorpayOrder({
+            creds: razorpayCreds,
+            amount: paymentDueNow,
+            currency,
+            receipt: String(attempt._id),
+            notes: {
+              cartId: String(cart._id),
+              customerId,
+              locale: activeLocale,
+              checkoutAttemptId: String(attempt._id),
+            },
+          }),
+        );
+        await recordAttemptGatewayRefs(attempt._id, {
+          razorpayOrderId: session.id,
+        });
+
+        return razorpayResponse({
+          _id: attempt._id,
+          orderNumber: "",
+          razorpayOrderId: session.id,
+          amount: Number(session.amount),
+          currency: String(session.currency),
+        });
+      }
+
+      // A Razorpay order takes any number of payment attempts until one
+      // succeeds, so a retry of the same checkout simply opens it again.
+      const previous = await takeOverCheckoutAttempt({
+        cartId: cart._id,
+        paymentMethod: "razorpay",
+        fingerprint: attemptFingerprint,
+      });
+      if (previous?.razorpayOrderId) {
+        return razorpayResponse({
+          _id: previous._id,
+          orderNumber: previous.orderNumber,
+          razorpayOrderId: previous.razorpayOrderId,
+          amount: toRazorpayAmountSubunits(paymentDueNow, currency),
+          currency,
+          resumed: true,
+        });
+      }
 
       const razorpayOrder = await createRazorpayOrder({
         creds: razorpayCreds,
@@ -1416,6 +2382,7 @@ export async function POST(request: NextRequest) {
 
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -1440,35 +2407,24 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         razorpayOrderId: razorpayOrder.id,
+        ...attemptFields,
         isMultiVendorEnabled,
         orderPrefix: orderSettings.prefix,
         currency: settings.general?.defaultCurrency || "USD",
       });
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          paymentMethod: "razorpay",
-          keyId: razorpayCreds.keyId,
-          razorpayOrderId: razorpayOrder.id,
-          amount: razorpayOrder.amount,
-          currency: razorpayOrder.currency,
-          name: settings.general?.storeName || "Store",
-          description: `Order ${order.orderNumber}`,
-          // A failed payment lands on the same page, which shows the failure
-          // instead of verifying.
-          callbackUrl: buildRazorpayCallbackUrl({
-            successUrl: `${origin}/${activeLocale}/checkout/success`,
-            failureUrl: `${origin}/${activeLocale}/checkout/success`,
-          }),
-        },
+      return razorpayResponse({
+        _id: order._id,
+        orderNumber: order.orderNumber,
+        razorpayOrderId: razorpayOrder.id,
+        amount: Number(razorpayOrder.amount),
+        currency: String(razorpayOrder.currency),
       });
     }
 
@@ -1487,8 +2443,90 @@ export async function POST(request: NextRequest) {
         secretKey: paystackSettings.secretKey,
       });
       const currency = (settings.general?.defaultCurrency || "NGN").toUpperCase();
+
+      if (isAttemptGateway(settings, "paystack")) {
+        const reusable = await takeOverOpenAttempt({
+          cartId: cart._id,
+          paymentMethod: "paystack",
+          fingerprint: attemptFingerprint,
+        });
+        const reference = String(reusable?.gateway?.paystackReference || "");
+        const hostedUrl = String(reusable?.gateway?.checkoutUrl || "");
+        if (reusable && reference && hostedUrl) {
+          await recordAttemptTry(reusable._id);
+          return NextResponse.json({
+            success: true,
+            data: {
+              orderId: reusable._id,
+              orderNumber: "",
+              paymentMethod: "paystack",
+              paystackReference: reference,
+              url: hostedUrl,
+              resumed: true,
+            },
+          });
+        }
+
+        // The attempt first, so Paystack's reference is built from its id and
+        // every payment has a record here to land on.
+        const attempt = await openAttemptFor("paystack");
+        const attemptReference = `ps-${String(attempt._id)}-${Date.now().toString(36)}`;
+        const transaction = await withAttempt(attempt._id, () =>
+          initializePaystackTransaction({
+            creds: paystackCreds,
+            email: customerEmail,
+            amount: paymentDueNow,
+            currency,
+            reference: attemptReference,
+            callbackUrl: `${checkoutUrl("/checkout/success")}?paystack_reference=${encodeURIComponent(attemptReference)}`,
+            metadata: {
+              cartId: String(cart._id),
+              customerId,
+              locale: activeLocale,
+              checkoutAttemptId: String(attempt._id),
+            },
+          }),
+        );
+        await recordAttemptGatewayRefs(attempt._id, {
+          paystackReference: attemptReference,
+          checkoutUrl: transaction.authorization_url,
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: attempt._id,
+            orderNumber: "",
+            paymentMethod: "paystack",
+            paystackReference: attemptReference,
+            url: transaction.authorization_url,
+          },
+        });
+      }
+
+      // Paystack's checkout page for a reference stays payable until it is
+      // paid, so a retry of the same checkout goes back to it.
+      const previous = await takeOverCheckoutAttempt({
+        cartId: cart._id,
+        paymentMethod: "paystack",
+        fingerprint: attemptFingerprint,
+      });
+      if (previous?.paystackReference && previous.gatewayCheckoutUrl) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: previous._id,
+            orderNumber: previous.orderNumber,
+            paymentMethod: "paystack",
+            paystackReference: previous.paystackReference,
+            url: previous.gatewayCheckoutUrl,
+            resumed: true,
+          },
+        });
+      }
+
       const paystackReference = `ps-${String(cart._id)}-${Date.now().toString(36)}`;
-      const callbackUrl = `${origin}/${activeLocale}/checkout/success?paystack_reference=${encodeURIComponent(paystackReference)}`;
+      const callbackUrl = `${checkoutUrl("/checkout/success")}?paystack_reference=${encodeURIComponent(paystackReference)}`;
 
       const transaction = await initializePaystackTransaction({
         creds: paystackCreds,
@@ -1506,6 +2544,7 @@ export async function POST(request: NextRequest) {
 
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -1530,11 +2569,14 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         paystackReference,
+        ...attemptFields,
+        gatewayCheckoutUrl: transaction.authorization_url,
         isMultiVendorEnabled,
         orderPrefix: orderSettings.prefix,
         currency: settings.general?.defaultCurrency || "USD",
@@ -1571,17 +2613,138 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const currency = (settings.general?.defaultCurrency || "UGX").toUpperCase();
-      // Pesapal is an East African acquirer and refuses anything it cannot
-      // settle. Said here, before the order is written, rather than letting the
-      // shopper meet a raw gateway error at the end of a built cart.
-      if (!isPesapalCurrency(currency)) {
-        throw new ValidationError(
-          `Pesapal cannot settle ${currency}. Set the store default currency to one of ${[...PESAPAL_CURRENCIES].join(", ")} in Admin → Settings → General.`,
+      // One Pesapal settles — the gate at the top of this route turned away
+      // any other.
+      const currency = storeCurrencyCode(settings);
+      if (isAttemptGateway(settings, "pesapal")) {
+        const reusable = await takeOverOpenAttempt({
+          cartId: cart._id,
+          paymentMethod: "pesapal",
+          fingerprint: attemptFingerprint,
+        });
+        const trackingId = String(
+          reusable?.gateway?.pesapalOrderTrackingId || "",
         );
+        const merchantRef = String(
+          reusable?.gateway?.pesapalMerchantReference || "",
+        );
+        const hostedUrl = String(reusable?.gateway?.checkoutUrl || "");
+        if (reusable && trackingId && merchantRef && hostedUrl) {
+          await recordAttemptTry(reusable._id);
+          return NextResponse.json({
+            success: true,
+            data: {
+              orderId: reusable._id,
+              orderNumber: "",
+              paymentMethod: "pesapal",
+              pesapalOrderTrackingId: trackingId,
+              pesapalMerchantReference: merchantRef,
+              url: hostedUrl,
+              resumed: true,
+            },
+          });
+        }
+
+        const attempt = await openAttemptFor("pesapal");
+        // Same reason as PayPal's: the guard's narrowing does not survive
+        // being read inside a deferred call.
+        const pesapalIpnId = pesapalCreds.ipnId;
+        const attemptReference = `psp-${String(attempt._id).slice(-18)}-${Date.now().toString(36)}`;
+        const nameParts = normalizedBillingAddress.fullName
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        const givenName =
+          normalizedBillingAddress.firstName || nameParts[0] || "Customer";
+        const submitted = await withAttempt(attempt._id, async () => {
+          const response = await submitPesapalOrder({
+          creds: pesapalCreds,
+          merchantReference: attemptReference,
+          currency,
+          amount: paymentDueNow,
+          description: `Store checkout ${attemptReference}`,
+          callbackUrl: `${checkoutUrl("/checkout/success")}?pesapal_reference=${encodeURIComponent(attemptReference)}`,
+          cancellationUrl: `${checkoutUrl("/checkout")}?canceled=true`,
+          notificationId: pesapalIpnId,
+          billingAddress: {
+            email_address: customerEmail,
+            phone_number: normalizedBillingAddress.phone,
+            country_code: normalizePesapalCountryCode(
+              normalizedBillingAddress.country,
+            ),
+            first_name: givenName,
+            last_name:
+              normalizedBillingAddress.lastName ||
+              nameParts.slice(1).join(" ") ||
+              givenName,
+            line_1: normalizedBillingAddress.street,
+            line_2: normalizedBillingAddress.apartment,
+            city: normalizedBillingAddress.city,
+            state: normalizedBillingAddress.state,
+            postal_code: normalizedBillingAddress.postalCode,
+            zip_code: normalizedBillingAddress.postalCode,
+          },
+          });
+
+          if (
+            !response.order_tracking_id ||
+            !response.redirect_url ||
+            response.merchant_reference !== attemptReference
+          ) {
+            throw new ValidationError(
+              "Pesapal returned an invalid order response",
+            );
+          }
+          return response;
+        });
+
+        await recordAttemptGatewayRefs(attempt._id, {
+          pesapalOrderTrackingId: submitted.order_tracking_id,
+          pesapalMerchantReference: attemptReference,
+          checkoutUrl: submitted.redirect_url,
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: attempt._id,
+            orderNumber: "",
+            paymentMethod: "pesapal",
+            pesapalOrderTrackingId: submitted.order_tracking_id,
+            pesapalMerchantReference: attemptReference,
+            url: submitted.redirect_url,
+          },
+        });
       }
+
+      // Pesapal's hosted page is reused only while it is fresh (an hour);
+      // older attempts are cancelled and a new page is made.
+      const previous = await takeOverCheckoutAttempt({
+        cartId: cart._id,
+        paymentMethod: "pesapal",
+        fingerprint: attemptFingerprint,
+      });
+      if (
+        previous?.pesapalOrderTrackingId &&
+        previous.pesapalMerchantReference &&
+        previous.gatewayCheckoutUrl
+      ) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: previous._id,
+            orderNumber: previous.orderNumber,
+            paymentMethod: "pesapal",
+            pesapalOrderTrackingId: previous.pesapalOrderTrackingId,
+            pesapalMerchantReference: previous.pesapalMerchantReference,
+            url: previous.gatewayCheckoutUrl,
+            resumed: true,
+          },
+        });
+      }
+
       const merchantReference = `psp-${String(cart._id).slice(-18)}-${Date.now().toString(36)}`;
-      const callbackUrl = `${origin}/${activeLocale}/checkout/success?pesapal_reference=${encodeURIComponent(merchantReference)}`;
+      const callbackUrl = `${checkoutUrl("/checkout/success")}?pesapal_reference=${encodeURIComponent(merchantReference)}`;
       const fullNameParts = normalizedBillingAddress.fullName
         .trim()
         .split(/\s+/)
@@ -1600,7 +2763,7 @@ export async function POST(request: NextRequest) {
         amount: paymentDueNow,
         description: `Store checkout ${merchantReference}`,
         callbackUrl,
-        cancellationUrl: `${origin}/${activeLocale}/checkout?canceled=true`,
+        cancellationUrl: `${checkoutUrl("/checkout")}?canceled=true`,
         notificationId: pesapalCreds.ipnId,
         billingAddress: {
           email_address: customerEmail,
@@ -1629,6 +2792,7 @@ export async function POST(request: NextRequest) {
 
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -1653,12 +2817,15 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
           : undefined,
         pesapalOrderTrackingId: pesapalOrder.order_tracking_id,
         pesapalMerchantReference: merchantReference,
+        ...attemptFields,
+        gatewayCheckoutUrl: pesapalOrder.redirect_url,
         isMultiVendorEnabled,
         orderPrefix: orderSettings.prefix,
         // Must match the currency the charge was submitted in — the finalizer
@@ -1692,17 +2859,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const currency = (
-        settings.general?.defaultCurrency || "UGX"
-      ).toUpperCase();
-      // ioTec Pay settles Ugandan mobile money and cards in UGX only, and the
-      // minimum below is denominated in shillings — charging any other currency
-      // would silently mis-denominate both.
-      if (currency !== IOTEC_CURRENCY) {
-        throw new ValidationError(
-          `ioTec Pay only accepts ${IOTEC_CURRENCY}. Set the store default currency to ${IOTEC_CURRENCY} in Admin → Settings → General.`,
-        );
-      }
+      // Shillings: ioTec settles UGX alone, and the gate at the top of this
+      // route has already turned away a store priced in anything else — which
+      // is also what keeps the minimum below in the unit it is written in.
+      const currency = storeCurrencyCode(settings);
       // ioTec collections take whole currency units (UGX is zero-decimal).
       const amount = Math.round(paymentDueNow);
       if (amount < IOTEC_MIN_AMOUNT) {
@@ -1736,6 +2896,7 @@ export async function POST(request: NextRequest) {
       // the reverse order could take a payment with no order behind it.
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -1760,6 +2921,7 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
@@ -1770,6 +2932,39 @@ export async function POST(request: NextRequest) {
         currency,
       });
 
+      // The provider has accepted nothing yet, but it is about to put a PIN
+      // prompt on the payer's phone — and once it does, these providers cannot
+      // refund a sold-out order automatically. So the goods come off the shelf
+      // now, with the order, the way Shopify holds stock for a pending
+      // payment. `settleCapturedOrder` sees the consignments already flagged
+      // and does not take them a second time.
+      const iotecSoldOut = await reserveAsyncPushInventory({
+        order,
+        items,
+        inventoryOpts: pickupFulfillment
+          ? { locationId: pickupFulfillment.pickup.pickupLocationId }
+          : {},
+      });
+      if (iotecSoldOut) {
+        await retireRefusedGatewayOrder({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          cartId: cart?._id,
+          paymentMethod: "iotec",
+          amount: paymentDueNow,
+          currency,
+          reason: "out_of_stock",
+        });
+        const failedItem = items.find(
+          (item) => String(item.productId._id) === iotecSoldOut.soldOutProductId,
+        );
+        throw new ValidationError({
+          stock: [
+            `${failedItem?.productId.name || "Product"} is out of stock or has insufficient quantity`,
+          ],
+        });
+      }
+
       let collection: IotecCollectionResponse;
       try {
         collection = isCard
@@ -1779,7 +2974,7 @@ export async function POST(request: NextRequest) {
               currency,
               amount,
               payer,
-              redirectUrl: `${origin}/${activeLocale}/checkout/success?iotec_external_id=${encodeURIComponent(externalId)}`,
+              redirectUrl: `${checkoutUrl("/checkout/success")}?iotec_external_id=${encodeURIComponent(externalId)}`,
               payerName: normalizedBillingAddress.fullName,
               payerNote: `Store checkout ${externalId}`,
             })
@@ -1813,15 +3008,15 @@ export async function POST(request: NextRequest) {
           err.httpStatus >= 400 &&
           err.httpStatus < 500;
         if (definitivelyRejected) {
-          await Order.updateOne(
-            { _id: order._id },
-            { $set: { status: ORDER_STATUS.CANCELLED } },
-          ).catch((cancelErr) =>
-            console.error(
-              "Failed to cancel order after ioTec collection failure:",
-              cancelErr,
-            ),
-          );
+          await retireRefusedGatewayOrder({
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            cartId: cart?._id,
+            paymentMethod: "iotec",
+            amount: paymentDueNow,
+            currency,
+            error: err,
+          });
         } else {
           console.error(
             `ioTec collection outcome unknown for order ${order._id}; left pending for its callback:`,
@@ -1869,17 +3064,9 @@ export async function POST(request: NextRequest) {
         resolveOrangeMoneyCredentials(orangeMoneySettings);
       const orangeMoneyCreds = getOrangeMoneyCredentials(resolvedOrangeMoney);
 
-      const currency = (
-        settings.general?.defaultCurrency || "XOF"
-      ).toUpperCase();
-      // Orange Money is a per-country wallet, not a global acquirer. Said here,
-      // before the order is written, rather than letting the shopper meet a raw
-      // gateway error at the end of a built cart.
-      if (!isOrangeMoneyCurrency(currency)) {
-        throw new ValidationError(
-          `Orange Money cannot settle ${currency}. Set the store default currency to one of ${[...ORANGE_MONEY_CURRENCIES].join(", ")} in Admin → Settings → General.`,
-        );
-      }
+      // One the wallet settles — the gate at the top of this route turned
+      // away any other.
+      const currency = storeCurrencyCode(settings);
 
       // A fully-discounted cart has nothing for a wallet to collect, and Orange
       // answers a zero-amount web payment with an error the shopper cannot act
@@ -1912,6 +3099,7 @@ export async function POST(request: NextRequest) {
       // URL: it moves no money and prompts nobody.
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -1936,6 +3124,7 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
@@ -1946,6 +3135,40 @@ export async function POST(request: NextRequest) {
         currency,
       });
 
+
+      // The provider has accepted nothing yet, but it is about to put a PIN
+      // prompt on the payer's phone — and once it does, these providers cannot
+      // refund a sold-out order automatically. So the goods come off the shelf
+      // now, with the order, the way Shopify holds stock for a pending
+      // payment. `settleCapturedOrder` sees the consignments already flagged
+      // and does not take them a second time.
+      const orangeSoldOut = await reserveAsyncPushInventory({
+        order,
+        items,
+        inventoryOpts: pickupFulfillment
+          ? { locationId: pickupFulfillment.pickup.pickupLocationId }
+          : {},
+      });
+      if (orangeSoldOut) {
+        await retireRefusedGatewayOrder({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          cartId: cart?._id,
+          paymentMethod: "orange_money",
+          amount: paymentDueNow,
+          currency,
+          reason: "out_of_stock",
+        });
+        const failedItem = items.find(
+          (item) => String(item.productId._id) === orangeSoldOut.soldOutProductId,
+        );
+        throw new ValidationError({
+          stock: [
+            `${failedItem?.productId.name || "Product"} is out of stock or has insufficient quantity`,
+          ],
+        });
+      }
+
       let payment;
       try {
         payment = await submitOrangeMoneyPayment({
@@ -1955,8 +3178,8 @@ export async function POST(request: NextRequest) {
           // Sandbox settles in Orange's placeholder currency, live in the
           // store's own. One helper decides, and the finalizer reads the same.
           currency: orangeMoneyChargeCurrency(orangeMoneyCreds.mode, currency),
-          returnUrl: `${origin}/${activeLocale}/checkout/success?orange_money_order_id=${encodeURIComponent(orangeMoneyOrderId)}`,
-          cancelUrl: `${origin}/${activeLocale}/checkout?canceled=true`,
+          returnUrl: `${checkoutUrl("/checkout/success")}?orange_money_order_id=${encodeURIComponent(orangeMoneyOrderId)}`,
+          cancelUrl: `${checkoutUrl("/checkout")}?canceled=true`,
           // Orange calls this server-to-server, so it must be absolute and
           // publicly reachable — not a locale-prefixed page route.
           notifUrl: `${origin}/api/payments/orange-money/callback`,
@@ -1966,10 +3189,15 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         // Nothing was charged, but an order with no payment session behind it
         // can never be completed — retire it rather than leaving it pending.
-        await Order.updateOne(
-          { _id: order._id },
-          { $set: { status: ORDER_STATUS.CANCELLED } },
-        );
+        await retireRefusedGatewayOrder({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          cartId: cart?._id,
+          paymentMethod: "orange_money",
+          amount: paymentDueNow,
+          currency,
+          error: err,
+        });
         throw err;
       }
 
@@ -1986,10 +3214,15 @@ export async function POST(request: NextRequest) {
         },
       );
       if (stored.modifiedCount !== 1) {
-        await Order.updateOne(
-          { _id: order._id },
-          { $set: { status: ORDER_STATUS.CANCELLED } },
-        );
+        await retireRefusedGatewayOrder({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          cartId: cart?._id,
+          paymentMethod: "orange_money",
+          amount: paymentDueNow,
+          currency,
+          reason: "session_not_stored",
+        });
         throw new ValidationError(
           "Orange Money payment session could not be stored. Please try again.",
         );
@@ -2015,17 +3248,9 @@ export async function POST(request: NextRequest) {
       const resolvedMtnMomo = resolveMtnMomoCredentials(mtnMomoSettings);
       const mtnMomoCreds = getMtnMomoCredentials(resolvedMtnMomo);
 
-      const currency = (
-        settings.general?.defaultCurrency || "UGX"
-      ).toUpperCase();
-      // MoMo is a per-country wallet like Orange Money. Said here, before the
-      // order is written, rather than letting the shopper meet a raw gateway
-      // error at the end of a built cart.
-      if (!isMtnMomoCurrency(currency)) {
-        throw new ValidationError(
-          `MTN MoMo cannot settle ${currency}. Set the store default currency to one of ${[...MTN_MOMO_CURRENCIES].join(", ")} in Admin → Settings → General.`,
-        );
-      }
+      // One the wallet settles — the gate at the top of this route turned
+      // away any other.
+      const currency = storeCurrencyCode(settings);
 
       // requesttopay takes major units. In a zero-decimal currency a
       // fractional total would be rounded by the gateway and then fail the
@@ -2062,6 +3287,7 @@ export async function POST(request: NextRequest) {
       // failed to store is money that could move with no order behind it.
       const order = await createOrder({
         ...checkoutDetails,
+        storeCredit: orderStoreCredit,
         customerId,
         guestEmail,
         items,
@@ -2086,6 +3312,7 @@ export async function POST(request: NextRequest) {
               value: appliedCoupon.value,
               couponId: appliedCoupon.couponId,
                 vendorShares: couponVendorShares,
+                eligibleProductIds: couponEligibleProductIds,
                 shippingShares: couponShippingShares,
               fundedBy: appliedCoupon.fundedBy,
             }
@@ -2096,6 +3323,39 @@ export async function POST(request: NextRequest) {
         orderPrefix: orderSettings.prefix,
         currency,
       });
+
+      // The provider has accepted nothing yet, but it is about to put a PIN
+      // prompt on the payer's phone — and once it does, these providers cannot
+      // refund a sold-out order automatically. So the goods come off the shelf
+      // now, with the order, the way Shopify holds stock for a pending
+      // payment. `settleCapturedOrder` sees the consignments already flagged
+      // and does not take them a second time.
+      const mtnSoldOut = await reserveAsyncPushInventory({
+        order,
+        items,
+        inventoryOpts: pickupFulfillment
+          ? { locationId: pickupFulfillment.pickup.pickupLocationId }
+          : {},
+      });
+      if (mtnSoldOut) {
+        await retireRefusedGatewayOrder({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          cartId: cart?._id,
+          paymentMethod: "mtn_momo",
+          amount: paymentDueNow,
+          currency,
+          reason: "out_of_stock",
+        });
+        const failedItem = items.find(
+          (item) => String(item.productId._id) === mtnSoldOut.soldOutProductId,
+        );
+        throw new ValidationError({
+          stock: [
+            `${failedItem?.productId.name || "Product"} is out of stock or has insufficient quantity`,
+          ],
+        });
+      }
 
       try {
         await requestMtnMomoPayment({
@@ -2132,15 +3392,15 @@ export async function POST(request: NextRequest) {
           err.httpStatus >= 400 &&
           err.httpStatus < 500;
         if (definitivelyRejected) {
-          await Order.updateOne(
-            { _id: order._id },
-            { $set: { status: ORDER_STATUS.CANCELLED } },
-          ).catch((cancelErr) =>
-            console.error(
-              "Failed to cancel order after MTN MoMo request failure:",
-              cancelErr,
-            ),
-          );
+          await retireRefusedGatewayOrder({
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            cartId: cart?._id,
+            paymentMethod: "mtn_momo",
+            amount: paymentDueNow,
+            currency,
+            error: err,
+          });
         } else {
           console.error(
             `MTN MoMo requesttopay outcome unknown for order ${order._id}; left pending for the reconcile sweep:`,
@@ -2189,25 +3449,31 @@ export async function POST(request: NextRequest) {
     ).toLowerCase();
     const lineItems = items
       .map((item: CartItem) => {
-        const lineDueNow =
+        const isDeposit =
           item.purchaseType === PURCHASE_TYPE.PREORDER &&
-          typeof item.preorderDepositAmount === "number"
-            ? item.preorderDepositAmount
-            : item.price * item.quantity;
+          typeof item.preorderDepositAmount === "number";
+        const lineDueNow = isDeposit
+          ? Number(item.preorderDepositAmount)
+          : item.price * item.quantity;
         if (lineDueNow <= 0) return null;
+        // A deposit is a whole-line figure. Split per unit and multiplied back
+        // it lost cents: 10.00 over 3 units was charged 3.33 × 3 = 9.99. So it
+        // goes to Stripe as one line of the whole amount.
         return {
           price_data: {
             currency: checkoutCurrency,
             product_data: {
-              name: item.productId.name,
+              name: isDeposit
+                ? `${item.productId.name} × ${item.quantity} (deposit)`
+                : item.productId.name,
               images: item.productId.images?.slice(0, 1) || [],
             },
             unit_amount: toStripeAmount(
-              lineDueNow / item.quantity,
+              isDeposit ? lineDueNow : lineDueNow / item.quantity,
               checkoutCurrency,
             ),
           },
-          quantity: item.quantity,
+          quantity: isDeposit ? 1 : item.quantity,
         };
       })
       .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -2261,13 +3527,18 @@ export async function POST(request: NextRequest) {
     // its balance later needs the deposit to have belonged to a Customer — a
     // guest's minted for this cart, since they have no account to keep one on.
     const stripeCustomerId =
-      (await resolveStripeCustomerId({
-        secretKey: stripeSecretKey,
-        userId: customerId,
-        email: customerEmail,
-        name: session?.user?.name,
-      })) ||
-      (guestEmail && preorderMandateText
+      // The account's own Customer only for its signed-in owner: a guest
+      // checkout filed under an account by its email is still a stranger to
+      // the cards saved on it.
+      (session?.user?.id
+        ? await resolveStripeCustomerId({
+            secretKey: stripeSecretKey,
+            userId: session.user.id,
+            email: customerEmail,
+            name: session.user.name,
+          })
+        : undefined) ||
+      (!session?.user?.id && preorderMandateText
         ? await resolveGuestStripeCustomerId({
             secretKey: stripeSecretKey,
             cartId: String(cart._id),
@@ -2316,6 +3587,7 @@ export async function POST(request: NextRequest) {
         couponVendorShares: couponVendorShares
           ? JSON.stringify(couponVendorShares)
           : "",
+        couponEligibleProducts: encodeEligibleProductIds(couponEligibleProductIds),
         couponShippingShares: couponShippingShares
           ? JSON.stringify(couponShippingShares)
           : "",
@@ -2339,9 +3611,24 @@ export async function POST(request: NextRequest) {
       ...(stripeCustomerId
         ? { customer: stripeCustomerId }
         : { customer_email: customerEmail }),
-      success_url: `${origin}/${activeLocale}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/${activeLocale}/checkout?canceled=true`,
+      success_url: `${checkoutUrl("/checkout/success")}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${checkoutUrl("/checkout")}?canceled=true`,
     });
+
+    // The hosted page's own attempt, on the same terms as the embedded card
+    // form's: Stripe still writes no order until the money is captured, and
+    // this row is what a refused card leaves behind.
+    if (isAttemptGateway(settings, "card")) {
+      const attempt = await openAttemptFor("card").catch((err) => {
+        console.error("Failed to open a checkout attempt for Stripe:", err);
+        return null;
+      });
+      if (attempt) {
+        await recordAttemptGatewayRefs(attempt._id, {
+          stripeSessionId: checkoutSession.id,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -2358,7 +3645,16 @@ export async function POST(request: NextRequest) {
 /**
  * Helper to create order
  */
-async function createOrder(params: {
+/**
+ * Everything the order IS, priced and agreed, with nothing written.
+ *
+ * Two callers want this: the paths that place an order straight away (cash on
+ * delivery, pay-later, and every gateway not yet switched over), and the
+ * checkout-attempt path, which stores the very same document on an attempt
+ * while the shopper is away at the gateway and turns it into an order only
+ * once the money has arrived.
+ */
+async function buildOrderDocument(params: {
   customerId: string;
   /** Email the shopper entered at checkout — set only for guest orders. */
   guestEmail?: string;
@@ -2376,6 +3672,11 @@ async function createOrder(params: {
   stripePaymentIntentId?: string;
   paypalOrderId?: string;
   razorpayOrderId?: string;
+  /** Which cart this gateway attempt came from, and what it was for. */
+  checkoutCartId?: unknown;
+  checkoutFingerprint?: string;
+  /** The gateway's payment page, kept so a retry can send the shopper back to it. */
+  gatewayCheckoutUrl?: string;
   paystackReference?: string;
   pesapalOrderTrackingId?: string;
   pesapalMerchantReference?: string;
@@ -2391,6 +3692,8 @@ async function createOrder(params: {
     couponId: string;
     /** A scoped coupon's discount by vendor, recorded on each consignment. */
     vendorShares?: Record<string, number>;
+    /** The products a scoped coupon applied to — see `preorderOutstandingAfterCoupon`. */
+    eligibleProductIds?: string[];
     /** A free-shipping coupon's discount by the vendor whose delivery it paid. */
     shippingShares?: Record<string, number>;
     /** Who pays for the goods discount, frozen onto the order. */
@@ -2399,6 +3702,8 @@ async function createOrder(params: {
   /** The coupon's use was already taken for this order (`takeCouponUse`). */
   couponUseTaken?: boolean;
   isMultiVendorEnabled: boolean;
+  /** The consignments' vendor records, when the caller started the read. */
+  subOrderVendors?: Promise<SubOrderVendor[]>;
   orderPrefix?: string;
   currency?: string;
   /** True when no item on the order needs physical shipping. */
@@ -2435,6 +3740,10 @@ async function createOrder(params: {
   checkoutFields?: OrderCheckoutField[];
   /** The phone the shopper asked to be reached on. */
   contactPhone?: string;
+  /** Store credit that pays part or all of the order, and its hold (R8). */
+  storeCredit?: { applied: number; holdKey: string; state: "held" | "spent" };
+  /** When an order written already paid was paid. */
+  paidAt?: Date;
 }) {
   const {
     customerId,
@@ -2453,6 +3762,9 @@ async function createOrder(params: {
     stripePaymentIntentId,
     paypalOrderId,
     razorpayOrderId,
+    checkoutCartId,
+    checkoutFingerprint,
+    gatewayCheckoutUrl,
     paystackReference,
     pesapalOrderTrackingId,
     pesapalMerchantReference,
@@ -2464,7 +3776,6 @@ async function createOrder(params: {
     coupon,
     couponUseTaken,
     isMultiVendorEnabled,
-    orderPrefix,
     currency,
     digitalOnly,
     shippingMethod,
@@ -2483,6 +3794,7 @@ async function createOrder(params: {
     {
       goodsDiscount: isFreeShippingCouponType(coupon?.type) ? 0 : discount,
       vendorShares: coupon?.vendorShares,
+      eligibleProductIds: coupon?.eligibleProductIds,
     },
     currency || "USD",
   );
@@ -2494,8 +3806,22 @@ async function createOrder(params: {
       ? outstandingByLine.get(item) ?? item.preorderOutstandingAmount
       : item.preorderOutstandingAmount;
 
-  // Generate order number atomically (seeds from max(existing) on first call)
-  const orderNumber = await getNextOnlineOrderNumber(orderPrefix);
+  // Each line's share of the coupon, so a return of one line gives back what
+  // that line sold for — see `splitCouponAcrossLines`.
+  const couponLineShares = await resolveCouponLineDiscounts({
+    coupon,
+    goodsDiscount: isFreeShippingCouponType(coupon?.type) ? 0 : discount,
+    lines: items.map((item) => ({
+      productId: String(item.productId._id),
+      vendorId: couponVendorKey(item.productId.vendorId),
+      price: item.price,
+      quantity: item.quantity,
+    })),
+    currency: currency || "USD",
+  });
+  const couponShareByLine = new Map<CartItem, number | undefined>(
+    items.map((item, index) => [item, couponLineShares?.[index]]),
+  );
 
   const vendorContext = await resolveOrderVendorContext({
     isMultiVendorEnabled,
@@ -2514,9 +3840,29 @@ async function createOrder(params: {
   // `getSettings` is React-cached, so this rides the same read the request has
   // already done rather than threading one more param through every caller.
   const orderSettings = await getSettings();
+  // The automated collections the return settings name, which a product joins
+  // by their rules and never lists itself — read fresh for the order, and
+  // alongside the consignments rather than before them. A store without such
+  // a collection reads nothing.
+  const ruleCollectionsRead = returnRuleCollections(
+    items.map((item) => String(item.productId._id)),
+    orderSettings,
+  );
+  ruleCollectionsRead.catch(() => undefined);
   const subOrders = await buildVendorSubOrders(vendorGroups, {
+    vendors: params.subOrderVendors,
     codCollectedByDefault: orderSettings.shipping?.codCollectedBy,
-    couponDiscountByVendor: params.coupon?.vendorShares,
+    currency: orderSettings.general?.defaultCurrency || "USD",
+    // Keyed by the consignments the order is split into — see
+    // `remapVendorShares`.
+    couponDiscountByVendor: remapVendorShares(
+      params.coupon?.vendorShares,
+      items.map((item) => ({
+        from: couponVendorKey(item.productId.vendorId),
+        to: getOrderItemVendorId(item.productId.vendorId, vendorContext),
+      })),
+      orderSettings.general?.defaultCurrency || "USD",
+    ),
     getProductId: (item) => item.productId._id,
     getVariantId: (item) => item.variantId,
     getName: (item) => item.productId.name,
@@ -2541,6 +3887,7 @@ async function createOrder(params: {
     getPreorderOutstandingAmount: (item) => outstandingOf(item),
     getPreorderSupplierEta: (item) => item.preorderSupplierEta,
     getPreorderBatchName: (item) => item.preorderBatchName,
+    getCouponDiscount: (item) => couponShareByLine.get(item),
     getCustoms: (item) => {
       const variant = item.variantId
         ? item.productId.variants?.find(
@@ -2553,6 +3900,12 @@ async function createOrder(params: {
         variantShipping: variant,
       });
     },
+    // The store's configured rate, as every other order path passes. Left out,
+    // a vendor with no cached rate paid the built-in 10% here and the settings
+    // rate at POS.
+    fallbackCommissionPercent:
+      orderSettings.orders?.commission?.vendorRate ??
+      DEFAULT_VENDOR_COMMISSION_RATE,
     status: initialOrderStatus,
   });
 
@@ -2570,6 +3923,7 @@ async function createOrder(params: {
       orderShippingCost: shippingCost,
       orderShippingMethod: shippingMethod,
       shippingDiscountByVendor: params.coupon?.shippingShares,
+      currency: currency || "USD",
     },
   );
   if (fulfillment?.method === "pickup") {
@@ -2605,14 +3959,20 @@ async function createOrder(params: {
     0,
   );
 
-  // Create order. A gateway order's coupon use is counted on the capture/verify
-  // path, so an abandoned payment doesn't burn one — the checkout holds it
-  // meanwhile. Cash on delivery and pay-later took theirs before calling here,
-  // the order itself being the commitment.
-  const order = await Order.create({
+  // Everything the order IS, as a value — no number on it yet, nothing
+  // written. That separation is the whole point: the same document is what a
+  // checkout attempt stores as its snapshot while the shopper is away at the
+  // gateway, and what `createOrderFromAttempt` turns into an order once the
+  // money has actually arrived.
+  //
+  // A gateway order's coupon use is counted on the capture/verify path, so an
+  // abandoned payment doesn't burn one — the checkout holds it meanwhile. Cash
+  // on delivery and pay-later took theirs before calling here, the order
+  // itself being the commitment.
+  const ruleCollections = await ruleCollectionsRead;
+  const orderDocument = {
     customerId,
     guestEmail,
-    orderNumber,
     currency: currency || "USD",
     items: items.map((item: CartItem) => ({
       productId: item.productId._id,
@@ -2622,6 +3982,20 @@ async function createOrder(params: {
       sku: item.productId.sku || "",
       quantity: item.quantity,
       price: item.price,
+        // As the shopper was shown it at checkout; an order made from this
+        // attempt later keeps it.
+        finalSale: isFinalSaleProduct(
+          item.productId,
+          item.variantId,
+          finalSaleCollectionIdsOf(orderSettings),
+          ruleCollections.get(String(item.productId._id)),
+        ),
+        // Its own return window, from its product or a collection (R6).
+        returnWindowDays: productReturnWindowDays(
+          item.productId,
+          returnWindowOverridesOf(orderSettings),
+          ruleCollections.get(String(item.productId._id)),
+        ),
         quoteId: item.quoteId,
         cost: resolveOrderItemCost({
           product: item.productId,
@@ -2640,6 +4014,7 @@ async function createOrder(params: {
         preorderOutstandingAmount: outstandingOf(item),
         preorderSupplierEta: item.preorderSupplierEta,
         preorderBatchName: item.preorderBatchName,
+        couponDiscount: couponShareByLine.get(item),
         customs: buildOrderItemCustomsSnapshot({
           productShipping: item.productId.shipping,
           variantShipping: item.variantId
@@ -2660,6 +4035,9 @@ async function createOrder(params: {
     stripePaymentIntentId,
     paypalOrderId,
     razorpayOrderId,
+    checkoutCartId,
+    checkoutFingerprint,
+    gatewayCheckoutUrl,
     paystackReference,
     pesapalOrderTrackingId,
     pesapalMerchantReference,
@@ -2724,38 +4102,35 @@ async function createOrder(params: {
     customerNote,
     contactPhone,
     checkoutFields: checkoutFields?.length ? checkoutFields : undefined,
+    // The return rules of the moment the shopper paid, which an order made
+    // from a checkout attempt days later must keep.
+    returnTerms: returnTermsForNewOrder(orderSettings),
+    ...(params.storeCredit ? { storeCredit: params.storeCredit } : {}),
+    ...(params.paidAt ? { paidAt: params.paidAt } : {}),
+  };
+
+  return orderDocument;
+}
+
+/**
+ * Build the document and place the order — what every path that commits at
+ * checkout does. The write and the three things placing an order always does
+ * live in `lib/orders/persist-order.ts`, which a checkout attempt's promotion
+ * calls with the very same document days later.
+ */
+async function createOrder(
+  params: Parameters<typeof buildOrderDocument>[0],
+) {
+  const order = await persistOrderFromDocument(await buildOrderDocument(params), {
+    orderPrefix: params.orderPrefix,
   });
-
-  // Spend the quote offers this order was placed against, so the same
-  // negotiated price cannot be taken twice. Bound at placement rather than at
-  // capture — an unbound offer is a live one, and a shopper sitting on a
-  // gateway page could otherwise start a second checkout at the same price.
-  // The quote is only marked *won* where there is no capture step to wait for;
-  // for every prepaid gateway settleCapturedOrder does that once the money is
-  // actually in. A cancelled order releases the offer again, at no cost:
-  // lib/quotes/quote-offer.ts derives that from the order's own status.
-  await bindOffersToOrder(
-    items
-      .map((item) => (item.quoteId ? String(item.quoteId) : ""))
-      .filter(Boolean),
-    String(order._id),
-    { won: paymentMethod === "cod" },
-  ).catch((err) => console.error("Failed to close quote offers on order:", err));
-
-  // Every checkout leaves a customer record behind, the Shopify way: a guest
-  // order upserts an email-keyed guest row in the customers collection at the
-  // moment the order exists — not when payment lands — so COD guests appear
-  // in the admin list immediately. Best-effort: the stats refresh on payment
-  // re-upserts the same row, so a miss here heals itself.
-  if (guestEmail) {
-    const { upsertGuestCustomerProfile } = await import("@/lib/customers/customer");
-    await upsertGuestCustomerProfile({
-      email: guestEmail,
-      name: shippingAddress.fullName,
-    }).catch((err) =>
-      console.error("Failed to upsert guest customer profile:", err),
-    );
+  // The credit's hold now belongs to this order, which decides what becomes
+  // of it (R8).
+  if (params.storeCredit?.holdKey) {
+    await linkStoreCreditHold({
+      holdKey: params.storeCredit.holdKey,
+      orderId: String(order._id),
+    }).catch((err) => console.error("Failed to tie a store credit hold to its order:", err));
   }
-
   return order;
 }

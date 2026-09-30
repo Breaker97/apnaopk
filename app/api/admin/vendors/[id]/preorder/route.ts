@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Vendor } from "@/models";

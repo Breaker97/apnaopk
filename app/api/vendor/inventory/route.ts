@@ -23,7 +23,7 @@ import {
   allowedLocationIds,
   vendorLocationScope,
 } from "@/lib/inventory/inventory-location-scope";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const InventoryUpdatesSchema = z.object({

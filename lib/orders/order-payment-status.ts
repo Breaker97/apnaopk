@@ -1,4 +1,9 @@
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
+// The one allowlist of methods whose money a gateway holds. Imported rather
+// than restated so a new gateway is added in a single place; the module it
+// comes from is as import-light and as `server-only`-free as this one.
+import { PLATFORM_GATEWAY_PAYMENT_METHODS } from "@/lib/payments/payment-custody";
+import { ASYNC_PUSH_PAYMENT_METHODS } from "@/lib/orders/pending-payment-lock";
 
 /**
  * Whether an order's money has arrived — asked per vendor, not per order.
@@ -82,6 +87,138 @@ export function subOrderPaymentStatusFilter(
         subOrders: {
           $elemMatch: { ...elemMatch, paymentStatus: { $exists: false } },
         },
+      },
+    ],
+  };
+}
+
+/**
+ * The rows in `orders` that are not orders at all: a checkout that reached a
+ * gateway and stopped there.
+ *
+ * Every redirect and mobile-money path writes the whole Order document before
+ * the shopper leaves for PayPal, Razorpay, Paystack, Pesapal or their phone's
+ * MoMo prompt, and most shoppers who abandon one never come back. Nothing
+ * tidies those rows away, so they sat in the same lists and the same sums as
+ * real sales: the dashboard counted them as orders, the revenue chart added
+ * their totals, and the shopper saw a "Pending" order they never placed.
+ *
+ * Cash on delivery is deliberately NOT here even though it is also unpaid: the
+ * shopper committed to it at checkout and somebody is going to deliver it. The
+ * same goes for a pay-later pre-order.
+ *
+ * **Nor is a mobile-money push.** A shopper at a redirect gateway who closes
+ * the tab has decided nothing; a shopper whose phone is showing a MoMo PIN
+ * prompt is in the middle of paying, and that order is real while they do it —
+ * they can open their order history and see it, and the store can see it
+ * coming. So an async-push order is an abandoned attempt only once the
+ * provider has actually said no, which is what `expired` means. Until then it
+ * reads like any unpaid order, held against edits by
+ * `lib/orders/pending-payment-lock.ts`, exactly as Shopify holds a pending
+ * payment.
+ *
+ * `expired` joins `pending` for the redirect gateways because the expiry job
+ * only renames the same fact there: the gateway confirmed the money never
+ * arrived.
+ *
+ * An unrecognised payment method reads as a real order, the safe direction
+ * here — a row wrongly shown is complained about, a row wrongly hidden is not.
+ */
+const REDIRECT_GATEWAY_PAYMENT_METHODS = (
+  PLATFORM_GATEWAY_PAYMENT_METHODS as readonly string[]
+).filter(
+  (method) =>
+    !(ASYNC_PUSH_PAYMENT_METHODS as readonly string[]).includes(method),
+);
+
+const ABANDONED_GATEWAY_ORDER_MATCH: Record<string, unknown> = {
+  $or: [
+    {
+      paymentMethod: { $in: REDIRECT_GATEWAY_PAYMENT_METHODS },
+      paymentStatus: { $in: [PAYMENT_STATUS.PENDING, PAYMENT_STATUS.EXPIRED] },
+    },
+    {
+      paymentMethod: { $in: [...ASYNC_PUSH_PAYMENT_METHODS] },
+      paymentStatus: PAYMENT_STATUS.EXPIRED,
+    },
+  ],
+};
+
+/**
+ * Mongo match for an order somebody actually placed — everything except the
+ * abandoned gateway attempts above. Cancelled orders are included: a person
+ * placed them and then called them off, which is a fact the store wants to see.
+ *
+ * Owns the `$nor` key of whatever it is spread into.
+ *
+ * ```ts
+ * const filter = { ...scopeFilter, ...placedOrderMatch() };
+ * ```
+ */
+export function placedOrderMatch(): Record<string, unknown> {
+  return { $nor: [ABANDONED_GATEWAY_ORDER_MATCH] };
+}
+
+/**
+ * Count money actually collected: unpaid pending orders inflated totals (10
+ * abandoned COD checkouts looked like real revenue), while paid gateway orders
+ * were the ones that mattered. COD orders count once delivered even if payment
+ * is still marked pending.
+ *
+ * Moved here from `lib/customers/customer.ts`, where it fixed this exact bug
+ * for one surface in 2026, while the admin dashboard, the analytics page and
+ * the order stats strip went on matching `status != cancelled` and reporting
+ * abandoned checkouts as revenue. One definition, so the next surface that
+ * needs it cannot invent a fourth answer.
+ *
+ * `partially_paid` counts because a captured pre-order deposit IS money in the
+ * account; `refunded` counts because it arrived before it went back, and the
+ * refund is subtracted by whoever nets it, not by hiding the sale.
+ *
+ * The `delivered` arm is now mostly history. A delivered COD order settles
+ * itself — `lib/orders/cod-collection.ts` marks it paid at the delivery, which
+ * is what finally put those sales in the ledger too — so new ones arrive here
+ * through the payment-status arm like everything else. The arm stays for the
+ * rows delivered before that, which would otherwise drop out of the dashboard
+ * they have always been counted in.
+ */
+export const COLLECTED_ORDER_MATCH: Record<string, unknown> = {
+  status: { $ne: ORDER_STATUS.CANCELLED },
+  $or: [
+    {
+      paymentStatus: {
+        $in: [
+          PAYMENT_STATUS.PAID,
+          PAYMENT_STATUS.PARTIALLY_PAID,
+          PAYMENT_STATUS.PARTIALLY_REFUNDED,
+          PAYMENT_STATUS.REFUNDED,
+        ],
+      },
+    },
+    { status: ORDER_STATUS.DELIVERED },
+  ],
+};
+
+/** {@link COLLECTED_ORDER_MATCH} as an aggregation expression. */
+export function collectedOrderExpr(): Record<string, unknown> {
+  return {
+    $and: [
+      { $ne: ["$status", ORDER_STATUS.CANCELLED] },
+      {
+        $or: [
+          {
+            $in: [
+              "$paymentStatus",
+              [
+                PAYMENT_STATUS.PAID,
+                PAYMENT_STATUS.PARTIALLY_PAID,
+                PAYMENT_STATUS.PARTIALLY_REFUNDED,
+                PAYMENT_STATUS.REFUNDED,
+              ],
+            ],
+          },
+          { $eq: ["$status", ORDER_STATUS.DELIVERED] },
+        ],
       },
     ],
   };
@@ -240,7 +377,7 @@ type PreorderBalanceShape = {
  * — so the parts add back up exactly even when two products carry different
  * deposit terms. A standard line has no such field and contributes nothing.
  */
-export function getCancelledConsignmentOutstanding(
+function getCancelledConsignmentOutstanding(
   order: Pick<PreorderBalanceShape, "subOrders">,
 ): number {
   const cancelled = (order.subOrders || []).filter(
@@ -394,17 +531,33 @@ export function getPreorderCollectedAmount(order: {
   preorderOutstandingAmount?: number;
   paymentStatus?: string;
   preorderBalancePaidAt?: Date | null;
+  preorderBalancePaidAmount?: number | null;
+  storeCredit?: { applied?: number | null; state?: string | null } | null;
 }): number {
-  const total = Number(order.total || 0);
+  // Store credit given back before the payment came paid for nothing (R8):
+  // only a late payment can make such an order paid, and it brought the rest.
+  const releasedCredit =
+    order.storeCredit?.state === "released"
+      ? Math.max(0, Number(order.storeCredit.applied) || 0)
+      : 0;
+  const total = Math.max(0, Number(order.total || 0) - releasedCredit);
   if (!(total > 0)) return 0;
   if (String(order.paymentStatus || PAYMENT_STATUS.PENDING) === PAYMENT_STATUS.PENDING) {
     return 0;
   }
-  const outstanding = Math.max(0, Number(order.preorderOutstandingAmount || 0));
-  const neverArrived = order.preorderBalancePaidAt
-    ? 0
-    : Math.min(outstanding, total);
-  return Math.max(0, total - neverArrived);
+  const outstanding = Math.min(
+    Math.max(0, Number(order.preorderOutstandingAmount || 0)),
+    total,
+  );
+  if (!order.preorderBalancePaidAt) return Math.max(0, total - outstanding);
+  // The balance that actually arrived, where it was recorded. A consignment
+  // called off before the balance was charged took its share of the balance
+  // with it, so "paid" is not "the whole total".
+  const paidAmount = Number(order.preorderBalancePaidAmount);
+  if (order.preorderBalancePaidAmount == null || !Number.isFinite(paidAmount)) {
+    return total;
+  }
+  return Math.min(total, Math.max(0, total - outstanding + Math.max(0, paidAmount)));
 }
 
 /**

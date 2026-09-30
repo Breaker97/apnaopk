@@ -22,9 +22,9 @@ export function ProductSpecification({
   if (rows.length === 0) return null;
 
   return (
-    // `id`/`data-section`: the sticky product bar's tabs and the scroll
-    // spy in ProductDetails target this by id once the table lives out
-    // here instead of inside the product-main tabs.
+    // `id`/`data-section`: the pinned product bar's tabs and its scroll
+    // spy (product-section-tabs.tsx) target this by id once the table lives
+    // out here instead of inside the product-main tabs.
     <section
       id="specifications"
       data-section="specifications"

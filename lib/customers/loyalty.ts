@@ -61,10 +61,67 @@ export const LOYALTY_TIER_SWITCH = {
 } as const;
 
 /**
- * Compute loyalty points earned from an order total (1 point per whole unit)
+ * How much a customer spends, in the store currency, for each point — the
+ * store's `orders.loyaltySpendPerPoint`.
+ *
+ * Points used to be one per whole currency unit, which is a dollar in one
+ * store and a taka in another. The tiers above are counted in points, so a
+ * single 5,000৳ order made a taka store's customer Platinum. The default keeps
+ * that rule for the stores it suits; a taka store sets 100 and its customers
+ * climb the tiers at the pace a dollar store's do.
  */
-export function computePointsFromOrder(orderTotal: number): number {
-  return Math.max(0, Math.floor(orderTotal));
+export const DEFAULT_LOYALTY_SPEND_PER_POINT = 1;
+export const MIN_LOYALTY_SPEND_PER_POINT = 0.01;
+export const MAX_LOYALTY_SPEND_PER_POINT = 1_000_000;
+
+/** A usable rate: a positive, finite amount, or the default. */
+export function normalizeSpendPerPoint(value: unknown): number {
+  const rate = Number(value);
+  return Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_LOYALTY_SPEND_PER_POINT;
+}
+
+/**
+ * The whole points in an amount. Trimmed the way `roundMoney` trims, so 0.3 at
+ * 0.1 per point is 3 points rather than the 2 that binary floating point would
+ * floor it to.
+ */
+function wholePoints(amount: number, spendPerPoint: number): number {
+  const points = Number((amount / normalizeSpendPerPoint(spendPerPoint)).toPrecision(12));
+  return Math.max(0, Math.floor(points));
+}
+
+/**
+ * The rate an order earns at: the one stamped on it when its points were
+ * awarded, one point per unit for an order awarded before stores had a rate,
+ * and today's rate for an order not awarded yet.
+ *
+ * Reversals and the backfill read it, so a rate changed later never re-prices
+ * points already given: a refund takes back what the order earned, not what it
+ * would earn today.
+ */
+export function orderSpendPerPoint(
+  loyalty:
+    | { pointsAwarded?: number | null; spendPerPoint?: number | null }
+    | null
+    | undefined,
+  storeSpendPerPoint: unknown,
+): number {
+  if (loyalty?.spendPerPoint != null) {
+    return normalizeSpendPerPoint(loyalty.spendPerPoint);
+  }
+  if (loyalty?.pointsAwarded != null) return DEFAULT_LOYALTY_SPEND_PER_POINT;
+  return normalizeSpendPerPoint(storeSpendPerPoint);
+}
+
+/**
+ * Compute loyalty points earned from an order total: one for every
+ * `spendPerPoint` spent, whole points only.
+ */
+export function computePointsFromOrder(
+  orderTotal: number,
+  spendPerPoint: number = DEFAULT_LOYALTY_SPEND_PER_POINT,
+): number {
+  return wholePoints(orderTotal, spendPerPoint);
 }
 
 /**
@@ -76,8 +133,10 @@ export function computeRefundPointDelta(
   pointsAwarded: number,
   pointsReversed: number,
   refundedTotal: number,
+  /** The rate the order earned at — see `orderSpendPerPoint`. */
+  spendPerPoint: number = DEFAULT_LOYALTY_SPEND_PER_POINT,
 ): number {
-  const refundedPoints = Math.floor(Math.max(0, refundedTotal));
+  const refundedPoints = wholePoints(Math.max(0, refundedTotal), spendPerPoint);
   // SIGNED, deliberately. What this answers is "how far is `pointsReversed`
   // from what the refunded total implies", and that gap can point either way:
   // a refund the gateway later rejected takes the order's refunded total back

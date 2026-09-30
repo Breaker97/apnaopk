@@ -36,64 +36,66 @@ export function AnalyticsSettingsTab(props: {
       />
       <Card>
         <CardContent className="space-y-4">
+        {/* Tracking IDs print in every storefront page's HTML, so they are
+            plain fields; only the Plausible API key below is a secret. */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <SecretInput
+            <Label htmlFor="googleAnalyticsId">
+              {t("admin.settings.analytics.googleAnalyticsId")}
+            </Label>
+            <Input
               id="googleAnalyticsId"
-              label={t("admin.settings.analytics.googleAnalyticsId")}
               value={settings.analytics?.googleAnalyticsId || ""}
-              onChange={(v) => updateNestedField("analytics.googleAnalyticsId", v)}
-              onClear={() => updateNestedField("analytics.googleAnalyticsId", null)}
-              secretSet={credentialMeta(settings, "analytics.googleAnalyticsId").set}
-              maskedHint={credentialMeta(settings, "analytics.googleAnalyticsId").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
-              placeholderWhenUnset={t("admin.settings.analytics.googleAnalyticsIdPlaceholder")}
-              revealTyped
+              onChange={(e) =>
+                updateNestedField("analytics.googleAnalyticsId", e.target.value)
+              }
+              placeholder={t("admin.settings.analytics.googleAnalyticsIdPlaceholder")}
+              spellCheck={false}
             />
             <EnvSourceHint show={Boolean(envAnalytics?.googleAnalyticsId)} />
           </div>
           <div className="space-y-2">
-            <SecretInput
+            <Label htmlFor="googleTagManagerId">
+              {t("admin.settings.analytics.googleTagManagerId")}
+            </Label>
+            <Input
               id="googleTagManagerId"
-              label={t("admin.settings.analytics.googleTagManagerId")}
               value={settings.analytics?.googleTagManagerId || ""}
-              onChange={(v) => updateNestedField("analytics.googleTagManagerId", v)}
-              onClear={() => updateNestedField("analytics.googleTagManagerId", null)}
-              secretSet={credentialMeta(settings, "analytics.googleTagManagerId").set}
-              maskedHint={credentialMeta(settings, "analytics.googleTagManagerId").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
-              placeholderWhenUnset={t("admin.settings.analytics.googleTagManagerIdPlaceholder")}
-              revealTyped
+              onChange={(e) =>
+                updateNestedField("analytics.googleTagManagerId", e.target.value)
+              }
+              placeholder={t("admin.settings.analytics.googleTagManagerIdPlaceholder")}
+              spellCheck={false}
             />
             <EnvSourceHint show={Boolean(envAnalytics?.googleTagManagerId)} />
           </div>
           <div className="space-y-2">
-            <SecretInput
+            <Label htmlFor="facebookPixelId">
+              {t("admin.settings.analytics.facebookPixelId")}
+            </Label>
+            <Input
               id="facebookPixelId"
-              label={t("admin.settings.analytics.facebookPixelId")}
               value={settings.analytics?.facebookPixelId || ""}
-              onChange={(v) => updateNestedField("analytics.facebookPixelId", v)}
-              onClear={() => updateNestedField("analytics.facebookPixelId", null)}
-              secretSet={credentialMeta(settings, "analytics.facebookPixelId").set}
-              maskedHint={credentialMeta(settings, "analytics.facebookPixelId").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
-              placeholderWhenUnset={t("admin.settings.analytics.facebookPixelIdPlaceholder")}
-              revealTyped
+              onChange={(e) =>
+                updateNestedField("analytics.facebookPixelId", e.target.value)
+              }
+              placeholder={t("admin.settings.analytics.facebookPixelIdPlaceholder")}
+              spellCheck={false}
             />
             <EnvSourceHint show={Boolean(envAnalytics?.facebookPixelId)} />
           </div>
           <div className="space-y-2">
-            <SecretInput
+            <Label htmlFor="tiktokPixelId">
+              {t("admin.settings.analytics.tiktokPixelId")}
+            </Label>
+            <Input
               id="tiktokPixelId"
-              label={t("admin.settings.analytics.tiktokPixelId")}
               value={settings.analytics?.tiktokPixelId || ""}
-              onChange={(v) => updateNestedField("analytics.tiktokPixelId", v)}
-              onClear={() => updateNestedField("analytics.tiktokPixelId", null)}
-              secretSet={credentialMeta(settings, "analytics.tiktokPixelId").set}
-              maskedHint={credentialMeta(settings, "analytics.tiktokPixelId").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
-              placeholderWhenUnset={t("admin.settings.analytics.tiktokPixelIdPlaceholder")}
-              revealTyped
+              onChange={(e) =>
+                updateNestedField("analytics.tiktokPixelId", e.target.value)
+              }
+              placeholder={t("admin.settings.analytics.tiktokPixelIdPlaceholder")}
+              spellCheck={false}
             />
             <EnvSourceHint show={Boolean(envAnalytics?.tiktokPixelId)} />
           </div>
@@ -151,7 +153,6 @@ export function AnalyticsSettingsTab(props: {
                 maskedHint={
                   credentialMeta(settings, "analytics.plausibleApiKey").hint
                 }
-                placeholderWhenSet="Saved (leave blank to keep)"
                 placeholderWhenUnset={tSafe(
                   "admin.settings.analytics.plausibleApiKeyPlaceholder",
                   "Enter your Plausible API key",

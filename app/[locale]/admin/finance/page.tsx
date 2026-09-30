@@ -9,12 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   findLedgerAnomalies,
   getCashPosition,
+  getCostCoverage,
   getLedgerCurrencies,
   getGrossMerchandiseValue,
   getProfitAndLoss,
   resolveRequestedPeriod,
 } from "@/lib/finance/reports";
-import { formatPeriodRange } from "@/lib/finance/period-label";
+import {
+  formatBalancesAsOf,
+  formatPeriodRange,
+} from "@/lib/finance/period-label";
 import { AdjustmentDialog } from "@/components/admin/finance/adjustment-dialog";
 import { LEDGER_BOOK } from "@/lib/finance/accounts";
 import { getDefaultVendorIds } from "@/lib/finance/post-events";
@@ -98,7 +102,7 @@ export default async function AdminFinancePage({
           <p className="text-sm text-muted-foreground">
             {label(
               "finance.overview.subtitle",
-              "What the business earned, what it spent, and what it is holding.",
+              "What the business earned, what it spent, and what it is holding. Sales count when the money arrives — a deposit pre-order in full when its deposit does, with the rest shown as owed by customers.",
             )}
           </p>
         </div>
@@ -139,6 +143,9 @@ export default async function AdminFinancePage({
           periodLabel={periodLabel}
           activeCurrency={read("currency")}
           buildCurrencyHref={buildCurrencyHref}
+          // Balances are read at the period's end. A picked period that has
+          // already ended is not "now", so the card names its last day.
+          holdingAsOf={formatBalancesAsOf(period, locale)}
         />
       </Suspense>
     </div>
@@ -154,6 +161,7 @@ async function OverviewSections({
   activeCurrency,
   buildCurrencyHref,
   storeCurrency,
+  holdingAsOf,
 }: {
   locale: string;
   period: { from: Date; to: Date };
@@ -164,11 +172,12 @@ async function OverviewSections({
   buildCurrencyHref: (currency: string) => string;
   /** What the ledger counts a currency-less order as; GMV has to agree. */
   storeCurrency: string;
+  holdingAsOf: string | null;
 }) {
   // The split is only fetched when a marketplace is looking at both books —
   // two extra aggregations that would answer nothing on a single-vendor store.
   const wantsSplit = multiVendor && !book;
-  const [profitAndLoss, cash, gmv, own, marketplace] = await Promise.all([
+  const [profitAndLoss, cash, gmv, own, marketplace, costCoverage] = await Promise.all([
     getProfitAndLoss(period, book),
     // No book: one bank account, one till. See `getCashPosition`.
     getCashPosition(period.to),
@@ -183,6 +192,9 @@ async function OverviewSections({
     wantsSplit
       ? getProfitAndLoss(period, LEDGER_BOOK.MARKETPLACE)
       : Promise.resolve([]),
+    // How much of the store's own sales has no cost behind it — the part of
+    // the net that is not profit. See `getCostCoverage`.
+    getCostCoverage(period, book),
   ]);
 
   return (
@@ -200,6 +212,8 @@ async function OverviewSections({
       buildCurrencyHref={buildCurrencyHref}
       bookFiltered={Boolean(book)}
       books={wantsSplit ? { own, marketplace } : null}
+      costCoverage={costCoverage}
+      holdingAsOf={holdingAsOf}
     />
   );
 }

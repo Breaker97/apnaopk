@@ -121,11 +121,10 @@ export function sanitizePreorderSettings(input: unknown): Loose | undefined {
     typeof input.limit === "number" && Number.isFinite(input.limit)
       ? Math.max(0, input.limit)
       : 0;
-  const reservedQuantity =
-    typeof input.reservedQuantity === "number" &&
-    Number.isFinite(input.reservedQuantity)
-      ? Math.max(0, input.reservedQuantity)
-      : 0;
+  // Never taken from a request: the counter moves only through the atomic
+  // reservation writes. A new product starts at zero; a save of an existing one
+  // copies the stored counter back in (`carryPreorderCounters`).
+  const reservedQuantity = 0;
   const message =
     typeof input.message === "string" && input.message.trim()
       ? input.message.trim()
@@ -142,15 +141,22 @@ export function sanitizePreorderSettings(input: unknown): Loose | undefined {
       : typeof input.supplierEta === "string" && input.supplierEta.trim()
         ? new Date(input.supplierEta)
         : undefined;
-  const paymentMode =
-    input.paymentMode === "deposit" || input.paymentMode === "pay_later"
-      ? input.paymentMode
-      : "full";
   const depositType = input.depositType === "fixed" ? "fixed" : "percentage";
   const depositValue =
     typeof input.depositValue === "number" && Number.isFinite(input.depositValue)
       ? Math.max(0, input.depositValue)
       : 0;
+  // A deposit of nothing takes nothing today, which is pay later — saved as
+  // "deposit", the product page, the cart and the order all said a deposit was
+  // being taken when none was.
+  const paymentMode =
+    input.paymentMode === "deposit"
+      ? depositValue > 0
+        ? "deposit"
+        : "pay_later"
+      : input.paymentMode === "pay_later"
+        ? "pay_later"
+        : "full";
   const batchName =
     typeof input.batchName === "string" && input.batchName.trim()
       ? input.batchName.trim().slice(0, 120)

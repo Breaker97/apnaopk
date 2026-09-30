@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
-import { THEME_STORAGE_KEY, useTheme } from "@/providers/theme-provider";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import {
   type InitialAppearanceSettings,
   useAppSettings,
@@ -10,11 +10,16 @@ import {
   applyCustomColors,
 } from "@/stores/app-settings";
 import { getLocaleDirection, isValidLocale } from "@/config/i18n.config";
+import { isDashboardPath } from "@/lib/access/role-dashboard";
 
 /**
  * SettingsApplier
- * This component applies global settings to the DOM.
+ * Applies the store's brand colours everywhere, and the viewer's own
+ * dashboard preferences (contrast, right-to-left) on the dashboards only.
  * It should be rendered once at the root of the application.
+ *
+ * Light/dark is not handled here: the ThemeProvider takes the store's default
+ * as its own and keeps a visitor's choice once they make one.
  */
 export function SettingsApplier({
   initialAppearanceSettings,
@@ -28,11 +33,10 @@ export function SettingsApplier({
     secondaryColor,
     accentColor,
     rtl,
-    themeMode,
     hydrateFromDb,
     loadFromDb,
   } = useAppSettings();
-  const { setTheme, theme } = useTheme();
+  const onDashboard = isDashboardPath(usePathname());
   const params = useParams();
   const localeParamRaw = (
     params as Record<string, string | string[] | undefined>
@@ -55,17 +59,9 @@ export function SettingsApplier({
     loadFromDb,
   ]);
 
-  // Seed the admin-configured theme, but only for visitors who have not picked
-  // one themselves. `themeMode` is already normalized to light/dark by the
-  // store — nothing here can resolve a theme from the OS preference.
-  useEffect(() => {
-    const userThemePreference = localStorage.getItem(THEME_STORAGE_KEY);
-    if (userThemePreference) return;
-    if (theme && theme === themeMode) return;
-    setTheme(themeMode);
-  }, [setTheme, themeMode, theme]);
-
-  // Apply RTL mode (right-to-left direction)
+  // The page's direction is its language's. The viewer's right-to-left
+  // preference turns a dashboard around, never the storefront: shoppers read
+  // the store in the direction of the language they browse in.
   useEffect(() => {
     const docLang = document.documentElement.getAttribute("lang");
 
@@ -77,17 +73,22 @@ export function SettingsApplier({
       null;
 
     const autoDirection = autoLocale ? getLocaleDirection(autoLocale) : "ltr";
-    document.documentElement.setAttribute("dir", rtl ? "rtl" : autoDirection);
-  }, [rtl, localeParam]);
-
-  // Apply Contrast mode (high contrast)
-  useEffect(() => {
-    if (contrast) {
-      document.documentElement.classList.add("high-contrast");
-    } else {
-      document.documentElement.classList.remove("high-contrast");
+    const direction = rtl && onDashboard ? "rtl" : autoDirection;
+    // Setting the same value still re-styles the page; the root layout already
+    // rendered the locale's direction.
+    if (document.documentElement.getAttribute("dir") !== direction) {
+      document.documentElement.setAttribute("dir", direction);
     }
-  }, [contrast]);
+  }, [rtl, localeParam, onDashboard]);
+
+  // High contrast is the viewer's preference, on the dashboards only.
+  useEffect(() => {
+    const highContrast = contrast && onDashboard;
+    const classes = document.documentElement.classList;
+    if (classes.contains("high-contrast") !== highContrast) {
+      classes.toggle("high-contrast", highContrast);
+    }
+  }, [contrast, onDashboard]);
 
   // Apply custom brand colors (primary / secondary / accent) to CSS variables.
   useEffect(() => {

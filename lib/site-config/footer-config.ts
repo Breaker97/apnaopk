@@ -1,3 +1,7 @@
+import {
+  normalizeFooterLayout,
+  type FooterLayout,
+} from "@/lib/site-config/footer-layout";
 import { colorTone } from "@/lib/site-config/appearance-colors";
 import type { LogoWidths } from "@/lib/site-config/header-config";
 import {
@@ -70,6 +74,15 @@ export interface FooterContactDetails {
 }
 
 export interface FooterSettings {
+  /**
+   * The footer AS A LAYOUT, once a merchant has built one — rows of columns
+   * of items, the same shape the header keeps under its own `builder`. An
+   * empty one means "not built yet", and the footer falls back to the
+   * arrangement the settings below already describe
+   * (`footerLayoutFromSettings`), so nothing has to be migrated up front
+   * and nothing moves for a store that never opens the builder.
+   */
+  builder: FooterLayout;
   layout: {
     fullWidth: boolean;
   };
@@ -128,6 +141,7 @@ export interface FooterSettings {
 }
 
 const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
+  builder: { rows: [] },
   layout: {
     fullWidth: false,
   },
@@ -494,6 +508,7 @@ export function normalizeFooterSettings(value: unknown): FooterSettings {
   const copyright = isRecord(source.copyright) ? source.copyright : {};
 
   return {
+    builder: normalizeFooterLayout(source.builder),
     layout: {
       fullWidth: normalizeBoolean(layout.fullWidth, defaults.layout.fullWidth),
     },

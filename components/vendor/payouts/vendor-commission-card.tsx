@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { Banknote, Loader2 } from "lucide-react";
 
@@ -28,9 +29,11 @@ import { openRazorpayCheckout } from "@/components/checkout/checkout-helpers";
 import { RAZORPAY_RETURN_PARAM } from "@/lib/payments/razorpay-callback";
 import {
   PaymentMethodPicker,
+  platformPaymentErrorMessage,
   type PlatformGateway,
 } from "@/components/vendor/payment-method-picker";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useGatewayWindow } from "@/hooks/use-gateway-window";
 
 /**
  * The vendor's side of a commission invoice.
@@ -97,6 +100,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const verifiedRef = useRef(false);
+  const { gatewayOpen, withGatewayWindow } = useGatewayWindow();
 
   const load = useCallback(
     () =>
@@ -256,22 +260,27 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       }
 
       if (response.type === "razorpay" && response.razorpayOrderId) {
+        const razorpayOrderId = response.razorpayOrderId;
         // Never resolves: Razorpay returns the vendor to this page, whose
         // return effect verifies the payment with the signature it carries.
-        await openRazorpayCheckout({
-          keyId: response.keyId ?? "",
-          razorpayOrderId: response.razorpayOrderId,
-          amount: response.amount ?? 0,
-          currency: response.currency ?? "",
-          name: response.name ?? "",
-          description: response.description,
-          callbackUrl: response.callbackUrl ?? "",
-          prefill: response.prefill,
-          canceledMessage: label(
-            "vendor.commission.canceled",
-            "Payment was canceled. The invoice is still open.",
-          ),
-        });
+        // The dialog steps aside meanwhile, or its modal lock would leave
+        // Razorpay's window unclickable.
+        await withGatewayWindow(() =>
+          openRazorpayCheckout({
+            keyId: response.keyId ?? "",
+            razorpayOrderId,
+            amount: response.amount ?? 0,
+            currency: response.currency ?? "",
+            name: response.name ?? "",
+            description: response.description,
+            callbackUrl: response.callbackUrl ?? "",
+            prefill: response.prefill,
+            canceledMessage: label(
+              "vendor.commission.canceled",
+              "Payment was canceled. The invoice is still open.",
+            ),
+          }),
+        );
         return;
       }
 
@@ -291,9 +300,11 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       );
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : label("vendor.commission.failed", "Failed to start the payment"),
+        platformPaymentErrorMessage(
+          error,
+          label,
+          label("vendor.commission.failed", "Failed to start the payment"),
+        ),
       );
     } finally {
       setIsSubmitting(false);
@@ -306,9 +317,8 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
     iotecPhone,
     mtnMomoPhone,
     label,
-    load,
     pollVerify,
-    router,
+    withGatewayWindow,
   ]);
 
   const invoices = data?.invoices ?? [];
@@ -379,7 +389,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       </Card>
 
       <Dialog
-        open={Boolean(payingInvoice)}
+        open={Boolean(payingInvoice) && !gatewayOpen}
         onOpenChange={(open) => {
           if (isPolling || isSubmitting) return;
           if (!open) setPayingInvoice(null);

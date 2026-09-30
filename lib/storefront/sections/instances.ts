@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import {
   MAX_BLOCKS_PER_SECTION,
   MAX_SECTIONS_PER_PAGE,

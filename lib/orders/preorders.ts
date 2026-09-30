@@ -2,7 +2,11 @@ import { Types } from "mongoose";
 import { Order, Product } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
-import { getPurchasableQuantity } from "@/lib/products/stock-policy";
+import {
+  getPurchasableQuantity,
+  productAllowsOversell,
+} from "@/lib/products/stock-policy";
+import { quantizeToCurrency } from "@/lib/intl/money";
 
 export const PURCHASE_TYPE = {
   STANDARD: "standard",
@@ -96,7 +100,20 @@ function toObjectId(value: string) {
   return Types.ObjectId.isValid(value) ? new Types.ObjectId(value) : value;
 }
 
-function normalizePaymentMode(settings?: PreorderSettingsShape) {
+type PreorderPaymentMode = NonNullable<PreorderSettingsShape["paymentMode"]>;
+
+/**
+ * What a line is paid now and what stays owed. Named, because inferring it
+ * would widen `paymentMode` to `string` and every caller writing it back onto
+ * a cart or an order line expects the three modes.
+ */
+type PreorderDepositTerms = {
+  paymentMode: PreorderPaymentMode;
+  depositAmount: number;
+  outstandingAmount: number;
+};
+
+function normalizePaymentMode(settings?: PreorderSettingsShape): PreorderPaymentMode {
   return settings?.paymentMode === "deposit" || settings?.paymentMode === "pay_later"
     ? settings.paymentMode
     : "full";
@@ -106,7 +123,14 @@ export function calculatePreorderDeposit(params: {
   unitPrice: number;
   quantity: number;
   settings?: PreorderSettingsShape;
-}) {
+  /**
+   * The currency the deposit is charged in. The deposit is rounded to what it
+   * can actually represent and the balance is what is left of the line, so
+   * the two always add back up to it: rounded apart, a 1.01 line at 50% came
+   * to 0.505 twice, and each half was charged as 0.51.
+   */
+  currency?: string;
+}): PreorderDepositTerms {
   const lineTotal = Math.max(0, params.unitPrice * params.quantity);
   const mode = normalizePaymentMode(params.settings);
   if (mode === "full") {
@@ -118,15 +142,22 @@ export function calculatePreorderDeposit(params: {
 
   const rawValue = Number(params.settings?.depositValue || 0);
   const value = Number.isFinite(rawValue) ? Math.max(0, rawValue) : 0;
-  const depositAmount =
+  const rawDeposit =
     params.settings?.depositType === "fixed"
       ? Math.min(lineTotal, value * params.quantity)
       : Math.min(lineTotal, lineTotal * Math.min(value, 100) / 100);
+  const depositAmount = Math.min(
+    lineTotal,
+    quantizeToCurrency(rawDeposit, params.currency || "USD"),
+  );
 
   return {
     paymentMode: mode,
     depositAmount,
-    outstandingAmount: Math.max(0, lineTotal - depositAmount),
+    outstandingAmount: Math.max(
+      0,
+      quantizeToCurrency(lineTotal - depositAmount, params.currency || "USD"),
+    ),
   };
 }
 
@@ -258,6 +289,13 @@ export function resolvePurchaseType(params: {
   product: PreorderProductShape;
   variantId?: string;
   requestedQuantity: number;
+  /**
+   * The line is priced by a quote offer (lib/quotes/quote-offer.ts). The
+   * merchant agreed to sell that exact lot, so where stock is not a limit the
+   * per-line cap that guards an ordinary cart does not apply: a bulk quote for
+   * 360 units of an untracked product could otherwise never be bought.
+   */
+  quoted?: boolean;
 }):
   | { purchaseType: typeof PURCHASE_TYPE.STANDARD }
   | ({ purchaseType: typeof PURCHASE_TYPE.PREORDER } & PreorderSnapshot)
@@ -266,10 +304,13 @@ export function resolvePurchaseType(params: {
   // What the buyer may take, not the raw count: a digital / untracked product
   // sits at stock 0 forever and would otherwise fall through to the pre-order
   // path (and then be rejected outright for having no pre-order configured).
-  const stock = getPurchasableQuantity(
-    params.product,
-    getAvailableStock(params.product, params.variantId),
-  );
+  const stock =
+    params.quoted && productAllowsOversell(params.product)
+      ? Number.POSITIVE_INFINITY
+      : getPurchasableQuantity(
+          params.product,
+          getAvailableStock(params.product, params.variantId),
+        );
 
   // Only force the preorder path when the preorder is actually actionable
   // (window open and remaining capacity). This mirrors the storefront UI's
@@ -408,12 +449,12 @@ async function reservePreorderLine(line: PreorderReservationLine) {
   const product = await Product.findById(line.productId).lean<PreorderProductShape>();
   if (!product) throw new PreorderUnavailableError(line);
 
-  const result = resolvePurchaseType({
-    product,
-    variantId: line.variantId,
-    requestedQuantity: line.quantity,
-  });
-  if (!result || result.purchaseType !== PURCHASE_TYPE.PREORDER) {
+  // Is the pre-order still open — not "would this sell as a pre-order today".
+  // This runs once the shopper has paid, and stock that came back in the
+  // meantime turned the answer into "standard": a paid order was cancelled
+  // and refunded for the goods being on the shelf. The window and the limit
+  // are what a reservation needs; the atomic writes below hold the limit.
+  if (!getPreorderSnapshot(product, line.variantId)) {
     throw new PreorderUnavailableError(line);
   }
 
@@ -500,7 +541,7 @@ async function invalidatePreorderProductCache(
       .filter(
         (slug): slug is string => typeof slug === "string" && slug.length > 0,
       );
-    revalidateProductContent({ slugs });
+    revalidateProductContent({ slugs, freshness: "background" });
   } catch (err) {
     console.error(
       "Failed to invalidate product cache after preorder reservation:",

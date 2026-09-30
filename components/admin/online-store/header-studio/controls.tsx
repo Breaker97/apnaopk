@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   AlignCenterHorizontal,
   AlignCenterVertical,
@@ -8,15 +8,10 @@ import {
   AlignEndVertical,
   AlignStartHorizontal,
   AlignStartVertical,
-  PanelBottom,
-  PanelLeft,
-  PanelRight,
-  PanelTop,
   Type,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Popover,
@@ -25,9 +20,8 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { BackgroundSwatchField } from "@/components/admin/sliders/background-swatch";
+import { ColorPickerPanel } from "@/components/admin/sliders/color-picker";
 import {
-  NumberInput,
-  ScrubHandle,
   UnitField,
 } from "@/components/admin/unit-field";
 import {
@@ -53,11 +47,26 @@ export function PanelRow({
   label,
   children,
   align = "center",
+  layout = "inline",
 }: {
   label: string;
   children: ReactNode;
   align?: "center" | "start";
+  /**
+   * "stacked" puts the label on its own line and gives the control the whole
+   * panel width — for the controls that hold several fields at once, which
+   * the 169px beside a label clips.
+   */
+  layout?: "inline" | "stacked";
 }) {
+  if (layout === "stacked") {
+    return (
+      <div className="space-y-1.5">
+        <span className="block text-xs font-medium text-foreground">{label}</span>
+        <div className="min-w-0">{children}</div>
+      </div>
+    );
+  }
   return (
     <div
       className={cn(
@@ -76,55 +85,45 @@ export function PanelRow({
 // import.
 export { UnitField };
 
+import {
+  BoxSidesField,
+  DEFAULT_BOX_SIDES_LABELS,
+  type BoxSidesLabels,
+} from "@/components/admin/box-sides-field";
+
 /** Matches the layout normalizer's padding ceiling. */
 const MAX_PADDING = 120;
 
-const PADDING_SIDES: { key: keyof HeaderPadding; icon: LucideIcon }[] = [
-  { key: "top", icon: PanelTop },
-  { key: "right", icon: PanelRight },
-  { key: "bottom", icon: PanelBottom },
-  { key: "left", icon: PanelLeft },
-];
 
 export function PaddingField({
   value,
   onChange,
   labels,
+  max = MAX_PADDING,
 }: {
   value: HeaderPadding;
   onChange: (value: HeaderPadding) => void;
-  labels: Record<keyof HeaderPadding, string>;
+  labels: Record<keyof HeaderPadding, string> &
+    Partial<Pick<BoxSidesLabels, "horizontal" | "vertical" | "expand" | "collapse">>;
+  max?: number;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {PADDING_SIDES.map(({ key, icon: Icon }) => (
-        <div
-          key={key}
-          className="flex h-8 items-center gap-1 rounded-[4px] border bg-background pl-2 pr-0.5 focus-within:ring-[3px] focus-within:ring-ring/50"
-        >
-          <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <NumberInput
-            ariaLabel={labels[key]}
-            value={value[key]}
-            min={0}
-            max={MAX_PADDING}
-            step={1}
-            onChange={(next) => onChange({ ...value, [key]: next })}
-            className="px-0"
-          />
-          <ScrubHandle
-            value={value[key]}
-            min={0}
-            max={MAX_PADDING}
-            step={1}
-            onChange={(next) => onChange({ ...value, [key]: next })}
-            label={labels[key]}
-          >
-            px
-          </ScrubHandle>
-        </div>
-      ))}
-    </div>
+    <BoxSidesField
+      value={value}
+      onChange={onChange}
+      max={max}
+      labels={{
+        ...DEFAULT_BOX_SIDES_LABELS,
+        top: labels.top,
+        right: labels.right,
+        bottom: labels.bottom,
+        left: labels.left,
+        ...(labels.horizontal ? { horizontal: labels.horizontal } : {}),
+        ...(labels.vertical ? { vertical: labels.vertical } : {}),
+        ...(labels.expand ? { expand: labels.expand } : {}),
+        ...(labels.collapse ? { collapse: labels.collapse } : {}),
+      }}
+    />
   );
 }
 
@@ -274,7 +273,6 @@ export function ColorField({
   inheritLabel: string;
   clearLabel: string;
 }) {
-  const inputId = useId();
   const isInherit = !value;
 
   return (
@@ -289,24 +287,13 @@ export function ColorField({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className={cn("w-56 space-y-3 p-3", STUDIO_CONTROL_RADIUS)}
+        className={cn("w-64 space-y-3 p-3", STUDIO_CONTROL_RADIUS)}
+        aria-label={label}
       >
-        <div className="flex items-center gap-2">
-          <input
-            id={inputId}
-            type="color"
-            aria-label={label}
-            value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#ffffff"}
-            onChange={(event) => onChange(event.target.value)}
-            className="h-8 w-10 cursor-pointer rounded border bg-transparent p-0.5"
-          />
-          <Input
-            value={value}
-            placeholder={inheritLabel}
-            onChange={(event) => onChange(event.target.value.trim())}
-            className="h-8 text-xs"
-          />
-        </div>
+        {isInherit ? (
+          <p className="text-[11px] text-muted-foreground">{inheritLabel}</p>
+        ) : null}
+        <ColorPickerPanel value={value} onChange={onChange} />
         <Button
           type="button"
           variant="ghost"

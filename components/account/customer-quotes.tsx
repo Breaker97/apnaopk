@@ -1,20 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast-notification";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { useLiveResource } from "@/hooks/use-live-resource";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 import { useCurrency } from "@/providers/currency-provider";
-import {
-  QUOTE_REQUEST_STATUS_LABELS,
-  type QuoteOfferState,
-} from "@/lib/quotes/quote-status";
 import type { QuoteRequestRow } from "@/lib/quotes/quotes";
 
 /**
@@ -27,29 +25,50 @@ import type { QuoteRequestRow } from "@/lib/quotes/quotes";
  * the offer travels on the line rather than being a separate way to pay.
  *
  * Polled rather than static: a shopper who has just asked for a price is very
- * often sitting on this page when it arrives.
+ * often sitting on this page when it arrives. The first read suspends (the
+ * page's `<ClientSuspense>` shows the loading state) and is kept, so coming
+ * back to the page shows the list at once; the poll resumes where it left off
+ * and writes each new answer into that same copy.
+ *
+ * Only what the shopper can act on is shown. The store's own working labels
+ * ("In progress", "Won", "Lost") are for the merchant; a request the store
+ * closed reads "Closed", with a way to ask again.
  */
 
-interface CustomerQuotesProps {
-  locale: string;
-}
+type ShopperState =
+  | "awaiting"
+  | "ready"
+  | "ordered"
+  | "expired"
+  | "withdrawn"
+  | "closed";
 
-function stateBadge(
-  state: QuoteOfferState,
-): { label: string; variant: "default" | "secondary" | "outline" | "destructive" } {
-  switch (state) {
+function shopperState(row: QuoteRequestRow): ShopperState {
+  switch (row.offerState) {
     case "live":
-      return { label: "Price ready", variant: "default" };
+      return "ready";
     case "ordered":
-      return { label: "Ordered", variant: "secondary" };
+      return "ordered";
     case "expired":
-      return { label: "Price expired", variant: "destructive" };
+      return "expired";
     case "withdrawn":
-      return { label: "Price withdrawn", variant: "destructive" };
+      return "withdrawn";
     default:
-      return { label: "Awaiting price", variant: "outline" };
+      return row.status === "lost" ? "closed" : "awaiting";
   }
 }
+
+const STATE_BADGE: Record<
+  ShopperState,
+  { key: string; variant: "default" | "secondary" | "outline" | "destructive" }
+> = {
+  awaiting: { key: "awaitingPrice", variant: "outline" },
+  ready: { key: "priceReady", variant: "default" },
+  ordered: { key: "ordered", variant: "secondary" },
+  expired: { key: "priceExpired", variant: "destructive" },
+  withdrawn: { key: "priceWithdrawn", variant: "destructive" },
+  closed: { key: "closed", variant: "outline" },
+};
 
 function formatDate(value?: string) {
   if (!value) return "";
@@ -63,13 +82,20 @@ function formatDate(value?: string) {
       });
 }
 
-export function CustomerQuotes({ locale }: CustomerQuotesProps) {
+export function CustomerQuotes() {
+  const t = useTranslations("account.quotesList");
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   const { formatPrice } = useCurrency();
-  const { data, isLoading, refresh } = useLiveResource<QuoteRequestRow[]>(
-    "/api/quotes/mine",
-  );
+  const {
+    data,
+    fetchedAt,
+    mutate,
+  } = useSuspenseResource<QuoteRequestRow[]>("/api/quotes/mine");
+  const { refresh } = useLiveResource<QuoteRequestRow[]>("/api/quotes/mine", {
+    onData: mutate,
+    initialFetchedAt: fetchedAt,
+  });
   const [addingId, setAddingId] = useState<string | null>(null);
 
   const quotes = data ?? [];
@@ -80,18 +106,19 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
     try {
       await addItem({
         productId: row.productId,
+        // The cart takes a product with variants only with one named; the
+        // price is for this variant and no other.
+        variantId: row.variantId,
         // The offer is good for one exact lot, so the quantity is the
         // merchant's, not the shopper's — the cart refuses any other.
         quantity: row.offer.quantity,
         price: row.offer.unitPrice,
         name: row.productName,
       });
-      router.push(`/${locale}/checkout`);
+      router.push("/checkout");
     } catch (error) {
       toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : "This price could not be used. Refresh and try again.",
+        error instanceof Error && error.message ? error.message : t("addFailed"),
       );
       // The likeliest failure is an offer that stopped being valid while the
       // page was open, and the list is what says so.
@@ -101,20 +128,11 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
-      </div>
-    );
-  }
-
   if (quotes.length === 0) {
     return (
       <Card>
         <CardContent className="py-16 text-center text-sm text-muted-foreground">
-          You have not asked for any prices yet. Products sold by quote show a
-          request button instead of a price.
+          {t("empty")}
         </CardContent>
       </Card>
     );
@@ -123,8 +141,11 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
   return (
     <div className="space-y-3">
       {quotes.map((row) => {
-        const badge = stateBadge(row.offerState);
-        const isLive = row.offerState === "live" && row.offer;
+        const state = shopperState(row);
+        const badge = STATE_BADGE[state];
+        const canAskAgain =
+          Boolean(row.productSlug) &&
+          (state === "expired" || state === "withdrawn" || state === "closed");
         return (
           <Card key={row._id}>
             <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
@@ -132,7 +153,7 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   {row.productSlug ? (
                     <Link
-                      href={`/${locale}/products/${row.productSlug}`}
+                      href={`/products/${row.productSlug}`}
                       className="font-medium hover:underline"
                     >
                       {row.productName}
@@ -140,25 +161,34 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
                   ) : (
                     <span className="font-medium">{row.productName}</span>
                   )}
-                  <Badge variant={badge.variant}>{badge.label}</Badge>
+                  <Badge variant={badge.variant}>{t(badge.key)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {row.variantName ? `${row.variantName} · ` : ""}
-                  Asked for {row.quantity} on {formatDate(row.createdAt)}
-                  {row.offerState === "none"
-                    ? ` · ${QUOTE_REQUEST_STATUS_LABELS[row.status]}`
-                    : ""}
+                  {t("askedFor", {
+                    quantity: row.quantity,
+                    date: formatDate(row.createdAt),
+                  })}
                 </p>
                 {row.offer ? (
                   <p className="text-sm">
                     <span className="font-medium">
-                      {formatPrice(row.offer.unitPrice)} each
+                      {t("each", { price: formatPrice(row.offer.unitPrice) })}
                     </span>
                     <span className="text-muted-foreground">
-                      {" "}
-                      · {row.offer.quantity} ={" "}
-                      {formatPrice(row.offer.unitPrice * row.offer.quantity)}
+                      {" · "}
+                      {t("lotTotal", {
+                        quantity: row.offer.quantity,
+                        total: formatPrice(
+                          row.offer.unitPrice * row.offer.quantity,
+                        ),
+                      })}
                     </span>
+                  </p>
+                ) : null}
+                {row.offer && state === "ready" ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("beforeShippingTax")}
                   </p>
                 ) : null}
                 {row.offer?.note ? (
@@ -166,15 +196,15 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
                     {row.offer.note}
                   </p>
                 ) : null}
-                {isLive && row.offer?.expiresAt ? (
+                {state === "ready" && row.offer?.expiresAt ? (
                   <p className="text-xs text-muted-foreground">
-                    Held until {formatDate(row.offer.expiresAt)}
+                    {t("heldUntil", { date: formatDate(row.offer.expiresAt) })}
                   </p>
                 ) : null}
               </div>
 
               <div className="shrink-0">
-                {isLive ? (
+                {state === "ready" ? (
                   <Button
                     onClick={() => buy(row)}
                     disabled={addingId === row._id}
@@ -184,20 +214,18 @@ export function CustomerQuotes({ locale }: CustomerQuotesProps) {
                     ) : (
                       <ShoppingCart className="me-2 h-4 w-4" />
                     )}
-                    Add to cart
+                    {t("addToCart")}
                   </Button>
-                ) : row.offerState === "ordered" && row.orderId ? (
+                ) : state === "ordered" && row.orderId ? (
                   <Button asChild variant="outline">
-                    <Link href={`/${locale}/account/orders/${row.orderId}`}>
-                      View order
+                    <Link href={`/account/orders/${row.orderId}`}>
+                      {t("viewOrder")}
                     </Link>
                   </Button>
-                ) : row.productSlug &&
-                  (row.offerState === "expired" ||
-                    row.offerState === "withdrawn") ? (
+                ) : canAskAgain ? (
                   <Button asChild variant="outline">
-                    <Link href={`/${locale}/products/${row.productSlug}`}>
-                      Ask again
+                    <Link href={`/products/${row.productSlug}`}>
+                      {t("askAgain")}
                     </Link>
                   </Button>
                 ) : null}

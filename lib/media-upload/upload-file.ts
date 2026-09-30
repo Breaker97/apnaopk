@@ -2,10 +2,11 @@ import "server-only";
 
 import { validateUpload } from "@/lib/storage";
 import type { StorageConfig, StorageService } from "@/lib/storage";
+import { isVectorImageType, mimeEssence } from "@/lib/storage/content-type";
+import { assertShopperUpload } from "./upload-policy";
 import {
   convertImageToWebp,
   imageDimensions,
-  isVectorImageType,
   shouldConvertToWebp,
   undecodableImageType,
 } from "./webp";
@@ -75,6 +76,11 @@ interface UploadMediaFileDependencies {
    * every caller in the app.
    */
   additionalAllowedMimeTypes?: string[];
+  /**
+   * The uploader is a shopper: photos only, within SHOPPER_UPLOAD_LIMITS
+   * (lib/media-upload/upload-policy.ts), on top of the store's own limits.
+   */
+  shopper?: boolean;
 }
 
 interface PreparedUpload {
@@ -102,8 +108,12 @@ const IMAGE_CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
   ico: "image/x-icon",
 };
 
+/**
+ * The type the file is checked and stored as. Parameters are dropped, so every
+ * check below reads the same string the bucket will serve.
+ */
 function resolvedContentType(fileName: string, contentType: string): string {
-  const declared = contentType.trim().toLowerCase();
+  const declared = mimeEssence(contentType);
   if (declared && declared !== "application/octet-stream") return declared;
 
   const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
@@ -188,6 +198,9 @@ export async function uploadMediaFile(
   const type = mediaKind(originalContentType);
   const config = uploadConfig(dependencies);
 
+  if (dependencies.shopper) {
+    assertShopperUpload(originalContentType, file.size, config);
+  }
   assertValidUpload(config, file.size, originalContentType);
 
   const originalBuffer = Buffer.from(await file.arrayBuffer());

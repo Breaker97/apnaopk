@@ -26,13 +26,29 @@ import {
   LEDGER_ACCOUNT,
   LEDGER_ACCOUNT_TYPE,
   LEDGER_ACCOUNT_TYPES,
+  LEDGER_BOOK,
   type LedgerAccount,
   type LedgerBook,
 } from "@/lib/finance/accounts";
 import { roundMoney } from "@/lib/intl/money";
+import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+
+/**
+ * The part of the refunds account that is not money handed back: a cancelled
+ * pre-order's balance that never arrived, written off against what the shopper
+ * owed. See `balanceWriteOffPostings`.
+ */
+export const CANCELLED_BALANCES_PART = "cancelled_balances" as const;
 
 interface AccountLine {
   account: LedgerAccount;
+  /**
+   * Set when one account is reported as more than one line. Only refunds is:
+   * its write-offs of cancelled pre-order balances sat inside "Refunds" and
+   * more than doubled it on a store that takes deposits, though not a penny of
+   * them went back to anyone.
+   */
+  part?: typeof CANCELLED_BALANCES_PART;
   /** Positive when the account moved in its natural direction. */
   amount: number;
 }
@@ -77,7 +93,13 @@ export async function getProfitAndLoss(
   book?: LedgerBook,
 ): Promise<ProfitAndLoss[]> {
   const rows = await LedgerEntry.aggregate<{
-    _id: { currency: string; account: LedgerAccount; side: "debit" | "credit" };
+    _id: {
+      currency: string;
+      account: LedgerAccount;
+      side: "debit" | "credit";
+      /** What produced the entry — tells a write-off from a refund. */
+      kind?: string;
+    };
     amount: number;
   }>([
     { $match: periodMatch(period, book) },
@@ -86,7 +108,12 @@ export async function getProfitAndLoss(
         debits: [
           {
             $group: {
-              _id: { currency: "$currency", account: "$debit", side: "debit" },
+              _id: {
+                currency: "$currency",
+                account: "$debit",
+                side: "debit",
+                kind: "$source.kind",
+              },
               amount: { $sum: "$amount" },
             },
           },
@@ -94,7 +121,12 @@ export async function getProfitAndLoss(
         credits: [
           {
             $group: {
-              _id: { currency: "$currency", account: "$credit", side: "credit" },
+              _id: {
+                currency: "$currency",
+                account: "$credit",
+                side: "credit",
+                kind: "$source.kind",
+              },
               amount: { $sum: "$amount" },
             },
           },
@@ -110,13 +142,14 @@ export async function getProfitAndLoss(
     { $replaceRoot: { newRoot: "$rows" } },
   ]);
 
+  type LineTotals = Map<string, AccountLine>;
   const byCurrency = new Map<
     string,
-    { income: Map<LedgerAccount, number>; expenses: Map<LedgerAccount, number> }
+    { income: LineTotals; expenses: LineTotals }
   >();
 
   for (const row of rows) {
-    const { currency, account, side } = row._id;
+    const { currency, account, side, kind } = row._id;
     const type = LEDGER_ACCOUNT_TYPES[account];
     // Balance-sheet accounts (cash, payables, inventory) are not profit.
     if (
@@ -134,7 +167,16 @@ export async function getProfitAndLoss(
     // Income rises on credits, expense on debits; the other side subtracts.
     const natural = type === LEDGER_ACCOUNT_TYPE.INCOME ? "credit" : "debit";
     const delta = side === natural ? row.amount : -row.amount;
-    target.set(account, (target.get(account) ?? 0) + delta);
+    // A refund is filed under the refund that paid it; a write-off of an
+    // unpaid pre-order balance under the order, since nothing was paid.
+    const part =
+      account === LEDGER_ACCOUNT.REFUNDS && kind === LEDGER_SOURCE_KIND.ORDER
+        ? CANCELLED_BALANCES_PART
+        : undefined;
+    const lineKey = part ? `${account}:${part}` : account;
+    const line = target.get(lineKey) ?? { account, ...(part ? { part } : {}), amount: 0 };
+    line.amount += delta;
+    target.set(lineKey, line);
   }
 
   const assumedCurrencies = new Set(
@@ -148,12 +190,12 @@ export async function getProfitAndLoss(
 
   return [...byCurrency.entries()]
     .map(([currency, bucket]) => {
-      const income = [...bucket.income.entries()]
-        .map(([account, amount]) => ({ account, amount: round(amount) }))
+      const income = [...bucket.income.values()]
+        .map((line) => ({ ...line, amount: round(line.amount) }))
         .filter((line) => line.amount !== 0)
         .sort((a, b) => b.amount - a.amount);
-      const expenses = [...bucket.expenses.entries()]
-        .map(([account, amount]) => ({ account, amount: round(amount) }))
+      const expenses = [...bucket.expenses.values()]
+        .map((line) => ({ ...line, amount: round(line.amount) }))
         .filter((line) => line.amount !== 0)
         .sort((a, b) => b.amount - a.amount);
 
@@ -181,7 +223,109 @@ export async function getProfitAndLoss(
         hasAssumedCurrency: assumedCurrencies.has(currency),
       };
     })
+    // A currency whose entries all cancelled out — a fee booked in the wrong
+    // currency and moved out again — has nothing to report, and offering it
+    // as a set of books opened an empty screen.
+    .filter((book) => book.income.length > 0 || book.expenses.length > 0)
     .sort((a, b) => b.totalIncome - a.totalIncome);
+}
+
+export interface CostCoverage {
+  currency: string;
+  /** Product sales the period booked, in this currency. */
+  sales: number;
+  /** The part of them whose goods have no cost recorded. */
+  uncosted: number;
+}
+
+/** How many orders one lookup reads — the `$in` stays a reasonable size. */
+const COVERAGE_BATCH = 500;
+
+/**
+ * How much of the store's own product sales carries no cost of goods.
+ *
+ * A line whose product has no cost records none at the sale (see
+ * `lib/products/item-cost.ts`), and absent is deliberately not zero — so the
+ * margin on it is unknown, not 100%. Cost of goods simply leaves it out, and a
+ * net that read as profit was sales less fees. This is what lets the overview
+ * say so instead of printing a confident, false figure.
+ *
+ * Each sale's revenue is split by its own lines: the part whose goods sold
+ * without a cost counts as uncosted, weighed by what those lines sold for.
+ */
+export async function getCostCoverage(
+  period: FinancePeriod,
+  book?: LedgerBook,
+): Promise<CostCoverage[]> {
+  // Marketplace sales are the vendors' goods; the store has no cost to know.
+  if (book === LEDGER_BOOK.MARKETPLACE) return [];
+
+  const sales = await LedgerEntry.aggregate<{
+    _id: { currency: string; order: unknown; vendor: unknown };
+    amount: number;
+  }>([
+    {
+      $match: {
+        ...periodMatch(period, LEDGER_BOOK.OWN),
+        credit: LEDGER_ACCOUNT.PRODUCT_REVENUE,
+        "source.kind": LEDGER_SOURCE_KIND.ORDER,
+      },
+    },
+    {
+      $group: {
+        _id: { currency: "$currency", order: "$source.id", vendor: "$vendorId" },
+        amount: { $sum: "$amount" },
+      },
+    },
+  ]);
+  if (sales.length === 0) return [];
+
+  type CoverageLine = { price?: number; quantity?: number; cost?: number | null };
+  const linesBySale = new Map<string, CoverageLine[]>();
+  const orderIds = [...new Set(sales.map((row) => String(row._id.order)))];
+  for (let start = 0; start < orderIds.length; start += COVERAGE_BATCH) {
+    const orders = await Order.find({
+      _id: { $in: orderIds.slice(start, start + COVERAGE_BATCH) },
+    })
+      .select("subOrders.vendorId subOrders.items.price subOrders.items.quantity subOrders.items.cost")
+      .lean<
+        Array<{
+          _id: unknown;
+          subOrders?: Array<{ vendorId?: unknown; items?: CoverageLine[] }>;
+        }>
+      >();
+    for (const order of orders) {
+      for (const sub of order.subOrders || []) {
+        linesBySale.set(`${String(order._id)}:${String(sub.vendorId)}`, sub.items || []);
+      }
+    }
+  }
+
+  const byCurrency = new Map<string, CostCoverage>();
+  for (const row of sales) {
+    const currency = row._id.currency;
+    const coverage = byCurrency.get(currency) ?? { currency, sales: 0, uncosted: 0 };
+    const lines = linesBySale.get(`${String(row._id.order)}:${String(row._id.vendor)}`) ?? [];
+    let value = 0;
+    let uncostedValue = 0;
+    for (const line of lines) {
+      const lineValue = Math.max(0, Number(line.price) || 0) * Math.max(0, Number(line.quantity) || 0);
+      value += lineValue;
+      const cost = Number(line.cost);
+      if (line.cost == null || !Number.isFinite(cost) || cost < 0) uncostedValue += lineValue;
+    }
+    // Nothing to weigh by — an order that lost its lines — reads as unknown.
+    const share = value > 0 ? uncostedValue / value : 1;
+    coverage.sales += row.amount;
+    coverage.uncosted += row.amount * share;
+    byCurrency.set(currency, coverage);
+  }
+
+  return [...byCurrency.values()].map((coverage) => ({
+    ...coverage,
+    sales: round(coverage.sales),
+    uncosted: round(coverage.uncosted),
+  }));
 }
 
 export interface CashPosition {
@@ -210,6 +354,8 @@ export interface CashPosition {
   dutyPayable: number;
   /** Bills received and not paid yet. */
   accountsPayable: number;
+  /** Store credit shoppers hold and have not spent yet (R8). */
+  storeCreditPayable: number;
 }
 
 /** A balance the books say is impossible, and which account said it. */
@@ -217,8 +363,8 @@ export interface LedgerAnomaly {
   currency: string;
   account: LedgerAccount;
   amount: number;
-  /** Which impossibility it is — the two read differently to an admin. */
-  kind: "negative-cash" | "negative-liability";
+  /** Which impossibility it is — the three read differently to an admin. */
+  kind: "negative-cash" | "negative-liability" | "negative-receivable";
 }
 
 /**
@@ -278,6 +424,31 @@ export function findLedgerAnomalies(
       LEDGER_ACCOUNT.ACCOUNTS_PAYABLE,
       position.accountsPayable,
       "negative-liability",
+    );
+    // More credit spent than was ever given: a spend or a refund posted twice.
+    check(
+      LEDGER_ACCOUNT.STORE_CREDIT_PAYABLE,
+      position.storeCreditPayable ?? 0,
+      "negative-liability",
+    );
+    // What shoppers owe, below zero: the store has collected more against
+    // pre-order balances than it ever raised. Nothing can produce that
+    // honestly — the receivable is raised by the deposit and cleared by the
+    // collection, the write-off or a refund, and every one of those is fitted
+    // to what is outstanding (`fitRefundAllocation`) — so a negative balance
+    // here is a double collection or a refund posted twice, and it was the one
+    // impossible balance this screen rendered with its fault flag hardcoded to
+    // false.
+    //
+    // `commission_receivable` is deliberately NOT checked. It goes negative by
+    // design: a refund after the commission was invoiced leaves the platform
+    // owing the vendor a credit, which `fetchVendorCommissionCreditBalance` reads and
+    // the next invoice nets off. Flagging that would cry wolf on a working
+    // mechanism — see the test that says so.
+    check(
+      LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE,
+      position.customerReceivable,
+      "negative-receivable",
     );
   }
 
@@ -358,6 +529,7 @@ export async function getCashPosition(asOf: Date): Promise<CashPosition[]> {
         taxPayable: 0,
         dutyPayable: 0,
         accountsPayable: 0,
+        storeCreditPayable: 0,
       });
     }
     const position = byCurrency.get(currency)!;
@@ -380,6 +552,8 @@ export async function getCashPosition(asOf: Date): Promise<CashPosition[]> {
       position.dutyPayable = liability;
     } else if (account === LEDGER_ACCOUNT.ACCOUNTS_PAYABLE) {
       position.accountsPayable = liability;
+    } else if (account === LEDGER_ACCOUNT.STORE_CREDIT_PAYABLE) {
+      position.storeCreditPayable = liability;
     }
   }
   return [...byCurrency.values()];
@@ -966,8 +1140,12 @@ export function foldMerchandiseByCurrency(
  * Gross merchandise value: everything that flowed through the store.
  *
  * Read from orders rather than the ledger, because it is deliberately NOT an
- * accounting figure — most of it belongs to vendors. It is reported beside
- * revenue so the two can be compared, and never added to it.
+ * accounting figure — on a marketplace much of it belongs to vendors. It is
+ * reported beside revenue so the two can be compared, and never added to it.
+ *
+ * Goods and delivery, never tax or duty: those are collected for the state and
+ * the customs authority and were not sold by anyone. Counting them made the
+ * volume grow with the tax rate.
  */
 export async function getGrossMerchandiseValue(
   period: FinancePeriod,
@@ -1049,16 +1227,46 @@ export async function getGrossMerchandiseValue(
   }>([
     {
       $match: {
+        // Dated by when the order was PLACED, which is what the card says on
+        // the screen. Deliberately not `paidAt`, which is what the profit and
+        // loss beside it uses: merchandise flows through a store on the day
+        // somebody buys it, and a pre-order paid three months later did not
+        // flow through the store twice.
         createdAt: { $gte: period.from, $lte: period.to },
-        paymentStatus: {
-          $in: ["paid", "partially_paid", "partially_refunded", "refunded"],
-        },
+        // Every order somebody actually PLACED, paid or not — the rule the
+        // dashboard counts orders by. It used to require a payment, so a cash
+        // order joined the figure only once it was delivered, and was then
+        // dated back to the day it was placed: last month's volume grew every
+        // time a courier came back with the cash. A shopper who walked out of
+        // a gateway placed nothing, and `placedOrderMatch` leaves them out.
+        ...placedOrderMatch(),
+        // Goods that were called off never flowed anywhere. Paid-then-cancelled
+        // orders were counted whole here — a refund does not clear the payment
+        // status, so a cancelled order stays `refunded` — which both inflated
+        // the merchandise figure and added the order to the count beneath it.
+        status: { $ne: "cancelled" },
       },
     },
     {
       $project: {
         currency: 1,
-        total: { $ifNull: ["$total", 0] },
+        // What was sold: the total less the tax and duty collected on it.
+        total: {
+          $max: [
+            0,
+            {
+              $subtract: [
+                { $ifNull: ["$total", 0] },
+                {
+                  $add: [
+                    { $max: [0, { $ifNull: ["$tax", 0] }] },
+                    { $max: [0, { $ifNull: ["$customs.dutyAmount", 0] }] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
         ownSub: subtotalOf(true),
         allSub: subtotalOf(false),
       },

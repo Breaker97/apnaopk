@@ -2,6 +2,7 @@ import { sectionEmptyState } from "@/components/store/sections/section-empty-sta
 import {
   SectionGrid,
   SectionGridSkeleton,
+  resolveGridCells,
 } from "../section-grid";
 import {
   DEFAULT_PROMO_GRID,
@@ -13,10 +14,10 @@ import {
   THEME_SLIDER_INHERIT,
   getSliderGrid,
   migratePromotionGridV1,
+  readGridCells,
   readSectionGridSpacing,
-  readSliderCell,
   resolveSliderLayout,
-  sliderCellIsFilled,
+  sliderGridIsUnassigned,
 } from "../slider-grids";
 import type { SectionDefinition } from "../types";
 
@@ -111,17 +112,17 @@ export const promotionGrid: SectionDefinition = {
   ],
   starter: { blocks: [] },
   migrate: migratePromotionGridV1,
+  isEmpty: ({ settings, blocks }) => sliderGridIsUnassigned(settings, blocks),
   async Render({ settings, blocks, ctx }) {
     const grid = getSliderGrid(settings.grid);
-    const cells = grid.slots.map((_, index) => {
-      const block = blocks[index];
-      return block && block.visible ? readSliderCell(block.settings) : null;
-    });
+    const cells = await resolveGridCells(readGridCells(grid, blocks), ctx.locale);
 
-    if (!cells.some((cell) => cell && sliderCellIsFilled(cell))) {
+    // Nothing to draw — no cell assigned, or only sliders that are switched
+    // off or out of live slides: see slideshow.tsx.
+    if (!cells.some(Boolean)) {
       return sectionEmptyState(ctx, {
         title: "Promotion Grid",
-        hint: "Pick a saved slider or an image for each grid cell in the builder.",
+        hint: "Pick a saved slider or an image for each grid cell in the builder. A slider shows only while it is active and has a visible slide.",
       });
     }
 

@@ -29,6 +29,7 @@ export default async function CustomerDetailsPage({ params }: PageProps) {
       locale={locale}
       customerId={id}
       readOnly={!canManageCustomers}
+      emailLocked={access.session.user.role !== USER_ROLES.ADMIN}
     />
   );
 }

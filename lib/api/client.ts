@@ -69,6 +69,18 @@ export function describeApiError(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+/**
+ * The message of a request the server refused for coming too fast (429): the
+ * wait, worded in the page's language (lib/api/rate-limit-message.ts). Null
+ * for any other failure, which keeps the screen's own wording. A screen that
+ * said "Something went wrong" for a refusal left the shopper retrying into it.
+ */
+export function refusalMessage(error: unknown): string | null {
+  return error instanceof ApiClientError && error.status === 429 && error.message
+    ? error.message
+    : null;
+}
+
 /** Serialize params, skipping undefined/null/empty-string values. */
 function buildQueryString(params?: QueryParams): string {
   if (!params) return "";

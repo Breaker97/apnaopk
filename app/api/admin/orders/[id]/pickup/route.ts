@@ -1,11 +1,14 @@
-import { z } from "zod";
+import * as z from "zod";
 import { Order } from "@/models";
 import { withApi } from "@/lib/api/handler";
 import { validateBody, isValidObjectId } from "@/lib/api/validate";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import {
+  assertAdminOrStaffPermissions,
+  assertVendorStaffMayChangeOrder,
+} from "@/lib/access/staff-authz";
 import {
   buildStaffOrderScopeFilter,
   mergeScopeFilter,
@@ -58,6 +61,7 @@ export const POST = withApi<{ id: string }>(
       ),
     );
     if (!order) return notFoundResponse("Order");
+    assertVendorStaffMayChangeOrder(access, order);
 
     // Pickup lives on the sub-order, because that is the fulfillment unit. On a
     // single-vendor store there is exactly one; on a marketplace this is the

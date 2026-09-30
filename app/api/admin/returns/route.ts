@@ -1,9 +1,17 @@
+import { createReturnHandler } from "@/lib/returns/open-return-routes";
 import { paginatedResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { isValidObjectId, validateQuery } from "@/lib/api/validate";
 import { AdminReturnListQuerySchema } from "@/lib/validations";
-import { ReturnRequest } from "@/models";
+import { Order, ReturnRequest } from "@/models";
+import { escapeRegExp } from "@/lib/strings";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import {
+  buildStaffOrderScopeFilter,
+  hasStaffScope,
+} from "@/lib/access/staff-scope";
+import { buildVendorStaffReturnFilter } from "@/lib/returns/return-staff-scope";
+import { withMaskedRefundAccount } from "@/lib/returns/refund-settlement";
 
 export const GET = withApi(
   {
@@ -11,7 +19,11 @@ export const GET = withApi(
     staffPermissions: [STAFF_PERMISSIONS.VIEW_ORDERS],
     rateLimit: { action: "admin:returns:list", preset: "lenient" },
   },
-  async ({ request }) => {
+  // `staff.scope` is set for staff callers and left undefined for a full
+  // admin — the same scope the orders list is held to. Without it a staff
+  // member limited to one location or one seller could read every return in
+  // the shop from here, customer names and addresses included.
+  async ({ request, staff }) => {
     const { page, limit, search, status, sortBy, sortOrder, orderId } = validateQuery(
       request,
       AdminReturnListQuerySchema,
@@ -29,11 +41,21 @@ export const GET = withApi(
     if (orderId) {
       andConditions.push(isValidObjectId(orderId) ? { orderId } : { _id: null });
     }
+    // A vendor's own staff see their vendor's returns only — see
+    // `lib/returns/return-staff-scope.ts`. Written in return fields, so it is
+    // part of the query and the count.
+    if (staff?.vendorOwned && staff.scope) {
+      andConditions.push(buildVendorStaffReturnFilter(staff.scope));
+    }
     if (search) {
+      // Escaped: a return or order number is typed by a person, and one
+      // containing `(` or `*` was either a syntax error or a pattern the
+      // database ran on every row in the collection.
+      const pattern = escapeRegExp(search);
       andConditions.push({
         $or: [
-          { returnNumber: { $regex: search, $options: "i" } },
-          { orderNumber: { $regex: search, $options: "i" } },
+          { returnNumber: { $regex: pattern, $options: "i" } },
+          { orderNumber: { $regex: pattern, $options: "i" } },
         ],
       });
     }
@@ -58,6 +80,38 @@ export const GET = withApi(
       ReturnRequest.countDocuments(query),
     ]);
 
-    return paginatedResponse(returns, page, limit, total);
+    // A return is visible when its ORDER is — the rule `getOrderReturnRequests`
+    // already applies one return at a time. Checked on the page rather than
+    // folded into the query because the scope is written in order fields
+    // (location, delivery region) that a return does not carry: resolving
+    // every order in scope to filter by would be the whole order collection.
+    // The count is therefore the unscoped one, and a scoped page can come back
+    // short — which is a page that shows less, never a page that leaks.
+    // Staff never see the shopper's full refund account — the admin sends
+    // that money. See `withMaskedRefundAccount`.
+    const shown = staff?.permissions ? returns.map(withMaskedRefundAccount) : returns;
+    if (hasStaffScope(staff?.scope)) {
+      const visible = await Order.find({
+        _id: { $in: returns.map((request) => request.orderId) },
+        ...buildStaffOrderScopeFilter(staff?.scope),
+      })
+        .select("_id")
+        .lean<Array<{ _id: unknown }>>();
+      const allowed = new Set(visible.map((order) => String(order._id)));
+      return paginatedResponse(
+        shown.filter((request) => allowed.has(String(request.orderId))),
+        page,
+        limit,
+        total,
+      );
+    }
+
+    return paginatedResponse(shown, page, limit, total);
   },
 );
+
+/**
+ * The store opening a return for a shopper — asked for by phone, email or chat —
+ * approved as it opens. See lib/returns/open-return-routes.ts.
+ */
+export const POST = createReturnHandler("admin");

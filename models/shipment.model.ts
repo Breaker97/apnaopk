@@ -49,6 +49,30 @@ interface IShipmentQuote {
   attributes?: string[];
 }
 
+/**
+ * A refund a carrier accepted but has not settled.
+ *
+ * Shippo answers a refund request with QUEUED and decides later — SUCCESS, or
+ * ERROR when the label was already used. The label's cost comes off the books
+ * only on SUCCESS, so the request is remembered here and settled by the
+ * tracking sweep. Everything the reversal needs is copied at void time: a
+ * re-ship reuses this document and overwrites its rate, booking number and
+ * billing, while the old refund is still pending.
+ */
+export interface IShipmentRefund {
+  id: string;
+  provider: CarrierProvider;
+  state: "pending" | "refunded" | "rejected" | "expired";
+  requestedAt: Date;
+  settledAt?: Date;
+  /** The carrier's own word on the last check, for whoever looks at it. */
+  carrierState?: string;
+  bookingSequence: number;
+  rate?: { amount: number; currency: string; baseCurrency?: string };
+  billedTo?: "platform" | "vendor";
+  shippingToStore?: boolean;
+}
+
 export interface IShipmentEvent {
   at: Date;
   status: NormalizedTrackingStatus;
@@ -154,6 +178,8 @@ export interface IShipment {
    * booking from the first without weakening the retry guarantee within one.
    */
   bookingSequence?: number;
+  /** Refunds requested on this parcel's voided labels; see IShipmentRefund. */
+  refunds?: IShipmentRefund[];
 
   createdBy: string;
   createdAt: Date;
@@ -192,6 +218,36 @@ const QuoteSchema = new Schema<IShipmentQuote>(
     currency: { type: String, required: true },
     estimatedDays: Number,
     attributes: { type: [String], default: [] },
+  },
+  { _id: false },
+);
+
+const RefundSchema = new Schema<IShipmentRefund>(
+  {
+    id: { type: String, required: true, trim: true },
+    provider: { type: String, enum: CARRIER_PROVIDERS, required: true },
+    state: {
+      type: String,
+      enum: ["pending", "refunded", "rejected", "expired"],
+      required: true,
+    },
+    requestedAt: { type: Date, required: true },
+    settledAt: Date,
+    carrierState: { type: String, maxlength: 60 },
+    bookingSequence: { type: Number, required: true, min: 0 },
+    rate: {
+      type: new Schema(
+        {
+          amount: { type: Number, required: true, min: 0 },
+          currency: { type: String, required: true },
+          baseCurrency: String,
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    billedTo: { type: String, enum: ["platform", "vendor"] },
+    shippingToStore: Boolean,
   },
   { _id: false },
 );
@@ -329,6 +385,7 @@ const ShipmentSchema = new Schema<IShipment>(
       default: () => ({ state: "none", attempts: 0 }),
     },
     bookingSequence: { type: Number, default: 0, min: 0 },
+    refunds: { type: [RefundSchema], default: undefined },
 
     createdBy: { type: String, required: true, trim: true },
   },
@@ -375,6 +432,11 @@ ShipmentSchema.index(
 ShipmentSchema.index(
   { provider: 1, providerShipmentId: 1 },
   { partialFilterExpression: { providerShipmentId: { $type: "string" } } },
+);
+// Drives the refund-settlement sweep; partial, so it holds only open refunds.
+ShipmentSchema.index(
+  { "refunds.state": 1 },
+  { partialFilterExpression: { "refunds.state": "pending" } },
 );
 // Drives the tracking-poll sweep.
 ShipmentSchema.index({ status: 1, lastSyncedAt: 1 });

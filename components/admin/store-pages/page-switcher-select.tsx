@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { NativeSelect } from "@/components/ui/native-select";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
@@ -19,12 +19,10 @@ import type { PageSwitcher } from "@/lib/storefront/pages/page-switcher";
  */
 export function PageSwitcherSelect({
   switcher,
-  locale,
   variant = "control",
   className,
 }: {
   switcher: PageSwitcher;
-  locale: string;
   /**
    * "title" IS the page heading — the editor names the page once, and that
    * name is the control that changes it. "control" is the ordinary select,
@@ -49,11 +47,11 @@ export function PageSwitcherSelect({
         const value = event.target.value;
         if (value === switcher.current) return;
         if (value.startsWith("nav:")) {
-          router.push(`/${locale}${value.slice(4)}`);
+          router.push(value.slice(4));
           return;
         }
         router.push(
-          `/${locale}/admin/online-store/customize?page=${encodeURIComponent(value)}`,
+          `/admin/online-store/customize?page=${encodeURIComponent(value)}`,
         );
       }}
     >

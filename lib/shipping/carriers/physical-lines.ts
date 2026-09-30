@@ -66,13 +66,6 @@ export function effectiveCustoms(
   });
 }
 
-export function lineIsPhysical(
-  line: Line,
-  product: LineProduct | null | undefined,
-): boolean {
-  return effectiveCustoms(line, product) !== undefined;
-}
-
 /**
  * The lines with their effective snapshots filled in, looking up only the
  * products it must. Lines that already carry one come back untouched.

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /**

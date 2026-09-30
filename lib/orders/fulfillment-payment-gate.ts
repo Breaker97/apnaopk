@@ -44,9 +44,11 @@ const NOT_PAID_MESSAGE =
 const REFUNDED_MESSAGE =
   "This order's payment has been refunded in full — by the store or by a chargeback — so it cannot be fulfilled.";
 
-export type FulfillmentGateOrder = {
+type FulfillmentGateOrder = {
   status?: string;
   paymentStatus?: string;
+  /** Goods refunded in full, delivery kept — see the order model. */
+  goodsRefundedAt?: Date | string | null;
   paymentMethod?: string | null;
   channel?: string | null;
   hasPreorder?: boolean | null;
@@ -76,6 +78,18 @@ export function getFulfillmentPaymentBlock(
 ): string | null {
   // A till sale changed hands at the counter.
   if (String(order.channel || "").toLowerCase() === "pos") return null;
+
+  // Refunded in full — by the store, or taken back by a chargeback — before
+  // anything else is asked. A refund is written on the ORDER, and a
+  // consignment stamped paid (a collected balance, cash taken at the door)
+  // answered "paid" below and shipped goods the shopper had their money back
+  // for, while auto-ship bought the label.
+  if (
+    String(order.paymentStatus || "") === PAYMENT_STATUS.REFUNDED ||
+    Boolean(order.goodsRefundedAt)
+  ) {
+    return REFUNDED_MESSAGE;
+  }
 
   const method = String(order.paymentMethod || "").trim().toLowerCase();
   const isGateway = (PLATFORM_GATEWAY_PAYMENT_METHODS as readonly string[]).includes(

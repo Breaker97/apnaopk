@@ -64,7 +64,7 @@ export function BackgroundPicker({
     focal?: string;
     /** The darkening's shape, edge, tint, the blur and the motion; absent = the plain darkening only. */
     overlayKind?: string;
-    overlayKinds?: Record<"flat" | "gradient", string>;
+    overlayKinds?: Record<"flat" | "gradient" | "custom", string>;
     overlayFrom?: string;
     overlayEdges?: Record<(typeof SLIDE_OVERLAY_EDGES)[number], string>;
     tint?: string;
@@ -183,14 +183,22 @@ export function BackgroundPicker({
               aria-label={labels.overlayKind}
               onChange={(event) => {
                 const next = { ...value };
-                if (event.target.value === "gradient") next.overlayKind = "gradient";
-                else delete next.overlayKind;
+                const kind = event.target.value;
+                if (kind === "gradient" || kind === "custom") {
+                  next.overlayKind = kind;
+                  // A custom wash needs something to show the moment it is
+                  // chosen, or the control opens on nothing.
+                  if (kind === "custom" && !next.overlayGradient) {
+                    next.overlayGradient = DEFAULT_GRADIENT;
+                  }
+                } else delete next.overlayKind;
                 onChange(next);
               }}
               className="h-8 w-32 text-xs"
             >
               <option value="flat">{labels.overlayKinds.flat}</option>
               <option value="gradient">{labels.overlayKinds.gradient}</option>
+              <option value="custom">{labels.overlayKinds.custom}</option>
             </NativeSelect>,
           )
         : null}
@@ -216,7 +224,19 @@ export function BackgroundPicker({
             </NativeSelect>,
           )
         : null}
-      {value.overlay && labels.tint
+      {/* The merchant's own wash: angle, stops and colours, over the
+          picture. Strength above scales the layer, so the gradient stays
+          the thing they drew. */}
+      {value.overlay && value.overlayKind === "custom" ? (
+        <div className="rounded-[8px] border border-border p-2">
+          <GradientPickerPanel
+            value={value.overlayGradient ?? DEFAULT_GRADIENT}
+            directionLabel={labels.direction}
+            onChange={(overlayGradient) => onChange({ ...value, overlayGradient })}
+          />
+        </div>
+      ) : null}
+      {value.overlay && value.overlayKind !== "custom" && labels.tint
         ? row(
             labels.tint,
             <button

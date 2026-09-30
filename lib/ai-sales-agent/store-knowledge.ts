@@ -6,10 +6,12 @@ import {
 } from "@/lib/products/search";
 import {
   fillContentPlaceholders,
+  windowPlaceholders,
   type ContentPagesSettings,
   type ContentPlaceholders,
 } from "@/lib/site-config/content-pages-config";
 import { plainText } from "./catalogue";
+import { DEFAULT_RETURN_WINDOW_DAYS } from "@/lib/returns/return-policy";
 
 /**
  * What the agent knows about the store beyond its products — the pure half.
@@ -218,6 +220,11 @@ type ShippingZoneLike = {
 };
 
 export type StoreContextInput = {
+  /**
+   * The return window the store enforces, in days — what `{windowDays}`
+   * stands for in the page copy the agent reads — or null for no time limit.
+   */
+  returnWindowDays?: number | null;
   store: {
     name: string;
     currency: string;
@@ -436,6 +443,9 @@ export function buildAgentStoreContext(input: StoreContextInput): AgentStoreCont
   const vars: ContentPlaceholders = {
     storeName: input.store.name,
     returnWindow: pages.returns?.returnWindowValue || "",
+    ...windowPlaceholders(
+      input.returnWindowDays === undefined ? DEFAULT_RETURN_WINDOW_DAYS : input.returnWindowDays,
+    ),
   };
   const policies: AgentStoreContext["policies"] = { pages: [] };
   if (pages.returns?.visible) {
@@ -551,11 +561,14 @@ export function agentFaqChunks(
 export function buildKnowledgeChunks(
   pages: ContentPagesSettings,
   storeName = "",
+  /** The return window the store enforces — see `StoreContextInput`. */
+  returnWindowDays: number | null = DEFAULT_RETURN_WINDOW_DAYS,
 ): KnowledgeChunk[] {
   const chunks: KnowledgeChunk[] = [];
   const vars: ContentPlaceholders = {
     storeName,
     returnWindow: pages.returns?.returnWindowValue || "",
+    ...windowPlaceholders(returnWindowDays),
   };
 
   if (pages.faq?.visible) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   ChevronsUpDown,
@@ -159,7 +159,7 @@ export function VendorCategoriesDataTable({
         id: "view-products",
         label: t("admin.productsDataTable.rowActions.view"),
         icon: <Eye className="h-4 w-4" />,
-        href: `/${locale}/vendor/products?search=${encodeURIComponent(row.name)}`,
+        href: `/vendor/products?search=${encodeURIComponent(row.name)}`,
       },
     ],
     [locale, t],
@@ -198,7 +198,7 @@ export function VendorCategoriesDataTable({
       rowActionsHeader={t("admin.categoriesDataTable.rowActionsHeader")}
       rowActionsVariant="inline"
       onRowClick={(row) =>
-        router.push(`/${locale}/vendor/products?search=${encodeURIComponent(row.name)}`)
+        router.push(`/vendor/products?search=${encodeURIComponent(row.name)}`)
       }
       emptyMessage={t("admin.categoriesDataTable.empty")}
       emptyIcon={<FolderTree className="h-8 w-8" />}

@@ -11,6 +11,10 @@ import {
 import { OUT_OF_STOCK_DISPLAY } from "@/lib/catalog/catalog-display";
 import { splitAvailabilityFirstPage } from "@/lib/products/availability-page";
 import { productCardReplacer, PRODUCT_CARD_SELECT } from "@/lib/products/storefront-product-cards";
+import {
+  STOREFRONT_PRODUCT_EXCLUSION,
+  STOREFRONT_PRODUCT_SELECT,
+} from "@/lib/products/storefront-private-fields";
 import { sanitizeDigitalAssetsForStorefront } from "@/lib/products/digital-assets";
 import {
   buildLegacyProductSearchFilter,
@@ -191,23 +195,25 @@ type NormalizedStorefrontProductsQuery = {
 };
 
 function buildPreorderExpression(now: Date) {
-  const preorderOpenExpr = (path: string) => ({
+  // `ref` is an expression naming a pre-order settings object: "$preorder",
+  // or "$$settings" inside the per-variant `$let` below.
+  const preorderOpenExpr = (ref: string) => ({
     $and: [
-      { $eq: [`$${path}.enabled`, true] },
+      { $eq: [`${ref}.enabled`, true] },
       {
         $or: [
-          { $eq: [`$${path}.autoConvert`, false] },
-          { $eq: [{ $ifNull: [`$${path}.releaseDate`, null] }, null] },
-          { $gte: [`$${path}.releaseDate`, now] },
+          { $eq: [`${ref}.autoConvert`, false] },
+          { $eq: [{ $ifNull: [`${ref}.releaseDate`, null] }, null] },
+          { $gte: [`${ref}.releaseDate`, now] },
         ],
       },
       {
         $or: [
-          { $lte: [{ $ifNull: [`$${path}.limit`, 0] }, 0] },
+          { $lte: [{ $ifNull: [`${ref}.limit`, 0] }, 0] },
           {
             $lt: [
-              { $ifNull: [`$${path}.reservedQuantity`, 0] },
-              { $ifNull: [`$${path}.limit`, 0] },
+              { $ifNull: [`${ref}.reservedQuantity`, 0] },
+              { $ifNull: [`${ref}.limit`, 0] },
             ],
           },
         ],
@@ -215,52 +221,67 @@ function buildPreorderExpression(now: Date) {
     ],
   });
 
-  const variantPreorderOpenExpr = {
+  // Mirrors `productAllowsOversell`: a digital product, one with tracking off
+  // or one that keeps selling at zero never runs out, so it is never a
+  // pre-order for want of stock.
+  const oversellExpr = {
+    $or: [
+      { $eq: ["$shipping.isPhysicalProduct", false] },
+      { $eq: ["$inventory.tracked", false] },
+      { $eq: ["$inventory.continueSellingWhenOutOfStock", true] },
+    ],
+  };
+  const stockGoneExpr = (stockRef: string) => ({
+    $and: [{ $not: [oversellExpr] }, { $lte: [{ $ifNull: [stockRef, 0] }, 0] }],
+  });
+
+  // What checkout would actually sell as a pre-order (`resolvePurchaseType`):
+  // an open pre-order that is pre-order only, or has nothing left in stock. An
+  // open pre-order alone listed products with 50 units on the shelf here, and
+  // checkout then sold them as ordinary orders.
+  const sellsAsPreorderExpr = (settingsRef: string, stockRef: string) => ({
+    $and: [
+      preorderOpenExpr(settingsRef),
+      {
+        $or: [
+          { $eq: [`${settingsRef}.preorderOnly`, true] },
+          stockGoneExpr(stockRef),
+        ],
+      },
+    ],
+  });
+
+  const variantPreorderExpr = {
     $anyElementTrue: {
       $map: {
         input: { $ifNull: ["$variants", []] },
         as: "variant",
         in: {
-          $and: [
-            { $eq: ["$$variant.preorder.enabled", true] },
-            {
-              $or: [
-                { $eq: ["$$variant.preorder.autoConvert", false] },
-                {
-                  $eq: [
-                    { $ifNull: ["$$variant.preorder.releaseDate", null] },
-                    null,
-                  ],
-                },
-                { $gte: ["$$variant.preorder.releaseDate", now] },
-              ],
+          // A variant's own pre-order when it has one, else the product's —
+          // `getPreorderSettings`.
+          $let: {
+            vars: {
+              settings: {
+                $cond: [
+                  { $eq: ["$$variant.preorder.enabled", true] },
+                  "$$variant.preorder",
+                  "$preorder",
+                ],
+              },
             },
-            {
-              $or: [
-                {
-                  $lte: [
-                    { $ifNull: ["$$variant.preorder.limit", 0] },
-                    0,
-                  ],
-                },
-                {
-                  $lt: [
-                    {
-                      $ifNull: ["$$variant.preorder.reservedQuantity", 0],
-                    },
-                    { $ifNull: ["$$variant.preorder.limit", 0] },
-                  ],
-                },
-              ],
-            },
-          ],
+            in: sellsAsPreorderExpr("$$settings", "$$variant.stock"),
+          },
         },
       },
     },
   };
 
   return {
-    $or: [preorderOpenExpr("preorder"), variantPreorderOpenExpr],
+    $cond: [
+      { $gt: [{ $size: { $ifNull: ["$variants", []] } }, 0] },
+      variantPreorderExpr,
+      sellsAsPreorderExpr("$preorder", "$stock"),
+    ],
   };
 }
 
@@ -1054,9 +1075,11 @@ const getStorefrontProductsCached = unstable_cache(
         // wasteful here.)
         productsQuery.select(PRODUCT_CARD_SELECT);
       } else {
-        // The derived search block is an implementation detail — not part of
-        // the public API's product shape, and a few KB per document.
-        productsQuery.select("-search").populate("brand", "name slug logo");
+        // Whole documents answer the public API: nothing the store keeps for
+        // itself — cost, the search index — may ride along.
+        productsQuery
+          .select(STOREFRONT_PRODUCT_SELECT)
+          .populate("brand", "name slug logo");
       }
 
       return productsQuery;
@@ -1162,7 +1185,7 @@ const getStorefrontProductsCached = unstable_cache(
                   __vendorRank: 0,
                   __unavailable: 0,
                   __score: 0,
-                  search: 0,
+                  ...STOREFRONT_PRODUCT_EXCLUSION,
                 },
               },
         ])

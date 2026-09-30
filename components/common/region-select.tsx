@@ -1,8 +1,8 @@
 "use client";
 
 import { useId, useMemo } from "react";
-import { ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { STATES, type RegionOption } from "@/lib/intl/country-options";
 import { countryCodeForValue } from "@/lib/intl/country-availability";
 import { cn } from "@/lib/utils";
@@ -18,9 +18,16 @@ type RegionSelectProps = {
   onChange: (value: string) => void;
   label: string;
   placeholder?: string;
+  /** Placeholder for the picker's search box. */
+  searchPlaceholder?: string;
+  /** Shown when the search matches no region. */
+  emptyText?: string;
   disabled?: boolean;
   className?: string;
-  /** Rendered as `autocomplete` on whichever control we end up showing. */
+  /**
+   * Rendered as `autocomplete` on the free-text fallback. The picker is a
+   * button, which autofill has nothing to write into.
+   */
   autoComplete?: string;
 };
 
@@ -58,6 +65,8 @@ export function RegionSelect({
   onChange,
   label,
   placeholder,
+  searchPlaceholder = "Search...",
+  emptyText = "No results found",
   disabled = false,
   className,
   autoComplete,
@@ -68,15 +77,33 @@ export function RegionSelect({
   const generatedId = useId();
   const fieldId = id ?? generatedId;
 
-  // Compared on the label, since that is what we store.
-  const isKnownValue = useMemo(
+  // Matched on the label, since that is what we store — and case-insensitively,
+  // because a value saved before this control existed may be cased any which
+  // way. The match is what the picker displays, so "dhaka" still reads back as
+  // the "Dhaka" option instead of an empty field.
+  const matchedRegion = useMemo(
     () =>
-      regions.some(
+      regions.find(
         (region) =>
           region.label.trim().toLowerCase() === value.trim().toLowerCase(),
       ),
     [regions, value],
   );
+
+  // An unrecognised saved value gets an option of its own so it survives a
+  // render untouched instead of being silently cleared.
+  const options = useMemo(() => {
+    const list = regions.map((region) => ({
+      value: region.label,
+      label: region.label,
+      // The ISO subdivision code is not shown, but people do type it.
+      keywords: region.value,
+    }));
+    if (value && !matchedRegion) {
+      return [{ value, label: value }, ...list];
+    }
+    return list;
+  }, [regions, value, matchedRegion]);
 
   // No list for this country: a disabled select would be a dead end, so the
   // field stays usable as free text. Same fallback the onboarding wizard uses.
@@ -104,42 +131,31 @@ export function RegionSelect({
 
   return (
     <div className={cn("relative", className)}>
-      {/* A native select rather than a popover: it is the control mobile
-          browsers render as a system wheel, and the only one their address
-          autofill can actually write into. */}
-      <select
+      {/* The same searchable picker the country field uses: a region list runs
+          to dozens of entries, and scrolling a plain select past them is the
+          slowest way to find one. The trade-off is that a button, unlike a
+          native select, is not something the browser's address autofill can
+          write into — the shopper picks the region themselves. */}
+      <SearchableSelect
         id={fieldId}
-        // Bound to the raw value, not a validated one: an unrecognised value
-        // gets its own <option> below, so selecting it here keeps the shopper's
-        // saved region intact instead of silently resetting the field to blank.
-        value={value}
+        options={options}
+        // The label floats above the button rather than inside it, so without
+        // this the trigger reaches screen readers named only by the region
+        // that happens to be selected.
+        ariaLabel={label}
+        // Bound to the matched option's label so a differently-cased saved
+        // value still shows up as selected; the stored value is left alone.
+        value={matchedRegion?.label ?? value}
+        onValueChange={onChange}
         disabled={disabled}
-        autoComplete={autoComplete}
-        aria-label={label}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          "flex h-14 w-full appearance-none rounded-input border border-input bg-transparent px-3 pt-6 pb-1.5 text-base shadow-xs transition-[color,box-shadow] outline-none",
-          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-          "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
-          !isKnownValue && !value && "text-muted-foreground",
-        )}
-      >
-        <option value="">{placeholder ?? ""}</option>
-        {/* An unrecognised saved value gets its own option so it survives a
-            render untouched instead of being silently cleared. */}
-        {!isKnownValue && value ? (
-          <option value={value}>{value}</option>
-        ) : null}
-        {regions.map((region) => (
-          <option key={region.value} value={region.label}>
-            {region.label}
-          </option>
-        ))}
-      </select>
+        placeholder={placeholder ?? ""}
+        searchPlaceholder={searchPlaceholder}
+        emptyText={emptyText}
+        className="h-14 items-end rounded-input pt-6 pb-1.5 [&>span]:text-base"
+      />
       <span className="pointer-events-none absolute left-3 top-2 z-10 text-xs text-muted-foreground">
         {label}
       </span>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
     </div>
   );
 }

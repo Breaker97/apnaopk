@@ -3,7 +3,11 @@ import { successResponse, createdResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { normalizeGlobalVariantInput } from "@/lib/catalog/global-variants";
+import {
+  GLOBAL_VARIANTS_PLATFORM_ONLY,
+  normalizeGlobalVariantInput,
+} from "@/lib/catalog/global-variants";
+import { assertUnscopedStaff } from "@/lib/access/staff-authz";
 
 /**
  * GET /api/admin/global-variants
@@ -36,7 +40,9 @@ export const POST = withApi(
       STAFF_PERMISSIONS.EDIT_PRODUCTS,
     ],
   },
-  async ({ request }) => {
+  async ({ request, staff }) => {
+    assertUnscopedStaff(staff?.scope, GLOBAL_VARIANTS_PLATFORM_ONLY);
+
     const body = await request.json();
     const input = normalizeGlobalVariantInput(body);
 

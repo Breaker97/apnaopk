@@ -1,0 +1,40 @@
+/*
+ * The stylesheet every page loads (app/layout.tsx): Tailwind's utilities for
+ * everything but the admin, vendor and staff areas, whose classes the
+ * storefront never draws — ~10 KB less compressed CSS in front of every
+ * storefront page. Those areas load dashboard.css on top.
+ *
+ * The utilities sit in their own cascade layer, declared (in both sheets)
+ * before dashboard.css's `utilities`. A page can end up with both sheets —
+ * the app router keeps a stylesheet once it is loaded — and the dashboard
+ * sheet then decides every utility, in its own complete order; two sheets of
+ * utilities in one layer would let this one override its responsive and
+ * state variants.
+ */
+@layer theme, base, components, utilities-store, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities-store);
+@import "./globals.css";
+
+@source not "../components/admin";
+@source not "../components/vendor";
+@source not "../components/staff";
+@source not "../components/pos";
+@source not "./[locale]/admin";
+@source not "./[locale]/vendor";
+@source not "./[locale]/staff";
+@source not "./api";
+
+/* Components in those folders that storefront routes do render.
+   tests/stylesheet-split.test.ts fails when one is missing here. A folder
+   is taken back with a glob: a bare folder path does not undo `not`. */
+@source "../components/admin/admin-form-sticky-header.tsx";
+@source "../components/admin/online-store/t-safe.ts";
+@source "../components/admin/storage-provider-toggle.tsx";
+@source "../components/admin/sliders/**/*.{ts,tsx}";
+@source "../components/admin/store-pages/product-select.tsx";
+@source "../components/admin/unit-field.tsx";
+@source "../components/vendor/vendor-registration-form.tsx";
+@source "../components/vendor/onboarding/**/*.{ts,tsx}";
+@source "../components/vendor/document-upload-field.tsx";

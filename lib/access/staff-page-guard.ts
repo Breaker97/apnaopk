@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { StaffPermission } from "@/config/permissions.config";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 export async function requireAdminOrStaffPageAccess(options: {
   locale: string;
@@ -14,7 +15,10 @@ export async function requireAdminOrStaffPageAccess(options: {
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) {
     redirect(
-      buildLoginUrl(options.locale, returnPathFromHeaders(requestHeaders)),
+      await localeHref(
+        options.locale,
+        buildLoginUrl(options.locale, returnPathFromHeaders(requestHeaders)),
+      ),
     );
   }
 
@@ -26,6 +30,6 @@ export async function requireAdminOrStaffPageAccess(options: {
     );
     return { session, staffPermissions, staffScope };
   } catch {
-    redirect(`/${options.locale}/forbidden`);
+    redirect("/forbidden");
   }
 }

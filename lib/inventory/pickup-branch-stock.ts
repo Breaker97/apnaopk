@@ -71,22 +71,6 @@ export function branchStocksLine(
   return Number(row?.quantity || 0) >= line.quantity;
 }
 
-/**
- * The products this branch cannot cover, as ids.
- *
- * A list rather than a boolean because the shopper is choosing between
- * branches: "Gulshan does not have the kettle" is actionable, "unavailable" is
- * a dead end they can only escape by guessing.
- */
-export function branchShortLines(
-  lines: BranchStockLine[],
-  locationId: string,
-): string[] {
-  return lines
-    .filter((line) => !branchStocksLine(line, locationId))
-    .map((line) => line.productId);
-}
-
 /** Whether the whole basket can be collected from this one branch. */
 export function branchCanFulfill(
   lines: BranchStockLine[],

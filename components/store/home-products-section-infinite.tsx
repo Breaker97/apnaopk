@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   Check,
   ChevronDown,
@@ -34,16 +33,6 @@ import {
 } from "./product-grid-columns";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { NumberInput } from "@/components/ui/number-input";
-
-// Loaded only when a shopper opens quick view, keeping the modal and its deps
-// out of the initial section bundle.
-const ProductQuickViewModal = dynamic(
-  () =>
-    import("@/components/products/product-quick-view-modal").then(
-      (mod) => mod.ProductQuickViewModal,
-    ),
-  { ssr: false },
-);
 
 type FeaturedCategory = {
   name: string;
@@ -145,9 +134,6 @@ export function HomeProductsSectionInfinite({
     minPriceBound,
     maxPriceBound,
   ]);
-  const [quickViewProduct, setQuickViewProduct] = useState<ModernProduct | null>(
-    null,
-  );
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   // Skip the refetch effect on first render — the server already provided
@@ -402,7 +388,7 @@ export function HomeProductsSectionInfinite({
                   <>
                     <Separator className="my-1.5" />
                     <Link
-                      href={`/${locale}/categories`}
+                      href="/categories"
                       onClick={() => setIsCategoryMenuOpen(false)}
                       className="block rounded-lg px-3 py-2 text-sm font-semibold text-primary"
                     >
@@ -608,7 +594,6 @@ export function HomeProductsSectionInfinite({
               product={product}
               locale={locale}
               showQuickView
-              onQuickView={setQuickViewProduct}
             />
           ))}
         </div>
@@ -642,15 +627,6 @@ export function HomeProductsSectionInfinite({
               {t.has("common.retry") ? t("common.retry") : "Try again"}
             </Button>
           </div>
-        )}
-
-        {quickViewProduct && (
-          <ProductQuickViewModal
-            product={quickViewProduct}
-            locale={locale}
-            open
-            onClose={() => setQuickViewProduct(null)}
-          />
         )}
       </div>
     </section>

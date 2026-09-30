@@ -1,3 +1,4 @@
+import { createReturnHandler } from "@/lib/returns/open-return-routes";
 import { connectDB } from "@/lib/db";
 import { NotFoundError } from "@/lib/api/errors";
 import { paginatedResponse } from "@/lib/api/response";
@@ -9,7 +10,10 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { getSettings } from "@/models/settings.model";
 import { ReturnRequest } from "@/models";
+import { escapeRegExp } from "@/lib/strings";
 import { withApi } from "@/lib/api/handler";
+import { withoutRefundDestinationUnlessPayer } from "@/lib/returns/refund-settlement";
+import { vendorReturnsFilter } from "@/lib/returns/return-stats";
 
 export const GET = withApi(
   { auth: "user" },
@@ -38,15 +42,7 @@ export const GET = withApi(
     const vendor = await requireApprovedVendorByUserId(session.user.id);
 
     const andConditions: Record<string, unknown>[] = [
-      {
-        $or: [
-          { ownerType: "vendor", ownerVendorId: vendor._id },
-          {
-            ownerType: { $exists: false },
-            vendorIds: vendor._id,
-          },
-        ],
-      },
+      vendorReturnsFilter(vendor._id),
     ];
     if (status && status !== "all") {
       andConditions.push({ status });
@@ -55,10 +51,14 @@ export const GET = withApi(
       andConditions.push(isValidObjectId(orderId) ? { orderId } : { _id: null });
     }
     if (search) {
+      // Escaped: a return or order number is typed by a person, and one
+      // containing `(` or `*` was either a syntax error or a pattern the
+      // database ran on every row in the collection.
+      const pattern = escapeRegExp(search);
       andConditions.push({
         $or: [
-          { returnNumber: { $regex: search, $options: "i" } },
-          { orderNumber: { $regex: search, $options: "i" } },
+          { returnNumber: { $regex: pattern, $options: "i" } },
+          { orderNumber: { $regex: pattern, $options: "i" } },
         ],
       });
     }
@@ -82,6 +82,18 @@ export const GET = withApi(
       ReturnRequest.countDocuments(query),
     ]);
 
-    return paginatedResponse(returns, page, limit, total);
+    // A shopper's refund account only where this seller is the one paying it.
+    return paginatedResponse(
+      returns.map(withoutRefundDestinationUnlessPayer),
+      page,
+      limit,
+      total,
+    );
   },
 );
+
+/**
+ * A seller opening a return for a shopper — asked for by phone, email or chat —
+ * approved as it opens. See lib/returns/open-return-routes.ts.
+ */
+export const POST = createReturnHandler("vendor");

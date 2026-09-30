@@ -2,10 +2,14 @@ import type { Types } from "mongoose";
 import { Order } from "@/models";
 import { connectDB } from "@/lib/db";
 import { listResult, type ListResult } from "@/lib/api/list-query";
-import { subOrderPaymentStatusFilter } from "@/lib/orders/order-payment-status";
+import {
+  placedOrderMatch,
+  subOrderPaymentStatusFilter,
+} from "@/lib/orders/order-payment-status";
 import { toVendorOrderView } from "@/lib/vendors/vendor-order-view";
 import { fetchVendorOrderSettlements } from "@/lib/vendors/vendor-earnings";
 import { PAYMENT_STATUS } from "@/config/app.config";
+import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 
 /**
  * Vendor order list query.
@@ -90,6 +94,13 @@ export async function fetchVendorOrderList(
   };
 
   andConditions.push({ subOrders: { $elemMatch: vendorSubOrderMatch } });
+
+  // Never show a vendor a checkout that was abandoned at a gateway. The
+  // fulfilment gate already refused to let them ship one
+  // (`lib/orders/fulfillment-payment-gate.ts`), but it sat in their list —
+  // and in the "unpaid" view it was most of the list — looking like a sale
+  // they had to chase.
+  andConditions.push(placedOrderMatch());
 
   // A vendor asks about THEIR consignment's money. Reading the order-level
   // field showed a vendor whose own cash was still outstanding as paid the
@@ -180,6 +191,17 @@ export async function fetchVendorOrderList(
     // shipped the other sellers' consignments, the store's gateway references
     // and the shopper's billing details to every vendor on the order.
     ...toVendorOrderView(order, vendorId),
+    // Whether the server would refuse to move this consignment towards the
+    // shopper because its payment has not arrived — the answer, not the
+    // payment fields it is worked out from, which stay off the vendor's row.
+    fulfillmentBlocked: Boolean(
+      getFulfillmentPaymentBlock(
+        order as Parameters<typeof getFulfillmentPaymentBlock>[0],
+        ((order.subOrders || []) as Array<{ vendorId?: unknown }>).find(
+          (sub) => String(sub.vendorId) === String(vendorId),
+        ) as Parameters<typeof getFulfillmentPaymentBlock>[1],
+      ),
+    ),
     // What a payout would pay for this consignment, after the order's
     // coupon and any refund — not the sub-order's stored face value.
     netSales: settlements.get(String(order._id))?.netAmount ?? 0,

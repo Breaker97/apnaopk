@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Clock3, Loader2, Paperclip, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { cn } from "@/lib/utils";
 
 interface MessageComposerProps {
@@ -52,10 +53,9 @@ export function MessageComposer({
       {notice}
 
       {warning ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
-          <Clock3 className="mt-0.5 size-4 shrink-0" />
-          <p>{warning}</p>
-        </div>
+        <WarningBanner icon={Clock3} className="mb-3">
+          {warning}
+        </WarningBanner>
       ) : null}
 
       <div className="flex items-end gap-2">

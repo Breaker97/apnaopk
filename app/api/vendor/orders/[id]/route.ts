@@ -1,4 +1,8 @@
 import { connectDB } from "@/lib/db";
+import {
+  ADDRESS_HOLD_SHIPPING_BLOCK,
+  isAddressHoldOpen,
+} from "@/lib/orders/address-hold-policy";
 import { Order } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import {
@@ -7,10 +11,10 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/lib/api/errors";
-import { z } from "zod";
+import * as z from "zod";
 import { hasVendorPermission, isAdmin, assertVendorPermission } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
-import { PAYMENT_STATUS } from "@/config/app.config";
+import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getSettings } from "@/models/settings.model";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -37,7 +41,10 @@ import {
 } from "@/lib/orders/order-payment-status";
 import { isPlatformSettled } from "@/lib/payments/payment-custody";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
-import { refundOrderCancellation } from "@/lib/orders/preorder-cancel-refund";
+import {
+  refundOrderCancellation,
+  reportFailedCancelRefund,
+} from "@/lib/orders/preorder-cancel-refund";
 import { notifyOrderStatus } from "@/lib/notifications/notifications";
 import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
 import { withApi } from "@/lib/api/handler";
@@ -51,6 +58,7 @@ import {
 } from "@/lib/vendors/vendor-earnings";
 import { resolveReturnPolicy } from "@/lib/returns/return-policy";
 import type { IOrder } from "@/types";
+import { getPendingPaymentLock } from "@/lib/orders/pending-payment-lock";
 
 /** Commission billed on a sale, less the store's own promotion on it. */
 function billedAfterPromotions(totals: {
@@ -152,7 +160,31 @@ export const GET = withApi<{ id: string }>(
       // This vendor's own payment state. The order-level one read "Partially
       // paid" to a vendor whose share had already arrived.
       paymentStatus: resolveVendorPaymentDisplayStatus(order, subOrder),
+      // Whether moving this consignment towards the shopper is refused until
+      // the payment arrives (PUT below) — the answer, not the payment fields.
+      fulfillmentBlocked: Boolean(
+        getFulfillmentPaymentBlock(
+          order as Parameters<typeof getFulfillmentPaymentBlock>[0],
+          subOrder as Parameters<typeof getFulfillmentPaymentBlock>[1],
+        ),
+      ),
       shippingAddress: order.shippingAddress,
+      // Whether shipping waits on the address. Who on the staff placed or
+      // released the hold stays with the store.
+      addressHold: order.addressHold
+        ? {
+            state: order.addressHold.state,
+            message: order.addressHold.message,
+            placedAt: order.addressHold.placedAt,
+            requestedAt: order.addressHold.requestedAt,
+            requestsSent: order.addressHold.requestsSent,
+            deadlineAt: order.addressHold.deadlineAt,
+            expiredAt: order.addressHold.expiredAt,
+            customerConfirmedAt: order.addressHold.customerConfirmedAt,
+            releasedAt: order.addressHold.releasedAt,
+            releaseReason: order.addressHold.releaseReason,
+          }
+        : undefined,
       customerId: order.customerId,
       // What the shopper wrote at checkout is often for whoever packs the
       // parcel ("leave with the guard", a gift message).
@@ -253,6 +285,17 @@ export const PUT = withApi<{ id: string }>(
     }
 
     const before = order.toObject() as unknown as Record<string, unknown>;
+
+    // Nothing moves while a mobile-money payment is still in flight: a vendor
+    // calling their consignment off would restock goods the payer may be
+    // paying for right now, on a provider that cannot refund automatically.
+    // The fulfilment gate already refused to let them SHIP it; this is the
+    // other direction. See `lib/orders/pending-payment-lock.ts`.
+    const pendingPaymentLock = getPendingPaymentLock(order);
+    if (pendingPaymentLock && (status || paymentStatus)) {
+      throw new ValidationError(pendingPaymentLock);
+    }
+
     const currentSubStatus = order.subOrders[subOrderIndex].status as string;
     const isPickupSubOrder =
       order.subOrders[subOrderIndex].fulfillment?.method === "pickup";
@@ -274,6 +317,17 @@ export const PUT = withApi<{ id: string }>(
     // (`lib/shipping/carriers/build-request.ts`), unlocked the sibling's
     // digital files and opened a payout on money that had never arrived.
     if (paymentStatus === PAYMENT_STATUS.PAID) {
+      // Called-off goods were never handed over, so there is no money to
+      // report: marking one paid posted a sale and commission against goods
+      // that never left, and unlocked its digital files.
+      if (
+        currentSubStatus === ORDER_STATUS.CANCELLED ||
+        order.status === ORDER_STATUS.CANCELLED ||
+        status === ORDER_STATUS.CANCELLED
+      ) {
+        throw new ValidationError("A cancelled order cannot be marked as paid");
+      }
+
       // Custody gate. "Mark as paid" is a vendor reporting money they are
       // holding — cash over their counter, COD from their own hands. When the
       // money settles onto the PLATFORM's gateway credentials, the vendor
@@ -324,6 +378,11 @@ export const PUT = withApi<{ id: string }>(
           order.subOrders[subOrderIndex],
         );
         if (blocked) throw new ValidationError(blocked);
+      }
+      // The courier could not deliver to this address; the parcel waits until
+      // the customer or the store corrects it.
+      if ((status === "shipped" || status === "delivered") && isAddressHoldOpen(order)) {
+        throw new ValidationError(ADDRESS_HOLD_SHIPPING_BLOCK);
       }
 
       order.subOrders[subOrderIndex].status = status;
@@ -442,6 +501,25 @@ export const PUT = withApi<{ id: string }>(
       );
     }
 
+    // The last parcel on a cash order having been delivered IS the collection,
+    // so the order is settled without waiting for anyone to say so. Guarded
+    // inside the helper on the order — not this consignment — being delivered
+    // and still unpaid, which on a split order is the moment the last vendor
+    // hands over. See `settleCodOnDelivery`. Cash the store's courier took is
+    // not the vendor's to confirm (`vendorDeliverySettlesCod`): the carrier's
+    // delivery event or an admin settles it.
+    if (order.status === ORDER_STATUS.DELIVERED) {
+      const { settleCodOnDelivery, vendorDeliverySettlesCod } = await import(
+        "@/lib/orders/cod-collection"
+      );
+      if (
+        vendorDeliverySettlesCod(order) &&
+        (await settleCodOnDelivery(order._id))
+      ) {
+        order.paymentStatus = PAYMENT_STATUS.PAID;
+      }
+    }
+
     // A vendor marking a cash order collected is the moment that money became
     // real, and it is the ONLY moment for a COD or pickup sale — no gateway
     // webhook is ever going to arrive. Without this the charge row stayed
@@ -495,7 +573,7 @@ export const PUT = withApi<{ id: string }>(
         paymentFee: order.paymentFee,
         paymentFeeCurrency: order.paymentFeeCurrency,
         paymentFeeRate: order.paymentFeeRate,
-        currency: settings.general?.defaultCurrency,
+        currency: order.currency || settings.general?.defaultCurrency,
         channel: order.channel || "online",
         posLocationId: order.posLocationId
           ? String(order.posLocationId)
@@ -610,9 +688,18 @@ export const PUT = withApi<{ id: string }>(
             actor: session.user.email || session.user.id,
             createdBy: session.user.id,
             auditContext,
-          }).catch((err: unknown) => {
+          }).catch(async (err: unknown) => {
             console.error("Failed to refund vendor-cancelled consignment:", err);
-            return { refunded: false, reason: "The refund could not be issued" };
+            // A vendor cannot send the money, so the admins have to hear of it.
+            await reportFailedCancelRefund({
+              order,
+              why: err instanceof Error ? err.message : "the refund could not be issued",
+            });
+            return {
+              refunded: false,
+              failed: true,
+              reason: "The refund could not be issued",
+            };
           })
         : undefined;
 

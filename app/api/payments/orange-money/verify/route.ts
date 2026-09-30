@@ -14,14 +14,16 @@ import {
   verifyPlatformPayment,
 } from "@/lib/payments/platform-payments";
 import {
+  SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
   rateLimitBySession,
   rateLimitByUser,
 } from "@/lib/api/rate-limit-middleware";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
+import { amountDueNow } from "@/lib/payments/finalize-order";
 
 const OrangeMoneyVerifySchema = z.object({
   orderId: z.string().max(500).optional(),
@@ -50,6 +52,7 @@ export const POST = withApi(
         cartSessionId,
         "payments:orange-money-verify",
         "lenient",
+        SHOPPING_ADDRESS_ALLOWANCE,
       );
     } else {
       await rateLimitByIP(request, "lenient");
@@ -86,7 +89,7 @@ export const POST = withApi(
     if (session?.user?.id) orderQuery.customerId = session.user.id;
 
     const order = await Order.findOne(orderQuery).select(
-      "_id orderNumber orangeMoneyPayToken total preorderOutstandingAmount",
+      "_id orderNumber orangeMoneyPayToken total preorderOutstandingAmount storeCredit",
     );
     if (!order) {
       throw new ValidationError("Order not found for Orange Money transaction");
@@ -106,10 +109,8 @@ export const POST = withApi(
     );
     const creds = getOrangeMoneyCredentials(resolved);
 
-    const expectedAmount = Math.max(
-      0,
-      Number(order.total || 0) - Number(order.preorderOutstandingAmount || 0),
-    );
+    // What every gateway is held to — store credit included (R8).
+    const expectedAmount = amountDueNow(order);
 
     const transaction = await getOrangeMoneyTransactionStatus({
       creds,

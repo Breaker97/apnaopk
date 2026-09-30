@@ -12,19 +12,19 @@ import { LocationPickerLazy } from "@/components/layout/location-picker-lazy";
 import { WithGridResultCount } from "@/components/products/grid-result-count";
 import { ProductGrid } from "@/components/products/product-grid";
 import { ProductSkeleton } from "@/components/products/product-skeleton";
-import { ProductsSort } from "@/components/products/products-sort";
+import { ProductsSortLazy as ProductsSort } from "@/components/products/products-sort-lazy";
 import { PRODUCTS_MOBILE_TOOLBAR_SORT_CLASS } from "@/components/products/products-mobile-toolbar";
 import {
   LISTING_GRID_COLUMNS_CLASS,
   ListingShell,
 } from "@/components/products/listing-view";
-import { ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products";
+import { ListingFeaturedProductsLazy as ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products-lazy";
 import {
   FilterSectionLazy,
   ListingFiltersLazy,
   ListingFiltersMobileLazy,
 } from "@/components/store/sections/listing/listing-filters-lazy";
-import { SubcategoryScroller } from "@/components/store/sections/listing/subcategory-scroller";
+import { SubcategoryScrollerLazy as SubcategoryScroller } from "@/components/store/sections/listing/subcategory-scroller-lazy";
 import { getStorefrontOutOfStockDisplay } from "@/lib/catalog/product-visibility";
 import { resolveStockFacet } from "@/lib/catalog/catalog-display";
 import { getStorefrontCategoryFacets } from "@/lib/products/storefront-product-filters";
@@ -104,7 +104,6 @@ export async function CategoryDetailHeader({
     children.length > 0 ? (
       <div className={design === "electronics" ? "mt-8 sm:mt-10" : "mt-6"}>
         <SubcategoryScroller
-          locale={locale}
           categories={children.map((child) => ({
             id: child._id,
             slug: child.slug,
@@ -404,7 +403,7 @@ export async function CategoryDetailMain({
           {featured.length > 0 ? (
             <div className="border-t border-border/70">
               <FilterSectionLazy title={t("storeCategoryDetailPage.featuredProducts")}>
-                <ListingFeaturedProducts locale={locale} products={featured} />
+                <ListingFeaturedProducts products={featured} />
               </FilterSectionLazy>
             </div>
           ) : null}

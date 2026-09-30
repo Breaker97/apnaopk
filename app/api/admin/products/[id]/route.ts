@@ -6,6 +6,7 @@ import {
   applyStockBaseline,
   ProductUpdateWithBaselineSchema,
 } from "@/lib/products/stock-baseline";
+import { carryPreorderCounters } from "@/lib/products/preorder-counters";
 import { validatePartialBody, isValidObjectId } from "@/lib/api/validate";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
@@ -31,6 +32,11 @@ import {
   sanitizeVariantsForMongoose,
 } from "@/lib/products/sanitize";
 import { isProductFormatChange } from "@/lib/catalog/product-shipping";
+import {
+  assertProductFeaturesAllowed,
+  resolveProductFeatures,
+} from "@/lib/products/product-features";
+import { getSettingsLean } from "@/models/settings.model";
 import { ConflictError, ValidationError } from "@/lib/api/errors";
 import { assignProductLookupCodes } from "@/lib/products/barcode-normalization";
 import {
@@ -39,6 +45,7 @@ import {
 } from "@/lib/products/barcode-validation";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { notifyPreorderWaitlistsForProduct } from "@/lib/orders/preorder-waitlist";
+import { propagateProductReleaseDate } from "@/lib/orders/preorder-release-date-sync";
 import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
 import {
@@ -52,11 +59,6 @@ import {
   deleteProductDigitalFiles,
   deleteRemovedProductDigitalFiles,
 } from "@/lib/products/digital-assets";
-import { getSettings } from "@/models/settings.model";
-import {
-  areCountryValuesEquivalent,
-  isCountryAllowed,
-} from "@/lib/intl/country-availability";
 import {
   allowedLocationIds,
   resolveLocationScope,
@@ -146,31 +148,13 @@ export const PUT = withApi<{ id: string }>(
 
     const existing = await Product.findOne(
       mergeScopeFilter({ _id: id }, buildStaffProductScopeFilter(access.staffScope)),
-    ).select("vendorId slug collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets").lean();
+    ).select("vendorId slug collectionIds category status sku barcode barcodeFormat barcodeSource preorder priceOnRequest variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets").lean();
     if (!existing) {
       return notFoundResponse("Product");
     }
 
-    const submittedCountryOfOrigin = body.shipping?.countryOfOrigin?.trim();
-    if (
-      submittedCountryOfOrigin &&
-      !areCountryValuesEquivalent(
-        submittedCountryOfOrigin,
-        existing.shipping?.countryOfOrigin,
-      )
-    ) {
-      const settings = await getSettings();
-      if (
-        !isCountryAllowed(
-          submittedCountryOfOrigin,
-          settings.general?.countryAvailability,
-        )
-      ) {
-        throw new ValidationError({
-          "shipping.countryOfOrigin": ["Selected country is not available"],
-        });
-      }
-    }
+    // `shipping.countryOfOrigin` is deliberately unrestricted — see the
+    // create route: where a product was made is not where the store sells.
 
     if (isProductFormatChange(existing.shipping, body.shipping)) {
       throw new ValidationError({
@@ -227,6 +211,19 @@ export const PUT = withApi<{ id: string }>(
       if (cleaned === undefined) delete updateSet.preorder;
       else updateSet.preorder = cleaned;
     }
+
+    // Settings → Products. Only what this save switches ON is judged, so a
+    // pre-order or quote already running stays editable after the store
+    // switches the feature off — and can be switched off itself.
+    assertProductFeaturesAllowed({
+      features: resolveProductFeatures(await getSettingsLean()),
+      product: {
+        priceOnRequest: updateSet.priceOnRequest as boolean | undefined,
+        preorder: updateSet.preorder as never,
+        variants: updateSet.variants as never,
+      },
+      stored: existing as never,
+    });
 
     const hasVariantPayload =
       Array.isArray(updateSet.variants) && updateSet.variants.length > 0;
@@ -325,12 +322,20 @@ export const PUT = withApi<{ id: string }>(
           | undefined,
       };
       for (let attempt = 0; attempt < 3; attempt++) {
-        const pin = await applyStockBaseline({
+        const stockPin = await applyStockBaseline({
           filter: productFilter,
           updateSet,
           submitted: submittedStock,
           baseline: stockBaseline,
         });
+        // Reservation counters come from the database, never the form — see
+        // `carryPreorderCounters`. Pinned to the earlier of the two reads, so
+        // anything that moved after it makes the write miss and read again.
+        const counterPin = await carryPreorderCounters({
+          filter: productFilter,
+          updateSet,
+        });
+        const pin = stockPin ?? counterPin;
         product = await Product.findOneAndUpdate(
           { ...productFilter, ...(pin ? { updatedAt: pin.updatedAt } : {}) },
           {
@@ -433,6 +438,16 @@ export const PUT = withApi<{ id: string }>(
     // released, so nothing else would tell the shoppers waiting for them.
     // After the response and best-effort: the daily sweep catches a miss.
     afterResponse(() => notifyPreorderWaitlistsForProduct(String(id)));
+    // A pushed-back date reaches the orders already waiting on the old one.
+    afterResponse(() =>
+      propagateProductReleaseDate({
+        productId: String(id),
+        before: existing as never,
+        after: product as never,
+      }).catch((err) =>
+        console.error("Failed to move pre-orders to the new release date:", err),
+      ),
+    );
 
     return successResponse({
       ...(product as unknown as Record<string, unknown>),

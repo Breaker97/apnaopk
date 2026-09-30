@@ -19,7 +19,7 @@ import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
 import { remainingTransferQuantity } from "@/lib/inventory/transfer-rules";
 
-export interface ReceivableTransferItem {
+interface ReceivableTransferItem {
   productId: string;
   variantId: string;
   productTitle: string;

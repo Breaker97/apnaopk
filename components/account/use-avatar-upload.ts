@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useRef, useState } from "react";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "@/components/ui/toast-notification";
 import {
   DEFAULT_PROFILE_DEMO_MODE,
-  normalizeDemoModeState,
+  type DemoModeState,
 } from "@/lib/demo-mode-shared";
 
 /**
@@ -17,38 +17,20 @@ import {
  * though the bordered identity card it replaced is gone.
  *
  * Demo mode is only enforced on the profile page, matching the original
- * sidebar behaviour: that is where the server refuses profile writes.
+ * sidebar behaviour: that is where the server refuses profile writes. The
+ * account layout passes the flag down from the server's env; both pickers used
+ * to fetch /api/user/profile for it on every visit to that page.
  */
-export function useAvatarUpload(locale: string) {
+export function useAvatarUpload(
+  locale: string,
+  demoMode: DemoModeState = DEFAULT_PROFILE_DEMO_MODE,
+) {
   const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [demoMode, setDemoMode] = useState(DEFAULT_PROFILE_DEMO_MODE);
 
   const isProfilePage = pathname === `/${locale}/account/profile`;
   const isProfileDemoMode = isProfilePage && demoMode.enabled;
-
-  useEffect(() => {
-    if (!isProfilePage) return;
-
-    let isActive = true;
-
-    const loadDemoMode = async () => {
-      try {
-        const res = await fetch("/api/user/profile");
-        const json = await res.json().catch(() => null);
-        const loadedDemoMode = json?.data?.demoMode;
-        if (!isActive) return;
-        setDemoMode(normalizeDemoModeState(loadedDemoMode));
-      } catch {}
-    };
-
-    void loadDemoMode();
-
-    return () => {
-      isActive = false;
-    };
-  }, [isProfilePage]);
 
   const openPicker = () => {
     if (isProfileDemoMode) {

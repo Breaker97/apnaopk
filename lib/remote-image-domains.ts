@@ -4,6 +4,7 @@
  */
 
 import type { RemotePattern } from "next/dist/shared/lib/image-config";
+import { normalizePublicUrl } from "./storage/endpoint";
 
 interface RemoteImageDomain {
   protocol: "https" | "http";
@@ -77,12 +78,6 @@ const DEFAULT_REMOTE_IMAGE_DOMAINS: RemoteImageDomain[] = [
     pathname: "/**",
     label: "DigitalOcean Spaces (+ CDN)",
   },
-  {
-    protocol: "https",
-    hostname: "picsum.photos",
-    pathname: "/**",
-    label: "Picsum Photos (Seed Images)",
-  },
   // External product video (YouTube/Vimeo) thumbnails.
   {
     protocol: "https",
@@ -104,10 +99,12 @@ const DEFAULT_REMOTE_IMAGE_DOMAINS: RemoteImageDomain[] = [
  * STORAGE_PUBLIC_URL / CLOUDFLARE_R2_PUBLIC_URL / STORAGE_ENDPOINT) gets that
  * host whitelisted for next/image optimization at build/startup.
  *
- * Server-side only (next.config.ts) — the client can't read these env vars,
- * so AppImage renders such hosts unoptimized via its fallback. A publicUrl
- * configured only in the admin Settings DB can't be known at build time
- * either; those hosts also rely on the AppImage fallback.
+ * next.config.ts also hands the result to every bundle as
+ * `STORIFY_IMAGE_ORIGINS` (see `isTrustedRemoteUrl`), so AppImage sends these
+ * hosts through the optimizer on the server and in the browser alike. A
+ * publicUrl configured only in the admin Settings DB can't be known at build
+ * time; those hosts render unoptimized via AppImage's fallback — full size, so
+ * a store serving from a custom domain should set STORAGE_PUBLIC_URL as well.
  */
 let envDomainsCache: RemoteImageDomain[] | null = null;
 
@@ -128,7 +125,9 @@ export function getEnvRemoteImageDomains(): RemoteImageDomain[] {
   for (const { value, label } of candidates) {
     if (!value || !value.trim()) continue;
     try {
-      const url = new URL(value.trim());
+      // A bare host ("cdn.example.com") is how a custom domain is usually
+      // written; new URL() would reject it and the host would go unlisted.
+      const url = new URL(normalizePublicUrl(value) ?? "");
       if (url.protocol !== "https:" && url.protocol !== "http:") continue;
       const protocol = url.protocol === "https:" ? "https" : "http";
       if (
@@ -216,6 +215,28 @@ function hostnameMatchesPattern(pattern: string, hostname: string): boolean {
 }
 
 /**
+ * The storage hosts next.config.ts added to the optimizer's list at build
+ * time, as `protocol://hostname` — inlined into every bundle through
+ * next.config's `env`, so the server render and the browser agree on them.
+ */
+let configuredOrigins: Set<string> | null = null;
+
+function configuredImageOrigins(): Set<string> {
+  configuredOrigins ??= new Set(
+    (process.env.STORIFY_IMAGE_ORIGINS ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+  return configuredOrigins;
+}
+
+/** The value next.config.ts passes to the bundles as STORIFY_IMAGE_ORIGINS. */
+export function imageOriginsForBundle(domains: RemoteImageDomain[]): string {
+  return domains.map((domain) => `${domain.protocol}://${domain.hostname}`).join(",");
+}
+
+/**
  * Check if a URL's host is covered by the remote patterns next/image is
  * configured with (next.config.ts builds its list from this module). AppImage
  * uses this to decide whether the Next optimizer may load a remote URL —
@@ -228,11 +249,13 @@ export function isTrustedRemoteUrl(url: string): boolean {
   }
 
   try {
-    const hostname = new URL(url).hostname;
-    return DEFAULT_REMOTE_IMAGE_DOMAINS.some(
-      (domain) =>
-        domain.enabled !== false &&
-        hostnameMatchesPattern(domain.hostname, hostname),
+    const { hostname, protocol } = new URL(url);
+    return (
+      DEFAULT_REMOTE_IMAGE_DOMAINS.some(
+        (domain) =>
+          domain.enabled !== false &&
+          hostnameMatchesPattern(domain.hostname, hostname),
+      ) || configuredImageOrigins().has(`${protocol.slice(0, -1)}://${hostname}`)
     );
   } catch {
     return false;

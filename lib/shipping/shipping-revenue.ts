@@ -37,7 +37,7 @@ export const SHIPPING_REVENUE_TO = {
 export type ShippingRevenueTo =
   (typeof SHIPPING_REVENUE_TO)[keyof typeof SHIPPING_REVENUE_TO];
 
-export type ShippingRevenueSubOrder = {
+type ShippingRevenueSubOrder = {
   shippingRevenueTo?: string | null;
   platformLabelAt?: Date | string | null;
 };

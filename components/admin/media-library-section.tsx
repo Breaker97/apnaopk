@@ -36,32 +36,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ConfirmDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ModelViewer } from "@/components/ui/model-viewer";
 import { toast } from "@/components/ui/toast-notification";
 import {
   STORAGE_PROVIDER_LABELS,
+  type MediaLibraryFile as MediaFile,
+  type MediaLibraryKind as MediaKind,
   type StoredStorageProvider,
 } from "@/lib/storage/types";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
-type MediaKind = "image" | "video" | "model" | "document" | "other";
-
-interface MediaFile {
-  key: string;
-  url: string;
-  size: number;
-  lastModified?: string;
-  filename: string;
-  kind: MediaKind;
-}
-
-const KIND_FILTERS: { value: MediaKind | "all"; labelKey: string; defaultLabel: string }[] = [
-  { value: "all", labelKey: "admin.media.filter.all", defaultLabel: "All" },
-  { value: "image", labelKey: "admin.media.filter.images", defaultLabel: "Images" },
-  { value: "video", labelKey: "admin.media.filter.videos", defaultLabel: "Videos" },
-  { value: "model", labelKey: "admin.media.filter.models", defaultLabel: "3D Models" },
-  { value: "document", labelKey: "admin.media.filter.documents", defaultLabel: "Documents" },
+const KIND_FILTERS: { value: MediaKind | "all"; labelKey: string }[] = [
+  { value: "all", labelKey: "admin.media.filter.all" },
+  { value: "image", labelKey: "admin.media.filter.images" },
+  { value: "video", labelKey: "admin.media.filter.videos" },
+  { value: "model", labelKey: "admin.media.filter.models" },
+  { value: "document", labelKey: "admin.media.filter.documents" },
 ];
 
 function formatBytes(bytes: number): string {
@@ -181,10 +172,10 @@ export function MediaLibrarySection({
         if (cursor) params.set("cursor", cursor);
         if (kindFilter !== "all") params.set("kind", kindFilter);
         if (debouncedSearch) params.set("q", debouncedSearch);
-        const res = await fetch(`/api/admin/media?${params.toString()}`);
+        const res = await fetch(`/api/media/library?${params.toString()}`);
         const json = await res.json().catch(() => null);
         if (!res.ok || !json?.success) {
-          throw new Error(json?.message || "Failed to load media");
+          throw new Error(json?.message || t("admin.media.loadFailed"));
         }
         return json.data as {
           provider: string;
@@ -199,7 +190,7 @@ export function MediaLibrarySection({
         setFiles((prev) => (cursor ? [...prev, ...data.files] : data.files));
       });
     },
-    [kindFilter, debouncedSearch],
+    [kindFilter, debouncedSearch, t],
   );
 
   const runReload = useCallback(
@@ -207,11 +198,11 @@ export function MediaLibrarySection({
       fetchPage()
         .catch((error) => {
           toast.error(
-            error instanceof Error ? error.message : "Failed to load media",
+            error instanceof Error ? error.message : t("admin.media.loadFailed"),
           );
         })
         .finally(() => setIsLoading(false)),
-    [fetchPage],
+    [fetchPage, t],
   );
   // Manual reloads show the spinner and drop the selection; the effect below
   // does the same during render when the filters change.
@@ -236,7 +227,7 @@ export function MediaLibrarySection({
       await fetchPage(nextCursor);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to load media",
+        error instanceof Error ? error.message : t("admin.media.loadFailed"),
       );
     } finally {
       setIsLoadingMore(false);
@@ -258,10 +249,10 @@ export function MediaLibrarySection({
       setCopiedKey(file.key);
       setTimeout(() => setCopiedKey((k) => (k === file.key ? null : k)), 1500);
       toast.success(
-        t("admin.media.urlCopied", { defaultMessage: "URL copied" }),
+        t("admin.media.urlCopied"),
       );
     } catch {
-      toast.error("Could not copy URL");
+      toast.error(t("admin.media.copyFailed"));
     }
   };
 
@@ -270,10 +261,7 @@ export function MediaLibrarySection({
   // stays fully interactive in demo, matching what the server allows.
   const deleteBlockedInDemo = () => {
     if (!isDemoMode) return false;
-    toast.error(
-      demoModeMessage ||
-        "Demo mode is enabled. Deleting files is disabled on this demo site.",
-    );
+    toast.error(demoModeMessage || t("admin.media.demoDeleteBlocked"));
     return true;
   };
 
@@ -295,7 +283,7 @@ export function MediaLibrarySection({
               `${files[index].name}: ${
                 result.reason instanceof Error
                   ? result.reason.message
-                  : "Upload failed"
+                  : t("admin.mediaPicker.uploadFailed")
               }`,
             ]
           : [],
@@ -310,11 +298,15 @@ export function MediaLibrarySection({
         toast.error(failures.join(", "));
       }
       toast.success(
-        t("admin.media.uploaded", { defaultMessage: "Files uploaded" }),
+        t("admin.media.uploaded"),
       );
       await reload();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Upload failed");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("admin.mediaPicker.uploadFailed"),
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -343,7 +335,7 @@ export function MediaLibrarySection({
           const json = await res.json().catch(() => null);
           if (!res.ok || !json?.success) {
             throw new Error(
-              `${key.split("/").pop()}: ${json?.message || "Delete failed"}`,
+              `${key.split("/").pop()}: ${json?.message || t("admin.media.deleteFailed")}`,
             );
           }
         }),
@@ -394,7 +386,7 @@ export function MediaLibrarySection({
             ) : (
               <Upload className="h-3.5 w-3.5" />
             )}
-            {t("admin.media.upload", { defaultMessage: "Upload" })}
+            {t("admin.media.upload")}
           </Button>
           <input
             ref={fileInputRef}
@@ -414,9 +406,7 @@ export function MediaLibrarySection({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={t("admin.media.searchPlaceholder", {
-                  defaultMessage: "Search files…",
-                })}
+                placeholder={t("admin.media.searchPlaceholder")}
                 className="bg-background pl-8"
               />
             </div>
@@ -433,7 +423,7 @@ export function MediaLibrarySection({
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {t(filter.labelKey, { defaultMessage: filter.defaultLabel })}
+                  {t(filter.labelKey)}
                 </button>
               ))}
             </div>
@@ -447,7 +437,7 @@ export function MediaLibrarySection({
               <RefreshCw
                 className={cn("h-3.5 w-3.5", isLoading && "animate-spin")}
               />
-              {t("admin.media.refresh", { defaultMessage: "Refresh" })}
+              {t("admin.media.refresh")}
             </Button>
           </div>
 
@@ -456,7 +446,6 @@ export function MediaLibrarySection({
             <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
               <span className="text-sm font-medium">
                 {t("admin.media.selectedCount", {
-                  defaultMessage: `${selected.size} selected`,
                   count: selected.size,
                 })}
               </span>
@@ -477,9 +466,7 @@ export function MediaLibrarySection({
                   }}
                 >
                   <Trash2 className="mr-1.5 h-4 w-4" />
-                  {t("admin.media.deleteSelected", {
-                    defaultMessage: "Delete selected",
-                  })}
+                  {t("admin.media.deleteSelected")}
                 </Button>
               </div>
             </div>
@@ -494,13 +481,10 @@ export function MediaLibrarySection({
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
               <HardDrive className="h-8 w-8 text-muted-foreground/50" />
               <p className="text-sm font-medium">
-                {t("admin.media.empty", { defaultMessage: "No media found" })}
+                {t("admin.media.empty")}
               </p>
               <p className="text-xs text-muted-foreground">
-                {t("admin.media.emptyHint", {
-                  defaultMessage:
-                    "Uploaded files will appear here for the active storage provider.",
-                })}
+                {t("admin.media.emptyHint")}
               </p>
             </div>
           ) : (
@@ -550,10 +534,8 @@ export function MediaLibrarySection({
                         type="button"
                         onClick={() => void copyUrl(file)}
                         className="pointer-events-auto rounded bg-background/90 p-1 hover:bg-background"
-                        aria-label="Copy URL"
-                        title={t("admin.media.copyUrl", {
-                          defaultMessage: "Copy URL",
-                        })}
+                        aria-label={t("admin.media.copyUrl")}
+                        title={t("admin.media.copyUrl")}
                       >
                         {copiedKey === file.key ? (
                           <Check className="h-3.5 w-3.5 text-green-600" />
@@ -568,7 +550,7 @@ export function MediaLibrarySection({
                           setConfirmDelete({ keys: [file.key], open: true });
                         }}
                         className="pointer-events-auto rounded bg-destructive/90 p-1 text-destructive-foreground hover:bg-destructive"
-                        aria-label="Delete"
+                        aria-label={t("common.delete")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -593,7 +575,6 @@ export function MediaLibrarySection({
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 {t("admin.media.count", {
-                  defaultMessage: `${visibleFiles.length} file(s)`,
                   count: visibleFiles.length,
                 })}
                 {provider
@@ -611,7 +592,7 @@ export function MediaLibrarySection({
                   {isLoadingMore && (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   )}
-                  {t("admin.media.loadMore", { defaultMessage: "Load more" })}
+                  {t("admin.media.loadMore")}
                 </Button>
               )}
             </div>
@@ -624,16 +605,24 @@ export function MediaLibrarySection({
         open={!!activeFile}
         onOpenChange={(open) => !open && setActiveFile(null)}
       >
-        <DialogContent className="max-w-2xl">
+        {/* `sm:` prefix required: the primitive's own `sm:max-w-lg` outranks an
+            unprefixed `max-w-*` at every width above the sm breakpoint. */}
+        <DialogContent className="sm:max-w-2xl">
           {activeFile && (
             <>
-              <DialogHeader>
-                <DialogTitle className="truncate pr-8">
+              {/* `min-w-0` on every child of the dialog's own grid: a filename
+                  is one unbreakable word, and `truncate` makes it `nowrap`, so
+                  its min-content is the whole string. An auto grid track grows
+                  to that even past the dialog's max-width, which pushed the
+                  detail column out beyond the dialog and left the title
+                  nothing to truncate against. */}
+              <DialogHeader className="min-w-0">
+                <DialogTitle className="truncate pr-8" title={activeFile.filename}>
                   {activeFile.filename}
                 </DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-                <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-muted">
+              <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                <div className="flex aspect-square min-w-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                   {activeFile.kind === "image" ? (
                     <AppImage
                       src={activeFile.url}
@@ -668,23 +657,23 @@ export function MediaLibrarySection({
                     />
                   )}
                 </div>
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                   <dl className="space-y-1.5 text-xs">
                     <div className="flex justify-between gap-2">
                       <dt className="text-muted-foreground">
-                        {t("admin.media.type", { defaultMessage: "Type" })}
+                        {t("admin.media.type")}
                       </dt>
                       <dd className="font-medium capitalize">{activeFile.kind}</dd>
                     </div>
                     <div className="flex justify-between gap-2">
                       <dt className="text-muted-foreground">
-                        {t("admin.media.size", { defaultMessage: "Size" })}
+                        {t("admin.media.size")}
                       </dt>
                       <dd className="font-medium">{formatBytes(activeFile.size)}</dd>
                     </div>
                     <div className="flex justify-between gap-2">
                       <dt className="text-muted-foreground">
-                        {t("admin.media.modified", { defaultMessage: "Modified" })}
+                        {t("admin.media.modified")}
                       </dt>
                       <dd className="font-medium">
                         {formatDate(activeFile.lastModified)}
@@ -692,7 +681,7 @@ export function MediaLibrarySection({
                     </div>
                     <div className="space-y-1 pt-1">
                       <dt className="text-muted-foreground">
-                        {t("admin.media.key", { defaultMessage: "Storage key" })}
+                        {t("admin.media.key")}
                       </dt>
                       <dd className="break-all rounded bg-muted px-2 py-1 font-mono text-[10px]">
                         {activeFile.key}
@@ -709,7 +698,7 @@ export function MediaLibrarySection({
                       onClick={() => void copyUrl(activeFile)}
                     >
                       <Copy className="mr-1.5 h-3.5 w-3.5" />
-                      {t("admin.media.copyUrl", { defaultMessage: "Copy URL" })}
+                      {t("admin.media.copyUrl")}
                     </Button>
                     <Button
                       type="button"
@@ -725,7 +714,7 @@ export function MediaLibrarySection({
                       }
                     >
                       <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                      {t("admin.media.open", { defaultMessage: "Open" })}
+                      {t("admin.media.open")}
                     </Button>
                     <Button
                       type="button"
@@ -755,13 +744,8 @@ export function MediaLibrarySection({
           setConfirmDelete((prev) => ({ ...prev, open }))
         }
         type="danger"
-        title={t("admin.media.deleteTitle", {
-          defaultMessage: "Delete file(s)?",
-        })}
-        description={t("admin.media.deleteDescription", {
-          defaultMessage:
-            "The file will be removed from storage permanently. Anywhere this URL is still used (products, pages, emails) will show a broken file.",
-        })}
+        title={t("admin.media.deleteTitle", { count: confirmDelete.keys.length })}
+        description={t("admin.media.deleteDescription", { count: confirmDelete.keys.length })}
         confirmText={t("common.delete")}
         cancelText={t("common.cancel")}
         loading={isDeleting}

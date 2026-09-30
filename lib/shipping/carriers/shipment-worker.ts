@@ -12,7 +12,10 @@ import {
 import { getSettings } from "@/models/settings.model";
 import { ORDER_STATUS } from "@/config/app.config";
 import type { IOrder, SubOrder } from "@/types";
-import type { CarrierProvider } from "@/lib/shipping/carrier-config";
+import {
+  isTestLabel,
+  type CarrierProvider,
+} from "@/lib/shipping/carrier-config";
 import { isAutoShipEligible } from "@/lib/shipping/automation";
 import { CarrierError } from "./errors";
 import { clearCarrierAuthFailure, flagCarrierAuthFailure } from "./health";
@@ -463,7 +466,12 @@ async function runAutoShip(job: IShipmentJob) {
   // defaults it on, but a settings document written before the field existed
   // has it absent — and a truthy check read that as "off", buying the label and
   // leaving the order on processing.
-  if (automation.markOrderShipped !== false && shipment.trackingNumber) {
+  if (
+    automation.markOrderShipped !== false &&
+    shipment.trackingNumber &&
+    // A test label moves nothing on the order; see `isTestLabel`.
+    !isTestLabel(shipment)
+  ) {
     await applyShipmentTrackingToOrder({
       orderId: String(context.order._id),
       subOrderId: context.subOrder._id

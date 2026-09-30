@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { CheckCircle2, LinkIcon } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
@@ -15,6 +15,7 @@ import {
 } from "@/lib/orders/order-payment-status";
 import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
 import { PreorderBalanceLinkView } from "@/components/store/preorder-balance-link-view";
+import { RouteMessages } from "@/components/language/route-messages";
 
 /**
  * Pay a pre-order balance from the link in the "balance due" email.
@@ -42,10 +43,8 @@ interface PageProps {
 }
 
 function Shell({
-  locale,
   children,
 }: {
-  locale: string;
   children: React.ReactNode;
 }) {
   return (
@@ -54,7 +53,7 @@ function Shell({
       {children}
       <div className="mt-8">
         <Button asChild variant="outline" className="rounded-full">
-          <Link href={`/${locale}`}>Back to the store</Link>
+          <Link href="/">Back to the store</Link>
         </Button>
       </div>
     </div>
@@ -62,18 +61,16 @@ function Shell({
 }
 
 function Notice({
-  locale,
   icon,
   title,
   body,
 }: {
-  locale: string;
   icon: React.ReactNode;
   title: string;
   body: string;
 }) {
   return (
-    <Shell locale={locale}>
+    <Shell>
       <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
         <div className="mt-0.5 text-muted-foreground">{icon}</div>
         <div>
@@ -96,7 +93,6 @@ export default async function PreorderBalanceLinkPage({ params }: PageProps) {
     // exists.
     return (
       <Notice
-        locale={locale}
         icon={<LinkIcon className="h-5 w-5" aria-hidden />}
         title="This payment link is not valid"
         body="It may have been mistyped or truncated by an email client. Open the link from your pre-order email again, or contact us and we will send a fresh one."
@@ -107,13 +103,12 @@ export default async function PreorderBalanceLinkPage({ params }: PageProps) {
   await connectDB();
   const order = await Order.findById(orderId)
     .select(
-      "orderNumber status paymentStatus paymentMethod total refundedTotal hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderReleaseDate preorderBalanceRequestedAt subOrders.status subOrders.items.preorderOutstandingAmount",
+      "orderNumber status paymentStatus paymentMethod total refundedTotal hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount preorderReleaseDate preorderBalanceRequestedAt subOrders.status subOrders.items.preorderOutstandingAmount",
     )
     .lean();
   if (!order) {
     return (
       <Notice
-        locale={locale}
         icon={<LinkIcon className="h-5 w-5" aria-hidden />}
         title="This payment link is not valid"
         body="It may have been mistyped or truncated by an email client. Open the link from your pre-order email again, or contact us and we will send a fresh one."
@@ -128,7 +123,6 @@ export default async function PreorderBalanceLinkPage({ params }: PageProps) {
     // there is no longer a balance to collect.
     return (
       <Notice
-        locale={locale}
         icon={<CheckCircle2 className="h-5 w-5" aria-hidden />}
         title={`Nothing left to pay on #${order.orderNumber}`}
         body="This balance has already been settled, or the pre-order was cancelled and anything paid refunded. Nothing further is needed."
@@ -143,30 +137,32 @@ export default async function PreorderBalanceLinkPage({ params }: PageProps) {
   );
 
   return (
-    <Shell locale={locale}>
+    <Shell>
       <p className="mb-4 text-sm text-muted-foreground">
         Order <span className="font-medium">#{order.orderNumber}</span>
       </p>
-      <PreorderBalanceLinkView
-        locale={locale}
-        accessToken={token}
-        order={{
-          _id: String(order._id),
-          status: String(order.status || ""),
-          paymentStatus: String(order.paymentStatus || ""),
-          hasPreorder: true,
-          preorderStatus: order.preorderStatus,
-          preorderPaymentMode: order.preorderPaymentMode,
-          preorderOutstandingAmount: order.preorderOutstandingAmount,
-          // Worked out here rather than in the browser: the card cannot see
-          // which part of the balance belongs to a consignment a vendor has
-          // called off, and would chase money nobody is owed.
-          preorderBalanceDue: balanceDue,
-          preorderPaidSoFar: getPreorderPaidSoFar(order),
-          preorderBalanceDeadline: deadline?.toISOString(),
-          total: Number(order.total || 0),
-        }}
-      />
+      <RouteMessages namespaces={["orders"]}>
+        <PreorderBalanceLinkView
+          locale={locale}
+          accessToken={token}
+          order={{
+            _id: String(order._id),
+            status: String(order.status || ""),
+            paymentStatus: String(order.paymentStatus || ""),
+            hasPreorder: true,
+            preorderStatus: order.preorderStatus,
+            preorderPaymentMode: order.preorderPaymentMode,
+            preorderOutstandingAmount: order.preorderOutstandingAmount,
+            // Worked out here rather than in the browser: the card cannot see
+            // which part of the balance belongs to a consignment a vendor has
+            // called off, and would chase money nobody is owed.
+            preorderBalanceDue: balanceDue,
+            preorderPaidSoFar: getPreorderPaidSoFar(order),
+            preorderBalanceDeadline: deadline?.toISOString(),
+            total: Number(order.total || 0),
+          }}
+        />
+      </RouteMessages>
     </Shell>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import Link from "@/components/language/link";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,14 +45,15 @@ interface PreorderAccessState {
 export function VendorPreorderAccessCard({
   vendorId,
   storeName,
-  locale,
   readOnly,
 }: {
   vendorId: string;
   storeName?: string;
-  locale: string;
   readOnly?: boolean;
 }) {
+  const t = useTranslations("admin.preorderAccess");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
   const [state, setState] = useState<PreorderAccessState | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -83,24 +85,31 @@ export function VendorPreorderAccessCard({
   const hasAccess = Boolean(state?.preorder?.enabled);
   const requestedAt = hasAccess ? null : state?.preorder?.requestedAt || null;
   const note = state?.preorder?.note?.trim();
+  const approvedOn = formatPreorderAccessDate(state?.preorder?.approvedAt, locale);
+  const askedOn = formatPreorderAccessDate(requestedAt, locale);
+  const statusLine = hasAccess
+    ? t("since", { date: approvedOn || "—" })
+    : requestedAt
+      ? askedOn
+        ? t("asked", { date: askedOn })
+        : t("askedRecently")
+      : t("notAsked");
 
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle>Pre-order access</CardTitle>
+            <CardTitle>{t("card.title")}</CardTitle>
             <CardDescription className="max-w-3xl text-pretty">
-              Whether this vendor may open pre-orders. A pre-order takes a
-              shopper&apos;s money before the goods exist, so the store can
-              review who is allowed to.
+              {t("card.description")}
             </CardDescription>
           </div>
           <Link
-            href={`/${locale}/admin/settings/marketplace#preorder-access`}
+            href="/admin/settings/marketplace#preorder-access"
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
           >
-            Pre-order rules
+            {t("card.rulesLink")}
             <ArrowUpRight className="size-3.5" />
           </Link>
         </div>
@@ -110,13 +119,13 @@ export function VendorPreorderAccessCard({
         {!state ? (
           loadFailed ? (
             <p className="text-muted-foreground text-sm">
-              Could not load pre-order access.{" "}
+              {t("card.loadFailed")}{" "}
               <button
                 type="button"
                 className="text-foreground underline underline-offset-2"
                 onClick={() => void load()}
               >
-                Try again
+                {tCommon("tryAgain")}
               </button>
             </p>
           ) : (
@@ -126,15 +135,11 @@ export function VendorPreorderAccessCard({
           <>
             {!state.policy.enabled ? (
               <p className="text-muted-foreground text-sm">
-                Pre-orders are switched off for the whole store, so nobody can
-                open one right now. What you set here applies once they are
-                back on, and the vendor is not notified of it.
+                {t("card.storeOff")}
               </p>
             ) : !state.policy.requireVendorApproval ? (
               <p className="text-muted-foreground text-sm">
-                Review is off, so this vendor can already open pre-orders. What
-                you set here applies once review is turned on, and the vendor
-                is not notified of it.
+                {t("card.reviewOff")}
               </p>
             ) : null}
 
@@ -146,31 +151,27 @@ export function VendorPreorderAccessCard({
                       variant="outline"
                       className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                     >
-                      Approved
+                      {t("approvedBadge")}
                     </Badge>
                   ) : requestedAt ? (
                     <Badge
                       variant="outline"
                       className="border-amber-500/35 bg-amber-500/12 text-amber-700 dark:text-amber-400"
                     >
-                      Waiting for review
+                      {t("waitingBadge")}
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="bg-muted text-muted-foreground">
-                      No access
+                      {t("noAccessBadge")}
                     </Badge>
                   )}
                   <span className="text-muted-foreground text-xs">
-                    {hasAccess
-                      ? `Since ${formatPreorderAccessDate(state.preorder?.approvedAt) || "—"}`
-                      : requestedAt
-                        ? `Asked ${formatPreorderAccessDate(requestedAt) || "recently"}`
-                        : "Has not asked for access"}
+                    {statusLine}
                   </span>
                 </div>
                 {note ? (
                   <p className="text-muted-foreground text-xs break-words">
-                    Last note: {note}
+                    {t("lastNote", { note })}
                   </p>
                 ) : null}
               </div>
@@ -185,7 +186,7 @@ export function VendorPreorderAccessCard({
                       disabled={busy}
                       onClick={() => refuse(vendor, "revoke")}
                     >
-                      Withdraw access
+                      {t("revokeSubmit")}
                     </Button>
                   ) : (
                     <>
@@ -195,7 +196,7 @@ export function VendorPreorderAccessCard({
                         disabled={busy}
                         onClick={() => approve(vendor)}
                       >
-                        {requestedAt ? "Approve" : "Grant access"}
+                        {requestedAt ? t("approve") : t("grant")}
                       </Button>
                       {requestedAt ? (
                         <Button
@@ -205,7 +206,7 @@ export function VendorPreorderAccessCard({
                           disabled={busy}
                           onClick={() => refuse(vendor, "decline")}
                         >
-                          Decline
+                          {t("declineSubmit")}
                         </Button>
                       ) : null}
                     </>
@@ -215,10 +216,10 @@ export function VendorPreorderAccessCard({
             </div>
 
             <p className="text-muted-foreground text-xs">
-              Once approved, release dates can be up to{" "}
-              {state.policy.maxLeadDays} days out and deposits up to{" "}
-              {state.policy.maxDepositPercent}% of the price. Withdrawing
-              access never pulls listings that are already selling.
+              {t("card.limits", {
+                days: state.policy.maxLeadDays,
+                percent: state.policy.maxDepositPercent,
+              })}
             </p>
           </>
         )}

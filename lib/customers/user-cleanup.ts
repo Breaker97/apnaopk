@@ -51,6 +51,11 @@ export async function cleanupDeletedUserReferences(
   }
 
   const results = await Promise.allSettled([
+    // Loaded here, not at the top: it builds the auth instance, which the
+    // many importers of this module have no other use for.
+    import("@/lib/auth/session-revocation").then(({ deleteUserAuthRecords }) =>
+      deleteUserAuthRecords(userId),
+    ),
     CustomerProfile.deleteOne({ userId }),
     AdminProfile.deleteOne({ userId }),
     StaffProfile.deleteOne({ userId }),
@@ -93,6 +98,7 @@ export async function cleanupDeletedUserReferences(
   ]);
 
   const labels = [
+    "sign-in records",
     "customer profile",
     "admin profile",
     "staff profile",

@@ -1,35 +1,21 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
-import { connectDB } from "@/lib/db";
+import * as z from "zod";
 import { StaffProfile, User } from "@/models";
-import { getSettings } from "@/models/settings.model";
-import { auth } from "@/lib/auth/auth";
-import { headers } from "next/headers";
 import { USER_ROLES } from "@/config/app.config";
 import {
-  ALL_STAFF_PERMISSIONS,
   DEFAULT_STAFF_PERMISSIONS,
   VENDOR_PERMISSIONS,
-  type StaffPermission,
-  type VendorPermission,
 } from "@/config/permissions.config";
-import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { checkPlanLimit } from "@/lib/vendors/vendor-limits";
-import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validateQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema } from "@/lib/validations";
 import { createdResponse, paginatedResponse } from "@/lib/api/response";
 import { fetchStaffList } from "@/lib/access/staff-list";
-import {
-  AuthenticationError,
-  AuthorizationError,
-  NotFoundError,
-  ValidationError,
-  handleApiError,
-} from "@/lib/api/errors";
+import { ValidationError, handleApiError } from "@/lib/api/errors";
 import { isStaffRole } from "@/lib/access/staff-role";
 import { STAFF_MANAGED_BY } from "@/lib/access/staff-ownership";
-import { hasVendorPermission } from "@/lib/access/rbac";
+import { requireVendorStaffPermission } from "@/lib/access/vendor-staff-guard";
+import { sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
 
 export async function GET(request: NextRequest) {
   try {
@@ -142,7 +128,7 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Staff profile already exists for this user");
     }
 
-    const staffPermissions = sanitizeStaffPermissions(permissions);
+    const staffPermissions = sanitizeVendorStaffPermissions(permissions);
     const staffProfile = await StaffProfile.create({
       userId,
       permissions:
@@ -165,50 +151,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
-
-async function requireVendorStaffPermission(
-  request: NextRequest,
-  permissions: VendorPermission[],
-  limiterKey: string,
-  limiterMode: "lenient" | "moderate" | "strict",
-) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new AuthenticationError();
-  if (session.user.role !== USER_ROLES.VENDOR) throw new AuthorizationError();
-
-  await rateLimitByUser(
-    request,
-    session.user.id,
-    limiterKey,
-    limiterMode,
-    session.user.role,
-  );
-
-  await connectDB();
-  const settings = await getSettings();
-  if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
-
-  const vendor = await requireApprovedVendorByUserId(session.user.id);
-  const ok = await Promise.all(
-    permissions.map((permission) =>
-      hasVendorPermission(
-        session.user as unknown as { id?: string; role?: typeof USER_ROLES.VENDOR },
-        permission,
-      ),
-    ),
-  );
-  if (!ok.some(Boolean)) throw new AuthorizationError();
-
-  return { session, vendor };
-}
-
-function sanitizeStaffPermissions(input: unknown): StaffPermission[] {
-  if (!Array.isArray(input)) return [];
-  const valid = input.filter(
-    (permission: unknown): permission is StaffPermission =>
-      typeof permission === "string" &&
-      ALL_STAFF_PERMISSIONS.includes(permission as StaffPermission),
-  );
-  return Array.from(new Set(valid));
 }

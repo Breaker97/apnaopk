@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { LocationsContent } from "@/components/pos/locations-content";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -29,7 +30,7 @@ export default async function VendorLocationsPage({ params }: PageProps) {
 
   const access = await requireVendorAreaAccess({ locale });
   if (!access.hasDashboardAccess) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
 
   return <LocationsContent />;

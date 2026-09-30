@@ -52,7 +52,12 @@ export function POSLineNoteDialog({
         if (e.target === e.currentTarget) onOpenChange(false);
       }}
     >
-      <div className="bg-background w-full max-w-md rounded-2xl border shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Line note"
+        className="bg-background w-full max-w-md rounded-2xl border shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+      >
         {/* Header */}
         <div className="flex items-start justify-between border-b px-5 py-4">
           <div className="min-w-0 flex-1 pr-2">

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { User, StaffProfile, AdminProfile } from "@/models";
 import {
   createdResponse,

@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import Link from "@/components/language/link";
+import { useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { ArrowRight, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { NumberInput } from "@/components/ui/number-input";
-import { type Locale } from "@/config/i18n.config";
 import { useState, useCallback, useMemo } from "react";
 import type { StorefrontProductPriceRange } from "@/lib/products/storefront-product-filters";
 import { FilterGroup } from "@/components/products/filter-group";
@@ -28,7 +28,6 @@ interface FilterItem {
 }
 
 export interface ProductFiltersProps {
-  locale: Locale;
   categories: FilterItem[];
   collections: FilterItem[];
   currentCategory?: string;
@@ -110,7 +109,6 @@ export function resolvePriceBounds(
 }
 
 export function ProductFilters({
-  locale,
   categories,
   collections,
   currentCategory,
@@ -450,7 +448,7 @@ export function ProductFilters({
             ))}
             {hasMoreCategories ? (
               <Link
-                href={`/${locale}/categories`}
+                href="/categories"
                 className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
               >
                 {t("common.viewAll")}
@@ -485,7 +483,7 @@ export function ProductFilters({
             ))}
             {hasMoreCollections ? (
               <Link
-                href={`/${locale}/collections`}
+                href="/collections"
                 className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
               >
                 {t("common.viewAll")}

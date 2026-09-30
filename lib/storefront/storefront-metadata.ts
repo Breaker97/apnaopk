@@ -6,16 +6,14 @@ import {
   resolveAppIconUrl,
   resolveFaviconUrl,
 } from "@/config/branding.config";
-import {
-  defaultLocale,
-  isValidLocale,
-  locales,
-  type Locale,
-} from "@/config/i18n.config";
+import { isValidLocale, type Locale } from "@/config/i18n.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { appIconPath, appIconVersion } from "@/lib/pwa/pwa-icons";
 import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 interface StorefrontMetadataSettings {
   storeName: string;
@@ -94,9 +92,9 @@ export function truncateMetadataText(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
 }
 
-export const getStorefrontMetadataSettings = unstable_cache(
-  async (): Promise<StorefrontMetadataSettings> => {
-    try {
+export const getStorefrontMetadataSettings = withFallback(
+  unstable_cache(
+    async (): Promise<StorefrontMetadataSettings> => {
       await connectDB();
       const settings = await getSettings();
       const general = settings.general;
@@ -122,21 +120,20 @@ export const getStorefrontMetadataSettings = unstable_cache(
           twitterHandle: extractTwitterHandle(settings.social?.twitterUrl),
         },
       };
-    } catch {
-      return {
-        storeName: appConfig.name,
-        storeDescription: appConfig.description,
-        defaultCurrency: DEFAULT_CURRENCY,
-        seo: {},
-        social: {},
-      };
-    }
-  },
-  ["storefront-metadata-settings"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.settings],
-  },
+    },
+    ["storefront-metadata-settings"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.settings],
+    },
+  ),
+  () => ({
+    storeName: appConfig.name,
+    storeDescription: appConfig.description,
+    defaultCurrency: DEFAULT_CURRENCY,
+    seo: {},
+    social: {},
+  }),
 );
 
 /**
@@ -173,55 +170,25 @@ export function resolveStorefrontBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }
 
+/** The absolute URL of a storefront page, for one locale. */
+function storefrontUrl(locale: string, page: string, storeDefault: Locale) {
+  const path = buildLocalePath(locale, page === "/" ? "/" : page || "/", storeDefault);
+  return `${resolveStorefrontBaseUrl()}${path}`.replace(/\/$/, "");
+}
+
 /**
- * The locales this store actually serves, plus the one that answers for
- * `x-default`.
- *
- * hreflang must advertise only languages a visitor can really get: emitting
- * every locale the build ships (18 of them) points Google at 16 URLs that
- * redirect or render in the wrong language, and the reciprocity check then
- * fails for all of them. `general.supportedLanguages` is the admin's answer,
- * intersected with the build's `locales` because the settings default carries
- * codes the app has no messages for (e.g. "ko").
+ * The canonical URL of one storefront page — the same address the canonical
+ * tag carries, for the places that need it on its own: Open Graph, JSON-LD.
+ * Going through here is what keeps them from naming a URL the store redirects
+ * away from, now that the default language is served without a prefix.
  */
-export const getEnabledLocales = unstable_cache(
-  async (): Promise<{ enabled: Locale[]; storeDefault: Locale }> => {
-    try {
-      await connectDB();
-      const general = (await getSettings()).general;
-
-      const configuredDefault = String(general?.defaultLanguage || "").toLowerCase();
-      const storeDefault = isValidLocale(configuredDefault)
-        ? configuredDefault
-        : defaultLocale;
-
-      const supported = new Set(
-        (Array.isArray(general?.supportedLanguages)
-          ? general.supportedLanguages
-          : []
-        )
-          .map((code) => String(code).toLowerCase())
-          .filter(isValidLocale),
-      );
-      supported.add(storeDefault);
-
-      // Iterate `locales` rather than the settings array so the order is the
-      // build's, not whatever order the admin happened to tick boxes in —
-      // otherwise the hreflang block reshuffles between saves.
-      return {
-        enabled: locales.filter((locale) => supported.has(locale)),
-        storeDefault,
-      };
-    } catch {
-      return { enabled: [defaultLocale], storeDefault: defaultLocale };
-    }
-  },
-  ["storefront-enabled-locales"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.settings],
-  },
-);
+export async function buildStorefrontUrl(
+  locale: Locale | string,
+  page: string,
+): Promise<string> {
+  const { storeDefault } = await getLocaleRouting();
+  return storefrontUrl(locale, page, storeDefault);
+}
 
 /**
  * Self-referencing canonical plus the hreflang set for one page.
@@ -238,20 +205,26 @@ export async function buildStorefrontAlternates({
   locale: Locale | string;
   page: string;
 }): Promise<NonNullable<Metadata["alternates"]>> {
-  const baseUrl = resolveStorefrontBaseUrl();
-  const normalizedPage = page === "/" ? "" : page;
-  const { enabled, storeDefault } = await getEnabledLocales();
+  const { enabled, storeDefault } = await getLocaleRouting();
+  const url = (loc: string) => storefrontUrl(loc, page, storeDefault);
+
+  // A single-language store has nothing to alternate with, and an hreflang
+  // block listing one URL that points at itself is noise Google has to
+  // reconcile. The canonical alone says everything there is to say.
+  if (enabled.length < 2) {
+    return { canonical: url(storeDefault) };
+  }
 
   const languages: Record<string, string> = {};
   for (const loc of enabled) {
-    languages[loc] = `${baseUrl}/${loc}${normalizedPage}`;
+    languages[loc] = url(loc);
   }
   // Tells Google which version to serve visitors whose language matches none
   // of the above; without it they get whichever locale it guessed.
-  languages["x-default"] = `${baseUrl}/${storeDefault}${normalizedPage}`;
+  languages["x-default"] = url(storeDefault);
 
   return {
-    canonical: `${baseUrl}/${locale}${normalizedPage}`,
+    canonical: url(locale),
     languages,
   };
 }
@@ -330,4 +303,94 @@ export function isIndexablePage(page: string) {
   return !NON_INDEXABLE_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`),
   );
+}
+
+/**
+ * The robots rule every storefront page inherits (from
+ * `storefrontPageMetadata`): `noindex, nofollow` for the paths above, and
+ * nothing for the rest, which a crawler reads as "index, follow". Saying
+ * "index, follow" out loud put it on the "page not found" page as well, beside
+ * the `noindex` Next adds there — a page asking to be both indexed and not.
+ *
+ * `page` is null when the request's path is unknown; nothing is said then.
+ */
+export function storefrontPageRobots(page: string | null): Metadata["robots"] {
+  return page !== null && !isIndexablePage(page)
+    ? { index: false, follow: false }
+    : undefined;
+}
+
+/**
+ * The store's metadata for one page: its name and SEO copy, Open Graph and
+ * Twitter cards, icons, and — once the page's locale-less path is known —
+ * the canonical/hreflang set and the robots rule for that path.
+ *
+ * `canonicalPage` is the locale-less path (`""` for the home page) or null
+ * when it is unknown, in which case no canonical is emitted at all: a wrong
+ * canonical de-indexes a page, a missing one does not. The root layout passes
+ * null, the home page passes `""`, and every other route gets it from the
+ * request path (lib/storefront/request-path-metadata.tsx) — a page whose own
+ * `alternates` are more specific (product, category, vendor) still wins.
+ */
+export async function storefrontPageMetadata(
+  locale: string,
+  canonicalPage: string | null,
+): Promise<Metadata> {
+  const baseUrl = resolveStorefrontBaseUrl();
+  const storeMetadata = await getStorefrontMetadataSettings();
+  const alternates =
+    canonicalPage === null
+      ? undefined
+      : await buildStorefrontAlternates({ locale, page: canonicalPage });
+  const canonicalUrl =
+    typeof alternates?.canonical === "string"
+      ? alternates.canonical
+      : await buildStorefrontUrl(locale, "/");
+  // The store's own name, never this app's tagline appended to it: a buyer's
+  // storefront advertises the buyer's business. Anything longer than the name
+  // is the admin's to write, in Settings → SEO.
+  const title = storeMetadata.seo.metaTitle || storeMetadata.storeName;
+  const description =
+    storeMetadata.seo.metaDescription ||
+    storeMetadata.storeDescription ||
+    appConfig.description;
+
+  return {
+    title: {
+      // `absolute` so the home/default title isn't suffixed with the store
+      // name again by a parent template (avoids "Storify | Storify").
+      absolute: title,
+      template: `%s | ${storeMetadata.storeName}`,
+    },
+    description,
+    keywords: storeMetadata.seo.metaKeywords,
+    authors: [{ name: storeMetadata.storeName }],
+    creator: storeMetadata.storeName,
+    publisher: storeMetadata.storeName,
+    metadataBase: new URL(baseUrl),
+    alternates,
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: storeMetadata.storeName,
+      images: storeMetadata.seo.ogImage
+        ? [{ url: storeMetadata.seo.ogImage, width: 1200, height: 630, alt: title }]
+        : undefined,
+      locale: locale,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: storeMetadata.seo.ogImage ? [storeMetadata.seo.ogImage] : undefined,
+    },
+    // The back office, the auth flow and the shopper's own session pages are
+    // kept out of the index. Decided from the path because several of them
+    // (the cart above all) are client components, which cannot export
+    // metadata of their own.
+    robots: storefrontPageRobots(canonicalPage),
+    icons: getStorefrontIcons(storeMetadata),
+  };
 }

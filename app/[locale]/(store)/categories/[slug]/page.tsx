@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
@@ -11,6 +12,7 @@ import type { SectionRenderContext } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import {
   buildStorefrontAlternates,
+  buildStorefrontUrl,
   getStorefrontIcons,
   getStorefrontMetadataSettings,
   normalizeMetadataText,
@@ -80,7 +82,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `${baseUrl}/${locale}${page}`,
+      url: await buildStorefrontUrl(locale, page),
       siteName: storeMetadata.storeName,
       images:
         images.length > 0
@@ -107,6 +109,7 @@ export default async function CategoryDetailPage({
   const { locale, slug } = await params;
   const search = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   // The page's own location pill points at the grid, so the template has to
   // honour the location — otherwise the control says "Seattle" over an
@@ -141,6 +144,7 @@ export default async function CategoryDetailPage({
       <div className="container mx-auto px-4 pt-8">
         <StoreBreadcrumb
           locale={locale}
+          storeDefault={storeDefault}
           items={[
             { label: t("common.categories"), href: "/categories" },
             { label: category.name },

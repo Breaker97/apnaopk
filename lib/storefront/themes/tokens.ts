@@ -1,9 +1,9 @@
 import { isValidCssColor, normalizeColorToHex } from "@/lib/site-config/appearance-colors";
-import { isFontId } from "@/lib/storefront/fonts/catalog";
 import {
   SLIDER_HEIGHTS,
   SLIDER_WIDTHS,
 } from "@/lib/storefront/sections/slider-grids";
+import { isFontId } from "@/lib/storefront/fonts/catalog";
 import { isRecord } from "@/lib/utils";
 
 /**
@@ -120,6 +120,12 @@ export interface ThemeTokens {
     pagePadding: number;
     sliderWidth: string;
     sliderHeight: string;
+    /** How the shop's own scrollbar is drawn — see SCROLLBAR_STYLES. */
+    scrollbar: (typeof SCROLLBAR_STYLES)[number]["key"];
+    /** The handle's colour; "" takes the theme's border. */
+    scrollbarThumb: string;
+    /** The groove behind it; "" leaves it transparent. */
+    scrollbarTrack: string;
   };
   shape: {
     /** px */
@@ -172,7 +178,15 @@ export const BASE_THEME_TOKENS: ThemeTokens = {
     buttonTransform: "none",
     buttonTracking: 0,
   },
-  layout: { pageWidth: "1280", pagePadding: 16, sliderWidth: "fixed", sliderHeight: "half" },
+  layout: {
+    pageWidth: "1280",
+    pagePadding: 16,
+    sliderWidth: "fixed",
+    sliderHeight: "half",
+    scrollbar: "thin",
+    scrollbarThumb: "",
+    scrollbarTrack: "",
+  },
   shape: {
     cardRadius: 16,
     buttonRadius: "",
@@ -198,6 +212,21 @@ export type TokenFieldKind =
   | "font"
   | "picture";
 
+/**
+ * How the shop draws its scrollbar.
+ *
+ * "hidden" reserves nothing, so a full-bleed section reaches the window —
+ * a classic bar takes a column out of the viewport and the page paints
+ * inside what is left, which showed as a strip of page background beside
+ * the hero. What it costs is the drag handle and the position indicator,
+ * which is why it is a choice and not the rule.
+ */
+export const SCROLLBAR_STYLES = [
+  { key: "thin", label: "Thin", css: "thin" },
+  { key: "standard", label: "Standard", css: "auto" },
+  { key: "hidden", label: "Hidden", css: "none" },
+] as const;
+
 export interface TokenField {
   key: string;
   kind: TokenFieldKind;
@@ -212,6 +241,19 @@ export interface TokenField {
   inherit?: string;
   /** Show only while a sibling field in the group holds this value. */
   when?: { key: string; equals: string };
+  /**
+   * Part of the theme's own design, not a merchant control: declared so the
+   * theme's value is carried through `normalizeThemeTokens` (which merges
+   * only DECLARED fields — drop the declaration and the theme silently falls
+   * back to the base defaults), but never rendered in the editor.
+   */
+  themeOnly?: boolean;
+  /**
+   * For a `color` field OUTSIDE the Colors group: the role its empty value
+   * follows, so the swatch can show what "inherit" actually resolves to
+   * rather than a blank.
+   */
+  resolvesTo?: ColorRole;
 }
 
 /** Whether a field applies given its group's current values. */
@@ -219,6 +261,7 @@ export function isFieldVisible(
   field: TokenField,
   groupValues: Record<string, unknown>,
 ): boolean {
+  if (field.themeOnly) return false;
   return !field.when || groupValues[field.when.key] === field.when.equals;
 }
 
@@ -248,7 +291,7 @@ export const THEME_TOKEN_GROUPS: TokenGroup[] = [
     key: "colors",
     label: "Colors",
     description:
-      "One scheme per mode. Brand colors live in Branding; a role can reference them or hold its own color.",
+      "Your brand, and what this theme does with it. One scheme per mode; a role can reference a brand color or hold its own.",
     fields: COLOR_ROLES.map((role) => ({
       key: role,
       kind: "color" as const,
@@ -276,7 +319,7 @@ export const THEME_TOKEN_GROUPS: TokenGroup[] = [
   {
     key: "layout",
     label: "Layout",
-    description: "Page width, and the global defaults hero and banner sections inherit.",
+    description: "How wide the content sits, and the space beside it.",
     fields: [
       {
         key: "pageWidth",
@@ -300,8 +343,49 @@ export const THEME_TOKEN_GROUPS: TokenGroup[] = [
         step: 1,
         when: { key: "pageWidth", equals: "full" },
       },
-      { key: "sliderWidth", kind: "picture", label: "Slider width style", options: SLIDER_WIDTHS.map((width) => ({ key: width.key, label: width.label })) },
-      { key: "sliderHeight", kind: "picture", label: "Slider height", options: SLIDER_HEIGHTS.map((height) => ({ key: height.key, label: height.label })) },
+      {
+        key: "scrollbar",
+        kind: "segmented",
+        label: "Scrollbar",
+        hint: "Hidden reserves no space, so a full-bleed section reaches the window — at the cost of the drag handle and the position indicator.",
+        options: SCROLLBAR_STYLES.map((style) => ({
+          key: style.key,
+          label: style.label,
+        })),
+      },
+      {
+        key: "scrollbarThumb",
+        kind: "color",
+        label: "Scrollbar handle",
+        inherit: "Border colour",
+        resolvesTo: "border",
+        when: { key: "scrollbar", equals: "thin" },
+      },
+      {
+        key: "scrollbarTrack",
+        kind: "color",
+        label: "Scrollbar groove",
+        inherit: "Transparent",
+        when: { key: "scrollbar", equals: "thin" },
+      },
+      // The size a slider gets is set on the SECTION that holds it, beside
+      // the cell being sized — not once for the whole shop, where it only
+      // ever meant "whatever the first hero wanted". These two stay as the
+      // theme's own design, which a section set to "theme" inherits.
+      {
+        key: "sliderWidth",
+        kind: "picture",
+        label: "Slider width style",
+        themeOnly: true,
+        options: SLIDER_WIDTHS.map((width) => ({ key: width.key, label: width.label })),
+      },
+      {
+        key: "sliderHeight",
+        kind: "picture",
+        label: "Slider height",
+        themeOnly: true,
+        options: SLIDER_HEIGHTS.map((height) => ({ key: height.key, label: height.label })),
+      },
     ],
   },
   {
@@ -338,12 +422,6 @@ export const THEME_TOKEN_GROUPS: TokenGroup[] = [
     ],
   },
 ];
-
-export function getTokenGroup(key: ThemeGroupKey): TokenGroup {
-  const group = THEME_TOKEN_GROUPS.find((candidate) => candidate.key === key);
-  if (!group) throw new Error(`Unknown theme token group: ${key}`);
-  return group;
-}
 
 /* ------------------------------------------------------------------ */
 /* Normalization                                                        */

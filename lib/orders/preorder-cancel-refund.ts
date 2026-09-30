@@ -4,6 +4,8 @@ import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import type { AuditContext } from "@/lib/audit";
 import { refundOrderPayment } from "@/lib/orders/order-refund";
 import { createRefundTransaction } from "@/lib/payments/payment-transactions";
+import { settleRefundedPaymentStatus } from "@/lib/orders/refund-payment-status";
+import { quantizeToCurrency } from "@/lib/intl/money";
 import {
   consignmentCharge,
   isConsignmentCollected,
@@ -17,6 +19,17 @@ import {
   getPreorderCollectedAmount,
   hasUncollectedPreorderBalance,
 } from "@/lib/orders/order-payment-status";
+import {
+  orderCreditApplied,
+  splitRefundCreditFirst,
+  type OrderStoreCredit,
+} from "@/lib/store-credit/order-credit";
+import { isActiveExchangeOrder } from "@/lib/returns/exchange";
+
+/** The return an exchange order was made for (R7) — see lib/returns/exchange.ts. */
+type ExchangeOrderFields = {
+  exchangeOf?: { returnId?: unknown; returnNumber?: string; undoneAt?: Date | null } | null;
+};
 
 /**
  * Give a cancelled pre-order's money back.
@@ -54,7 +67,46 @@ type CancelRefundOutcome = {
   reason?: string;
   /** False when the money has to be sent back by hand. */
   gatewayCalled?: boolean;
+  /**
+   * Money the shopper is owed did not go back: the gateway refused it, or
+   * another refund took the headroom first. Absent when there was simply
+   * nothing to send — nothing collected, already refunded — so a screen warns
+   * only when somebody has to act.
+   */
+  failed?: boolean;
 };
+
+/**
+ * Tell admins a cancelled order's money did not go back.
+ *
+ * The cancellation stands either way, so the outcome handed to the caller was
+ * the only record of the money still owed — and most callers showed "Order
+ * cancelled" and moved on: the shopper's own cancel, a vendor's, the admin
+ * order screen, the expiry job. The order sat cancelled and paid with no
+ * refund row, and nobody knew to send it.
+ */
+export async function reportFailedCancelRefund(params: {
+  order: { _id: unknown; orderNumber?: string };
+  /** Unknown when the refund failed before it could be priced. */
+  amount?: number;
+  currency?: string;
+  why: string;
+}) {
+  const { notifyAdminsPaymentAnomaly } = await import(
+    "@/lib/notifications/notifications"
+  );
+  const owed =
+    typeof params.amount === "number"
+      ? `${params.amount} ${params.currency || ""}`.trim() + " "
+      : "";
+  await notifyAdminsPaymentAnomaly({
+    title: "A cancelled order's refund did not go through",
+    message: `Order #${params.order.orderNumber || String(params.order._id)} was cancelled, but its ${owed}refund was not sent: ${params.why}. Check the order's refunds and send the shopper what they are still owed — refund the order again from its page, or return the money by hand.`,
+    link: `/admin/orders/${String(params.order._id)}`,
+  }).catch((err) =>
+    console.error("Failed to report a cancellation refund that did not go through:", err),
+  );
+}
 
 type RefundableOrder = {
   _id: unknown;
@@ -89,6 +141,9 @@ type RefundableOrder = {
     paymentStatus?: string | null;
     items?: Array<{ preorderOutstandingAmount?: number | null }> | null;
   }> | null;
+  customerId?: unknown;
+  /** Store credit that paid part of the order (R8) — see order-credit.ts. */
+  storeCredit?: OrderStoreCredit | null;
 };
 
 /**
@@ -159,7 +214,9 @@ export function getSubOrderPreorderCollectedAmount(
  * never arrived. Summed from the same per-consignment answer the refund of any
  * one of them uses, so the two can never disagree.
  */
-function getOrderCollectedAmount(order: RefundableOrder & { currency: string }): number {
+function getOrderCollectedAmount(
+  order: RefundableOrder & { currency: string },
+): number {
   const subOrders = (order.subOrders || []).filter(Boolean);
   if (Number(order.preorderOutstandingAmount || 0) > 0 || subOrders.length < 2) {
     return getPreorderCollectedAmount(order);
@@ -168,11 +225,42 @@ function getOrderCollectedAmount(order: RefundableOrder & { currency: string }):
   if (!consignmentCharge(priced, subOrders[0]?._id)) {
     return getPreorderCollectedAmount(order);
   }
+  // Store credit given back before the money came paid for nothing — see
+  // `getPreorderCollectedAmount`.
+  const releasedCredit =
+    order.storeCredit?.state === "released"
+      ? Math.max(0, Number(order.storeCredit.applied) || 0)
+      : 0;
   return Number(
-    subOrders
-      .reduce((sum, sub) => sum + getSubOrderPreorderCollectedAmount(priced, sub), 0)
-      .toFixed(2),
+    Math.max(
+      0,
+      subOrders.reduce(
+        (sum, sub) => sum + getSubOrderPreorderCollectedAmount(priced, sub),
+        0,
+      ) - releasedCredit,
+    ).toFixed(2),
   );
+}
+
+/**
+ * The most a refund on this order may ever reach: what it collected.
+ *
+ * The order total, except where money never arrived for part of it — a
+ * pre-order's unpaid balance, or a split cash order's consignment called off
+ * before anybody paid for it at the door. That consignment refunds nothing
+ * when it is cancelled, and the total never comes down, so its value stayed
+ * "refundable" for good: a Full refund on the order screen asked the store to
+ * send back money the shopper had never handed over, and the ledger took the
+ * excess off the cancelled seller. Collected sums the consignments' charges,
+ * which add up to the total exactly, so an order whose money all arrived is
+ * held to its total as before.
+ */
+export function getOrderRefundCeiling(
+  order: RefundableOrder & { currency: string },
+): number {
+  const total = Number(order.total || 0);
+  const collected = getOrderCollectedAmount(order);
+  return collected > 0 ? Math.min(total, collected) : total;
 }
 
 export async function refundCancelledPreorder(params: {
@@ -195,6 +283,11 @@ export async function refundCancelledPreorder(params: {
   collected?: number;
   /** Announce a refund someone must send by hand; off where the caller already does. */
   notifySettlement?: boolean;
+  /**
+   * Tell admins when money owed could not be sent back. Off only where the
+   * caller raises its own alert with the outcome in it.
+   */
+  reportFailure?: boolean;
   /**
    * The consignments `collected` belongs to. Recorded with the refund, so the
    * ledger and the payouts take it back from those sellers alone instead of
@@ -247,11 +340,21 @@ export async function refundCancelledPreorder(params: {
     { $group: { _id: null, totalRefunded: { $sum: "$grossAmount" } } },
   ]);
   const alreadyRefunded = Number(refundSummary?.totalRefunded || 0);
+  // What is spoken for already: the refund rows, or the running total when it
+  // is ahead of them — a refund still in flight has reserved its share there
+  // before its row exists. Sized from the rows alone, a cancel landing beside
+  // an admin's partial refund asked for the whole order, was refused at the
+  // claim below, and the rest of the money was never sent at all.
+  const alreadyClaimed = Math.max(
+    alreadyRefunded,
+    Number((order as { refundedTotal?: number }).refundedTotal || 0),
+  );
   // Never more than is left unrefunded on the order as a whole: two
   // consignments cancelled in turn each ask for their own share, and a stale
   // read must not let the pair exceed what arrived.
-  const amount = Number(
-    Math.min(collected, collectedOnOrder - alreadyRefunded).toFixed(2),
+  const amount = quantizeToCurrency(
+    Math.min(collected, collectedOnOrder - alreadyClaimed),
+    currency,
   );
   if (amount <= 0) {
     return { refunded: false, reason: "Already refunded" };
@@ -263,8 +366,23 @@ export async function refundCancelledPreorder(params: {
   // finished, however little of it has been collected so far. Read off the
   // order as it stands after the cancellation, which every caller writes first.
   const balanceStillToCome = hasUncollectedPreorderBalance(order);
+  // The same for a split cash order's other parcel, still live and not yet
+  // paid for at the door. "Everything collected so far" is not everything:
+  // cancelling the one consignment that had been paid for read as the whole
+  // order refunded, and when the other parcel's cash came in the order stayed
+  // `refunded` — no charge, no points, files closed, and no refund or return
+  // possible for goods the shopper had just paid for.
+  const cashStillToCome = (order.subOrders || []).some(
+    (sub) =>
+      sub?.status !== ORDER_STATUS.CANCELLED &&
+      !isConsignmentCollected({ ...order, _id: undefined } as PostingOrder, {
+        paymentStatus: sub?.paymentStatus,
+      }),
+  );
   const refundsEverything =
-    !balanceStillToCome && alreadyRefunded + amount >= collectedOnOrder - 0.01;
+    !balanceStillToCome &&
+    !cashStillToCome &&
+    alreadyClaimed + amount >= collectedOnOrder - 0.01;
 
   // Reserve the headroom before any money moves, exactly as the order and
   // return routes do, so a cancel racing a manual refund cannot both pass the
@@ -299,57 +417,94 @@ export async function refundCancelledPreorder(params: {
     { returnDocument: "after" },
   ).lean();
   if (!claim) {
-    return {
-      refunded: false,
-      reason: "Another refund on this order used up the remaining amount",
-    };
+    // Another refund holds the headroom — usually one still in flight — so
+    // this share may well still be owed once it lands. Nothing retries it.
+    const reason = "Another refund on this order used up the remaining amount";
+    if (params.reportFailure !== false) {
+      await reportFailedCancelRefund({
+        order,
+        amount,
+        currency,
+        why: reason.toLowerCase(),
+      });
+    }
+    return { refunded: false, failed: true, amount, currency, reason };
   }
 
-  let gateway: Awaited<ReturnType<typeof refundOrderPayment>>;
+  // The credit the order was paid with goes back first, as credit (R8); the
+  // gateway sends the rest.
+  const split = splitRefundCreditFirst({ amount, order, currency });
+  const creditPart = split.credit;
+  const gatewayPart = split.gateway;
+  // Set when the gateway refused its part while the credit part still went.
+  let gatewayRefusal: string | null = null;
+
+  let gateway: Awaited<ReturnType<typeof refundOrderPayment>> | undefined;
   try {
-    gateway = await refundOrderPayment({
-      order: {
-        paymentMethod: order.paymentMethod,
-        channel: order.channel,
-        paymentId: order.paymentId,
-        stripePaymentIntentId: order.stripePaymentIntentId,
-        preorderBalancePaymentIntentId: order.preorderBalancePaymentIntentId,
-        preorderBalancePaypalOrderId: order.preorderBalancePaypalOrderId,
-        paypalCaptureId: order.paypalCaptureId,
-        paypalOrderId: order.paypalOrderId,
-        razorpayPaymentId: order.razorpayPaymentId,
-        paystackTransactionId: order.paystackTransactionId,
-        pesapalConfirmationCode: order.pesapalConfirmationCode,
-        currency,
-      },
-      amount,
-      reason: params.reason || "Pre-order cancelled",
-      actor: params.actor,
-    });
+    gateway =
+      gatewayPart > 0
+        ? await refundOrderPayment({
+            order: {
+              paymentMethod: order.paymentMethod,
+              channel: order.channel,
+              paymentId: order.paymentId,
+              stripePaymentIntentId: order.stripePaymentIntentId,
+              preorderBalancePaymentIntentId: order.preorderBalancePaymentIntentId,
+              preorderBalancePaypalOrderId: order.preorderBalancePaypalOrderId,
+              paypalCaptureId: order.paypalCaptureId,
+              paypalOrderId: order.paypalOrderId,
+              razorpayPaymentId: order.razorpayPaymentId,
+              paystackTransactionId: order.paystackTransactionId,
+              pesapalConfirmationCode: order.pesapalConfirmationCode,
+              currency,
+            },
+            amount: gatewayPart,
+            reason: params.reason || "Pre-order cancelled",
+            actor: params.actor,
+          })
+        : undefined;
   } catch (err) {
+    const refusal =
+      err instanceof Error ? err.message : "the gateway refused the refund";
+    console.error(
+      `Cancellation refund of ${gatewayPart} ${currency} on ${order.orderNumber} failed:`,
+      err,
+    );
     // Unlike the admin route, a gateway failure here must NOT throw: the
     // cancellation itself has already happened and is not being undone. Give
     // the headroom back and report it, so the caller can tell an admin the
     // money still has to go back by hand instead of a silent success.
     await Order.updateOne(
       { _id: order._id },
-      { $inc: { refundedTotal: -amount } },
+      { $inc: { refundedTotal: -gatewayPart } },
     ).catch((rollbackErr) =>
       console.error("Failed to roll back cancel-refund claim:", rollbackErr),
     );
-    await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
+    if (params.reportFailure !== false) {
+      await reportFailedCancelRefund({
+        order,
+        amount: gatewayPart,
+        currency,
+        why: refusal,
+      });
+    }
+    if (!(creditPart > 0)) {
+      await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
         logRefundInFlightReleaseError,
       );
-    return {
-      refunded: false,
-      amount,
-      currency,
-      reason:
-        err instanceof Error
-          ? `Refund this order by hand — ${err.message}`
-          : "Refund this order by hand — the gateway refused the refund",
-    };
+      return {
+        refunded: false,
+        failed: true,
+        amount,
+        currency,
+        reason: `Refund this order by hand — ${refusal}`,
+      };
+    }
+    // The store credit part never needed the gateway: it still goes back.
+    gatewayRefusal = refusal;
   }
+  // What goes back now: all of it, or the credit alone when the gateway refused.
+  const sent = gatewayRefusal ? creditPart : amount;
 
   // Everything the shopper paid is on its way back, so the order is refunded
   // in full. The yardstick is what was COLLECTED, not `total`: a deposit order
@@ -365,64 +520,227 @@ export async function refundCancelledPreorder(params: {
   // charged, and "ready" released the goods without it.
   const paymentStatus = balanceStillToCome
     ? PAYMENT_STATUS.PARTIALLY_PAID
-    : refundsEverything
+    : refundsEverything && !gatewayRefusal
       ? PAYMENT_STATUS.REFUNDED
       : PAYMENT_STATUS.PARTIALLY_REFUNDED;
+  // With cash still to come at the door the order already reads part-paid,
+  // and whatever it reads — the other parcel may have been paid for this
+  // very moment — is the truth a refund has nothing to add to.
   // Part-paid is guarded, because "still to come" was read before the gateway
   // call: a balance that arrived in the meantime has already marked the order
   // paid, and part-paid written over that would ask for the balance again.
-  await Order.updateOne(
-    balanceStillToCome
-      ? {
-          _id: order._id,
-          $or: [
-            { preorderBalancePaidAt: null },
-            { preorderBalancePaidAt: { $exists: false } },
-          ],
-        }
-      : { _id: order._id },
-    { $set: { paymentStatus } },
-  );
+  if (!cashStillToCome) {
+    await Order.updateOne(
+      balanceStillToCome
+        ? {
+            _id: order._id,
+            $or: [
+              { preorderBalancePaidAt: null },
+              { preorderBalancePaidAt: { $exists: false } },
+            ],
+          }
+        : { _id: order._id },
+      { $set: { paymentStatus } },
+    );
+    // Another refund finishing beside this one may have written its own
+    // status over it — see `settleRefundedPaymentStatus`.
+    if (!balanceStillToCome) {
+      await settleRefundedPaymentStatus({
+        orderId: order._id,
+        ceiling: collectedOnOrder,
+      });
+    }
+  }
 
-  // Writes the refund row AND posts it to the ledger against the sale.
-  await createRefundTransaction({
-    order: {
-      _id: String(order._id),
-      orderNumber: order.orderNumber,
-      paymentMethod: order.paymentMethod,
-      paymentStatus,
-      paymentId: order.paymentId,
-      stripePaymentIntentId: order.stripePaymentIntentId,
-      paypalCaptureId: order.paypalCaptureId,
-      razorpayPaymentId: order.razorpayPaymentId,
-      paystackTransactionId: order.paystackTransactionId,
-      pesapalConfirmationCode: order.pesapalConfirmationCode,
-      subtotal: order.subtotal,
-      shippingCost: order.shippingCost,
-      tax: order.tax,
-      discount: order.discount,
-      total,
-      currency,
-      channel: order.channel || "online",
-      posLocationId: order.posLocationId
-        ? String(order.posLocationId)
-        : undefined,
-      createdAt: order.createdAt,
-    },
-    amount,
-    reason: params.reason || "Pre-order cancelled",
-    createdBy: params.createdBy,
-    externalRefundId: gateway?.externalRefundId,
-    externalRefundIds: gateway?.externalRefundIds,
-    gatewayCalled: gateway?.gatewayCalled,
-    notifySettlement: params.notifySettlement,
-    consignmentIds: params.consignmentIds,
-  }).catch((err) =>
-    console.error("Failed to record pre-order cancel refund:", err),
-  );
+  const refundOrderShape = {
+    _id: String(order._id),
+    orderNumber: order.orderNumber,
+    paymentMethod: order.paymentMethod,
+    paymentStatus,
+    paymentId: order.paymentId,
+    stripePaymentIntentId: order.stripePaymentIntentId,
+    paypalCaptureId: order.paypalCaptureId,
+    razorpayPaymentId: order.razorpayPaymentId,
+    paystackTransactionId: order.paystackTransactionId,
+    pesapalConfirmationCode: order.pesapalConfirmationCode,
+    subtotal: order.subtotal,
+    shippingCost: order.shippingCost,
+    tax: order.tax,
+    discount: order.discount,
+    total,
+    currency,
+    channel: order.channel || "online",
+    posLocationId: order.posLocationId ? String(order.posLocationId) : undefined,
+    createdAt: order.createdAt,
+  };
+
+  // The credit part (R8): its own refund row, and the credit back on the
+  // shopper's account. Handed back and reported if it cannot be given.
+  // An exchange order's credit is its return's money (R7): called off, it
+  // goes back on that return instead, to be refunded or exchanged again.
+  let creditGiven = 0;
+  const exchangeReturnNumber = isActiveExchangeOrder(order as ExchangeOrderFields)
+    ? String((order as ExchangeOrderFields).exchangeOf?.returnNumber || "")
+    : null;
+  if (creditPart > 0 && exchangeReturnNumber !== null) {
+    try {
+      const { undoReturnExchange } = await import("@/lib/returns/return-exchange");
+      const undone = await undoReturnExchange({
+        exchangeOrder: order as Parameters<typeof undoReturnExchange>[0]["exchangeOrder"],
+        amount: creditPart,
+        paid: true,
+        refundOrder: refundOrderShape,
+        consignmentIds: params.consignmentIds,
+        reason: params.reason,
+        createdBy: params.createdBy || "system",
+        auditContext: params.auditContext,
+      });
+      if (!undone.undone) throw new Error("the exchange was already called off");
+      creditGiven = creditPart;
+    } catch (err) {
+      console.error(`The exchange behind ${order.orderNumber} could not be called off:`, err);
+      await Order.updateOne(
+        { _id: order._id },
+        { $inc: { refundedTotal: -creditPart } },
+      ).catch((rollbackErr) =>
+        console.error("Failed to roll back cancel-refund claim:", rollbackErr),
+      );
+      if (params.reportFailure !== false) {
+        await reportFailedCancelRefund({
+          order,
+          amount: creditPart,
+          currency,
+          why: `what its return paid could not be put back on the return (${
+            err instanceof Error ? err.message : "unknown error"
+          })`,
+        });
+      }
+    }
+  } else if (creditPart > 0) {
+    try {
+      const { refundToStoreCredit } = await import("@/lib/store-credit/refund-to-credit");
+      const issued = await refundToStoreCredit({
+        order: { ...refundOrderShape, customerId: order.customerId },
+        amount: creditPart,
+        source: "order_refund_restore",
+        consignmentIds: params.consignmentIds,
+        reason: params.reason || "Pre-order cancelled",
+        createdBy: params.createdBy || "system",
+      });
+      creditGiven = creditPart;
+      const { notifyStoreCreditIssued } = await import(
+        "@/lib/store-credit/store-credit-notify"
+      );
+      await notifyStoreCreditIssued({
+        customerId: String(order.customerId),
+        lotId: issued.lotId,
+        amount: creditPart,
+        currency,
+        reason: "order_refund_restore",
+      }).catch((err) => console.error("Failed to tell a shopper about store credit:", err));
+    } catch (err) {
+      console.error(`Store credit back on ${order.orderNumber} could not be given:`, err);
+      await Order.updateOne(
+        { _id: order._id },
+        { $inc: { refundedTotal: -creditPart } },
+      ).catch((rollbackErr) =>
+        console.error("Failed to roll back cancel-refund claim:", rollbackErr),
+      );
+      if (params.reportFailure !== false) {
+        await reportFailedCancelRefund({
+          order,
+          amount: creditPart,
+          currency,
+          why: `the store credit it was paid with could not be given back (${
+            err instanceof Error ? err.message : "unknown error"
+          })`,
+        });
+      }
+    }
+  }
+
+  // Writes the refund row AND posts it to the ledger against the sale. Only
+  // for money that went back through the way it came.
+  const rowWritten =
+    !(gatewayPart > 0) || gatewayRefusal
+      ? true
+      : await createRefundTransaction({
+          order: refundOrderShape,
+          amount: gatewayPart,
+          reason: params.reason || "Pre-order cancelled",
+          createdBy: params.createdBy,
+          externalRefundId: gateway?.externalRefundId,
+          externalRefundIds: gateway?.externalRefundIds,
+          gatewayCalled: gateway?.gatewayCalled,
+          notifySettlement: params.notifySettlement,
+          consignmentIds: params.consignmentIds,
+        })
+    .then(() => true)
+    .catch(async (err: unknown) => {
+      console.error("Failed to record pre-order cancel refund:", err);
+      // The reservation stood with no row behind it, so the gateway's own
+      // report reserved the same money again — counted twice, or refused at
+      // the ceiling and never recorded.
+      if (gateway?.gatewayCalled) {
+        // Sent: handed to the gateway's report to record whole.
+        const { settleRefundRecordedLate } = await import(
+          "@/lib/orders/refund-recorded-late"
+        );
+        await settleRefundRecordedLate({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          amount: gatewayPart,
+          currency,
+          provider: gateway.provider,
+          externalRefundIds:
+            gateway.externalRefundIds ||
+            (gateway.externalRefundId ? [gateway.externalRefundId] : []),
+          refundStamp,
+          error: err,
+        });
+      } else {
+        // Nothing moved: the reservation goes back and the shopper is still
+        // owed it, which somebody now has to hear.
+        await Order.updateOne(
+          { _id: order._id },
+          { $inc: { refundedTotal: -gatewayPart } },
+        ).catch((rollbackErr) =>
+          console.error("Failed to roll back cancel-refund claim:", rollbackErr),
+        );
+        if (params.reportFailure !== false) {
+          await reportFailedCancelRefund({
+            order,
+            amount: gatewayPart,
+            currency,
+            why: err instanceof Error ? err.message : "it could not be recorded",
+          });
+        }
+      }
+      return false;
+    });
   await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
         logRefundInFlightReleaseError,
       );
+  if (!rowWritten && !gateway?.gatewayCalled && !(creditGiven > 0)) {
+    return {
+      refunded: false,
+      failed: true,
+      amount,
+      currency,
+      reason: "The refund could not be recorded — refund this order by hand",
+    };
+  }
+  // Nothing went back at all: the gateway refused, and the credit could not
+  // be given either.
+  if (gatewayRefusal && !(creditGiven > 0)) {
+    return {
+      refunded: false,
+      failed: true,
+      amount,
+      currency,
+      reason: `Refund this order by hand — ${gatewayRefusal}`,
+    };
+  }
 
   // The points for what went back, and only those. `reverseOrderLoyaltyPoints`
   // takes back one point per unit of the order's refunded total, so a
@@ -444,11 +762,13 @@ export async function refundCancelledPreorder(params: {
     params.auditContext || systemActor(),
     { _id: String(order._id), orderNumber: order.orderNumber },
     {
-      amount,
+      amount: sent,
       currency,
       reason: params.reason || "Pre-order cancelled",
       gatewayCalled: gateway?.gatewayCalled,
-      full: refundsEverything,
+      full: refundsEverything && !gatewayRefusal,
+      storeCredit: creditGiven,
+      ...(exchangeReturnNumber ? { backOnReturn: exchangeReturnNumber } : {}),
     },
   ).catch((err) =>
     console.error("Failed to audit pre-order cancel refund:", err),
@@ -456,9 +776,12 @@ export async function refundCancelledPreorder(params: {
 
   return {
     refunded: true,
-    amount,
+    amount: sent,
     currency,
     gatewayCalled: gateway?.gatewayCalled,
+    ...(gatewayRefusal
+      ? { failed: true, reason: `Refund the rest by hand — ${gatewayRefusal}` }
+      : {}),
   };
 }
 
@@ -487,6 +810,8 @@ export async function refundOrderCancellation(params: {
   actor?: string;
   createdBy?: string;
   auditContext?: AuditContext;
+  /** See `refundCancelledPreorder`. */
+  reportFailure?: boolean;
 }): Promise<CancelRefundOutcome | undefined> {
   const order = (await Order.findById(params.orderId).lean()) as
     | (RefundableOrder & {
@@ -510,7 +835,40 @@ export async function refundOrderCancellation(params: {
     cancelledSubOrderIds: params.cancelledSubOrderIds,
   });
 
-  if (getPreorderCollectedAmount(order) <= 0) return undefined;
+  // An exchange order called off before its payment came (R7): what its
+  // return paid for it goes back on the return. Nothing was collected, so
+  // nothing else goes back. One called off once paid goes back below.
+  const collectedAny = getPreorderCollectedAmount(order) > 0;
+  const wholeOrderGone =
+    order.status === ORDER_STATUS.CANCELLED ||
+    ((order.subOrders || []).length > 0 &&
+      (order.subOrders || []).every((sub) => sub.status === ORDER_STATUS.CANCELLED));
+  if (!collectedAny && wholeOrderGone && isActiveExchangeOrder(order as ExchangeOrderFields)) {
+    const { undoReturnExchange } = await import("@/lib/returns/return-exchange");
+    await undoReturnExchange({
+      exchangeOrder: order as Parameters<typeof undoReturnExchange>[0]["exchangeOrder"],
+      amount: orderCreditApplied(order),
+      paid: false,
+      reason: params.reason,
+      createdBy: params.createdBy || "system",
+      auditContext: params.auditContext,
+    }).catch((err) =>
+      console.error(`The exchange behind ${order.orderNumber} could not be called off:`, err),
+    );
+  }
+
+  // Called off before its money came: the store credit held for it goes back
+  // to the shopper now, not when the hourly sweep finds it (R8).
+  if (!collectedAny && wholeOrderGone) {
+    const { releaseOrderStoreCredit } = await import("@/lib/store-credit/store-credit");
+    await releaseOrderStoreCredit(
+      order as Parameters<typeof releaseOrderStoreCredit>[0],
+    ).catch((err) =>
+      console.error(`Store credit held for ${order.orderNumber} could not be given back:`, err),
+    );
+  }
+
+  if (!collectedAny) return undefined;
 
   const refundParams = {
     orderId: params.orderId,
@@ -518,6 +876,7 @@ export async function refundOrderCancellation(params: {
     actor: params.actor,
     createdBy: params.createdBy,
     auditContext: params.auditContext,
+    reportFailure: params.reportFailure,
   };
   if (order.status === ORDER_STATUS.CANCELLED) {
     return refundCancelledPreorder(refundParams);

@@ -3,14 +3,18 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AboutPageView } from "@/components/store/about-page-view";
 import { fetchTestimonials } from "@/components/store/sections/testimonials";
-import { fillContentPlaceholders } from "@/lib/site-config/content-pages-config";
+import {
+  fillContentPlaceholders,
+  windowPlaceholders,
+} from "@/lib/site-config/content-pages-config";
 import { JsonLd, generateOrganizationJsonLd } from "@/lib/site-config/seo";
 import { getAboutStatCounts } from "@/lib/storefront/about-stat-counts";
-import { resolveAboutStats } from "@/lib/storefront/about-stats";
 import {
-  getEnabledLocales,
-  resolveStorefrontBaseUrl,
-} from "@/lib/storefront/storefront-metadata";
+  liveAboutStatKeys,
+  resolveAboutStats,
+} from "@/lib/storefront/about-stats";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import { buildStorefrontUrl } from "@/lib/storefront/storefront-metadata";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 
 interface PageProps {
@@ -18,11 +22,12 @@ interface PageProps {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { contentPages, storeName } = await getStorefrontSettings();
+  const { contentPages, returnWindowDays, storeName } = await getStorefrontSettings();
   const page = contentPages.about;
   const placeholders = {
     storeName,
     returnWindow: contentPages.returns.returnWindowValue,
+    ...windowPlaceholders(returnWindowDays),
   };
 
   return {
@@ -50,13 +55,16 @@ export default async function AboutPage({ params }: PageProps) {
     notFound();
   }
 
-  const [counts, testimonials, { enabled: availableLocales }, tHome, tNav] =
+  const liveStatKeys = page.showStats ? liveAboutStatKeys(page.stats) : [];
+  const [counts, testimonials, { enabled: availableLocales, storeDefault }, tHome, tNav] =
     await Promise.all([
-      page.showStats ? getAboutStatCounts() : Promise.resolve(null),
+      liveStatKeys.length > 0
+        ? getAboutStatCounts(liveStatKeys)
+        : Promise.resolve(null),
       page.showTestimonials
         ? fetchTestimonials(page.testimonialsMinRating, 3)
         : Promise.resolve([]),
-      getEnabledLocales(),
+      getLocaleRouting(),
       getTranslations({ locale, namespace: "home" }),
       getTranslations({ locale, namespace: "nav" }),
     ]);
@@ -64,6 +72,7 @@ export default async function AboutPage({ params }: PageProps) {
   const placeholders = {
     storeName: settings.storeName,
     returnWindow: settings.contentPages.returns.returnWindowValue,
+    ...windowPlaceholders(settings.returnWindowDays),
   };
   const stats = resolveAboutStats(page.stats, counts, locale);
   const statsDateLabel = new Intl.DateTimeFormat(locale, {
@@ -71,7 +80,6 @@ export default async function AboutPage({ params }: PageProps) {
     year: "numeric",
   }).format(new Date());
 
-  const baseUrl = resolveStorefrontBaseUrl();
   const organization = generateOrganizationJsonLd({
     storeName: settings.storeName,
     storeDescription: settings.storeDescription,
@@ -95,7 +103,7 @@ export default async function AboutPage({ params }: PageProps) {
     "@context": "https://schema.org",
     "@type": "AboutPage",
     name: page.title,
-    url: `${baseUrl}/${locale}/about`,
+    url: await buildStorefrontUrl(locale, "/about"),
     mainEntity: {
       ...organizationNode,
       foundingDate: founded?.manualValue || undefined,
@@ -109,6 +117,7 @@ export default async function AboutPage({ params }: PageProps) {
       <JsonLd data={aboutJsonLd} id="about-page-jsonld" />
       <AboutPageView
         locale={locale}
+        storeDefault={storeDefault}
         page={page}
         placeholders={placeholders}
         isMultiVendorEnabled={settings.isMultiVendorEnabled}

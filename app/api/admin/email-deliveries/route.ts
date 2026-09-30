@@ -13,7 +13,7 @@ import {
   isDemoModeEnabled,
 } from "@/lib/demo-mode";
 import { escapeRegExp } from "@/lib/strings";
-import { z } from "zod";
+import * as z from "zod";
 
 const DELIVERY_STATUSES: EmailDeliveryStatus[] = [
   "queued",

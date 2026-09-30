@@ -32,7 +32,7 @@ interface BookingShipment {
  * way out of a parcel whose worker had died. A voided label clears the booking
  * entirely, which is the whole point of voiding.
  */
-export function isConsignmentBooked(shipment: BookingShipment): boolean {
+function isConsignmentBooked(shipment: BookingShipment): boolean {
   return (
     shipment.purchase?.state === "purchased" ||
     (shipment.purchase?.state === "purchasing" &&

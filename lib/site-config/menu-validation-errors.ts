@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type * as z from "zod";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Menu name",

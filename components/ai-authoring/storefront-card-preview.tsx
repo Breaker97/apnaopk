@@ -21,12 +21,8 @@ import { useTranslations } from "next-intl";
 import { Heart, Maximize2, ShoppingBag, Star } from "lucide-react";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
-import {
-  formatProductCompareAtPrice,
-  formatProductPrice,
-  getProductDiscountPercentage,
-  productRequiresVariantSelection,
-} from "@/lib/products/price-display";
+import { formatProductCompareAtPrice, formatProductPrice, getProductDiscountPercentage } from "@/lib/products/price-display";
+import { productRequiresVariantSelection } from "@/lib/products/variant-selection";
 import { getSwatchColor } from "@/lib/products/color-swatch";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 

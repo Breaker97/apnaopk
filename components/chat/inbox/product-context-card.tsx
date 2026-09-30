@@ -1,9 +1,8 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { Package } from "lucide-react";
 import type { ConversationDTO } from "@/lib/conversations/types";
 
 interface ProductContextCardProps {
-  locale: string;
   product: NonNullable<ConversationDTO["productContext"]>;
   viewProductLabel: string;
 }
@@ -14,13 +13,12 @@ interface ProductContextCardProps {
  * card before the first message as after it.
  */
 export function ProductContextCard({
-  locale,
   product,
   viewProductLabel,
 }: ProductContextCardProps) {
   return (
     <Link
-      href={`/${locale}/products/${product.slug}`}
+      href={`/products/${product.slug}`}
       className="flex items-center gap-2.5 rounded-lg p-1.5 transition-colors hover:bg-muted/60"
     >
       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">

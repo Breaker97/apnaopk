@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getTranslations } from "next-intl/server";
 import {
   AlertTriangle,
@@ -9,14 +9,17 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/intl/money";
 import { LEDGER_ACCOUNT, type LedgerAccount } from "@/lib/finance/accounts";
-import type {
-  CashPosition,
-  LedgerAnomaly,
-  ProfitAndLoss,
+import {
+  CANCELLED_BALANCES_PART,
+  type CashPosition,
+  type CostCoverage,
+  type LedgerAnomaly,
+  type ProfitAndLoss,
 } from "@/lib/finance/reports";
 
 /** English fallbacks; the UI prefers `finance.account.<key>`. */
@@ -31,6 +34,7 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.TAX_PAYABLE]: "Tax collected",
   [LEDGER_ACCOUNT.DUTY_PAYABLE]: "Duty collected",
   [LEDGER_ACCOUNT.ACCOUNTS_PAYABLE]: "Unpaid bills",
+  [LEDGER_ACCOUNT.STORE_CREDIT_PAYABLE]: "Store credit held by shoppers",
   [LEDGER_ACCOUNT.PRODUCT_REVENUE]: "Product sales",
   [LEDGER_ACCOUNT.COMMISSION_INCOME]: "Commission",
   [LEDGER_ACCOUNT.SHIPPING_INCOME]: "Shipping charged",
@@ -40,7 +44,7 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.PROCESSING_FEES]: "Payment fees",
   [LEDGER_ACCOUNT.SHIPPING_COST]: "Shipping labels",
   [LEDGER_ACCOUNT.COST_OF_GOODS]: "Cost of goods",
-  [LEDGER_ACCOUNT.PROMOTIONS]: "Store-funded discounts",
+  [LEDGER_ACCOUNT.PROMOTIONS]: "Store-funded discounts and credit",
   [LEDGER_ACCOUNT.CHARGEBACK_LOSSES]: "Chargeback losses",
   [LEDGER_ACCOUNT.OPERATING_EXPENSE]: "Operating expenses",
 };
@@ -86,6 +90,8 @@ export async function FinanceOverview({
   activeCurrency,
   buildCurrencyHref,
   bookFiltered = false,
+  costCoverage = [],
+  holdingAsOf = null,
 }: {
   locale: string;
   profitAndLoss: ProfitAndLoss[];
@@ -100,11 +106,22 @@ export async function FinanceOverview({
   /** Where a currency chip points, built by the page that owns the query. */
   buildCurrencyHref?: (currency: string) => string;
   /**
-   * True when one book is being shown on its own. Filtering to the own book
-   * zeroes the vendor balances by construction — there are no vendors in it —
-   * so the rows would sit there saying nothing on every own-store view.
+   * True when one book is being shown on its own. The balances are not
+   * filtered by it — there is one bank account behind both books — so the
+   * holding card says so rather than letting them read as the book's own.
    */
   bookFiltered?: boolean;
+  /**
+   * How much of the store's own product sales has no cost recorded, per
+   * currency. Cost of goods cannot include what nobody costed, so without this
+   * the net read as profit when it was sales less fees.
+   */
+  costCoverage?: CostCoverage[];
+  /**
+   * The day the balances are read at, when that is not today — a picked
+   * period that has already ended. Null means "as things stand now".
+   */
+  holdingAsOf?: string | null;
   /**
    * The same period split by book, when a marketplace is looking at both.
    * Present only then: a single-vendor store has one book, and one column
@@ -117,6 +134,18 @@ export async function FinanceOverview({
     t.has(key) ? t(key) : fallback;
   const accountLabel = (account: LedgerAccount) =>
     label(`finance.account.${account}`, ACCOUNT_LABELS[account]);
+  /** A message with placeholders, filled in whichever copy is used. */
+  const labelWith = (
+    key: string,
+    fallback: string,
+    values: Record<string, string>,
+  ) =>
+    t.has(key)
+      ? t(key, values)
+      : Object.entries(values).reduce(
+          (text, [name, value]) => text.replace(`{${name}}`, value),
+          fallback,
+        );
 
   if (profitAndLoss.length === 0) {
     return (
@@ -140,15 +169,48 @@ export async function FinanceOverview({
     );
   }
 
+  // A currency whose balances cannot be right has to be reachable even in a
+  // period it did not trade in — otherwise its warning has nowhere to show, and
+  // the one screen that raises it would never be seen raising it.
+  const faultCurrencies = [...new Set(anomalies.map((row) => row.currency))];
+  const currencies = [
+    ...profitAndLoss.map((row) => row.currency),
+    ...faultCurrencies.filter(
+      (currency) => !profitAndLoss.some((row) => row.currency === currency),
+    ),
+  ];
+
   // One set of books is shown at a time. A currency asked for but not traded in
-  // this period falls back rather than rendering an empty screen.
-  const book =
+  // this period falls back rather than rendering an empty screen — unless its
+  // balances are what needs looking at.
+  const book: ProfitAndLoss =
     profitAndLoss.find((row) => row.currency === activeCurrency) ??
-    profitAndLoss[0];
+    (activeCurrency && faultCurrencies.includes(activeCurrency)
+      ? {
+          currency: activeCurrency,
+          income: [],
+          expenses: [],
+          totalIncome: 0,
+          totalExpenses: 0,
+          net: 0,
+          shippingMargin: 0,
+          hasAssumedCurrency: false,
+        }
+      : profitAndLoss[0]);
   const position = cash.find((row) => row.currency === book.currency);
   const volume = gmv.find((row) => row.currency === book.currency);
   const faults = anomalies.filter((row) => row.currency === book.currency);
+  // Impossible balances in the currencies not on screen, named so they are not
+  // missed by anyone who never opens that currency.
+  const faultsElsewhere = faultCurrencies.filter(
+    (currency) => currency !== book.currency,
+  );
   const money = (value: number) => formatCurrency(value, book.currency);
+  const percent = (share: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "percent",
+      maximumFractionDigits: share > 0 && share < 0.01 ? 1 : 0,
+    }).format(share);
 
   const faultFor = (account: LedgerAccount) =>
     faults.some((fault) => fault.account === account);
@@ -158,31 +220,66 @@ export async function FinanceOverview({
   // fraction of a bar it defines.
   const incomeMax = Math.max(...book.income.map((line) => line.amount), 1);
   const expenseMax = Math.max(...book.expenses.map((line) => line.amount), 1);
-  const costShare =
-    book.totalIncome > 0
-      ? Math.min(100, (book.totalExpenses / book.totalIncome) * 100)
-      : 100;
+  // The two hero bars share one scale, the larger of the two. Income used to
+  // paint full whatever it was, so a currency that earned nothing showed a
+  // full income bar, and a loss drew both bars at the same length.
+  const heroScale = Math.max(book.totalIncome, book.totalExpenses, 0);
+  const incomeWidth =
+    heroScale > 0 ? (Math.max(0, book.totalIncome) / heroScale) * 100 : 0;
+  const costWidth =
+    heroScale > 0 ? (Math.max(0, book.totalExpenses) / heroScale) * 100 : 0;
 
-  const owed = [
+  // Product sales with no cost recorded — see `getCostCoverage`.
+  const coverage = costCoverage.find((row) => row.currency === book.currency);
+  const costGap =
+    coverage && coverage.sales > 0 && coverage.uncosted > 0
+      ? { amount: coverage.uncosted, share: coverage.uncosted / coverage.sales }
+      : null;
+  const lineLabel = (line: ProfitAndLoss["income"][number]) =>
+    line.part === CANCELLED_BALANCES_PART
+      ? label(
+          "finance.overview.cancelledBalances",
+          "Cancelled pre-order balances",
+        )
+      : accountLabel(line.account);
+
+  // What vendors owe on the sales they collected themselves. Below zero it is
+  // the other way round — a refund after the commission was invoiced left the
+  // store owing them a credit — and a negative figure under "owed to you" read
+  // as money coming in.
+  const commissionReceivable = position?.receivable ?? 0;
+
+  const owedRows: Array<{
+    id: string;
+    side: "owe" | "owed";
+    label: string;
+    hint: string;
+    amount: number;
+    fault: boolean;
+    show: boolean;
+  }> = [
     {
       id: "vendor-payable",
-      side: "owe" as const,
+      side: "owe",
       label: label("finance.overview.owedToVendors", "Owed to vendors"),
       hint: label(
         "finance.overview.owedToVendorsHint",
-        "Held on their behalf until a payout clears",
+        "Everything the books owe them, including sales not yet due for payout",
       ),
       amount: position?.vendorPayable ?? 0,
       fault: faultFor(LEDGER_ACCOUNT.VENDOR_PAYABLE),
-      show: multiVendor && !bookFiltered,
+      // On every view, a single book's included: the balances are the whole
+      // business's, and the store's own view is where cash that is really the
+      // vendors' most needs to be told apart.
+      show: multiVendor,
     },
     {
       id: "tax-payable",
-      side: "owe" as const,
+      side: "owe",
       label: label("finance.overview.taxPayable", "Tax collected"),
       hint: label(
         "finance.overview.taxPayableHint",
-        "Charged to buyers and owed onward",
+        "Charged to buyers and owed onward — record paying it under Adjust balances",
       ),
       amount: position?.taxPayable ?? 0,
       fault: faultFor(LEDGER_ACCOUNT.TAX_PAYABLE),
@@ -190,7 +287,7 @@ export async function FinanceOverview({
     },
     {
       id: "duty-payable",
-      side: "owe" as const,
+      side: "owe",
       label: label("finance.overview.dutyPayable", "Duty collected"),
       hint: label(
         "finance.overview.dutyPayableHint",
@@ -201,8 +298,21 @@ export async function FinanceOverview({
       show: true,
     },
     {
+      id: "store-credit",
+      side: "owe",
+      label: label("finance.overview.storeCredit", "Store credit held by shoppers"),
+      hint: label(
+        "finance.overview.storeCreditHint",
+        "Given on refunds and by the store, not spent yet",
+      ),
+      amount: position?.storeCreditPayable ?? 0,
+      fault: faultFor(LEDGER_ACCOUNT.STORE_CREDIT_PAYABLE),
+      // Only once there is any: most stores never give credit.
+      show: Math.abs(position?.storeCreditPayable ?? 0) > 0.0001,
+    },
+    {
       id: "accounts-payable",
-      side: "owe" as const,
+      side: "owe",
       label: label("finance.overview.accountsPayable", "Unpaid bills"),
       hint: label(
         "finance.overview.accountsPayableHint",
@@ -212,31 +322,54 @@ export async function FinanceOverview({
       fault: faultFor(LEDGER_ACCOUNT.ACCOUNTS_PAYABLE),
       show: true,
     },
-    {
-      id: "commission-receivable",
-      side: "owed" as const,
-      label: label("finance.overview.owedByVendors", "Commission owed to you"),
-      hint: label(
-        "finance.overview.owedByVendorsHint",
-        "On sales the vendor collected themselves",
-      ),
-      amount: position?.receivable ?? 0,
-      fault: false,
-      show: multiVendor && !bookFiltered,
-    },
+    commissionReceivable >= 0
+      ? {
+          id: "commission-receivable",
+          side: "owed",
+          label: label(
+            "finance.overview.owedByVendors",
+            "Commission owed to you",
+          ),
+          hint: label(
+            "finance.overview.owedByVendorsHint",
+            "On sales the vendor collected themselves",
+          ),
+          amount: commissionReceivable,
+          // Never a fault: a negative commission receivable is a credit the
+          // platform owes the vendor after a refund, which is a mechanism
+          // rather than an impossibility. See `findLedgerAnomalies`.
+          fault: false,
+          show: multiVendor,
+        }
+      : {
+          id: "commission-credit",
+          side: "owe",
+          label: label(
+            "finance.overview.commissionCredit",
+            "Commission credit owed to vendors",
+          ),
+          hint: label(
+            "finance.overview.commissionCreditHint",
+            "Refunded after the commission was invoiced — comes off their next invoice",
+          ),
+          amount: -commissionReceivable,
+          fault: false,
+          show: multiVendor,
+        },
     {
       id: "customer-receivable",
-      side: "owed" as const,
+      side: "owed",
       label: label("finance.overview.customerReceivable", "Owed by customers"),
       hint: label(
         "finance.overview.customerReceivableHint",
         "Balances on part-paid pre-orders",
       ),
       amount: position?.customerReceivable ?? 0,
-      fault: false,
+      fault: faultFor(LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE),
       show: true,
     },
-  ].filter((row) => row.show && row.amount !== 0);
+  ];
+  const owed = owedRows.filter((row) => row.show && row.amount !== 0);
 
   const youOwe = owed.filter((row) => row.side === "owe");
   const owedToYou = owed.filter((row) => row.side === "owed");
@@ -246,7 +379,12 @@ export async function FinanceOverview({
       id: "gateway",
       icon: <Wallet className="size-4" />,
       label: label("finance.overview.gateway", "In the gateway"),
-      hint: null as string | null,
+      // Nothing tells the books when a gateway pays out to the bank, so this
+      // keeps everything ever collected until someone records the settlement.
+      hint: label(
+        "finance.overview.gatewayHint",
+        "Until a payout to the bank is recorded under Adjust balances",
+      ) as string | null,
       amount: position?.gateway ?? 0,
       key: "gateway",
       counts: true,
@@ -299,23 +437,23 @@ export async function FinanceOverview({
   return (
     <div className="space-y-5">
       {/* Currencies as a choice, not as sections stacked down the page. */}
-      {profitAndLoss.length > 1 && buildCurrencyHref ? (
+      {currencies.length > 1 && buildCurrencyHref ? (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">
             {label("finance.overview.currency", "Currency")}
           </span>
-          {profitAndLoss.map((row) => (
+          {currencies.map((currency) => (
             <Link
-              key={row.currency}
-              href={buildCurrencyHref(row.currency)}
+              key={currency}
+              href={buildCurrencyHref(currency)}
               className={cn(
                 "inline-flex h-7 items-center rounded-full border px-2.5 text-[13px] font-medium transition-colors",
-                row.currency === book.currency
+                currency === book.currency
                   ? "border-primary bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-muted",
               )}
             >
-              {row.currency}
+              {currency}
             </Link>
           ))}
           <span className="text-xs text-muted-foreground">
@@ -363,10 +501,15 @@ export async function FinanceOverview({
                             "finance.overview.anomalyLiability",
                             "more has been handed over than was ever owed",
                           )
-                        : label(
-                            "finance.overview.anomalyCash",
-                            "the account is holding less than nothing",
-                          )}
+                        : fault.kind === "negative-receivable"
+                          ? label(
+                              "finance.overview.anomalyReceivable",
+                              "more has been collected than was ever owed",
+                            )
+                          : label(
+                              "finance.overview.anomalyCash",
+                              "the account is holding less than nothing",
+                            )}
                     </span>
                   </span>
                   <span className="font-semibold tabular-nums text-destructive">
@@ -385,6 +528,33 @@ export async function FinanceOverview({
         </div>
       ) : null}
 
+      {/* The same warning for the currencies not on screen. Each is its own set
+          of books, but a balance that cannot be right is worth knowing about
+          from whichever currency the page happens to open on. */}
+      {faultsElsewhere.length > 0 ? (
+        <WarningBanner tone="danger">
+          {label(
+            "finance.overview.anomalyElsewhere",
+            "Balances that cannot be right in another currency:",
+          )}{" "}
+          {faultsElsewhere.map((currency, index) => (
+            <span key={currency}>
+              {index > 0 ? ", " : null}
+              {buildCurrencyHref ? (
+                <Link
+                  href={buildCurrencyHref(currency)}
+                  className="font-medium underline underline-offset-2"
+                >
+                  {currency}
+                </Link>
+              ) : (
+                <span className="font-medium">{currency}</span>
+              )}
+            </span>
+          ))}
+        </WarningBanner>
+      ) : null}
+
       {/* Two businesses, side by side and never added into one revenue line.
           The store sells its own goods and keeps all of it; the marketplace
           keeps a commission on other people's. Adding them would produce a
@@ -401,10 +571,11 @@ export async function FinanceOverview({
               ],
             ] as const
           ).map(([key, lines, title]) => {
-            const primary =
-              lines.find((line) => line.currency === book.currency) ?? lines[0];
+            // This currency's figures or none at all. Falling back to the book's
+            // first currency put dollar figures on the euro screen.
+            const primary = lines.find((line) => line.currency === book.currency);
             const bookMoney = (value: number) =>
-              formatCurrency(value, primary?.currency || book.currency);
+              formatCurrency(value, book.currency);
             return (
               <Card key={key} className="gap-0 py-5">
                 <CardContent className="px-5">
@@ -459,6 +630,15 @@ export async function FinanceOverview({
                             {bookMoney(primary.net)}
                           </span>
                         </div>
+                        {key === "own" && costGap ? (
+                          <p className="pt-1 text-xs text-muted-foreground">
+                            {labelWith(
+                              "finance.overview.costGapShort",
+                              "No cost recorded for {share} of product sales — net is before their cost of goods",
+                              { share: percent(costGap.share) },
+                            )}
+                          </p>
+                        ) : null}
                       </>
                     )}
                   </div>
@@ -495,7 +675,10 @@ export async function FinanceOverview({
                   </span>
                 </div>
                 <div className="mt-2 h-2 rounded-full bg-muted">
-                  <div className="h-2 w-full rounded-full bg-primary" />
+                  <div
+                    className="h-2 rounded-full bg-primary"
+                    style={{ width: `${incomeWidth}%` }}
+                  />
                 </div>
               </div>
               <div>
@@ -510,7 +693,7 @@ export async function FinanceOverview({
                 <div className="mt-2 h-2 rounded-full bg-muted">
                   <div
                     className="h-2 rounded-full bg-muted-foreground/50"
-                    style={{ width: `${costShare}%` }}
+                    style={{ width: `${costWidth}%` }}
                   />
                 </div>
               </div>
@@ -531,16 +714,16 @@ export async function FinanceOverview({
               {/* The sub-label that keeps GMV from being read as revenue. */}
               <p className="mt-1 text-[13px] text-muted-foreground">
                 {volume
-                  ? `${label("finance.overview.orders", "{count} orders").replace("{count}", String(volume.orders))} — `
+                  ? `${labelWith("finance.overview.orders", "{count} orders", { count: String(volume.orders) })} — `
                   : ""}
                 {multiVendor
                   ? label(
                       "finance.overview.gmvHintMarketplace",
-                      "Everything sold through the store — most of it is the vendors'",
+                      "Everything ordered through the store, vendors' sales included, without tax — counted when the order was placed",
                     )
                   : label(
                       "finance.overview.gmvHint",
-                      "Everything sold, before costs",
+                      "Everything ordered, before costs and without tax — counted when the order was placed",
                     )}
               </p>
             </div>
@@ -578,9 +761,26 @@ export async function FinanceOverview({
             <p className="text-base font-semibold">
               {label("finance.overview.whereItCameFrom", "Where it came from")}
             </p>
+            {/*
+              A set of books with costs and no income at all is almost never a
+              bad month — it is a currency the store does not trade in. A
+              gateway charges a dispute fee, and a carrier charges for a label,
+              in THEIR currency, and each rightly posts in the one it was
+              charged in (see `disputeFeePostings`). The result is a currency
+              chip whose whole profit and loss is one fee and a negative net,
+              which reads like something has gone wrong.
+            */}
+            {book.income.length === 0 && book.expenses.length > 0 ? (
+              <p className="py-4 text-sm text-muted-foreground">
+                {label(
+                  "finance.overview.noIncome",
+                  "Nothing was sold in this currency. Costs can still land in it — a gateway or a carrier charges in its own currency, and each is recorded as it was charged.",
+                )}
+              </p>
+            ) : null}
             <div className="mt-4 space-y-3.5">
               {book.income.map((line) => (
-                <div key={line.account}>
+                <div key={`${line.account}:${line.part ?? ""}`}>
                   <div className="flex items-baseline justify-between gap-3">
                     <span
                       className={cn(
@@ -588,7 +788,16 @@ export async function FinanceOverview({
                         line.amount < 0 && "text-muted-foreground",
                       )}
                     >
-                      {accountLabel(line.account)}
+                      {lineLabel(line)}
+                      {/* Not money handed back — the balance never arrived. */}
+                      {line.part === CANCELLED_BALANCES_PART ? (
+                        <span className="mt-0.5 block text-xs">
+                          {label(
+                            "finance.overview.cancelledBalancesHint",
+                            "Never paid, so nothing was refunded",
+                          )}
+                        </span>
+                      ) : null}
                     </span>
                     <span
                       className={cn(
@@ -641,10 +850,10 @@ export async function FinanceOverview({
               <>
                 <div className="mt-4 space-y-3.5">
                   {book.expenses.map((line) => (
-                    <div key={line.account}>
+                    <div key={`${line.account}:${line.part ?? ""}`}>
                       <div className="flex items-baseline justify-between gap-3">
                         <span className="text-sm">
-                          {accountLabel(line.account)}
+                          {lineLabel(line)}
                         </span>
                         <span className="text-sm font-medium tabular-nums">
                           {money(line.amount)}
@@ -669,6 +878,24 @@ export async function FinanceOverview({
                 </p>
               </>
             )}
+            {/* Cost of goods can only count what somebody costed. Without this
+                the net below read as profit on a store that records no costs,
+                when it was sales less fees. */}
+            {costGap ? (
+              <WarningBanner
+                className="mt-4"
+                title={labelWith(
+                  "finance.overview.costGapTitle",
+                  "Cost of goods is missing for {amount} of product sales ({share})",
+                  { amount: money(costGap.amount), share: percent(costGap.share) },
+                )}
+              >
+                {label(
+                  "finance.overview.costGapBody",
+                  "Those products have no cost recorded, so what they cost is not in Costs and Net is higher than the real profit. Add a cost to the product to count it from its next sale.",
+                )}
+              </WarningBanner>
+            ) : null}
             <div className="mt-4 flex items-baseline justify-between gap-3 border-t pt-3 text-sm font-semibold">
               <span>{label("finance.overview.expenses", "Costs")}</span>
               <span className="tabular-nums">{money(book.totalExpenses)}</span>
@@ -688,8 +915,22 @@ export async function FinanceOverview({
               )}
             </p>
             <p className="mt-0.5 text-[13px] text-muted-foreground">
-              {label("finance.overview.holdingHint", "As things stand now")}
+              {/* A balance is read at the end of the period. For a picked
+                  period that has already ended, that is not "now". */}
+              {holdingAsOf
+                ? labelWith("finance.overview.holdingAsOf", "As of {date}", {
+                    date: holdingAsOf,
+                  })
+                : label("finance.overview.holdingHint", "As things stand now")}
             </p>
+            {bookFiltered ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {label(
+                  "finance.overview.balancesNotFiltered",
+                  "The gateway, bank, till and vendor balances are the whole business — one bank account, one gateway and one till sit behind both books.",
+                )}
+              </p>
+            ) : null}
             <div className="mt-2 divide-y">
               {visibleHoldings.map((row) => {
                 const account = CASH_ANOMALY_ACCOUNTS[row.key];
@@ -760,7 +1001,7 @@ export async function FinanceOverview({
               <p className="mt-0.5 text-[13px] text-muted-foreground">
                 {label(
                   "finance.overview.owedHint",
-                  "Sitting in the accounts above, but not the store's to spend",
+                  "What the store owes others, and what others still owe it",
                 )}
               </p>
 
@@ -768,6 +1009,12 @@ export async function FinanceOverview({
                 <>
                   <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {label("finance.overview.youOwe", "You owe")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {label(
+                      "finance.overview.youOweHint",
+                      "Sitting in the accounts above, but not the store's to spend",
+                    )}
                   </p>
                   <div className="mt-1 divide-y">
                     {youOwe.map((row) => (
@@ -782,6 +1029,12 @@ export async function FinanceOverview({
                   <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {label("finance.overview.owedToYou", "Owed to you")}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    {label(
+                      "finance.overview.owedToYouHint",
+                      "Not received yet, so not in the accounts above",
+                    )}
+                  </p>
                   <div className="mt-1 divide-y">
                     {owedToYou.map((row) => (
                       <OwedRow key={row.id} row={row} money={money} />
@@ -795,12 +1048,12 @@ export async function FinanceOverview({
       </div>
 
       {book.hasAssumedCurrency ? (
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        <WarningBanner>
           {label(
             "finance.overview.assumedCurrency",
             "Some figures come from orders placed before the store recorded a currency. They are counted in the store's own currency.",
           )}
-        </p>
+        </WarningBanner>
       ) : null}
     </div>
   );

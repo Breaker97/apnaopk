@@ -2,7 +2,9 @@
 
 import type React from "react";
 import { Info, Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
@@ -81,15 +83,17 @@ export function SectionContainer({
 }
 
 export function NavColorCard({
+  variant,
   label,
   isActive,
   onClick,
 }: {
+  variant: "integrate" | "apparent";
   label: string;
   isActive: boolean;
   onClick: () => void;
 }) {
-  const isIntegrate = label === "Integrate";
+  const isIntegrate = variant === "integrate";
 
   return (
     <div
@@ -197,17 +201,18 @@ export function ColorField({
   onChange: (value: string) => void;
   onCommit: (value: string) => void;
 }) {
+  const t = useTranslations("admin.branding");
   const swatchValue = toColorInputValue(value, "#000000");
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-2 transition-colors focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/25">
-        <input
-          type="color"
-          aria-label={`${label} picker`}
+        <ColorSwatchPicker
+          ariaLabel={t("colorPicker", { label })}
           value={swatchValue}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-6 w-7 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+          onChange={onChange}
+          alpha={false}
+          className="h-6 w-7 rounded border-0 shadow-none"
         />
         <input
           id={id}
@@ -242,13 +247,14 @@ export function CustomPresetCard({
   onClick: () => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations("admin.branding");
   return (
     <div className="group relative">
       <PresetColorCard color={color} isActive={isActive} onClick={onClick} />
       <button
         type="button"
-        aria-label={`Remove ${name || "custom"} preset`}
-        title="Remove preset"
+        aria-label={name ? t("removeNamedPreset", { name }) : t("removePreset")}
+        title={t("removePreset")}
         onClick={(e) => {
           e.stopPropagation();
           onRemove();
@@ -277,12 +283,13 @@ export function AddCurrentPresetCard({
   color: string;
   onSave: () => void;
 }) {
+  const t = useTranslations();
   return (
     <button
       type="button"
       onClick={onSave}
-      title="Save current colors as a preset"
-      aria-label="Save current colors as a preset"
+      title={t("admin.branding.savePreset")}
+      aria-label={t("admin.branding.savePreset")}
       className="flex h-16 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary/5 text-primary transition-all hover:bg-primary/10"
     >
       <span
@@ -291,7 +298,7 @@ export function AddCurrentPresetCard({
       />
       <span className="flex items-center gap-0.5 text-[10px] font-semibold">
         <Plus className="h-3 w-3" />
-        Save
+        {t("common.save")}
       </span>
     </button>
   );
@@ -314,6 +321,7 @@ export function ColorSystemPreview({
   secondary?: string;
   accent?: string;
 }) {
+  const t = useTranslations("admin.branding.preview");
   const scopedVars = buildCustomColorVars({
     primary,
     secondary,
@@ -327,17 +335,17 @@ export function ColorSystemPreview({
       className="rounded-2xl border border-border bg-card p-4"
     >
       <div className="mb-3 flex items-center gap-1.5">
-        <span className="text-xs font-semibold text-foreground">Preview</span>
+        <span className="text-xs font-semibold text-foreground">{t("title")}</span>
         <span className="text-[11px] text-muted-foreground">
-          — how your colors apply across the app
+          — {t("subtitle")}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="inline-flex h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-sm">
-          Primary
+          {t("primary")}
         </span>
         <span className="inline-flex h-9 items-center rounded-lg bg-secondary px-3.5 text-sm font-medium text-secondary-foreground">
-          Secondary
+          {t("secondary")}
         </span>
         {accentHex ? (
           <span
@@ -347,21 +355,21 @@ export function ColorSystemPreview({
               color: readableForegroundColor(accentHex),
             }}
           >
-            Accent
+            {t("accent")}
           </span>
         ) : null}
         <span className="inline-flex h-9 items-center rounded-lg border border-primary/40 px-3.5 text-sm font-medium text-primary">
-          Outline
+          {t("outline")}
         </span>
         <span className="text-sm font-medium text-primary underline underline-offset-2">
-          Link
+          {t("link")}
         </span>
         <span className="inline-flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-sm font-medium text-accent-foreground">
           <span
             className="h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: accentHex ?? "var(--accent-color)" }}
           />
-          Accent surface
+          {t("accentSurface")}
         </span>
       </div>
     </div>

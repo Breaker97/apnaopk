@@ -6,7 +6,6 @@ import {
   PRODUCT_SEARCH_INDEX_VERSION,
   PRODUCT_SEARCH_SOURCE_SELECT,
   buildProductSearchIndex,
-  type ProductSearchSource,
 } from "@/lib/products/search";
 import { Product } from "@/models";
 

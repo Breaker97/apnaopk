@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
+import Link from "@/components/language/link";
+import { useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
@@ -29,7 +29,7 @@ import {
 import {
   BoostStatusBadge,
   formatBoostWindow,
-} from "@/components/vendor/boosts-content";
+} from "@/components/admin/boost-campaigns-table";
 import { BoostOccupancyStrip } from "@/components/admin/boost-occupancy-strip";
 import type { BoostCampaignListRow } from "@/lib/boosts/boost-campaign-list";
 import type { BoostCampaignStats } from "@/lib/boosts/boost-metrics";
@@ -48,6 +48,18 @@ export function BoostPerformanceContent(props: {
   bookedDays: string[];
   /** Days the storefront could not render the product, with the failed share. */
   unservedDays: Array<{ day: string; share: number }>;
+  /**
+   * Where "back" goes. The admin reuses this whole screen — the delivery
+   * record a support question is about is the same record the vendor is
+   * looking at, and two versions of it would answer the same complaint
+   * differently.
+   */
+  backHref?: string;
+  backLabel?: string;
+  /** Rendered beside the title: the admin's moderation verbs. */
+  headerAside?: ReactNode;
+  /** Extra cards under the stats: the admin's money and payment history. */
+  children?: ReactNode;
 }) {
   const t = useTranslations();
   const label = useFallbackTranslator(t);
@@ -155,15 +167,15 @@ export function BoostPerformanceContent(props: {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link
-          href={`/${props.locale}/vendor/boosts`}
+          href={props.backHref ?? `/${props.locale}/vendor/boosts`}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {label("boosts.performance.back", "All boosts")}
+          {props.backLabel ?? label("boosts.performance.back", "All boosts")}
         </Link>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         {campaign.product?.image ? (
           <Image
             src={campaign.product.image}
@@ -187,9 +199,16 @@ export function BoostPerformanceContent(props: {
             <BoostStatusBadge status={campaign.status} />
           </p>
         </div>
+        {props.headerAside ? (
+          <div className="ms-auto flex flex-wrap items-center gap-2">
+            {props.headerAside}
+          </div>
+        ) : null}
       </div>
 
       <DashboardStatsGrid stats={statItems} />
+
+      {props.children}
 
       <Card>
         <CardHeader>

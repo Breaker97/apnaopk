@@ -1,4 +1,6 @@
 import { unstable_cache } from "next/cache";
+import { DEFAULT_LANGUAGE } from "@/config/branding.config";
+import type { Locale } from "@/config/i18n.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/db";
 import {
@@ -6,7 +8,12 @@ import {
   normalizeHomePageSettings,
 } from "@/lib/site-config/home-page-config";
 import { sanitizeSectionInstances } from "@/lib/storefront/sections/instances";
-import type { SectionInstance } from "@/lib/storefront/sections/types";
+import type {
+  SectionInstance,
+  SectionRenderContext,
+} from "@/lib/storefront/sections/types";
+import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
+import { getActiveThemeManifest } from "@/lib/storefront/themes/registry";
 import { getSettings } from "@/models/settings.model";
 import { HOME_TEMPLATE_KEY, StorePage } from "@/models/store-page.model";
 import { homePageSettingsToSections } from "./legacy-home";
@@ -18,7 +25,7 @@ interface HomePageSections {
 }
 
 /** Fresh-install / total-failure shape: the defaults, mapped. */
-export function getDefaultHomeSections(): SectionInstance[] {
+function getDefaultHomeSections(): SectionInstance[] {
   return homePageSettingsToSections(getDefaultHomePageSettings());
 }
 
@@ -87,3 +94,44 @@ export const getHomePageSections = unstable_cache(
     tags: [CACHE_TAGS.storePages, CACHE_TAGS.settings],
   },
 );
+
+/**
+ * The live home page as it renders: its sections and the context they render
+ * with. The page and its loading frame both read it, so the skeletons a
+ * shopper sees first are the sections the page is about to draw — a section
+ * the merchant hid is in neither.
+ */
+export async function getHomePageRender(locale: Locale): Promise<{
+  sections: SectionInstance[];
+  ctx: SectionRenderContext;
+}> {
+  try {
+    const [settings, page] = await Promise.all([
+      getStorefrontSettings(),
+      getHomePageSections(),
+    ]);
+    return {
+      sections: page.sections,
+      ctx: {
+        locale,
+        defaultLanguage: settings.defaultLanguage,
+        isMultiVendorEnabled: settings.isMultiVendorEnabled,
+        themeId: settings.theme.id,
+        themeSettings: settings.theme.settings,
+        templateType: "home",
+      },
+    };
+  } catch {
+    return {
+      sections: getDefaultHomeSections(),
+      ctx: {
+        locale,
+        defaultLanguage: DEFAULT_LANGUAGE,
+        isMultiVendorEnabled: false,
+        // With the settings unreadable, the store's default template.
+        themeId: getActiveThemeManifest(undefined).id,
+        templateType: "home",
+      },
+    };
+  }
+}

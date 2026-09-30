@@ -11,6 +11,7 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getBoostCampaignStats } from "@/lib/boosts/boost-metrics";
 import type { BoostCampaignListRow } from "@/lib/boosts/boost-campaign-list";
 import mongoose, { type Types } from "mongoose";
+import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -27,7 +28,7 @@ export default async function VendorBoostPerformancePage({
   await connectDB();
   const settings = await getSettings();
   if (!settings.multiVendorMode?.enabled || !settings.boosting?.enabled) {
-    redirect(`/${locale}/vendor/dashboard`);
+    redirect(await localeHref(locale, "/vendor/dashboard"));
   }
 
   // Same reasoning as the boosts list page: reuse the guard's resolution and

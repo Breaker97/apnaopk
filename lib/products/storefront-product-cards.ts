@@ -14,6 +14,10 @@ import {
 } from "@/lib/products/stock-policy";
 import { Product } from "@/models";
 import type { ModernProduct } from "@/lib/products/modern-product";
+import {
+  findColorVariantImage,
+  isColorOptionName,
+} from "@/lib/products/color-swatch";
 
 type SortableProductCardField = "createdAt" | "price" | "rating" | "reviewCount";
 
@@ -111,40 +115,129 @@ function buildSort(query: StorefrontProductCardQuery): Record<string, 1 | -1> {
 }
 
 /**
- * Variant fields a card can read (see `ModernProduct`'s variant type). The
- * raw subdocument also carries per-location inventory rows, SKU/barcode
- * normalisations, cost, tax and shipping dimensions — ~15 KB per card on the
- * home page, none of it rendered. Anything a variant picker needs beyond this
- * (SKU, weight, barcode) comes from the product page's full fetch.
+ * What a product card's payload keeps. A card shows a picture, a price, stock
+ * and pre-order state, and a strip of colour swatches; everything else a
+ * product carries stays on the server. On the home page the card data was two
+ * thirds of the page's inline payload, and most of that was option-value
+ * arrays on every variant (for quick view's picker — it now loads the full
+ * product when opened, components/products/quick-view-product.ts) and whole
+ * galleries a card never draws.
+ *
+ * - variants: what the price, stock, pre-order and "choose options" rules read
+ *   (`_id` is what a one-variant card adds to the cart).
+ * - options: every option with its values' id, text and colour — the card's
+ *   swatches and the home section's colour/size filters read them — and each
+ *   colour value carries the photo of the variant wearing it (`image`),
+ *   resolved here, so a colour picker on a card needs no variant data.
+ * - media: only the item the card displays.
+ * - images: the first four — the hover's second picture, a deals card's
+ *   thumbnail strip.
  */
 const VARIANT_CARD_FIELDS = [
   "_id",
-  "name",
   "price",
   "comparePrice",
   "stock",
-  "image",
-  "images",
-  "mediaId",
-  "optionValues",
   "preorder",
 ] as const;
 
-function pickVariantCardFields(variant: unknown): unknown {
-  if (!variant || typeof variant !== "object") return variant;
-  const source = variant as Record<string, unknown>;
+const CARD_IMAGE_COUNT = 4;
+
+type CardOptionValue = {
+  _id?: unknown;
+  value?: string;
+  colorCode?: string;
+  image?: string | null;
+};
+
+type CardSource = {
+  slug: string;
+  variants: unknown[];
+  options?: unknown;
+  media?: unknown;
+  images?: unknown;
+  [key: string]: unknown;
+};
+
+function isCardSource(value: unknown): value is CardSource {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as { slug?: unknown }).slug === "string" &&
+    Array.isArray((value as { variants?: unknown }).variants)
+  );
+}
+
+function pick<T extends string>(
+  source: unknown,
+  fields: readonly T[],
+): Record<string, unknown> {
   const picked: Record<string, unknown> = {};
-  for (const field of VARIANT_CARD_FIELDS) {
-    if (source[field] !== undefined) picked[field] = source[field];
+  if (!source || typeof source !== "object") return picked;
+  for (const field of fields) {
+    const value = (source as Record<string, unknown>)[field];
+    if (value !== undefined) picked[field] = value;
   }
   return picked;
 }
 
+/** The media item a card draws: lowest position that can be shown on a card. */
+function primaryMedia(media: unknown): unknown[] {
+  if (!Array.isArray(media)) return [];
+  const shown = [...media]
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+    .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
+    .find((item) =>
+      item.type === "external_video" ? Boolean(item.thumbnailUrl) : Boolean(item.url),
+    );
+  return shown ? [shown] : [];
+}
+
+function cardOptions(product: CardSource): unknown {
+  if (!Array.isArray(product.options)) return product.options;
+  // Ids compared as strings: a lean document still holds ObjectIds here.
+  const plain = JSON.parse(
+    JSON.stringify({ variants: product.variants, media: product.media ?? [] }),
+  ) as Parameters<typeof findColorVariantImage>[0];
+
+  return product.options.map((option) => {
+    if (!option || typeof option !== "object") return option;
+    const source = option as { name?: string; values?: unknown };
+    const colour = isColorOptionName(String(source.name ?? ""));
+    const values = Array.isArray(source.values)
+      ? source.values.map((value) => {
+          const kept = pick(value, ["_id", "value", "colorCode", "image"]) as CardOptionValue;
+          if (colour && kept.image === undefined) {
+            kept.image = findColorVariantImage(plain, {
+              _id: kept._id === undefined ? undefined : String(kept._id),
+              value: kept.value,
+            });
+          }
+          return kept;
+        })
+      : source.values;
+    return { ...pick(option, ["_id", "name", "visual"]), values };
+  });
+}
+
+/** One product as a card needs it. Idempotent: a trimmed card passes unchanged. */
+function toCardShape(product: CardSource): Record<string, unknown> {
+  return {
+    ...product,
+    variants: product.variants.map((variant) => pick(variant, VARIANT_CARD_FIELDS)),
+    options: cardOptions(product),
+    ...(product.media !== undefined ? { media: primaryMedia(product.media) } : {}),
+    ...(Array.isArray(product.images)
+      ? { images: product.images.slice(0, CARD_IMAGE_COUNT) }
+      : {}),
+  };
+}
+
 /**
  * `JSON.stringify` replacer for product-card payloads. One pass converts
- * ObjectIds/Dates (including those nested in variants/options/media) to
- * JSON-safe primitives, drops a `category` that serialised to null
- * (unpopulated reference), and trims every variant to its card fields.
+ * ObjectIds/Dates to JSON-safe primitives, drops a `category` that serialised
+ * to null (unpopulated reference), and trims every product to its card shape
+ * (above), wherever it sits in the structure being serialised.
  *
  * Every storefront surface that serialises cards — the section rails, the
  * infinite grid, the sponsored lane, collection shelves — must go through
@@ -153,9 +246,7 @@ function pickVariantCardFields(variant: unknown): unknown {
  */
 export function productCardReplacer(key: string, value: unknown): unknown {
   if (key === "category" && value === null) return undefined;
-  if (key === "variants" && Array.isArray(value)) {
-    return value.map(pickVariantCardFields);
-  }
+  if (isCardSource(value)) return toCardShape(value);
   return value;
 }
 

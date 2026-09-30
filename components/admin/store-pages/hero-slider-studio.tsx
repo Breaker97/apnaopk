@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   ArrowLeft,
   ChevronDown,
@@ -234,7 +234,7 @@ export function HeroSliderStudio({
     [sliders],
   );
 
-  const slidersHref = `/${locale}/admin/online-store/sliders`;
+  const slidersHref = "/admin/online-store/sliders";
   const manageLabel = tSafe(
     "admin.storeBuilder.sliderBlock.createEdit",
     "Create / Edit Sliders",

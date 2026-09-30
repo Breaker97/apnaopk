@@ -1,20 +1,16 @@
-import { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { ValidationError } from "@/lib/api/errors";
 import { createdResponse, paginatedResponse } from "@/lib/api/response";
 import { validateBody, isValidObjectId } from "@/lib/api/validate";
 import { CreateReturnRequestSchema } from "@/lib/validations";
-import { Order, ReturnRequest } from "@/models";
-import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
-import { getNextReturnNumber } from "@/lib/returns/return-number";
+import { ReturnRequest } from "@/models";
 import {
-  assertReturnEligible,
+  assertReturnSelfServe,
   loadReturnableOrder,
-  planReturnRequest,
 } from "@/lib/returns/return-plan";
-import { validateRefundDestination } from "@/lib/returns/refund-settlement";
+import { createReturnRequests } from "@/lib/returns/create-return";
+import { toCustomerReturn } from "@/lib/returns/return-customer-view";
 import { getSettings } from "@/models/settings.model";
-import { notifyReturnRequestSubmitted } from "@/lib/notifications/notifications";
 import { withApi } from "@/lib/api/handler";
 
 export const GET = withApi(
@@ -38,118 +34,50 @@ export const GET = withApi(
       ReturnRequest.countDocuments(query),
     ]);
 
-    return paginatedResponse(returns, page, limit, total);
+    // The shopper's view of each: no staff notes, no payment references.
+    return paginatedResponse(returns.map(toCustomerReturn), page, limit, total);
   },
 );
 
 export const POST = withApi(
-  { auth: "user" },
+  {
+    auth: "user",
+    // Only the cancel route was limited: creating one takes a per-order lock,
+    // runs the planner and emails the store.
+    rateLimit: { action: "returns:create", preset: "moderate" },
+  },
   async ({ request, session }) => {
     const body = await validateBody(request, CreateReturnRequestSchema);
 
     await connectDB();
+    const settings = await getSettings();
+    // A store that takes returns only through its team (R6): the shopper
+    // still sees and can cancel the ones they have.
+    assertReturnSelfServe(settings);
 
     const order = await loadReturnableOrder({
       orderId: body.orderId,
       customerId: session.user.id,
     });
 
-    // Loaded before the lock so the eligibility check reads the store's own
-    // return window, and reused by the planner and the notification below.
-    const settings = await getSettings();
-    assertReturnEligible(order, settings);
+    // The same path the store and sellers open returns through — see
+    // lib/returns/create-return.ts — so a shopper's return and the store's
+    // are priced and checked alike.
+    const created = await createReturnRequests({
+      order,
+      items: body.items,
+      reason: body.reason,
+      customerNote: body.customerNote,
+      refundDestination: body.refundDestination,
+      settings,
+      userId: session.user.id,
+      openedBy: "customer",
+    });
 
-    // Serialize return creation per order: the returnable-quantity check the
-    // planner makes is read-then-create, so two concurrent submissions could
-    // both pass it and together exceed the ordered quantity. The claim
-    // self-expires after 15s in case a request crashes before releasing it.
-    //
-    // Taken here rather than inside the planner because the preview runs the
-    // same planner and must not queue behind — or hold up — a real submission.
-    const lockStaleBefore = new Date(Date.now() - 15_000);
-    const returnLock = await Order.findOneAndUpdate(
-      {
-        _id: order._id,
-        $or: [
-          { returnRequestLockAt: null },
-          { returnRequestLockAt: { $exists: false } },
-          { returnRequestLockAt: { $lt: lockStaleBefore } },
-        ],
-      },
-      { $set: { returnRequestLockAt: new Date() } },
-    )
-      .select("_id")
-      .lean();
-    if (!returnLock) {
-      throw new ValidationError(
-        "Another return for this order is being submitted. Please try again in a moment.",
-      );
-    }
-    const releaseReturnLock = () =>
-      Order.updateOne(
-        { _id: order._id },
-        { $unset: { returnRequestLockAt: "" } },
-      ).catch((err) => console.error("Failed to release return lock:", err));
-
-    try {
-      const plan = await planReturnRequest({
-        order,
-        items: body.items,
-        reason: body.reason,
-        settings,
-      });
-
-      // A cash-on-delivery refund has no payment instrument to reverse, so
-      // unless the shopper says where the money should go, "refunded" would
-      // mean a note to a human and nothing else. Asked for at submission
-      // rather than chased after approval, which is an email thread.
-      if (plan.settlesOutOfBand) {
-        const problems = validateRefundDestination(body.refundDestination);
-        if (problems.length > 0) {
-          throw new ValidationError(problems.join(". "));
-        }
-      }
-      const refundDestination = plan.settlesOutOfBand
-        ? { ...body.refundDestination, providedAt: new Date() }
-        : undefined;
-
-      const createdRequests = [];
-      const notificationJobs: Promise<unknown>[] = [];
-      for (const group of plan.groups) {
-        const returnRequest = await ReturnRequest.create({
-          returnNumber: await getNextReturnNumber(),
-          orderId: order._id,
-          orderNumber: order.orderNumber,
-          customerId: order.customerId,
-          ownerType: group.ownerType,
-          ownerVendorId: group.ownerVendorId
-            ? new Types.ObjectId(group.ownerVendorId)
-            : undefined,
-          vendorIds: group.vendorIds.map((id) => new Types.ObjectId(id)),
-          status: RETURN_STATUS.REQUESTED,
-          refundStatus: RETURN_REFUND_STATUS.PENDING,
-          reason: body.reason,
-          customerNote: body.customerNote,
-          requestedAt: new Date(),
-          createdBy: session.user.id,
-          items: group.items,
-          estimatedRefund: group.estimatedRefund,
-          refundDestination,
-        });
-        createdRequests.push(returnRequest);
-        notificationJobs.push(
-          notifyReturnRequestSubmitted(returnRequest.toObject(), settings),
-        );
-      }
-
-      await Promise.allSettled(notificationJobs);
-
-      return createdResponse(
-        createdRequests.length === 1 ? createdRequests[0] : createdRequests,
-        "Return request submitted",
-      );
-    } finally {
-      await releaseReturnLock();
-    }
+    const views = created.map((doc) => toCustomerReturn(doc));
+    return createdResponse(
+      views.length === 1 ? views[0] : views,
+      "Return request submitted",
+    );
   },
 );

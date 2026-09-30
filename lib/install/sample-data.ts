@@ -30,6 +30,7 @@ import {
 } from "@/models";
 import { getSettings, Settings } from "@/models/settings.model";
 import { buildStorePageIdentity, StorePage } from "@/models/store-page.model";
+import { rebaseCountdownSections } from "@/lib/install/countdown-window";
 
 /**
  * The wizard's sample store: the SAME snapshot `pnpm db:seed` imports for the
@@ -59,7 +60,7 @@ import { buildStorePageIdentity, StorePage } from "@/models/store-page.model";
  * sections at real sliders and products.
  */
 
-export interface SampleImportResult {
+interface SampleImportResult {
   created: number;
   failed: number;
   /**
@@ -383,6 +384,10 @@ export async function importSampleCatalog(
         : sections.filter(
             (section) => !isVendorOnlySection(section as SnapshotDoc),
           );
+    // Countdown offers run from today, as the coupons do: the exported ones
+    // had ended (lib/install/countdown-window.ts).
+    const running = (sections: unknown[]) =>
+      rebaseCountdownSections(usable(sections), snapshot.exportedAt, now);
 
     for (const page of snapshot.storePages) {
       const key = String(page.key);
@@ -395,7 +400,7 @@ export async function importSampleCatalog(
             ...buildStorePageIdentity(key),
             title: page.title,
             draft: {
-              sections: sanitizeSectionInstances(usable(draft?.sections ?? [])),
+              sections: sanitizeSectionInstances(running(draft?.sections ?? [])),
               updatedAt: now,
               updatedBy: adminUserId,
             },
@@ -403,7 +408,7 @@ export async function importSampleCatalog(
               ? {
                   published: {
                     sections: sanitizeSectionInstances(
-                      usable(published.sections ?? []),
+                      running(published.sections ?? []),
                     ),
                     publishedAt: now,
                     publishedBy: adminUserId,

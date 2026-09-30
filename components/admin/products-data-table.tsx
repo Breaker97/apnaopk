@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useCallback, useMemo } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
@@ -622,7 +622,7 @@ export function ProductsDataTable({
               id: "view",
               label: t("admin.productsDataTable.rowActions.view"),
               icon: <Eye className="h-4 w-4" />,
-              href: `/${locale}/products/${row.slug}`,
+              href: `/products/${row.slug}`,
             },
           ]
         : [
@@ -630,7 +630,7 @@ export function ProductsDataTable({
               id: "view",
               label: t("admin.productsDataTable.rowActions.view"),
               icon: <Eye className="h-4 w-4" />,
-              href: `/${locale}/products/${row.slug}`,
+              href: `/products/${row.slug}`,
             },
             {
               id: "edit",

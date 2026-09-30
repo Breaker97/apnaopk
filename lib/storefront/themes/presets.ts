@@ -372,24 +372,17 @@ export const ELECTRONICS_PRODUCT_PRESET: SectionInstance[] = (() => {
 })();
 
 /**
- * Classic's and Luxe's product pages — the engine's own arrangement with the
- * gallery under the image, which is what both themes have always rendered.
+ * Classic's product page — the engine's own arrangement with the gallery
+ * under the image, which is what the theme has always rendered.
  *
- * They exist for the same reason the plain chrome presets do: a surface ANY
+ * It exists for the same reason the plain chrome presets do: a surface ANY
  * theme designs, EVERY theme has to state, or switching away from the one
  * that designed it leaves its layout behind. Electronics publishes a GRID
- * gallery on activation; without these two, going back to Classic changed
- * the id and the home page while the product page stayed Electronics'
- * forever. `tests/section-variants.test.ts` pins the parity.
- *
- * Luxe deliberately shares the arrangement for now — its own product design
- * arrives with the Fashion bundle. Until then this preset's job is purely to
- * undo Electronics', which it does.
+ * gallery on activation; without this, going back to Classic changed the id
+ * and the home page while the product page stayed Electronics' forever.
+ * `tests/section-variants.test.ts` pins the parity.
  */
 export const ESSENTIAL_PRODUCT_PRESET: SectionInstance[] =
-  getDefaultProductTemplateSections("bottom");
-
-export const LUXE_PRODUCT_PRESET: SectionInstance[] =
   getDefaultProductTemplateSections("bottom");
 
 /**
@@ -408,44 +401,8 @@ export const ELECTRONICS_GROUP_PRESETS = {
   footer: [instance("electronics-footer", 1, "footer-bar", {})],
 };
 
-/** Imagery-first editorial: full-bleed hero, mosaic, story blocks, voices. */
-export const LUXE_HOME_PRESET: SectionInstance[] = [
-  instance(
-    "luxe",
-    1,
-    "slideshow",
-    {
-      width: "full",
-      height: "threeQuarters",
-      transition: "fade",
-      autoplaySeconds: 6,
-    },
-    [{ type: "slide" }],
-  ),
-  instance("luxe", 2, "category-mosaic", { source: "featured", limit: 5 }),
-  instance("luxe", 3, "featured-collection"),
-  instance("luxe", 4, "product-grid", {
-    title: "New In",
-    source: "latest",
-    limit: 8,
-  }),
-  instance("luxe", 5, "image-text", { imagePosition: "left" }),
-  instance("luxe", 6, "testimonials", {
-    title: "Voices",
-    minRating: 4,
-    limit: 6,
-  }),
-  instance(
-    "luxe",
-    7,
-    "image-gallery",
-    { title: "Follow Us" },
-    Array.from({ length: 5 }, () => ({ type: "image" })),
-  ),
-];
-
 /**
- * Women's Fashion — the apparel home, to the design top-to-bottom: the
+ * Fashion — the apparel home, to the design top-to-bottom: the
  * campaign hero, the four department tiles with their names on the picture,
  * the tabbed Best Selling shelf, the five-tile magazine grid, two collection
  * rows (a feature panel beside three pieces), the deals panel, the Get the
@@ -546,9 +503,9 @@ export const WOMEN_FASHION_HOME_PRESET: SectionInstance[] = [
  * a fashion PDP is drawn around — the shot column beside the buy box rather
  * than a thumbnail strip beneath it.
  *
- * Stated at all for the parity reason the Classic and Luxe product presets
- * are: Electronics publishes a bottom-gallery product page on activation, so
- * a theme that stayed silent here would leave Electronics' product page
+ * Stated at all for the parity reason the Classic product preset is:
+ * Electronics publishes a bottom-gallery product page on activation, so a
+ * theme that stayed silent here would leave Electronics' product page
  * published forever while its home page changed.
  */
 export const WOMEN_FASHION_PRODUCT_PRESET: SectionInstance[] =
@@ -568,4 +525,128 @@ export const WOMEN_FASHION_GROUP_PRESETS = {
     instance("women-fashion-header", 2, "header-bar", {}),
   ],
   footer: [instance("women-fashion-footer", 1, "footer-bar", {})],
+};
+
+/**
+ * Furniture — the home-goods storefront: a room shot you can walk into, the
+ * rooms to shop, the pieces people buy most, a materials story, collection
+ * rows for each range, an offer, and the journal.
+ *
+ * Furniture is bought slowly and by the room, which is what this arrangement
+ * is for. The hero is one full-bleed interior rather than a rotating set of
+ * offers; the department tiles read as rooms (Living, Bedroom, Dining) and
+ * carry their names under the picture, not over it, because a sofa shot with
+ * text across it hides the thing being sold. The Look row earns its place
+ * here more than in apparel: "shop this room" is how the category sells.
+ *
+ * Every section either carries its own copy or is filled from the
+ * merchant's catalogue by the activation binder (`preset-binding.ts`), so a
+ * fresh install stands up furnished rather than as a page of empty frames.
+ */
+export const FURNITURE_HOME_PRESET: SectionInstance[] = [
+  // One room, full width, three fifths tall: enough to show a whole setting
+  // without pushing the first products off the fold on a laptop.
+  instance(
+    "furniture",
+    1,
+    "slideshow",
+    { grid: "single", width: "full", height: "threeFifths" },
+    [{ type: "cell", settings: { kind: "image" } }],
+  ),
+  // The rooms. Cards, not overlay tiles: a caption under the photograph
+  // leaves the furniture in it unobscured.
+  instance("furniture", 2, "category-list", {
+    variant: "cards",
+    title: "Shop by room",
+    source: "topLevel",
+    limit: 6,
+  }),
+  instance(
+    "furniture",
+    3,
+    "product-group",
+    { variant: "centered", title: "Best Sellers" },
+    [
+      { type: "tab", settings: { label: "Featured", source: "featured" } },
+      { type: "tab", settings: { label: "New In", source: "latest" } },
+      { type: "tab", settings: { label: "On Sale", source: "discounted" } },
+    ],
+  ),
+  // The materials story: two panels of copy over photography, which is where
+  // a furniture brand says oak, walnut, boucle — the reason for the price.
+  instance(
+    "furniture",
+    4,
+    "promotion-grid",
+    { grid: "duo", width: "fixed", height: "half" },
+    Array.from({ length: 2 }, () => ({
+      type: "cell",
+      settings: { kind: "image" },
+    })),
+  ),
+  // Ranges: the panel names each one, three pieces beside it.
+  instance(
+    "furniture",
+    5,
+    "featured-collection",
+    { title: "" },
+    Array.from({ length: 2 }, () => ({
+      type: "collection",
+      settings: { limit: 3 },
+    })),
+  ),
+  // "Shop this room": the Look section, which for furniture is the whole
+  // setting bought together rather than an outfit.
+  instance("furniture", 6, "get-the-look", {
+    title: "Shop the room",
+    subtitle: "Every piece in this setting, ready to order together",
+    limit: 5,
+    ctaLabel: "Add the room to cart",
+  }),
+  instance("furniture", 7, "countdown-offer", {
+    variant: "deals-panel",
+    subheading: "This week only",
+    heading: "Offers",
+    ctaLabel: "See all offers",
+    link: "/products",
+  }),
+  // Home placement depths for paid boosts are read from the published
+  // home's sponsored rail, so a starter without one makes home boosts
+  // unsellable on a fresh install — the same reason the other themes carry it.
+  instance("furniture", 8, "sponsored-rail", { limit: 8 }),
+  // The reassurance strip a considered purchase needs: delivery, assembly,
+  // the guarantee. Its copy is the section's own default.
+  instance("furniture", 9, "service-benefits", {}),
+  instance("furniture", 10, "blog-posts", {
+    title: "Ideas & guides",
+    limit: 3,
+    desktopColumns: 3,
+  }),
+];
+
+/**
+ * The furniture product page: the bottom gallery.
+ *
+ * A sofa is sold on one large photograph at a time — the room, the fabric,
+ * the back — so the shots sit under the main frame at full width rather than
+ * in a side rail that shrinks every one of them. Stated rather than left
+ * silent for the parity reason every other theme states it: a theme that
+ * says nothing here leaves the previous theme's product page published.
+ */
+export const FURNITURE_PRODUCT_PRESET: SectionInstance[] =
+  getDefaultProductTemplateSections("bottom");
+
+/**
+ * Its chrome: the delivery promise above the bar, the plain bar below.
+ * Stated in full — bars included — because a group preset missing its
+ * required core fails the write gate.
+ */
+export const FURNITURE_GROUP_PRESETS = {
+  header: [
+    instance("furniture-header", 1, "announcement-bar", {
+      text: "Free delivery and assembly on orders over $999",
+    }),
+    instance("furniture-header", 2, "header-bar", {}),
+  ],
+  footer: [instance("furniture-footer", 1, "footer-bar", {})],
 };

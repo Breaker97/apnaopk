@@ -11,7 +11,7 @@ import {
   settleCommissionInvoiceByPayout,
 } from "@/lib/finance/commission-invoices";
 import { roundMoney } from "@/lib/intl/money";
-import { z } from "zod";
+import * as z from "zod";
 
 const PayoutUpdateSchema = z.object({
   status: z.string().max(20).optional(),
@@ -297,9 +297,13 @@ export const PUT = withApi<{ id: string }>(
       // Nor did the commission it was going to deduct get settled: those sales
       // are owed again, to be billed or deducted from a payout that happens.
       if (payout.commissionInvoiceId) {
+        // A payout that was paid had already settled its deduction — the
+        // invoice reads PAID, and "cancelled" only ever moves an OPEN one. A
+        // bounced payout left it paid and its sales stamped settled, so the
+        // next payout deducted nothing and the commission was never collected.
         await releaseCommissionInvoice(
           String(payout.commissionInvoiceId),
-          "cancelled",
+          bounced ? "reversed" : "cancelled",
         ).catch((err) =>
           console.error("Failed to release a payout's commission deduction:", err),
         );

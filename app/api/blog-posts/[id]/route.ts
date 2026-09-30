@@ -1,3 +1,5 @@
+import { PUBLIC_BLOG_FILTER } from "@/lib/blog/storefront-blog-posts";
+import { isAdmin } from "@/lib/access/rbac";
 import mongoose from "mongoose";
 import { BlogPost } from "@/models";
 import { revalidateBlogContent } from "@/lib/cache-invalidation";
@@ -15,14 +17,24 @@ function calcReadingTime(html: string) {
 }
 
 export const GET = withApi<{ id: string }>(
-  {},
-  async ({ params }) => {
+  { auth: "optional" },
+  async ({ params, session }) => {
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid post id");
     }
-    const post = await BlogPost.findById(id)
-      .populate("author", "name image email")
+    // A draft, a private or a scheduled post is the editor's until it goes
+    // out; anyone else reads what the blog itself shows.
+    const post = await BlogPost.findOne({
+      _id: id,
+      ...(session && isAdmin(session.user)
+        ? {}
+        : {
+            ...PUBLIC_BLOG_FILTER,
+            $or: [{ publishedAt: { $lte: new Date() } }, { publishedAt: null }],
+          }),
+    })
+      .populate("author", "name image")
       .populate("categories", "name slug")
       .lean();
     if (!post) throw new NotFoundError("Post");
@@ -79,9 +91,12 @@ export const PUT = withApi<{ id: string }>(
       }
     }
 
-    const post = await BlogPost.findByIdAndUpdate(id, updates, {
-      returnDocument: "after",
-    }).lean();
+    const post = await BlogPost.findByIdAndUpdate(
+      id,
+      // A password left by the old "password" option goes with the next save.
+      { ...updates, $unset: { password: "" } },
+      { returnDocument: "after" },
+    ).lean();
     if (!post) throw new NotFoundError("Post");
     revalidateBlogContent({ slugs: [before.slug, post.slug] });
     return successResponse(post);

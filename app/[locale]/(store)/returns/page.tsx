@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -14,15 +15,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: "Return and Refund Policy",
-    description: `Learn how returns, refunds, exchanges, eligibility, and refund timing work at ${storeName}.`,
+    // No exchanges: the store does not offer them.
+    description: `Learn how returns, refunds, eligibility, and refund timing work at ${storeName}.`,
   };
 }
 
 export default async function ReturnsPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
-  const { contentPages, storeEmail, storeName, storePhone } =
+  const { contentPages, returnWindowDays, storeEmail, storeName, storePhone } =
     await getStorefrontSettings();
   if (!contentPages.returns.visible) {
     notFound();
@@ -31,8 +34,10 @@ export default async function ReturnsPage({ params }: PageProps) {
   return (
     <ReturnPolicyPageView
       locale={locale}
+      storeDefault={storeDefault}
       page={contentPages.returns}
       storeName={storeName}
+      windowDays={returnWindowDays}
       supportEmail={storeEmail}
       supportPhone={storePhone}
     />

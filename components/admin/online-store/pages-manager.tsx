@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -210,11 +210,9 @@ function PathChip({ path, className }: { path: string; className?: string }) {
 
 function PageActions({
   entry,
-  locale,
   onDelete,
 }: {
   entry: PageEntry;
-  locale: string;
   onDelete?: () => void;
 }) {
   const t = useTranslations("admin.onlineStorePagesPage");
@@ -248,7 +246,7 @@ function PageActions({
             className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
           >
             <Link
-              href={`/${locale}${entry.publicPath}`}
+              href={`${entry.publicPath}`}
               target="_blank"
               aria-label={t("aria.open", { title: entry.title })}
             >
@@ -309,12 +307,10 @@ function VisibilitySwitch({
 
 function PageListRow({
   entry,
-  locale,
   onToggleVisible,
   onDelete,
 }: {
   entry: PageEntry;
-  locale: string;
   onToggleVisible: () => void;
   onDelete?: () => void;
 }) {
@@ -351,7 +347,7 @@ function PageListRow({
         <StatusBadge visible={entry.visible} className="hidden lg:inline-flex" />
         <VisibilitySwitch entry={entry} onToggle={onToggleVisible} />
         <div className="hidden h-5 w-px bg-border sm:block" />
-        <PageActions entry={entry} locale={locale} onDelete={onDelete} />
+        <PageActions entry={entry} onDelete={onDelete} />
       </div>
     </div>
   );
@@ -359,12 +355,10 @@ function PageListRow({
 
 function PageGridCard({
   entry,
-  locale,
   onToggleVisible,
   onDelete,
 }: {
   entry: PageEntry;
-  locale: string;
   onToggleVisible: () => void;
   onDelete?: () => void;
 }) {
@@ -400,7 +394,7 @@ function PageGridCard({
 
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
         <StatusBadge visible={entry.visible} />
-        <PageActions entry={entry} locale={locale} onDelete={onDelete} />
+        <PageActions entry={entry} onDelete={onDelete} />
       </div>
     </div>
   );
@@ -434,10 +428,8 @@ function SectionHeading({
 }
 
 export function PagesManager({
-  locale,
   initialContentPages,
 }: {
-  locale: string;
   initialContentPages: ContentPagesSettings;
 }) {
   const t = useTranslations("admin.onlineStorePagesPage");
@@ -654,7 +646,6 @@ export function PagesManager({
             <PageGridCard
               key={entry.id}
               entry={entry}
-              locale={locale}
               onToggleVisible={() => handleToggle(entry)}
               onDelete={
                 entry.kind === "custom"
@@ -673,7 +664,6 @@ export function PagesManager({
           <PageListRow
             key={entry.id}
             entry={entry}
-            locale={locale}
             onToggleVisible={() => handleToggle(entry)}
             onDelete={
               entry.kind === "custom"
@@ -840,7 +830,6 @@ export function PagesManager({
                 <PageGridCard
                   key={entry.id}
                   entry={entry}
-                  locale={locale}
                   onToggleVisible={() => handleToggle(entry)}
                 />
               ))}
@@ -851,7 +840,6 @@ export function PagesManager({
                 <PageListRow
                   key={entry.id}
                   entry={entry}
-                  locale={locale}
                   onToggleVisible={() => handleToggle(entry)}
                 />
               ))}

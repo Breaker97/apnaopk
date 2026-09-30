@@ -28,14 +28,30 @@ interface WishlistState {
   items: WishlistItem[];
   isLoading: boolean;
   isSynced: boolean;
+  /** When the list last came from the server (ms); 0 until it has. */
+  syncedAt: number;
 
   // Actions
-  fetchWishlist: () => Promise<void>;
+  /**
+   * Joins the read already in flight, if any. Pass `fresh` after a write: a
+   * read that started before it cannot contain it, so a new one starts and
+   * the older one's answer is dropped.
+   */
+  fetchWishlist: (options?: { fresh?: boolean }) => Promise<void>;
   addToWishlist: (productId: string) => Promise<boolean>;
   removeFromWishlist: (productId: string) => Promise<boolean>;
   isInWishlist: (productId: string) => boolean;
   clearWishlist: () => void;
 }
+
+/**
+ * The read in flight, shared: the bottom bar syncs the list on load while the
+ * wishlist page may be asking for it too, and two callers used to mean two
+ * identical requests. Only the latest read may write the list.
+ */
+let wishlistRequest: Promise<void> | null = null;
+/** Numbers each read; a read whose number is no longer the latest is superseded. */
+let wishlistReadCount = 0;
 
 const useWishlistStore = create<WishlistState>()(
   persist(
@@ -43,22 +59,37 @@ const useWishlistStore = create<WishlistState>()(
       items: [],
       isLoading: false,
       isSynced: false,
+      syncedAt: 0,
 
-      fetchWishlist: async () => {
-        set({ isLoading: true });
-        try {
-          const res = await fetch("/api/wishlist");
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success) {
-              set({ items: data.data.items, isSynced: true });
+      fetchWishlist: (options) => {
+        if (wishlistRequest && !options?.fresh) return wishlistRequest;
+        const read = ++wishlistReadCount;
+        wishlistRequest = (async () => {
+          set({ isLoading: true });
+          try {
+            const res = await fetch("/api/wishlist");
+            if (res.ok) {
+              const data = await res.json();
+              // Superseded by a read started after a write: that one's
+              // answer is the newer list.
+              if (data.success && read === wishlistReadCount) {
+                set({
+                  items: data.data.items,
+                  isSynced: true,
+                  syncedAt: Date.now(),
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Failed to fetch wishlist:", error);
+          } finally {
+            if (read === wishlistReadCount) {
+              wishlistRequest = null;
+              set({ isLoading: false });
             }
           }
-        } catch (error) {
-          console.error("Failed to fetch wishlist:", error);
-        } finally {
-          set({ isLoading: false });
-        }
+        })();
+        return wishlistRequest;
       },
 
       addToWishlist: async (productId: string) => {
@@ -70,8 +101,9 @@ const useWishlistStore = create<WishlistState>()(
           });
 
           if (res.ok) {
-            // Refetch to get populated product data
-            await get().fetchWishlist();
+            // Refetch to get populated product data — a new read, since one
+            // already out began before this item was added.
+            await get().fetchWishlist({ fresh: true });
             return true;
           }
           return false;
@@ -105,7 +137,7 @@ const useWishlistStore = create<WishlistState>()(
       },
 
       clearWishlist: () => {
-        set({ items: [], isSynced: false });
+        set({ items: [], isSynced: false, syncedAt: 0 });
       },
     }),
     {
@@ -121,6 +153,34 @@ const useWishlistStore = create<WishlistState>()(
 );
 
 let wishlistHydrationStarted = false;
+
+type Thenable<T> = Promise<T> & { status?: "pending" | "fulfilled"; value?: T };
+
+let firstSync: Thenable<void> | null = null;
+
+/**
+ * Settles once this tab's first read of the wishlist has come back, whether
+ * it found the list or failed. For the wishlist page to suspend on with
+ * `use()` until the server's list is known; it joins the bottom bar's read if
+ * that one is already out. Settled for good afterwards, so a failed read shows
+ * what the tab holds instead of suspending again and again.
+ */
+export function wishlistFirstSync(): Promise<void> {
+  if (!firstSync) {
+    // Started a microtask later, not here: this runs while the wishlist page
+    // renders, and `fetchWishlist` writes the store straight away
+    // (`isLoading`), which would re-render the header in the middle of it.
+    const thenable: Thenable<void> = Promise.resolve().then(() =>
+      useWishlistStore.getState().fetchWishlist(),
+    );
+    thenable.status = "pending";
+    void thenable.then(() => {
+      thenable.status = "fulfilled";
+    });
+    firstSync = thenable;
+  }
+  return firstSync;
+}
 
 const EMPTY_ITEMS: WishlistItem[] = [];
 

@@ -16,13 +16,18 @@ export const MAX_DIGITAL_FILE_SIZE_MB = 5120;
 /** Seconds a signed download redirect stays valid. */
 export const DIGITAL_DOWNLOAD_URL_TTL_SECONDS = 300;
 
+/** Where every digital deliverable's key starts, whoever uploaded it. */
+export const DIGITAL_ASSET_KEY_ROOT = "digital/";
+
 /**
  * Private-storage key prefix for a given uploader scope. Admin/staff uploads
  * share one scope; each vendor gets their own, which lets product-save
  * routes verify a vendor only ever attaches their own files.
  */
 export function digitalAssetKeyPrefix(vendorId?: string | null): string {
-  return vendorId ? `digital/v-${vendorId}/` : "digital/admin/";
+  return vendorId
+    ? `${DIGITAL_ASSET_KEY_ROOT}v-${vendorId}/`
+    : `${DIGITAL_ASSET_KEY_ROOT}admin/`;
 }
 
 /**

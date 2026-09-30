@@ -52,6 +52,13 @@ export function getPaymentMethodMeta(
     return { label: "Orange Money", Icon: Smartphone };
   }
   if (key.includes("mtn_momo")) return { label: "MTN MoMo", Icon: Smartphone };
+  // Store credit paid all of it (R8).
+  if (key === "store_credit") {
+    return {
+      label: t("admin.paymentTransactionsPage.providers.store_credit"),
+      Icon: Wallet,
+    };
+  }
   if (key === "manual" || key === "manual_pending") {
     return {
       label: t(`admin.paymentTransactionsPage.providers.${key}`),

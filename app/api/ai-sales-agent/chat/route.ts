@@ -1,3 +1,5 @@
+import { cartSessionCookie } from "@/lib/cart/cart-session-cookie";
+import { appUrlForRequest } from "@/lib/app-url";
 import { getSettings } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
 import {
@@ -13,7 +15,7 @@ import {
 } from "@/lib/ai-sales-agent/settings";
 import type { AISalesStreamEvent } from "@/lib/ai-sales-agent/types";
 import { withApi } from "@/lib/api/handler";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 const AgentChatSchema = z.object({
@@ -21,9 +23,6 @@ const AgentChatSchema = z.object({
   message: z.string().max(4000).optional(),
   locale: z.string().max(10).optional(),
 });
-
-/** Thirty days — the storefront cart cookie's own lifetime. */
-const CART_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 /**
  * POST /api/ai-sales-agent/chat
@@ -76,10 +75,7 @@ export const POST = withApi(
       typeof body.locale === "string" && body.locale.trim()
         ? body.locale.trim()
         : "en";
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+    const origin = appUrlForRequest(request);
 
     // A streamed response has sent its headers before the agent knows whether
     // it put anything in a cart, so the guest cookie cannot wait for that. A
@@ -158,7 +154,7 @@ export const POST = withApi(
     if (mintedCartSession) {
       response.headers.set(
         "Set-Cookie",
-        `cart_session=${mintedCartSession}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${CART_SESSION_MAX_AGE}`,
+        cartSessionCookie(request, mintedCartSession),
       );
     }
     return response;

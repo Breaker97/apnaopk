@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { Loader2, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AppImage } from "@/components/ui/app-image";

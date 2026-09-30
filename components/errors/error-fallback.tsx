@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
 import { useErrorReporting } from "@/hooks/use-error-reporting";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

@@ -5,6 +5,7 @@ import { validateQuery } from "@/lib/api/validate";
 import { ProductListQuerySchema } from "@/lib/validations";
 import { Product } from "@/models";
 import { getSettings } from "@/models/settings.model";
+import { resolveProductFeatures } from "@/lib/products/product-features";
 import {
   getOrCreateDefaultVendor,
   syncDefaultVendorWithSettings,
@@ -197,7 +198,7 @@ export const POST = withApi(
       // Categories are created from the admin's category screen only, so only
       // an admin's catalog may add them.
       createMissingCategories: isAdmin,
-      countryAvailability: settings.general?.countryAvailability,
+      productFeatures: resolveProductFeatures(settings),
     });
 
     await auditProductImport(request, session, file.name, result);

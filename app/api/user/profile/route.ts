@@ -1,3 +1,5 @@
+import { revokeOtherSessions } from "@/lib/auth/session-revocation";
+import { assertRecentSignIn } from "@/lib/auth/recent-sign-in";
 import { ObjectId } from "mongodb";
 import { mongoose } from "@/lib/db";
 import { successResponse } from "@/lib/api/response";
@@ -116,6 +118,7 @@ export const PUT = withApi(
       }
 
       if (body.email !== currentUser.email) {
+        assertRecentSignIn(session);
         const existingUser = await db.collection("user").findOne(
           {
             _id: { $ne: userId },
@@ -148,6 +151,10 @@ export const PUT = withApi(
         { _id: userId },
         { $set: { ...updateFields, updatedAt: new Date() } },
       );
+    // A new login email signs every other device out, as a new password does.
+    if (updateFields.email) {
+      await revokeOtherSessions(session.user.id, session.session.id);
+    }
 
     const user = await db.collection("user").findOne(
       { _id: userId },

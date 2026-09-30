@@ -7,7 +7,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/hooks/use-client-value";
 
-// Lazy-loaded on demand (see product-details.tsx) so the static guide charts
+// Lazy-loaded on demand (see product-purchase.tsx) so the static guide charts
 // below ship to the client only when a shopper opens the size guide.
 type SizeGuideProduct = {
   name: string;

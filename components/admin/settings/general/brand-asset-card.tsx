@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Loader2, Upload, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { AppImage } from "@/components/ui/app-image";
 import { uploadFile } from "@/lib/media-upload/direct-upload";
 
@@ -32,6 +33,7 @@ export function BrandAssetCard(props: {
   value: string;
   onChange: (value: string) => void;
   alt: string;
+  uploadText: string;
   replaceText: string;
   /** Enforced, not just printed — see the size check in `onPick`. */
   maxSizeMB: number;
@@ -60,6 +62,8 @@ export function BrandAssetCard(props: {
    */
   keepVector?: boolean;
 }) {
+  const t = useTranslations("admin.settings.brandAssets");
+  const tUpload = useTranslations("admin.mediaPicker");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -85,7 +89,7 @@ export function BrandAssetCard(props: {
       setError(
         uploadError instanceof Error && uploadError.message
           ? uploadError.message
-          : "Upload failed",
+          : tUpload("uploadFailed"),
       );
     } finally {
       setIsUploading(false);
@@ -105,18 +109,17 @@ export function BrandAssetCard(props: {
         ? props.formats.includes(extension)
         : file.type.startsWith("image/");
       if (!accepted) {
-        setError(`Needs to be a ${formatList} file`);
+        setError(t("wrongFormat", { formats: formatList }));
         return;
       }
 
       const maxBytes = props.maxSizeMB * 1024 * 1024;
       if (file.size > maxBytes) {
         setError(
-          `Needs to be under ${props.maxSizeMB} MB — this file is ${(
-            file.size /
-            1024 /
-            1024
-          ).toFixed(1)} MB`,
+          t("tooLarge", {
+            max: props.maxSizeMB,
+            size: (file.size / 1024 / 1024).toFixed(1),
+          }),
         );
         return;
       }
@@ -129,7 +132,11 @@ export function BrandAssetCard(props: {
             size.height < props.recommendedDimension)
         ) {
           setNotice(
-            `Smaller than ${props.recommendedDimension}x${props.recommendedDimension}px (${size.width}x${size.height}px) — it will be upscaled and may look soft`,
+            t("tooSmall", {
+              dimension: props.recommendedDimension,
+              width: size.width,
+              height: size.height,
+            }),
           );
         }
       }
@@ -211,14 +218,14 @@ export function BrandAssetCard(props: {
               ? // Progress only reports on the direct-to-storage path; the
                 // server fallback has none, so it stays a plain "Uploading…".
                 progress > 0
-                ? `Uploading… ${progress}%`
-                : "Uploading…"
+                ? t("uploadingProgress", { progress })
+                : tUpload("uploading")
               : props.value
                 ? props.replaceText
-                : `Upload ${props.label.toLowerCase()}`}
+                : props.uploadText}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Drag and drop or click to select
+            {t("dropHint")}
           </p>
         </div>
 
@@ -230,15 +237,15 @@ export function BrandAssetCard(props: {
 
       <div className="space-y-1.5 text-xs">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Max size:</span>
+          <span className="text-muted-foreground">{t("maxSize")}</span>
           <span className="font-medium text-[8px]">{props.maxSizeMB} MB</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Formats:</span>
+          <span className="text-muted-foreground">{t("formats")}</span>
           <span className="font-medium text-[8px]">{formatList}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Recommended:</span>
+          <span className="text-muted-foreground">{t("recommended")}</span>
           <span className="font-medium text-[8px]">{props.recommended}</span>
         </div>
       </div>

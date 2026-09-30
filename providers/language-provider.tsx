@@ -11,8 +11,9 @@ import { defaultLocale, localeConfig, locales } from "@/config/i18n.config";
  * available locales — so the picker can never offer a locale the router
  * doesn't serve. The ACTIVE language is the URL locale (next-intl); changing
  * language means navigating to the same path under another locale prefix.
- * There is no client-side language state or persistence: next-intl's
- * middleware remembers the visitor's choice in the NEXT_LOCALE cookie.
+ * There is no client-side language state: the visitor's choice lives in the
+ * locale cookie, which the router writes on the way to every page
+ * (`rememberLocale`, hooks/use-locale-navigation.ts).
  */
 interface Language {
   code: string;
@@ -81,10 +82,11 @@ export function useLanguage() {
 }
 
 /**
- * Swaps the locale prefix of a localized pathname. With next-intl's
- * `localePrefix: "always"` every page path starts with its locale, so this is
- * the one sanctioned way to build the target URL when the visitor picks
- * another language.
+ * Swaps the locale prefix of a localized pathname — the app's internal,
+ * always-prefixed spelling (`usePathname` from hooks/use-locale-navigation).
+ * This is the one sanctioned way to build the target URL when the visitor
+ * picks another language; the router then drops the prefix again if the
+ * target is the store default, and records the choice in the locale cookie.
  */
 export function swapLocaleInPathname(
   pathname: string,

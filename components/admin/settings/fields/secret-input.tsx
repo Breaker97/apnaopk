@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function SecretInput(props: {
    * replaces the secret, leaving it blank keeps the saved value.
    */
   maskedHint?: string;
+  /** Shown when a secret is saved and no preview is; "Saved (leave blank to keep)" by default. */
   placeholderWhenSet?: string;
   placeholderWhenUnset?: string;
   helperText?: string;
@@ -39,8 +41,10 @@ export function SecretInput(props: {
    */
   revealTyped?: boolean;
 }) {
+  const t = useTranslations();
   const placeholder = props.secretSet
-    ? props.maskedHint || props.placeholderWhenSet
+    ? props.maskedHint ||
+      (props.placeholderWhenSet ?? t("admin.settings.fields.savedPlaceholder"))
     : props.placeholderWhenUnset;
 
   const canClear = Boolean(props.onClear && props.secretSet);
@@ -58,7 +62,7 @@ export function SecretInput(props: {
               className="h-auto px-2 py-0.5 text-xs text-muted-foreground hover:text-destructive"
               onClick={props.onClear}
             >
-              Remove
+              {t("common.remove")}
             </Button>
           ) : null}
         </div>

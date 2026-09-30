@@ -14,6 +14,31 @@ import {
 } from "@/lib/audit";
 import { withApi } from "@/lib/api/handler";
 import { cleanupDeletedUserReferences } from "@/lib/customers/user-cleanup";
+import { setUserRole } from "@/lib/access/user-role";
+import { isStaffRole } from "@/lib/access/staff-role";
+import {
+  decideTeamRemoval,
+  decideTeamStatusChange,
+  loadTeamChangeContext,
+} from "@/lib/access/team-roles";
+import { revokeAllSessions } from "@/lib/auth/session-revocation";
+
+/**
+ * This screen changes shoppers and sellers. An administrator's role is
+ * changed on the Team page, which keeps the owner untouchable and the store
+ * one working administrator; here a demotion wrote `role` alone, the admin
+ * membership in `roles` survived it, and the "demoted" admin kept every
+ * right. Bans and removals of an administrator follow the Team rules too.
+ */
+const TEAM_ROLE_HERE =
+  "Administrators and team members are changed from Settings → Team, where the owner and last-administrator rules are kept.";
+
+function holdsAdmin(user: { role?: string | null; roles?: string[] | null }) {
+  return (
+    user.role === USER_ROLES.ADMIN ||
+    (user.roles ?? []).includes(USER_ROLES.ADMIN)
+  );
+}
 
 /**
  * GET /api/admin/users/[id]
@@ -84,8 +109,16 @@ export const PUT = withApi<{ id: string }>(
 
     // Filter to allowed updates only
     const allowedUpdates: Record<string, unknown> = {};
-    if (updates.role && Object.values(USER_ROLES).includes(updates.role)) {
-      allowedUpdates.role = updates.role;
+    const roleChange =
+      updates.role && updates.role !== userBefore.role ? updates.role : null;
+    if (roleChange) {
+      if (
+        holdsAdmin(userBefore) ||
+        isStaffRole(userBefore.role) ||
+        (roleChange !== USER_ROLES.CUSTOMER && roleChange !== USER_ROLES.VENDOR)
+      ) {
+        throw new AuthorizationError(TEAM_ROLE_HERE);
+      }
     }
     if (updates.name) allowedUpdates.name = updates.name;
     if (updates.phone !== undefined) allowedUpdates.phone = updates.phone;
@@ -96,12 +129,37 @@ export const PUT = withApi<{ id: string }>(
         ? USER_ACCOUNT_STATUS.BANNED
         : USER_ACCOUNT_STATUS.ACTIVE;
     }
+    const statusChange =
+      allowedUpdates.status !== undefined &&
+      allowedUpdates.status !== (userBefore.status || USER_ACCOUNT_STATUS.ACTIVE)
+        ? String(allowedUpdates.status)
+        : null;
+    if (statusChange && holdsAdmin(userBefore)) {
+      const decision = decideTeamStatusChange(
+        await loadTeamChangeContext({
+          actorUserId: session.user.id,
+          targetUserId: id,
+          targetRole: USER_ROLES.ADMIN,
+        }),
+        statusChange,
+      );
+      if (!decision.allowed) throw new AuthorizationError(decision.reason);
+    }
 
+    // `role` and `roles` together, as every other role write does.
+    if (roleChange) await setUserRole(id, roleChange);
     const user = await User.findByIdAndUpdate(
       id,
       { $set: allowedUpdates },
       { returnDocument: "after" }
     ).select("-password");
+    // A banned or suspended account's open sessions end now, not on their
+    // next request's status check.
+    if (statusChange && statusChange !== USER_ACCOUNT_STATUS.ACTIVE) {
+      await revokeAllSessions(id).catch((error) =>
+        console.error(`Failed to sign out suspended user ${id}:`, error),
+      );
+    }
 
     if (!user) {
       return notFoundResponse("User");
@@ -111,12 +169,12 @@ export const PUT = withApi<{ id: string }>(
     const auditContext = createAuditContext(request, session);
 
     // Special audit for role changes
-    if (updates.role && updates.role !== userBefore.role) {
+    if (roleChange) {
       await auditRoleChange(
         auditContext,
         id,
         userBefore.role,
-        updates.role,
+        roleChange,
         userBefore.email
       );
     } else if (Object.keys(allowedUpdates).length > 0) {
@@ -168,6 +226,17 @@ export const DELETE = withApi<{ id: string }>(
     const user = await User.findById(id).select("-password").lean();
     if (!user) {
       return notFoundResponse("User");
+    }
+
+    if (holdsAdmin(user)) {
+      const decision = decideTeamRemoval(
+        await loadTeamChangeContext({
+          actorUserId: session.user.id,
+          targetUserId: id,
+          targetRole: USER_ROLES.ADMIN,
+        }),
+      );
+      if (!decision.allowed) throw new AuthorizationError(decision.reason);
     }
 
     // A user who owns a vendor account must be deleted through the vendor

@@ -1,39 +1,43 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import type { DateRange } from "react-day-picker";
-import { AlertTriangle, Check, Clock, Loader2, Rocket, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Clock, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast-notification";
+import {
+  BookingDialogFrame,
+  BookingFooter,
+  BookingProductStep,
+  BookingSlotStep,
+  BookingStepper,
+  BookingSummary,
+  formatBookingRange,
+  formatBookingRuns,
+  selectionFromRange,
+  type BookingStepItem,
+} from "@/components/boosts/boost-booking-dialog";
 import { ApiClientError, apiClient } from "@/lib/api/client";
-import { cn } from "@/lib/utils";
 import { useCurrencyFormatter } from "@/providers/currency-provider";
 import { openRazorpayCheckout } from "@/components/checkout/checkout-helpers";
 import {
   PaymentMethodPicker,
+  platformPaymentErrorMessage,
   type PlatformGateway,
 } from "@/components/vendor/payment-method-picker";
+import { addDays, enumerateDays } from "@/lib/boosts/boost-days";
 import {
-  addDays,
-  calendarDateFromUtcDay,
-  daysBetweenInclusive,
-  enumerateDays,
-  utcDayFromCalendarDate,
-} from "@/lib/boosts/boost-days";
+  clashingDays,
+  fromVendorAvailability,
+  type BookingRung,
+  type BookingSurface,
+  type VendorAvailabilityPayload,
+} from "@/lib/boosts/boost-booking";
 import { quantizeToCurrency } from "@/lib/intl/money";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useGatewayWindow } from "@/hooks/use-gateway-window";
 
 interface BoostablePicker {
   _id: string;
@@ -48,7 +52,7 @@ interface LadderRung {
   pricePerDay: number;
   /** Priced in a currency the store no longer uses — checkout will refuse it. */
   stale: boolean;
-  reach: { home: boolean; listing: boolean; productPage: boolean };
+  reach: Record<BookingSurface, boolean>;
   avgImpressionsPerDay: number | null;
 }
 
@@ -56,26 +60,15 @@ interface CatalogPayload {
   currency: string;
   paymentMethods: PlatformGateway[];
   positions: LadderRung[];
-  placementDepth: { home: number; listing: number; productPage: number };
-  placementsEnabled: { home: boolean; listing: boolean; productPage: boolean };
+  placementDepth: Record<BookingSurface, number>;
+  placementsEnabled: Record<BookingSurface, boolean>;
   bookingHorizonDays: number;
   maxBookingDays: number;
   holdMinutes: number;
   bookingCountByProduct: Record<string, number>;
 }
 
-interface AvailabilityPayload {
-  from: string;
-  to: string;
-  /** The server's UTC day. The client's own clock is never trusted. */
-  today: string;
-  positions: Array<{
-    position: number;
-    takenDays: string[];
-    ownDays: string[];
-  }>;
-  productBookedDays?: string[];
-}
+type AvailabilityPayload = VendorAvailabilityPayload & { from: string; to: string };
 
 type Step = "product" | "slot" | "payment";
 
@@ -99,88 +92,7 @@ const POLL_INTERVAL_MS = 4000;
 const POLL_MAX_ATTEMPTS = 45;
 /** Refetch availability on focus only after the payload has had time to rot. */
 const REFETCH_AFTER_IDLE_MS = 60_000;
-
-/**
- * Step-progress rail mirroring the numbered-circle stepper used by the
- * become-a-vendor wizard (components/vendor/vendor-registration-form.tsx)
- * so multi-step flows read consistently across the app. Completed steps are
- * clickable to jump back; the upcoming step is not (nothing to show yet).
- */
-function BoostStepper(props: {
-  steps: { key: Step; label: string }[];
-  currentKey: Step;
-  onStepClick: (key: Step) => void;
-}) {
-  const currentIndex = props.steps.findIndex((s) => s.key === props.currentKey);
-  return (
-    <div className="flex items-center pb-1">
-      {props.steps.map((item, index) => {
-        const isDone = index < currentIndex;
-        const isCurrent = item.key === props.currentKey;
-        const clickable = isDone;
-        return (
-          <div
-            key={item.key}
-            className={cn("flex items-center", index > 0 && "flex-1")}
-          >
-            {index > 0 && (
-              <div
-                className={cn(
-                  "mx-2 h-px flex-1",
-                  isDone || isCurrent ? "bg-primary" : "bg-border",
-                )}
-              />
-            )}
-            <button
-              type="button"
-              onClick={() => clickable && props.onStepClick(item.key)}
-              disabled={!clickable}
-              aria-current={isCurrent ? "step" : undefined}
-              className={cn(
-                "group flex items-center gap-2 rounded-full",
-                clickable ? "cursor-pointer" : "cursor-default",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors",
-                  isDone && "border-primary bg-primary text-primary-foreground",
-                  isCurrent && !isDone && "border-primary text-primary",
-                  !isDone && !isCurrent && "border-border text-muted-foreground",
-                  clickable && "group-hover:border-primary",
-                )}
-              >
-                {isDone ? <Check className="h-3.5 w-3.5" /> : index + 1}
-              </div>
-              <span
-                className={cn(
-                  "hidden text-xs font-medium transition-colors sm:inline",
-                  isCurrent ? "text-foreground" : "text-muted-foreground",
-                  clickable && "group-hover:text-foreground",
-                )}
-              >
-                {item.label}
-              </span>
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** "12–18 Sep 2026", or a single day when the range is one day long. */
-function formatDayRange(startDay: string, endDay: string, locale: string) {
-  const formatter = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  const from = formatter.format(new Date(`${startDay}T00:00:00.000Z`));
-  if (startDay === endDay) return from;
-  return `${from} – ${formatter.format(new Date(`${endDay}T00:00:00.000Z`))}`;
-}
+const PRODUCT_PAGE_SIZE = 8;
 
 /**
  * The vendor's boost purchase flow: pick product → pick a ladder rung and a
@@ -188,6 +100,9 @@ function formatDayRange(startDay: string, endDay: string, locale: string) {
  * page and return to /vendor/boosts?boost_payment=… — Razorpay too, from its own
  * window, carrying the signed payment; ioTec mobile money stays on a "check
  * your phone" polling state.
+ *
+ * The screens are the admin's offline booking dialog's own
+ * (components/boosts/boost-booking-dialog.tsx); only loading and paying differ.
  *
  * What the vendor buys is a VISUAL SLOT for a set of UTC days, not an
  * impression budget. Three things follow, and all three are visible in the UI
@@ -203,35 +118,20 @@ export function BoostPurchaseDialog(props: {
 }) {
   const t = useTranslations();
   const router = useRouter();
-  // `t()` runs the ICU formatter, which throws when a placeholder in the
-  // message has no value — so interpolation values must be handed to `t()`
-  // itself. The fallback string never reaches the formatter, so it gets the
-  // same substitution by hand.
-  const label = useCallback(
-    (
-      key: string,
-      fallback: string,
-      values?: Record<string, string | number>,
-    ) => {
-      if (t.has(key)) return t(key, values);
-      if (!values) return fallback;
-      return Object.entries(values).reduce(
-        (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-        fallback,
-      );
-    },
-    [t],
-  );
+  const locale = useLocale();
+  // `t()` runs the ICU formatter, which throws when a placeholder has no
+  // value, so interpolation values are handed to `t()` itself; the fallback
+  // gets the same substitution by hand.
+  const label = useFallbackTranslator(t);
 
   const [step, setStep] = useState<Step>("product");
   const [productSearch, setProductSearch] = useState("");
   const [products, setProducts] = useState<BoostablePicker[]>([]);
+  const [productTotal, setProductTotal] = useState(0);
   const [productsLoading, setProductsLoading] = useState(false);
   const [product, setProduct] = useState<BoostablePicker | null>(null);
   const [catalog, setCatalog] = useState<CatalogPayload | null>(null);
-  const [availability, setAvailability] = useState<AvailabilityPayload | null>(
-    null,
-  );
+  const [availability, setAvailability] = useState<AvailabilityPayload | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
   const [range, setRange] = useState<DateRange | undefined>();
@@ -247,6 +147,7 @@ export function BoostPurchaseDialog(props: {
   const [holdExpiresAt, setHoldExpiresAt] = useState<number | null>(null);
   const [holdRemaining, setHoldRemaining] = useState<number>(0);
   const lastAvailabilityFetch = useRef(0);
+  const { gatewayOpen, withGatewayWindow } = useGatewayWindow();
 
   const formatPrice = useCurrencyFormatter(catalog?.currency);
 
@@ -256,6 +157,7 @@ export function BoostPurchaseDialog(props: {
     if (!props.open) return;
     setProduct(props.preselectedProduct ?? null);
     setStep(props.preselectedProduct ? "slot" : "product");
+    setProductSearch("");
     setPosition(null);
     setRange(undefined);
     setConflictNote(null);
@@ -357,7 +259,10 @@ export function BoostPurchaseDialog(props: {
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ status: "active", limit: "8" });
+        const params = new URLSearchParams({
+          status: "active",
+          limit: String(PRODUCT_PAGE_SIZE),
+        });
         if (productSearch.trim()) params.set("search", productSearch.trim());
         const res = await fetch(`/api/vendor/products?${params.toString()}`);
         const json = await res.json();
@@ -367,11 +272,10 @@ export function BoostPurchaseDialog(props: {
           name?: string;
           images?: string[];
         }>;
-        // Nothing is hidden here any more. Under the ladder a product may
-        // legitimately hold this week's Position 1 and next month's Position 2,
-        // so the old boosted-product hide-list would lock a vendor out of their
-        // own best-selling item. The count is shown instead, and the calendar
-        // greys out the specific days that product already holds.
+        // Nothing is hidden here. Under the ladder a product may legitimately
+        // hold this week's Position 1 and next month's Position 2, so the old
+        // boosted-product hide-list would lock a vendor out of their own
+        // best-selling item; the calendar greys out the days it already holds.
         setProducts(
           rows.map((row) => ({
             _id: row._id,
@@ -379,8 +283,12 @@ export function BoostPurchaseDialog(props: {
             image: row.images?.[0] || null,
           })),
         );
+        setProductTotal(Number(json?.data?.pagination?.total ?? rows.length));
       } catch {
-        if (!cancelled) setProducts([]);
+        if (!cancelled) {
+          setProducts([]);
+          setProductTotal(0);
+        }
       } finally {
         if (!cancelled) setProductsLoading(false);
       }
@@ -391,82 +299,51 @@ export function BoostPurchaseDialog(props: {
     };
   }, [props.open, step, productSearch]);
 
-  // ---- day sets the calendar paints from -------------------------------
-  const today = availability?.today ?? new Date().toISOString().slice(0, 10);
-  const horizonEnd = addDays(today, catalog?.bookingHorizonDays ?? 60);
+  // ---- what the calendar and the ladder list read ---------------------
+  const horizonDays = catalog?.bookingHorizonDays ?? 60;
+  const maxBookingDays = catalog?.maxBookingDays ?? 60;
 
-  const rung = useMemo(
-    () => catalog?.positions.find((p) => p.position === position) ?? null,
-    [catalog, position],
+  const rungs = useMemo<BookingRung[]>(
+    () =>
+      catalog
+        ? catalog.positions.map((row) => ({
+            position: row.position,
+            label: row.label,
+            pricePerDay: row.pricePerDay,
+            currency: catalog.currency,
+            reach: row.reach,
+            blocked: row.stale ? "stale" : null,
+          }))
+        : [],
+    [catalog],
   );
 
-  const dayGroups = useMemo(() => {
-    const forPosition = availability?.positions.find(
-      (p) => p.position === position,
-    );
-    const own = new Set(forPosition?.ownDays ?? []);
-    // Every day this product already holds at ANY rung: the {productId, day}
-    // unique index refuses these, so they are disabled rather than discovered
-    // on the way back from a gateway.
-    const productBooked = new Set(availability?.productBookedDays ?? []);
-    const blocked = new Set<string>([
-      ...(forPosition?.takenDays ?? []),
-      ...productBooked,
-    ]);
-    return {
-      blocked,
-      own,
-      productBooked,
-      // "Taken by someone else" is what earns the strike-through; a vendor's
-      // own days are ringed instead, because seeing them struck out reads as a
-      // fault rather than as their own booking.
-      taken: new Set(
-        [...(forPosition?.takenDays ?? [])].filter((day) => !own.has(day)),
-      ),
-    };
-  }, [availability, position]);
+  const calendarData = useMemo(
+    () =>
+      availability
+        ? fromVendorAvailability(availability, addDays(availability.today, horizonDays))
+        : null,
+    [availability, horizonDays],
+  );
 
-  const selection = useMemo(() => {
-    if (!range?.from || !range.to) return null;
-    const from = utcDayFromCalendarDate(range.from);
-    const to = utcDayFromCalendarDate(range.to);
-    const startDay = from <= to ? from : to;
-    const endDay = from <= to ? to : from;
-    return {
-      startDay,
-      endDay,
-      days: daysBetweenInclusive(startDay, endDay),
-    };
-  }, [range]);
-
-  const total = useMemo(() => {
-    if (!selection || !rung || !catalog) return null;
-    return quantizeToCurrency(
-      rung.pricePerDay * selection.days,
-      catalog.currency,
-    );
-  }, [selection, rung, catalog]);
-
-  // Switching rungs re-derives the blocked set from the already-loaded payload
-  // (it covers every rung), so there is no refetch — but a draft that now
-  // intersects a taken day has to go, or the vendor pays the 409 to find out.
-  useApplyOnChange([dayGroups.blocked, selection, label], () => {
-    if (!selection) return;
-    const clash = enumerateDays(selection.startDay, selection.endDay).filter(
-      (day) => dayGroups.blocked.has(day),
-    );
-    if (clash.length === 0) return;
-    setRange(undefined);
-    setConflictNote(
-      label(
-        "boosts.purchase.conflictInline",
-        "Those dates aren't free at this position — pick again.",
-      ),
-    );
-  });
-
-  const maxBookingDays = catalog?.maxBookingDays ?? 60;
-  const overMax = Boolean(selection && selection.days > maxBookingDays);
+  const rung = rungs.find((row) => row.position === position) ?? null;
+  const selection = useMemo(() => selectionFromRange(range), [range]);
+  const clash =
+    calendarData && rung && selection
+      ? clashingDays(calendarData, rung.position, selection.startDay, selection.endDay)
+      : [];
+  const slotReady = Boolean(
+    product &&
+      rung &&
+      !rung.blocked &&
+      selection &&
+      clash.length === 0 &&
+      selection.days <= maxBookingDays,
+  );
+  const total =
+    rung && selection && catalog
+      ? quantizeToCurrency(rung.pricePerDay * selection.days, catalog.currency)
+      : null;
 
   // ---- the hold countdown ----------------------------------------------
   // UI for a server rule, not a second source of truth: `holdExpiresAt` on the
@@ -538,12 +415,12 @@ export function BoostPurchaseDialog(props: {
       // are the actual guarantees.
       const fresh = await refreshAvailability();
       const freshTaken = new Set([
-        ...(fresh?.positions.find((p) => p.position === rung.position)
-          ?.takenDays ?? []),
+        ...(fresh?.positions.find((p) => p.position === rung.position)?.takenDays ??
+          []),
         ...(fresh?.productBookedDays ?? []),
       ]);
-      const gone = enumerateDays(selection.startDay, selection.endDay).filter(
-        (day) => freshTaken.has(day),
+      const gone = enumerateDays(selection.startDay, selection.endDay).filter((day) =>
+        freshTaken.has(day),
       );
       if (gone.length > 0) {
         setStep("slot");
@@ -552,7 +429,7 @@ export function BoostPurchaseDialog(props: {
           label(
             "boosts.purchase.slotTakenRetry",
             "Someone booked {days} while you were choosing. Pick again.",
-            { days: gone.join(", ") },
+            { days: formatBookingRuns(gone, locale) },
           ),
         );
         return;
@@ -570,9 +447,7 @@ export function BoostPurchaseDialog(props: {
           ...(method === "iotec"
             ? { iotecChannel, iotecPhone: iotecPhone || undefined }
             : {}),
-          ...(method === "mtn_momo"
-            ? { mtnMomoPhone: mtnMomoPhone || undefined }
-            : {}),
+          ...(method === "mtn_momo" ? { mtnMomoPhone: mtnMomoPhone || undefined } : {}),
         },
       );
 
@@ -588,22 +463,27 @@ export function BoostPurchaseDialog(props: {
       }
 
       if (response.type === "razorpay" && response.razorpayOrderId) {
+        const razorpayOrderId = response.razorpayOrderId;
         // Never resolves: Razorpay returns the vendor to /vendor/boosts, which
-        // verifies the payment with the signature the return carries.
-        await openRazorpayCheckout({
-          keyId: response.keyId ?? "",
-          razorpayOrderId: response.razorpayOrderId,
-          amount: response.amount ?? 0,
-          currency: response.currency ?? "",
-          name: response.name ?? "",
-          description: response.description,
-          callbackUrl: response.callbackUrl ?? "",
-          prefill: response.prefill,
-          canceledMessage: label(
-            "boosts.purchase.canceled",
-            "Payment was canceled. Please try again.",
-          ),
-        });
+        // verifies the payment with the signature the return carries. The
+        // dialog steps aside meanwhile, or its modal lock would leave
+        // Razorpay's window unclickable; it comes back if the vendor closes it.
+        await withGatewayWindow(() =>
+          openRazorpayCheckout({
+            keyId: response.keyId ?? "",
+            razorpayOrderId,
+            amount: response.amount ?? 0,
+            currency: response.currency ?? "",
+            name: response.name ?? "",
+            description: response.description,
+            callbackUrl: response.callbackUrl ?? "",
+            prefill: response.prefill,
+            canceledMessage: label(
+              "boosts.purchase.canceled",
+              "Payment was canceled. Please try again.",
+            ),
+          }),
+        );
         return;
       }
 
@@ -618,20 +498,12 @@ export function BoostPurchaseDialog(props: {
         return;
       }
 
-      throw new Error(
-        label("boosts.purchase.failed", "Failed to start the payment"),
-      );
+      throw new Error(label("boosts.purchase.failed", "Failed to start the payment"));
     } catch (error) {
-      // A 409 from the insert names the days that were taken. Two unique
-      // indexes can fire and they mean different things, so they repaint
-      // differently: a position conflict is "buy another rung or other days",
-      // a product conflict is "this product is already on screen that day".
-      // The open-checkout cap. It carries a machine-readable reason precisely so
+      // The open-checkout cap carries a machine-readable reason precisely so
       // this branch does not have to match on the server's English sentence.
       if (error instanceof ApiClientError) {
-        const details = error.details as
-          | { reason?: string; limit?: number }
-          | undefined;
+        const details = error.details as { reason?: string; limit?: number } | undefined;
         if (details?.reason === "too_many_holds") {
           toast.error(
             label(
@@ -643,6 +515,10 @@ export function BoostPurchaseDialog(props: {
           return;
         }
       }
+      // A 409 from the insert names the days that were taken. Two unique
+      // indexes can fire and they mean different things: a position conflict
+      // is "buy another rung or other days", a product conflict is "this
+      // product is already on screen that day".
       if (error instanceof ApiClientError && error.status === 409) {
         const details = error.details as
           | { conflictDays?: string[]; productConflictDays?: string[] }
@@ -659,21 +535,23 @@ export function BoostPurchaseDialog(props: {
               ? label(
                   "boosts.purchase.productBusy",
                   "This product is already scheduled on {days}. Pick other dates, or a different product.",
-                  { days: productDays.join(", ") },
+                  { days: formatBookingRuns(productDays, locale) },
                 )
               : label(
                   "boosts.purchase.slotTaken",
                   "Someone just booked {days} at this position.",
-                  { days: positionDays.join(", ") },
+                  { days: formatBookingRuns(positionDays, locale) },
                 ),
           );
           return;
         }
       }
       toast.error(
-        error instanceof Error
-          ? error.message
-          : label("boosts.purchase.failed", "Failed to start the payment"),
+        platformPaymentErrorMessage(
+          error,
+          label,
+          label("boosts.purchase.failed", "Failed to start the payment"),
+        ),
       );
     } finally {
       setIsSubmitting(false);
@@ -684,74 +562,16 @@ export function BoostPurchaseDialog(props: {
     selection,
     method,
     catalog,
-    props,
+    props.locale,
     iotecChannel,
     iotecPhone,
     mtnMomoPhone,
     label,
+    locale,
     refreshAvailability,
     pollVerify,
-    router,
+    withGatewayWindow,
   ]);
-
-  const visibleSteps = useMemo(() => {
-    const all: { key: Step; label: string }[] = [
-      { key: "product", label: label("boosts.purchase.stepProduct", "Product") },
-      { key: "slot", label: label("boosts.purchase.stepSlot", "Slot & dates") },
-      { key: "payment", label: label("boosts.purchase.stepPayment", "Payment") },
-    ];
-    // A preselected product (products-table row action) skips the picker,
-    // so there's no "Product" step to show progress against.
-    return props.preselectedProduct
-      ? all.filter((item) => item.key !== "product")
-      : all;
-  }, [props.preselectedProduct, label]);
-
-  const stepTitle = useMemo(() => {
-    if (isPolling)
-      return label("boosts.purchase.waitingTitle", "Waiting for payment");
-    if (step === "product")
-      return label("boosts.purchase.pickProduct", "Choose a product");
-    if (step === "slot")
-      return label("boosts.purchase.pickSlot", "Choose a position and dates");
-    return label("boosts.purchase.pickPayment", "Choose a payment method");
-  }, [step, isPolling, label]);
-
-  /** "Home (top 8) · Listings (top 3) · Product pages (top 8)", struck where it misses. */
-  const reachLine = useCallback(
-    (row: LadderRung) => {
-      if (!catalog) return null;
-      const parts: Array<{ text: string; on: boolean }> = [];
-      if (catalog.placementsEnabled.home) {
-        parts.push({
-          text: label("boosts.positions.reachHome", "Home (top {n})", {
-            n: catalog.placementDepth.home,
-          }),
-          on: row.reach.home,
-        });
-      }
-      if (catalog.placementsEnabled.listing) {
-        parts.push({
-          text: label("boosts.positions.reachListing", "Listings (top {n})", {
-            n: catalog.placementDepth.listing,
-          }),
-          on: row.reach.listing,
-        });
-      }
-      if (catalog.placementsEnabled.productPage) {
-        parts.push({
-          text: label(
-            "boosts.positions.reachProductPage",
-            "Product pages (top {n})",
-            { n: catalog.placementDepth.productPage },
-          ),
-          on: row.reach.productPage,
-        });
-      }
-      return parts;
-    },
-    [catalog, label],
-  );
 
   const holdClock = useMemo(() => {
     const totalSeconds = Math.floor(holdRemaining / 1000);
@@ -760,488 +580,269 @@ export function BoostPurchaseDialog(props: {
     return `${minutes}:${String(seconds).padStart(2, "0")}`;
   }, [holdRemaining]);
 
+  const steps: BookingStepItem[] = [
+    {
+      key: "product",
+      label: label("boosts.purchase.stepProduct", "Product"),
+      picked: product?.name,
+      // Opened from a product's row: that product is the point, not a pick.
+      locked: Boolean(props.preselectedProduct),
+    },
+    {
+      key: "slot",
+      label: label("boosts.booking.stepPositionDates", "Position & dates"),
+      picked:
+        rung && selection
+          ? `#${rung.position} · ${formatBookingRange(selection.startDay, selection.endDay, locale)}`
+          : null,
+    },
+    { key: "payment", label: label("boosts.purchase.stepPayment", "Payment") },
+  ];
+
+  const daysLabel = selection
+    ? label("boosts.booking.dayCount", "{count} days", { count: selection.days })
+    : "";
+
+  const payDisabled =
+    !method ||
+    isSubmitting ||
+    !slotReady ||
+    (method === "iotec" && iotecChannel === "mobile_money" && !iotecPhone.trim()) ||
+    (method === "mtn_momo" && !mtnMomoPhone.trim());
+
+  let body;
+  let footer;
+  if (isPolling) {
+    body = (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">
+          {label(
+            "boosts.purchase.checkPhone",
+            "Check your phone and approve the payment request.",
+          )}
+        </p>
+      </div>
+    );
+  } else if (step === "product") {
+    body = (
+      <BookingProductStep
+        query={productSearch}
+        onQueryChange={setProductSearch}
+        placeholder={label("boosts.purchase.searchProducts", "Search your products…")}
+        items={products.map((row) => ({ id: row._id, name: row.name, image: row.image }))}
+        total={productTotal}
+        loading={productsLoading}
+        selectedId={product?._id ?? null}
+        onSelect={(item) =>
+          setProduct(products.find((row) => row._id === item.id) ?? null)
+        }
+        emptyText={label("boosts.purchase.noProducts", "No active products found")}
+      />
+    );
+    footer = (
+      <BookingFooter
+        secondary={{
+          label: label("common.cancel", "Cancel"),
+          onClick: () => props.onOpenChange(false),
+        }}
+        total={null}
+        primary={{
+          label: label("common.continue", "Continue"),
+          onClick: () => setStep("slot"),
+          disabled: !product,
+          arrow: true,
+        }}
+      />
+    );
+  } else if (!catalog) {
+    body = (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  } else if (step === "slot") {
+    body = (
+      <BookingSlotStep
+        area="vendor"
+        rungs={rungs}
+        placementsEnabled={catalog.placementsEnabled}
+        data={calendarData}
+        refreshing={availabilityLoading}
+        horizonDays={horizonDays}
+        maxBookingDays={maxBookingDays}
+        position={position}
+        onPositionChange={(next) => {
+          setPosition(next);
+          setConflictNote(null);
+        }}
+        range={range}
+        onRangeChange={(next) => {
+          setRange(next);
+          setConflictNote(null);
+        }}
+        serverNote={conflictNote}
+        formatPrice={(amount) => formatPrice(amount)}
+      />
+    );
+    footer = (
+      <BookingFooter
+        secondary={
+          props.preselectedProduct
+            ? {
+                label: label("common.cancel", "Cancel"),
+                onClick: () => props.onOpenChange(false),
+              }
+            : { label: label("common.back", "Back"), onClick: () => setStep("product") }
+        }
+        total={
+          slotReady && total !== null
+            ? {
+                label: `${label("boosts.booking.total", "Total")} · ${daysLabel}`,
+                value: formatPrice(total),
+              }
+            : null
+        }
+        primary={{
+          label: label("common.continue", "Continue"),
+          onClick: () => setStep("payment"),
+          disabled: !slotReady,
+          arrow: true,
+        }}
+      />
+    );
+  } else if (product && rung && selection && total !== null) {
+    body = (
+      <div className="grid gap-6 md:grid-cols-[300px_minmax(0,1fr)] md:items-start">
+        <div className="space-y-3">
+          <BookingSummary
+            productName={product.name}
+            productImage={product.image}
+            rows={[
+              {
+                label: label("boosts.admin.position", "Position"),
+                value: `#${rung.position} ${rung.label}`,
+              },
+              {
+                label: label("boosts.booking.dates", "Dates"),
+                value: `${formatBookingRange(selection.startDay, selection.endDay, locale, true)} · ${daysLabel}`,
+              },
+              {
+                label: label("boosts.booking.price", "Price"),
+                value: `${formatPrice(rung.pricePerDay)} × ${selection.days} = ${formatPrice(total)}`,
+              },
+            ]}
+          />
+          {/* The disclosures, kept short: they are the difference between
+              selling a visual slot and implying an audience. Reach is shown
+              on each rung before it is picked. */}
+          <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground">
+            <li>
+              {label(
+                "boosts.booking.termSlot",
+                "You're buying slot #{position}. If a slot above is unsold, yours doesn't move up.",
+                { position: rung.position },
+              )}
+            </li>
+            {rung.reach.listing && catalog.placementsEnabled.listing ? (
+              <li>
+                {label(
+                  "boosts.booking.termListings",
+                  "On listings it shows on the shop and category pages, never in search results.",
+                )}
+              </li>
+            ) : null}
+            <li>
+              {label(
+                "boosts.booking.termRefund",
+                "Days already run aren't refundable. Future days can be released for credit.",
+              )}
+            </li>
+            <li>
+              {label(
+                "boosts.booking.termHold",
+                "Your dates are held for {minutes} minutes while you pay.",
+                { minutes: catalog.holdMinutes },
+              )}
+            </li>
+          </ul>
+        </div>
+        <div className="min-w-0 space-y-3">
+          <h3 className="text-sm font-medium">{label("boosts.booking.payWith", "Pay with")}</h3>
+          {holdExpiresAt ? (
+            <p className="flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 p-2.5 text-xs text-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
+              {label("boosts.purchase.holdExpires", "These dates are held for you for {clock}", {
+                clock: holdClock,
+              })}
+            </p>
+          ) : null}
+          <PaymentMethodPicker
+            methods={catalog.paymentMethods ?? []}
+            value={method}
+            onChange={setMethod}
+            iotecChannel={iotecChannel}
+            onIotecChannelChange={setIotecChannel}
+            iotecPhone={iotecPhone}
+            onIotecPhoneChange={setIotecPhone}
+            mtnMomoPhone={mtnMomoPhone}
+            onMtnMomoPhoneChange={setMtnMomoPhone}
+          />
+        </div>
+      </div>
+    );
+    footer = (
+      <BookingFooter
+        secondary={{
+          label: label("common.back", "Back"),
+          onClick: () => setStep("slot"),
+          disabled: isSubmitting,
+        }}
+        total={{
+          label: label("boosts.booking.totalDue", "Total due"),
+          value: formatPrice(total),
+        }}
+        primary={{
+          label: label("boosts.purchase.payNow", "Pay & book"),
+          onClick: handleConfirm,
+          disabled: payDisabled,
+          busy: isSubmitting,
+        }}
+      />
+    );
+  }
+
   return (
-    <Dialog
-      open={props.open}
+    <BookingDialogFrame
+      open={props.open && !gatewayOpen}
       onOpenChange={(open) => {
         if (isPolling || isSubmitting) return;
         props.onOpenChange(open);
       }}
-    >
-      <DialogContent
-        className={cn(
-          "scrollbar-visible max-h-[85dvh] overflow-y-auto",
-          step === "slot" && !isPolling ? "sm:max-w-3xl" : "sm:max-w-lg",
-        )}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Rocket className="h-5 w-5 text-primary" />
-            {stepTitle}
-          </DialogTitle>
-          <DialogDescription>
-            {label(
-              "boosts.purchase.subtitle",
-              "Book a numbered slot on the sponsored ladder for the days you choose.",
-            )}
-          </DialogDescription>
-        </DialogHeader>
-
-        {!isPolling ? (
-          <BoostStepper
-            steps={visibleSteps}
-            currentKey={step}
+      title={
+        isPolling
+          ? label("boosts.purchase.waitingTitle", "Waiting for payment")
+          : label("boosts.booking.vendorTitle", "Boost a product")
+      }
+      description={label(
+        "boosts.purchase.subtitle",
+        "Book a numbered slot on the sponsored ladder for the days you choose.",
+      )}
+      stepper={
+        isPolling ? null : (
+          <BookingStepper
+            steps={steps}
+            current={step}
             onStepClick={(key) => {
               if (isSubmitting) return;
-              setStep(key);
+              setStep(key as Step);
             }}
           />
-        ) : null}
-
-        {isPolling ? (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">
-              {label(
-                "boosts.purchase.checkPhone",
-                "Check your phone and approve the payment request.",
-              )}
-            </p>
-          </div>
-        ) : step === "product" ? (
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder={label(
-                  "boosts.purchase.searchProducts",
-                  "Search your products…",
-                )}
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-              />
-            </div>
-            <div className="max-h-72 space-y-1 overflow-y-auto">
-              {productsLoading ? (
-                <div className="flex justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : products.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  {label(
-                    "boosts.purchase.noProducts",
-                    "No active products found",
-                  )}
-                </p>
-              ) : (
-                products.map((row) => {
-                  const booked = catalog?.bookingCountByProduct[row._id] ?? 0;
-                  return (
-                    <button
-                      key={row._id}
-                      type="button"
-                      onClick={() => {
-                        setProduct(row);
-                        setStep("slot");
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg border p-2 text-left hover:bg-muted/50"
-                    >
-                      {row.image ? (
-                        <Image
-                          src={row.image}
-                          alt=""
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-md bg-muted" />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">
-                          {row.name}
-                        </span>
-                        {booked > 0 ? (
-                          <span className="block text-xs text-muted-foreground">
-                            {label(
-                              "boosts.purchase.alreadyBooked",
-                              "{count} boosts booked",
-                              { count: booked },
-                            )}
-                          </span>
-                        ) : null}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        ) : step === "slot" ? (
-          <div className="space-y-4">
-            {product ? (
-              <p className="text-sm text-muted-foreground">
-                {label("boosts.purchase.boosting", "Boosting:")}{" "}
-                <span className="font-medium text-foreground">
-                  {product.name}
-                </span>
-              </p>
-            ) : null}
-
-            {!catalog ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : catalog.positions.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                {label(
-                  "boosts.purchase.noPositions",
-                  "No sponsored positions are on sale yet",
-                )}
-              </p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-                {/* Left: the ladder. */}
-                <div
-                  role="radiogroup"
-                  aria-label={label(
-                    "boosts.purchase.pickSlot",
-                    "Choose a position and dates",
-                  )}
-                  className="max-h-88 space-y-2 overflow-y-auto pr-1"
-                >
-                  {catalog.positions.map((row) => {
-                    const active = row.position === position;
-                    return (
-                      <button
-                        key={row.position}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        disabled={row.stale}
-                        onClick={() => {
-                          setPosition(row.position);
-                          setConflictNote(null);
-                        }}
-                        className={cn(
-                          "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
-                          active
-                            ? "border-primary bg-primary/5"
-                            : "hover:bg-muted/50",
-                          row.stale && "cursor-not-allowed opacity-50",
-                        )}
-                      >
-                        <span className="flex h-7 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-bold">
-                          #{row.position}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-                            <span className="font-medium">{row.label}</span>
-                            <span className="text-sm font-semibold">
-                              {formatPrice(row.pricePerDay)}
-                              <span className="ml-0.5 text-xs font-normal text-muted-foreground">
-                                {label("boosts.purchase.perDay", "/day")}
-                              </span>
-                            </span>
-                          </span>
-                          {row.description ? (
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                              {row.description}
-                            </span>
-                          ) : null}
-                          {/* Reach is shown BEFORE selection, not after
-                              commitment: a rung that misses the listing depth
-                              is a materially different product. */}
-                          <span className="mt-1 block text-[11px] leading-relaxed text-muted-foreground">
-                            {reachLine(row)?.map((part, index) => (
-                              <span key={part.text}>
-                                {index > 0 ? " · " : ""}
-                                <span
-                                  className={cn(
-                                    !part.on && "line-through opacity-60",
-                                  )}
-                                >
-                                  {part.text}
-                                </span>
-                              </span>
-                            ))}
-                          </span>
-                          {row.avgImpressionsPerDay !== null ? (
-                            <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                              {label(
-                                "boosts.purchase.observedReach",
-                                "Averaged {n} impressions/day over the last 30 days",
-                                {
-                                  n: row.avgImpressionsPerDay.toLocaleString(
-                                    props.locale,
-                                  ),
-                                },
-                              )}
-                            </span>
-                          ) : null}
-                          {row.stale ? (
-                            <span className="mt-1 block text-[11px] font-medium text-destructive">
-                              {label(
-                                "boosts.purchase.positionStale",
-                                "Priced in another currency — ask the marketplace to re-price it.",
-                              )}
-                            </span>
-                          ) : null}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Right: the calendar, inline — it is the primary control. */}
-                <div className="space-y-2">
-                  {position === null ? (
-                    <div className="flex h-full min-h-72 w-70.5 items-center justify-center rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                      {label(
-                        "boosts.purchase.pickPositionFirst",
-                        "Pick a position to see which days are free.",
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="relative">
-                        {availabilityLoading ? (
-                          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : null}
-                        <Calendar
-                          mode="range"
-                          selected={range}
-                          onSelect={(next) => {
-                            setRange(next);
-                            setConflictNote(null);
-                          }}
-                          numberOfMonths={1}
-                          fixedWeeks
-                          weekStartsOn={1}
-                          // A drag can never span a booked day: without this a
-                          // vendor selects across a gap and the server refuses
-                          // a range the calendar appeared to allow.
-                          excludeDisabled
-                          min={1}
-                          max={maxBookingDays}
-                          startMonth={calendarDateFromUtcDay(today)}
-                          endMonth={calendarDateFromUtcDay(horizonEnd)}
-                          disabled={[
-                            { before: calendarDateFromUtcDay(today) },
-                            { after: calendarDateFromUtcDay(horizonEnd) },
-                            ...[...dayGroups.blocked].map(
-                              calendarDateFromUtcDay,
-                            ),
-                          ]}
-                          modifiers={{
-                            taken: [...dayGroups.taken].map(
-                              calendarDateFromUtcDay,
-                            ),
-                            own: [...dayGroups.own].map(calendarDateFromUtcDay),
-                          }}
-                          modifiersClassNames={{
-                            taken: "line-through",
-                            own: "ring-1 ring-primary/40 rounded-full",
-                          }}
-                        />
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>{label("boosts.purchase.legendFree", "Free")}</span>
-                        <span className="line-through">
-                          {label("boosts.purchase.legendBooked", "Booked")}
-                        </span>
-                        <span className="rounded-full px-1 ring-1 ring-primary/40">
-                          {label("boosts.purchase.legendYours", "Yours")}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {conflictNote ? (
-              <p className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2.5 text-xs text-destructive">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {conflictNote}
-              </p>
-            ) : null}
-
-            {rung && selection && total !== null ? (
-              <div className="sticky bottom-0 space-y-1 rounded-lg border bg-muted/50 p-3 text-sm">
-                <div className="text-xs text-muted-foreground">
-                  {label("boosts.purchase.summaryLine", "Position {position}", {
-                    position: rung.position,
-                  })}{" "}
-                  ·{" "}
-                  {label("boosts.purchase.days", "{days} days", {
-                    days: selection.days,
-                  })}{" "}
-                  ·{" "}
-                  {formatDayRange(
-                    selection.startDay,
-                    selection.endDay,
-                    props.locale,
-                  )}{" "}
-                  (UTC)
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
-                    {formatPrice(rung.pricePerDay)} × {selection.days}
-                  </span>
-                  <span className="text-base font-semibold">
-                    {formatPrice(total)}
-                  </span>
-                </div>
-                {overMax ? (
-                  <p className="text-xs font-medium text-destructive">
-                    {label(
-                      "boosts.purchase.overMaxDays",
-                      "A booking cannot exceed {days} days.",
-                      { days: maxBookingDays },
-                    )}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {/* The disclosures. All required: they are the difference between
-                selling a visual slot and implying an audience. Reach is the
-                sixth and is rendered per rung in the list above, so it is seen
-                before selection rather than after commitment. */}
-            {rung ? (
-              <ul className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                <li>
-                  {label(
-                    "boosts.purchase.strictIndexNote",
-                    "You're buying visual slot {position}. If a position above yours is unsold that day, that slot shows a regular product — your slot does not move up.",
-                    { position: rung.position },
-                  )}
-                </li>
-                <li>
-                  {label(
-                    "boosts.purchase.reachDetail",
-                    "On listing pages your product appears on the main shop page and on its own category page. Filtered and search results never show sponsored products.",
-                  )}
-                </li>
-                <li>
-                  {label(
-                    "boosts.purchase.refundPolicy",
-                    "Days already run are not refundable. Future days can be released — the marketplace credits them at the daily rate and refunds through your payment provider. If your product goes out of stock or is unpublished, that day is credited in proportion.",
-                  )}
-                </li>
-                <li>
-                  {label(
-                    "boosts.purchase.utcNote",
-                    "Days run midnight to midnight, UTC.",
-                  )}
-                </li>
-                <li>
-                  {label(
-                    "boosts.purchase.oneCheckout",
-                    "You can have one open checkout per product. Changing the position or dates moves your hold to the new selection.",
-                  )}
-                </li>
-              </ul>
-            ) : null}
-
-            <div className="flex justify-between pt-1">
-              {props.preselectedProduct ? (
-                <span />
-              ) : (
-                <Button variant="outline" onClick={() => setStep("product")}>
-                  {label("common.back", "Back")}
-                </Button>
-              )}
-              <Button
-                disabled={!rung || !selection || overMax}
-                onClick={() => setStep("payment")}
-              >
-                {label("common.continue", "Continue")}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {rung && selection && total !== null ? (
-              <div className="space-y-1 rounded-lg bg-muted/50 p-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span>
-                    {label(
-                      "boosts.purchase.summaryLine",
-                      "Position {position}",
-                      { position: rung.position },
-                    )}{" "}
-                    ·{" "}
-                    {formatDayRange(
-                      selection.startDay,
-                      selection.endDay,
-                      props.locale,
-                    )}
-                  </span>
-                  <span className="font-semibold">{formatPrice(total)}</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatPrice(rung.pricePerDay)}
-                  {label("boosts.purchase.perDay", "/day")} × {selection.days}{" "}
-                  ({label("boosts.purchase.utcShort", "UTC days")})
-                </div>
-              </div>
-            ) : null}
-
-            {holdExpiresAt ? (
-              <p className="flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/5 p-2.5 text-xs text-foreground">
-                <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
-                {label(
-                  "boosts.purchase.holdExpires",
-                  "These dates are held for you for {clock}",
-                  { clock: holdClock },
-                )}
-              </p>
-            ) : null}
-
-            <PaymentMethodPicker
-              methods={catalog?.paymentMethods ?? []}
-              value={method}
-              onChange={setMethod}
-              iotecChannel={iotecChannel}
-              onIotecChannelChange={setIotecChannel}
-              iotecPhone={iotecPhone}
-              onIotecPhoneChange={setIotecPhone}
-              mtnMomoPhone={mtnMomoPhone}
-              onMtnMomoPhoneChange={setMtnMomoPhone}
-            />
-            <div className="flex justify-between pt-2">
-              <Button
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={() => setStep("slot")}
-              >
-                {label("common.back", "Back")}
-              </Button>
-              <Button
-                disabled={
-                  !method ||
-                  isSubmitting ||
-                  (method === "iotec" &&
-                    iotecChannel === "mobile_money" &&
-                    !iotecPhone.trim()) ||
-                  (method === "mtn_momo" && !mtnMomoPhone.trim())
-                }
-                onClick={handleConfirm}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                {label("boosts.purchase.payNow", "Pay & book")}
-              </Button>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        )
+      }
+      footer={footer}
+    >
+      {body}
+    </BookingDialogFrame>
   );
 }

@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import {
   BarChart3,
   Bell,
+  Boxes,
   CreditCard,
   HardDrive,
   KeyRound,
@@ -25,7 +26,15 @@ import {
   Wrench,
 } from "lucide-react";
 import type { CredentialMetaMap } from "@/lib/settings/credential-fields";
+import type {
+  CheckoutGatewayId,
+  CheckoutGatewayReadiness,
+} from "@/lib/payments/checkout-gateways";
 import { STORAGE_CREDENTIAL_BLOCKS } from "@/lib/settings/credentials";
+import {
+  isStorageConfigured,
+  type StorageReadinessField,
+} from "@/lib/storage/storage-readiness";
 import {
   hasAnySmsNotification,
   type NotificationSettings,
@@ -35,6 +44,7 @@ export type AdminSettingsSectionId =
   | "general"
   | "appearance"
   | "marketplace"
+  | "products"
   | "boosting"
   | "pos"
   | "twoFactor"
@@ -65,7 +75,8 @@ type AdminSettingsGroupId =
 
 type AdminSettingsSection = {
   id: AdminSettingsSectionId;
-  tab: AdminSettingsSectionId;
+  /** The URL segment under `/admin/settings/`. */
+  path: string;
   group: AdminSettingsGroupId;
   labelKey: string;
   defaultLabel: string;
@@ -120,7 +131,7 @@ export const ADMIN_SETTINGS_GROUPS: Record<
 export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   {
     id: "general",
-    tab: "general",
+    path: "general",
     group: "store",
     labelKey: "admin.settings.general.title",
     defaultLabel: "General",
@@ -128,7 +139,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "appearance",
-    tab: "appearance",
+    path: "appearance",
     group: "store",
     labelKey: "admin.settings.appearance.title",
     defaultLabel: "Branding",
@@ -136,15 +147,23 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "marketplace",
-    tab: "marketplace",
+    path: "marketplace",
     group: "store",
     labelKey: "admin.settings.security.multiVendor.label",
     defaultLabel: "Multi-Vendor Management",
     icon: ShoppingBag,
   },
   {
+    id: "products",
+    path: "products",
+    group: "commerce",
+    labelKey: "admin.settings.products.title",
+    defaultLabel: "Products",
+    icon: Boxes,
+  },
+  {
     id: "payment",
-    tab: "payment",
+    path: "payment",
     group: "commerce",
     labelKey: "admin.settings.payment.title",
     defaultLabel: "Payment Settings",
@@ -152,7 +171,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "orders",
-    tab: "orders",
+    path: "orders",
     group: "commerce",
     labelKey: "admin.settings.orders.title",
     defaultLabel: "Order Settings",
@@ -160,7 +179,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "shipping",
-    tab: "shipping",
+    path: "shipping",
     group: "commerce",
     labelKey: "admin.settings.shipping.title",
     defaultLabel: "Shipping & Delivery",
@@ -168,7 +187,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "boosting",
-    tab: "boosting",
+    path: "boosting",
     group: "salesTools",
     labelKey: "admin.settings.boosting.title",
     defaultLabel: "Product Boosting",
@@ -176,7 +195,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "pos",
-    tab: "pos",
+    path: "pos",
     group: "salesTools",
     labelKey: "admin.settings.pos.title",
     defaultLabel: "POS",
@@ -184,7 +203,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "email",
-    tab: "email",
+    path: "email",
     group: "communication",
     labelKey: "admin.settings.email.title",
     defaultLabel: "Email Configuration (SMTP)",
@@ -192,7 +211,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "sms",
-    tab: "sms",
+    path: "sms",
     group: "communication",
     labelKey: "admin.settings.sms.title",
     defaultLabel: "SMS (Twilio)",
@@ -200,7 +219,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "notifications",
-    tab: "notifications",
+    path: "notifications",
     group: "communication",
     labelKey: "admin.settings.notifications.title",
     defaultLabel: "Notification Settings",
@@ -208,7 +227,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "messaging",
-    tab: "messaging",
+    path: "messaging",
     group: "communication",
     labelKey: "admin.settings.messaging.title",
     defaultLabel: "Omnichannel Messaging",
@@ -216,7 +235,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "oauth",
-    tab: "oauth",
+    path: "oauth",
     group: "authentication",
     labelKey: "admin.settings.oauth.title",
     defaultLabel: "OAuth / Social Login",
@@ -224,7 +243,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "twoFactor",
-    tab: "twoFactor",
+    path: "two-factor",
     group: "authentication",
     labelKey: "admin.settings.twoFactor.title",
     defaultLabel: "Two-Factor Authentication",
@@ -232,7 +251,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "security",
-    tab: "security",
+    path: "security",
     group: "authentication",
     labelKey: "admin.settings.security.title",
     defaultLabel: "Security & Access Control",
@@ -240,7 +259,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "seo",
-    tab: "seo",
+    path: "seo",
     group: "growth",
     labelKey: "admin.settings.seo.title",
     defaultLabel: "SEO Settings",
@@ -248,7 +267,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "social",
-    tab: "social",
+    path: "social",
     group: "growth",
     labelKey: "admin.settings.social.title",
     defaultLabel: "Social / Links",
@@ -256,7 +275,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "analytics",
-    tab: "analytics",
+    path: "analytics",
     group: "growth",
     labelKey: "admin.settings.analytics.title",
     defaultLabel: "Analytics",
@@ -264,7 +283,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "aiAuthoring",
-    tab: "aiAuthoring",
+    path: "ai",
     group: "growth",
     labelKey: "admin.settings.ai.title",
     defaultLabel: "AI Configuration",
@@ -272,7 +291,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "storage",
-    tab: "storage",
+    path: "storage",
     group: "advanced",
     labelKey: "admin.settings.storage.title",
     defaultLabel: "Storage",
@@ -280,7 +299,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
   {
     id: "maintenance",
-    tab: "maintenance",
+    path: "maintenance",
     group: "advanced",
     labelKey: "admin.settings.maintenance.title",
     defaultLabel: "Maintenance",
@@ -288,7 +307,56 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
   },
 ];
 
+const SECTION_BY_PATH = new Map(
+  ADMIN_SETTINGS_SECTIONS.map((section) => [section.path, section.id]),
+);
+
+/**
+ * The settings section a page belongs to, or `null` outside settings. Takes
+ * a locale-less path (`/admin/settings/payment`). A deeper path
+ * (`/admin/settings/general/branding`) belongs to its first segment, and
+ * the bare `/admin/settings` redirects to General.
+ */
+export function adminSettingsSectionFromPath(
+  path: string,
+): AdminSettingsSectionId | null {
+  const match = /^\/admin\/settings(?:\/([^/?#]+))?(?:[/?#]|$)/.exec(path);
+  if (!match) return null;
+  return SECTION_BY_PATH.get(match[1] ?? "") ?? "general";
+}
+
+/**
+ * Whether a section's page holds edits that are not saved yet. Two pages edit
+ * blocks stored under other names: Multi-Vendor Management saves
+ * `multiVendorMode` and the vendor pre-order rules (`preorder`), and Email
+ * also owns the sign-up verification switches (`emailVerification`).
+ */
+export function isAdminSettingsSectionDirty(
+  sectionId: AdminSettingsSectionId,
+  dirtySections: ReadonlySet<string>,
+): boolean {
+  if (sectionId === "marketplace") {
+    return dirtySections.has("multiVendorMode") || dirtySections.has("preorder");
+  }
+  if (sectionId === "email") {
+    return (
+      dirtySections.has("email") || dirtySections.has("emailVerification")
+    );
+  }
+  return dirtySections.has(sectionId);
+}
+
 type SectionStatus = "ok" | "warning" | "disabled";
+
+type StorageBlockForStatus = {
+  bucketName?: string;
+  endpoint?: string;
+  // Secrets: present in the browser only while typed and unsaved (null after
+  // a Remove); what is stored shows through `_meta.credentials`.
+  accountId?: string | null;
+  accessKeyId?: string | null;
+  secretAccessKey?: string | null;
+};
 
 type SettingsForStatus = {
   maintenance?: { enabled?: boolean };
@@ -303,7 +371,10 @@ type SettingsForStatus = {
     orange_money?: { enabled?: boolean };
     mtn_momo?: { enabled?: boolean };
   };
-  email?: { enabled?: boolean; provider?: string; smtp?: { host?: string; user?: string } };
+  email?: {
+    enabled?: boolean;
+    smtp?: { user?: string; password?: string | null };
+  };
   sms?: {
     enabled?: boolean;
     twilio?: { messagingServiceSid?: string; fromNumber?: string };
@@ -320,11 +391,13 @@ type SettingsForStatus = {
   };
   storage?: {
     provider?: string;
+    /** Pre-v1.5 flat fields, still read after the provider's own block. */
     bucketName?: string;
-    r2?: { bucketName?: string };
-    s3?: { bucketName?: string };
-    minio?: { bucketName?: string };
-    digitalocean?: { bucketName?: string };
+    endpoint?: string;
+    r2?: StorageBlockForStatus;
+    s3?: StorageBlockForStatus;
+    minio?: StorageBlockForStatus;
+    digitalocean?: StorageBlockForStatus;
   };
   security?: {
     twoFactorEnabled?: boolean;
@@ -334,6 +407,9 @@ type SettingsForStatus = {
   aiAuthoring?: { enabled?: boolean };
   _meta?: {
     credentials?: CredentialMetaMap;
+    checkoutGateways?: Partial<
+      Record<CheckoutGatewayId, CheckoutGatewayReadiness>
+    >;
     envSources?: {
       ai?: { apiKey?: boolean };
       sms?: {
@@ -342,39 +418,14 @@ type SettingsForStatus = {
         messagingServiceSid?: boolean;
         fromNumber?: boolean;
       };
-      payment?: {
-        stripe?: { publishableKey?: boolean; secretKey?: boolean };
-        paypal?: { clientId?: boolean; clientSecret?: boolean };
-        razorpay?: { keyId?: boolean; keySecret?: boolean };
-        paystack?: { publicKey?: boolean; secretKey?: boolean };
-        pesapal?: {
-          consumerKey?: boolean;
-          consumerSecret?: boolean;
-          ipnId?: boolean;
-        };
-        iotec?: {
-          clientId?: boolean;
-          clientSecret?: boolean;
-          walletId?: boolean;
-        };
-        orange_money?: {
-          clientId?: boolean;
-          clientSecret?: boolean;
-          merchantKey?: boolean;
-        };
-        mtn_momo?: {
-          subscriptionKey?: boolean;
-          apiUser?: boolean;
-          apiKey?: boolean;
-        };
-      };
       security?: {
         googleClientId?: boolean;
         googleClientSecret?: boolean;
         facebookAppId?: boolean;
         facebookAppSecret?: boolean;
       };
-      storage?: { accessKeyId?: boolean; bucketName?: boolean };
+      email?: { user?: boolean; password?: boolean };
+      storage?: Partial<Record<StorageReadinessField, boolean>>;
       shipping?: {
         shippo?: {
           testToken?: boolean;
@@ -413,6 +464,20 @@ export function isSmsConfigured(settings: SettingsForStatus): boolean {
   return hasSid && hasToken && hasSender;
 }
 
+/**
+ * A secret the save would leave stored: typed into the form and not yet
+ * saved, or already stored and not removed (a Remove sets the value to null
+ * and drops the stored flag).
+ */
+function hasSecret(
+  settings: SettingsForStatus,
+  draft: string | null | undefined,
+  path: string,
+): boolean {
+  if (typeof draft === "string" && draft.trim()) return true;
+  return draft !== null && Boolean(settings._meta?.credentials?.[path]?.set);
+}
+
 export function getSectionStatus(
   sectionId: AdminSettingsSectionId,
   settings: SettingsForStatus,
@@ -426,83 +491,43 @@ export function getSectionStatus(
   }
 
   if (sectionId === "payment") {
-    const cred = (path: string) =>
-      Boolean(settings._meta?.credentials?.[path]?.set);
-    const env = settings._meta?.envSources?.payment;
-
-    const providers: Array<{ enabled: boolean; configured: boolean }> = [
-      {
-        enabled: settings.payment?.stripe?.enabled ?? false,
-        configured:
-          cred("payment.stripe.secretKey") || Boolean(env?.stripe?.secretKey),
-      },
-      {
-        enabled: settings.payment?.paypal?.enabled ?? false,
-        configured:
-          cred("payment.paypal.clientSecret") ||
-          Boolean(env?.paypal?.clientSecret),
-      },
-      {
-        enabled: settings.payment?.razorpay?.enabled ?? false,
-        configured:
-          cred("payment.razorpay.keySecret") ||
-          Boolean(env?.razorpay?.keySecret),
-      },
-      {
-        enabled: settings.payment?.paystack?.enabled ?? false,
-        configured:
-          cred("payment.paystack.secretKey") ||
-          Boolean(env?.paystack?.secretKey),
-      },
-      {
-        enabled: settings.payment?.pesapal?.enabled ?? false,
-        configured:
-          (cred("payment.pesapal.consumerKey") ||
-            Boolean(env?.pesapal?.consumerKey)) &&
-          (cred("payment.pesapal.consumerSecret") ||
-            Boolean(env?.pesapal?.consumerSecret)) &&
-          (cred("payment.pesapal.ipnId") || Boolean(env?.pesapal?.ipnId)),
-      },
-      {
-        enabled: settings.payment?.iotec?.enabled ?? false,
-        configured:
-          (cred("payment.iotec.clientId") || Boolean(env?.iotec?.clientId)) &&
-          (cred("payment.iotec.clientSecret") ||
-            Boolean(env?.iotec?.clientSecret)) &&
-          (cred("payment.iotec.walletId") || Boolean(env?.iotec?.walletId)),
-      },
-      {
-        enabled: settings.payment?.orange_money?.enabled ?? false,
-        configured:
-          (cred("payment.orange_money.clientId") ||
-            Boolean(env?.orange_money?.clientId)) &&
-          (cred("payment.orange_money.clientSecret") ||
-            Boolean(env?.orange_money?.clientSecret)) &&
-          (cred("payment.orange_money.merchantKey") ||
-            Boolean(env?.orange_money?.merchantKey)),
-      },
-      {
-        enabled: settings.payment?.mtn_momo?.enabled ?? false,
-        configured:
-          (cred("payment.mtn_momo.subscriptionKey") ||
-            Boolean(env?.mtn_momo?.subscriptionKey)) &&
-          (cred("payment.mtn_momo.apiUser") ||
-            Boolean(env?.mtn_momo?.apiUser)) &&
-          (cred("payment.mtn_momo.apiKey") || Boolean(env?.mtn_momo?.apiKey)),
-      },
-    ];
-
-    return providers.some((p) => p.enabled && !p.configured)
+    // The payment screen's own rule, not a copy of it: a gateway switched on
+    // that checkout will not offer, for missing keys or a store currency it
+    // cannot settle. Readiness is the server's (resolveCheckoutGatewayReadiness,
+    // over the saved keys and currency); the switches are the form's. The copy
+    // this replaced checked one key where the rule needs two, and never the
+    // currency, so a USD store's MTN MoMo was hidden at checkout unflagged.
+    const readiness = settings._meta?.checkoutGateways;
+    const switches: Record<CheckoutGatewayId, boolean | undefined> = {
+      stripe: settings.payment?.stripe?.enabled,
+      paypal: settings.payment?.paypal?.enabled,
+      razorpay: settings.payment?.razorpay?.enabled,
+      paystack: settings.payment?.paystack?.enabled,
+      pesapal: settings.payment?.pesapal?.enabled,
+      iotec: settings.payment?.iotec?.enabled,
+      orange_money: settings.payment?.orange_money?.enabled,
+      mtn_momo: settings.payment?.mtn_momo?.enabled,
+    };
+    return (Object.keys(switches) as CheckoutGatewayId[]).some(
+      (gateway) => switches[gateway] && readiness?.[gateway]?.ready === false,
+    )
       ? "warning"
       : "ok";
   }
 
   if (sectionId === "email") {
-    if (!settings.email?.enabled) return "disabled";
-    if (settings.email.provider !== "smtp") return "ok";
-    const host = settings.email.smtp?.host;
-    const user = settings.email.smtp?.user;
-    return !host || !user ? "warning" : "ok";
+    // As resolveSmtpConfig decides: mail goes out when the switch is on or the
+    // environment supplies a login, with a login and a password from the
+    // settings or the environment. The host has a default, so it is not asked
+    // for; the password was, and was never checked here.
+    const email = settings.email;
+    const env = settings._meta?.envSources?.email;
+    if (!email?.enabled && !(env?.user && env?.password)) return "disabled";
+    const user = Boolean(email?.smtp?.user?.trim()) || Boolean(env?.user);
+    const password =
+      hasSecret(settings, email?.smtp?.password, "email.smtp.password") ||
+      Boolean(env?.password);
+    return user && password ? "ok" : "warning";
   }
 
   if (sectionId === "sms") {
@@ -522,28 +547,35 @@ export function getSectionStatus(
   if (sectionId === "storage") {
     const storage = settings.storage;
     if (!storage) return "ok";
-    // Same precedence as resolveStorageCredentials: the active provider's
-    // block → the deprecated flat fields (pre-v1.5 documents) → .env. Reading
-    // only the flat fields flagged every store configured through the v1.5+
-    // form, which saves into the per-provider block.
+    // The rule is the status route's (lib/storage/storage-readiness.ts); each
+    // field is read with resolveStorageCredentials' precedence: the active
+    // provider's block → the deprecated flat fields (pre-v1.5 documents) →
+    // .env. It used to check the bucket and the access key only, so a missing
+    // secret or R2 account read "ok" beside a page saying "Not connected".
     const provider = (
       storage.provider && storage.provider in STORAGE_CREDENTIAL_BLOCKS
         ? storage.provider
         : "cloudflare_r2"
     ) as keyof typeof STORAGE_CREDENTIAL_BLOCKS;
     const block = STORAGE_CREDENTIAL_BLOCKS[provider];
-    const cred = (path: string) =>
-      Boolean(settings._meta?.credentials?.[path]?.set);
+    const own = storage[block];
     const env = settings._meta?.envSources?.storage;
-    const bucketName =
-      Boolean(storage[block]?.bucketName?.trim()) ||
-      Boolean(storage.bucketName?.trim()) ||
-      Boolean(env?.bucketName);
-    const accessKeyId =
-      cred(`storage.${block}.accessKeyId`) ||
-      cred("storage.accessKeyId") ||
-      Boolean(env?.accessKeyId);
-    return !bucketName || !accessKeyId ? "warning" : "ok";
+    const text = (value?: string) => Boolean(value?.trim());
+    const has = (field: StorageReadinessField): boolean => {
+      if (env?.[field]) return true;
+      switch (field) {
+        case "bucketName":
+          return text(own?.bucketName) || text(storage.bucketName);
+        case "endpoint":
+          return text(own?.endpoint) || text(storage.endpoint);
+        default:
+          return (
+            hasSecret(settings, own?.[field], `storage.${block}.${field}`) ||
+            hasSecret(settings, undefined, `storage.${field}`)
+          );
+      }
+    };
+    return isStorageConfigured(provider, has) ? "ok" : "warning";
   }
 
   if (sectionId === "oauth") {

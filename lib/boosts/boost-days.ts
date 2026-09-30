@@ -2,11 +2,10 @@
  * UTC calendar-day arithmetic for boost bookings. A boost day runs
  * 00:00:00.000Z to the next 00:00:00.000Z.
  *
- * UTC, not the store timezone: `settings.general.timezone` is an unvalidated
- * free-text input read by nothing that matters, and anchoring money-bearing
- * day boundaries on it would let a typo ("EST") corrupt a booking key. UTC also
- * keeps boost day buckets and `BoostMetricDaily.date` on one axis, so delivery
- * stays auditable per day.
+ * UTC: the store has no timezone setting, and a money-bearing day boundary
+ * must not move with a server's or a viewer's clock. UTC also keeps boost day
+ * buckets and `BoostMetricDaily.date` on one axis, so delivery stays auditable
+ * per day.
  *
  * This is the only day module — do not add a second one.
  */

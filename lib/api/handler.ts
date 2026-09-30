@@ -71,6 +71,8 @@ interface StaffGrants {
   /** Set for staff callers; undefined when the caller is a full admin. */
   permissions?: StaffPermission[];
   scope?: StaffAccessScope;
+  /** A vendor created this staff member — they act for that vendor only. */
+  vendorOwned?: boolean;
 }
 
 interface ApiContext<TParams> {
@@ -164,6 +166,7 @@ export function withApi<TParams = Record<string, never>>(
             staff = {
               permissions: grants.staffPermissions,
               scope: grants.staffScope,
+              vendorOwned: grants.vendorOwned,
             };
           }
         }

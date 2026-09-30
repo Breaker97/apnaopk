@@ -51,9 +51,10 @@ interface PreorderCardProps {
    */
   deferredBalanceSupported?: boolean;
   /**
-   * Vendor editor only: whether this vendor may open a pre-order. When not,
-   * the switch stays off and the card says why — and offers the request — up
-   * front, instead of letting the vendor fill in a pre-order the save will
+   * Whether a pre-order may be opened here: the vendor's own access, or — in
+   * any editor — the store's switch in Settings → Products. When not, the
+   * switch stays off and the card says why (and offers a vendor the request)
+   * up front, instead of letting someone fill in a pre-order the save will
    * refuse. A pre-order that is already on can still be switched off.
    */
   access?: VendorPreorderAccess | null;
@@ -72,6 +73,46 @@ export function PreorderCard({
   const watchedPreorderPaymentMode =
     useWatch({ control: form.control, name: "preorder.paymentMode" }) ||
     "full";
+  const watchedReleaseDate = useWatch({
+    control: form.control,
+    name: "preorder.releaseDate",
+  });
+  const watchedDepositType =
+    useWatch({ control: form.control, name: "preorder.depositType" }) ||
+    "percentage";
+  const watchedDepositValue = Number(
+    useWatch({ control: form.control, name: "preorder.depositValue" }) || 0,
+  );
+  const watchedPrice = Number(
+    useWatch({ control: form.control, name: "pricing.price" }) || 0,
+  );
+
+  // The save refuses both of these (`lib/orders/preorder-gating.ts`); said
+  // here, next to the field, as soon as it is true rather than as a toast
+  // after the whole form was sent. A date input gives "YYYY-MM-DD", a UTC
+  // calendar day, so today's UTC date is the line.
+  // Only a date being set now: a stored one is not re-judged on save, so
+  // flagging it untouched would warn about a save that goes through.
+  const releaseDateError =
+    watchedReleaseDate &&
+    form.getFieldState("preorder.releaseDate", form.formState).isDirty &&
+    watchedReleaseDate < new Date().toISOString().slice(0, 10)
+      ? "The release date can't be in the past"
+      : null;
+  const depositPercent =
+    watchedDepositType === "fixed"
+      ? watchedPrice > 0
+        ? (watchedDepositValue / watchedPrice) * 100
+        : 0
+      : watchedDepositValue;
+  const depositCapError =
+    access &&
+    watchedPreorderPaymentMode === "deposit" &&
+    depositPercent > access.maxDepositPercent
+      ? watchedDepositType === "fixed"
+        ? `This deposit is ${Math.round(depositPercent)}% of the price — the store allows at most ${access.maxDepositPercent}%`
+        : `The store allows a deposit of at most ${access.maxDepositPercent}%`
+      : null;
 
   return (
     <Card className="gap-2">
@@ -137,10 +178,19 @@ export function PreorderCard({
                       {t("admin.productForm.fields.releaseDate")}
                     </FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="date"
+                        aria-invalid={releaseDateError ? true : undefined}
+                        {...field}
+                      />
                     </FormControl>
                     <div className="min-h-4">
                       <FormMessage className="text-xs leading-4" />
+                      {releaseDateError ? (
+                        <p className="text-destructive text-xs leading-4">
+                          {releaseDateError}
+                        </p>
+                      ) : null}
                     </div>
                   </FormItem>
                 )}
@@ -261,12 +311,18 @@ export function PreorderCard({
                         min={0}
                         step="0.01"
                         disabled={watchedPreorderPaymentMode !== "deposit"}
+                        aria-invalid={depositCapError ? true : undefined}
                         {...field}
                         whenEmpty={0}
                         onValueChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage className="text-xs leading-4" />
+                    {depositCapError ? (
+                      <p className="text-destructive text-xs leading-4">
+                        {depositCapError}
+                      </p>
+                    ) : null}
                   </FormItem>
                 )}
               />

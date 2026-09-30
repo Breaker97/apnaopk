@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   ArrowUpRight,
   Check,

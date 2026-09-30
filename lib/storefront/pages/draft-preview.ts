@@ -63,7 +63,7 @@ async function resolveSampleResource(
     }
     if (!product) return {};
     return {
-      resource: { type: "product", product, location: {} },
+      resource: { type: "product", product },
       livePath: `/products/${product.slug}`,
     };
   }

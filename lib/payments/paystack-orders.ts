@@ -7,9 +7,12 @@ import {
 import { gatewayFeeUpdate, paystackFee } from "@/lib/payments/gateway-fee";
 import {
   amountDueNow,
-  finalizeCapturedOrder,
   type SettingsDocument,
 } from "@/lib/payments/finalize-order";
+import {
+  finalizeCapturedAttempt,
+  findAttemptByGatewayRef,
+} from "@/lib/payments/finalize-attempt";
 
 type FinalizePaystackOrderParams = {
   reference: string;
@@ -22,7 +25,12 @@ type FinalizePaystackOrderParams = {
 
 /** Settles the order behind a verified Paystack transaction. */
 export function finalizePaystackOrder(params: FinalizePaystackOrderParams) {
-  return finalizeCapturedOrder({
+  return finalizeCapturedAttempt({
+    // Attempt first, then the pending order a pre-attempt checkout wrote —
+    // both are asked whatever the rollout flag says (`finalize-attempt.ts`).
+    findAttempt: (scope) =>
+      findAttemptByGatewayRef("paystackReference", params.reference, scope),
+    orderPrefix: params.settings.orders?.prefix,
     provider: {
       paymentMethod: "paystack",
       label: "Paystack",
@@ -42,8 +50,12 @@ export function finalizePaystackOrder(params: FinalizePaystackOrderParams) {
         );
       }
 
+      // The currency the order was placed in. Today's store default drifts:
+      // a store that switched currency left money it had taken unrecorded.
       const expectedCurrency = (
-        params.settings.general?.defaultCurrency || "NGN"
+        order.currency ||
+        params.settings.general?.defaultCurrency ||
+        "NGN"
       ).toUpperCase();
       const transactionCurrency = String(
         params.transaction.currency || "",

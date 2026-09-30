@@ -15,8 +15,13 @@ interface PageProps {
 // hydrating shows one continuous frame instead of two different skeletons.
 export default async function CheckoutPage({ params }: PageProps) {
   const { locale } = await params;
-  const { checkoutSettings, storeName, logoUrl, darkModeLogoUrl } =
-    await getStorefrontSettings();
+  const {
+    checkoutSettings,
+    storeName,
+    logoUrl,
+    darkModeLogoUrl,
+    addressCheckAtCheckout,
+  } = await getStorefrontSettings();
 
   return (
     <CheckoutChrome
@@ -25,7 +30,10 @@ export default async function CheckoutPage({ params }: PageProps) {
       brand={{ storeName, logoUrl, darkModeLogoUrl }}
     >
       <Suspense fallback={<CheckoutSkeleton />}>
-        <CheckoutContent settings={toPublicCheckoutSettings(checkoutSettings)} />
+        <CheckoutContent
+          settings={toPublicCheckoutSettings(checkoutSettings)}
+          addressCheck={addressCheckAtCheckout}
+        />
       </Suspense>
     </CheckoutChrome>
   );

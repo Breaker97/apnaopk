@@ -96,10 +96,6 @@ export const PESAPAL_CURRENCIES = new Set([
   "EUR",
 ]);
 
-export function isPesapalCurrency(currency?: string | null): boolean {
-  return PESAPAL_CURRENCIES.has(String(currency || "").trim().toUpperCase());
-}
-
 const PESAPAL_COUNTRY_CODES: Record<string, string> = {
   uganda: "UG",
   kenya: "KE",

@@ -19,7 +19,17 @@ import {
 } from "@/lib/orders/preorders";
 import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
 import { restoreOrderInventory } from "@/lib/orders/order-inventory";
-import { notifyPreorderCustomerUpdate } from "@/lib/notifications/notifications";
+import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
+import {
+  DISPATCHED_ORDER_STATUSES,
+  hasDispatchedGoods,
+  isDispatchedStatus,
+} from "@/lib/orders/order-status-workflow";
+import { voidLabelsForCancellation } from "@/lib/shipping/cancel-labels";
+import {
+  manualBalanceReminderStage,
+  notifyPreorderCustomerUpdate,
+} from "@/lib/notifications/notifications";
 import {
   getPreorderBalanceDue,
   getPreorderCollectedAmount,
@@ -35,7 +45,7 @@ import {
   fetchPreorderList,
 } from "@/lib/orders/preorder-list";
 import { parsePageLimit } from "@/lib/api/list-query";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
 
 function escapeCsv(value: unknown) {
@@ -192,7 +202,7 @@ export const POST = withApi(
       // the notifier's own arguments — left out of the projection, every
       // bulk action mailed "#undefined" to nobody in particular.
       .select(
-        "_id total status paymentStatus paymentMethod preorderOutstandingAmount preorderBalancePaidAt customerId orderNumber guestEmail preorderReleaseDate preorderBalanceRequestedAt subOrders.status subOrders.items.preorderOutstandingAmount",
+        "_id total status paymentStatus paymentMethod channel hasPreorder preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount customerId orderNumber guestEmail preorderStatus preorderReleaseDate preorderOriginalReleaseDate preorderBalanceRequestedAt subOrders.status subOrders.paymentStatus subOrders.items.preorderOutstandingAmount",
       )
       .lean();
     const matchedIds = orders.map((order) => order._id);
@@ -200,13 +210,35 @@ export const POST = withApi(
       return successResponse({ matched: 0, modified: 0 });
     }
 
+    // Rows a bulk action refused, named with the reason — the same refusals the
+    // single-order route throws, reported instead so one row cannot sink the
+    // batch.
+    const skipped: Array<{ orderId: string; orderNumber?: string; reason: string }> = [];
+
     if (body.action === "ready" || body.action === "payment_due") {
-      const paymentDueOrders = orders.filter(
+      const eligible = orders.filter((order) => {
+        const refusal = isDispatchedStatus(order.status)
+          ? "already shipped"
+          : body.action === "payment_due" && getPreorderBalanceDue(order) <= 0
+            ? "nothing is owed"
+            : body.action === "ready" && getPreorderBalanceDue(order) <= 0
+              ? getFulfillmentPaymentBlock(order, null)
+              : null;
+        if (refusal) {
+          skipped.push({
+            orderId: String(order._id),
+            orderNumber: order.orderNumber,
+            reason: refusal,
+          });
+        }
+        return !refusal;
+      });
+      const paymentDueOrders = eligible.filter(
         (order) =>
           body.action === "payment_due" ||
           getPreorderBalanceDue(order) > 0,
       );
-      const readyOrders = orders.filter(
+      const readyOrders = eligible.filter(
         (order) =>
           body.action === "ready" &&
           getPreorderBalanceDue(order) <= 0,
@@ -236,7 +268,7 @@ export const POST = withApi(
         await Order.updateMany(
           {
             _id: { $in: transitionableReadyIds },
-            status: { $ne: ORDER_STATUS.CANCELLED },
+            status: { $nin: [ORDER_STATUS.CANCELLED, ...DISPATCHED_ORDER_STATUSES] },
           },
           {
             $set: {
@@ -267,7 +299,7 @@ export const POST = withApi(
         await Order.updateMany(
           {
             _id: { $in: paymentDueIds },
-            status: { $ne: ORDER_STATUS.CANCELLED },
+            status: { $nin: [ORDER_STATUS.CANCELLED, ...DISPATCHED_ORDER_STATUSES] },
           },
           {
             $set: {
@@ -318,8 +350,16 @@ export const POST = withApi(
       }
 
       const skippedIds = new Set(stockErrors.map((entry) => entry.orderId));
+      for (const entry of stockErrors) {
+        skipped.push({
+          orderId: entry.orderId,
+          orderNumber: orders.find((order) => String(order._id) === entry.orderId)
+            ?.orderNumber,
+          reason: entry.error,
+        });
+      }
       await Promise.allSettled(
-        orders
+        eligible
           .filter((order) => !skippedIds.has(String(order._id)))
           .map((order) =>
             notifyPreorderCustomerUpdate(
@@ -340,6 +380,14 @@ export const POST = withApi(
                 // the expiry job will actually count from.
                 balanceRequestedAt:
                   order.preorderBalanceRequestedAt || new Date(),
+                // Asked before: a reminder sent by hand, not the first request.
+                ...(order.preorderBalanceRequestedAt &&
+                paymentDueOrders.some(
+                  (paymentDueOrder) =>
+                    String(paymentDueOrder._id) === String(order._id),
+                )
+                  ? { reminderStage: manualBalanceReminderStage() }
+                  : {}),
                 // A guest order's `customerId` is its cart — see the notifier.
                 guestEmail: order.guestEmail,
               },
@@ -348,8 +396,9 @@ export const POST = withApi(
       );
       return successResponse({
         matched: matchedIds.length,
-        modified: matchedIds.length - stockErrors.length,
+        modified: matchedIds.length - skipped.length,
         ...(stockErrors.length > 0 ? { stockErrors } : {}),
+        ...(skipped.length > 0 ? { skipped } : {}),
       });
     }
 
@@ -362,37 +411,80 @@ export const POST = withApi(
         typeof body.reason === "string" && body.reason.trim()
           ? body.reason.trim().slice(0, 500)
           : undefined;
-      await Order.updateMany(
-        // Not over a cancellation that landed after the read — see the
-        // single-order route.
-        { _id: { $in: matchedIds }, status: { $ne: ORDER_STATUS.CANCELLED } },
-        {
-          $set: {
-            preorderStatus: PREORDER_ITEM_STATUS.DELAYED,
-            preorderReleaseDate: releaseDate,
-            preorderDelayReason: reason,
-            preorderReleaseDateUpdatedAt: new Date(),
-            preorderCustomerNotifiedAt: new Date(),
-            statusChangedBy: session.user.id,
-            "items.$[item].preorderReleaseDate": releaseDate,
-            "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.DELAYED,
-            "subOrders.$[].items.$[subItem].preorderReleaseDate": releaseDate,
-            "subOrders.$[].items.$[subItem].preorderStatus":
-              PREORDER_ITEM_STATUS.DELAYED,
+      if (releaseDate.getTime() < Date.now() - 24 * 60 * 60 * 1000) {
+        throw new ValidationError("The new release date cannot be in the past");
+      }
+      // One order at a time, for the same reasons as the single-order route:
+      // a balance already asked for keeps `payment_due` (only a reservation
+      // still waiting becomes `delayed`), a released order's date is past
+      // moving, and the first promise is kept as the original date.
+      const delayedOrders: typeof orders = [];
+      for (const order of orders) {
+        const keepsBalanceRequest =
+          order.preorderStatus === PREORDER_ITEM_STATUS.PAYMENT_DUE;
+        const waiting =
+          keepsBalanceRequest ||
+          order.preorderStatus === PREORDER_ITEM_STATUS.RESERVED ||
+          order.preorderStatus === PREORDER_ITEM_STATUS.DELAYED;
+        if (!waiting) {
+          skipped.push({
+            orderId: String(order._id),
+            orderNumber: order.orderNumber,
+            reason: "already released",
+          });
+          continue;
+        }
+        const written = await Order.updateOne(
+          {
+            _id: order._id,
+            status: { $ne: ORDER_STATUS.CANCELLED },
+            preorderStatus: order.preorderStatus,
           },
-          // A new date is a new promise: the reminders sent against the old one
-          // must not silence the new ones. See the single-order route.
-          $unset: { preorderBalanceRemindersSent: "" },
-        },
-        {
-          arrayFilters: [
-            { "item.purchaseType": PURCHASE_TYPE.PREORDER },
-            { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
-          ],
-        },
-      );
+          {
+            $set: {
+              ...(keepsBalanceRequest
+                ? {}
+                : {
+                    preorderStatus: PREORDER_ITEM_STATUS.DELAYED,
+                    "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.DELAYED,
+                    "subOrders.$[].items.$[subItem].preorderStatus":
+                      PREORDER_ITEM_STATUS.DELAYED,
+                  }),
+              preorderReleaseDate: releaseDate,
+              preorderOriginalReleaseDate:
+                order.preorderOriginalReleaseDate ||
+                order.preorderReleaseDate ||
+                releaseDate,
+              preorderDelayReason: reason,
+              preorderReleaseDateUpdatedAt: new Date(),
+              preorderCustomerNotifiedAt: new Date(),
+              statusChangedBy: session.user.id,
+              "items.$[item].preorderReleaseDate": releaseDate,
+              "subOrders.$[].items.$[subItem].preorderReleaseDate": releaseDate,
+            },
+            // A new date is a new promise: the reminders sent against the old
+            // one must not silence the new ones. See the single-order route.
+            $unset: { preorderBalanceRemindersSent: "" },
+          },
+          {
+            arrayFilters: [
+              { "item.purchaseType": PURCHASE_TYPE.PREORDER },
+              { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
+            ],
+          },
+        );
+        if (written.matchedCount) {
+          delayedOrders.push(order);
+        } else {
+          skipped.push({
+            orderId: String(order._id),
+            orderNumber: order.orderNumber,
+            reason: "changed while it was being updated",
+          });
+        }
+      }
       await Promise.allSettled(
-        orders.map((order) =>
+        delayedOrders.map((order) =>
           notifyPreorderCustomerUpdate(
             String(order.customerId),
             order.orderNumber,
@@ -407,7 +499,11 @@ export const POST = withApi(
           ),
         ),
       );
-      return successResponse({ matched: matchedIds.length, modified: matchedIds.length });
+      return successResponse({
+        matched: matchedIds.length,
+        modified: delayedOrders.length,
+        ...(skipped.length > 0 ? { skipped } : {}),
+      });
     }
 
     if (body.action === "cancel") {
@@ -423,36 +519,69 @@ export const POST = withApi(
         );
       }
 
-      await Order.updateMany(
-        { _id: { $in: matchedIds } },
-        {
-          $set: {
-            status: ORDER_STATUS.CANCELLED,
-            preorderStatus: PREORDER_ITEM_STATUS.CANCELLED,
-            cancelledAt: new Date(),
-            statusChangedBy: session.user.id,
-            "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.CANCELLED,
-            "subOrders.$[].status": ORDER_STATUS.CANCELLED,
-            "subOrders.$[].items.$[subItem].preorderStatus":
-              PREORDER_ITEM_STATUS.CANCELLED,
+      // Goods that have left are a return, not a cancellation — see the
+      // single-order route for what this blanket write did to a shipped order.
+      // Claimed one order at a time, with the refusal in the filter, so only
+      // the orders actually cancelled here go on to be restocked and refunded.
+      const cancelledOrders: typeof orders = [];
+      for (const order of orders) {
+        if (hasDispatchedGoods(order)) {
+          skipped.push({
+            orderId: String(order._id),
+            orderNumber: order.orderNumber,
+            reason: "already shipped — handle it as a return",
+          });
+          continue;
+        }
+        const claimed = await Order.updateOne(
+          {
+            _id: order._id,
+            status: { $nin: DISPATCHED_ORDER_STATUSES },
+            "subOrders.status": { $nin: DISPATCHED_ORDER_STATUSES },
           },
-        },
-        {
-          arrayFilters: [
-            { "item.purchaseType": PURCHASE_TYPE.PREORDER },
-            { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
-          ],
-        },
-      );
+          {
+            $set: {
+              status: ORDER_STATUS.CANCELLED,
+              preorderStatus: PREORDER_ITEM_STATUS.CANCELLED,
+              cancelledAt: new Date(),
+              statusChangedBy: session.user.id,
+              "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.CANCELLED,
+              "subOrders.$[].status": ORDER_STATUS.CANCELLED,
+              "subOrders.$[].items.$[subItem].preorderStatus":
+                PREORDER_ITEM_STATUS.CANCELLED,
+            },
+          },
+          {
+            arrayFilters: [
+              { "item.purchaseType": PURCHASE_TYPE.PREORDER },
+              { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
+            ],
+          },
+        );
+        if (claimed.matchedCount) {
+          cancelledOrders.push(order);
+        } else {
+          skipped.push({
+            orderId: String(order._id),
+            orderNumber: order.orderNumber,
+            reason: "shipped while it was being cancelled",
+          });
+        }
+      }
       const auditContext = createAuditContext(request, session);
       const refunds: Array<{
         orderId: string;
+        orderNumber?: string;
         refunded: boolean;
         reason?: string;
         byHand?: boolean;
       }> = [];
       await Promise.allSettled(
-        orders.map(async (order) => {
+        cancelledOrders.map(async (order) => {
+          // A released pre-order may already have a label bought for it.
+          await voidLabelsForCancellation({ orderId: order._id }).catch((err) =>
+            console.error("Failed to void labels on pre-order cancel:", err),
+          );
           // Orders already marked ready consumed physical stock — restore it
           // (claim-based per sub-order, so never-consumed orders are no-ops).
           await restoreOrderInventory(String(order._id)).catch((err) =>
@@ -479,6 +608,8 @@ export const POST = withApi(
           });
           refunds.push({
             orderId: String(order._id),
+            // The table names these for the admin to chase by hand.
+            orderNumber: order.orderNumber,
             refunded: refund.refunded,
             reason: refund.reason,
             byHand:
@@ -501,7 +632,8 @@ export const POST = withApi(
       );
       return successResponse({
         matched: matchedIds.length,
-        modified: matchedIds.length,
+        modified: cancelledOrders.length,
+        ...(skipped.length > 0 ? { skipped } : {}),
         refunded: refunds.filter((r) => r.refunded).length,
         // Only the ones an admin still has to deal with; an empty list means
         // every cancelled order's money is on its way back.

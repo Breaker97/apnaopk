@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 
 /**
  * Guarantees a push/replace navigation lands at the top of the new page.

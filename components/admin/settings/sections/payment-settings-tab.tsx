@@ -12,6 +12,7 @@ import {
   OrangeMoneyLogo,
   MtnMomoLogo,
   CashOnDeliveryLogo,
+  TurnstileLogo,
 } from "./payment-brand-logos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ import {
 } from "@/components/admin/settings/fields/provider-card";
 import type { Settings } from "@/components/admin/settings/types";
 import { useClientValue } from "@/hooks/use-client-value";
+import { DEFAULT_CURRENCY } from "@/config/branding.config";
 import { StickySaveFooter } from "./sticky-save-footer";
 import { SettingsTabHeader } from "./settings-tab-header";
 
@@ -86,6 +88,7 @@ export function PaymentSettingsTab(props: {
   const mtnMomo = settings.payment?.mtn_momo;
   const paypal = settings.payment?.paypal;
   const cod = settings.payment?.cod;
+  const turnstile = settings.payment?.turnstile;
 
   // Credential values are stripped server-side; presence + masked previews and
   // the test/live key mode arrive via _meta instead.
@@ -160,25 +163,49 @@ export function PaymentSettingsTab(props: {
         ) : (
           <TestTube className="h-4 w-4 mr-2" />
         )}
-        Test connection
+        {t("admin.settings.payment.testConnection")}
       </Button>
     );
   };
 
   // A switch alone does not put a gateway on the checkout: it also needs its
-  // keys and, for the per-country wallets, a store currency they settle. The
-  // server applies that rule for the storefront and reports it here from the
-  // saved settings, so a switched-on gateway that checkout will not offer says
-  // why instead of silently going missing.
+  // keys and a store currency it settles. The server applies that rule for the
+  // storefront and reports it here from the saved settings, so a switched-on
+  // gateway that checkout will not offer says why instead of silently going
+  // missing.
   const checkoutGateways = settings._meta?.checkoutGateways;
   const checkoutNote = (provider: ProviderId, enabled: boolean | undefined) => {
     const readiness = checkoutGateways?.[provider];
     if (!enabled || !readiness || readiness.ready) return undefined;
     if (readiness.missing === "currency") {
-      return `Hidden at checkout: it only takes ${readiness.currencies.join(", ")}, not the store currency. Change the currency in General Settings to offer it.`;
+      // A wallet's short list is worth reading; PayPal's two dozen codes or
+      // Stripe's hundred-odd are not, and the store's own is what matters.
+      return readiness.currencies.length <= 12
+        ? t("admin.settings.payment.checkout.currencyListed", {
+            currency: readiness.currency,
+            currencies: readiness.currencies.join(", "),
+          })
+        : t("admin.settings.payment.checkout.currency", {
+            currency: readiness.currency,
+          });
     }
-    return "Hidden at checkout until its keys are saved.";
+    return t("admin.settings.payment.checkout.keys");
   };
+
+  // Razorpay takes its home currencies (rupees, and ringgit through Curlec) on
+  // every account, and anything else only once the merchant has activated
+  // International Payments — which nothing on this screen can see, so it is
+  // said rather than checked.
+  const storeCurrency = String(
+    settings.general?.defaultCurrency || DEFAULT_CURRENCY,
+  ).toUpperCase();
+  const razorpayNote =
+    checkoutNote("razorpay", razorpay?.enabled) ??
+    (razorpay?.enabled && storeCurrency !== "INR" && storeCurrency !== "MYR"
+      ? t("admin.settings.payment.razorpay.internationalNote", {
+          currency: storeCurrency,
+        })
+      : undefined);
 
   const gatewaySwitches: Record<ProviderId, boolean | undefined> = {
     stripe: stripe?.enabled,
@@ -205,14 +232,18 @@ export function PaymentSettingsTab(props: {
         <SettingsTabHeader
           title={t("admin.settings.payment.title")}
           description={t("admin.settings.payment.description")}
-          meta={<Badge variant="secondary">{activeCount} active</Badge>}
+          meta={
+            <Badge variant="secondary">
+              {t("admin.settings.payment.activeCount", { count: activeCount })}
+            </Badge>
+          }
         />
 
         {/* Stripe */}
         <ProviderCard
           logo={<StripeLogo />}
           title={t("admin.settings.payment.stripe.title")}
-          description="Accept credit & debit cards globally"
+          description={t("admin.settings.payment.stripe.description")}
           enabled={stripe?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.stripe.enabled", c)}
           note={checkoutNote("stripe", stripe?.enabled)}
@@ -236,9 +267,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.stripe.publishableKey", null)}
                 secretSet={cred("payment.stripe.publishableKey").set}
                 maskedHint={cred("payment.stripe.publishableKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="pk_live_... or pk_test_..."
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset="pk_live_… / pk_test_…"
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.stripe.publishableKey)} />
@@ -252,9 +282,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.stripe.secretKey", null)}
                 secretSet={cred("payment.stripe.secretKey").set}
                 maskedHint={cred("payment.stripe.secretKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="sk_live_... or sk_test_..."
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset="sk_live_… / sk_test_…"
+                helperText={t("admin.settings.fields.savedKeysHint")}
               />
               <EnvSourceHint show={Boolean(env?.stripe.secretKey)} />
             </div>
@@ -269,9 +298,8 @@ export function PaymentSettingsTab(props: {
             onClear={() => updateNestedField("payment.stripe.webhookSecret", null)}
             secretSet={cred("payment.stripe.webhookSecret").set}
             maskedHint={cred("payment.stripe.webhookSecret").hint}
-            placeholderWhenSet="Saved (leave blank to keep)"
             placeholderWhenUnset="whsec_..."
-            helperText="Required for handling payment events. Get this from Stripe Dashboard → Developers → Webhooks."
+            helperText={t("admin.settings.payment.stripe.webhookSecretHint")}
           />
           <EnvSourceHint show={Boolean(env?.stripe.webhookSecret)} />
         </ProviderCard>
@@ -280,7 +308,7 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<PayPalLogo />}
           title={t("admin.settings.payment.paypal.title")}
-          description="Trusted global checkout & wallet"
+          description={t("admin.settings.payment.paypal.description")}
           enabled={paypal?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.paypal.enabled", c)}
           note={checkoutNote("paypal", paypal?.enabled)}
@@ -302,9 +330,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.paypal.clientId", null)}
                 secretSet={cred("payment.paypal.clientId").set}
                 maskedHint={cred("payment.paypal.clientId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="PayPal client ID"
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.paypal.clientIdPlaceholder")}
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.paypal.clientId)} />
@@ -320,8 +347,7 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.paypal.clientSecret", null)}
                 secretSet={cred("payment.paypal.clientSecret").set}
                 maskedHint={cred("payment.paypal.clientSecret").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                helperText="Saved secrets are not shown again for security."
+                helperText={t("admin.settings.fields.savedSecretsHint")}
               />
               <EnvSourceHint show={Boolean(env?.paypal.clientSecret)} />
             </div>
@@ -359,8 +385,7 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.paypal.webhookId", null)}
                 secretSet={cred("payment.paypal.webhookId").set}
                 maskedHint={cred("payment.paypal.webhookId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="PayPal webhook ID"
+                placeholderWhenUnset={t("admin.settings.payment.paypal.webhookIdPlaceholder")}
                 revealTyped
               />
             </div>
@@ -371,10 +396,10 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<RazorpayLogo />}
           title="Razorpay"
-          description="Payments for India, and Malaysia through Razorpay Curlec"
+          description={t("admin.settings.payment.razorpay.description")}
           enabled={razorpay?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.razorpay.enabled", c)}
-          note={checkoutNote("razorpay", razorpay?.enabled)}
+          note={razorpayNote}
           badges={
             <>
               <StatusBadge configured={razorpayConfigured} />
@@ -390,15 +415,14 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="razorpayKeyId"
-                label="Key ID"
+                label={t("admin.settings.payment.fields.keyId")}
                 value={razorpay?.keyId || ""}
                 onChange={(v) => updateNestedField("payment.razorpay.keyId", v)}
                 onClear={() => updateNestedField("payment.razorpay.keyId", null)}
                 secretSet={cred("payment.razorpay.keyId").set}
                 maskedHint={cred("payment.razorpay.keyId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="rzp_test_... or rzp_live_..."
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset="rzp_test_… / rzp_live_…"
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.razorpay.keyId)} />
@@ -406,7 +430,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="razorpayKeySecret"
-                label="Key Secret"
+                label={t("admin.settings.payment.fields.keySecret")}
                 value={razorpay?.keySecret || ""}
                 onChange={(v) =>
                   updateNestedField("payment.razorpay.keySecret", v)
@@ -414,16 +438,15 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.razorpay.keySecret", null)}
                 secretSet={cred("payment.razorpay.keySecret").set}
                 maskedHint={cred("payment.razorpay.keySecret").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Key secret"
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.razorpay.keySecretPlaceholder")}
+                helperText={t("admin.settings.fields.savedKeysHint")}
               />
               <EnvSourceHint show={Boolean(env?.razorpay.keySecret)} />
             </div>
           </div>
           <SecretInput
             id="razorpayWebhookSecret"
-            label="Webhook Secret"
+            label={t("admin.settings.payment.fields.webhookSecret")}
             value={razorpay?.webhookSecret || ""}
             onChange={(v) =>
               updateNestedField("payment.razorpay.webhookSecret", v)
@@ -431,16 +454,15 @@ export function PaymentSettingsTab(props: {
             onClear={() => updateNestedField("payment.razorpay.webhookSecret", null)}
             secretSet={cred("payment.razorpay.webhookSecret").set}
             maskedHint={cred("payment.razorpay.webhookSecret").hint}
-            placeholderWhenSet="Saved (leave blank to keep)"
-            placeholderWhenUnset="Webhook secret"
-            helperText="The secret you set on that webhook. Saved secrets are not shown again for security."
+            placeholderWhenUnset={t("admin.settings.payment.razorpay.webhookSecretPlaceholder")}
+            helperText={t("admin.settings.payment.razorpay.webhookSecretHint")}
           />
           <EnvSourceHint show={Boolean(env?.razorpay.webhookSecret)} />
           {webhookOrigin ? (
             <WebhookUrlRow
-              label="Webhook URL"
+              label={t("admin.settings.payment.fields.webhookUrl")}
               url={`${webhookOrigin}/api/payments/razorpay/webhook`}
-              helperText="Add it in the Razorpay Dashboard → Account & Settings → Webhooks, with the events payment.captured, order.paid, refund.created, refund.processed and refund.failed. It confirms a payment even when the shopper never makes it back to your store, which is common with FPX and other bank redirects."
+              helperText={t("admin.settings.payment.razorpay.webhookUrlHint")}
             />
           ) : null}
         </ProviderCard>
@@ -449,7 +471,7 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<PaystackLogo />}
           title="Paystack"
-          description="Modern payments for Africa"
+          description={t("admin.settings.payment.paystack.description")}
           enabled={paystack?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.paystack.enabled", c)}
           note={checkoutNote("paystack", paystack?.enabled)}
@@ -468,7 +490,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="paystackPublicKey"
-                label="Public Key"
+                label={t("admin.settings.payment.fields.publicKey")}
                 value={paystack?.publicKey || ""}
                 onChange={(v) =>
                   updateNestedField("payment.paystack.publicKey", v)
@@ -476,9 +498,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.paystack.publicKey", null)}
                 secretSet={cred("payment.paystack.publicKey").set}
                 maskedHint={cred("payment.paystack.publicKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="pk_test_... or pk_live_..."
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset="pk_test_… / pk_live_…"
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.paystack.publicKey)} />
@@ -486,7 +507,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="paystackSecretKey"
-                label="Secret Key"
+                label={t("admin.settings.payment.fields.secretKey")}
                 value={paystack?.secretKey || ""}
                 onChange={(v) =>
                   updateNestedField("payment.paystack.secretKey", v)
@@ -494,9 +515,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.paystack.secretKey", null)}
                 secretSet={cred("payment.paystack.secretKey").set}
                 maskedHint={cred("payment.paystack.secretKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="sk_test_... or sk_live_..."
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset="sk_test_… / sk_live_…"
+                helperText={t("admin.settings.fields.savedKeysHint")}
               />
               <EnvSourceHint show={Boolean(env?.paystack.secretKey)} />
             </div>
@@ -507,7 +527,7 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<PesapalLogo />}
           title="Pesapal"
-          description="Mobile money and card payments across East Africa"
+          description={t("admin.settings.payment.pesapal.description")}
           enabled={pesapal?.enabled ?? false}
           onToggle={(checked) =>
             updateNestedField("payment.pesapal.enabled", checked)
@@ -538,7 +558,7 @@ export function PaymentSettingsTab(props: {
                 ) : (
                   <Webhook className="mr-2 h-4 w-4" />
                 )}
-                Register IPN
+                {t("admin.settings.payment.pesapal.registerIpn")}
               </Button>
               {renderTestButton("pesapal", pesapal?.enabled ?? false)}
             </div>
@@ -548,7 +568,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="pesapalConsumerKey"
-                label="Consumer Key"
+                label={t("admin.settings.payment.fields.consumerKey")}
                 value={pesapal?.consumerKey || ""}
                 onChange={(value) =>
                   updateNestedField("payment.pesapal.consumerKey", value)
@@ -556,9 +576,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.pesapal.consumerKey", null)}
                 secretSet={cred("payment.pesapal.consumerKey").set}
                 maskedHint={cred("payment.pesapal.consumerKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Pesapal consumer key"
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.pesapal.consumerKeyPlaceholder")}
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.pesapal.consumerKey)} />
@@ -566,7 +585,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="pesapalConsumerSecret"
-                label="Consumer Secret"
+                label={t("admin.settings.payment.fields.consumerSecret")}
                 value={pesapal?.consumerSecret || ""}
                 onChange={(value) =>
                   updateNestedField("payment.pesapal.consumerSecret", value)
@@ -574,16 +593,17 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.pesapal.consumerSecret", null)}
                 secretSet={cred("payment.pesapal.consumerSecret").set}
                 maskedHint={cred("payment.pesapal.consumerSecret").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Pesapal consumer secret"
-                helperText="Saved secrets are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.pesapal.consumerSecretPlaceholder")}
+                helperText={t("admin.settings.fields.savedSecretsHint")}
               />
               <EnvSourceHint show={Boolean(env?.pesapal.consumerSecret)} />
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="pesapalMode">Mode</Label>
+              <Label htmlFor="pesapalMode">
+                {t("admin.settings.payment.paypalMode")}
+              </Label>
               <Select
                 value={pesapalMode}
                 onValueChange={(value) =>
@@ -594,8 +614,12 @@ export function PaymentSettingsTab(props: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
+                  <SelectItem value="sandbox">
+                    {t("admin.settings.payment.paypalSandbox")}
+                  </SelectItem>
+                  <SelectItem value="live">
+                    {t("admin.settings.payment.paypalLive")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <EnvSourceHint show={Boolean(env?.pesapal.mode)} />
@@ -603,7 +627,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="pesapalIpnId"
-                label="IPN ID"
+                label={t("admin.settings.payment.pesapal.ipnId")}
                 value={pesapal?.ipnId || ""}
                 onChange={(value) =>
                   updateNestedField("payment.pesapal.ipnId", value)
@@ -611,13 +635,14 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.pesapal.ipnId", null)}
                 secretSet={cred("payment.pesapal.ipnId").set}
                 maskedHint={cred("payment.pesapal.ipnId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Registered Pesapal IPN ID"
+                placeholderWhenUnset={t("admin.settings.payment.pesapal.ipnIdPlaceholder")}
                 revealTyped
               />
               <p className="text-xs text-muted-foreground">
-                Register <code>/api/payments/pesapal/ipn</code> as a POST IPN URL,
-                then enter the returned ID.
+                {t.rich("admin.settings.payment.pesapal.ipnHint", {
+                  path: "/api/payments/pesapal/ipn",
+                  code: (chunks) => <code>{chunks}</code>,
+                })}
               </p>
               <EnvSourceHint show={Boolean(env?.pesapal.ipnId)} />
             </div>
@@ -628,7 +653,7 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<IotecLogo />}
           title="ioTec Pay"
-          description="MTN & Airtel mobile money and card payments (Uganda)"
+          description={t("admin.settings.payment.iotec.description")}
           enabled={iotec?.enabled ?? false}
           onToggle={(checked) =>
             updateNestedField("payment.iotec.enabled", checked)
@@ -646,7 +671,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="iotecClientId"
-                label="Client ID"
+                label={t("admin.settings.payment.fields.clientId")}
                 value={iotec?.clientId || ""}
                 onChange={(value) =>
                   updateNestedField("payment.iotec.clientId", value)
@@ -654,9 +679,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.iotec.clientId", null)}
                 secretSet={cred("payment.iotec.clientId").set}
                 maskedHint={cred("payment.iotec.clientId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="ioTec client ID"
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.iotec.clientIdPlaceholder")}
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.iotec.clientId)} />
@@ -664,7 +688,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="iotecClientSecret"
-                label="Client Secret"
+                label={t("admin.settings.payment.fields.clientSecret")}
                 value={iotec?.clientSecret || ""}
                 onChange={(value) =>
                   updateNestedField("payment.iotec.clientSecret", value)
@@ -672,9 +696,8 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.iotec.clientSecret", null)}
                 secretSet={cred("payment.iotec.clientSecret").set}
                 maskedHint={cred("payment.iotec.clientSecret").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="ioTec client secret"
-                helperText="Saved secrets are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.iotec.clientSecretPlaceholder")}
+                helperText={t("admin.settings.fields.savedSecretsHint")}
               />
               <EnvSourceHint show={Boolean(env?.iotec.clientSecret)} />
             </div>
@@ -683,7 +706,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="iotecWalletId"
-                label="Wallet ID"
+                label={t("admin.settings.payment.fields.walletId")}
                 value={iotec?.walletId || ""}
                 onChange={(value) =>
                   updateNestedField("payment.iotec.walletId", value)
@@ -691,17 +714,18 @@ export function PaymentSettingsTab(props: {
                 onClear={() => updateNestedField("payment.iotec.walletId", null)}
                 secretSet={cred("payment.iotec.walletId").set}
                 maskedHint={cred("payment.iotec.walletId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="ioTec Pay wallet UUID"
+                placeholderWhenUnset={t("admin.settings.payment.iotec.walletIdPlaceholder")}
                 revealTyped
               />
               <p className="text-xs text-muted-foreground">
-                Found in the ioTec Pay portal under your wallet settings.
+                {t("admin.settings.payment.iotec.walletIdHint")}
               </p>
               <EnvSourceHint show={Boolean(env?.iotec.walletId)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="iotecMode">Mode</Label>
+              <Label htmlFor="iotecMode">
+                {t("admin.settings.payment.paypalMode")}
+              </Label>
               <Select
                 value={iotecMode}
                 onValueChange={(value) =>
@@ -712,17 +736,22 @@ export function PaymentSettingsTab(props: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
+                  <SelectItem value="sandbox">
+                    {t("admin.settings.payment.paypalSandbox")}
+                  </SelectItem>
+                  <SelectItem value="live">
+                    {t("admin.settings.payment.paypalLive")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <EnvSourceHint show={Boolean(env?.iotec.mode)} />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Optional: in the ioTec Pay portal, set the collection callback URL to{" "}
-            <code>/api/payments/iotec/callback</code> for instant status updates.
-            Payments are confirmed by polling even without it.
+            {t.rich("admin.settings.payment.iotec.callbackHint", {
+              path: "/api/payments/iotec/callback",
+              code: (chunks) => <code>{chunks}</code>,
+            })}
           </p>
         </ProviderCard>
 
@@ -730,7 +759,7 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<OrangeMoneyLogo />}
           title="Orange Money"
-          description="Orange mobile money across West & Central Africa"
+          description={t("admin.settings.payment.orangeMoney.description")}
           enabled={orangeMoney?.enabled ?? false}
           onToggle={(checked) =>
             updateNestedField("payment.orange_money.enabled", checked)
@@ -751,7 +780,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="orangeMoneyClientId"
-                label="Client ID"
+                label={t("admin.settings.payment.fields.clientId")}
                 value={orangeMoney?.clientId || ""}
                 onChange={(value) =>
                   updateNestedField("payment.orange_money.clientId", value)
@@ -761,9 +790,8 @@ export function PaymentSettingsTab(props: {
                 }
                 secretSet={cred("payment.orange_money.clientId").set}
                 maskedHint={cred("payment.orange_money.clientId").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Orange developer client ID"
-                helperText="Saved keys are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.orangeMoney.clientIdPlaceholder")}
+                helperText={t("admin.settings.fields.savedKeysHint")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.orange_money.clientId)} />
@@ -771,7 +799,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="orangeMoneyClientSecret"
-                label="Client Secret"
+                label={t("admin.settings.payment.fields.clientSecret")}
                 value={orangeMoney?.clientSecret || ""}
                 onChange={(value) =>
                   updateNestedField("payment.orange_money.clientSecret", value)
@@ -781,9 +809,8 @@ export function PaymentSettingsTab(props: {
                 }
                 secretSet={cred("payment.orange_money.clientSecret").set}
                 maskedHint={cred("payment.orange_money.clientSecret").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Orange developer client secret"
-                helperText="Saved secrets are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.orangeMoney.clientSecretPlaceholder")}
+                helperText={t("admin.settings.fields.savedSecretsHint")}
               />
               <EnvSourceHint show={Boolean(env?.orange_money.clientSecret)} />
             </div>
@@ -792,7 +819,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="orangeMoneyMerchantKey"
-                label="Merchant Key"
+                label={t("admin.settings.payment.fields.merchantKey")}
                 value={orangeMoney?.merchantKey || ""}
                 onChange={(value) =>
                   updateNestedField("payment.orange_money.merchantKey", value)
@@ -802,18 +829,18 @@ export function PaymentSettingsTab(props: {
                 }
                 secretSet={cred("payment.orange_money.merchantKey").set}
                 maskedHint={cred("payment.orange_money.merchantKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="Orange Money merchant key"
+                placeholderWhenUnset={t("admin.settings.payment.orangeMoney.merchantKeyPlaceholder")}
                 revealTyped
               />
               <p className="text-xs text-muted-foreground">
-                Issued by your local Orange operator once the merchant contract
-                is signed — not available in the developer portal.
+                {t("admin.settings.payment.orangeMoney.merchantKeyHint")}
               </p>
               <EnvSourceHint show={Boolean(env?.orange_money.merchantKey)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="orangeMoneyMode">Mode</Label>
+              <Label htmlFor="orangeMoneyMode">
+                {t("admin.settings.payment.paypalMode")}
+              </Label>
               <Select
                 value={orangeMoneyMode}
                 onValueChange={(value) =>
@@ -824,15 +851,21 @@ export function PaymentSettingsTab(props: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
+                  <SelectItem value="sandbox">
+                    {t("admin.settings.payment.paypalSandbox")}
+                  </SelectItem>
+                  <SelectItem value="live">
+                    {t("admin.settings.payment.paypalLive")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <EnvSourceHint show={Boolean(env?.orange_money.mode)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="orangeMoneyCountry">Country code</Label>
+            <Label htmlFor="orangeMoneyCountry">
+              {t("admin.settings.payment.fields.countryCode")}
+            </Label>
             <Input
               id="orangeMoneyCountry"
               value={orangeMoney?.country || ""}
@@ -846,17 +879,18 @@ export function PaymentSettingsTab(props: {
               }
             />
             <p className="text-xs text-muted-foreground">
-              The two-letter code for the country whose Orange operator issued
-              your merchant key (ci, sn, cm, ml, mg…). Required in Live;
-              ignored in Sandbox, which always uses Orange&apos;s{" "}
-              <code>dev</code> endpoint.
+              {t.rich("admin.settings.payment.orangeMoney.countryHint", {
+                endpoint: "dev",
+                code: (chunks) => <code>{chunks}</code>,
+              })}
             </p>
             <EnvSourceHint show={Boolean(env?.orange_money.country)} />
           </div>
           <p className="text-xs text-muted-foreground">
-            In the Orange developer portal, set the notification URL to{" "}
-            <code>/api/payments/orange-money/callback</code>. Payments are also
-            confirmed by polling on the checkout success page.
+            {t.rich("admin.settings.payment.orangeMoney.callbackHint", {
+              path: "/api/payments/orange-money/callback",
+              code: (chunks) => <code>{chunks}</code>,
+            })}
           </p>
         </ProviderCard>
 
@@ -864,7 +898,7 @@ export function PaymentSettingsTab(props: {
         <ProviderCard
           logo={<MtnMomoLogo />}
           title="MTN Mobile Money"
-          description="MTN MoMo PIN-prompt payments across Africa"
+          description={t("admin.settings.payment.mtnMomo.description")}
           enabled={mtnMomo?.enabled ?? false}
           onToggle={(checked) =>
             updateNestedField("payment.mtn_momo.enabled", checked)
@@ -881,7 +915,7 @@ export function PaymentSettingsTab(props: {
           <div className="space-y-2">
             <SecretInput
               id="mtnMomoSubscriptionKey"
-              label="Subscription Key"
+              label={t("admin.settings.payment.fields.subscriptionKey")}
               value={mtnMomo?.subscriptionKey || ""}
               onChange={(value) =>
                 updateNestedField("payment.mtn_momo.subscriptionKey", value)
@@ -891,9 +925,8 @@ export function PaymentSettingsTab(props: {
               }
               secretSet={cred("payment.mtn_momo.subscriptionKey").set}
               maskedHint={cred("payment.mtn_momo.subscriptionKey").hint}
-              placeholderWhenSet="Saved (leave blank to keep)"
               placeholderWhenUnset="Ocp-Apim-Subscription-Key (Collections)"
-              helperText="The primary key from your Collections product subscription."
+              helperText={t("admin.settings.payment.mtnMomo.subscriptionKeyHint")}
             />
             <EnvSourceHint show={Boolean(env?.mtn_momo.subscriptionKey)} />
           </div>
@@ -901,7 +934,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="mtnMomoApiUser"
-                label="API User"
+                label={t("admin.settings.payment.fields.apiUser")}
                 value={mtnMomo?.apiUser || ""}
                 onChange={(value) =>
                   updateNestedField("payment.mtn_momo.apiUser", value)
@@ -911,8 +944,7 @@ export function PaymentSettingsTab(props: {
                 }
                 secretSet={cred("payment.mtn_momo.apiUser").set}
                 maskedHint={cred("payment.mtn_momo.apiUser").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="API user UUID"
+                placeholderWhenUnset={t("admin.settings.payment.mtnMomo.apiUserPlaceholder")}
                 revealTyped
               />
               <EnvSourceHint show={Boolean(env?.mtn_momo.apiUser)} />
@@ -920,7 +952,7 @@ export function PaymentSettingsTab(props: {
             <div className="space-y-2">
               <SecretInput
                 id="mtnMomoApiKey"
-                label="API Key"
+                label={t("admin.settings.payment.fields.apiKey")}
                 value={mtnMomo?.apiKey || ""}
                 onChange={(value) =>
                   updateNestedField("payment.mtn_momo.apiKey", value)
@@ -930,9 +962,8 @@ export function PaymentSettingsTab(props: {
                 }
                 secretSet={cred("payment.mtn_momo.apiKey").set}
                 maskedHint={cred("payment.mtn_momo.apiKey").hint}
-                placeholderWhenSet="Saved (leave blank to keep)"
-                placeholderWhenUnset="API key paired with the user"
-                helperText="Saved secrets are not shown again for security."
+                placeholderWhenUnset={t("admin.settings.payment.mtnMomo.apiKeyPlaceholder")}
+                helperText={t("admin.settings.fields.savedSecretsHint")}
               />
               <EnvSourceHint show={Boolean(env?.mtn_momo.apiKey)} />
             </div>
@@ -940,7 +971,7 @@ export function PaymentSettingsTab(props: {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="mtnMomoTargetEnvironment">
-                Target environment
+                {t("admin.settings.payment.fields.targetEnvironment")}
               </Label>
               <Input
                 id="mtnMomoTargetEnvironment"
@@ -955,14 +986,17 @@ export function PaymentSettingsTab(props: {
                 }
               />
               <p className="text-xs text-muted-foreground">
-                The X-Target-Environment your MTN OpCo issued at onboarding
-                (mtnuganda, mtnghana, …). Required in Live; ignored in
-                Sandbox, which always sends <code>sandbox</code>.
+                {t.rich("admin.settings.payment.mtnMomo.targetEnvironmentHint", {
+                  value: "sandbox",
+                  code: (chunks) => <code>{chunks}</code>,
+                })}
               </p>
               <EnvSourceHint show={Boolean(env?.mtn_momo.targetEnvironment)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mtnMomoMode">Mode</Label>
+              <Label htmlFor="mtnMomoMode">
+                {t("admin.settings.payment.paypalMode")}
+              </Label>
               <Select
                 value={mtnMomoMode}
                 onValueChange={(value) =>
@@ -973,15 +1007,21 @@ export function PaymentSettingsTab(props: {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
+                  <SelectItem value="sandbox">
+                    {t("admin.settings.payment.paypalSandbox")}
+                  </SelectItem>
+                  <SelectItem value="live">
+                    {t("admin.settings.payment.paypalLive")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <EnvSourceHint show={Boolean(env?.mtn_momo.mode)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mtnMomoCallbackHost">Callback host (optional)</Label>
+            <Label htmlFor="mtnMomoCallbackHost">
+              {t("admin.settings.payment.fields.callbackHost")}
+            </Label>
             <Input
               id="mtnMomoCallbackHost"
               value={mtnMomo?.callbackHost || ""}
@@ -994,32 +1034,34 @@ export function PaymentSettingsTab(props: {
               }
             />
             <p className="text-xs text-muted-foreground">
-              The domain you registered with MTN as the provider callback
-              host, with no <code>https://</code> and no path. MTN rejects a
-              payment whose callback URL names any other host, so leave this
-              blank unless it matches exactly — payments are confirmed by
-              polling and a 15-minute reconcile sweep either way.
+              {t.rich("admin.settings.payment.mtnMomo.callbackHostHint", {
+                scheme: "https://",
+                code: (chunks) => <code>{chunks}</code>,
+              })}
             </p>
             <EnvSourceHint show={Boolean(env?.mtn_momo.callbackHost)} />
           </div>
           <p className="text-xs text-muted-foreground">
-            When set, MTN is asked to notify{" "}
-            <code>/api/payments/mtn-momo/callback</code> — once, with no
-            retries, which is why it is never the only confirmation.
+            {t.rich("admin.settings.payment.mtnMomo.callbackHint", {
+              path: "/api/payments/mtn-momo/callback",
+              code: (chunks) => <code>{chunks}</code>,
+            })}
           </p>
         </ProviderCard>
 
         {/* Cash on Delivery */}
         <ProviderCard
-          logo={<CashOnDeliveryLogo />}
+          logo={
+            <CashOnDeliveryLogo label={t("admin.settings.payment.cod.title")} />
+          }
           title={t("admin.settings.payment.cod.title")}
-          description="Let customers pay when their order arrives"
+          description={t("admin.settings.payment.cod.description")}
           enabled={cod?.enabled ?? false}
           onToggle={(c) => updateNestedField("payment.cod.enabled", c)}
           badges={
             <Badge variant="outline" className="gap-1">
               <Banknote className="h-3 w-3" />
-              Offline
+              {t("admin.settings.payment.cod.offline")}
             </Badge>
           }
         >
@@ -1034,7 +1076,7 @@ export function PaymentSettingsTab(props: {
                 updateNestedField("payment.cod.instructions", e.target.value)
               }
               rows={3}
-              placeholder="e.g. Please keep exact change ready when the courier arrives."
+              placeholder={t("admin.settings.payment.cod.placeholder")}
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -1068,6 +1110,58 @@ export function PaymentSettingsTab(props: {
                 }
               />
             </div>
+          </div>
+        </ProviderCard>
+
+        {/* Card-testing check (Cloudflare Turnstile) */}
+        <ProviderCard
+          logo={<TurnstileLogo />}
+          title={t("admin.settings.payment.turnstile.title")}
+          description={t("admin.settings.payment.turnstile.description")}
+          enabled={turnstile?.enabled ?? false}
+          onToggle={(c) => updateNestedField("payment.turnstile.enabled", c)}
+          note={
+            // A switch without both keys asks for nothing: the check reads a
+            // missing key as "not configured" rather than turning shoppers
+            // away (`lib/checkout/turnstile.ts`).
+            turnstile?.enabled &&
+            !(
+              turnstile.siteKey &&
+              (turnstile.secretKey || cred("payment.turnstile.secretKey").set)
+            )
+              ? t("admin.settings.payment.turnstile.missingKeys")
+              : undefined
+          }
+        >
+          <p className="text-xs text-muted-foreground">
+            {t("admin.settings.payment.turnstile.explainer")}
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="turnstileSiteKey">
+                {t("admin.settings.payment.turnstile.siteKey")}
+              </Label>
+              <Input
+                id="turnstileSiteKey"
+                value={turnstile?.siteKey || ""}
+                onChange={(e) =>
+                  updateNestedField("payment.turnstile.siteKey", e.target.value)
+                }
+                placeholder="0x4AAAAAAA..."
+                autoComplete="off"
+              />
+            </div>
+            <SecretInput
+              id="turnstileSecretKey"
+              label={t("admin.settings.payment.turnstile.secretKey")}
+              value={turnstile?.secretKey || ""}
+              onChange={(v) => updateNestedField("payment.turnstile.secretKey", v)}
+              onClear={() => updateNestedField("payment.turnstile.secretKey", null)}
+              secretSet={cred("payment.turnstile.secretKey").set}
+              maskedHint={cred("payment.turnstile.secretKey").hint}
+              placeholderWhenUnset="0x4AAAAAAA..."
+              helperText={t("admin.settings.fields.savedKeysHint")}
+            />
           </div>
         </ProviderCard>
       </div>

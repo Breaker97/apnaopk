@@ -35,7 +35,7 @@ type SessionUser = {
   email?: string | null;
 };
 
-export type TransferItemRecord = {
+type TransferItemRecord = {
   productId: string;
   variantId: string;
   productTitle: string;
@@ -46,7 +46,7 @@ export type TransferItemRecord = {
   rejectedQuantity?: number;
 };
 
-export type TransferRecord = {
+type TransferRecord = {
   _id: unknown;
   transferNumber: string;
   status: TransferLifecycleStatus;
@@ -634,7 +634,7 @@ function stockLine(item: TransferItemRecord, quantity: number): StockLine {
 // Lifecycle
 // ---------------------------------------------------------------------------
 
-export type TransferActor = { id: string; name?: string };
+type TransferActor = { id: string; name?: string };
 
 export function transferActor(user: SessionUser): TransferActor {
   return {

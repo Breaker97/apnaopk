@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { SLIDE_FRAMES } from "@/lib/sliders/types";
 import {
   listingCategoriesInCover,
   listingCoverStyle,
@@ -55,7 +56,12 @@ export function ListingHeader({
         style={{
           borderRadius: full ? 0 : layout.coverRadius,
           height: layout.coverHeight > 0 ? layout.coverHeight : undefined,
-          aspectRatio: layout.coverHeight > 0 ? undefined : "1248 / 450",
+          // The hero frame itself, so a change to it cannot leave this
+          // literal behind describing a shape the slider no longer has.
+          aspectRatio:
+            layout.coverHeight > 0
+              ? undefined
+              : `${SLIDE_FRAMES.landscape.width} / ${SLIDE_FRAMES.landscape.height}`,
         }}
       >
         {banner}

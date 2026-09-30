@@ -38,6 +38,7 @@ interface Location {
   pickupEnabled?: boolean;
   fulfillsOnlineOrders?: boolean;
   sellsAtCounter?: boolean;
+  acceptsReturns?: boolean;
   fulfillmentPriority?: number;
   createdAt: string;
   updatedAt: string;
@@ -325,6 +326,12 @@ export function LocationsContent() {
               {row.sellsAtCounter === false ? (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                   No till
+                </Badge>
+              ) : null}
+              {/* Off by default, so the badge marks the few that are on. */}
+              {row.acceptsReturns ? (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  Returns
                 </Badge>
               ) : null}
             </div>

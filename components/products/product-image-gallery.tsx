@@ -9,13 +9,11 @@ import {
   type MouseEvent,
   type UIEvent,
 } from "react";
+import dynamic from "next/dynamic";
 import {
-  Box,
   ChevronLeft,
   ChevronRight,
   Expand,
-  Video,
-  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -26,53 +24,42 @@ import {
   MEDIA_FRAME_CLASS,
   THUMBNAIL_ROW_CLASS,
   THUMBNAIL_TILE_WIDTH_CLASS,
+  thumbnailTileMaxWidthClass,
 } from "@/components/products/gallery-layout";
-import { AppImage } from "@/components/ui/app-image";
-import { ExternalVideoPlayer } from "@/components/products/external-video-player";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ModelViewer } from "@/components/ui/model-viewer";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useIdlePreload } from "@/hooks/use-idle-preload";
+import {
+  GalleryMediaFrame,
+  GalleryThumbnail,
+  MEDIA_SURFACE_CLASS,
+  THUMB_SURFACE_ACTIVE_CLASS,
+  THUMB_SURFACE_IDLE_CLASS,
+  getMediaKind,
+  thumbnailLabel,
+  type GalleryMedia,
+  type MediaKind,
+} from "@/components/products/product-gallery-media";
 
-type MediaKind = "image" | "video" | "model" | "external_video";
+/**
+ * The fullscreen viewer — the dialog and its primitive — is its own module:
+ * it opens on a click, never with the page. Client-only, which also gives it
+ * a Suspense boundary of its own, so a first open that beats the idle
+ * preload waits in place instead of suspending the whole product section.
+ */
+const ProductGalleryViewer = dynamic(
+  () =>
+    import("@/components/products/product-gallery-viewer").then(
+      (module) => module.ProductGalleryViewer,
+    ),
+  { ssr: false },
+);
+const preloadViewer = () =>
+  import("@/components/products/product-gallery-viewer");
 
 /** Thumbnails shown under the main media before overflow collapses into "+N". */
 const THUMBNAIL_SLOTS = 4;
 
-/** Neutral backdrop shared by every media surface (main frame, thumbs, viewer). */
-const MEDIA_SURFACE_CLASS = "bg-[#f0f0f0] dark:bg-muted";
-
-/**
- * Thumbnail selection is carried by the tile surface, not a border or ring.
- * Opacity alone was unreliable: a bright inactive photo out-shone a dark active
- * one, and greying inactive tiles was off the table because the thumbnails here
- * encode colour variants. The surface step is independent of photo content, so
- * it holds up in both themes.
- */
-const THUMB_SURFACE_ACTIVE_CLASS = "bg-[#e2e2e2] dark:bg-white/14";
-const THUMB_SURFACE_IDLE_CLASS = "bg-[#f4f4f4] dark:bg-white/5";
-
-
-type GalleryMedia = {
-  id: string;
-  type?: MediaKind;
-  url: string;
-  alt?: string;
-  mimeType?: string;
-  thumbnailUrl?: string;
-  /** external_video only. */
-  provider?: "youtube" | "vimeo";
-  embedId?: string;
-  /** Images: "auto" follows the page's fit; the product editor sets it per image. */
-  fit?: "auto" | "contain" | "cover";
-  /** Intrinsic pixel size, recorded at upload — gives a frame its proportions. */
-  width?: number;
-  height?: number;
-};
 
 /**
  * The horizontal carousel's track height when the page sets none: tall enough
@@ -96,21 +83,23 @@ function mediaRatio(item: GalleryMedia, kind: MediaKind): number | null {
 }
 
 /**
- * The product page's gallery settings (product-detail-style.ts). Absent — the
- * classic and electronics buy boxes, the quick view — every frame keeps the
- * design as shipped.
+ * The product page's gallery settings (product-detail-style.ts). Absent,
+ * every frame keeps the design as shipped.
  */
-export interface ProductGalleryAppearance {
+interface ProductGalleryAppearance {
   radius: number;
   gap: number;
   fit: "contain" | "cover";
   /** Air around a contained image, px; -1 = the responsive default. */
   padding: number;
-  /** Thumbnail width, px; 0 = the layout's own. */
+  /** Thumbnail width, px; capped to its share of the row. */
   thumbSize: number;
   thumbRadius: number;
   /** Outline on the selected thumbnail; "" = the tile's surface step. */
   thumbActiveBorder: string;
+  /** Behind each thumbnail; "" = the neutral grey tile. */
+  thumbBackground: string;
+  thumbFit: "contain" | "cover";
   zoom: boolean;
   thumbnails: boolean;
 }
@@ -186,18 +175,14 @@ export function ProductImageGallery({
   // Same guarded-translation idiom the rest of the storefront uses: locales that
   // haven't picked up the gallery keys yet fall back to the English literal
   // instead of rendering a MISSING_MESSAGE error into an aria-label.
-  const t = useTranslations();
-  const tf = (
-    key: string,
-    fallback: string,
-    values?: Record<string, string | number>,
-  ) => {
-    if (t.has(key)) return t(key as never, values as never);
-    if (!values) return fallback;
-    return Object.entries(values).reduce(
-      (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-      fallback,
-    );
+  const tf = useFallbackTranslator(useTranslations());
+  // Fetched once the page is idle; mounted the first time it opens and kept,
+  // so closing it still animates.
+  useIdlePreload(preloadViewer);
+  const [viewerUsed, setViewerUsed] = useState(false);
+  const openViewer = () => {
+    setViewerUsed(true);
+    setIsFullscreenOpen(true);
   };
 
   const selectedMedia = media[selectedIndex];
@@ -364,7 +349,7 @@ export function ProductImageGallery({
                   setTransformOrigin("50% 50%");
                   setIsZoomEnabled(false);
                   onSelect(index);
-                  setIsFullscreenOpen(true);
+                  openViewer();
                 }}
                 className={cn(
                   "group relative overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
@@ -433,7 +418,7 @@ export function ProductImageGallery({
                       setTransformOrigin("50% 50%");
                       setIsZoomEnabled(false);
                       onSelect(index);
-                      setIsFullscreenOpen(true);
+                      openViewer();
                     }}
                     className={cn(
                       "group relative h-full max-w-full shrink-0 snap-start overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70",
@@ -531,7 +516,7 @@ export function ProductImageGallery({
                   setTransformOrigin("50% 50%");
                   setIsZoomEnabled(false);
                   onSelect(index);
-                  setIsFullscreenOpen(true);
+                  openViewer();
                 }}
                 className={cn(
                   "group relative block w-full overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2",
@@ -585,7 +570,7 @@ export function ProductImageGallery({
               "product.gallery.openFullscreen",
               "Open product gallery fullscreen",
             )}
-            onClick={() => setIsFullscreenOpen(true)}
+            onClick={openViewer}
             onMouseMove={handlePointerMove}
             onKeyDown={handleKeyNavigation}
             className={cn(
@@ -664,7 +649,7 @@ export function ProductImageGallery({
                       "Open fullscreen media viewer",
                     )
               }
-              onClick={() => setIsFullscreenOpen(true)}
+              onClick={openViewer}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background"
             >
               <Expand className="h-4 w-4" />
@@ -702,6 +687,11 @@ export function ProductImageGallery({
         <div
           className={cn(
             THUMBNAIL_ROW_CLASS,
+            // A merchant-set tile width needs a definite row width to cap
+            // against: the row is a flex item with auto margins, so without
+            // this it is sized to its own content and the tiles' percentage
+            // ceiling would measure itself.
+            customThumbWidth && "w-full",
             // Left rail at lg: DOM order stays main-then-thumbs (mobile is
             // unchanged); order-first moves the rail before the frame.
             layout === "left" &&
@@ -736,7 +726,7 @@ export function ProductImageGallery({
                   setTransformOrigin("50% 50%");
                   setIsZoomEnabled(false);
                   onSelect(index);
-                  if (isOverflowTile) setIsFullscreenOpen(true);
+                  if (isOverflowTile) openViewer();
                 }}
                 className={cn(
                   // No border/ring on the selected tile: selection reads purely from
@@ -744,9 +734,16 @@ export function ProductImageGallery({
                   // surface so the row stays a calm, even strip.
                   "group relative aspect-4/3 overflow-hidden rounded-md ring-offset-background transition-colors duration-200",
                   customThumbWidth
-                    ? "w-[var(--gallery-thumb-w)] shrink-0"
+                    ? cn(
+                        "w-[var(--gallery-thumb-w)] shrink-0",
+                        // Its share of THIS row, so a strip of two or three
+                        // keeps the width it was given.
+                        thumbnailTileMaxWidthClass(visibleThumbIndexes.length),
+                      )
                     : THUMBNAIL_TILE_WIDTH_CLASS,
-                  layout === "left" && "lg:w-full",
+                  // The rail is a column: its tiles take the rail's width,
+                  // and the four-up ceiling has nothing to say there.
+                  layout === "left" && "lg:w-full lg:max-w-none",
                   isSelected
                     ? THUMB_SURFACE_ACTIVE_CLASS
                     : THUMB_SURFACE_IDLE_CLASS,
@@ -756,6 +753,11 @@ export function ProductImageGallery({
                   look
                     ? {
                         borderRadius: look.thumbRadius,
+                        // Inline beats the surface classes; selection still
+                        // reads from the artwork dimming and the outline.
+                        ...(look.thumbBackground
+                          ? { backgroundColor: look.thumbBackground }
+                          : {}),
                         // An inset outline, so selection never shifts the row.
                         ...(isSelected && look.thumbActiveBorder
                           ? { boxShadow: `inset 0 0 0 2px ${look.thumbActiveBorder}` }
@@ -780,6 +782,7 @@ export function ProductImageGallery({
                     kind={kind}
                     productName={productName}
                     size="sm"
+                    fit={look?.thumbFit}
                   />
                 </div>
 
@@ -796,411 +799,26 @@ export function ProductImageGallery({
         </>
       )}
 
-      {/* Fullscreen dialog */}
-      <Dialog open={isFullscreenOpen} onOpenChange={setIsFullscreenOpen}>
-        <DialogContent
-          showCloseButton={false}
-          className="aspect-square h-auto max-h-[90vh] w-[90vw] max-w-[90vh] gap-0 overflow-hidden rounded-lg border-border/60 bg-background p-0 sm:max-w-3xl"
+      {viewerUsed ? (
+        <ProductGalleryViewer
+          open={isFullscreenOpen}
+          onOpenChange={setIsFullscreenOpen}
+          media={media}
+          selectedIndex={selectedIndex}
+          productName={productName}
+          zoomed={selectedIsImage && isZoomEnabled}
+          isCoarsePointer={isCoarsePointer}
+          transformOrigin={transformOrigin}
           onKeyDown={handleKeyNavigation}
-        >
-          <DialogTitle className="sr-only">
-            {tf("product.gallery.viewerTitle", "{name} media viewer", {
-              name: productName,
-            })}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {tf(
-              "product.gallery.viewerDescription",
-              "Browse product media in fullscreen mode with keyboard navigation.",
-            )}
-          </DialogDescription>
-          <button
-            type="button"
-            aria-label={tf("product.gallery.close", "Close media viewer")}
-            onClick={() => setIsFullscreenOpen(false)}
-            className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background sm:right-4 sm:top-4"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          {/* min-w-0: DialogContent is a grid, and a grid item will not shrink
-              below its content's min-content width — here, the thumbnail
-              row laid end to end. Without it a long gallery widens the column
-              past the dialog, which clips the right of the viewer: the image
-              sits off-centre, the next arrow is cut away, and the thumbnail
-              row stops scrolling because it is never narrower than itself. */}
-          <div className="relative flex h-full min-w-0 flex-col">
-            <div
-              className={cn(
-                "relative flex flex-1 items-center justify-center overflow-hidden",
-                MEDIA_SURFACE_CLASS,
-              )}
-            >
-              <GalleryMediaFrame
-                item={selectedMedia}
-                kind={selectedKind}
-                productName={productName}
-                isZoomEnabled={selectedIsImage && isZoomEnabled}
-                isCoarsePointer={isCoarsePointer}
-                transformOrigin={transformOrigin}
-                fullscreen
-                cameraControls
-              />
-
-              {canNavigate && (
-                <>
-                  <button
-                    type="button"
-                    aria-label={tf(
-                      "product.gallery.previousFullscreen",
-                      "Previous fullscreen media",
-                    )}
-                    onClick={goPrev}
-                    className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-background/95 text-foreground shadow-sm transition hover:bg-background sm:left-5"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={tf(
-                      "product.gallery.nextFullscreen",
-                      "Next fullscreen media",
-                    )}
-                    onClick={goNext}
-                    className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-background/95 text-foreground shadow-sm transition hover:bg-background sm:right-5"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </>
-              )}
-            </div>
-            <div className="border-t border-border/70 bg-background px-3 py-3 sm:px-5">
-              <div className="flex gap-2 overflow-x-auto p-1">
-                {media.map((item, index) => {
-                  const isSelected = index === selectedIndex;
-                  const kind = getMediaKind(item);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-label={tf(
-                        "product.gallery.openFullscreenItem",
-                        "Open fullscreen {kind} {position}",
-                        { kind: mediaLabel(tf, kind), position: index + 1 },
-                      )}
-                      aria-pressed={isSelected}
-                      onClick={() => {
-                        setTransformOrigin("50% 50%");
-                        setIsZoomEnabled(false);
-                        onSelect(index);
-                      }}
-                      className={cn(
-                        "group relative h-16 w-16 shrink-0 overflow-hidden rounded-md ring-offset-background transition-colors duration-200",
-                        isSelected
-                          ? THUMB_SURFACE_ACTIVE_CLASS
-                          : THUMB_SURFACE_IDLE_CLASS,
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "relative h-full w-full transition-opacity duration-200 motion-reduce:transition-none",
-                          isSelected
-                            ? "opacity-100"
-                            : "opacity-60 group-hover:opacity-90",
-                        )}
-                      >
-                        <GalleryThumbnail
-                          item={item}
-                          kind={kind}
-                          productName={productName}
-                          size="md"
-                        />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          onPrevious={goPrev}
+          onNext={goNext}
+          onPick={(index) => {
+            setTransformOrigin("50% 50%");
+            setIsZoomEnabled(false);
+            onSelect(index);
+          }}
+        />
+      ) : null}
     </div>
-  );
-}
-
-function getMediaKind(item: GalleryMedia): MediaKind {
-  if (item.type) return item.type;
-  const mimeType = item.mimeType?.toLowerCase() || "";
-  const url = item.url.toLowerCase();
-  if (mimeType.startsWith("video/")) return "video";
-  if (
-    mimeType.includes("gltf") ||
-    mimeType === "application/octet-stream" ||
-    url.endsWith(".glb") ||
-    url.endsWith(".gltf")
-  ) {
-    return "model";
-  }
-  return "image";
-}
-
-type Translate = (
-  key: string,
-  fallback: string,
-  values?: Record<string, string | number>,
-) => string;
-
-function thumbnailLabel(tf: Translate, kind: MediaKind, index: number) {
-  const position = index + 1;
-  if (kind === "model")
-    return tf("product.gallery.showModel", "Show 3D model {position}", {
-      position,
-    });
-  if (kind === "video" || kind === "external_video")
-    return tf("product.gallery.showVideo", "Show video {position}", {
-      position,
-    });
-  return tf("product.gallery.showImage", "Show image {position}", { position });
-}
-
-function mediaLabel(tf: Translate, kind: MediaKind) {
-  if (kind === "model") return tf("product.gallery.model", "3D model");
-  if (kind === "video" || kind === "external_video")
-    return tf("product.gallery.video", "video");
-  return tf("product.gallery.image", "image");
-}
-
-function GalleryMediaFrame({
-  item,
-  kind,
-  productName,
-  isZoomEnabled = false,
-  isCoarsePointer = false,
-  transformOrigin = "50% 50%",
-  fullscreen = false,
-  cameraControls = false,
-  priority = false,
-  fit = "contain",
-  padding = -1,
-  hoverZoom = true,
-  intrinsic,
-}: {
-  item: GalleryMedia;
-  kind: MediaKind;
-  productName: string;
-  isZoomEnabled?: boolean;
-  isCoarsePointer?: boolean;
-  transformOrigin?: string;
-  fullscreen?: boolean;
-  cameraControls?: boolean;
-  priority?: boolean;
-  /** How the image sits in its frame; the fullscreen viewer always contains. */
-  fit?: "contain" | "cover";
-  /** Air around a contained image, px; -1 = the responsive default. */
-  padding?: number;
-  /** The slight magnify on hover. */
-  hoverZoom?: boolean;
-  /**
-   * Size an image by its own proportions instead of filling a fixed frame:
-   * "width" spans the frame's width at its natural height (the vertical
-   * carousel), "height" spans the track's height at its natural width (the
-   * horizontal one). Used only when the upload recorded no dimensions.
-   */
-  intrinsic?: "width" | "height";
-}) {
-  const alt = item.alt || productName;
-
-  if (kind === "external_video" && item.provider && item.embedId) {
-    return (
-      // Keyed by media id so navigating between items unmounts the previous
-      // player instead of carrying its "playing" state to the next video.
-      <ExternalVideoPlayer
-        key={item.id}
-        provider={item.provider}
-        embedId={item.embedId}
-        title={alt}
-        thumbnailUrl={item.thumbnailUrl}
-      />
-    );
-  }
-
-  if (kind === "model") {
-    return (
-      <ModelViewer
-        src={item.url}
-        alt={alt}
-        autoRotate
-        cameraControls={cameraControls}
-        poster={item.thumbnailUrl}
-      />
-    );
-  }
-
-  if (kind === "video") {
-    return (
-      <video
-        src={item.url}
-        poster={item.thumbnailUrl}
-        controls
-        playsInline
-        className="h-full w-full object-cover"
-      />
-    );
-  }
-
-  if (intrinsic && !fullscreen) {
-    return (
-      <AppImage
-        src={item.url}
-        alt={alt}
-        // 0 × 0 plus CSS: next/image's pattern for an image whose size is
-        // only known once it loads.
-        width={0}
-        height={0}
-        sizes={
-          intrinsic === "width"
-            ? "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 700px"
-            : "(max-width: 768px) 80vw, 600px"
-        }
-        className={cn(
-          "block transition-transform duration-500 ease-out motion-reduce:transition-none",
-          intrinsic === "width" ? "h-auto w-full" : "h-full w-auto max-w-none",
-          fit === "contain" && padding < 0 && "p-4 sm:p-8",
-          hoverZoom ? "scale-100 group-hover:scale-[1.025]" : "scale-100",
-        )}
-        style={
-          fit === "contain" && padding >= 0 ? { padding } : undefined
-        }
-        priority={priority}
-      />
-    );
-  }
-
-  return (
-    <AppImage
-      src={item.url}
-      alt={alt}
-      fill
-      className={cn(
-        "transition-transform duration-500 ease-out motion-reduce:transition-none",
-        fullscreen
-          ? "object-contain p-6 sm:p-10"
-          : fit === "cover"
-            ? // Edge to edge: no air, the photograph IS the frame.
-              "object-cover"
-            : padding >= 0
-              ? "object-contain"
-              : "object-contain p-4 sm:p-8",
-        isZoomEnabled
-          ? fullscreen
-            ? "scale-[2.2]"
-            : "scale-[1.9]"
-          : fullscreen || !hoverZoom
-            ? "scale-100"
-            : "scale-100 group-hover:scale-[1.025]",
-      )}
-      style={{
-        transformOrigin: isCoarsePointer ? "50% 50%" : transformOrigin,
-        ...(!fullscreen && fit === "contain" && padding >= 0 ? { padding } : {}),
-      }}
-      priority={priority}
-      loading={fullscreen ? "eager" : undefined}
-      sizes={
-        fullscreen
-          ? "100vw"
-          : "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 700px"
-      }
-    />
-  );
-}
-
-function GalleryThumbnail({
-  item,
-  kind,
-  productName,
-  size,
-}: {
-  item: GalleryMedia;
-  kind: MediaKind;
-  productName: string;
-  size: "sm" | "md";
-}) {
-  if (kind === "external_video") {
-    return (
-      <div className="relative h-full w-full">
-        {item.thumbnailUrl ? (
-          <AppImage
-            src={item.thumbnailUrl}
-            alt={item.alt || `${productName} video thumbnail`}
-            fill
-            className="object-cover"
-            loading="lazy"
-            sizes={size === "sm" ? "(max-width: 768px) 25vw, 170px" : "64px"}
-          />
-        ) : null}
-        <Video className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-background/90 p-0.5 text-foreground shadow-sm" />
-      </div>
-    );
-  }
-
-  if (kind === "video") {
-    return (
-      <div className="relative h-full w-full">
-        {item.thumbnailUrl ? (
-          <AppImage
-            src={item.thumbnailUrl}
-            alt={item.alt || `${productName} video thumbnail`}
-            fill
-            className="object-cover"
-            loading="lazy"
-            sizes={size === "sm" ? "(max-width: 768px) 25vw, 170px" : "64px"}
-          />
-        ) : (
-          <video
-            src={item.url}
-            muted
-            playsInline
-            className="h-full w-full object-cover"
-          />
-        )}
-        <Video className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full bg-background/90 p-0.5 text-foreground shadow-sm" />
-      </div>
-    );
-  }
-
-  if (kind === "model") {
-    if (item.thumbnailUrl) {
-      return (
-        <div className="relative h-full w-full">
-          <AppImage
-            src={item.thumbnailUrl}
-            alt={item.alt || `${productName} 3D model thumbnail`}
-            fill
-            className="object-cover"
-            loading="lazy"
-            sizes={size === "sm" ? "(max-width: 768px) 25vw, 170px" : "64px"}
-          />
-          <Box className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-background/95 p-0.5 text-foreground shadow-sm ring-1 ring-border/70" />
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative flex h-full w-full items-center justify-center bg-muted/70 text-foreground">
-        <Box className={size === "sm" ? "h-5 w-5" : "h-6 w-6"} />
-        <Box className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-background/95 p-0.5 text-foreground shadow-sm ring-1 ring-border/70" />
-      </div>
-    );
-  }
-
-  return (
-    <AppImage
-      src={item.url}
-      alt={item.alt || `${productName} thumbnail`}
-      fill
-      className={size === "sm" ? "object-contain p-2" : "object-contain p-1.5"}
-      loading="lazy"
-      sizes={size === "sm" ? "(max-width: 768px) 25vw, 170px" : "64px"}
-    />
   );
 }

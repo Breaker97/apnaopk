@@ -108,22 +108,21 @@ export async function refundOrderPayment(params: {
   const channel = normalizeMethod(order.channel);
   const method = normalizeMethod(order.paymentMethod);
 
-  // POS, COD, manual, or explicit manual flag → no gateway call.
-  // ioTec Pay collections and Orange Money web payments have no programmatic
-  // refund API, so their refunds are always recorded out-of-band (issued by
-  // hand in the ioTec / Orange merchant portal) rather than throwing the
-  // "automatic refund not supported" fallback below. MTN MoMo is out-of-band
-  // for a different reason: its Disbursements product does carry a refund
-  // call, but that is a separate subscription with separate credentials and
-  // production IP whitelisting a Collections merchant does not automatically
-  // hold — a real branch below can replace its OUT_OF_BAND_METHODS entry
-  // once Disbursements is onboarded. Adding a gateway branch for any of them
-  // below would be unreachable until then: this gate returns first.
+  // Anything a gateway branch below cannot refund, or an explicit manual
+  // flag, is recorded as paid back by hand: POS cash, COD, manual and bank
+  // transfers, and the mobile-money methods (ioTec and Orange Money have no
+  // refund API; MTN's needs the separate Disbursements product). A new
+  // gateway branch here must add its method to GATEWAY_REFUND_METHODS, or
+  // this gate returns first and the branch is never reached.
   //
   // The method test lives in `lib/refund-settlement.ts` so the return form can
   // ask the same question — "will this have to be paid by hand?" — without
   // importing every payment SDK to find out.
-  if (manual || refundSettlesOutOfBand({ paymentMethod: method, channel })) {
+  if (manual || refundSettlesOutOfBand({
+      paymentMethod: method,
+      channel,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+    })) {
     return { gatewayCalled: false, provider: manual ? "manual" : method || "manual" };
   }
 
@@ -214,18 +213,70 @@ export async function refundOrderPayment(params: {
 
     const refundIds: string[] = [];
     let lastStatus: string | undefined;
+    // What went back, in Stripe's units, for a part-failure to report.
+    let refundedMinor = 0;
+    // A little before now, for asking Stripe what this attempt already made.
+    const attemptStartedAt = Math.floor(Date.now() / 1000) - 5;
     for (const entry of headroom) {
       if (remaining <= 0) break;
       const take = Math.min(remaining, entry.refundable);
       if (take <= 0) continue;
-      const refund = await stripe.refunds.create({
-        payment_intent: entry.intentId,
-        amount: take,
-        reason: "requested_by_customer",
-        metadata: reason ? { note: reason.slice(0, 500) } : undefined,
-      });
+      let refund: { id: string; status?: string | null };
+      try {
+        refund = await stripe.refunds.create({
+          payment_intent: entry.intentId,
+          amount: take,
+          reason: "requested_by_customer",
+          metadata: reason ? { note: reason.slice(0, 500) } : undefined,
+        });
+      } catch (err) {
+        // The connection dropped, or Stripe's own server failed: the refund
+        // may have been made before the answer was lost. Asked of Stripe
+        // rather than assumed failed — rolled back as a failure, a refund
+        // that had gone through was sent again by the admin's retry.
+        const landed = refundOutcomeUnknown(err)
+          ? await findLandedStripeRefund({
+              stripe,
+              intentId: entry.intentId,
+              amount: take,
+              since: attemptStartedAt,
+              exclude: refundIds,
+            })
+          : null;
+        if (!landed) {
+          if (refundIds.length === 0) throw unknownOutcomeError("Stripe", err);
+          // The deposit went back and the balance did not. Said plainly, as
+          // the multi-gateway path says it, so nobody refunds the first part
+          // twice: the gateway's own notification records it.
+          const message = err instanceof Error ? err.message : String(err);
+          throw new PartialRefundError(
+            `Part of this refund went through (${refundIds.join(", ")}) but the next part failed: ${message}. The part already refunded is recorded from the gateway's own notification — refund only the remainder again.`,
+            {
+              refundedAmount: fromStripeAmount(refundedMinor, refundCurrency),
+              refundIds: [...refundIds],
+              provider: "stripe",
+              failure: message,
+            },
+          );
+        }
+        refund = landed;
+      }
+      const refused = refusedRefundStatus("Stripe", refund.status);
+      if (refused) {
+        if (refundIds.length === 0) assertRefundNotRefused("Stripe", refund.status);
+        throw new PartialRefundError(
+          `Part of this refund went through (${refundIds.join(", ")}) but the next part failed: ${refused}. The part already refunded is recorded from the gateway's own notification — refund only the remainder again.`,
+          {
+            refundedAmount: fromStripeAmount(refundedMinor, refundCurrency),
+            refundIds: [...refundIds],
+            provider: "stripe",
+            failure: refused,
+          },
+        );
+      }
       refundIds.push(refund.id);
       lastStatus = refund.status || lastStatus;
+      refundedMinor += take;
       remaining -= take;
     }
 
@@ -261,7 +312,10 @@ export async function refundOrderPayment(params: {
       amount,
       currency: order.currency,
       reason,
+    }).catch((err: unknown) => {
+      throw unknownOutcomeError("PayPal", err);
     });
+    assertRefundNotRefused("PayPal", result.status);
     return {
       gatewayCalled: true,
       provider: "paypal",
@@ -296,7 +350,10 @@ export async function refundOrderPayment(params: {
       amount,
       currency: order.currency,
       notes: reason ? { reason: reason.slice(0, 255) } : undefined,
+    }).catch((err: unknown) => {
+      throw unknownOutcomeError("Razorpay", err);
     });
+    assertRefundNotRefused("Razorpay", result.status);
     return {
       gatewayCalled: true,
       provider: "razorpay",
@@ -331,7 +388,10 @@ export async function refundOrderPayment(params: {
       amount,
       currency: order.currency,
       reason,
+    }).catch((err: unknown) => {
+      throw unknownOutcomeError("Paystack", err);
     });
+    assertRefundNotRefused("Paystack", result.status);
     return {
       gatewayCalled: true,
       provider: "paystack",
@@ -360,6 +420,8 @@ export async function refundOrderPayment(params: {
       // Shows up in Pesapal's refund audit trail, so name the actual actor.
       username: actor || "Store admin",
       remarks: reason || "Order refund",
+    }).catch((err: unknown) => {
+      throw unknownOutcomeError("Pesapal", err);
     });
     return {
       gatewayCalled: true,
@@ -372,6 +434,151 @@ export async function refundOrderPayment(params: {
   throw new Error(
     `Automatic refund is not supported for payment method "${method}". Pass manual: true to record an out-of-band refund.`,
   );
+}
+
+/**
+ * A refund split across two charges whose first part went through and whose
+ * next part did not.
+ *
+ * Carries what went, so a caller that can record it — a return, whose claim
+ * it belongs on — does so, rather than handing the whole claim back and
+ * leaving the part already paid refundable a second time.
+ */
+export class PartialRefundError extends Error {
+  readonly refundedAmount: number;
+  readonly refundIds: string[];
+  readonly provider: string;
+  /** Why the next part failed, as the gateway said it. */
+  readonly failure: string;
+
+  constructor(
+    message: string,
+    details: {
+      refundedAmount: number;
+      refundIds: string[];
+      provider: string;
+      failure: string;
+    },
+  ) {
+    super(message);
+    this.name = "PartialRefundError";
+    this.refundedAmount = details.refundedAmount;
+    this.refundIds = details.refundIds;
+    this.provider = details.provider;
+    this.failure = details.failure;
+  }
+}
+
+/** Statuses a gateway can answer a refund request with that mean it did not go. */
+const REFUSED_REFUND_STATUSES = new Set(["failed", "canceled", "cancelled"]);
+
+/**
+ * The reason, when a gateway answered the refund request with a refund that
+ * had already failed, or null when it did not.
+ *
+ * Stripe, PayPal, Razorpay and Paystack can each say so in the create
+ * response itself. Recorded as money that went, such a refund stood until a
+ * failure report arrived — and a report arriving before the row was written
+ * found nothing to reverse, so the refund stood for good.
+ */
+function refusedRefundStatus(gateway: string, status: unknown): string | null {
+  const value = String(status || "").trim().toLowerCase();
+  return REFUSED_REFUND_STATUSES.has(value)
+    ? `${gateway} refused the refund (${value})`
+    : null;
+}
+
+function assertRefundNotRefused(gateway: string, status: unknown): void {
+  const refused = refusedRefundStatus(gateway, status);
+  if (refused) {
+    throw new Error(
+      `${refused}. Nothing was sent back — try again, or refund the shopper by hand.`,
+    );
+  }
+}
+
+/**
+ * Whether an error leaves it unknown if the refund went through.
+ *
+ * A refusal — a declined refund, too little balance, a bad amount — is the
+ * gateway's answer, and nothing moved. A dropped connection, a timeout or the
+ * gateway's own server failing is not an answer at all: the refund may have
+ * been made before the reply was lost.
+ */
+function refundOutcomeUnknown(err: unknown): boolean {
+  const error = err as {
+    type?: string;
+    name?: string;
+    code?: string;
+    message?: string;
+    cause?: { code?: string; name?: string };
+  } | null;
+  if (!error) return false;
+  if (error.type === "StripeConnectionError" || error.type === "StripeAPIError") {
+    return true;
+  }
+  if (error.name === "AbortError" || error.name === "TimeoutError") return true;
+  const code = String(error.code || error.cause?.code || "");
+  if (
+    [
+      "ECONNRESET",
+      "ETIMEDOUT",
+      "EPIPE",
+      "UND_ERR_SOCKET",
+      "UND_ERR_HEADERS_TIMEOUT",
+      "UND_ERR_BODY_TIMEOUT",
+    ].includes(code)
+  ) {
+    return true;
+  }
+  return error.name === "TypeError" && /fetch failed/i.test(String(error.message || ""));
+}
+
+/**
+ * The error to hand back when nobody knows whether the money went.
+ *
+ * Read as a plain failure, the admin retried — and a refund that had gone
+ * through was sent a second time. What happened is on the gateway: if the
+ * refund was made, its report records it on the order by itself.
+ */
+function unknownOutcomeError(gateway: string, err: unknown): unknown {
+  if (!refundOutcomeUnknown(err)) return err;
+  return new Error(
+    `${gateway} did not answer, so it is not known whether this refund went through. Check the ${gateway} dashboard before refunding again — a refund that went through appears on the order by itself.`,
+  );
+}
+
+/**
+ * A refund Stripe made for this attempt although its answer never arrived:
+ * on the same intent, for the same amount, since the attempt began.
+ */
+async function findLandedStripeRefund(params: {
+  stripe: ReturnType<typeof getStripeForSecretKey>;
+  intentId: string;
+  /** Minor units, as the refund was asked for. */
+  amount: number;
+  since: number;
+  /** Refunds this attempt already counted. */
+  exclude: string[];
+}) {
+  try {
+    const recent = await params.stripe.refunds.list({
+      payment_intent: params.intentId,
+      created: { gte: params.since },
+      limit: 20,
+    });
+    return (
+      recent.data.find(
+        (refund) =>
+          refund.amount === params.amount &&
+          !params.exclude.includes(refund.id) &&
+          refund.status !== "failed" &&
+          refund.status !== "canceled",
+      ) ?? null
+    );
+  } catch {
+    return null;
+  }
 }
 
 /** One charge a pre-order's money sits on. */
@@ -530,6 +737,7 @@ async function refundAcrossPreorderLegs(params: {
   const refundIds: string[] = [];
   const providers: string[] = [];
   let lastStatus: string | undefined;
+  let refundedHundredths = 0;
   for (const entry of headroom) {
     if (remaining <= 0) break;
     const take = Math.min(remaining, entry.refundable);
@@ -542,6 +750,7 @@ async function refundAcrossPreorderLegs(params: {
           reason: "requested_by_customer",
           metadata: reason ? { note: reason.slice(0, 500) } : undefined,
         });
+        assertRefundNotRefused("Stripe", refund.status);
         refundIds.push(refund.id);
         providers.push("stripe");
         lastStatus = refund.status || lastStatus;
@@ -553,17 +762,30 @@ async function refundAcrossPreorderLegs(params: {
           currency,
           reason,
         });
+        assertRefundNotRefused("PayPal", result.status);
         if (result.refundId) refundIds.push(result.refundId);
         providers.push("paypal");
         lastStatus = result.status || lastStatus;
       }
     } catch (err) {
-      if (refundIds.length === 0) throw err;
+      if (refundIds.length === 0) {
+        throw unknownOutcomeError(
+          entry.leg.gateway === "stripe" ? "Stripe" : "PayPal",
+          err,
+        );
+      }
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(
+      throw new PartialRefundError(
         `Part of this refund went through (${refundIds.join(", ")}) but the next part failed: ${message}. The part already refunded is recorded from the gateway's own notification — refund only the remainder again.`,
+        {
+          refundedAmount: refundedHundredths / 100,
+          refundIds: [...refundIds],
+          provider: providers[0] || "stripe",
+          failure: message,
+        },
       );
     }
+    refundedHundredths += take;
     remaining -= take;
   }
 

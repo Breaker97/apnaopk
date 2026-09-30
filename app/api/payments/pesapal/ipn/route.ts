@@ -17,7 +17,7 @@ import {
   findPlatformPaymentByReference,
   verifyPlatformPayment,
 } from "@/lib/payments/platform-payments";
-import { z } from "zod";
+import * as z from "zod";
 
 type PesapalIpnPayload = {
   OrderTrackingId?: string;

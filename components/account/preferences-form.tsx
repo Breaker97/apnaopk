@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toast-notification";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 
 interface CustomerProfile {
   emailNotifications?: {
@@ -28,31 +29,31 @@ interface CustomerProfile {
   preferredLanguage?: string;
 }
 
+interface CustomerProfileResponse {
+  profile?: CustomerProfile;
+  smsUpdatesAvailable?: boolean;
+}
+
+/**
+ * Suspends until the saved preferences are known — render it inside
+ * `<ClientSuspense>`. A later visit starts from the held copy, which a save
+ * keeps current, so it makes no request.
+ */
 export function PreferencesForm() {
   const t = useTranslations();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<CustomerProfile>({});
-  const [smsUpdatesAvailable, setSmsUpdatesAvailable] = useState(false);
-
-  const fetchProfile = useCallback(
-    () =>
-      fetch("/api/user/customer-profile")
-        .then((res) => res.json())
-        .then((json) => {
-          if (json.success && json.data?.profile) setProfile(json.data.profile);
-          setSmsUpdatesAvailable(json.data?.smsUpdatesAvailable === true);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch profile:", error);
-        })
-        .finally(() => setLoading(false)),
-    [],
+  const { data, error, mutate } = useSuspenseResource<CustomerProfileResponse>(
+    "/api/user/customer-profile",
   );
-
   useEffect(() => {
-    void fetchProfile();
-  }, [fetchProfile]);
+    if (error) console.error("Failed to fetch profile:", error);
+  }, [error]);
+  const [saving, setSaving] = useState(false);
+  // The switches edit a local draft; Save writes it. Seeded once, so a
+  // background refresh of the held copy never flips a switch mid-edit.
+  const [profile, setProfile] = useState<CustomerProfile>(
+    () => data?.profile ?? {},
+  );
+  const smsUpdatesAvailable = data?.smsUpdatesAvailable === true;
 
   const handleSave = async () => {
     setSaving(true);
@@ -75,6 +76,11 @@ export function PreferencesForm() {
       const json = await res.json();
       if (json.success) {
         toast.success(t("customerProfile.preferencesSaved"));
+        // What the next visit opens with.
+        mutate((current) => ({
+          ...current,
+          profile: { ...current.profile, ...profile },
+        }));
       } else {
         throw new Error(json.message || "Failed to save");
       }
@@ -99,14 +105,6 @@ export function PreferencesForm() {
       },
     }));
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

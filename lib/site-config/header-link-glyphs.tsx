@@ -37,7 +37,8 @@ const LINK_GLYPH_ICON: Record<HeaderLinkGlyph, LucideIcon> = {
 /**
  * A built-in glyph, drawn. A component rather than a lookup at the call
  * site: picking a component out of a map inside a render (or a map
- * callback) reads to the compiler as building one on the fly.
+ * callback) reads to the `react-hooks/static-components` lint rule as
+ * building one on the fly.
  */
 export function LinkGlyph({
   glyph,

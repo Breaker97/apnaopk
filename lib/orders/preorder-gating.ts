@@ -24,7 +24,7 @@ import type { VendorPreorderAccess } from "@/lib/products/form-options-types";
  * out, and the vendor meets the new rule the next time they touch the product.
  */
 
-export interface PreorderPolicy {
+interface PreorderPolicy {
   enabled?: boolean;
   requireVendorApproval?: boolean;
   maxLeadDays?: number;
@@ -184,6 +184,14 @@ export function assertPreorderAllowed(params: {
       [field]: ["A pre-order needs a release date"],
     });
   }
+  // A day of slack for a date input's midnight UTC. A date already gone is
+  // no promise at all: with auto-convert off the listing stayed open for good,
+  // telling every buyer it "ships around" a day in the past.
+  if (releaseDate.getTime() < Date.now() - DAY_MS) {
+    throw new ValidationError({
+      [field]: ["The release date can't be in the past"],
+    });
+  }
   const leadDays = Math.ceil((releaseDate.getTime() - Date.now()) / DAY_MS);
   if (leadDays > limits.maxLeadDays) {
     throw new ValidationError({
@@ -220,7 +228,9 @@ export function assertPreorderAllowed(params: {
     if (percent > limits.maxDepositPercent) {
       throw new ValidationError({
         [field]: [
-          `Deposits can be at most ${limits.maxDepositPercent}% of the price.`,
+          preorder.depositType === "fixed"
+            ? `This deposit is ${Math.round(percent)}% of the price — the store allows at most ${limits.maxDepositPercent}%.`
+            : `Deposits can be at most ${limits.maxDepositPercent}% of the price.`,
         ],
       });
     }
@@ -234,7 +244,10 @@ export function assertPreorderAllowed(params: {
  * `reservedQuantity` moves every time a shopper reserves one, so an untouched
  * form would read as changed on any busy product and be re-validated anyway.
  */
-function validationFingerprint(preorder?: PreorderSettingsShape | null): string {
+function validationFingerprint(
+  preorder?: PreorderSettingsShape | null,
+  price?: number | null,
+): string {
   if (!preorder) return "";
   return JSON.stringify({
     enabled: Boolean(preorder.enabled),
@@ -242,6 +255,10 @@ function validationFingerprint(preorder?: PreorderSettingsShape | null): string 
     paymentMode: preorder.paymentMode ?? "full",
     depositType: preorder.depositType ?? "percentage",
     depositValue: Number(preorder.depositValue || 0),
+    // A fixed deposit is a share of the price, so the price is part of the
+    // limit: without it a 50 deposit on a 100 item passed a 50% cap, and
+    // lowering the price to 50 later made it 100% without a check.
+    ...(preorder.depositType === "fixed" ? { price: Number(price || 0) } : {}),
   });
 }
 
@@ -273,6 +290,7 @@ export function assertProductPreorderAllowed(params: {
   };
   /** The product as stored. Omitted on create, where everything is new. */
   stored?: {
+    price?: number;
     preorder?: PreorderSettingsShape | null;
     variants?: PreorderVariantShape[] | null;
   } | null;
@@ -280,12 +298,15 @@ export function assertProductPreorderAllowed(params: {
   vendor?: PreorderVendorAccess | null;
   storeCanCollectBalance?: boolean;
 }): void {
+  // A save that sends no pre-order block keeps the stored one, and a price
+  // change alone can still push a fixed deposit past the cap.
+  const productPreorder = params.product.preorder ?? params.stored?.preorder;
   if (
-    validationFingerprint(params.product.preorder) !==
-    validationFingerprint(params.stored?.preorder)
+    validationFingerprint(productPreorder, params.product.price) !==
+    validationFingerprint(params.stored?.preorder, params.stored?.price)
   ) {
     assertPreorderAllowed({
-      preorder: params.product.preorder,
+      preorder: productPreorder,
       policy: params.policy,
       vendor: params.vendor,
       unitPrice: params.product.price,
@@ -306,8 +327,8 @@ export function assertProductPreorderAllowed(params: {
       ? storedVariants.get(String(variant._id))
       : undefined;
     if (
-      validationFingerprint(variant?.preorder) ===
-      validationFingerprint(before?.preorder)
+      validationFingerprint(variant?.preorder, variant?.price ?? params.product.price) ===
+      validationFingerprint(before?.preorder, before?.price ?? params.stored?.price)
     ) {
       continue;
     }

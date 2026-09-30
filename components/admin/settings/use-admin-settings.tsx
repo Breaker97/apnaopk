@@ -1,25 +1,26 @@
 "use client";
 
 import type { Settings } from "./types";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "@/components/ui/toast-notification";
-import { useAppSettings as useAppSettingsStore } from "@/stores/app-settings";
+import {
+  useAppSettings as useAppSettingsStore,
+  type PresetColor,
+} from "@/stores/app-settings";
 import { useCurrencyStore } from "@/providers/currency-provider";
 import {
   useAppSettings as usePublicAppSettings,
 } from "@/providers/app-settings-provider";
-import { getSectionIdFromPath, setNestedValue } from "./utils";
+import {
+  getSectionIdFromPath,
+  setNestedValue,
+  withCredentialCleared,
+} from "./utils";
 import { isPlainObject } from "@/lib/utils";
 import {
-  DEFAULT_ACCENT_COLOR,
   DEFAULT_CURRENCY,
   DEFAULT_LANGUAGE,
-  DEFAULT_PRESET_COLOR,
-  DEFAULT_PRIMARY_COLOR,
-  DEFAULT_SECONDARY_COLOR,
   DEFAULT_STORE_NAME,
-  DEFAULT_TIMEZONE,
-  normalizeThemeMode,
 } from "@/config/branding.config";
 import { normalizeNotificationSettings } from "@/lib/notifications/notification-settings";
 import { apiClient, ApiClientError } from "@/lib/api/client";
@@ -27,7 +28,7 @@ import { normalizeCountryAvailability } from "@/lib/intl/country-availability";
 import type { CarrierProvider } from "@/lib/shipping/carrier-config";
 import { useTranslations } from "next-intl";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
-import { getEffectiveDirtySections } from "./dirty-sections";
+import { getEffectiveDirtySections, keepUnsavedEdits } from "./dirty-sections";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 
 const REQUIRED_OBJECT_SECTIONS = [
@@ -58,9 +59,7 @@ const DEFAULT_GENERAL_SETTINGS: Settings["general"] = {
   defaultLanguage: DEFAULT_LANGUAGE,
   defaultCurrency: DEFAULT_CURRENCY,
   supportedLanguages: [DEFAULT_LANGUAGE],
-  supportedCurrencies: [DEFAULT_CURRENCY],
   countryAvailability: normalizeCountryAvailability(undefined),
-  timezone: DEFAULT_TIMEZONE,
 };
 
 function normalizeStringArray(value: unknown, fallback: string[]) {
@@ -87,10 +86,6 @@ function normalizeSettingsPayload(value: unknown): Settings | null {
       general.supportedLanguages,
       DEFAULT_GENERAL_SETTINGS.supportedLanguages,
     ),
-    supportedCurrencies: normalizeStringArray(
-      general.supportedCurrencies,
-      DEFAULT_GENERAL_SETTINGS.supportedCurrencies,
-    ),
     countryAvailability: normalizeCountryAvailability(
       general.countryAvailability,
     ),
@@ -101,6 +96,35 @@ function normalizeSettingsPayload(value: unknown): Settings | null {
   );
 
   return normalized as unknown as Settings;
+}
+
+/** Why a carrier action waits, by action (`admin.settings.shipping.carriers.saveFirst`). */
+const SAVE_SHIPPING_FIRST = {
+  test: "Save shipping settings before testing the connection",
+  webhook: "Save shipping settings before generating the webhook URL",
+  disconnect: "Save shipping settings before disconnecting the carrier",
+  pickupLocations: "Save shipping settings before loading pickup locations",
+} as const;
+
+/** What a save request writes: each key it sends, under its section. */
+function writtenPaths(section: string, data: unknown): string[] {
+  return isPlainObject(data)
+    ? Object.keys(data).map((key) => `${section}.${key}`)
+    : [section];
+}
+
+/**
+ * The saved brand colours, into the store that paints them, so the admin sees
+ * the new brand without a reload. Only the brand: the dashboard preferences in
+ * that store are the viewer's own and never come from the settings.
+ */
+function applySavedBrand(appearance: Settings["appearance"]) {
+  useAppSettingsStore.getState().hydrateFromDb({
+    presetColor: appearance.presetColor as PresetColor | undefined,
+    primaryColor: appearance.primaryColor,
+    secondaryColor: appearance.secondaryColor,
+    accentColor: appearance.accentColor,
+  });
 }
 
 export function useAdminSettings(initialData?: unknown) {
@@ -132,9 +156,26 @@ export function useAdminSettings(initialData?: unknown) {
   const [isCarrierBusy, setIsCarrierBusy] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testSmsTo, setTestSmsTo] = useState("");
+  // The pages an edit has touched, each compared with the saved copy below. A
+  // save leaves them be: what it wrote compares clean, and a page it did not
+  // write keeps its edits (keepUnsavedEdits).
   const [dirtySectionHints, setDirtySectionHints] = useState<Set<string>>(
     () => new Set(),
   );
+  // Unsaved edits held outside the settings document, by the settings section
+  // of the panel holding them (useReportUnsavedPanel).
+  const [unsavedPanels, setUnsavedPanels] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const setPanelUnsaved = useCallback((sectionId: string, unsaved: boolean) => {
+    setUnsavedPanels((prev) => {
+      if (prev.has(sectionId) === unsaved) return prev;
+      const next = new Set(prev);
+      if (unsaved) next.add(sectionId);
+      else next.delete(sectionId);
+      return next;
+    });
+  }, []);
   const dirtySections = useMemo(
     () =>
       getEffectiveDirtySections(
@@ -147,13 +188,25 @@ export function useAdminSettings(initialData?: unknown) {
   const isDemoMode = Boolean(settings?._meta?.demoMode?.enabled);
   const demoModeMessage =
     settings?._meta?.demoMode?.message ||
-    "Demo mode is enabled. Settings changes are disabled on this demo site.";
+    tSafe(
+      "admin.settings.demoModeMessage",
+      "Demo mode is enabled. Settings changes are disabled on this demo site.",
+    );
 
   const notifyDemoMode = () => {
     toast.error(demoModeMessage);
   };
 
-  const fetchSettings = async () => {
+  /**
+   * Loads the settings afresh, dropping every unsaved edit. `keepEdits` keeps
+   * them instead (keepUnsavedEdits), apart from those under `serverWins`:
+   * for the reload after a server-side action (the Pesapal IPN, a carrier),
+   * or after a conflict, where only the page that clashed takes what the
+   * server holds.
+   */
+  const fetchSettings = async (keepEdits?: {
+    serverWins: readonly string[];
+  }) => {
     try {
       setIsLoading(true);
       const res = await fetch("/api/admin/settings", {
@@ -170,9 +223,13 @@ export function useAdminSettings(initialData?: unknown) {
           setInitialSettings(null);
           return;
         }
-        setSettings(loaded);
+        setSettings((draft) =>
+          keepEdits && draft && initialSettings
+            ? keepUnsavedEdits(loaded, draft, initialSettings, keepEdits.serverWins)
+            : loaded,
+        );
         setInitialSettings(loaded);
-        setDirtySectionHints(new Set());
+        if (!keepEdits) setDirtySectionHints(new Set());
       } else {
         toast.error(tSafe("admin.settings.toasts.loadFailed", "Failed to load settings"));
         setSettings(null);
@@ -220,11 +277,12 @@ export function useAdminSettings(initialData?: unknown) {
     if (sectionId) markSectionDirty(String(sectionId));
     setSettings((prev) => {
       if (!prev) return prev;
-      return setNestedValue(
+      const next = setNestedValue(
         prev as unknown as Record<string, unknown>,
         path,
         value,
       ) as unknown as Settings;
+      return value === null ? withCredentialCleared(next, path) : next;
     });
   };
 
@@ -237,11 +295,14 @@ export function useAdminSettings(initialData?: unknown) {
     markSectionDirty(section);
     setSettings((prev) => {
       if (!prev) return prev;
-      return setNestedValue(
+      const next = setNestedValue(
         prev as unknown as Record<string, unknown>,
         resolvedPath,
         value,
       ) as unknown as Settings;
+      return value === null
+        ? withCredentialCleared(next, resolvedPath)
+        : next;
     });
   };
 
@@ -264,9 +325,14 @@ export function useAdminSettings(initialData?: unknown) {
 
   /**
    * Someone else saved this section first. Ask whether to overwrite their
-   * version or reload; resolves true when the admin chose to overwrite.
+   * version or reload; resolves true when the admin chose to overwrite. A
+   * reload replaces only what the refused request sent (`written`); edits
+   * on other pages stay.
    */
-  const resolveConflict = async (error: ApiClientError) => {
+  const resolveConflict = async (
+    error: ApiClientError,
+    written: readonly string[],
+  ) => {
     const overwrite = await confirm({
       type: "warning",
       title: tSafe("admin.settings.conflict.title", "Settings changed elsewhere"),
@@ -279,7 +345,7 @@ export function useAdminSettings(initialData?: unknown) {
       confirmText: tSafe("admin.settings.conflict.overwrite", "Save anyway"),
       cancelText: tSafe("admin.settings.conflict.reload", "Reload"),
     });
-    if (!overwrite) await fetchSettings();
+    if (!overwrite) await fetchSettings({ serverWins: written });
     return overwrite;
   };
 
@@ -292,20 +358,21 @@ export function useAdminSettings(initialData?: unknown) {
       notifyDemoMode();
       return false;
     }
+    const apiSection =
+      // `marketplace` is the shell's id for the multi-vendor screen — the
+      // dirty-check and the nav already map it that way. Sending it to
+      // "general" would have written marketplace data into the wrong section
+      // the first time anything called this with that id.
+      section === "marketplace"
+        ? "multiVendorMode"
+        : section === "twoFactor" ||
+            section === "oauth" ||
+            section === "emailVerification"
+          ? "security"
+          : section;
+    const written = writtenPaths(apiSection, data);
     try {
       setIsSaving(true);
-      const apiSection =
-        // `marketplace` is the shell's id for the multi-vendor screen — the
-        // dirty-check and the nav already map it that way. Sending it to
-        // "general" would have written marketplace data into the wrong section
-        // the first time anything called this with that id.
-        section === "marketplace"
-          ? "multiVendorMode"
-          : section === "twoFactor" ||
-              section === "oauth" ||
-              section === "emailVerification"
-            ? "security"
-            : section;
       // The payload is sent as the caller built it. There used to be a
       // hard-coded key list here that rebuilt the "general" object, which was a
       // second copy of the server's SECTION_ALLOWED_KEYS — and it silently
@@ -328,26 +395,14 @@ export function useAdminSettings(initialData?: unknown) {
           toast.error(tSafe("admin.settings.toasts.saveFailed", "Failed to save settings"));
           return false;
         }
-        setSettings(nextSettings);
+        setSettings((draft) =>
+          draft && initialSettings
+            ? keepUnsavedEdits(nextSettings, draft, initialSettings, written)
+            : nextSettings,
+        );
         setInitialSettings(nextSettings);
         if (apiSection === "appearance" && nextSettings.appearance) {
-          useAppSettingsStore.setState({
-            themeMode: normalizeThemeMode(nextSettings.appearance.theme),
-            contrast: Boolean(nextSettings.appearance.contrast),
-            rtl: Boolean(nextSettings.appearance.rtl),
-            collapsedSidebar: Boolean(nextSettings.appearance.collapsedSidebar),
-            navLayout: nextSettings.appearance.navLayout || "mini",
-            navColor: nextSettings.appearance.navColor || "integrate",
-            presetColor:
-              nextSettings.appearance.presetColor || DEFAULT_PRESET_COLOR,
-            primaryColor:
-              nextSettings.appearance.primaryColor || DEFAULT_PRIMARY_COLOR,
-            secondaryColor:
-              nextSettings.appearance.secondaryColor || DEFAULT_SECONDARY_COLOR,
-            accentColor:
-              nextSettings.appearance.accentColor || DEFAULT_ACCENT_COLOR,
-            dbHydrated: true,
-          });
+          applySavedBrand(nextSettings.appearance);
         }
         if (apiSection === "general" && nextSettings.general) {
           const newCurrency = nextSettings.general.defaultCurrency || DEFAULT_CURRENCY;
@@ -363,26 +418,14 @@ export function useAdminSettings(initialData?: unknown) {
         // switching POS on left the admin looking at a nav that had not changed
         // and reasonably concluding the toggle was broken. One cached GET.
         await refreshSettings();
-        setDirtySectionHints((prev) => {
-          const next = new Set(prev);
-          next.delete(section);
-          return next;
-        });
         toast.success(tSafe("admin.settings.toasts.saved", "Settings saved"));
         return true;
       }
     } catch (error) {
       if (isSettingsConflict(error)) {
         setIsSaving(false);
-        const overwrite = await resolveConflict(error);
+        const overwrite = await resolveConflict(error, written);
         return overwrite ? saveSection(section, data, { force: true }) : false;
-      }
-      if (error instanceof ApiClientError && error.status === 429) {
-        const fallback = error.retryAfter
-          ? `Too many requests. Please try again in ${error.retryAfter} seconds.`
-          : "Too many requests. Please try again shortly.";
-        toast.error(error.message || fallback);
-        return false;
       }
       toast.error(
         error instanceof ApiClientError && error.message
@@ -403,6 +446,9 @@ export function useAdminSettings(initialData?: unknown) {
       notifyDemoMode();
       return false;
     }
+    const written = Object.entries(data).flatMap(([section, payload]) =>
+      writtenPaths(section, payload),
+    );
     try {
       setIsSaving(true);
       const saved = await apiClient.put<unknown>("/api/admin/settings", {
@@ -417,55 +463,53 @@ export function useAdminSettings(initialData?: unknown) {
           toast.error(tSafe("admin.settings.toasts.saveFailed", "Failed to save settings"));
           return false;
         }
-        setSettings(nextSettings);
+        setSettings((draft) =>
+          draft && initialSettings
+            ? keepUnsavedEdits(nextSettings, draft, initialSettings, written)
+            : nextSettings,
+        );
         setInitialSettings(nextSettings);
         if (nextSettings.appearance) {
-          useAppSettingsStore.setState({
-            themeMode: normalizeThemeMode(nextSettings.appearance.theme),
-            contrast: Boolean(nextSettings.appearance.contrast),
-            rtl: Boolean(nextSettings.appearance.rtl),
-            collapsedSidebar: Boolean(nextSettings.appearance.collapsedSidebar),
-            navLayout: nextSettings.appearance.navLayout || "mini",
-            navColor: nextSettings.appearance.navColor || "integrate",
-            presetColor:
-              nextSettings.appearance.presetColor || DEFAULT_PRESET_COLOR,
-            primaryColor:
-              nextSettings.appearance.primaryColor || DEFAULT_PRIMARY_COLOR,
-            secondaryColor:
-              nextSettings.appearance.secondaryColor || DEFAULT_SECONDARY_COLOR,
-            accentColor:
-              nextSettings.appearance.accentColor || DEFAULT_ACCENT_COLOR,
-            dbHydrated: true,
-          });
+          applySavedBrand(nextSettings.appearance);
         }
         await refreshSettings();
-        setDirtySectionHints(new Set());
         toast.success(tSafe("admin.settings.toasts.saved", "Settings saved"));
         return true;
       }
     } catch (error) {
       if (isSettingsConflict(error)) {
         setIsSaving(false);
-        const overwrite = await resolveConflict(error);
+        const overwrite = await resolveConflict(error, written);
         return overwrite ? saveSections(data, { force: true }) : false;
       }
-      if (error instanceof ApiClientError && error.status === 429) {
-        const fallback = error.retryAfter
-          ? `Too many requests. Please try again in ${error.retryAfter} seconds.`
-          : "Too many requests. Please try again shortly.";
-        toast.error(error.message || fallback);
-        return false;
-      }
-      toast.error(tSafe("admin.settings.toasts.saveFailed", "Failed to save settings"));
+      toast.error(
+        error instanceof ApiClientError && error.message
+          ? error.message
+          : tSafe("admin.settings.toasts.saveFailed", "Failed to save settings"),
+      );
       return false;
     } finally {
       setIsSaving(false);
     }
   };
 
+  /**
+   * Sends through the saved SMTP settings, like the SMS test: the password
+   * never comes back to the browser, so an unsaved host or login would be
+   * tested against the old one and a pass would vouch for the wrong server.
+   */
   const testSmtp = async () => {
     if (isDemoMode) {
       notifyDemoMode();
+      return;
+    }
+    if (dirtySections.has("email")) {
+      toast.error(
+        tSafe(
+          "admin.settings.toasts.saveEmailFirst",
+          "Save the email settings before sending a test email",
+        ),
+      );
       return;
     }
     try {
@@ -475,12 +519,15 @@ export function useAdminSettings(initialData?: unknown) {
         "/api/admin/settings/test-email",
         { testEmail },
       );
-      toast.success(result.message || "Test email sent");
+      toast.success(
+        result.message ||
+          tSafe("admin.settings.email.test.success", "Test email sent successfully!"),
+      );
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Failed to send test email",
+          : tSafe("admin.settings.email.test.error", "Failed to send test email"),
       );
     } finally {
       setIsTestingEmail(false);
@@ -513,12 +560,14 @@ export function useAdminSettings(initialData?: unknown) {
         "/api/admin/settings/test-sms",
         { to: testSmsTo },
       );
-      toast.success(result.message || "Test SMS sent");
+      toast.success(
+        result.message || tSafe("admin.settings.sms.testSent", "Test SMS sent"),
+      );
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Failed to send test SMS",
+          : tSafe("admin.settings.sms.testFailed", "Failed to send test SMS"),
       );
     } finally {
       setIsTestingSms(false);
@@ -540,6 +589,17 @@ export function useAdminSettings(initialData?: unknown) {
       notifyDemoMode();
       return;
     }
+    // The gateway is checked with the stored keys; with new keys still in the
+    // form, "Connected" would describe the old ones.
+    if (dirtySections.has("payment")) {
+      toast.error(
+        tSafe(
+          "admin.settings.toasts.savePaymentBeforeTest",
+          "Save payment settings before testing the connection",
+        ),
+      );
+      return;
+    }
     try {
       setIsTestingPayment(true);
       const result = await apiClient.request<unknown>(
@@ -547,12 +607,14 @@ export function useAdminSettings(initialData?: unknown) {
         "/api/admin/settings/test-payment",
         { provider },
       );
-      toast.success(result.message || "Connected");
+      toast.success(
+        result.message || tSafe("admin.settings.toasts.connected", "Connected"),
+      );
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Connection failed",
+          : tSafe("admin.settings.toasts.connectionFailed", "Connection failed"),
       );
     } finally {
       setIsTestingPayment(false);
@@ -588,12 +650,15 @@ export function useAdminSettings(initialData?: unknown) {
         "/api/admin/settings/test-oauth",
         { provider },
       );
-      toast.success(result.message || "Credentials verified");
+      toast.success(
+        result.message ||
+          tSafe("admin.settings.oauth.verified", "Credentials verified"),
+      );
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Verification failed",
+          : tSafe("admin.settings.oauth.verifyFailed", "Verification failed"),
       );
     } finally {
       setIsTestingOAuth(false);
@@ -621,13 +686,19 @@ export function useAdminSettings(initialData?: unknown) {
         "POST",
         "/api/admin/settings/pesapal/register-ipn",
       );
-      toast.success(result.message || "Pesapal IPN registered");
-      await fetchSettings();
+      toast.success(
+        result.message ||
+          tSafe("admin.settings.payment.pesapal.ipnRegistered", "Pesapal IPN registered"),
+      );
+      await fetchSettings({ serverWins: [] });
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Failed to register Pesapal IPN",
+          : tSafe(
+              "admin.settings.payment.pesapal.ipnFailed",
+              "Failed to register Pesapal IPN",
+            ),
       );
     } finally {
       setIsRegisteringPesapalIpn(false);
@@ -639,20 +710,27 @@ export function useAdminSettings(initialData?: unknown) {
    * carrier account, so an unsaved credential in the form would be tested
    * against the previously stored one and report a misleading result.
    */
-  const requireSavedShipping = (action: string): boolean => {
+  const requireSavedShipping = (
+    action: keyof typeof SAVE_SHIPPING_FIRST,
+  ): boolean => {
     if (isDemoMode) {
       notifyDemoMode();
       return false;
     }
     if (dirtySections.has("shipping")) {
-      toast.error(`Save shipping settings before ${action}`);
+      toast.error(
+        tSafe(
+          `admin.settings.shipping.carriers.saveFirst.${action}`,
+          SAVE_SHIPPING_FIRST[action],
+        ),
+      );
       return false;
     }
     return true;
   };
 
   const testCarrierConnection = async (provider: CarrierProvider) => {
-    if (!requireSavedShipping("testing the connection")) return;
+    if (!requireSavedShipping("test")) return;
     try {
       setIsCarrierBusy(true);
       const result = await apiClient.request<{ account?: string; mode?: string }>(
@@ -660,10 +738,14 @@ export function useAdminSettings(initialData?: unknown) {
         "/api/admin/settings/test-carrier",
         { provider },
       );
-      toast.success(result.message || "Connected");
+      toast.success(
+        result.message || tSafe("admin.settings.toasts.connected", "Connected"),
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error && error.message ? error.message : "Connection failed",
+        error instanceof Error && error.message
+          ? error.message
+          : tSafe("admin.settings.toasts.connectionFailed", "Connection failed"),
       );
     } finally {
       setIsCarrierBusy(false);
@@ -671,21 +753,27 @@ export function useAdminSettings(initialData?: unknown) {
   };
 
   const registerCarrierWebhook = async (provider: CarrierProvider) => {
-    if (!requireSavedShipping("registering the webhook")) return;
+    if (!requireSavedShipping("webhook")) return;
     try {
       setIsCarrierBusy(true);
       const result = await apiClient.request<{ url: string }>(
         "POST",
         `/api/admin/settings/carriers/${provider}/register-webhook`,
       );
-      toast.success(result.message || "Webhook URL generated");
-      await fetchSettings();
+      toast.success(
+        result.message ||
+          tSafe("admin.settings.shipping.carriers.webhookGenerated", "Webhook URL generated"),
+      );
+      await fetchSettings({ serverWins: [] });
       return result.data?.url;
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Failed to generate the webhook URL",
+          : tSafe(
+              "admin.settings.shipping.carriers.webhookFailed",
+              "Failed to generate the webhook URL",
+            ),
       );
     } finally {
       setIsCarrierBusy(false);
@@ -693,10 +781,10 @@ export function useAdminSettings(initialData?: unknown) {
   };
 
   const disconnectCarrier = async (provider: CarrierProvider) => {
-    if (isDemoMode) {
-      notifyDemoMode();
-      return;
-    }
+    // The reload below keeps unsaved edits, and shipping edits kept on top of
+    // a disconnect would save the carrier back, or read as someone else's
+    // change (409). Saved first, like the other carrier actions.
+    if (!requireSavedShipping("disconnect")) return;
     try {
       setIsCarrierBusy(true);
       const result = await apiClient.request<unknown>(
@@ -704,13 +792,19 @@ export function useAdminSettings(initialData?: unknown) {
         "/api/admin/settings/carriers/disconnect",
         { provider },
       );
-      toast.success(result.message || "Carrier disconnected");
-      await fetchSettings();
+      toast.success(
+        result.message ||
+          tSafe("admin.settings.shipping.carriers.disconnected", "Carrier disconnected"),
+      );
+      await fetchSettings({ serverWins: [] });
     } catch (error) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Failed to disconnect the carrier",
+          : tSafe(
+              "admin.settings.shipping.carriers.disconnectFailed",
+              "Failed to disconnect the carrier",
+            ),
       );
     } finally {
       setIsCarrierBusy(false);
@@ -718,7 +812,7 @@ export function useAdminSettings(initialData?: unknown) {
   };
 
   const fetchShiprocketPickupLocations = async (): Promise<string[]> => {
-    if (!requireSavedShipping("loading pickup locations")) return [];
+    if (!requireSavedShipping("pickupLocations")) return [];
     try {
       setIsCarrierBusy(true);
       const result = await apiClient.request<{ locations: string[] }>(
@@ -730,7 +824,10 @@ export function useAdminSettings(initialData?: unknown) {
       toast.error(
         error instanceof Error && error.message
           ? error.message
-          : "Failed to load pickup locations",
+          : tSafe(
+              "admin.settings.shipping.carriers.pickupLocationsFailed",
+              "Failed to load pickup locations",
+            ),
       );
       return [];
     } finally {
@@ -739,7 +836,13 @@ export function useAdminSettings(initialData?: unknown) {
   };
 
   const hasUnsaved = (): boolean => {
-    return dirtySections.size > 0;
+    return dirtySections.size > 0 || unsavedPanels.size > 0;
+  };
+
+  /** Back to the saved copy: every unsaved edit to the settings goes. */
+  const discardEdits = () => {
+    setSettings(initialSettings);
+    setDirtySectionHints(new Set());
   };
 
   return {
@@ -772,8 +875,11 @@ export function useAdminSettings(initialData?: unknown) {
     registerCarrierWebhook,
     disconnectCarrier,
     fetchShiprocketPickupLocations,
-    refetch: fetchSettings,
+    refetch: () => fetchSettings(),
     hasUnsaved,
+    discardEdits,
+    unsavedPanels,
+    setPanelUnsaved,
     isDemoMode,
     demoModeMessage,
   };

@@ -1,13 +1,14 @@
 "use client";
 
-import { z } from "zod";
+import * as z from "zod";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ExternalLink, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import {
   MediaUploader,
   type UploadedMedia,
@@ -75,8 +76,7 @@ const postSchema = z.object({
   categoryIds: z.array(z.string()),
   tags: z.array(z.string()),
   status: z.enum(["draft", "scheduled", "published", "archived"]),
-  visibility: z.enum(["public", "private", "password"]),
-  password: z.string().optional(),
+  visibility: z.enum(["public", "private"]),
   scheduledFor: z.string().optional(),
   publishedAt: z.string().optional(),
   allowComments: z.boolean(),
@@ -158,7 +158,6 @@ export function BlogPostForm({ postId }: Props) {
       tags: [],
       status: "draft",
       visibility: "public",
-      password: "",
       scheduledFor: "",
       publishedAt: "",
       allowComments: true,
@@ -207,8 +206,12 @@ export function BlogPostForm({ postId }: Props) {
             ),
             tags: p.tags || [],
             status: p.status,
-            visibility: p.visibility,
-            password: p.password || "",
+            // A post written with the old "password" option is private: the
+            // option never protected it.
+            visibility:
+              p.visibility === "private" || p.visibility === "password"
+                ? "private"
+                : "public",
             scheduledFor: isoLocal(p.scheduledFor),
             publishedAt: isoLocal(p.publishedAt),
             allowComments: p.allowComments,
@@ -265,7 +268,6 @@ export function BlogPostForm({ postId }: Props) {
 
   const watchedTitle = useWatch({ control: form.control, name: "title" }) || "";
   const watchedStatus = useWatch({ control: form.control, name: "status" }) || "draft";
-  const watchedVisibility = useWatch({ control: form.control, name: "visibility" });
   const watchedTags = useWatch({ control: form.control, name: "tags" }) || [];
   const watchedSeoTitle = useWatch({ control: form.control, name: "seo.pageTitle" }) || "";
   const watchedSeoDesc = useWatch({ control: form.control, name: "seo.metaDescription" }) || "";
@@ -438,7 +440,7 @@ export function BlogPostForm({ postId }: Props) {
             <>
               {postId && previewSlug ? (
                 <Button asChild type="button" variant="outline" size="sm">
-                  <Link href={`/${locale}/blog/${previewSlug}`} target="_blank">
+                  <Link href={`/blog/${previewSlug}`} target="_blank">
                     <ExternalLink className="mr-1.5 h-4 w-4" />
                     {t("actions.preview")}
                   </Link>
@@ -607,8 +609,8 @@ export function BlogPostForm({ postId }: Props) {
                               breadcrumbLeaf={t("ai.contentImage")}
                               savedMessage={t("ai.contentImageSaved")}
                               subjectNoun={t("ai.image")}
-                              posHref={`/${locale}/admin/pos`}
-                              browseHref={`/${locale}`}
+                              posHref="/admin/pos"
+                              browseHref="/"
                               persistKey={`blog_post:admin:${postId ?? "new"}:content-image`}
                             >
                               {(open) => (
@@ -698,8 +700,8 @@ export function BlogPostForm({ postId }: Props) {
                               generateDefaults={BLOG_FEATURED_GENERATE_DEFAULTS}
                               postProcessResult={cropBlogFeaturedResult}
                               promptPlaceholder={BLOG_FEATURED_PROMPT_PLACEHOLDER}
-                              posHref={`/${locale}/admin/pos`}
-                              browseHref={`/${locale}`}
+                              posHref="/admin/pos"
+                              browseHref="/"
                               persistKey={`blog_post:admin:${postId ?? "new"}:featuredImage`}
                             />
                           }
@@ -882,29 +884,12 @@ export function BlogPostForm({ postId }: Props) {
                         <SelectContent>
                           <SelectItem value="public">{t("visibility.public")}</SelectItem>
                           <SelectItem value="private">{t("visibility.private")}</SelectItem>
-                          <SelectItem value="password">{t("visibility.password")}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {watchedVisibility === "password" ? (
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("fields.password")}</FormLabel>
-                        <FormControl>
-                          <Input type="text" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : null}
 
                 <FormField
                   control={form.control}

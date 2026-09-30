@@ -7,7 +7,7 @@
  *        integrity server-side (see toStoredSteps).
  */
 
-import { z } from "zod";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { validateBody } from "@/lib/api/validate";

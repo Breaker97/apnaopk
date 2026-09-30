@@ -1,11 +1,12 @@
 "use client";
 
-import { z } from "zod";
+import * as z from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, ChevronDown, Loader2, Search } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   MediaUploader,
   type UploadedMedia,
@@ -625,8 +626,8 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
                               breadcrumbLeaf="Image"
                               savedMessage="Saved to category image"
                               subjectNoun="category"
-                              posHref={`/${locale}/admin/pos`}
-                              browseHref={`/${locale}`}
+                              posHref="/admin/pos"
+                              browseHref="/"
                               persistKey={`category:admin:${categoryId ?? "new"}:image`}
                             />
                           }
@@ -690,8 +691,8 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
                               breadcrumbLeaf="Icon"
                               savedMessage="Saved to category icon"
                               subjectNoun="category"
-                              posHref={`/${locale}/admin/pos`}
-                              browseHref={`/${locale}`}
+                              posHref="/admin/pos"
+                              browseHref="/"
                               // The field asks for a transparent square icon, so
                               // generation starts there instead of making the
                               // merchant remove an opaque background by hand.

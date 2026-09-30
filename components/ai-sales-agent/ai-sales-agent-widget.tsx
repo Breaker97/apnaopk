@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { ArrowUp, Loader2, MessageCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-notification";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
 import { trackAddToCart } from "@/lib/analytics/events";
@@ -17,11 +18,20 @@ import type {
   PublicAISalesAgentConfig,
 } from "@/lib/ai-sales-agent/types";
 import type { Locale } from "@/config/i18n.config";
-import {
-  AISalesAssistantAvatar,
-  AISalesHeaderIcon,
-  AISalesMessageBubble,
-} from "./ai-sales-message";
+
+// Drawn only in the open panel, so they load with it rather than with the
+// button every page carries — from the moment a pointer or focus reaches the
+// button, which is usually before the click that opens it.
+const AISalesHeaderIcon = dynamic(() =>
+  import("./ai-sales-message").then((module) => module.AISalesHeaderIcon),
+);
+const AISalesAssistantAvatar = dynamic(() =>
+  import("./ai-sales-message").then((module) => module.AISalesAssistantAvatar),
+);
+const AISalesMessageBubble = dynamic(() =>
+  import("./ai-sales-message").then((module) => module.AISalesMessageBubble),
+);
+const preloadPanel = () => void import("./ai-sales-message");
 
 /** A message as the widget holds it: the reply in flight is marked so its bubble shows a caret. */
 type WidgetMessage = AISalesChatMessage & { streaming?: boolean };
@@ -62,7 +72,20 @@ async function* readStreamEvents(
   if (last) yield last;
 }
 
-export function AISalesAgentWidget({ locale }: { locale: Locale }) {
+export function AISalesAgentWidget({
+  locale,
+  config,
+}: {
+  locale: Locale;
+  /**
+   * Resolved by the store layout from the cached storefront settings, which
+   * mounts the widget only when the assistant is switched on — so the widget
+   * never asks the server for its own configuration. It used to fetch
+   * `/api/ai-sales-agent/config` on every mount: one request and one full
+   * settings read per storefront visit for data the layout already held.
+   */
+  config: PublicAISalesAgentConfig;
+}) {
   const pathname = usePathname();
   const accountPath = `/${locale}/account`;
   const isAccountRoute =
@@ -71,11 +94,8 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   // The quoted-price wording is the storefront's, not the widget's: the card
   // must read the same here as it does on the product page it links to.
   const tProduct = useTranslations("product");
-  const { addItem, refreshCart } = useCart();
+  const { addItem, refreshCart } = useCartActions();
   const { currency, formatPrice } = useCurrency();
-  const [config, setConfig] = React.useState<PublicAISalesAgentConfig | null>(
-    null,
-  );
   const [open, setOpen] = React.useState(false);
   const [conversationId, setConversationId] = React.useState<string>();
   const [messages, setMessages] = React.useState<WidgetMessage[]>([]);
@@ -91,20 +111,6 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
-    let alive = true;
-    fetch("/api/ai-sales-agent/config", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => {
-        if (!alive) return;
-        if (json?.success) setConfig(json.data);
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  React.useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
@@ -112,7 +118,10 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   }, [messages, loading]);
 
   React.useEffect(() => {
-    const handleOpenWidget = () => setOpen(true);
+    const handleOpenWidget = () => {
+      preloadPanel();
+      setOpen(true);
+    };
     window.addEventListener("ai-sales-agent:open", handleOpenWidget);
     return () => {
       window.removeEventListener("ai-sales-agent:open", handleOpenWidget);
@@ -120,7 +129,6 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
   }, []);
 
   if (isAccountRoute) return null;
-  if (!config?.enabled) return null;
 
   const labels = {
     addedToCart: t("addedToCart"),
@@ -429,6 +437,9 @@ export function AISalesAgentWidget({ locale }: { locale: Locale }) {
         <Button
           size="icon"
           className="h-14 w-14 rounded-full shadow-xl"
+          onPointerEnter={preloadPanel}
+          onPointerDown={preloadPanel}
+          onFocus={preloadPanel}
           onClick={() => setOpen(true)}
           style={{ background: headerGradient }}
         >

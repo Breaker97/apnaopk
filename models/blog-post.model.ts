@@ -53,10 +53,15 @@ const BlogPostSchema = new Schema<IBlogPost>(
     },
     visibility: {
       type: String,
+      // "password" is only found on a post written before 2.4, and reads as
+      // private (PUBLIC_BLOG_FILTER).
       enum: ["public", "private", "password"],
       default: "public",
     },
-    password: { type: String },
+    // Written by the old "password" option, which never protected the post.
+    // Never sent: `select: false` keeps an old value out of every query, and
+    // saving the post clears it.
+    password: { type: String, select: false },
     publishedAt: { type: Date, index: true },
     scheduledFor: { type: Date },
     allowComments: { type: Boolean, default: true },

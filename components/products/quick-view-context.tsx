@@ -28,13 +28,20 @@ const ProductQuickViewModal = dynamic(() =>
 );
 
 /**
- * One storefront-wide quick view: a single modal mounted by the store layout
- * plus a context opener the product card falls back to when its surface
- * didn't wire an `onQuickView` of its own — so quick view behaves the same
- * on the home sections as on the listing grids instead of existing only
- * where a section happened to mount a modal. A surface's own handler still
- * wins via the prop, and outside the provider (admin previews) the card
- * simply hides the control, exactly as before.
+ * Starts loading the modal's code. The card calls it on the same pointer,
+ * touch and focus intents that preload the product, so the first open waits
+ * for neither.
+ */
+export function preloadQuickViewModal() {
+  void import("@/components/products/product-quick-view-modal");
+}
+
+/**
+ * The storefront's one quick view: a single modal mounted by the store layout
+ * and a context opener every product card uses. Grids and carousels used to
+ * mount modals of their own; a static import in any of them put the modal in
+ * every storefront page's first load. Outside the provider (admin previews)
+ * the card hides the control.
  */
 export function QuickViewProvider({
   locale,

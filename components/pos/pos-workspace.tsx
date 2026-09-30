@@ -12,11 +12,13 @@ import { POSLocationPicker } from "@/components/pos/pos-location-picker";
 import { POSLocationSwitchDialog } from "@/components/pos/pos-location-switch-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { playPOSSound, configurePOSSounds } from "@/lib/pos/pos-sounds";
 import { cleanScannedCode } from "@/lib/catalog/barcodes";
 import { getPOSPurchasableQuantity } from "@/lib/pos/product-stock";
 import { resolvePOSBarcodeMatch } from "@/lib/pos/barcode-lookup";
 import { usePOSOffline, type POSOfflineState } from "@/hooks/use-pos-offline";
+import { usePOSHardwareScanner } from "@/hooks/use-pos-hardware-scanner";
 import { getHeldOrders, heldOrdersScope } from "@/lib/pos/held-orders";
 import {
   describeHeldOrderAdjustments,
@@ -715,6 +717,33 @@ export function POSWorkspace({
     [enqueueScannedCode],
   );
 
+  // A USB or Bluetooth scanner, read wherever focus is, not only in the scan field.
+  usePOSHardwareScanner({
+    enabled: !offline.isLocked,
+    searchInputRef,
+    onScan: (code, inSearch) => {
+      // The code arrived in the search box one keystroke at a time. Take it
+      // back out so the grid shows what the cashier had searched for.
+      if (inSearch) {
+        setSearchQuery((query) =>
+          query.endsWith(code) ? query.slice(0, -code.length) : query,
+        );
+      }
+      // Payment, a completed sale, a variant picker, the counter prompt: a
+      // scan behind any of these would change a cart that is mid-way through
+      // something. Refuse it out loud; the scanner has already beeped.
+      if (
+        needsCounterPick ||
+        document.querySelector('[role="dialog"], [role="alertdialog"]')
+      ) {
+        playPOSSound("error");
+        toast.error("Close the open dialog, then scan again.");
+        return;
+      }
+      enqueueScannedCode(code, "hardware");
+    },
+  });
+
   return (
     // Fills exactly the viewport left under the dashboard header (4rem for
     // admin/staff, 5rem for vendor) so the terminal never grows the page and
@@ -794,33 +823,34 @@ export function POSWorkspace({
           screen until they are dealt with — a toast is gone in seconds and this
           is work somebody has to come back to. */}
           {leftBehind ? (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-[13px] text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
-              <span className="flex min-w-0 items-center gap-2">
-                <Pause className="h-3.5 w-3.5 shrink-0" />
-                <span className="min-w-0">
-                  <span className="font-semibold">
-                    {leftBehind.count}{" "}
-                    {leftBehind.count === 1 ? "sale" : "sales"}
-                  </span>{" "}
-                  still held at {leftBehind.name}
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => requestLocationSwitch(leftBehind.id)}
-                className="cursor-pointer rounded-lg border border-amber-300 bg-white/70 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-white dark:border-amber-900/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/70"
-              >
-                Go back to {leftBehind.name}
-              </button>
-              <button
-                type="button"
-                aria-label="Dismiss"
-                onClick={() => setLeftBehind(null)}
-                className="ml-auto cursor-pointer rounded-full p-1 transition-colors hover:bg-amber-100 dark:hover:bg-amber-950/60"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <WarningBanner
+              icon={Pause}
+              className="mt-2"
+              action={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => requestLocationSwitch(leftBehind.id)}
+                    className="cursor-pointer rounded-lg border border-amber-300 bg-white/70 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-white dark:border-amber-900/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/70"
+                  >
+                    Go back to {leftBehind.name}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Dismiss"
+                    onClick={() => setLeftBehind(null)}
+                    className="ml-auto cursor-pointer rounded-full p-1 transition-colors hover:bg-amber-100 dark:hover:bg-amber-950/60"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              }
+            >
+              <span className="font-semibold">
+                {leftBehind.count} {leftBehind.count === 1 ? "sale" : "sales"}
+              </span>{" "}
+              still held at {leftBehind.name}
+            </WarningBanner>
           ) : null}
 
           {/* Products card - flex fills remaining height, no forced height */}

@@ -1,4 +1,5 @@
 import { getAuthPageSettings } from "@/lib/auth/auth-page-settings";
+import { demoLoginCredentials } from "@/lib/auth/demo-login";
 import { LoginPageClient } from "./login-content";
 
 export default async function LoginPage() {
@@ -10,7 +11,7 @@ export default async function LoginPage() {
         google: settings.googleOAuthEnabled,
         facebook: settings.facebookOAuthEnabled,
       }}
-      demoModeEnabled={settings.demoMode}
+      demoCredentials={demoLoginCredentials()}
     />
   );
 }

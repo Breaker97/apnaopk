@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/data-table";
 import { toast } from "@/components/ui/toast-notification";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useCallback, useMemo } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
@@ -318,7 +318,7 @@ export function BrandsDataTable({
             image={row.logo}
             title={row.name}
             subtitle={`/${row.slug}`}
-            href={`/${locale}/admin/brands/${row._id}/edit`}
+            href={`/admin/brands/${row._id}/edit`}
           />
         ),
         className: "w-[420px]",
@@ -394,7 +394,7 @@ export function BrandsDataTable({
         addAction: {
           id: "add",
           label: "Add brand",
-          href: `/${locale}/admin/brands/new`,
+          href: "/admin/brands/new",
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
@@ -502,7 +502,7 @@ export function BrandsDataTable({
           id: "edit",
           label: "Edit",
           icon: <Pencil className="h-4 w-4" />,
-          href: `/${locale}/admin/brands/${row._id}/edit`,
+          href: `/admin/brands/${row._id}/edit`,
         },
         {
           id: row.featured ? "remove-featured" : "mark-featured",
@@ -581,7 +581,7 @@ export function BrandsDataTable({
       rowActionsHeader="Actions"
       rowActionsVariant="inline"
       onRowClick={(row) =>
-        router.push(`/${locale}/admin/brands/${row._id}/edit`)
+        router.push(`/admin/brands/${row._id}/edit`)
       }
       emptyMessage="No brands found. Create your first brand to get started."
       emptyIcon={<Tag className="h-8 w-8" />}

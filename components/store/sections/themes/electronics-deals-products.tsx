@@ -1,15 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { Check, ChevronLeft, ChevronRight, ShoppingCart, Star } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { ScrollRail } from "@/components/store/scroll-rail";
 import { toast } from "@/components/ui/toast-notification";
-import { type Locale } from "@/config/i18n.config";
-import { useCart } from "@/hooks/use-cart";
+import { useCartActions } from "@/hooks/use-cart";
 import { useCurrency } from "@/providers/currency-provider";
 import { trackAddToCart } from "@/lib/analytics/events";
 import {
@@ -17,14 +16,11 @@ import {
   findColorVariantImage,
   getSwatchColor,
 } from "@/lib/products/color-swatch";
+import { formatProductCompareAtPrice, formatProductPrice, getProductDiscountPercentage, getProductPriceRange, getProductSavings } from "@/lib/products/price-display";
 import {
-  formatProductCompareAtPrice,
-  formatProductPrice,
-  getProductDiscountPercentage,
-  getProductPriceRange,
-  getProductSavings,
+  productOnlyVariant,
   productRequiresVariantSelection,
-} from "@/lib/products/price-display";
+} from "@/lib/products/variant-selection";
 import type { StorefrontProductCard } from "@/lib/products/storefront-product-cards";
 import { getPurchasableQuantity } from "@/lib/products/stock-policy";
 import type { DealLayout } from "@/lib/storefront/sections/deal-layouts";
@@ -75,14 +71,12 @@ function dealImageProps(image: DealImageStyle, ownPadding: string, cap: number) 
 
 export function ElectronicsDealsProducts({
   products,
-  locale,
   layout,
   showStock,
   imageFit = "contain",
   imagePadding = -1,
 }: {
   products: StorefrontProductCard[];
-  locale: Locale;
   layout: DealLayout;
   showStock: boolean;
   imageFit?: "contain" | "cover";
@@ -94,6 +88,12 @@ export function ElectronicsDealsProducts({
 
   const hero = layout.hero !== null ? items[layout.hero] : undefined;
   const rest = items.filter((_, index) => index !== layout.hero);
+  const stacked = layout.stacked === true;
+  // A stacked card's photo is the card's full width: a share of the 1328px
+  // container at lg, most of the panel in the rail below it.
+  const smallSizes = stacked
+    ? `(min-width: 1024px) ${Math.round(1328 / layout.slots)}px, 74vw`
+    : "(min-width: 1024px) 240px, 40vw";
 
   // The thumbnail's trick: a track's minmax() minimum is its content's, and
   // these cards carry enough fixed geometry to demand it. `minmax(0, …)`
@@ -114,7 +114,6 @@ export function ElectronicsDealsProducts({
         >
           <FeaturedDealCard
             product={hero}
-            locale={locale}
             showStock={showStock}
             image={image}
           />
@@ -128,10 +127,11 @@ export function ElectronicsDealsProducts({
               <SmallDealCard
                 key={product._id}
                 product={product}
-                locale={locale}
                 showStock={showStock}
                 area={layout.slotAreas[slot]}
                 image={image}
+                stacked={stacked}
+                sizes={smallSizes}
               />
             );
           })}
@@ -158,21 +158,24 @@ function categoryName(product: StorefrontProductCard): string {
 
 function SmallDealCard({
   product,
-  locale,
   showStock,
   area,
   image: imageStyle,
+  stacked,
+  sizes,
 }: {
   product: StorefrontProductCard;
-  locale: Locale;
   showStock: boolean;
   /** The grid area this card takes at lg. */
   area: string;
   image: DealImageStyle;
+  /** Photo on top at every width — the layout's call, not the card's. */
+  stacked: boolean;
+  sizes: string;
 }) {
   const t = useTranslations();
   const { formatPrice } = useCurrency();
-  const href = `/${locale}/products/${product.slug}`;
+  const href = `/products/${product.slug}`;
   const image = productImage(product);
   const discount = getProductDiscountPercentage(product);
   const compareAt = formatProductCompareAtPrice(product, formatPrice);
@@ -184,18 +187,29 @@ function SmallDealCard({
     // WIDTH there is the layout's decision, not the card's — two deals in a
     // row are wide, five are narrow. So the card is a container and lays
     // itself out by the width it actually got: the photo beside the copy
-    // when there is room for both, above it when there is not. In either
-    // shape the photo takes whatever height the cell has to give, so a
-    // tall cell means a bigger picture rather than a small card in a big
-    // empty box.
+    // when there is room for both, above it when there is not — unless the
+    // layout is a row of three or more, where every card keeps the photo
+    // on top so the row reads as one shelf. In either shape the photo
+    // takes whatever height the cell has to give, so a tall cell means a
+    // bigger picture rather than a small card in a big empty box.
     <div
       className="@container flex w-[74%] min-w-0 shrink-0 snap-start rounded-[var(--deal-card-radius,0.75rem)] bg-card sm:min-h-40 sm:w-[46%] lg:w-auto"
       style={{ gridArea: area }}
     >
-      <div className="flex h-full w-full flex-col gap-2 p-2 @[260px]:flex-row @[260px]:items-center @[260px]:py-1.5 @[260px]:pe-0 @[260px]:ps-1.5">
+      <div
+        className={cn(
+          "flex h-full w-full flex-col gap-2 p-2",
+          !stacked &&
+            "@[260px]:flex-row @[260px]:items-center @[260px]:py-1.5 @[260px]:pe-0 @[260px]:ps-1.5",
+        )}
+      >
         <Link
           href={href}
-          className="relative min-h-[140px] flex-1 overflow-hidden rounded-[max(0px,calc(var(--deal-card-radius,0.75rem)-4px))] bg-muted @[260px]:w-[44%] @[260px]:min-h-[130px] @[260px]:flex-none @[260px]:self-stretch"
+          className={cn(
+            "relative min-h-[140px] flex-1 overflow-hidden rounded-[max(0px,calc(var(--deal-card-radius,0.75rem)-4px))] bg-muted",
+            !stacked &&
+              "@[260px]:w-[44%] @[260px]:min-h-[130px] @[260px]:flex-none @[260px]:self-stretch",
+          )}
         >
           {discount > 0 ? (
             // What a deals panel is FOR. The struck-through price alone
@@ -209,26 +223,45 @@ function SmallDealCard({
               src={image}
               alt={product.name}
               fill
-              sizes="(min-width: 1024px) 240px, 40vw"
+              sizes={sizes}
               {...dealImageProps(imageStyle, "p-2", 16)}
             />
           ) : null}
         </Link>
-        <div className="flex min-w-0 flex-col gap-1.5 px-1 pb-1 @[260px]:flex-1 @[260px]:gap-2 @[260px]:pe-3 @[260px]:pb-0 @[420px]:gap-3 @[420px]:ps-3">
+        <div
+          className={cn(
+            "flex min-w-0 flex-col gap-1.5 px-1 pb-1",
+            !stacked &&
+              "@[260px]:flex-1 @[260px]:gap-2 @[260px]:pe-3 @[260px]:pb-0 @[420px]:gap-3 @[420px]:ps-3",
+          )}
+        >
           {/* Two lines, never an ellipsis after four characters: a narrow
               card has the height to wrap a name it lacks the width to fit. */}
           <Link
             href={href}
-            className="line-clamp-2 text-[14px] font-semibold leading-tight tracking-[-0.03em] text-card-foreground @[260px]:text-[16px] @[420px]:text-[19px]"
+            className={cn(
+              "line-clamp-2 text-[14px] font-semibold leading-tight tracking-[-0.03em] text-card-foreground",
+              !stacked && "@[260px]:text-[16px] @[420px]:text-[19px]",
+            )}
           >
             {product.name}
           </Link>
           <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-            <span className="text-[17px] font-bold leading-tight tracking-[-0.01em] text-primary @[260px]:text-[21px] @[420px]:text-[25px]">
+            <span
+              className={cn(
+                "text-[17px] font-bold leading-tight tracking-[-0.01em] text-primary",
+                !stacked && "@[260px]:text-[21px] @[420px]:text-[25px]",
+              )}
+            >
               {formatProductPrice(product, formatPrice)}
             </span>
             {compareAt ? (
-              <span className="text-[10.5px] leading-tight tracking-[-0.01em] text-foreground/30 line-through @[420px]:text-[13px]">
+              <span
+                className={cn(
+                  "text-[10.5px] leading-tight tracking-[-0.01em] text-foreground/30 line-through",
+                  !stacked && "@[420px]:text-[13px]",
+                )}
+              >
                 {compareAt}
               </span>
             ) : null}
@@ -258,19 +291,17 @@ function SmallDealCard({
 
 function FeaturedDealCard({
   product,
-  locale,
   showStock,
   image: imageStyle,
 }: {
   product: StorefrontProductCard;
-  locale: Locale;
   showStock: boolean;
   image: DealImageStyle;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const { currency, formatPrice } = useCurrency();
-  const { addItem } = useCart();
+  const { addItem } = useCartActions();
   // Null while the shopper hasn't browsed the gallery by hand — the colour
   // swatch drives the image until they do, and each colour change hands
   // control back to the swatches.
@@ -278,7 +309,7 @@ function FeaturedDealCard({
   const [activeColor, setActiveColor] = useState(0);
   const [adding, setAdding] = useState(false);
 
-  const href = `/${locale}/products/${product.slug}`;
+  const href = `/products/${product.slug}`;
   const allImages = product.images ?? [];
   const images = allImages.slice(0, 4);
   const rating = Math.round(product.rating ?? 0);
@@ -304,10 +335,7 @@ function FeaturedDealCard({
       : (allImages[activeImage] ?? productImage(product));
   const priceRange = getProductPriceRange(product);
   const discount = getProductDiscountPercentage(product);
-  const onlyVariant =
-    Array.isArray(product.variants) && product.variants.length === 1
-      ? product.variants[0]
-      : null;
+  const onlyVariant = productOnlyVariant(product);
 
   const step = useCallback(
     (delta: number) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, {
+import {
   createContext,
   useCallback,
   useContext,
@@ -24,9 +24,9 @@ import {
 import type { InitialAppearanceSettings } from "@/stores/app-settings";
 import {
   DEFAULT_COUNTRY_AVAILABILITY,
-  normalizeCountryAvailability,
+  readCountryAvailability,
   type CountryAvailability,
-} from "@/lib/intl/country-availability";
+} from "@/lib/intl/country-availability-policy";
 
 /**
  * App Settings Context
@@ -61,6 +61,8 @@ interface AppSettingsContextValue {
   supportedLanguages: string[];
   /** Store-wide country options allowed in checkout, onboarding, and forms. */
   countryAvailability: CountryAvailability;
+  /** The store's shipping origin country — what address forms default to. */
+  shippingOriginCountry: string;
   /** Example MTN MoMo number for wallet-number placeholders, in the configured OpCo's format. */
   mtnMomoPhoneExample: string;
   logoUrl?: string;
@@ -98,6 +100,7 @@ const defaultAppSettings: AppSettingsContextValue = {
   defaultLanguage: DEFAULT_LANGUAGE,
   supportedLanguages: [],
   countryAvailability: { ...DEFAULT_COUNTRY_AVAILABILITY },
+  shippingOriginCountry: "",
   mtnMomoPhoneExample: "231881234567",
   logoUrl: undefined,
   darkModeLogoUrl: undefined,
@@ -128,9 +131,10 @@ export function AppSettingsProvider({
     defaultCurrency: initialSettings?.defaultCurrency || DEFAULT_CURRENCY,
     defaultLanguage: initialSettings?.defaultLanguage || DEFAULT_LANGUAGE,
     supportedLanguages: initialSettings?.supportedLanguages ?? [],
-    countryAvailability: normalizeCountryAvailability(
+    countryAvailability: readCountryAvailability(
       initialSettings?.countryAvailability,
     ),
+    shippingOriginCountry: initialSettings?.shippingOriginCountry ?? "",
     faviconUrl: resolveFaviconUrl(initialSettings?.faviconUrl),
     socialLinks: initialSettings?.socialLinks ?? {},
     shareSettings: resolveShareSettings(initialSettings?.shareSettings),
@@ -163,9 +167,13 @@ export function AppSettingsProvider({
             supportedLanguages: Array.isArray(data.data.supportedLanguages)
               ? data.data.supportedLanguages
               : [],
-            countryAvailability: normalizeCountryAvailability(
+            countryAvailability: readCountryAvailability(
               data.data.countryAvailability,
             ),
+            shippingOriginCountry:
+              typeof data.data.shippingOriginCountry === "string"
+                ? data.data.shippingOriginCountry
+                : "",
             mtnMomoPhoneExample:
               data.data.payment?.mtnMomoPhoneExample ||
               defaultAppSettings.mtnMomoPhoneExample,

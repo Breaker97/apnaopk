@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+import { isCronRequestAuthorized } from "@/lib/cron/cron-auth";
 import { CronRun } from "@/models/cron-run.model";
 
 /**
@@ -5,7 +7,7 @@ import { CronRun } from "@/models/cron-run.model";
  *
  * The problem this solves is not a job that throws — that logs, and somebody
  * eventually reads the log. It is a job that is never *invoked*: a Vercel Hobby
- * plan silently truncates the eight schedules in `vercel.json`, so outbound
+ * plan silently truncates the schedules in `vercel.json`, so outbound
  * messaging and carrier hand-off never fire and nothing anywhere says so.
  *
  * Which is why the check is deliberately **not** itself a scheduled job. It
@@ -35,6 +37,8 @@ export const CRON_STALE_AFTER_MS: Record<string, number> = {
   finance: 36 * 60 * 60 * 1000, // daily
   preorders: 36 * 60 * 60 * 1000, // daily
   "abandoned-checkouts": 90 * 60 * 1000, // every 15 minutes
+  "checkout-expiry": 3 * 60 * 60 * 1000, // every 30 minutes
+  "store-credit": 6 * 60 * 60 * 1000, // hourly
 };
 
 /**
@@ -139,6 +143,12 @@ export function withCronRun(
   handler: (request: Request) => Promise<Response>,
 ): (request: Request) => Promise<Response> {
   return async (request: Request) => {
+    if (!isCronRequestAuthorized(request)) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
     try {
       const response = await handler(request);
       if (response.status === 200) await recordCronRun(job, { ok: true });

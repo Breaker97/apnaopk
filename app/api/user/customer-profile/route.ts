@@ -6,6 +6,26 @@ import { UpdateCustomerProfileSchema } from "@/lib/validations";
 import { withApi } from "@/lib/api/handler";
 import { normalizeNotificationSettings } from "@/lib/notifications/notification-settings";
 import { isSmsDeliveryConfigured } from "@/lib/sms/sms";
+import { setMarketingConsent } from "@/lib/customers/marketing-consent";
+import {
+  MARKETING_CONSENT_SOURCE,
+  MARKETING_CONSENT_STATE,
+  MARKETING_OPT_IN_LEVEL,
+} from "@/config/app.config";
+
+/**
+ * The profile as its shopper may see it. The store's own notes and tags about
+ * them are for the store, and the unsubscribe token belongs in an email
+ * footer, not in a page's data.
+ */
+function withoutStoreFields<T extends object>(profile: T | null) {
+  if (!profile) return profile;
+  const own = { ...profile } as Record<string, unknown>;
+  delete own.notes;
+  delete own.tags;
+  delete own.unsubscribeToken;
+  return own;
+}
 
 /**
  * GET /api/user/customer-profile
@@ -23,7 +43,7 @@ export const GET = withApi(
     ).customer;
 
     return successResponse({
-      profile,
+      profile: withoutStoreFields(profile),
       // Whether the store texts customers at all. The Preferences page only
       // offers the SMS switch then — a switch for texts nobody sends would be
       // the kind of setting that saves and does nothing.
@@ -61,8 +81,24 @@ export const PUT = withApi(
       updateFields.preferredCategories = parsed.preferredCategories;
     if (parsed.sizePreferences !== undefined)
       updateFields.sizePreferences = parsed.sizePreferences;
-    if (parsed.marketingOptIn !== undefined)
-      updateFields.marketingOptIn = parsed.marketingOptIn;
+    // Consent is not a plain field: it carries a state, a timestamp and where
+    // it came from, and only `setMarketingConsent` may write those. Unticking
+    // here IS an unsubscribe — unlike the checkout box, this switch is the
+    // shopper saying what they want, on a page about nothing else.
+    let consentChanged = false;
+    if (parsed.marketingOptIn !== undefined) {
+      consentChanged = true;
+      await setMarketingConsent({
+        state: parsed.marketingOptIn
+          ? MARKETING_CONSENT_STATE.SUBSCRIBED
+          : MARKETING_CONSENT_STATE.UNSUBSCRIBED,
+        optInLevel: parsed.marketingOptIn
+          ? MARKETING_OPT_IN_LEVEL.SINGLE
+          : undefined,
+        source: MARKETING_CONSENT_SOURCE.ACCOUNT,
+        userId: session.user.id,
+      });
+    }
     if (parsed.emailNotifications !== undefined) {
       // Merge with existing notification preferences
       const existing = await CustomerProfile.findOne(
@@ -81,7 +117,11 @@ export const PUT = withApi(
     }
 
     if (Object.keys(updateFields).length === 0) {
-      return successResponse({ message: "No fields to update" });
+      return successResponse({
+        message: consentChanged
+          ? "Profile updated successfully"
+          : "No fields to update",
+      });
     }
 
     updateFields.lastActiveAt = new Date();

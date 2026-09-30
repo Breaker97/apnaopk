@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import {
   ArrowRight,
@@ -24,6 +24,7 @@ import {
   SquareSplitHorizontal,
   TriangleAlert,
 } from "lucide-react";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { cn } from "@/lib/utils";
 
 /** CSS-only "dull" grade for the Before pane, so the demo ships no AI cost. */
@@ -108,15 +109,18 @@ export function AiStudioHub({ configured }: { configured: boolean }) {
       </div>
 
       {!configured ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-          <span>{t("statusNotConfiguredHint")}</span>
-          <Link
-            href="/admin/settings/ai"
-            className="shrink-0 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-amber-500/10"
-          >
-            {t("configureCta")}
-          </Link>
-        </div>
+        <WarningBanner
+          action={
+            <Link
+              href="/admin/settings/ai"
+              className="shrink-0 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-amber-500/10"
+            >
+              {t("configureCta")}
+            </Link>
+          }
+        >
+          {t("statusNotConfiguredHint")}
+        </WarningBanner>
       ) : null}
 
       {/* Showcase */}

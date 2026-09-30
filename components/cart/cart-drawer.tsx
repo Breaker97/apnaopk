@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { X, ShoppingBag, Loader2, ArrowRight, Minus, Plus } from "lucide-react";
 import {
@@ -15,29 +15,22 @@ import { Button } from "@/components/ui/button";
 import { AppImage } from "@/components/ui/app-image";
 import { useCurrency } from "@/providers/currency-provider";
 import { useCart } from "@/hooks/use-cart";
-import { useFreeShippingConfig } from "@/hooks/use-free-shipping-config";
 import { FreeShippingProgress } from "@/components/cart/free-shipping-progress";
 import { groupCartItemsBySeller } from "@/lib/cart/cart-sellers";
+import { formatVariantOptionLines } from "@/lib/cart/variant-options";
 import type { CartItem } from "@/types";
 import { toast } from "@/components/ui/toast-notification";
-import { type Locale } from "@/config/i18n.config";
+import { refusalMessage } from "@/lib/api/client";
 import { analyticsItemsFromCart, trackCartView } from "@/lib/analytics/events";
+import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
 
 interface CartDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  locale: Locale;
 }
 
 function formatPreorderDate(value?: unknown) {
-  if (!value) return "";
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return formatPreorderReleaseDate(value);
 }
 
 function getPreorderPaymentLabel(item: {
@@ -50,7 +43,7 @@ function getPreorderPaymentLabel(item: {
   return { dueNow, dueLater };
 }
 
-export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
+export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const t = useTranslations();
   const { currency, formatPrice } = useCurrency();
   const {
@@ -60,9 +53,8 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
     hasShippableItems,
     updateItem,
     removeItem,
+    orderConfig,
   } = useCart();
-  // Only fetched once the bag is actually open.
-  const freeShippingConfig = useFreeShippingConfig(open);
 
   // Grouped only when the bag actually holds more than one seller — on a
   // single-seller cart the header is noise on every line.
@@ -108,8 +100,8 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
   ) => {
     try {
       await updateItem(productId, quantity, variantId);
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(refusalMessage(error) ?? t("common.error"));
     }
   };
 
@@ -119,8 +111,8 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
     try {
       await removeItem(productId, variantId);
       toast.success(t("cart.itemRemoved"));
-    } catch {
-      toast.error(t("common.error"));
+    } catch (error) {
+      toast.error(refusalMessage(error) ?? t("common.error"));
     } finally {
       setRemovingItems((prev) => {
         const next = new Set(prev);
@@ -134,6 +126,9 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
    * One drawer line. Extracted so the list can render flat or under
    * per-seller headers without duplicating the markup.
    */
+  // Said before they pay: a final-sale line cannot be sent back.
+  const finalSaleLabel = t("cart.finalSale");
+
   const renderLine = (item: CartItem) => {
         const key = getItemKey(
           item.productId.toString(),
@@ -141,6 +136,7 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
         );
         const isRemoving = removingItems.has(key);
         const preorderPayment = getPreorderPaymentLabel(item);
+        const variantLines = formatVariantOptionLines(item);
 
         return (
           <div key={key} className="px-6 py-5">
@@ -167,12 +163,17 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
                   {item.name}
                 </h3>
 
-                {/* Variant Info - if available */}
-                {item.variantId && (
+                {/* What was chosen on this line: "Color: White · Size: M" */}
+                {variantLines.length > 0 && (
                   <p className="text-sm text-muted-foreground mb-2">
-                    {/* Variant details would be displayed here */}
+                    {variantLines.join(" · ")}
                   </p>
                 )}
+                {item.finalSale ? (
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    {finalSaleLabel}
+                  </p>
+                ) : null}
                 {item.purchaseType === "preorder" && (
                   <div className="mb-2 space-y-1 text-xs font-medium text-blue-600 dark:text-blue-300">
                     <p>
@@ -276,7 +277,7 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-[min(92vw,420px)] flex flex-col p-0 gap-0"
+        className="flex w-[min(92vw,420px)] flex-col gap-0 p-0 sm:max-w-[420px]"
       >
         {/* Header */}
         <SheetHeader className="px-6 py-5 border-b">
@@ -307,7 +308,7 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
                 {t("cart.emptyDescription")}
               </p>
               <Button asChild onClick={() => onOpenChange(false)}>
-                <Link href={`/${locale}/products`}>
+                <Link href="/products">
                   {t("cart.startShopping")}
                 </Link>
               </Button>
@@ -357,8 +358,8 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
 
             <FreeShippingProgress
               subtotal={subtotal}
-              threshold={freeShippingConfig.threshold}
-              zoneShippingEnabled={freeShippingConfig.zoneShippingEnabled}
+              threshold={orderConfig.freeShippingThreshold}
+              zoneShippingEnabled={orderConfig.zoneShippingEnabled}
               hasShippableItems={hasShippableItems}
               formatPrice={formatPrice}
             />
@@ -376,7 +377,7 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
                 asChild
                 onClick={() => onOpenChange(false)}
               >
-                <Link href={`/${locale}/cart`}>
+                <Link href="/cart">
                   {t("cart.viewCart")}
                 </Link>
               </Button>
@@ -385,7 +386,7 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
                 asChild
                 onClick={() => onOpenChange(false)}
               >
-                <Link href={`/${locale}/checkout`}>
+                <Link href="/checkout">
                   {t("cart.checkout")}
                 </Link>
               </Button>
@@ -398,7 +399,7 @@ export function CartDrawer({ open, onOpenChange, locale }: CartDrawerProps) {
             >
               <span>{t("common.or")}</span>
               <Link
-                href={`/${locale}/products`}
+                href="/products"
                 className="uppercase font-medium tracking-wide hover:underline"
               >
                 {t("cart.continueShopping")}

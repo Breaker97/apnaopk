@@ -44,6 +44,14 @@ export function CustomersListView({
     typeof searchParams.tier === "string" && searchParams.tier !== "all"
       ? searchParams.tier
       : undefined;
+  // Same rename for the email-subscription filter, and for the same reason:
+  // an "all" that reached the schema would fail its enum and take every other
+  // query param down with it.
+  const subscription =
+    typeof searchParams.subscription === "string" &&
+    searchParams.subscription !== "all"
+      ? searchParams.subscription
+      : undefined;
 
   return (
     <div className="space-y-4">
@@ -65,6 +73,7 @@ export function CustomersListView({
             ...query,
             loyaltyTier: (tier ??
               query.loyaltyTier) as typeof query.loyaltyTier,
+            subscription: subscription ?? query.emailSubscription,
           }}
         />
       </Suspense>
@@ -83,7 +92,9 @@ async function CustomersTable({
   area: "admin" | "staff";
   readOnly?: boolean;
   staffScope?: StaffAccessScope | null;
-  query: ReturnType<typeof parsePageQuery<typeof CustomerListQuerySchema>>;
+  query: ReturnType<typeof parsePageQuery<typeof CustomerListQuerySchema>> & {
+    subscription?: string;
+  };
 }) {
   const list = await fetchAdminCustomerList(query, staffScope);
 

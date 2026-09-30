@@ -1,20 +1,20 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { unstable_cache } from "next/cache";
 import { FolderOpen } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { cn } from "@/lib/utils";
-import { type Locale } from "@/config/i18n.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/db";
 import { Category } from "@/models";
+import { withFallback } from "@/lib/storefront/cached-read";
 
 const MOSAIC_MIN = 3;
 const MOSAIC_MAX = 7;
 
 /** Same select and tags as the featured-categories strip's fetcher. */
-const fetchMosaicCategories = unstable_cache(
-  async (source: "featured" | "topLevel" | "manual", ids: string[], limit: number) => {
-    try {
+const fetchMosaicCategories = withFallback(
+  unstable_cache(
+    async (source: "featured" | "topLevel" | "manual", ids: string[], limit: number) => {
       await connectDB();
       const select = "_id name slug image";
       if (source === "manual" && ids.length > 0) {
@@ -43,19 +43,17 @@ const fetchMosaicCategories = unstable_cache(
         .limit(limit)
         .lean();
       return JSON.parse(JSON.stringify(categories));
-    } catch {
-      return [];
-    }
-  },
-  ["section-category-mosaic"],
-  {
-    revalidate: 60,
-    tags: [CACHE_TAGS.categories],
-  },
+    },
+    ["section-category-mosaic"],
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.categories],
+    },
+  ),
+  () => [],
 );
 
 interface CategoryMosaicProps {
-  locale: Locale;
   title: string;
   source: "featured" | "topLevel" | "manual";
   limit: number;
@@ -70,19 +68,17 @@ interface MosaicCategory {
 }
 
 function MosaicTile({
-  locale,
   category,
   className,
   large,
 }: {
-  locale: Locale;
   category: MosaicCategory;
   className?: string;
   large?: boolean;
 }) {
   return (
     <Link
-      href={`/${locale}/categories/${category.slug}`}
+      href={`/categories/${category.slug}`}
       className={cn(
         "group relative overflow-hidden rounded-md bg-muted",
         className,
@@ -120,7 +116,6 @@ function MosaicTile({
  * from the section picker.
  */
 export async function CategoryMosaic({
-  locale,
   title,
   source,
   limit,
@@ -146,7 +141,6 @@ export async function CategoryMosaic({
         ) : null}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:grid-rows-2">
           <MosaicTile
-            locale={locale}
             category={lead}
             large
             className="col-span-2 aspect-[4/3] lg:row-span-2 lg:aspect-auto"
@@ -154,7 +148,6 @@ export async function CategoryMosaic({
           {rest.map((category) => (
             <MosaicTile
               key={category._id}
-              locale={locale}
               category={category}
               className="aspect-[4/3]"
             />

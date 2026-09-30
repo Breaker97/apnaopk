@@ -115,6 +115,13 @@ export const PUT = withApi<RouteParams>(
       update.stripePriceActive = false;
     }
 
+    // The default is the plan new vendors are steered to, and an archived plan
+    // is never offered — so archiving the default leaves no default rather
+    // than one that silently recommends nothing.
+    if (candidate.status === "archived") {
+      update.isDefault = false;
+    }
+
     // Only one active default plan at a time.
     if (update.isDefault === true) {
       await VendorPlan.updateMany(

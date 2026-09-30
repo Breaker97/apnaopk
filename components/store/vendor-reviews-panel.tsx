@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { MessageSquare, Star } from "lucide-react";
 import {
   Pagination,
@@ -24,9 +24,9 @@ interface VendorReviewsPanelLabels {
 }
 
 interface VendorReviewsPanelProps {
+  locale: string;
   data: StorefrontVendorReviewsResult;
   labels: VendorReviewsPanelLabels;
-  locale: string;
   basePath: string;
 }
 
@@ -62,7 +62,6 @@ function ReviewRow({
   reply,
   replyLabel,
   verifiedLabel,
-  locale,
 }: {
   rating: number;
   title?: string;
@@ -76,7 +75,6 @@ function ReviewRow({
   reply?: { comment: string };
   replyLabel: string;
   verifiedLabel: string;
-  locale: string;
 }) {
   return (
     <article className="border-b py-5 first:pt-0 last:border-b-0 last:pb-0">
@@ -111,7 +109,7 @@ function ReviewRow({
             {productName ? (
               productSlug ? (
                 <Link
-                  href={`/${locale}/products/${productSlug}`}
+                  href={`/products/${productSlug}`}
                   className="truncate text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
                 >
                   {productName}
@@ -234,7 +232,6 @@ export function VendorReviewsPanel({
             dateLabel={dateFormat.format(new Date(review.createdAt))}
             replyLabel={labels.storeReplied}
             verifiedLabel={labels.verifiedPurchase}
-            locale={locale}
           />
         ))}
       </div>

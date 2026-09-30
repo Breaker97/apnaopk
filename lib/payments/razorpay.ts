@@ -67,6 +67,18 @@ export interface RazorpayPayment {
    */
   fee?: number | null;
   tax?: number | null;
+  /** What has been refunded on it so far, in subunits — a running total. */
+  amount_refunded?: number | null;
+  /**
+   * Only on a failed payment. `error_code` is Razorpay's class
+   * (`BAD_REQUEST_ERROR`), `error_reason` the specific one
+   * (`payment_failed`, `insufficient_funds`) and `error_description` the
+   * sentence a person can read.
+   */
+  error_code?: string | null;
+  error_description?: string | null;
+  error_reason?: string | null;
+  error_source?: string | null;
 }
 
 function getAuthHeader(creds: RazorpayCredentials) {
@@ -243,6 +255,32 @@ async function captureRazorpayPayment(params: {
  *
  * `amount` is in major units, in `currency`.
  */
+/**
+ * Every payment attempted against one Razorpay order, newest first.
+ *
+ * The verify route is handed a payment id by the browser; a sweep has only
+ * the order id, and this is the call that turns one into the other. A shopper
+ * who tries three cards leaves three payments on the same order, so the caller
+ * looks for the one that got through rather than assuming the first.
+ */
+export async function fetchRazorpayOrderPayments(params: {
+  creds: RazorpayCredentials;
+  razorpayOrderId: string;
+}): Promise<RazorpayPayment[]> {
+  const res = await fetch(
+    `${RAZORPAY_API_BASE}/orders/${encodeURIComponent(params.razorpayOrderId)}/payments`,
+    { method: "GET", headers: { Authorization: getAuthHeader(params.creds) } },
+  );
+
+  if (!res.ok) {
+    const message = await readRazorpayErrorMessage(res);
+    throw new Error(`Razorpay fetch order payments failed: ${message}`);
+  }
+
+  const json = (await res.json()) as { items?: RazorpayPayment[] };
+  return Array.isArray(json.items) ? json.items : [];
+}
+
 export async function captureAuthorizedRazorpayPayment(params: {
   creds: RazorpayCredentials;
   payment: RazorpayPayment;
@@ -318,8 +356,50 @@ export async function refundRazorpayPayment(params: {
   };
 }
 
+/** A refund, as Razorpay's API lists it. */
+interface RazorpayRefundListing {
+  id: string;
+  payment_id?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+  created_at?: number;
+}
+
+/**
+ * Refunds on the account, a page at a time. `from` and `to` bound when the
+ * refund was CREATED, in unix seconds. For the hourly refund sync: a refund
+ * made from Razorpay's dashboard, or one that failed, while the webhook was
+ * not being delivered.
+ */
+export async function listRazorpayRefunds(params: {
+  creds: RazorpayCredentials;
+  from?: number;
+  to?: number;
+  count?: number;
+  skip?: number;
+}): Promise<RazorpayRefundListing[]> {
+  const query = new URLSearchParams({
+    count: String(Math.min(100, Math.max(1, params.count ?? 100))),
+    skip: String(Math.max(0, params.skip ?? 0)),
+  });
+  if (params.from) query.set("from", String(Math.floor(params.from)));
+  if (params.to) query.set("to", String(Math.floor(params.to)));
+
+  const res = await fetch(`${RAZORPAY_API_BASE}/refunds?${query.toString()}`, {
+    method: "GET",
+    headers: { Authorization: getAuthHeader(params.creds) },
+  });
+  if (!res.ok) {
+    const message = await readRazorpayErrorMessage(res);
+    throw new GatewayApiError(`Razorpay list refunds failed: ${message}`, res.status);
+  }
+  const json = (await res.json()) as { items?: RazorpayRefundListing[] };
+  return Array.isArray(json.items) ? json.items : [];
+}
+
 /** A dispute, as Razorpay's API returns it. */
-export type RazorpayDispute = RazorpayDisputeLike & { id: string };
+type RazorpayDispute = RazorpayDisputeLike & { id: string };
 
 /**
  * Disputes raised on the account, newest first, one page at a time.

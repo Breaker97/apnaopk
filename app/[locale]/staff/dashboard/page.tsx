@@ -1,16 +1,17 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { connectDB } from "@/lib/db";
-import { CustomerProfile, Order, Product, getSettings } from "@/models";
+import { Order, Product, getSettings } from "@/models";
 import { requireStaffAreaAccess } from "@/lib/access/staff-area-guard";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import {
   buildStaffOrderScopeFilter,
   buildStaffProductScopeFilter,
-  hasStaffScope,
   mergeScopeFilter,
   type StaffAccessScope,
 } from "@/lib/access/staff-scope";
+import { countAdminCustomers } from "@/lib/customers/customer-list";
+import { staffOrderScopeMatch } from "@/lib/orders/order-list";
 import {
   StaffDashboardContent,
   type StaffPosSale,
@@ -40,7 +41,7 @@ async function getOrderStatsForStaff(
   await connectDB();
 
   const [result] = await Order.aggregate([
-    { $match: buildStaffOrderScopeFilter(staffScope) },
+    { $match: staffOrderScopeMatch(staffScope) },
     {
       $facet: {
         totalOrders: [{ $count: "count" }],
@@ -78,18 +79,6 @@ async function getProductStatsForStaff(staffScope?: StaffAccessScope): Promise<{
   ]);
 
   return { totalProducts, lowStockProducts };
-}
-
-async function getCustomerCountForStaff(staffScope?: StaffAccessScope): Promise<number> {
-  await connectDB();
-  if (hasStaffScope(staffScope)) {
-    const customerIds = await Order.distinct(
-      "customerId",
-      buildStaffOrderScopeFilter(staffScope),
-    );
-    return customerIds.length;
-  }
-  return CustomerProfile.countDocuments({});
 }
 
 async function getRecentOrdersForStaff(
@@ -273,7 +262,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
         ? getProductStatsForStaff(staffScope)
         : Promise.resolve(undefined),
       canViewCustomers
-        ? getCustomerCountForStaff(staffScope)
+        ? countAdminCustomers(staffScope)
         : Promise.resolve(undefined),
       canViewOrders
         ? getRecentOrdersForStaff(staffScope)
@@ -288,7 +277,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
   if (canAccessPos) {
     quickLinks.push({
       key: "pos",
-      href: `/${locale}/staff/pos`,
+      href: "/staff/pos",
       icon: "pos",
       accent: "green",
       title: tf("admin.sidebar.pos", "Point of Sale"),
@@ -299,7 +288,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
   if (canViewOrders) {
     quickLinks.push({
       key: "orders",
-      href: `/${locale}/staff/orders`,
+      href: "/staff/orders",
       icon: "orders",
       accent: "blue",
       title: tf("admin.sidebar.orders", "Orders"),
@@ -313,7 +302,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
   if (canViewProducts) {
     quickLinks.push({
       key: "products",
-      href: `/${locale}/staff/products`,
+      href: "/staff/products",
       icon: "products",
       accent: "amber",
       title: tf("admin.sidebar.products", "Products"),
@@ -327,7 +316,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
   if (canViewInventory) {
     quickLinks.push({
       key: "inventory",
-      href: `/${locale}/staff/inventory`,
+      href: "/staff/inventory",
       icon: "inventory",
       accent: "violet",
       title: tf("admin.sidebar.inventory", "Inventory"),
@@ -341,7 +330,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
   if (canViewCustomers) {
     quickLinks.push({
       key: "customers",
-      href: `/${locale}/staff/customers`,
+      href: "/staff/customers",
       icon: "customers",
       accent: "cyan",
       title: tf("admin.sidebar.customers", "Customers"),
@@ -355,7 +344,7 @@ export default async function StaffDashboardPage({ params }: PageProps) {
   if (canViewAnalytics) {
     quickLinks.push({
       key: "analytics",
-      href: `/${locale}/staff/analytics`,
+      href: "/staff/analytics",
       icon: "analytics",
       accent: "rose",
       title: tf("admin.sidebar.analytics", "Analytics"),

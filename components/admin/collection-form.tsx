@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "@/hooks/use-locale-navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import * as z from "zod";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -483,8 +484,8 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
                             breadcrumbLeaf="Image"
                             savedMessage="Saved to collection image"
                             subjectNoun="collection"
-                            posHref={`/${locale}/admin/pos`}
-                            browseHref={`/${locale}`}
+                            posHref="/admin/pos"
+                            browseHref="/"
                             persistKey={`collection:admin:${collectionId ?? "new"}:image`}
                           />
                         }

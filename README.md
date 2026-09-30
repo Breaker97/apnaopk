@@ -119,7 +119,8 @@ pnpm install
 
 # 2. Configure environment
 cp .env.example .env
-# …then edit .env (see the Environment Variables Reference below)
+# …then edit .env (see the Environment Variables Reference below), including
+#    INSTALL_TOKEN — any random 32+ characters; the installer asks for it
 
 # 3. Run
 pnpm dev              # → http://localhost:3000
@@ -186,6 +187,7 @@ the app are:
 | `MONGODB_URI`        | MongoDB connection string.                                     |
 | `MONGODB_DB_NAME`    | Database name (e.g. `storify`).                                |
 | `BETTER_AUTH_SECRET` | Random 32+ char secret. Generate: `openssl rand -base64 32`.   |
+| `INSTALL_TOKEN`      | Random 32+ chars the installer asks for (`openssl rand -hex 32`). New stores only. |
 | `BETTER_AUTH_URL`    | Base auth URL — `http://localhost:3000` in dev.                |
 | `NEXT_PUBLIC_APP_URL`| Public app URL — `http://localhost:3000` in dev.               |
 
@@ -210,11 +212,11 @@ Open <http://localhost:3000> — an unconfigured store redirects to
 
 | Step | What it does |
 | --- | --- |
-| **System check** | Node version (22.12.0 or newer), `BETTER_AUTH_SECRET` strength, app URL, database. Node, the auth secret and the database **block** the install (they are what the finish step needs); the app URL is a warning you can fix later — `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` must be the address you open the installer on, or signing in there fails. "Check again" re-runs them; restart the app after editing `.env`, and rebuild after changing `NEXT_PUBLIC_APP_URL` |
+| **System check** | Node version (22.12.0 or newer), `BETTER_AUTH_SECRET` strength, `INSTALL_TOKEN`, app URL, database — then paste your `INSTALL_TOKEN`, which proves you own the server. Node, the auth secret, the token and the database **block** the install (they are what the finish step needs); the app URL is a warning you can fix later — `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` must be the address you open the installer on, or signing in there fails. "Check again" re-runs them; restart the app after editing `.env`, and rebuild after changing `NEXT_PUBLIC_APP_URL` |
 | **Admin account** | Your super-admin — name, email, password (checked against the active password policy) |
 | **Store basics** | Store name, default language, currency, single- or multi-vendor, point of sale |
 | **Media storage** | The bucket product images, videos and downloads are uploaded to — Cloudflare R2, AWS S3, DigitalOcean Spaces or MinIO — with a "Test connection" that also proves the files come back over the public URL. Skippable ("Set storage up later"), and pre-skipped when `.env` already carries `STORAGE_*` credentials |
-| **Template** | Electronics (default), Women Fashion or Classic Marketplace, plus an optional sample store — that template's own demo catalog, collections and storefront |
+| **Template** | Electronics (default), Fashion, Furniture or Classic Marketplace, plus an optional sample store — that template's own demo catalog, collections and storefront |
 
 Finishing publishes the chosen template across the storefront — home, product
 page, header and footer — and hands you a link to sign in.
@@ -293,6 +295,7 @@ with `NEXT_PUBLIC_` are exposed to the browser.
 | Variable             | Example                       | Description                                       |
 | -------------------- | ----------------------------- | ------------------------------------------------- |
 | `BETTER_AUTH_SECRET` | `…32+ random chars…`          | Signing secret. `openssl rand -base64 32`.        |
+| `INSTALL_TOKEN`      | `…32+ random chars…`          | Asked for by the installer. `openssl rand -hex 32`. |
 | `BETTER_AUTH_URL`    | `http://localhost:3000`       | Base URL Better Auth uses for callbacks.          |
 
 ### OAuth / Social login (optional)
@@ -317,6 +320,7 @@ toggling it on in the Admin panel.
 | `NEXT_PUBLIC_SUPPORT_EMAIL`     | `support@example.com`    | Support contact email.                            |
 | `DEMO_MODE`                     | `false`                  | Set to `true` on public demos. Creates, updates and image uploads still work; deletes, settings/profile edits and test actions are refused. |
 | `NEXT_PUBLIC_ENABLE_PWA_IN_DEV` | `false`                  | Enable the PWA/service worker in local dev.       |
+| `TRUSTED_PROXIES`               | `203.0.113.0/24`         | Optional. Set it when a CDN other than Cloudflare proxies the store (IPs or CIDR ranges), or every visitor arriving through the same CDN address shares one rate limit. Cloudflare, a proxy on the same machine or private network, and Vercel need nothing. |
 
 > Multi-vendor marketplace mode is toggled at runtime from **Admin → Settings
 > → Multi-vendor** (stored in the database), not via an environment variable.
@@ -443,7 +447,10 @@ IDs are exposed to the browser for client-side tracking scripts.
 | `pnpm db:full-reset`  | Resets, then re-seeds the catalog & settings.               |
 
 > ⚠️ `db:reset` and `db:full-reset` are destructive — they wipe data. Never run
-> them against a production database.
+> them against a production database. They, `db:seed` and `db:seed:users`
+> refuse a database whose admin is not one of the demo accounts; on a throwaway
+> database, pass `--allow-real-store` (or set `STORIFY_ALLOW_REAL_STORE=1` for
+> `db:full-reset`).
 
 See `docs/DATABASE_COMMANDS.md` and `docs/SEED_VERIFICATION.md` for more detail.
 
@@ -744,6 +751,7 @@ Routes are locale-prefixed (e.g. `/en/admin`, `/ar/admin`).
 | `pnpm start`           | Start the production server (after `build`).      |
 | `pnpm lint`            | Run ESLint.                                       |
 | `pnpm typecheck`       | Run the TypeScript compiler (no emit).            |
+| `pnpm check:chunks`    | After `build`: every page preloads chunks that exist (see UPGRADE.md, Build requirements). |
 | `pnpm create-admin`    | Create an admin user.                             |
 | `pnpm link-credential` | Link a credential account to a user.              |
 | `pnpm db:seed`         | Seed catalog & settings.                          |
@@ -802,6 +810,11 @@ Routes are locale-prefixed (e.g. `/en/admin`, `/ar/admin`).
 5. Configure provider webhooks (Stripe, Razorpay, etc.) to point at your
    production domain.
 6. **Remove or change all default seed accounts** and any test API keys.
+7. Put the app behind your reverse proxy only — keep its own port (3000)
+   closed to the internet — and if a CDN other than Cloudflare proxies the
+   store, set `TRUSTED_PROXIES` (see `.env.example`). Rate limits and the login
+   lockout key on the visitor's address, which is read from the proxy chain; a
+   request that goes around the proxy can name its own.
 
 > **Node version:** ensure the production runtime uses Node `>= 22.12.0`.
 > Node 20 reached end of life in April 2026 and no longer receives security

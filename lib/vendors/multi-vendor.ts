@@ -212,7 +212,7 @@ export function getExternalVendorFilter(): Record<string, unknown> {
  * single-vendor store ended up advertising "Become a Vendor". Content that
  * ships into a store therefore has to be checked against this list.
  */
-export const MULTI_VENDOR_ONLY_PATHS = ["/become-vendor", "/vendors"] as const;
+const MULTI_VENDOR_ONLY_PATHS = ["/become-vendor", "/vendors"] as const;
 
 /**
  * Whether a link points at one of those routes. Tolerates an absolute URL and

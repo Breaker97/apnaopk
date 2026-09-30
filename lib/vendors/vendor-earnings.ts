@@ -1,5 +1,12 @@
 import { Types } from "mongoose";
-import { CommissionInvoice, Order, PaymentTransaction, Payout } from "@/models";
+import {
+  CommissionInvoice,
+  Order,
+  PaymentTransaction,
+  Payout,
+  ReturnRequest,
+} from "@/models";
+import { PAYOUT_HOLDING_RETURN_STATUSES } from "@/lib/returns/returns";
 import { isPlatformCollectedCod } from "@/lib/payments/cod-collection";
 import { vendorEarnsShipping } from "@/lib/shipping/shipping-revenue";
 import {
@@ -14,11 +21,15 @@ import {
   SETTLED_SUB_ORDER_PAYMENT_MATCH,
   uncollectedPreorderBalanceMatch,
 } from "@/lib/orders/order-payment-status";
-import { roundMoney } from "@/lib/intl/money";
+import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
 import {
+  MIN_RETURN_WINDOW_DAYS,
+  resolveOrderReturnPolicy,
   resolveReturnPolicy,
   type ReturnPolicySettingsLike,
+  type ReturnTermsLike,
 } from "@/lib/returns/return-policy";
+import { lineReturnWindowDays } from "@/lib/returns/return-window";
 
 /**
  * The arithmetic behind vendor payouts, in one place.
@@ -49,7 +60,9 @@ export const PAYABLE_ORDER_PROJECTION =
   // cannot tell a COD order from a card one without it. `channel` and
   // `stripePaymentIntentId` complete the custody question the delivery charge
   // asks: a vendor is paid their delivery out of money the store is holding.
-  "total subtotal discount coupon currency paymentMethod channel stripePaymentIntentId items.lineDiscount subOrders";
+  // The lines' sellers and own return windows decide how long each seller's
+  // payout waits (`orderPayoutHoldCutoff`).
+  "total subtotal discount coupon currency paymentMethod channel paymentCustody stripePaymentIntentId items.lineDiscount items.vendorId items.returnWindowDays subOrders returnTerms";
 
 export interface PayableOrderLike {
   total?: number;
@@ -61,13 +74,21 @@ export interface PayableOrderLike {
   /** With `paymentMethod`, whether the store holds this sale's money. */
   channel?: string | null;
   stripePaymentIntentId?: string | null;
+  paymentCustody?: string | null;
   /**
    * The currency the sale was in. Absent on orders written before the snapshot
    * existed, which are treated as the store's own — the same assumption the
    * ledger makes for them.
    */
   currency?: string;
-  items?: Array<{ lineDiscount?: { amount?: number } | null }> | null;
+  items?: Array<{
+    lineDiscount?: { amount?: number } | null;
+    /** Whose line it is, and its own return window — the payout hold reads both. */
+    vendorId?: unknown;
+    returnWindowDays?: number | null;
+  }> | null;
+  /** The return window the sale was made with — the payout hold waits it out. */
+  returnTerms?: ReturnTermsLike | null;
 }
 
 export interface PayableSubOrderLike {
@@ -88,7 +109,7 @@ export interface PayableSubOrderLike {
   payoutDate?: Date | null;
   /** When this consignment's commission invoice was paid. */
   commissionSettledAt?: Date | null;
-  /** When that invoice fixed its amount — see `fetchVendorCommissionCredit`. */
+  /** When that invoice fixed its amount — see `fetchVendorCommissionCreditBalance`. */
   commissionClaimedAt?: Date | null;
   /** Who took the cash at the door — see lib/cod-collection.ts. */
   codCollectedBy?: string | null;
@@ -102,22 +123,90 @@ export interface PayableSubOrderLike {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** The order fields a payout hold reads. */
+type PayoutHoldOrderLike = {
+  returnTerms?: ReturnTermsLike | null;
+  items?: ReadonlyArray<
+    { vendorId?: unknown; returnWindowDays?: number | null } | null | undefined
+  > | null;
+  subOrders?: ReadonlyArray<
+    | { vendorId?: unknown; status?: string | null; deliveredAt?: Date | string | null }
+    | null
+    | undefined
+  > | null;
+};
+
 /**
- * The latest delivery a payout may pay for: delivered at least one return
- * window ago.
+ * How many days after delivery one seller's sale on this order waits before
+ * it can be paid out: the longest return window among that seller's lines —
+ * the one a product or collection gave a line (R6), else the order's — and,
+ * for a window with no time limit, the store's cap (`payoutHoldMaxDays`, D6).
+ * A refund after the hold is taken from the seller's next payout, as always.
+ */
+export function orderPayoutHoldDays(
+  order: PayoutHoldOrderLike | null | undefined,
+  settings: ReturnPolicySettingsLike | null | undefined,
+  vendorId?: unknown,
+): number {
+  const terms = resolveOrderReturnPolicy(order, settings);
+  const cap = resolveReturnPolicy(settings).payoutHoldMaxDays;
+  const wanted = vendorId === undefined || vendorId === null ? null : String(vendorId);
+  const lines = (order?.items || []).flatMap((item, index) =>
+    wanted === null || String(item?.vendorId ?? "") === wanted ? [index] : [],
+  );
+  const windows =
+    lines.length > 0
+      ? lines.map((index) => lineReturnWindowDays(order || {}, index, terms))
+      : [terms.windowDays];
+  if (windows.some((days) => days === null)) return cap;
+  return Math.max(...(windows as number[]));
+}
+
+/**
+ * The latest delivery a payout may pay for on this order: delivered at least
+ * one return window ago — the window the order was sold with.
  *
  * A payout used to take a sale the moment it was delivered. The shopper then
  * has the store's whole return window to send it back, and a refund after the
  * payout can only be recovered from that vendor's NEXT payout — which a vendor
- * who stops selling never has. So the payout waits out the window the store
- * already promises its shoppers, and only then pays.
+ * who stops selling never has. So the payout waits out the window promised to
+ * that shopper, and only then pays. That is the order's own window: one sold
+ * on 30 days is still returnable after the store moves to 14.
+ *
+ * Asked for one seller (`vendorId`), the window is that seller's lines' own.
+ * An order counted from its LAST delivery waits for every parcel, then the
+ * window: the cutoff is then all or nothing — now, or never so far.
  */
-export function payoutHoldCutoff(
+export function orderPayoutHoldCutoff(
+  order: PayoutHoldOrderLike | null | undefined,
   settings: ReturnPolicySettingsLike | null | undefined,
   now: Date = new Date(),
+  vendorId?: unknown,
 ): Date {
-  const { windowDays } = resolveReturnPolicy(settings);
-  return new Date(now.getTime() - windowDays * DAY_MS);
+  const days = orderPayoutHoldDays(order, settings, vendorId);
+  const { windowStart } = resolveOrderReturnPolicy(order, settings);
+  const parcels = (order?.subOrders || []).filter(
+    (sub): sub is NonNullable<typeof sub> => Boolean(sub) && sub?.status !== "cancelled",
+  );
+  if (windowStart === "last_delivery" && parcels.length > 1) {
+    const delivered = parcels.map((sub) =>
+      sub.deliveredAt ? new Date(sub.deliveredAt).getTime() : NaN,
+    );
+    if (delivered.some((time) => !Number.isFinite(time))) return new Date(0);
+    const last = Math.max(...delivered);
+    return last + days * DAY_MS <= now.getTime() ? now : new Date(0);
+  }
+  return new Date(now.getTime() - days * DAY_MS);
+}
+
+/**
+ * The widest net a payout query may cast before each order's own window is
+ * checked: the latest cutoff any order can have, one of the shortest window.
+ * Nothing it leaves out could be payable; what it lets in is held to its own
+ * window by `orderPayoutHoldCutoff`.
+ */
+export function earliestPayoutHoldCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - MIN_RETURN_WINDOW_DAYS * DAY_MS);
 }
 
 /**
@@ -134,7 +223,7 @@ export function isPastPayoutHold(
 }
 
 /** Mongo mirror of {@link isPastPayoutHold}, for a consignment `$elemMatch`. */
-export function pastPayoutHoldMatch(cutoff: Date): Record<string, unknown> {
+function pastPayoutHoldMatch(cutoff: Date): Record<string, unknown> {
   return {
     $and: [
       {
@@ -165,10 +254,17 @@ export function buildPayableOrderFilter(
   vendorId: Types.ObjectId | string,
   range?: { periodStart?: Date; periodEnd?: Date },
   /**
-   * Only consignments delivered before this — `payoutHoldCutoff`. Omitted by a
-   * caller that wants held sales too, to show them apart.
+   * Only consignments delivered before this — one order's
+   * `orderPayoutHoldCutoff`, or `earliestPayoutHoldCutoff` for a read whose
+   * orders are each held to their own window afterwards. Omitted by a caller
+   * that wants held sales too, to show them apart.
    */
   deliveredBefore?: Date,
+  /**
+   * Orders a return is still open on for this vendor — see
+   * `loadOrderIdsHeldForReturns`. Left out of what a payout may take.
+   */
+  heldForReturns?: ReadonlyArray<unknown>,
 ): Record<string, unknown> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
   // THIS consignment's money, not the order's. The order-level payment arm
@@ -189,7 +285,11 @@ export function buildPayableOrderFilter(
     // seller who had not shipped yet — and for ever, if that sibling never
     // did. An order called off entirely is out, whatever its parcels read.
     status: { $ne: "cancelled" },
-    paymentStatus: { $in: SETTLED_ORDER_PAYMENT_STATUSES },
+    // Refunded in full included: what is left of such a sale is still owed one
+    // way or the other — a delivery the seller made and keeps, a refund fee
+    // the platform kept — and with the order out of both queries it was never
+    // paid, deducted or billed. Nothing left is a consignment worth nothing.
+    paymentStatus: { $in: [...SETTLED_ORDER_PAYMENT_STATUSES, "refunded"] },
     // Nor while a pre-order's balance is still to come. `partially_paid` is
     // admitted above for the split cash order, and a deposit pre-order sits in
     // the same state: without this a 200 deposit paid out 900 of earnings on a
@@ -225,8 +325,29 @@ export function buildPayableOrderFilter(
     if (range.periodEnd) createdAt.$lte = range.periodEnd;
     filter.createdAt = createdAt;
   }
+  if (heldForReturns && heldForReturns.length > 0) {
+    filter._id = { $nin: heldForReturns };
+  }
 
   return filter;
+}
+
+/**
+ * Orders a return is still open on for `vendorId` — its payout waits on them.
+ *
+ * The return window alone was not enough: a return opened on its last day was
+ * refunded after the payout, and that money could only come back out of the
+ * seller's next one. Held while the return is open (see
+ * `PAYOUT_HOLDING_RETURN_STATUSES`); rejected, cancelled or refunded, the sale
+ * is payable again on what is left of it.
+ */
+export async function loadOrderIdsHeldForReturns(
+  vendorId: Types.ObjectId | string,
+): Promise<Types.ObjectId[]> {
+  return ReturnRequest.distinct("orderId", {
+    vendorIds: new Types.ObjectId(String(vendorId)),
+    status: { $in: PAYOUT_HOLDING_RETURN_STATUSES },
+  });
 }
 
 /**
@@ -265,7 +386,11 @@ export function buildCommissionOwedOrderFilter(
     // The same order-level conditions as the payable filter, so the two stay
     // exact complements — see there.
     status: { $ne: "cancelled" },
-    paymentStatus: { $in: SETTLED_ORDER_PAYMENT_STATUSES },
+    // Refunded in full included: what is left of such a sale is still owed one
+    // way or the other — a delivery the seller made and keeps, a refund fee
+    // the platform kept — and with the order out of both queries it was never
+    // paid, deducted or billed. Nothing left is a consignment worth nothing.
+    paymentStatus: { $in: [...SETTLED_ORDER_PAYMENT_STATUSES, "refunded"] },
     $nor: [uncollectedPreorderBalanceMatch()],
     // The mirror image of the payable filter, arm for arm.
     $or: [
@@ -659,7 +784,7 @@ export function payableRatioFor(
  * a goods discount, and an order from before the choice existed was paid for
  * by its sellers.
  */
-export function isStoreFundedCoupon(order: PayableOrderLike): boolean {
+function isStoreFundedCoupon(order: PayableOrderLike): boolean {
   return (
     order.coupon?.fundedBy === "platform" &&
     order.coupon?.type !== "free_shipping"
@@ -814,6 +939,8 @@ async function loadSettlementDrift(params: {
             refunds,
             params.isSettled,
             currency,
+            // Signed, so a sale a refund fee took below zero counts in full.
+            { unfloored: true },
           ),
           currency,
         ),
@@ -847,7 +974,12 @@ async function loadSettlementDrift(params: {
 async function sumOverpaymentRecovered(
   vendorId: Types.ObjectId | string,
   currency: string,
-): Promise<number> {
+): Promise<{
+  /** Everything earlier payouts took back, legacy rows worked out included. */
+  total: number;
+  /** Only what payouts recorded in `overpaymentRecovered` themselves. */
+  tracked: number;
+}> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
   const payouts = await Payout.find({
     vendorId: vendorObjectId,
@@ -891,17 +1023,26 @@ async function sumOverpaymentRecovered(
     }
   }
 
-  return roundMoney(
-    payouts.reduce((sum, row) => {
+  return payouts.reduce(
+    (totals, row) => {
+      // Signed: a payout that handed back a recovery the vendor turned out not
+      // to owe records it negative — see `fetchVendorOverpaymentBalance`.
       if (typeof row.overpaymentRecovered === "number") {
-        return sum + Math.max(0, row.overpaymentRecovered);
+        return {
+          total: roundMoney(totals.total + row.overpaymentRecovered),
+          tracked: roundMoney(totals.tracked + row.overpaymentRecovered),
+        };
       }
       const recovery =
         Number(row.adjustments || 0) +
         Number(row.preorderReserveHeld || 0) -
         (releasedInto.get(String(row._id)) || 0);
-      return sum + Math.max(0, roundMoney(-recovery));
-    }, 0),
+      return {
+        total: roundMoney(totals.total + Math.max(0, roundMoney(-recovery))),
+        tracked: totals.tracked,
+      };
+    },
+    { total: 0, tracked: 0 },
   );
 }
 
@@ -934,8 +1075,10 @@ async function sumCommissionCreditApplied(
 
   return roundMoney(
     invoices.reduce((sum, invoice) => {
+      // Signed, as the overpayment recovery is: an invoice that billed back a
+      // credit the vendor no longer had records it negative.
       if (typeof invoice.creditApplied === "number") {
-        return sum + Math.max(0, invoice.creditApplied);
+        return sum + invoice.creditApplied;
       }
       return invoice.createdAt
         ? sum + driftAsOf(new Date(invoice.createdAt))
@@ -945,11 +1088,80 @@ async function sumCommissionCreditApplied(
 }
 
 /**
+ * Commission the platform has actually earned from a vendor, in one currency.
+ *
+ * `subOrders.commission` is the figure frozen at checkout: before a vendor-paid
+ * coupon, before any refund, and on orders nobody has paid for yet. Summed as
+ * "commission revenue" it reported 10 on a 100 sale at 10% that was fully
+ * refunded, or never paid at all. This is the same arithmetic payouts and
+ * invoices use — delivered consignments whose money arrived, less what refunds
+ * took back — so a refund administration fee the platform kept still counts.
+ */
+export async function fetchVendorEarnedCommission(params: {
+  vendorId: Types.ObjectId | string;
+  currency: string;
+}): Promise<number> {
+  const vendorObjectId = new Types.ObjectId(String(params.vendorId));
+  const currency = params.currency.toUpperCase();
+  const collectedStatuses = [...SETTLED_ORDER_PAYMENT_STATUSES, "refunded"];
+  const orders = await Order.find({
+    status: { $ne: "cancelled" },
+    paymentStatus: { $in: collectedStatuses },
+    $nor: [uncollectedPreorderBalanceMatch()],
+    subOrders: {
+      $elemMatch: {
+        vendorId: vendorObjectId,
+        status: "delivered",
+        paymentStatus: { $in: [...SETTLED_SUB_ORDER_PAYMENT_MATCH.$in, "refunded"] },
+      },
+    },
+  })
+    .select(PAYABLE_ORDER_PROJECTION)
+    .lean<Array<PayableOrderLike & { _id: unknown; subOrders?: PayableSubOrderLike[] | null }>>();
+  if (orders.length === 0) return 0;
+
+  const refundByOrderId = await fetchRefundTotalsByOrder(
+    orders.map((order) => String(order._id)),
+  );
+  const totals = payableInCurrency(
+    sumVendorPayable(
+      orders,
+      vendorObjectId,
+      refundByOrderId,
+      (sub) => sub.status === "delivered",
+      currency,
+      { unfloored: true },
+    ),
+    currency,
+  );
+  return Math.max(0, totals.commissionAmount);
+}
+
+/**
  * Overpayment still waiting to be recovered from this vendor, in one currency:
  * every late refund on a sale they were paid for, less what earlier payouts
  * already took back.
  */
 export async function fetchVendorOverpayment(params: {
+  vendorId: Types.ObjectId | string;
+  currency: string;
+}): Promise<number> {
+  return Math.max(0, await fetchVendorOverpaymentBalance(params));
+}
+
+/**
+ * The same figure, signed. Negative is what earlier payouts took back that the
+ * vendor did not, in the end, owe — and the next payout pays it.
+ *
+ * A clawback is only as final as the refund behind it. A chargeback the store
+ * later wins, or a refund the gateway reports failed, marks its row failed and
+ * the drift shrinks — but the payout that already recovered it stays recovered.
+ * Clamping at zero read that as "nothing owed" when the vendor was 90 short on
+ * a sale already stamped paid, which no later payout could ever claim again.
+ * The same happens when the payout a recovery was measured against is itself
+ * cancelled and its sales go back to unpaid.
+ */
+export async function fetchVendorOverpaymentBalance(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
 }): Promise<number> {
@@ -966,13 +1178,15 @@ export async function fetchVendorOverpayment(params: {
     read: (totals) => totals.netAmount,
   });
   const drift = driftAsOf();
-  if (drift <= 0) return 0;
-
   const recovered = await sumOverpaymentRecovered(
     params.vendorId,
     params.currency,
   );
-  return Math.max(0, roundMoney(drift - recovered));
+  const balance = roundMoney(drift - recovered.total);
+  // Handed back only out of recoveries a payout actually recorded. A legacy
+  // row's recovery is inferred from its adjustments, which could hold other
+  // corrections, and paying that inference out as money would be a guess.
+  return balance >= 0 ? balance : Math.max(balance, 0 - Math.max(0, recovered.tracked));
 }
 
 /**
@@ -990,8 +1204,12 @@ export async function fetchVendorOverpayment(params: {
  * reduces the next invoice needs neither, and it is what a vendor would expect
  * to see. What earlier invoices already took off is subtracted, so the credit
  * reduces one bill rather than every bill that follows.
+ *
+ * Signed. Negative is credit earlier invoices already took off that the vendor
+ * no longer has — the refund behind it was reversed, so the commission is owed
+ * again and the next bill carries it.
  */
-export async function fetchVendorCommissionCredit(params: {
+export async function fetchVendorCommissionCreditBalance(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
 }): Promise<number> {
@@ -1005,20 +1223,22 @@ export async function fetchVendorCommissionCredit(params: {
     // commission on a sale that came back. Consignments invoiced before the
     // stamp existed fall back to the payment.
     settledAt: (sub) => sub.commissionClaimedAt ?? sub.commissionSettledAt,
-    read: (totals) => totals.commissionAmount,
+    // What the settlement actually billed: the commission less the store's
+    // promotion credit, the same `afterPromotions` `commissionOwedForVendor`
+    // invoices. Reading commission alone credited back the promotion slice
+    // too — a vendor who paid 20 on 30 of commission got 30 back on a refund.
+    read: (totals) => totals.commissionAmount - totals.promotionCredit,
   });
-  const drift = driftAsOf();
-  if (drift <= 0) return 0;
-
+  const drift = Math.max(0, driftAsOf());
   const applied = await sumCommissionCreditApplied(
     params.vendorId,
     params.currency,
     driftAsOf,
   );
-  return Math.max(0, roundMoney(drift - applied));
+  return roundMoney(drift - applied);
 }
 
-export interface VendorPayableTotals {
+interface VendorPayableTotals {
   currency: string;
   grossSales: number;
   commissionAmount: number;
@@ -1123,7 +1343,8 @@ export function sumVendorPayable<
   orders: ReadonlyArray<TOrder>,
   vendorId: Types.ObjectId | string,
   refundByOrderId: ReadonlyMap<string, OrderRefundBreakdown>,
-  isPayable: (sub: PayableSubOrderLike) => boolean,
+  /** Given the order too, for a rule that turns on it — a return held open. */
+  isPayable: (sub: PayableSubOrderLike, order: TOrder) => boolean,
   /** What an order with no currency of its own is counted as. */
   fallbackCurrency = "USD",
   options: {
@@ -1137,6 +1358,17 @@ export function sumVendorPayable<
      * finding F5 in the audit.
      */
     billVendorCodShipping?: boolean;
+    /**
+     * Leave the totals signed instead of flooring them at zero.
+     *
+     * The floor answers "how much is owed", which cannot be less than nothing.
+     * A settlement comparing then and now, or a payout netting what it claimed
+     * against other movements, needs the real figure: a sale refunded in full
+     * with the platform keeping a refund administration fee sits at −fee, and
+     * flooring it dropped exactly that fee — the ledger's payable stayed short
+     * by it forever.
+     */
+    unfloored?: boolean;
   } = {},
 ): VendorPayableTotals[] {
   const vendorKey = String(vendorId);
@@ -1157,7 +1389,7 @@ export function sumVendorPayable<
     let contributed = false;
 
     for (const sub of order.subOrders || []) {
-      if (String(sub.vendorId) !== vendorKey || !isPayable(sub)) continue;
+      if (String(sub.vendorId) !== vendorKey || !isPayable(sub, order)) continue;
 
       // Only the refunds that recorded nothing are prorated. The rest come off
       // the consignment they actually name, below. Per consignment, so a coupon
@@ -1234,12 +1466,14 @@ export function sumVendorPayable<
                   : 0,
             )
           : 0;
+      // The delivery half is not scaled by what was refunded: the parcel was
+      // delivered, and the store's part of it was never the shopper's money
+      // to hand back — see `shippingEarned` below, and `refundPostings`,
+      // which keeps it on the books the same way.
       const promotionCredit =
         !isPlatformSettled(order, sub) && fundedShare + fundedShippingShare > 0
           ? roundMoney(
-              fundedShare * payableRatio -
-                promotionBack +
-                fundedShippingShare * payableRatio,
+              fundedShare * payableRatio - promotionBack + fundedShippingShare,
             )
           : 0;
 
@@ -1279,6 +1513,12 @@ export function sumVendorPayable<
       // holding the money: paid out with their goods. What the shopper was
       // charged, after a free-shipping coupon, less whatever of it went back —
       // the refunds that named it, and the unnamed ones' share of it.
+      //
+      // Plus whatever the store's own free-shipping coupon paid, which no
+      // refund reaches: the shopper never paid it, so none of their money
+      // going back is it, and the parcel was delivered. Scaled with the rest,
+      // a sale refunded in full after delivery paid the seller nothing for a
+      // delivery they had made.
       let shippingEarned = 0;
       if (vendorEarnsShipping(sub) && isPlatformSettled(order, sub)) {
         const rated = Math.max(0, Number(sub.shippingCost || 0));
@@ -1286,13 +1526,15 @@ export function sumVendorPayable<
           0,
           rated - shippingDiscountFor(order, rated, ratedShipping, sub),
         );
+        const storePaid = Math.min(charged, fundedShippingShare);
         const orderTotal = Number(order.total || 0);
         const unallocatedRatio =
           orderTotal > 0
             ? Math.min(1, Math.max(0, refunds.unallocated / orderTotal))
             : 0;
         shippingEarned = roundMoney(
-          charged * (1 - unallocatedRatio) -
+          (charged - storePaid) * (1 - unallocatedRatio) +
+            storePaid -
             Math.max(0, refunds.shippingByVendor.get(vendorKey) || 0),
         );
       }
@@ -1321,14 +1563,23 @@ export function sumVendorPayable<
   // the platform has overpaid, and that is `fetchVendorOverpayment`'s question
   // — this one only ever answers "how much is owed", which cannot be less
   // than nothing.
+  // Rounded to what the bucket's currency can hold, the precision the ledger
+  // posts in. Cents everywhere left a UGX payout owing a fraction of a
+  // shilling the books never recorded.
   return [...byCurrency.values()]
-    .map((totals) => ({
-      ...totals,
-      grossSales: Math.max(0, roundMoney(totals.grossSales)),
-      commissionAmount: Math.max(0, roundMoney(totals.commissionAmount)),
-      shippingAmount: Math.max(0, roundMoney(totals.shippingAmount)),
-      promotionCredit: Math.max(0, roundMoney(totals.promotionCredit)),
-      netAmount: Math.max(0, roundMoney(totals.netAmount)),
-    }))
+    .map((totals) => {
+      const floor = (value: number) => {
+        const rounded = quantizeToCurrency(value, totals.currency);
+        return options.unfloored ? rounded : Math.max(0, rounded);
+      };
+      return {
+        ...totals,
+        grossSales: floor(totals.grossSales),
+        commissionAmount: floor(totals.commissionAmount),
+        shippingAmount: floor(totals.shippingAmount),
+        promotionCredit: floor(totals.promotionCredit),
+        netAmount: floor(totals.netAmount),
+      };
+    })
     .sort((a, b) => b.netAmount - a.netAmount);
 }

@@ -14,21 +14,28 @@ import { ConflictError } from "@/lib/api/errors";
  * of overwriting. Three routes carried a hand-written copy of this; the rest
  * carried nothing.
  */
-export type OrderStatusSnapshot = {
+type OrderStatusSnapshot = {
   status?: string | null;
+  /**
+   * A pre-order's own stage. The order status alone reads `preordered` both
+   * while it waits and once its balance is asked for, so a delay deciding on
+   * one could be saved over the other.
+   */
+  preorderStatus?: string | null;
   subOrders?: Array<{ status?: string | null }> | null;
 };
 
 /** The `$where` a save is conditional on — see {@link saveOrderOverReadStatuses}. */
 export function readStatusGuard(before: OrderStatusSnapshot): Record<string, unknown> {
   const guard: Record<string, unknown> = { status: before.status };
+  if (before.preorderStatus) guard.preorderStatus = before.preorderStatus;
   (before.subOrders || []).forEach((sub, index) => {
     guard[`subOrders.${index}.status`] = sub?.status;
   });
   return guard;
 }
 
-export const ORDER_CHANGED_MESSAGE =
+const ORDER_CHANGED_MESSAGE =
   "This order changed while you were updating it. Refresh the page and try again.";
 
 export async function saveOrderOverReadStatuses(
@@ -50,10 +57,12 @@ export async function saveOrderOverReadStatuses(
 /** The statuses of an order as read, taken before anything is changed in memory. */
 export function snapshotOrderStatuses(order: {
   status?: string | null;
+  preorderStatus?: string | null;
   subOrders?: Array<{ status?: string | null }> | null;
 }): OrderStatusSnapshot {
   return {
     status: order.status,
+    ...(order.preorderStatus ? { preorderStatus: order.preorderStatus } : {}),
     subOrders: (order.subOrders || []).map((sub) => ({ status: sub?.status })),
   };
 }

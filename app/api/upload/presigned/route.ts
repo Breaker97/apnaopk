@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { publicErrorMessage } from "@/lib/api/errors";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -24,8 +25,10 @@ import {
   validateUpload,
 } from "@/lib/storage";
 import { isSafeUploadDirectory } from "@/lib/storage/key";
+import { isVectorImageType } from "@/lib/storage/content-type";
+import { isShopper } from "@/lib/media-upload/upload-policy";
 import { resolveUploadScope } from "@/lib/storage/upload-scope";
-import { z } from "zod";
+import * as z from "zod";
 
 const PresignedUploadSchema = z.object({
   fileName: z.string().min(1).max(512),
@@ -91,9 +94,18 @@ export async function POST(request: NextRequest) {
     // Get storage configuration
     const config = await getStorageConfig();
 
-    // Local storage cannot presign — tell the client to use /api/upload. This
-    // is a normal outcome, not an error, so it returns 200.
-    if (config.provider === "local") {
+    // "Use /api/upload instead" — a normal outcome, not an error, so it
+    // returns 200 and the client falls back:
+    //  - local storage cannot presign;
+    //  - a shopper's upload must pass the shopper limits, and a bucket URL
+    //    would bypass them (lib/media-upload/upload-policy.ts);
+    //  - a vector must be rasterized, or kept raw only for someone who manages
+    //    store media — the server path does either, the bucket neither.
+    if (
+      config.provider === "local" ||
+      isShopper(session.user) ||
+      isVectorImageType(contentType)
+    ) {
       return NextResponse.json({
         success: true,
         supportsDirectUpload: false,
@@ -103,9 +115,10 @@ export async function POST(request: NextRequest) {
 
     // Validate upload against configuration. This is the only place the size
     // and type limits are enforced for direct uploads — once the client holds
-    // the presigned URL the app is no longer in the path. ContentLength is
-    // pinned into the signature by the provider, so a client cannot present
-    // a small size here and then PUT a larger body.
+    // the presigned URL the app is no longer in the path. Content-Length and
+    // Content-Type are both signed (lib/storage/providers/s3-compatible.ts),
+    // so a client cannot present a small photo here and then PUT a larger
+    // body, or one of another type.
     const validation = validateUpload(config, fileSize, contentType);
     if (!validation.valid) {
       return NextResponse.json(
@@ -151,10 +164,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message:
-          error instanceof Error && error.message
-            ? error.message
-            : "Failed to generate upload URL",
+        message: publicErrorMessage(error, "Failed to generate upload URL"),
       },
       { status: 500 },
     );

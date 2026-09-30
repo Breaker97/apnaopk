@@ -10,6 +10,8 @@ import {
   hasStorageEnvCredentials,
   isInstalled,
 } from "@/lib/install/status";
+import { isInstallTokenValid } from "@/lib/install/install-token";
+import { INSTALL_TOKEN_HEADER } from "@/lib/install/payload";
 
 /**
  * Wizard bootstrap: install state + environment preflight. Public by
@@ -24,10 +26,13 @@ export const GET = withApi(
     // it, that buyer got a 500 and the wizard blamed MongoDB instead.
     rateLimit: { action: "install:status", preset: "lenient" },
   },
-  async () => {
+  async ({ request }) => {
     if (await isInstalled()) {
       return successResponse({ installed: true });
     }
+    // Asked with the token the owner typed: lets the wizard say "wrong token"
+    // on its first step rather than after the last one.
+    const offeredToken = request.headers.get(INSTALL_TOKEN_HEADER);
     // Same trap: the policy lives on the auth instance. A store with no
     // admin yet runs the default rules anyway, and a weak secret blocks the
     // wizard before any password is typed.
@@ -39,6 +44,9 @@ export const GET = withApi(
       preflight: await getInstallPreflight(),
       passwordHint: describePasswordPolicy(policy),
       storageFromEnv: hasStorageEnvCredentials(),
+      ...(offeredToken !== null
+        ? { tokenAccepted: isInstallTokenValid(offeredToken) }
+        : {}),
     });
   },
 );

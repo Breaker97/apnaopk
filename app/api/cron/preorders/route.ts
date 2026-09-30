@@ -29,16 +29,7 @@ import {
  *
  * Guarded by CRON_SECRET, like every other cron here.
  */
-export const GET = withCronRun("preorders", async (request) => {
-  const secret = process.env.CRON_SECRET;
-  const authorization = request.headers.get("authorization");
-  if (!secret || authorization !== `Bearer ${secret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
+export const GET = withCronRun("preorders", async () => {
   await connectDB();
 
   // Before the reminders, and well before the expiries: a shopper who left a

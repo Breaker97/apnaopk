@@ -1,5 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Local vendor release archives and tooling (not application source)
+/Storify-v*/
+/Documentation/
+/__MACOSX/
+/__agent__/
+
 # dependencies
 /node_modules
 /.pnp
@@ -25,6 +31,7 @@
 
 # misc
 .DS_Store
+*.swp
 *.pem
 .codex
 .worktrees/
@@ -48,8 +55,17 @@ yarn-error.log*
 next-env.d.ts
 .env.local
 
-# Agent tooling artifacts
+# Agent tooling artifacts — local to whoever uses the tool, never shipped
 .agents/
+.claude/
+.trae/
+.superpowers/
+/docs/superpowers/
+/CLAUDE.md
+
+# Security audits and internal review notes — kept by the team, never shipped
+/docs/security-audit-*/
+/docs/audit/
 
 # Local-storage uploads (runtime user media, served by app/uploads route)
 /public/uploads/

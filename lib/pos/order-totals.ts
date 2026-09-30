@@ -29,12 +29,17 @@ export type POSOrderDiscountInput = {
   note?: string;
 };
 
-export function computePOSLineDiscountAmount(item: POSOrderItemInput): number {
+export function computePOSLineDiscountAmount(
+  item: POSOrderItemInput,
+  /** The store currency — see `computeLineDiscountAmount`. */
+  currency?: string | null,
+): number {
   if (!item.lineDiscount) return 0;
   return computeLineDiscountAmount(
     item.price || 0,
     item.quantity || 0,
     item.lineDiscount,
+    currency,
   );
 }
 
@@ -65,6 +70,11 @@ export function calculatePOSOrderTotals(params: {
   items: POSOrderItemInput[];
   discount?: POSOrderDiscountInput;
   taxRate?: number;
+  /**
+   * The store currency, which line discounts are rounded to — the same
+   * rounding the sale's consignments record them at.
+   */
+  currency?: string | null;
 }) {
   const subtotal = roundMoney(
     params.items.reduce(
@@ -73,7 +83,10 @@ export function calculatePOSOrderTotals(params: {
     ),
   );
   const lineDiscountTotal = roundMoney(
-    params.items.reduce((sum, item) => sum + computePOSLineDiscountAmount(item), 0),
+    params.items.reduce(
+      (sum, item) => sum + computePOSLineDiscountAmount(item, params.currency),
+      0,
+    ),
   );
   const discountedSubtotal = Math.max(0, roundMoney(subtotal - lineDiscountTotal));
   const shippingCost = 0;

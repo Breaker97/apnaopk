@@ -1,15 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import {
-  Store,
-  Globe,
-  Languages,
-  CircleDollarSign,
-  MapPinned,
-} from "lucide-react";
+import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { Store, Globe, Languages, MapPinned } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -23,36 +16,16 @@ import type { Settings } from "@/components/admin/settings/types";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
 import {
-  currencyLabel,
-  currencyOptionsFor,
+  LANGUAGE_OPTIONS,
+  storeCurrencyOptions,
 } from "@/components/admin/settings/general/constants";
-import { AddCurrencyField } from "@/components/admin/settings/general/add-currency-field";
 import { isValidLocale } from "@/config/i18n.config";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import {
   COUNTRY_AVAILABILITY_MODES,
   sanitizeCountryCodes,
 } from "@/lib/intl/country-availability";
 import { COUNTRIES } from "@/lib/intl/country-options";
-
-const LANGUAGE_OPTIONS = [
-  { code: "en", name: "English" },
-  { code: "bn", name: "Bengali" },
-  { code: "ar", name: "Arabic" },
-  { code: "hi", name: "Hindi" },
-  { code: "zh", name: "Chinese" },
-  { code: "ja", name: "Japanese" },
-  { code: "ko", name: "Korean" },
-  { code: "fr", name: "French" },
-  { code: "es", name: "Spanish" },
-  { code: "de", name: "German" },
-  { code: "zu", name: "Zulu" },
-  { code: "xh", name: "Xhosa" },
-  { code: "af", name: "Afrikaans" },
-  { code: "sw", name: "Swahili" },
-  { code: "ha", name: "Hausa" },
-  { code: "yo", name: "Yoruba" },
-  { code: "ig", name: "Igbo" },
-];
 
 export function GeneralSettingsTab(props: {
   settings: Settings;
@@ -62,14 +35,13 @@ export function GeneralSettingsTab(props: {
   onSave: () => Promise<boolean> | boolean;
 }) {
   const t = useTranslations();
+  const locale = useLocale();
+  const tSafe = useFallbackTranslator(t);
   const router = useRouter();
   const pathname = usePathname();
-  // Custom codes added in this session stay on screen after being unchecked,
-  // so an accidental uncheck doesn't make the row vanish before saving.
-  const [addedCurrencies, setAddedCurrencies] = useState<string[]>([]);
 
   const defaultLanguage = props.settings.general.defaultLanguage || "en";
-  const defaultCurrency = props.settings.general.defaultCurrency || "USD";
+  const storeCurrency = props.settings.general.defaultCurrency || "USD";
   const countryAvailabilityMode =
     props.settings.general.countryAvailability?.mode ===
     COUNTRY_AVAILABILITY_MODES.SELECTED
@@ -79,6 +51,8 @@ export function GeneralSettingsTab(props: {
     props.settings.general.countryAvailability?.countryCodes,
   );
 
+  // A code with no translation (older lists offered Korean) is dropped here,
+  // so it can be neither ticked nor picked as the default.
   const supportedLanguages = Array.from(
     new Set([
       ...(props.settings.general.supportedLanguages?.length
@@ -86,64 +60,18 @@ export function GeneralSettingsTab(props: {
         : ["en"]),
       defaultLanguage,
     ]),
-  );
-  const supportedCurrencies = Array.from(
-    new Set([
-      ...(props.settings.general.supportedCurrencies?.length
-        ? props.settings.general.supportedCurrencies
-        : ["USD"]),
-      defaultCurrency,
-    ]),
-  );
-  const currencyOptions = currencyOptionsFor([
-    ...supportedCurrencies,
-    ...addedCurrencies,
-  ]);
+  ).filter(isValidLocale);
 
-  const handleToggleInList = (
-    path: "general.supportedLanguages" | "general.supportedCurrencies",
-    current: string[],
-    value: string,
-    checked: boolean,
-  ) => {
+  const handleToggleLanguage = (code: string, checked: boolean) => {
     const next = checked
-      ? Array.from(new Set([...current, value]))
-      : current.filter((v) => v !== value);
+      ? Array.from(new Set([...supportedLanguages, code]))
+      : supportedLanguages.filter((v) => v !== code);
     if (next.length === 0) return;
 
-    props.updateNestedField(path, next);
-
-    if (path === "general.supportedLanguages") {
-      const defaultLang = props.settings.general.defaultLanguage || "en";
-      if (!next.includes(defaultLang)) {
-        props.updateNestedField("general.defaultLanguage", next[0]);
-      }
+    props.updateNestedField("general.supportedLanguages", next);
+    if (!next.includes(defaultLanguage)) {
+      props.updateNestedField("general.defaultLanguage", next[0]);
     }
-
-    if (path === "general.supportedCurrencies") {
-      const defaultCurr = props.settings.general.defaultCurrency || "USD";
-      if (!next.includes(defaultCurr)) {
-        props.updateNestedField("general.defaultCurrency", next[0]);
-      }
-    }
-  };
-
-  const handleAddCurrency = (code: string) => {
-    setAddedCurrencies((prev) => (prev.includes(code) ? prev : [...prev, code]));
-    props.updateNestedField("general.supportedCurrencies", [
-      ...supportedCurrencies,
-      code,
-    ]);
-  };
-
-  const handleSetDefaultCurrency = (code: string) => {
-    if (!supportedCurrencies.includes(code)) {
-      props.updateNestedField("general.supportedCurrencies", [
-        ...supportedCurrencies,
-        code,
-      ]);
-    }
-    props.updateNestedField("general.defaultCurrency", code);
   };
 
   const handleSave = async () => {
@@ -188,9 +116,11 @@ export function GeneralSettingsTab(props: {
               <Store className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold">Store Information</h3>
+              <h3 className="text-sm font-semibold">
+                {t("admin.settings.general.storeInfoTitle")}
+              </h3>
               <p className="text-xs text-muted-foreground">
-                Basic details about your store
+                {t("admin.settings.general.storeInfoDescription")}
               </p>
             </div>
           </div>
@@ -292,34 +222,23 @@ export function GeneralSettingsTab(props: {
 
         {/* Brand assets (logos + favicon) now live on the Branding tab. */}
 
-        {/* Section 2 -- Regional Defaults */}
+        {/* Section 2 -- Language and currency */}
         <div className="rounded-lg border bg-card text-card-foreground">
           <div className="flex items-center gap-3 border-b px-6 py-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
               <Globe className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold">Regional Defaults</h3>
+              <h3 className="text-sm font-semibold">
+                {t("admin.settings.general.languageCurrencyTitle")}
+              </h3>
               <p className="text-xs text-muted-foreground">
-                Timezone, language, and currency preferences
+                {t("admin.settings.general.languageCurrencyDescription")}
               </p>
             </div>
           </div>
           <div className="px-6 py-5">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="timezone">
-                  {t("admin.settings.general.timezone")}
-                </Label>
-                <Input
-                  id="timezone"
-                  value={props.settings.general.timezone || "UTC"}
-                  onChange={(e) =>
-                    props.updateNestedField("general.timezone", e.target.value)
-                  }
-                  placeholder={t("admin.settings.general.timezonePlaceholder")}
-                />
-              </div>
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>{t("admin.settings.general.defaultLanguage")}</Label>
                 <SearchableSelect
@@ -327,13 +246,15 @@ export function GeneralSettingsTab(props: {
                   onValueChange={(v) =>
                     props.updateNestedField("general.defaultLanguage", v)
                   }
-                  options={supportedLanguages.map((code) => ({
-                    value: code,
-                    label:
-                      LANGUAGE_OPTIONS.find((x) => x.code === code)?.name ||
-                      code,
-                  }))}
-                  searchPlaceholder="Search language..."
+                  options={supportedLanguages.map((code) => {
+                    const language = LANGUAGE_OPTIONS.find((x) => x.code === code);
+                    return {
+                      value: code,
+                      label: language?.name || code,
+                      keywords: language?.englishName,
+                    };
+                  })}
+                  searchPlaceholder={t("admin.settings.general.searchLanguage")}
                 />
               </div>
               <div className="space-y-2">
@@ -342,19 +263,19 @@ export function GeneralSettingsTab(props: {
                 </Label>
                 <SearchableSelect
                   id="defaultCurrency"
-                  value={props.settings.general.defaultCurrency || "USD"}
+                  value={storeCurrency}
                   onValueChange={(v) =>
                     props.updateNestedField("general.defaultCurrency", v)
                   }
-                  options={supportedCurrencies.map((code) => ({
-                    value: code,
-                    label: currencyLabel(code),
-                  }))}
-                  // The trigger keeps showing just the code; the name is only
-                  // there to make the list searchable.
-                  renderValue={(option) => option.value}
-                  searchPlaceholder="Search currency..."
+                  options={storeCurrencyOptions(storeCurrency, locale)}
+                  searchPlaceholder={t("admin.settings.general.searchCurrency")}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {tSafe(
+                    "admin.settings.general.storeCurrencyHint",
+                    "Every price, order and payout is in this currency. Changing it relabels prices; it does not convert them.",
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -367,10 +288,11 @@ export function GeneralSettingsTab(props: {
               <MapPinned className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold">Available countries</h3>
+              <h3 className="text-sm font-semibold">
+                {t("admin.settings.general.countries.title")}
+              </h3>
               <p className="text-xs text-muted-foreground">
-                Control the country lists used across checkout, vendor
-                onboarding, addresses, shipping, and product forms.
+                {t("admin.settings.general.countries.description")}
               </p>
             </div>
           </div>
@@ -395,11 +317,12 @@ export function GeneralSettingsTab(props: {
                 />
                 <span className="space-y-1">
                   <span className="block text-sm font-medium">
-                    All countries
+                    {t("admin.settings.general.countries.all")}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    Show every supported country ({COUNTRIES.length}) in all
-                    country pickers.
+                    {t("admin.settings.general.countries.allHint", {
+                      count: COUNTRIES.length,
+                    })}
                   </span>
                 </span>
               </label>
@@ -410,10 +333,10 @@ export function GeneralSettingsTab(props: {
                 />
                 <span className="space-y-1">
                   <span className="block text-sm font-medium">
-                    Specific countries
+                    {t("admin.settings.general.countries.specific")}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    Only show the countries you select below.
+                    {t("admin.settings.general.countries.specificHint")}
                   </span>
                 </span>
               </label>
@@ -422,7 +345,7 @@ export function GeneralSettingsTab(props: {
             {countryAvailabilityMode ===
             COUNTRY_AVAILABILITY_MODES.SELECTED ? (
               <div className="space-y-2">
-                <Label>Countries</Label>
+                <Label>{t("admin.settings.general.countries.label")}</Label>
                 <CountryMultiSelect
                   value={selectedCountryCodes}
                   onChange={(countryCodes) =>
@@ -433,19 +356,19 @@ export function GeneralSettingsTab(props: {
                   }
                   valueFormat="code"
                   restrictToAvailableCountries={false}
-                  placeholder="Select countries"
-                  searchPlaceholder="Search countries or ISO codes..."
-                  emptyText="No countries found."
+                  placeholder={t("admin.settings.general.countries.placeholder")}
+                  searchPlaceholder={t("admin.settings.general.countries.search")}
+                  emptyText={t("admin.settings.general.countries.empty")}
                 />
                 {selectedCountryCodes.length === 0 ? (
                   <p className="text-xs text-destructive">
-                    Select at least one country before saving.
+                    {t("admin.settings.general.countries.required")}
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    {selectedCountryCodes.length}{" "}
-                    {selectedCountryCodes.length === 1 ? "country" : "countries"}{" "}
-                    selected.
+                    {t("admin.settings.general.countries.selected", {
+                      count: selectedCountryCodes.length,
+                    })}
                   </p>
                 )}
               </div>
@@ -486,12 +409,7 @@ export function GeneralSettingsTab(props: {
                       <Checkbox
                         checked={isChecked}
                         onCheckedChange={(v) =>
-                          handleToggleInList(
-                            "general.supportedLanguages",
-                            supportedLanguages,
-                            l.code,
-                            Boolean(v),
-                          )
+                          handleToggleLanguage(l.code, Boolean(v))
                         }
                       />
                       <span className="font-medium">{l.name}</span>
@@ -501,7 +419,7 @@ export function GeneralSettingsTab(props: {
                         variant="secondary"
                         className="text-[10px] px-1.5 py-0"
                       >
-                        Default
+                        {t("admin.settings.general.defaultBadge")}
                       </Badge>
                     )}
                   </label>
@@ -511,83 +429,6 @@ export function GeneralSettingsTab(props: {
           </div>
         </div>
 
-        {/* Section 5 -- Supported Currencies */}
-        <div className="rounded-lg border bg-card text-card-foreground">
-          <div className="flex items-center gap-3 border-b px-6 py-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <CircleDollarSign className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">
-                {t("admin.settings.general.supportedCurrencies")}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {t("admin.settings.general.supportedCurrenciesDesc")}
-              </p>
-            </div>
-          </div>
-          <div className="space-y-4 px-6 py-5">
-            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-              {currencyOptions.map((c) => {
-                const isDefault = c.code === defaultCurrency;
-                const isChecked = supportedCurrencies.includes(c.code);
-                return (
-                  <div
-                    key={c.code}
-                    className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors hover:bg-muted/50 ${
-                      isChecked
-                        ? "border-primary/30 bg-primary/5"
-                        : "border-border"
-                    }`}
-                  >
-                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={(v) =>
-                          handleToggleInList(
-                            "general.supportedCurrencies",
-                            supportedCurrencies,
-                            c.code,
-                            Boolean(v),
-                          )
-                        }
-                      />
-                      <span className="flex min-w-0 items-baseline gap-1.5">
-                        <span className="font-medium">{c.code}</span>
-                        {c.name ? (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {c.name}
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
-                    {isDefault ? (
-                      <Badge
-                        variant="secondary"
-                        className="shrink-0 text-[10px] px-1.5 py-0"
-                      >
-                        Default
-                      </Badge>
-                    ) : isChecked ? (
-                      <button
-                        type="button"
-                        onClick={() => handleSetDefaultCurrency(c.code)}
-                        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        Set default
-                      </button>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-
-            <AddCurrencyField
-              existing={supportedCurrencies}
-              onAdd={handleAddCurrency}
-            />
-          </div>
-        </div>
       </div>
 
       <StickySaveFooter

@@ -1,12 +1,21 @@
-import {
-  ProductDetailsLazy as ProductDetails,
-  type ProductDetailsProps,
-} from "@/components/products/product-details-lazy";
+import { ProductDetails } from "@/components/products/product-details";
 import { ProductDetailsSkeleton } from "@/components/products/product-details-skeleton";
-import { resolveProductCollectionOffer } from "@/lib/locations/product-collection";
+import type { ProductPageProduct } from "@/lib/products/purchase-product";
 import { getProductFulfillmentNotes } from "@/lib/products/product-fulfillment-notes";
+import {
+  productReturnWindowDays,
+  returnWindowOverridesOf,
+  type ReturnWindowProductLike,
+} from "@/lib/returns/return-window";
+import {
+  finalSaleCollectionIdsOf,
+  isFinalSaleProduct,
+  type FinalSaleProductLike,
+} from "@/lib/returns/final-sale";
+import { getReturnCollections } from "@/lib/returns/final-sale-collections";
+import { productsJoiningByRule } from "@/lib/catalog/collections";
+import { getSettingsLean } from "@/models/settings.model";
 import type { ProductShippingData } from "@/lib/catalog/product-shipping";
-import { getTemplateSections } from "@/lib/storefront/pages/get-template";
 import {
   PRODUCT_GALLERY_LAYOUTS,
   type ProductGalleryLayout,
@@ -17,7 +26,7 @@ import {
   visibleProductDetailGroups,
 } from "@/lib/storefront/sections/product-detail-rows";
 import { parseProductDetailConfig } from "@/lib/storefront/sections/product-detail-style";
-import type { ProductBuyBoxAppearance } from "@/components/products/product-details";
+import { readSpecificationRows } from "./product-specification";
 import type { SectionDefinition } from "../types";
 
 /**
@@ -28,76 +37,117 @@ import type { SectionDefinition } from "../types";
  * home of the retired `productGalleryLayout` theme setting, now with all
  * six arrangements the Figma spec calls for.
  *
- * The buy-box arrangement is NOT a merchant choice (no variants): the base
- * design is the Minimal composition (Figma 774:4992) and a theme that ships
- * its own buy box overrides it in `themes/overrides.tsx` — which is why
- * this factory is exported. Every appearance runs the exact same
- * ProductDetails: price, stock, preorder and variant rules are shared, only
- * the arrangement differs.
+ * The buy box has ONE design (the Minimal composition, Figma 774:4992),
+ * arranged by the merchant through `rows` and `detailStyle`, the same under
+ * every template.
  */
-function renderProductMain(
-  appearance: ProductBuyBoxAppearance,
-): SectionDefinition["Render"] {
-  return async function Render({ settings, ctx }) {
-    const resource = ctx.resource;
-    // Only absent in a draft preview of a store with no products yet.
-    if (resource?.type !== "product") return null;
-    const product = resource.product;
+async function renderProductMain({
+  settings,
+  ctx,
+}: Parameters<SectionDefinition["Render"]>[0]) {
+  const resource = ctx.resource;
+  // Only absent in a draft preview of a store with no products yet.
+  if (resource?.type !== "product") return null;
+  const product = resource.product;
 
-    // Resolved here rather than by the page: the collection offer depends
-    // on the shopper's location, the delivery/return notes on the store's
-    // shipping and return settings, and the section is the only consumer
-    // of either.
-    const vendorId = (product.vendorId as { _id?: string } | undefined)?._id;
-    const [collectionOffer, fulfillment] = await Promise.all([
-      resolveProductCollectionOffer({
-        productId: String(product._id),
-        vendorId,
-        lat: resource.location.lat,
-        lng: resource.location.lng,
-        radius: resource.location.radius,
-      }),
-      getProductFulfillmentNotes({
-        productId: String(product._id),
-        price: Number(product.price) || 0,
-        vendorId: vendorId ? String(vendorId) : undefined,
-        shipping: product.shipping as ProductShippingData | undefined,
-      }),
-    ]);
+  // Resolved here rather than by the page: the delivery/return notes come
+  // from the store's shipping and return settings, and the section is their
+  // only consumer. The "Collect at" offer depends on the shopper's place, so
+  // the buy box asks for it from the browser (use-collection-offer.ts) — this
+  // render is cached and shared.
+  const vendorId = (product.vendorId as { _id?: string } | undefined)?._id;
+  const [fulfillment, storeSettings, returnCollections] = await Promise.all([
+    getProductFulfillmentNotes({
+      productId: String(product._id),
+      price: Number(product.price) || 0,
+      vendorId: vendorId ? String(vendorId) : undefined,
+      shipping: product.shipping as ProductShippingData | undefined,
+    }),
+    getSettingsLean(),
+    getReturnCollections(),
+  ]);
 
-    // Whether the template ALSO renders the standalone spec section (the
-    // Electronics preset does): the buy box then stands its own inline
-    // copy down — two spec tables on one page is the bug this prevents.
-    // Cached read, so this costs nothing at render.
-    const { sections: templateSections } = await getTemplateSections("product");
-    const standaloneSpecs = templateSections.some(
-      (section) => section.type === "product-specification" && section.visible,
-    );
+  // The automated collections the return settings name, which a product joins
+  // by their rules and never lists itself. The rules are cached; only a store
+  // that has such a collection matches this product against them.
+  const productId = String(product._id);
+  const ruleCollections = (
+    await productsJoiningByRule([productId], returnCollections.rules)
+  ).get(productId);
 
-    return (
-      // An inline-size container spanning the surface: the gallery's bleed
-      // (--store-content-inset in globals.css) is measured against it.
-      <div className="@container w-full">
-      <div className="container mx-auto px-4 pt-6 lg:pt-8">
-        <ProductDetails
-          product={
-            product as unknown as ProductDetailsProps["product"]
-          }
-          locale={ctx.locale}
-          collectionOffer={collectionOffer}
-          fulfillment={fulfillment}
-          galleryLayout={settings.galleryLayout as ProductGalleryLayout}
-          appearance={appearance}
-          rowGroups={visibleProductDetailGroups(
-            parseProductDetailGroups(settings.rows),
-          )}
-          detail={parseProductDetailConfig(settings.detailStyle)}
-          standaloneSpecs={standaloneSpecs}
-        />
-      </div>
-      </div>
-    );
+  // The product's own return window, when it or a collection sets one (R6):
+  // the line says that, not the store's.
+  const ownWindow = productReturnWindowDays(
+    product as unknown as ReturnWindowProductLike,
+    returnWindowOverridesOf(storeSettings),
+    ruleCollections,
+  );
+  const productFulfillment =
+    ownWindow !== undefined && fulfillment.returns
+      ? { ...fulfillment, returns: { ...fulfillment.returns, windowDays: ownWindow } }
+      : fulfillment;
+
+  // Final sale by product, variant and collection, answered here with the
+  // store's collections; the buy box picks the chosen variant's answer.
+  const finalSaleCollections = finalSaleCollectionIdsOf(storeSettings);
+  const finalSaleSource = product as unknown as FinalSaleProductLike;
+  const finalSale = {
+    product: isFinalSaleProduct(
+      finalSaleSource,
+      undefined,
+      finalSaleCollections,
+      ruleCollections,
+    ),
+    variants: Object.fromEntries(
+      (finalSaleSource.variants || []).map((variant) => [
+        String(variant._id ?? ""),
+        isFinalSaleProduct(
+          finalSaleSource,
+          variant._id,
+          finalSaleCollections,
+          ruleCollections,
+        ),
+      ]),
+    ),
   };
+
+  // Whether the page ALSO draws the standalone spec section (the
+  // Electronics preset does): the buy box then stands its own inline copy
+  // down — two spec tables on one page is the bug this prevents. Read from
+  // the page being drawn, so a draft preview follows the draft.
+  const pageSections = ctx.pageSectionTypes;
+  const standaloneSpecs = pageSections?.has("product-specification") ?? false;
+
+  return (
+    // An inline-size container spanning the surface: the gallery's bleed
+    // (--store-content-inset in globals.css) is measured against it.
+    <div className="@container w-full">
+    <div className="container mx-auto px-4 pt-6 lg:pt-8">
+      <ProductDetails
+        product={product as unknown as ProductPageProduct}
+        locale={ctx.locale}
+        isMultiVendor={ctx.isMultiVendorEnabled}
+        fulfillment={productFulfillment}
+        finalSale={finalSale}
+        galleryLayout={settings.galleryLayout as ProductGalleryLayout}
+        rowGroups={visibleProductDetailGroups(
+          parseProductDetailGroups(settings.rows),
+        )}
+        detail={parseProductDetailConfig(settings.detailStyle)}
+        standaloneSpecs={standaloneSpecs}
+        // The tab strip names only what the shopper can land on. The inline
+        // table always draws (with its own empty state); the standalone one
+        // draws nothing live for a product without rows. A hidden or removed
+        // Reviews section takes its tab and the rating's link with it.
+        sectionTargets={{
+          specifications:
+            !standaloneSpecs || readSpecificationRows(product).length > 0,
+          reviews: pageSections?.has("product-reviews") ?? true,
+        }}
+      />
+    </div>
+    </div>
+  );
 }
 
 export const productMain: SectionDefinition = {
@@ -129,12 +179,12 @@ export const productMain: SectionDefinition = {
     // arrangement as `rows`. Empty default: the parser fills every knob.
     { key: "detailStyle", type: "text", default: "" },
   ],
-  // The Render awaits the location-scoped collection offer; the Skeleton
-  // lets the rest of the template stream around it instead of blocking.
+  // The Render awaits the delivery/return notes; the Skeleton lets the rest
+  // of the template stream around it instead of blocking.
   Skeleton: () => (
     <div className="container mx-auto px-4 pt-6 lg:pt-8">
       <ProductDetailsSkeleton />
     </div>
   ),
-  Render: renderProductMain("minimal"),
+  Render: renderProductMain,
 };

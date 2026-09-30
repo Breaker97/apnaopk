@@ -39,8 +39,30 @@ interface OrderReturnRequestSummary {
   estimatedRefundTotal: number;
   /** Already refunded against this return, so the remaining cap is derivable. */
   actualRefundAmount: number;
+  /**
+   * Delivery inside the estimate — handed back with the goods when the
+   * policy says so. The only delivery this return may take out of a
+   * dispatched order's held-back charge.
+   */
+  estimatedRefundShipping: number;
   /** The vendor whose items these are, when the return is not the store's own. */
   ownerLabel?: string;
+  /** The exchange order the return became, while it stands (R7). */
+  exchangeOrder?: { _id: string; orderNumber: string };
+  /**
+   * The order lines this return covers.
+   *
+   * Read by the refund dialog so it cannot offer to refund units a return is
+   * already going to pay for — the same units the API refuses. Without them
+   * the screen showed the return and still let the admin refund its goods
+   * beside it.
+   */
+  items: Array<{
+    orderItemIndex: number;
+    quantityRequested: number;
+    /** What the store agreed to take back — the units the return holds. */
+    quantityApproved?: number;
+  }>;
 }
 
 /**
@@ -221,7 +243,7 @@ export async function getOrderReturnRequests(
   // return from showed nothing either — and refunds are theirs to issue.
   const requests = await ReturnRequest.find({ orderId })
     .select(
-      "returnNumber status refundStatus estimatedRefund.total actualRefund.amount ownerType ownerVendorId",
+      "returnNumber status refundStatus estimatedRefund.total estimatedRefund.shipping actualRefund.amount ownerType ownerVendorId items.orderItemIndex items.quantityRequested items.quantityApproved exchange.orderId exchange.orderNumber exchange.undoneAt",
     )
     .populate("ownerVendorId", "storeName")
     .sort({ createdAt: -1 })
@@ -237,6 +259,18 @@ export async function getOrderReturnRequests(
       : undefined,
     estimatedRefundTotal: Number(request.estimatedRefund?.total || 0),
     actualRefundAmount: Number(request.actualRefund?.amount || 0),
+    estimatedRefundShipping: Math.max(0, Number(request.estimatedRefund?.shipping || 0)),
+    items: ((request.items || []) as Array<{
+      orderItemIndex?: number;
+      quantityRequested?: number;
+      quantityApproved?: number;
+    }>).map((item) => ({
+      orderItemIndex: Number(item?.orderItemIndex ?? -1),
+      quantityRequested: Math.max(0, Number(item?.quantityRequested || 0)),
+      ...(typeof item?.quantityApproved === "number"
+        ? { quantityApproved: Math.max(0, item.quantityApproved) }
+        : {}),
+    })),
     ownerLabel:
       request.ownerType === "vendor"
         ? String(
@@ -244,6 +278,14 @@ export async function getOrderReturnRequests(
               "Vendor",
           )
         : undefined,
+    ...(request.exchange?.orderId && !request.exchange.undoneAt
+      ? {
+          exchangeOrder: {
+            _id: String(request.exchange.orderId),
+            orderNumber: String(request.exchange.orderNumber || ""),
+          },
+        }
+      : {}),
   }));
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
-import { getStripeForSecretKey } from "@/lib/payments/stripe";
+import { fromStripeAmount, getStripeForSecretKey } from "@/lib/payments/stripe";
 import { getSettings } from "@/models/settings.model";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import {
@@ -37,6 +37,7 @@ import {
   PREORDER_BALANCE_CHECKOUT_KIND,
   settlePreorderBalanceFromIntent,
 } from "@/lib/payments/preorder-balance";
+import { ORDER_PAY_CHECKOUT_KIND } from "@/lib/payments/order-pay";
 import {
   reconcileStripeOrderRefunds,
   reverseFailedOrderRefund,
@@ -175,7 +176,15 @@ export async function POST(request: NextRequest) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const rawIntent = paymentIntent as unknown as { invoice?: unknown };
-        if (paymentIntent.metadata?.kind === PREORDER_BALANCE_CHECKOUT_KIND) {
+        if (paymentIntent.metadata?.kind === ORDER_PAY_CHECKOUT_KIND) {
+          // A "pay now" link settling an order that already exists. Like the
+          // balance below it, there is no cart behind it, so the checkout
+          // finalizer must never see it.
+          const { settleOrderPayIntent } = await import(
+            "@/lib/payments/order-pay"
+          );
+          await settleOrderPayIntent(paymentIntent, settings);
+        } else if (paymentIntent.metadata?.kind === PREORDER_BALANCE_CHECKOUT_KIND) {
           // The balance on an existing pre-order — there is no cart behind
           // it, so the checkout finalizer must never see it.
           await settlePreorderBalanceFromIntent(paymentIntent, settings);
@@ -191,12 +200,101 @@ export async function POST(request: NextRequest) {
 
       case "payment_intent.payment_failed": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        if (paymentIntent.metadata?.kind === ORDER_PAY_CHECKOUT_KIND) {
+          // A card refused on a "pay now" link. There IS an order here — that
+          // is the whole point of the link — so the failure is filed against
+          // it, where the merchant answering "my card keeps being refused"
+          // will look.
+          const { recordChargeFailure } = await import(
+            "@/lib/payments/payment-transactions"
+          );
+          const failed = paymentIntent.last_payment_error;
+          const failedCurrency = String(paymentIntent.currency || "").toUpperCase();
+          await recordChargeFailure({
+            provider: "stripe",
+            paymentMethod: "card",
+            orderId: paymentIntent.metadata?.orderId,
+            externalId: paymentIntent.id,
+            amount: fromStripeAmount(
+              Number(paymentIntent.amount || 0),
+              failedCurrency,
+            ),
+            currency: failedCurrency,
+            failureCode: failed?.decline_code || failed?.code,
+            gatewayMessage: failed?.message,
+            source: "webhook",
+            dedupeKey: event.id,
+          });
+          break;
+        }
         if (
           paymentIntent.metadata?.kind !== VENDOR_APPLICATION_CHECKOUT_KIND &&
           paymentIntent.metadata?.kind !== PRODUCT_BOOST_CHECKOUT_KIND &&
-          paymentIntent.metadata?.kind !== PREORDER_BALANCE_CHECKOUT_KIND
+          paymentIntent.metadata?.kind !== PREORDER_BALANCE_CHECKOUT_KIND &&
+          paymentIntent.metadata?.kind !== ORDER_PAY_CHECKOUT_KIND
         ) {
-          console.log("Payment failed:", paymentIntent.id);
+          // A refused card is the one payment event that produces no order
+          // here — the order is written at capture — so without these two
+          // records it left no trace at all beyond a line in the server log.
+          // Imported here rather than at the top: these reach the models
+          // barrel, and this route is loaded by tests that stub the database.
+          const { recordChargeFailure } = await import(
+            "@/lib/payments/payment-transactions"
+          );
+          const { recordCheckoutPaymentEvent } = await import(
+            "@/lib/orders/abandoned-checkouts"
+          );
+          // Bind the refusal to the card attempt, where the store keeps one:
+          // a refused card produces nothing else at all, so this row is the
+          // only trace of it.
+          const { findAttemptByGatewayRef } = await import(
+            "@/lib/payments/finalize-attempt"
+          );
+          const { recordAttemptFailure } = await import(
+            "@/lib/checkout/checkout-attempt-store"
+          );
+          const attempt = await findAttemptByGatewayRef(
+            "stripePaymentIntentId",
+            paymentIntent.id,
+          );
+          const failure = paymentIntent.last_payment_error;
+          if (attempt) {
+            await recordAttemptFailure(
+              attempt._id,
+              failure?.decline_code || failure?.code || undefined,
+            );
+          }
+          const cartId = paymentIntent.metadata?.cartId || undefined;
+          const currency = String(paymentIntent.currency || "").toUpperCase();
+          await recordChargeFailure({
+            provider: "stripe",
+            paymentMethod: "card",
+            externalId: paymentIntent.id,
+            amount: fromStripeAmount(Number(paymentIntent.amount || 0), currency),
+            currency,
+            // `decline_code` is the issuer's reason ("insufficient_funds") and
+            // `code` Stripe's own ("card_declined"); the issuer's is the one
+            // that answers the shopper's question.
+            failureCode: failure?.decline_code || failure?.code,
+            gatewayMessage: failure?.message,
+            source: "webhook",
+            checkoutAttemptId: attempt?._id,
+            // Who was paying, for the card-testing counters; the checkout's
+            // token is read off the cart named below.
+            customerEmail:
+              paymentIntent.metadata?.customerEmail ||
+              paymentIntent.receipt_email ||
+              undefined,
+            dedupeKey: event.id,
+            ...(cartId ? { metadata: { cartId } } : {}),
+          });
+          await recordCheckoutPaymentEvent({
+            cartId,
+            gateway: "stripe",
+            status: "failed",
+            message: failure?.message || failure?.decline_code || failure?.code,
+            paymentId: paymentIntent.id,
+          });
         }
         break;
       }

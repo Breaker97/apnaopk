@@ -49,7 +49,6 @@ export default async function OnlineStoreProductCardPage({ params }: PageProps) 
 
   return (
     <ProductCardBuilder
-      locale={locale}
       switcher={switcher}
       storeSurface={{ vars: surface.vars, attributes: surface.attributes }}
       sampleBrand={

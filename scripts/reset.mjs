@@ -2,6 +2,7 @@ import path from "path";
 import { readdirSync } from "fs";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
+import { assertNotRealStore } from "@/lib/install/demo-seed-guard";
 
 /**
  * Database Reset Script
@@ -64,6 +65,8 @@ async function resetDatabase() {
       console.error("❌ Database connection not available");
       process.exit(1);
     }
+    // Empties the database without asking — never a real store's.
+    await assertNotRealStore(db, "reset the database");
 
     console.log("\n🗑️  Starting database reset...\n");
 

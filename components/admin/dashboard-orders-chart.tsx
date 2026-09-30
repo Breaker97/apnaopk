@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -240,7 +240,7 @@ export function DashboardOrdersChart({
                 <DropdownMenuSeparator />
                 {links.quickActions.map((link) => (
                   <DropdownMenuItem key={link.href} asChild>
-                    <Link href={`/${locale}${link.href}`}>{t(link.labelKey)}</Link>
+                    <Link href={`${link.href}`}>{t(link.labelKey)}</Link>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -413,7 +413,7 @@ export function DashboardOrdersChart({
       </section>
 
       <Dialog open={highlightsOpen} onOpenChange={setHighlightsOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{t("admin.dashboardPage.showHighlights")}</DialogTitle>
             <DialogDescription>
@@ -463,7 +463,7 @@ export function DashboardOrdersChart({
             {links.highlights.map((link) => (
               <Link
                 key={link.href}
-                href={`/${locale}${link.href}`}
+                href={`${link.href}`}
                 className="inline-flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted/50"
               >
                 {t(link.labelKey)}
@@ -475,7 +475,7 @@ export function DashboardOrdersChart({
       </Dialog>
 
       <Dialog open={salesDataOpen} onOpenChange={setSalesDataOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t("admin.dashboardPage.showSalesData")}</DialogTitle>
             <DialogDescription>
@@ -528,7 +528,7 @@ export function DashboardOrdersChart({
           </div>
           <div className="flex justify-end">
             <Button asChild variant="outline" className="h-8 text-xs">
-              <Link href={`/${locale}${links.report.href}`}>
+              <Link href={`${links.report.href}`}>
                 {t(links.report.labelKey)}
               </Link>
             </Button>

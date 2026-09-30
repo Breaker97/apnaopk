@@ -157,6 +157,13 @@ export const rateLimitPresets = {
   // Lenient: 100 attempts per 15 minutes (for general API)
   lenient: { windowMs: 15 * 60 * 1000, max: 100 },
 
+  // Browse: 1000 per 15 minutes, for the shopper reads a page view or a
+  // keystroke makes (search suggestions, the guest cart, catalogue lookups).
+  // Keyed on an address, and one address is often many shoppers — a mobile
+  // carrier's shared address, an office, a school — so the general 100 turned
+  // real browsing away. Writes, checkout and sign-in keep their own presets.
+  browse: { windowMs: 15 * 60 * 1000, max: 1000 },
+
   // Very strict: 3 attempts per 30 minutes (for 2FA)
   veryStrict: { windowMs: 30 * 60 * 1000, max: 3 },
 };

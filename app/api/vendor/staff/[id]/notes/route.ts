@@ -7,7 +7,7 @@ import { ValidationError, handleApiError } from "@/lib/api/errors";
 import { requireVendorStaffPermission } from "@/lib/access/vendor-staff-guard";
 import { VENDOR_OWNED_STAFF_FILTER } from "@/lib/access/staff-ownership";
 import { getDemoModeMutationResponse } from "@/lib/demo-mode";
-import { z } from "zod";
+import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
 interface RouteParams {

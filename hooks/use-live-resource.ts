@@ -83,6 +83,15 @@ interface UseLiveResourceOptions<T> {
   onData?: (data: T) => void;
   /** Called when a fetch fails. Held in a ref, like `onData`. */
   onError?: (error: LiveResourceError) => void;
+  /**
+   * When the caller already holds this resource's payload — read through
+   * `useSuspenseResource`, say — the time that payload was fetched. The
+   * request a mount would make is skipped while it is younger than the
+   * interval, and the first tick is armed for when it falls due, so coming
+   * back to a page costs nothing until then. `isLoading` starts false. Pair
+   * it with `onData` to write each new payload back into the caller's copy.
+   */
+  initialFetchedAt?: number;
 }
 
 interface UseLiveResourceResult<T> {
@@ -140,7 +149,9 @@ export function useLiveResource<T>(
     enabled = true,
     onData,
     onError,
+    initialFetchedAt,
   } = options;
+  const holdsInitialPayload = initialFetchedAt !== undefined;
 
   // A dynamic url is resolved per request, so it must not sit in the effect's
   // dependency list — only a static one identifies "which resource is this".
@@ -149,7 +160,9 @@ export function useLiveResource<T>(
 
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<LiveResourceError | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(url) && enabled);
+  const [isLoading, setIsLoading] = useState(
+    Boolean(url) && enabled && !holdsInitialPayload,
+  );
   const [isValidating, setIsValidating] = useState(false);
 
   // Callbacks live in refs so a consumer passing an inline function (or a
@@ -165,6 +178,7 @@ export function useLiveResource<T>(
   // Scalars the fetch loop reads but must not restart for.
   const intervalRef = useRef(intervalMs);
   const pushIntervalRef = useRef(pushIntervalMs);
+  const initialFetchedAtRef = useRef(initialFetchedAt);
   /**
    * Whether push has been observed reaching this tab, which is what licenses
    * the slower interval. Deliberately a ref and not state: nothing renders it,
@@ -176,9 +190,10 @@ export function useLiveResource<T>(
   /**
    * Mirror the latest props into the refs the fetch loop reads.
    *
-   * Written here rather than during render because the React Compiler is on
-   * for this project, and a ref assigned mid-render may be reordered or
-   * skipped. Declared *above* the polling effect so it has already run by the
+   * Written here rather than during render: React may render a component and
+   * throw the result away, so a ref written mid-render can hold props from a
+   * render that never committed (which is why `react-hooks/refs` forbids it).
+   * Declared *above* the polling effect so it has already run by the
    * time that effect fires its first request — effects run in declaration
    * order, and `useRef`'s initial value covers the first render regardless.
    */
@@ -188,6 +203,7 @@ export function useLiveResource<T>(
     resolveUrlRef.current = () => (typeof url === "function" ? url() : url);
     intervalRef.current = intervalMs;
     pushIntervalRef.current = pushIntervalMs;
+    initialFetchedAtRef.current = initialFetchedAt;
   });
 
   const etagRef = useRef<string | null>(null);
@@ -210,7 +226,9 @@ export function useLiveResource<T>(
   // A new resource (url or re-enable) shows its skeleton from the first
   // render; an idle one never does.
   useApplyOnChange([enabled, isDynamicUrl, staticUrl], () => {
-    setIsLoading(enabled && (isDynamicUrl || Boolean(staticUrl)));
+    setIsLoading(
+      enabled && (isDynamicUrl || Boolean(staticUrl)) && !holdsInitialPayload,
+    );
   });
 
   useEffect(() => {
@@ -402,7 +420,22 @@ export function useLiveResource<T>(
       handleServiceWorkerMessage,
     );
 
-    void run("mount");
+    // The caller's copy is recent: skip the request a mount would make and
+    // arm the first tick for when that copy falls due.
+    const initialAge =
+      initialFetchedAtRef.current === undefined
+        ? Infinity
+        : Date.now() - initialFetchedAtRef.current;
+    if (initialAge < currentIntervalMs()) {
+      lastFetchStartedAtRef.current = initialFetchedAtRef.current ?? 0;
+      if (document.visibilityState !== "hidden") {
+        timerRef.current = setTimeout(() => {
+          void run("interval");
+        }, currentIntervalMs() - initialAge);
+      }
+    } else {
+      void run("mount");
+    }
 
     return () => {
       cancelled = true;

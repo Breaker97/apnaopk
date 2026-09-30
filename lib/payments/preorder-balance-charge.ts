@@ -63,9 +63,13 @@ const HOUR_MS = 60 * 60 * 1000;
  */
 const NEEDS_THE_SHOPPER_CODES: ReadonlySet<string> = new Set([
   "authentication_required",
+  // The same answer when Stripe returns it as the intent's status instead of
+  // throwing: every retry left another open intent and another "payment
+  // failed" message, and none of them could ever pass.
+  "requires_action",
 ]);
 
-export type ChargeableOrder = {
+type ChargeableOrder = {
   _id?: unknown;
   orderNumber?: string;
   currency?: string;
@@ -91,7 +95,7 @@ export type ChargeableOrder = {
   }> | null;
 };
 
-export type ChargeEligibility =
+type ChargeEligibility =
   | { chargeable: true }
   | { chargeable: false; reason: string };
 
@@ -149,7 +153,7 @@ export function preorderBalanceChargeEligibility(
   return { chargeable: true };
 }
 
-export type PreorderBalanceChargeResult =
+type PreorderBalanceChargeResult =
   | { charged: true; paymentIntentId: string; amount: number; currency: string }
   | {
       charged: false;
@@ -368,7 +372,8 @@ export async function chargePreorderBalanceOffSession(params: {
     });
     return {
       charged: false,
-      outcome: "declined",
+      outcome:
+        paymentIntent.status === "requires_action" ? "needs_shopper" : "declined",
       reason: `The payment ended as ${paymentIntent.status}`,
       code: paymentIntent.status,
     };

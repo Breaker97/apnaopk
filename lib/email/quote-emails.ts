@@ -16,7 +16,7 @@ import { escapeHtml } from "@/lib/email/escape-html";
  * account and on the product page either way.
  */
 
-export type QuoteRequestEmailData = {
+type QuoteRequestEmailData = {
   quoteId: string;
   productName: string;
   variantName?: string;
@@ -94,6 +94,11 @@ export async function sendQuoteRequestEmails(data: QuoteRequestEmailData) {
       );
     }
 
+    // The acknowledgement goes to whatever address was typed into a public
+    // form, so it carries nothing the sender typed — not their name, not
+    // their message. With them in it, the form was a way to have the store
+    // mail any text to any inbox. The product and quantity come from the
+    // catalogue and a number.
     jobs.push(
       sendEmail({
         to: data.email,
@@ -102,7 +107,7 @@ export async function sendQuoteRequestEmails(data: QuoteRequestEmailData) {
         settings,
         html: `
           <div style="font-family:Arial,sans-serif;color:#111827;max-width:640px;margin:0 auto;padding:24px;">
-            <h2 style="margin:0 0 12px;font-size:20px;">Thanks, ${escapeHtml(data.name)}</h2>
+            <h2 style="margin:0 0 12px;font-size:20px;">Thanks for your request</h2>
             <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">
               We have your request for a price on
               <strong>${escapeHtml(productLabel)}</strong> (quantity ${data.quantity}).
@@ -114,7 +119,7 @@ export async function sendQuoteRequestEmails(data: QuoteRequestEmailData) {
             </p>
           </div>`,
         text: [
-          `Thanks, ${data.name}`,
+          "Thanks for your request",
           "",
           `We have your request for a price on ${productLabel} (quantity ${data.quantity}).`,
           `Someone from ${storeName} will get back to you with a quote.`,
@@ -130,7 +135,7 @@ export async function sendQuoteRequestEmails(data: QuoteRequestEmailData) {
 }
 
 
-export type QuoteOfferEmailData = {
+type QuoteOfferEmailData = {
   quoteId: string;
   productName: string;
   variantName?: string;
@@ -196,6 +201,7 @@ export async function sendQuoteOfferEmail(data: QuoteOfferEmailData) {
             <tr><td style="padding:6px 0;color:#6b7280;">Price each</td><td style="padding:6px 0;text-align:right;">${escapeHtml(unit)}</td></tr>
             <tr><td style="padding:10px 0 0;border-top:1px solid #e5e7eb;font-weight:bold;">Total</td><td style="padding:10px 0 0;border-top:1px solid #e5e7eb;text-align:right;font-weight:bold;">${escapeHtml(total)}</td></tr>
           </table>
+          <p style="margin:-12px 0 20px;color:#6b7280;font-size:13px;">Shipping and tax are added at checkout.</p>
           ${
             data.note
               ? `<div style="margin-bottom:20px;padding:12px 14px;background:#f9fafb;border-radius:6px;font-size:14px;line-height:1.7;">${escapeHtml(data.note).replace(/\n/g, "<br />")}</div>`
@@ -220,7 +226,7 @@ export async function sendQuoteOfferEmail(data: QuoteOfferEmailData) {
         `${storeName} has priced your request for ${productLabel}.`,
         `Quantity: ${data.quantity}`,
         `Price each: ${unit}`,
-        `Total: ${total}`,
+        `Total: ${total} (shipping and tax are added at checkout)`,
         data.note ? `` : "",
         data.note || "",
         "",
@@ -233,5 +239,64 @@ export async function sendQuoteOfferEmail(data: QuoteOfferEmailData) {
     });
   } catch (error) {
     console.error("Failed to send quote offer email:", error);
+  }
+}
+
+type QuoteWithdrawnEmailData = {
+  quoteId: string;
+  productName: string;
+  variantName?: string;
+  name: string;
+  email: string;
+};
+
+/**
+ * "The price we sent is no longer available." Sent when the merchant pulls a
+ * price back — by withdrawing it or by closing the quote — so a shopper who
+ * was about to buy is not left to find out from a cart that quietly dropped
+ * the line.
+ */
+export async function sendQuoteWithdrawnEmail(data: QuoteWithdrawnEmailData) {
+  try {
+    const settings = await getSettings();
+    if (!isEmailDeliveryConfigured(settings)) return;
+
+    const storeName = settings.general?.storeName?.trim() || DEFAULT_STORE_NAME;
+    const productLabel = data.variantName
+      ? `${data.productName} — ${data.variantName}`
+      : data.productName;
+    const replyTo =
+      settings.general?.storeEmail?.trim() ||
+      settings.email?.replyTo?.trim() ||
+      settings.email?.fromEmail?.trim();
+
+    await sendEmail({
+      to: data.email,
+      replyTo,
+      subject: `${storeName} — your quoted price is no longer available`,
+      settings,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#111827;max-width:640px;margin:0 auto;padding:24px;">
+          <h2 style="margin:0 0 12px;font-size:20px;">Your quoted price is no longer available</h2>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">
+            ${escapeHtml(storeName)} has withdrawn the price it sent you for
+            <strong>${escapeHtml(productLabel)}</strong>, so it can no longer be
+            used at checkout.
+          </p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">
+            Reply to this email if you still need it, or ask for a new price on
+            the product page.
+          </p>
+        </div>`,
+      text: [
+        "Your quoted price is no longer available",
+        "",
+        `${storeName} has withdrawn the price it sent you for ${productLabel}, so it can no longer be used at checkout.`,
+        "Reply to this email if you still need it, or ask for a new price on the product page.",
+      ].join("\n"),
+      category: "transactional",
+    });
+  } catch (error) {
+    console.error("Failed to send quote withdrawn email:", error);
   }
 }

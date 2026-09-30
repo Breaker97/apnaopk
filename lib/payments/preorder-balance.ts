@@ -16,6 +16,7 @@ import {
 } from "@/lib/payments/stripe";
 import { gatewayFeeUpdate, type GatewayFee } from "@/lib/payments/gateway-fee";
 import { resolveStripeCustomerId } from "@/lib/payments/stripe-customer";
+import { assertPaymentMethodSettles } from "@/lib/payments/gateway-currencies";
 import {
   getPreorderBalanceDue,
   owesPreorderBalanceMatch,
@@ -264,6 +265,9 @@ export async function createPreorderBalanceIntent(params: {
   if (!(amount > 0)) {
     throw new ValidationError("There is no balance due on this order");
   }
+  // The order's own currency — the balance is owed in whatever the order was
+  // placed in, whatever the store prices in now.
+  assertPaymentMethodSettles("card", currency);
 
   // A second click (or a reload mid-payment) must not mint a second intent:
   // two open intents for the same balance is two chances to charge it.
@@ -632,7 +636,13 @@ export async function settlePreorderBalanceFromIntent(
     orderId: order._id,
     reference: paymentIntent.id,
     now,
-    extraSet: { ...custodyUpdate, ...feeUpdate },
+    amount: balanceDue,
+    // And which account it landed in. Stripe took it, so it is a gateway
+    // balance whatever the DEPOSIT was paid with — without this the ledger
+    // fell back to the deposit's account (`balanceCashAccountFor`), and a
+    // balance a shopper paid by card on a `cod` or `cash` pre-order was booked
+    // into the till, where nobody would ever find it against a statement.
+    extraSet: { ...custodyUpdate, ...feeUpdate, preorderBalancePaidFrom: "gateway" },
   });
   if (!claimed) {
     // Two very different losses wear the same empty result. A racing caller
@@ -690,6 +700,8 @@ export async function claimPreorderBalance(params: {
   orderId: unknown;
   reference: string;
   now: Date;
+  /** The balance this payment settled — see `preorderBalancePaidAmount`. */
+  amount: number;
   /** Custody and fee stamps that only a gateway payment carries. */
   extraSet?: Record<string, unknown>;
 }): Promise<BalanceOrder | null> {
@@ -711,6 +723,7 @@ export async function claimPreorderBalance(params: {
         paymentStatus: PAYMENT_STATUS.PAID,
         preorderBalancePaymentIntentId: params.reference,
         preorderBalancePaidAt: params.now,
+        preorderBalancePaidAmount: params.amount,
         // Every live consignment is now collected — the deposit order left
         // them pending because no vendor had a claim on the deposit.
         "subOrders.$[sub].paymentStatus": PAYMENT_STATUS.PAID,
@@ -930,6 +943,15 @@ export async function recordPreorderBalanceOffline(params: {
   amount: number;
   /** How the money arrived — shown in the audit trail. */
   method: string;
+  /**
+   * Which of the store's accounts it landed in.
+   *
+   * `method` cannot answer this: it is free text an admin types, so "MoMo",
+   * "cheque" and "transfer" all read alike to a machine. Without a structured
+   * answer the ledger fell back to where the DEPOSIT went, and booked notes
+   * handed over at the counter into a gateway balance.
+   */
+  paidFrom?: "bank" | "cash" | "gateway";
   /** The admin's own receipt reference; also the idempotency key. */
   reference: string;
   receivedAt?: Date;
@@ -989,6 +1011,12 @@ export async function recordPreorderBalanceOffline(params: {
     // it finds no balance due and refunds itself.
     reference: `${OFFLINE_BALANCE_REFERENCE_PREFIX}${reference}`,
     now: params.receivedAt || new Date(),
+    amount: balanceDue,
+    // Stamped with the payment, so the ledger books the collection into the
+    // account it actually reached — see `balanceCashAccountFor`. Defaults to
+    // the bank, which is what the dialog offers and what an admin recording a
+    // transfer means; it is never guessed from `method`.
+    extraSet: { preorderBalancePaidFrom: params.paidFrom || "bank" },
   });
   if (!claimed) {
     throw new ValidationError(

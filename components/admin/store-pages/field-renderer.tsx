@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { Input } from "@/components/ui/input";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
@@ -596,7 +597,7 @@ function FieldControl({
         <SliderSelect
           value={typeof value === "string" ? value : ""}
           onChange={onChange}
-          locale={imageContext.locale}
+
           noneLabel={tSafe("admin.storeBuilder.noSlider", "No slider")}
           manageLabel={tSafe(
             "admin.storeBuilder.manageSliders",
@@ -701,15 +702,14 @@ function ColorControl({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <input
-        type="color"
+      <ColorSwatchPicker
         value={value || "#000000"}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          "cursor-pointer rounded-md border border-border bg-card p-1",
-          compact ? "h-8 w-9" : "h-9 w-12",
-        )}
-        aria-label="Color"
+        onChange={onChange}
+        // Section colour fields keep #rgb / #rrggbb (sections/normalize.ts);
+        // an opacity pick would be dropped for the default on save.
+        alpha={false}
+        className={compact ? "h-8 w-9" : undefined}
+        ariaLabel="Color"
       />
       <Input
         value={value}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import type { Metadata } from "next";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Lock, Mail, Home, LogIn } from "lucide-react";
@@ -29,8 +29,8 @@ export default async function ForbiddenPage({ params }: PageProps) {
 
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
 
-  const homeHref = `/${locale}`;
-  const loginHref = `/${locale}${appConfig.urls.login}`;
+  const homeHref = "/";
+  const loginHref = `${appConfig.urls.login}`;
 
   return (
     <StatusPageShell

@@ -85,6 +85,7 @@ export const getProductFulfillmentNotes = unstable_cache(
           orderSettings.defaultShippingCost ?? DEFAULT_ORDER_SHIPPING_COST,
       },
       isMultiVendorEnabled: Boolean(settings.multiVendorMode?.enabled),
+      currency: settings.general?.defaultCurrency,
     });
 
     return {

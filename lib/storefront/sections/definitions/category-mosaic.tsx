@@ -22,7 +22,7 @@ export const categoryMosaic: SectionDefinition = {
   Render({ settings, ctx }) {
     return (
       <CategoryMosaic
-        locale={ctx.locale}
+
         title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
         source={settings.source as "featured" | "topLevel" | "manual"}
         limit={settings.limit as number}

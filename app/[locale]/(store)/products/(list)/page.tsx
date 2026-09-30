@@ -1,3 +1,4 @@
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import type { Metadata } from "next";
 import { type Locale } from "@/config/i18n.config";
 import {
@@ -59,6 +60,7 @@ export default async function ProductsPage({
   const { locale } = await params;
   const search = await searchParams;
   setRequestLocale(locale);
+  const { storeDefault } = await getLocaleRouting();
 
   const location = resolveRequestLocation(search);
   const [template, storefront] = await Promise.all([
@@ -109,6 +111,7 @@ export default async function ProductsPage({
           <ProductsBreadcrumb
             className={`mb-4 ${crumbAlign}`}
             locale={locale}
+            storeDefault={storeDefault}
             searchQuery={searchQuery}
             trail={trail}
           />

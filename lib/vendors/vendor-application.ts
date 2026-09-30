@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { VendorApplication, VendorPlan } from "@/models";
 import {
   VENDOR_APPLICATION_PAYMENT_STATUS,
@@ -188,7 +188,7 @@ export function findLatestVendorApplication(input: {
  * when the trial lapses the subscription drops back onto the standard
  * payment-required rail (see `getEffectiveSubscription`).
  */
-export function vendorPlanRequiresUpfrontPayment(
+function vendorPlanRequiresUpfrontPayment(
   plan: Pick<
     VendorPlanForApplication,
     "price" | "billingInterval" | "trialDays"
@@ -203,7 +203,7 @@ export function vendorPlanRequiresUpfrontPayment(
 }
 
 /** True when the plan starts the vendor on a no-payment-method free trial. */
-export function vendorPlanStartsTrial(
+function vendorPlanStartsTrial(
   plan: Pick<
     VendorPlanForApplication,
     "price" | "billingInterval" | "trialDays"
@@ -331,10 +331,18 @@ async function resolveChosenVendorPlan(
 
   const normalizedRequested =
     typeof requestedPlanId === "string" ? requestedPlanId : "";
-  const defaultPlanId = settings.vendorConfig?.defaultPlanId || "";
+
+  // The same plan the wizard pre-selects (pickDefaultVendorPlanId): the one
+  // marked Default, else the legacy `vendorConfig.defaultPlanId` pointer.
+  const loadDefault = async () =>
+    ((await VendorPlan.findOne({
+      isDefault: true,
+      status: "active",
+    }).lean()) as VendorPlanForApplication | null) ??
+    (await loadActive(settings.vendorConfig?.defaultPlanId || ""));
 
   const chosenPlan =
-    (await loadActive(normalizedRequested)) ?? (await loadActive(defaultPlanId));
+    (await loadActive(normalizedRequested)) ?? (await loadDefault());
 
   if (!chosenPlan && settings.vendorConfig?.requirePlanSelection) {
     throw new ValidationError({

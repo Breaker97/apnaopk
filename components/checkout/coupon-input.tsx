@@ -9,12 +9,15 @@ import { toast } from "@/components/ui/toast-notification";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/providers/currency-provider";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 interface CartItem {
   productId: string;
   price: number;
   quantity: number;
   categoryId?: string;
+  /** Priced by a quote offer: the coupon leaves the line out. */
+  quoted?: boolean;
 }
 
 interface CouponInputProps {
@@ -30,6 +33,7 @@ interface CouponInputProps {
     discountTarget?: "subtotal" | "shipping";
     maxDiscount?: number;
     vendorShares?: Record<string, number>;
+    eligibleProductIds?: string[];
     shippingVendorId?: string;
   }) => void;
   onRemove: () => void;
@@ -77,6 +81,7 @@ export function CouponInput({
   className,
 }: CouponInputProps) {
   const t = useTranslations();
+  const tf = useFallbackTranslator(t);
   const { formatPrice } = useCurrency();
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -107,9 +112,12 @@ export function CouponInput({
         }),
       });
 
+      // Optional-chained: the body is already `null` when it would not parse,
+      // and a 200 carrying something that is not JSON used to throw a
+      // TypeError here instead of the coupon error the shopper needs to read.
       const data = await res.json().catch(() => null);
 
-      if (!res.ok || !data.success) {
+      if (!res.ok || !data?.success) {
         throw new Error(
           getCouponErrorMessage(
             data,
@@ -125,16 +133,20 @@ export function CouponInput({
         discountTarget: data.data.discountTarget,
         maxDiscount: data.data.maxDiscount,
         vendorShares: data.data.vendorShares,
+        eligibleProductIds: data.data.eligibleProductIds,
         shippingVendorId: data.data.shippingVendorId,
       });
 
+      // What the coupon was worth, which is the whole reason the shopper
+      // typed it. It used to be passed to next-intl as `defaultMessage` — a
+      // react-intl idea that next-intl has no notion of, so the values were
+      // dropped and every shopper saw a bare "Coupon applied!". The saving is
+      // a real placeholder now, interpolated into the fallback too.
       toast.success(
         data.data.discountTarget === "shipping"
           ? t("coupon.freeShippingApplied")
-          : t("coupon.applied", {
-              defaultMessage: `Coupon applied! You save ${formatPrice(
-                data.data.discount,
-              )}`,
+          : tf("coupon.appliedWithSavings", "Coupon applied! You save {amount}", {
+              amount: formatPrice(data.data.discount),
             }),
       );
       setCode("");
@@ -203,6 +215,22 @@ export function CouponInput({
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              // Checkout renders this box inside the order form, and Enter in
+              // a text input is that form's implicit submit — so the most
+              // natural gesture in a coupon field placed the order instead,
+              // at full price, with the code the shopper had just typed still
+              // unapplied. Enter applies the coupon and does nothing else;
+              // the order is placed by its own button.
+              //
+              // Prevented before the empty check, or an Enter on a blank box
+              // would still submit. Blank does nothing at all, matching the
+              // Apply button, which is disabled until there is a code.
+              event.preventDefault();
+              if (isValidating || !code.trim()) return;
+              void handleApply();
+            }}
             placeholder={t("coupon.placeholder")}
             className="pl-10"
             disabled={isValidating}

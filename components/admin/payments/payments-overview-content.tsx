@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, ChevronRight, Clock, RefreshCcw } from "lucide-react";
@@ -208,7 +208,7 @@ export function PaymentsOverviewContent({
         ),
         cell: (txn) => (
           <Link
-            href={`/${locale}/admin/orders?search=${encodeURIComponent(txn.orderNumber)}`}
+            href={`/admin/orders?search=${encodeURIComponent(txn.orderNumber)}`}
             className="font-medium text-primary hover:underline"
           >
             {txn.orderNumber}
@@ -333,7 +333,7 @@ export function PaymentsOverviewContent({
             showBookFilter={false}
           />
           <Button variant="outline" asChild>
-            <Link href={`/${locale}/admin/payments/transactions`}>
+            <Link href="/admin/payments/transactions">
               {t("admin.paymentsOverviewPage.actions.transactions")}
               <ArrowRight className="ms-2 h-4 w-4" />
             </Link>
@@ -459,7 +459,7 @@ export function PaymentsOverviewContent({
                 </p>
               </div>
               <Link
-                href={`/${locale}/admin/payouts`}
+                href="/admin/payouts"
                 className="mt-auto inline-flex items-center gap-1.5 pt-4 text-[13px] font-medium text-primary hover:underline"
               >
                 {t.has("admin.paymentsOverviewPage.reviewPayouts")
@@ -486,7 +486,7 @@ export function PaymentsOverviewContent({
             </p>
             <div className="mt-2">
               <AttentionRow
-                href={`/${locale}/admin/orders?paymentStatus=pending`}
+                href="/admin/orders?paymentStatus=pending"
                 tone="amber"
                 icon={<Clock className="size-4" />}
                 title={`${totals?.pendingPayments ?? 0} ${t("admin.paymentsOverviewPage.metrics.pendingPayments")}`}
@@ -497,7 +497,7 @@ export function PaymentsOverviewContent({
                 }
               />
               <AttentionRow
-                href={`/${locale}/admin/orders?paymentStatus=refunded`}
+                href="/admin/orders?paymentStatus=refunded"
                 icon={<RefreshCcw className="size-4" />}
                 title={`${totals?.refundedOrders ?? 0} ${t("admin.paymentsOverviewPage.metrics.refundedOrders")}`}
                 hint={

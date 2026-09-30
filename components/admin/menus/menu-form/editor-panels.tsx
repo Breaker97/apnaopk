@@ -17,7 +17,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  AlertTriangle,
   ArrowDown,
   ArrowUp,
   Check,
@@ -38,6 +37,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -912,10 +912,9 @@ function BudgetPanel({
 
 function InspectorWarning({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+    <WarningBanner>
       <p>{children}</p>
-    </div>
+    </WarningBanner>
   );
 }
 

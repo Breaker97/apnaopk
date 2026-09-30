@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CountrySelect } from "@/components/common/country-multi-select";
+import { createTSafe } from "@/components/admin/online-store/t-safe";
+import {
+  areCountryValuesEquivalent,
+  isCountryAllowed,
+} from "@/lib/intl/country-availability";
+import { useAppSettings } from "@/providers/app-settings-provider";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -40,6 +46,7 @@ import {
 } from "@/lib/constants";
 import { apiClient, ApiClientError } from "@/lib/api/client";
 import { toast } from "@/components/ui/toast-notification";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 
 type AddressLabel = "home" | "work" | "other";
 
@@ -86,10 +93,24 @@ const emptyAddress: Omit<Address, "_id"> = {
   label: "home",
 };
 
+/**
+ * Suspends until the saved addresses are known — render it inside
+ * `<ClientSuspense>`. Coming back to the page shows the held list without a
+ * request; every change refetches it behind the list on screen.
+ */
 export function AddressManager() {
   const t = useTranslations();
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const tSafe = createTSafe(t);
+  const { countryAvailability } = useAppSettings();
+  const {
+    data,
+    error: loadError,
+    refresh: fetchAddresses,
+  } = useSuspenseResource<{ addresses?: Address[] }>("/api/user/addresses");
+  const addresses = data?.addresses ?? [];
+  useEffect(() => {
+    if (loadError) console.error("Failed to fetch addresses:", loadError);
+  }, [loadError]);
   const [isSaving, setIsSaving] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -101,27 +122,18 @@ export function AddressManager() {
     { id: string } | { index: number } | null
   >(null);
   const [formData, setFormData] = useState<Omit<Address, "_id">>(emptyAddress);
-
-  const fetchAddresses = useCallback(
-    () =>
-      apiClient
-        .get<{ addresses?: Address[] }>("/api/user/addresses")
-        .then((data) => setAddresses(data?.addresses || []))
-        .catch((error) => {
-          console.error("Failed to fetch addresses:", error);
-          setAddresses([]);
-        })
-        .finally(() => setIsLoading(false)),
-    [],
-  );
-
-  useEffect(() => {
-    void fetchAddresses();
-  }, [fetchAddresses]);
+  /**
+   * The country this address was opened with. A store that has since narrowed
+   * where it delivers locks the country picker to the one country left, which
+   * rewrites the field the moment the dialog opens — without this the shopper
+   * would save an address whose country changed behind their back.
+   */
+  const [openedWithCountry, setOpenedWithCountry] = useState("");
 
   const handleOpenAddDialog = () => {
     setEditingAddress(null);
     setFormData(emptyAddress);
+    setOpenedWithCountry("");
     setIsDialogOpen(true);
   };
 
@@ -132,6 +144,7 @@ export function AddressManager() {
     // index into `_id`, which now collides with the real ids the server sends.
     setEditingSelector(addressSelector(address, index));
     setFormData(address);
+    setOpenedWithCountry(address.country || "");
     setIsDialogOpen(true);
   };
 
@@ -211,19 +224,20 @@ export function AddressManager() {
     setIsDeleteDialogOpen(true);
   };
 
+  // True once the locked picker has replaced a country the store no longer
+  // delivers to. Saving is still allowed — the server would refuse the old
+  // country anyway — but the shopper is told what is about to change.
+  const countryReplacedByPolicy =
+    Boolean(openedWithCountry) &&
+    !isCountryAllowed(openedWithCountry, countryAvailability) &&
+    Boolean(formData.country) &&
+    !areCountryValuesEquivalent(openedWithCountry, formData.country);
+
   // Format the full name from firstName and lastName
   const getFullName = (address: Address) => {
     const parts = [address.firstName, address.lastName].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : null;
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -372,6 +386,7 @@ export function AddressManager() {
                 onChange={(value) =>
                   setFormData({ ...formData, country: value })
                 }
+                ariaLabel={t("checkout.country")}
                 placeholder=" "
                 searchPlaceholder={t("checkout.searchCountry")}
                 triggerClassName="h-14 rounded-lg pt-6 pb-2 items-end [&>span]:text-base"
@@ -380,6 +395,18 @@ export function AddressManager() {
                 {t("checkout.country")}
               </span>
             </div>
+            {countryReplacedByPolicy ? (
+              <p className="-mt-2 text-xs text-amber-600 dark:text-amber-500">
+                {tSafe(
+                  "addresses.countryNoLongerAvailable",
+                  "This address was saved for {previous}. The store no longer delivers there, so saving it will file it under {current}.",
+                  {
+                    previous: openedWithCountry,
+                    current: formData.country,
+                  },
+                )}
+              </p>
+            ) : null}
 
             {/* First name + Last name */}
             <div className="grid grid-cols-2 gap-3">

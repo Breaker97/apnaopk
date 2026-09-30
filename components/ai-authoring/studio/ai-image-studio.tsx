@@ -24,7 +24,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ArrowLeft, Globe, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB, mongoose } from "@/lib/db";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import { ObjectId } from "mongodb";
-import { z } from "zod";
+import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
+import {
+  listActiveSessions,
+  revokeAllSessions,
+  revokeOtherSessions,
+  revokeSession,
+} from "@/lib/auth/session-revocation";
 
 /**
  * POST /api/auth/revoke-sessions
@@ -32,39 +36,23 @@ export async function POST(request: NextRequest) {
       RevokeSessionsSchema,
     );
 
-    await connectDB();
-
-    const db = mongoose.connection.db;
-    if (!db) {
-      throw new Error("Database not connected");
-    }
-
     if (revokeAll) {
-      // Revoke sessions for the user
-      const query: Record<string, unknown> = { userId: session.user.id };
-
-      // If excludeCurrent is true, exclude the current session from deletion
-      if (excludeCurrent) {
-        query._id = { $ne: new ObjectId(session.session.id) };
-      }
-
-      const result = await db.collection("session").deleteMany(query);
+      const revokedCount = excludeCurrent
+        ? await revokeOtherSessions(session.user.id, session.session.id)
+        : await revokeAllSessions(session.user.id);
 
       return NextResponse.json({
         success: true,
         message: excludeCurrent
-          ? `All other sessions have been revoked (${result.deletedCount} sessions)`
-          : `All sessions have been revoked (${result.deletedCount} sessions)`,
-        revokedCount: result.deletedCount,
+          ? `All other sessions have been revoked (${revokedCount} sessions)`
+          : `All sessions have been revoked (${revokedCount} sessions)`,
+        revokedCount,
       });
     } else if (sessionId) {
-      // Revoke a specific session
-      const result = await db.collection("session").deleteOne({
-        _id: new ObjectId(sessionId),
-        userId: session.user.id, // Ensure user can only delete their own sessions
-      });
+      // Only ever one of the caller's own sessions.
+      const revoked = await revokeSession(session.user.id, sessionId);
 
-      if (result.deletedCount === 0) {
+      if (!revoked) {
         return NextResponse.json(
           { success: false, message: "Session not found or already revoked" },
           { status: 404 },
@@ -108,30 +96,13 @@ export async function GET() {
       );
     }
 
-    await connectDB();
+    const sessions = await listActiveSessions(session.user.id);
 
-    const db = mongoose.connection.db;
-    if (!db) {
-      throw new Error("Database not connected");
-    }
-
-    // Get all sessions for the user
-    const sessions = await db
-      .collection("session")
-      .find({ userId: session.user.id })
-      .project({
-        _id: 1,
-        createdAt: 1,
-        expiresAt: 1,
-        userAgent: 1,
-        ipAddress: 1,
-      })
-      .toArray();
-
-    // Mark current session
-    const sessionsWithCurrent = sessions.map((s) => ({
-      ...s,
-      isCurrent: s._id.toString() === session.session.id,
+    // `_id` is the key this response has always used.
+    const sessionsWithCurrent = sessions.map(({ id, ...rest }) => ({
+      _id: id,
+      ...rest,
+      isCurrent: id === session.session.id,
     }));
 
     return NextResponse.json({

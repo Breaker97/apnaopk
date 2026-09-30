@@ -1,9 +1,19 @@
 import { pathToFileURL } from "node:url";
 import { Types } from "mongoose";
 import { connectDB, mongoose } from "@/lib/db";
-import { CustomerProfile, Order, PaymentTransaction, User } from "@/models";
+import {
+  CustomerProfile,
+  Order,
+  PaymentTransaction,
+  User,
+  getSettingsLean,
+} from "@/models";
 import { USER_ROLES } from "@/config/app.config";
-import { computeLoyaltyTier, computePointsFromOrder } from "@/lib/customers/customer";
+import {
+  computeLoyaltyTier,
+  computePointsFromOrder,
+  orderSpendPerPoint,
+} from "@/lib/customers/loyalty";
 
 export type LoyaltyBackfillOptions = {
   apply: boolean;
@@ -75,6 +85,7 @@ type BackfillOrder = {
   loyalty?: {
     pointsAwarded?: number;
     pointsReversed?: number;
+    spendPerPoint?: number;
     awardedAt?: Date;
     lastReversedAt?: Date;
   };
@@ -85,11 +96,22 @@ type RefundTotal = {
   total: number;
 };
 
+/**
+ * An order's points, rebuilt at the rate it earned them: the one stamped when
+ * they were awarded, one per unit for an order awarded before stores had a
+ * rate, and the store's rate today for an order never awarded. A backfill run
+ * after the rate changed must not re-price what customers already hold.
+ */
 function loyaltyStateForOrder(
   order: BackfillOrder,
   refundedFromTransactions: number,
+  storeSpendPerPoint: unknown,
 ) {
-  const pointsAwarded = computePointsFromOrder(Number(order.total || 0));
+  const spendPerPoint = orderSpendPerPoint(order.loyalty, storeSpendPerPoint);
+  const pointsAwarded = computePointsFromOrder(
+    Number(order.total || 0),
+    spendPerPoint,
+  );
   const recordedRefund = Number(order.refundedTotal);
   const refundedTotal =
     Number.isFinite(recordedRefund) && recordedRefund >= 0
@@ -99,10 +121,10 @@ function loyaltyStateForOrder(
         : refundedFromTransactions;
   const pointsReversed = Math.min(
     pointsAwarded,
-    computePointsFromOrder(refundedTotal),
+    computePointsFromOrder(refundedTotal, spendPerPoint),
   );
 
-  return { pointsAwarded, pointsReversed };
+  return { pointsAwarded, pointsReversed, spendPerPoint };
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -126,6 +148,8 @@ export async function runBackfill(options: LoyaltyBackfillOptions) {
   }
 
   await connectDB();
+  const storeSpendPerPoint = (await getSettingsLean())?.orders
+    ?.loyaltySpendPerPoint;
 
   const userFilter = options.email
     ? { ...BACKFILL_CUSTOMER_FILTER, email: options.email }
@@ -173,6 +197,7 @@ export async function runBackfill(options: LoyaltyBackfillOptions) {
       const loyalty = loyaltyStateForOrder(
         order,
         refundsByOrder.get(String(order._id)) || 0,
+        storeSpendPerPoint,
       );
       const customerId = String(order.customerId);
       balanceByCustomer.set(

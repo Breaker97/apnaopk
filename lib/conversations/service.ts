@@ -271,7 +271,10 @@ export function serializeConversation(
       : undefined,
     productContext: context ? serializeProductContext(context) : undefined,
     lastMessageId: id(doc.lastMessageId) || undefined,
-    lastMessagePreview: doc.lastMessagePreview,
+    // A preview an earlier inbound message wrote as an expression (see
+    // ingest.ts) may not be text; the inbox cannot render it.
+    lastMessagePreview:
+      typeof doc.lastMessagePreview === "string" ? doc.lastMessagePreview : "",
     lastMessageAt: date(doc.lastMessageAt),
     replyWindowExpiresAt: doc.replyWindowExpiresAt
       ? date(doc.replyWindowExpiresAt)

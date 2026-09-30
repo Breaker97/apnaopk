@@ -1,4 +1,5 @@
 import { localeConfig, type Locale } from "@/config/i18n.config";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
 
 interface OrganizationJsonLdInput {
   storeName: string;
@@ -222,9 +223,12 @@ export function generateBreadcrumbJsonLd(
 export function generateWebsiteJsonLd({
   storeName,
   locale,
+  storeDefault,
 }: {
   storeName: string;
   locale: string;
+  /** The language served without a URL prefix — see `lib/i18n/locale-prefix`. */
+  storeDefault: Locale;
 }) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -237,7 +241,11 @@ export function generateWebsiteJsonLd({
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${baseUrl}/${locale}/products?search={search_term_string}`,
+        urlTemplate: `${baseUrl}${buildLocalePath(
+          locale,
+          "/products",
+          storeDefault,
+        )}?search={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

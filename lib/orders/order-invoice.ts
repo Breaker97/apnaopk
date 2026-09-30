@@ -4,6 +4,7 @@ import { PAYMENT_STATUS } from "@/config/app.config";
 import { generateInvoicePdf } from "@/lib/orders/invoice-pdf";
 import type { InvoiceData, InvoiceItem } from "@/lib/orders/invoice-pdf";
 import {
+  PAY_LATER_PAYMENT_METHOD,
   getPreorderBalanceDeadline,
   getPreorderBalanceDue,
   getPreorderCollectedAmount,
@@ -33,6 +34,9 @@ function mapOrderPaymentStatusToInvoiceStatus(
       return "Partially paid";
     case "refunded":
     case "partially_refunded":
+    // Nothing was ever collected and nothing will be: closer to a cancelled
+    // invoice than to one still awaiting payment.
+    case "expired":
       return "Cancelled";
     default:
       return "Pending";
@@ -63,7 +67,16 @@ function buildPreorderPayment(
     String(order.paymentStatus || PAYMENT_STATUS.PENDING) ===
     PAYMENT_STATUS.PENDING
   ) {
-    return undefined;
+    // A pay-later order is pending by design — nothing was due at checkout —
+    // and its whole total is the balance, due by the pre-order deadline. Left
+    // out here it printed "due in 30 days" from the order date, a date the
+    // order page, the reminders and the expiry job all contradict.
+    if (order.paymentMethod !== PAY_LATER_PAYMENT_METHOD) return undefined;
+    return {
+      amountPaid: 0,
+      amountRefunded: 0,
+      balanceDue: getPreorderBalanceDue(order),
+    };
   }
   const amountPaid = getPreorderCollectedAmount(order);
   return {
@@ -136,6 +149,7 @@ export function buildOrderInvoiceData(
     shipping: order.shippingCost,
     discount: order.discount,
     tax: order.tax,
+    duty: Number(order.customs?.dutyAmount || 0),
     total: order.total,
     payment,
     currency,

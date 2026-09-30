@@ -290,7 +290,9 @@ function SortableBlockRow({
           onClick={onToggleExpanded}
           className="flex min-w-0 flex-1 items-center gap-2 text-left"
         >
-          <span className="truncate text-sm font-medium">{label}</span>
+          <span className="truncate text-sm font-medium" title={label}>
+            {label}
+          </span>
           <ChevronDown
             className={cn(
               "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",

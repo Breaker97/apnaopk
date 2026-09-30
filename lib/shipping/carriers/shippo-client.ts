@@ -396,15 +396,33 @@ export async function shippoGetRate(params: {
   });
 }
 
+interface ShippoRefund {
+  object_id?: string;
+  status?: string;
+  transaction?: string;
+}
+
 export async function shippoRefundTransaction(params: {
   token: string;
   transactionId: string;
-}): Promise<{ status?: string }> {
-  return shippoRequest<{ status?: string }>({
+}): Promise<ShippoRefund> {
+  return shippoRequest<ShippoRefund>({
     token: params.token,
     method: "POST",
     path: "/refunds",
     body: { transaction: params.transactionId, async: false },
+  });
+}
+
+/** A refund's current state, for settling one Shippo left QUEUED. */
+export async function shippoGetRefund(params: {
+  token: string;
+  refundId: string;
+}): Promise<ShippoRefund> {
+  return shippoRequest<ShippoRefund>({
+    token: params.token,
+    method: "GET",
+    path: `/refunds/${encodeURIComponent(params.refundId)}`,
   });
 }
 

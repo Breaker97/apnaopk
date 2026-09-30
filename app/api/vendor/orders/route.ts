@@ -29,6 +29,7 @@ import {
 import { getNextOnlineOrderNumber } from "@/lib/orders/order-number";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { buildVendorSubOrders } from "@/lib/orders/order-vendors";
+import { allocateSubOrderShipping } from "@/lib/checkout/checkout-shipping";
 import {
   decrementInventory,
   restoreInventory,
@@ -41,7 +42,7 @@ import { withApi } from "@/lib/api/handler";
 import { fetchVendorOrderList } from "@/lib/vendors/vendor-order-list";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
-import { roundMoney } from "@/lib/intl/money";
+import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
 
 /**
  * GET /api/vendor/orders
@@ -249,9 +250,17 @@ export async function POST(request: NextRequest) {
     );
     const discount = Math.min(roundMoney(body.discount), subtotal);
     const taxableSubtotal = Math.max(subtotal - discount, 0);
-    const tax = roundMoney(taxableSubtotal * (body.taxRate / 100));
-    const shippingCost = roundMoney(body.shippingCost);
-    const total = roundMoney(taxableSubtotal + tax + shippingCost);
+    // Rounded to what the currency can hold: 2 decimals left fractional yen.
+    const orderCurrency = settings.general?.defaultCurrency || "USD";
+    const tax = quantizeToCurrency(
+      taxableSubtotal * (body.taxRate / 100),
+      orderCurrency,
+    );
+    const shippingCost = quantizeToCurrency(body.shippingCost, orderCurrency);
+    const total = quantizeToCurrency(
+      taxableSubtotal + tax + shippingCost,
+      orderCurrency,
+    );
 
     const vendorIdString = String(vendor._id);
     const vendorGroups = new Map<string, ResolvedVendorOrderLine[]>();
@@ -259,6 +268,7 @@ export async function POST(request: NextRequest) {
 
     const subOrders = await buildVendorSubOrders(vendorGroups, {
       codCollectedByDefault: settings.shipping?.codCollectedBy,
+      currency: settings.general?.defaultCurrency || "USD",
       getProductId: (item) => new Types.ObjectId(item.productId),
       getVariantId: (item) =>
         item.variantId ? new Types.ObjectId(item.variantId) : undefined,
@@ -271,6 +281,13 @@ export async function POST(request: NextRequest) {
       fallbackCommissionPercent:
         settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
       status: "pending",
+    });
+
+    // The delivery charge is this parcel's, as a checkout order's would be.
+    allocateSubOrderShipping(subOrders, {
+      vendorShippingCosts: new Map(),
+      orderShippingCost: shippingCost,
+      currency: settings.general?.defaultCurrency || "USD",
     });
 
     const inventoryLines: InventoryAdjustmentLine[] = resolvedLines.map((item) => ({

@@ -56,10 +56,6 @@ type OrangeMoneyTransactionState =
   | "failed"
   | "invalid";
 
-export function getOrangeMoneyApiBaseUrl() {
-  return ORANGE_API_BASE;
-}
-
 /**
  * Currencies Orange Money can settle.
  *
@@ -102,12 +98,6 @@ const ORANGE_MONEY_LANGS = new Set(["fr", "en"]);
 export function orangeMoneyLang(locale?: string | null): string {
   const normalized = String(locale || "").trim().toLowerCase().slice(0, 2);
   return ORANGE_MONEY_LANGS.has(normalized) ? normalized : "fr";
-}
-
-export function isOrangeMoneyCurrency(currency?: string | null): boolean {
-  return ORANGE_MONEY_CURRENCIES.has(
-    String(currency || "").trim().toUpperCase(),
-  );
 }
 
 /**

@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useState } from "react";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { AlertCircle, ChevronRight, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/providers/currency-provider";
 import { ORDER_STATUS } from "@/config/app.config";
 import { getPreorderStatusLabel } from "@/lib/orders/preorder-status-label";
-import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 
 // Matches the server default limit for /api/orders (parsePageLimit defaultLimit).
 const ORDERS_PAGE_SIZE = 10;
@@ -56,11 +55,48 @@ interface Order {
   createdAt: string;
 }
 
+type OrdersFilter = "all" | "regular" | "preorders";
+
 interface CustomerOrdersListProps {
-  locale: string;
-  filter?: "all" | "regular" | "preorders";
+  filter?: OrdersFilter;
   emptyTitle?: string;
   emptyDescription?: string;
+}
+
+/** The pages loaded so far, held as one list so "Load more" survives a visit away. */
+interface LoadedOrders {
+  orders: Order[];
+  page: number;
+  hasNext: boolean;
+}
+
+// Fetch a single page from the server-paginated /api/orders (defaultLimit=10).
+// Previously this component fetched with no page/limit and rendered only the
+// first page as if it were the whole history, hiding every order past the
+// 10th. Now it reads the pagination envelope and appends via "Load more".
+async function fetchOrdersPage(
+  filter: OrdersFilter,
+  nextPage: number,
+): Promise<{ list: Order[]; hasNext: boolean }> {
+  const params = new URLSearchParams();
+  params.set("page", String(nextPage));
+  params.set("limit", String(ORDERS_PAGE_SIZE));
+  if (filter === "preorders") params.set("type", "preorders");
+  if (filter === "regular") params.set("type", "regular");
+
+  const res = await fetch(`/api/orders?${params.toString()}`);
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.message || "Failed to load orders");
+  }
+
+  const payload = data.data;
+  const list: Order[] = Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload)
+      ? payload
+      : [];
+  return { list, hasNext: Boolean(payload?.pagination?.hasNext) };
 }
 
 function getPreorderReleaseDate(order: Order) {
@@ -98,117 +134,57 @@ function getStatusBadge(status: string) {
 }
 
 export function CustomerOrdersList({
-  locale,
   filter = "all",
   emptyTitle,
   emptyDescription,
 }: CustomerOrdersListProps) {
   const t = useTranslations();
   const { formatPrice } = useCurrency();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [hasNext, setHasNext] = useState(false);
-
-  // Fetch a single page from the server-paginated /api/orders (defaultLimit=10).
-  // Previously this component fetched with no page/limit and rendered only the
-  // first page as if it were the whole history, hiding every order past the
-  // 10th. Now it reads the pagination envelope and appends via "Load more".
-  const fetchOrdersPage = useCallback(
-    async (
-      nextPage: number,
-    ): Promise<{ list: Order[]; hasNext: boolean }> => {
-      const params = new URLSearchParams();
-      params.set("page", String(nextPage));
-      params.set("limit", String(ORDERS_PAGE_SIZE));
-      if (filter === "preorders") params.set("type", "preorders");
-      if (filter === "regular") params.set("type", "regular");
-
-      const res = await fetch(`/api/orders?${params.toString()}`);
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.message || "Failed to load orders");
-      }
-
-      const payload = data.data;
-      const list: Order[] = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload)
-          ? payload
-          : [];
-      return { list, hasNext: Boolean(payload?.pagination?.hasNext) };
+  // Suspends on the first page — the list pages wrap this in
+  // `<ClientSuspense>` with the list skeleton. Opening an order and coming
+  // back renders the held list, "Load more" pages included, with no request.
+  const { data, error, mutate } = useSuspenseResource<LoadedOrders>(
+    `/api/orders?type=${filter}&limit=${ORDERS_PAGE_SIZE}`,
+    {
+      load: async () => {
+        const { list, hasNext } = await fetchOrdersPage(filter, 1);
+        return { orders: list, page: 1, hasNext };
+      },
     },
-    [filter],
   );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const orders = data?.orders ?? [];
+  const hasNext = data?.hasNext ?? false;
 
-  // Initial load, and reset to page 1 whenever the filter tab changes.
-  useApplyOnChange([fetchOrdersPage], () => {
-    setIsLoading(true);
-    setError(null);
-    setPage(1);
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetchOrdersPage(1)
-      .then(({ list, hasNext: more }) => {
-        if (cancelled) return;
-        setOrders(list);
-        setHasNext(more);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Failed to load orders");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchOrdersPage]);
-
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasNext) return;
+  const loadMore = async () => {
+    if (!data || isLoadingMore || !hasNext) return;
     setIsLoadingMore(true);
     try {
-      const nextPage = page + 1;
-      const { list, hasNext: more } = await fetchOrdersPage(nextPage);
-      setOrders((current) => {
-        const seen = new Set(current.map((order) => order._id));
-        return [...current, ...list.filter((order) => !seen.has(order._id))];
+      const nextPage = data.page + 1;
+      const { list, hasNext: more } = await fetchOrdersPage(filter, nextPage);
+      mutate((current) => {
+        const seen = new Set(current.orders.map((order) => order._id));
+        return {
+          orders: [
+            ...current.orders,
+            ...list.filter((order) => !seen.has(order._id)),
+          ],
+          page: nextPage,
+          hasNext: more,
+        };
       });
-      setPage(nextPage);
-      setHasNext(more);
     } catch {
       // Keep the already-loaded orders; the button stays available to retry.
     } finally {
       setIsLoadingMore(false);
     }
-  }, [fetchOrdersPage, hasNext, isLoadingMore, page]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rounded-lg border p-4 space-y-3">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-24" />
-          </div>
-        ))}
-      </div>
-    );
-  }
+  };
 
   if (error) {
     return (
       <div className="text-center py-12">
         <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">{error}</p>
+        <p className="text-muted-foreground">Failed to load orders</p>
         <Button
           variant="outline"
           className="mt-4"
@@ -233,7 +209,7 @@ export function CustomerOrdersList({
             t("orders.startShopping")}
         </p>
         <Button asChild>
-          <Link href={`/${locale}/products`}>
+          <Link href="/products">
             {t("orders.browseProducts")}
           </Link>
         </Button>
@@ -252,7 +228,7 @@ export function CustomerOrdersList({
         return (
           <Link
             key={order._id}
-            href={`/${locale}/account/orders/${order._id}`}
+            href={`/account/orders/${order._id}`}
             className="block rounded-lg border p-4 hover:bg-accent/50 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">

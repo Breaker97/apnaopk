@@ -6,6 +6,11 @@ import { validateBody } from "@/lib/api/validate";
 import { CreateBoostPositionSchema } from "@/lib/validations";
 import { auditCreate, createAuditContext } from "@/lib/audit";
 import { assertBoostingEnabled } from "@/lib/boosts/boosts";
+import {
+  getPositionVisibility,
+  isPositionUnreachable,
+} from "@/lib/boosts/boost-placement-depths";
+import { getSponsoredPlacementDepths } from "@/lib/boosts/sponsored-products";
 import { currencyMinimumPrice, quantizeToCurrency } from "@/lib/intl/money";
 
 /**
@@ -13,6 +18,12 @@ import { currencyMinimumPrice, quantizeToCurrency } from "@/lib/intl/money";
  * The whole ladder, in rung order. Not paginated: the ladder is bounded by
  * BOOST_MAX_POSITIONS and the screen renders it as one ordered list — paging a
  * ladder would hide exactly the gaps the admin needs to see.
+ *
+ * Each rung carries whether it is sellable, on the same two tests the vendor
+ * catalogue applies: a rung deeper than every placement renders nowhere, and a
+ * rung priced in a currency the store no longer uses is refused at checkout.
+ * The admin booking form has no other way to know either, and booking a rung
+ * that shows on no page is the worst failure this model allows.
  */
 export const GET = withApi(
   {
@@ -20,9 +31,37 @@ export const GET = withApi(
     rateLimit: { action: "admin:boostPositions:list", preset: "lenient" },
   },
   async () => {
-    await assertBoostingEnabled();
-    const positions = await BoostPosition.find().sort({ position: 1 }).lean();
-    return successResponse(positions);
+    const settings = await assertBoostingEnabled();
+    const [positions, depths] = await Promise.all([
+      BoostPosition.find().sort({ position: 1 }).lean(),
+      getSponsoredPlacementDepths(),
+    ]);
+    const currency = (settings.general?.defaultCurrency || "USD").toUpperCase();
+    const placements = settings.boosting?.placements;
+
+    return successResponse({
+      currency,
+      depths,
+      // Which surfaces run sponsored slots at all. The booking form only calls
+      // out a surface a rung misses when that surface is switched on.
+      placementsEnabled: {
+        home: placements?.home !== false,
+        listing: placements?.listing !== false,
+        productPage: placements?.productPage !== false,
+      },
+      // The booking rules travel with the ladder so the admin form can obey the
+      // same two limits vendor checkout enforces instead of a number baked into
+      // the dialog.
+      bookingHorizonDays: settings.boosting?.bookingHorizonDays ?? 60,
+      maxBookingDays: settings.boosting?.maxBookingDays ?? 60,
+      positions: positions.map((row) => ({
+        ...row,
+        _id: String(row._id),
+        unreachable: isPositionUnreachable(row.position, depths),
+        reach: getPositionVisibility(row.position, depths),
+        stale: Boolean(row.currency && row.currency.toUpperCase() !== currency),
+      })),
+    });
   },
 );
 

@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { useEffect, useState } from "react";
 import { LogOut, Pencil, Loader2, Star } from "lucide-react";
 import type { LoyaltyTier } from "@/types";
 import { cn } from "@/lib/utils";
+import type { DemoModeState } from "@/lib/demo-mode-shared";
 import { useAuth } from "@/hooks/use-auth";
 import { signOutAndReload } from "@/lib/auth/auth-client";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,8 @@ const tierColors: Record<LoyaltyTier, string> = {
 interface AccountSidebarProps {
   locale: string;
   stats?: AccountStats;
+  /** Server-resolved; the avatar picker refuses uploads on the profile page in demo mode. */
+  demoMode?: DemoModeState;
 }
 
 /**
@@ -41,13 +44,21 @@ interface AccountSidebarProps {
  * renders `AccountMobileNav` instead — a sticky identity strip plus a pill row —
  * so the sidebar is no longer stacked above the content it navigates to.
  */
-export function AccountSidebar({ locale, stats = {} }: AccountSidebarProps) {
+export function AccountSidebar({
+  locale,
+  stats = {},
+  demoMode,
+}: AccountSidebarProps) {
   const t = useTranslations();
   const pathname = usePathname();
   const { user } = useAuth();
   const [liveStats, setLiveStats] = useState(stats);
-  const [avatar, fileInputRef] = useAvatarUpload(locale);
+  const [avatar, fileInputRef] = useAvatarUpload(locale, demoMode);
 
+  // Re-read only when a page reports a change (an address saved, a
+  // notification read). There is no read on mount: the layout computed these
+  // same numbers on the server for this very render, and asking
+  // /api/user/account-stats again on every full load returned them twice.
   useEffect(() => {
     let isActive = true;
 
@@ -66,7 +77,6 @@ export function AccountSidebar({ locale, stats = {} }: AccountSidebarProps) {
       refresh();
     };
 
-    refresh();
     window.addEventListener(
       "account:stats-changed",
       onStatsChanged as EventListener,

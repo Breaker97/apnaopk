@@ -14,7 +14,10 @@
  * invoice, and so no activation evidence — from reading as an unpaid vendor.
  */
 
-import { z } from "zod";
+import { appUrlForRequest } from "@/lib/app-url";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { getLocaleRouting } from "@/lib/i18n/locale-routing";
+import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
@@ -42,14 +45,6 @@ const IN_FLIGHT_CHANGE_STATUSES = [
   "awaiting_payment",
   "scheduled",
 ];
-
-function appUrlForRequest(request: Request) {
-  return (
-    request.headers.get("origin") ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
-}
 
 export const POST = withApi(
   {
@@ -173,8 +168,11 @@ export const POST = withApi(
       stripeCustomerId = customer.id;
     }
 
-    const locale = body.locale || "en";
+    const { storeDefault } = await getLocaleRouting();
+    const locale = body.locale || storeDefault;
     const origin = appUrlForRequest(request);
+    // The store default has no prefix; see lib/i18n/locale-prefix.ts.
+    const billingUrl = `${origin}${buildLocalePath(locale, "/vendor/billing", storeDefault)}`;
     const metadata = buildStripeTakeoverMetadata({
       applicationId: subscription.applicationId
         ? String(subscription.applicationId)
@@ -201,8 +199,8 @@ export const POST = withApi(
         metadata,
       },
       metadata,
-      success_url: `${origin}/${locale}/vendor/billing?stripe_switch=success`,
-      cancel_url: `${origin}/${locale}/vendor/billing?stripe_switch=cancelled`,
+      success_url: `${billingUrl}?stripe_switch=success`,
+      cancel_url: `${billingUrl}?stripe_switch=cancelled`,
     });
 
     if (!checkoutSession.url) {

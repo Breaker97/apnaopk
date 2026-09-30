@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { ArrowUpRight, SearchX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -191,7 +191,7 @@ export async function SearchInsights({
                         </TableCell>
                         <TableCell className="text-right">
                           <a
-                            href={`/${locale}/products?search=${encodeURIComponent(row.query)}`}
+                            href={`/products?search=${encodeURIComponent(row.query)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground hover:text-foreground"

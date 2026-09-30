@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isSectionPreviewPath } from "@/lib/storefront/pages/section-preview-path";
 import {
   isAppCacheKey,
   SERVICE_WORKER_PATH,
@@ -56,6 +57,10 @@ async function clearAppServiceWorkerCaches() {
 
 export function PwaLifecycle() {
   useEffect(() => {
+    // A builder section-preview frame (`/{locale}/section-preview/…`) only
+    // exists to draw one section inside the admin; it registers nothing.
+    // Decided here because the root layout no longer reads the request path.
+    if (isSectionPreviewPath(window.location.pathname)) return;
     if (!canUseServiceWorker()) return;
 
     if (!shouldEnableServiceWorker()) {

@@ -10,18 +10,50 @@ import {
   type RateLimitPreset,
 } from "@/lib/rate-limit";
 import { RateLimitError } from "./errors";
+import { resolveClientIp } from "@/lib/api/client-ip";
+import { rateLimitMessage } from "@/lib/api/rate-limit-message";
 import { resolveRateLimitPresetForIdentifier } from "@/lib/api/rate-limit-config";
 import { USER_ROLES, type UserRole } from "@/config/app.config";
 
 export type { RateLimitPreset };
 
-function shouldBypassRateLimiting(role?: UserRole | string | null): boolean {
+/**
+ * How many times an action's limit the store's own people get: vendors,
+ * staff and the admin team.
+ *
+ * They used to skip the limiter altogether, so a vendor's or staff member's
+ * account — or a stolen one — could call upload, AI and every other limited
+ * route without end. Their work comes in bursts a shopper's does not (a
+ * catalogue's images one request each, a till on a busy day), so the limit is
+ * the action's own twenty times over: generous, never unlimited.
+ */
+const STORE_ROLE_ALLOWANCE = 20;
+
+/**
+ * How many sessions' worth one address gets, when a guest is limited by
+ * session. Many shoppers can share an address — a mobile carrier's NAT, an
+ * office — so it is a backstop, not the limit.
+ */
+const GUEST_ADDRESS_ALLOWANCE = 5;
+
+/**
+ * The address backstop for the steps many shoppers behind one address take in
+ * the same quarter hour: checkout and payment, the cart, order tracking. A
+ * mobile carrier's shared address (common where carriers ran out of IPv4), an
+ * office or a school is hundreds of people, and at five sessions' worth the
+ * sixth shopper's checkout there was refused. Each shopper's own limit — per
+ * session, per signed-in account — stays as tight as it was; the address only
+ * stops one machine from rotating sessions without end.
+ */
+export const SHOPPING_ADDRESS_ALLOWANCE = 10;
+
+function isStoreRole(role?: UserRole | string | null): boolean {
   return typeof role === "string" && role !== USER_ROLES.CUSTOMER;
 }
 
 /**
- * Extract client IP address from request headers
- * Handles various proxy configurations
+ * The client's IP address — see `lib/api/client-ip.ts` for how the proxy
+ * chain is read — or "unknown" when the headers do not establish one.
  *
  * Takes anything carrying headers, so a server component can pass
  * `{ headers: await headers() }` instead of keeping its own copy of the
@@ -30,24 +62,7 @@ function shouldBypassRateLimiting(role?: UserRole | string | null): boolean {
 export function getClientIP(request: {
   headers: Pick<NextRequest["headers"], "get">;
 }): string {
-  // Check various headers set by proxies/load balancers
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    // Take the first IP in the chain (original client)
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  const realIP = request.headers.get("x-real-ip");
-  if (realIP) {
-    return realIP.trim();
-  }
-
-  const cfConnectingIP = request.headers.get("cf-connecting-ip");
-  if (cfConnectingIP) {
-    return cfConnectingIP.trim();
-  }
-
-  return "unknown";
+  return resolveClientIp(request.headers) ?? "unknown";
 }
 
 /**
@@ -57,17 +72,21 @@ export function getClientIP(request: {
 async function applyRateLimit(
   request: NextRequest,
   identifier: string,
-  preset: RateLimitPreset = "lenient"
+  preset: RateLimitPreset = "lenient",
+  allowance = 1,
 ): Promise<void> {
   const resolved = resolveRateLimitPresetForIdentifier(identifier, preset);
   if (!resolved) return;
   const config = rateLimitPresets[resolved];
-  const result = await checkRateLimit(identifier, config);
+  const result = await checkRateLimit(identifier, {
+    ...config,
+    max: config.max * allowance,
+  });
 
   if (!result.allowed) {
     throw new RateLimitError(
-      `Too many requests. Please try again in ${result.resetIn} seconds.`,
-      result.resetIn
+      await rateLimitMessage(request, result.resetIn),
+      result.resetIn,
     );
   }
 }
@@ -96,20 +115,40 @@ function getRequestRateLimitScope(request: NextRequest): string {
 
 /**
  * Rate limit by IP address
- * Use for public endpoints or when user is not authenticated
+ * Use for public endpoints or when user is not authenticated. `allowance`
+ * multiplies the preset where one address is many visitors by design (see
+ * `SHOPPING_ADDRESS_ALLOWANCE`).
  */
 export async function rateLimitByIP(
   request: NextRequest,
-  preset: RateLimitPreset = "lenient"
+  preset: RateLimitPreset = "lenient",
+  allowance = 1,
 ): Promise<void> {
   const ip = getClientIP(request);
   const scope = getRequestRateLimitScope(request);
-  await applyRateLimit(request, `ip:${ip}:${scope}`, preset);
+  await applyRateLimit(request, `ip:${ip}:${scope}`, preset, allowance);
+}
+
+/**
+ * Rate limit one address asking about one thing — an order number — so the
+ * tight limit guards that thing, not the address. Order tracking used to give
+ * an address five lookups in all: a household or a carrier's shared address
+ * tracking different orders shared them, while guessing the contact details
+ * of one order is still held to five.
+ */
+export async function rateLimitByIPAndSubject(
+  request: NextRequest,
+  subject: string,
+  preset: RateLimitPreset = "strict",
+): Promise<void> {
+  const ip = getClientIP(request);
+  await applyRateLimit(request, `ip:${ip}:subject:${subject}`, preset);
 }
 
 /**
  * Rate limit by user ID and action
- * Use for authenticated endpoints to track per-user limits
+ * Use for authenticated endpoints to track per-user limits. A vendor, staff
+ * member or admin gets `STORE_ROLE_ALLOWANCE` times the limit a shopper does.
  */
 export async function rateLimitByUser(
   request: NextRequest,
@@ -118,20 +157,40 @@ export async function rateLimitByUser(
   preset: RateLimitPreset = "moderate",
   role?: UserRole | string | null
 ): Promise<void> {
-  if (shouldBypassRateLimiting(role)) return;
-  await applyRateLimit(request, `user:${userId}:${action}`, preset);
+  await applyRateLimit(
+    request,
+    `user:${userId}:${action}`,
+    preset,
+    isStoreRole(role) ? STORE_ROLE_ALLOWANCE : 1,
+  );
 }
 
 /**
- * Rate limit by session ID
- * Use for guest users with a session identifier
+ * Rate limit by session ID, with the caller's address as a backstop.
+ * Use for guest users with a session identifier.
+ *
+ * A guest's session is a cookie the guest sends: a new one on each request
+ * used to open a fresh bucket each time, so the limit bound nothing. The
+ * address behind them has a limit of its own on the same action now.
  */
 export async function rateLimitBySession(
   request: NextRequest,
   sessionId: string,
   action: string,
-  preset: RateLimitPreset = "lenient"
+  preset: RateLimitPreset = "lenient",
+  addressAllowance = GUEST_ADDRESS_ALLOWANCE,
 ): Promise<void> {
+  const ip = resolveClientIp(request.headers);
+  // No address the proxy chain vouches for (local development, a proxy not
+  // configured): one shared bucket for every guest would be worse than none.
+  if (ip) {
+    await applyRateLimit(
+      request,
+      `ip:${ip}:guest:${action}`,
+      preset,
+      addressAllowance,
+    );
+  }
   await applyRateLimit(request, `session:${sessionId}:${action}`, preset);
 }
 

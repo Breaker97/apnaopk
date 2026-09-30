@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/language/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Locale } from "@/config/i18n.config";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
 import type { StorefrontLook } from "@/lib/storefront/storefront-looks";
@@ -26,12 +25,10 @@ const SHAPE_RATIOS: Record<LooksShape, string> = {
  * swipe on touch.
  */
 export function LooksList({
-  locale,
   title,
   looks,
   layout,
 }: {
-  locale: Locale;
   title: string;
   looks: StorefrontLook[];
   /** The row's geometry on desktop (see the section's fields). */
@@ -133,7 +130,7 @@ export function LooksList({
           {looks.map((look) => (
             <Link
               key={look.id}
-              href={`/${locale}/collections/${look.slug}`}
+              href={`/collections/${look.slug}`}
               className="group flex shrink-0 snap-start basis-[72%] flex-col gap-3 sm:basis-[46%] md:basis-[31%] lg:[flex-basis:var(--lk-basis)]"
             >
               <span
