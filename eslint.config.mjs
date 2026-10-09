@@ -100,7 +100,12 @@ const eslintConfig = defineConfig([
   // The two modules that ARE the boundary, and so are the only ones that may
   // reach through it.
   {
-    files: ["components/language/link.tsx", "hooks/use-locale-navigation.ts"],
+    files: [
+      "components/language/link.tsx",
+      "hooks/use-locale-navigation.ts",
+      "**/components/language/link.tsx",
+      "**/hooks/use-locale-navigation.ts",
+    ],
     rules: { "no-restricted-imports": "off" },
   },
   // A `.cjs` file is CommonJS on purpose: `scripts/lib/*.cjs` are loaded with
