@@ -86,6 +86,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
+            # Stable tag consumed by the Coolify Docker Image resource.
+            type=raw,value=coolify,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=branch
             type=sha,prefix=
 
@@ -119,3 +121,18 @@ jobs:
             -H "x-api-key: $DOKPLOY_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"applicationId\": \"$DOKPLOY_APPLICATION_ID\"}"
+
+      # Optional: asks Coolify to pull the fresh `coolify` tag and restart.
+      - name: Trigger Coolify redeploy
+        if: github.ref == 'refs/heads/main'
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "Coolify redeploy secrets are not configured; skipping redeploy."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error \
+            --request GET "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"
