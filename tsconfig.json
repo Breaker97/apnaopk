@@ -31,5 +31,11 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "Storify-v*/**", "__MACOSX/**", "__agent__/**"]
+  "exclude": [
+    "node_modules",
+    "Storify-v*/**",
+    "Storify-main-app-v3.0/**",
+    "__MACOSX/**",
+    "__agent__/**"
+  ]
 }

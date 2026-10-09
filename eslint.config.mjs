@@ -119,6 +119,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Local vendor archives and agent artifacts are not application source.
     "Storify-v*/**",
+    // The v3 app is independently configured and built from its own base directory.
+    "Storify-main-app-v3.0/**",
     "__MACOSX/**",
     "__agent__/**",
     // Default ignores of eslint-config-next:
