@@ -1,0 +1,297 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa70068d2a9868b86ffda3b"
+    },
+    "title": "Dresses",
+    "slug": "dresses",
+    "handle": "dresses",
+    "description": "",
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329490825-o0suhw/Rectangle_231.webp",
+      "alt": "Dresses"
+    },
+    "collectionType": "manual",
+    "kind": "collection",
+    "products": [
+      {
+        "$oid": "6aa684df9e1a8ac7a89ff103"
+      },
+      {
+        "$oid": "6aa6962c9e1a8ac7a89ff11d"
+      },
+      {
+        "$oid": "6aa697499e1a8ac7a89ff120"
+      },
+      {
+        "$oid": "6aa697be9e1a8ac7a89ff121"
+      },
+      {
+        "$oid": "6aa94ad514e6a3473c5cf2b6"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Dresses",
+      "handle": "dresses"
+    },
+    "productCount": 5,
+    "createdAt": {
+      "$date": "2026-09-13T19:58:32.833Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:22:16.855Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aa70081d2a9868b86ffda3c"
+    },
+    "title": "Shoes",
+    "slug": "shoes",
+    "handle": "shoes",
+    "description": "",
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329533250-u3f60v/Group_525.webp",
+      "alt": "Shoes"
+    },
+    "collectionType": "manual",
+    "kind": "collection",
+    "products": [
+      {
+        "$oid": "6aa6962c9e1a8ac7a89ff11d"
+      },
+      {
+        "$oid": "6aa696ac9e1a8ac7a89ff11f"
+      },
+      {
+        "$oid": "6aa697499e1a8ac7a89ff120"
+      },
+      {
+        "$oid": "6aa697be9e1a8ac7a89ff121"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "shoes"
+    },
+    "productCount": 4,
+    "createdAt": {
+      "$date": "2026-09-13T19:58:57.453Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:22:16.855Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaa982e2f46abe23f278e0e"
+    },
+    "title": "Red Ribbed Knit",
+    "slug": "red-ribbed-knit",
+    "handle": "red-ribbed-knit",
+    "description": "",
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789564915515-kduk19/cq5dam.web.hebebed.1000.1000.avif",
+      "alt": "Red Ribbed Knit"
+    },
+    "collectionType": "manual",
+    "kind": "look",
+    "products": [
+      {
+        "$oid": "6aaa97822f46abe23f278e0c"
+      },
+      {
+        "$oid": "6aaa964f2f46abe23f278e0a"
+      },
+      {
+        "$oid": "6aaa96f82f46abe23f278e0b"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Red Ribbed Knit",
+      "handle": "red-ribbed-knit"
+    },
+    "productCount": 3,
+    "createdAt": {
+      "$date": "2026-09-16T13:22:54.936Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:24:14.654Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaa9a332f46abe23f278e14"
+    },
+    "title": "Baltic Blue",
+    "slug": "baltic-blue",
+    "handle": "baltic-blue",
+    "description": "",
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789565489054-qka6z2/cq5dam.web.hebebed.2400.2400.avif",
+      "alt": "Baltic Blue"
+    },
+    "collectionType": "manual",
+    "kind": "collection",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "baltic-blue"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-16T13:31:31.542Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:31:31.550Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaa9a612f46abe23f278e15"
+    },
+    "title": "Black Saffiano",
+    "slug": "black-saffiano",
+    "handle": "black-saffiano",
+    "description": "",
+    "collectionType": "manual",
+    "kind": "look",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Black Saffiano",
+      "handle": "black-saffiano"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-16T13:32:17.793Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:36:42.690Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789565737633-trvjnp/cq5dam.web.hebebed.2400.2400__1_.avif",
+      "alt": "Black Saffiano"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aaa9a7e2f46abe23f278e16"
+    },
+    "title": "Forest Bonnie",
+    "slug": "forest-bonnie",
+    "handle": "forest-bonnie",
+    "description": "",
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789565562874-onotc5/cq5dam.web.hebebed.2400.2400__2_.avif",
+      "alt": "Forest Bonnie"
+    },
+    "collectionType": "manual",
+    "kind": "collection",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "forest-bonnie"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-16T13:32:46.275Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:32:46.279Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaa9a962f46abe23f278e17"
+    },
+    "title": "Sand Route",
+    "slug": "sand-route",
+    "handle": "sand-route",
+    "description": "",
+    "collectionType": "manual",
+    "kind": "look",
+    "products": [],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Sand Route",
+      "handle": "sand-route"
+    },
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-16T13:33:10.268Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-16T13:37:36.772Z"
+    },
+    "__v": 0,
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789565708201-d9qbee/cq5dam.web.hebebed.2400.2400__3_.avif",
+      "alt": "Sand Route"
+    }
+  }
+]

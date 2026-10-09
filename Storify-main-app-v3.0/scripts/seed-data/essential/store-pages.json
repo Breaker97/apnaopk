@@ -1,0 +1,1526 @@
+[
+  {
+    "_id": {
+      "$oid": "6a84370852be40faf8595564"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-18T10:42:16.161Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "preset-electronics-1",
+          "type": "slideshow",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "leftCategoryBar3",
+            "width": "fixed",
+            "height": "threeQuarters"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-1-cell-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787873664752",
+                "image": "/templates/electronics/hero-slide.png",
+                "link": "/products",
+                "alt": "Surface laptops"
+              }
+            },
+            {
+              "id": "preset-electronics-1-cell-2",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787878346153",
+                "image": "/templates/electronics/side-card-1.png",
+                "link": "/products",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-electronics-1-cell-3",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787892863171",
+                "image": "/templates/electronics/side-card-2.png",
+                "link": "/products",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-2",
+          "type": "brand-list",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "variant": "strip"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-3",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Shop by Categories",
+            "source": "featured",
+            "limit": 6,
+            "categoryIds": [],
+            "variant": "circles"
+          },
+          "blocks": []
+        },
+        {
+          "id": "7440fd75-90cf-4eb8-865a-977559ca895b",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-4",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "feature",
+            "width": "fixed",
+            "height": "full"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-4-cell-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787878346153",
+                "image": "/templates/electronics/tile-tall-1.png",
+                "link": "/products",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-2",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-small-1.png",
+                "link": "/products",
+                "alt": "10% OFF!"
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-3",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-small-2.png",
+                "link": "/products",
+                "alt": "Nomad Tech Collection"
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-4",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-tall-2.png",
+                "link": "/products",
+                "alt": "15% OFF! Power Bank"
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-5",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-wide.png",
+                "link": "/products",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-5",
+          "type": "product-group",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Best Selling",
+            "variant": "centered"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-5-1",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "Featured",
+                "source": "featured",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-electronics-5-2",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "New Arrivals",
+                "source": "latest",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-electronics-5-3",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "On Sale",
+                "source": "discounted",
+                "productIds": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-15",
+          "type": "sponsored-rail",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Sponsored",
+            "limit": 8
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-6",
+          "type": "countdown-offer",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "Deals",
+            "subheading": "Today's Featured",
+            "endsAt": "2026-09-04T06:04:04.312Z",
+            "ctaLabel": "View All Deals",
+            "link": "/products",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787876338938-iy6elc/IMG_4195.webp",
+            "productIds": [],
+            "variant": "deals-panel"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-16",
+          "type": "heading",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Top Collections",
+            "variant": "two-tone"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-7",
+          "type": "featured-collection",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": ""
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-7-collection-1",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6a0c19f936954ff4ba2133ae",
+                "limit": 6,
+                "kind": "slider",
+                "image": "",
+                "slider": "new-slider-1787892863171"
+              }
+            },
+            {
+              "id": "29a8c808-98ba-4582-8cd2-fa6ab061d85f",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6a0c19f936954ff4ba2133ae",
+                "limit": 4,
+                "kind": "slider",
+                "image": "",
+                "slider": "new-slider-1787878346153"
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-10",
+          "type": "promotion-banner",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "slides": [
+              {
+                "id": "slide-mtcsj1bx",
+                "visible": true,
+                "elements": {
+                  "heading": true,
+                  "description": true,
+                  "tagline": false,
+                  "price": false,
+                  "cta": true,
+                  "countdown": false
+                },
+                "texts": {
+                  "tagline": "",
+                  "heading": "MacBook Pro",
+                  "description": "Market-specific assortments balancing contemporary styling, comfort, durability.",
+                  "cta": "Shop Now"
+                },
+                "ctaVariant": "dark",
+                "link": "/products",
+                "productId": "",
+                "productImage": "",
+                "countdownEndsAt": "",
+                "reveal": "fade",
+                "background": {
+                  "type": "image",
+                  "image": "/templates/electronics/banner-macbook.png"
+                },
+                "layout": {
+                  "landscape": {
+                    "h": "left",
+                    "v": "middle",
+                    "gap": 12,
+                    "scale": 100
+                  }
+                },
+                "image": {
+                  "landscape": {
+                    "h": "right",
+                    "v": "middle",
+                    "scale": 40,
+                    "rotation": 0,
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                "alt": ""
+              }
+            ],
+            "transition": "slide",
+            "autoplaySeconds": 5,
+            "fullWidth": false,
+            "image": "/templates/electronics/banner-macbook.png",
+            "heading": "MacBook Pro",
+            "subheading": "Market-specific assortments balancing contemporary styling, comfort, durability.",
+            "ctaLabel": "Shop Now",
+            "link": "/products"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-17",
+          "type": "heading",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Find Products",
+            "variant": "two-tone"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-11",
+          "type": "product-browser",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "source": "all",
+            "limit": 8,
+            "productIds": []
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-12",
+          "type": "coupon-banner",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "Get 20% off",
+            "subheading": "Use coupon code at checkout",
+            "code": "",
+            "ctaLabel": "Shop Now",
+            "link": "/products",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785936992039-pbqkc4/Louis_STOR_COLECTION_Kaos_Oversize_Lengan_Pendek_Tshirt_Motif_Outside_The_Box_Bahan_Cotton-removebg-preview.webp"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-13",
+          "type": "blog-posts",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Top Articles",
+            "limit": 3,
+            "desktopColumns": 3
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-14",
+          "type": "image-gallery",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "From Our Instagram"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-14-1",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785935831936-gojq6r/p1-removebg-preview.webp",
+                "link": "/products/nomad-paint-splatter-jacket"
+              }
+            },
+            {
+              "id": "preset-electronics-14-2",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785933512254-ad741v/p2-removebg-preview.webp",
+                "link": "/products/silk-midi-dress"
+              }
+            },
+            {
+              "id": "preset-electronics-14-3",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786024278969-m6lj5g/iPad-Air-M3---2025aa-6321-removebg-preview.webp",
+                "link": "/products/ipad-air-m4-2026"
+              }
+            },
+            {
+              "id": "preset-electronics-14-4",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779101099879-yrzkr5-haier-h55m80fux-55-inch-mini-led-4k-smart-google-tvaaa-9755-removebg-preview.png",
+                "link": "/products/haier-h55m80fux-55-inch-mini-led-4k-smart-google-tv"
+              }
+            },
+            {
+              "id": "preset-electronics-14-5",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779089530697-ygqfca-insta360-go-3s-c-7102.png",
+                "link": "/products/insta360-go-3s"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-28T10:25:34.726Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "preset-electronics-1",
+          "type": "slideshow",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "leftCategoryBar3",
+            "width": "fixed",
+            "height": "half"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-1-cell-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787873664752",
+                "image": "/templates/electronics/hero-slide.png",
+                "link": "/products",
+                "alt": "Surface laptops"
+              }
+            },
+            {
+              "id": "preset-electronics-1-cell-2",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787878346153",
+                "image": "/templates/electronics/side-card-1.png",
+                "link": "/products",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-electronics-1-cell-3",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787892863171",
+                "image": "/templates/electronics/side-card-2.png",
+                "link": "/products",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-2",
+          "type": "brand-list",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "variant": "strip"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-3",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Shop by Categories",
+            "source": "featured",
+            "limit": 6,
+            "categoryIds": [],
+            "variant": "circles"
+          },
+          "blocks": []
+        },
+        {
+          "id": "7440fd75-90cf-4eb8-865a-977559ca895b",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-4",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "feature",
+            "width": "fixed",
+            "height": "full"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-4-cell-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1787878346153",
+                "image": "/templates/electronics/tile-tall-1.png",
+                "link": "/products",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-2",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-small-1.png",
+                "link": "/products",
+                "alt": "10% OFF!"
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-3",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-small-2.png",
+                "link": "/products",
+                "alt": "Nomad Tech Collection"
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-4",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-tall-2.png",
+                "link": "/products",
+                "alt": "15% OFF! Power Bank"
+              }
+            },
+            {
+              "id": "preset-electronics-4-cell-5",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "/templates/electronics/tile-wide.png",
+                "link": "/products",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-5",
+          "type": "product-group",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Best Selling",
+            "variant": "centered"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-5-1",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "Featured",
+                "source": "featured",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-electronics-5-2",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "New Arrivals",
+                "source": "latest",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-electronics-5-3",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "On Sale",
+                "source": "discounted",
+                "productIds": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-15",
+          "type": "sponsored-rail",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Sponsored",
+            "limit": 8
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-6",
+          "type": "countdown-offer",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "Deals",
+            "subheading": "Today's Featured",
+            "endsAt": "2026-09-04T06:04:04.312Z",
+            "ctaLabel": "View All Deals",
+            "link": "/products",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787876338938-iy6elc/IMG_4195.webp",
+            "productIds": [],
+            "variant": "deals-panel"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-16",
+          "type": "heading",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Top Collections",
+            "variant": "two-tone"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-7",
+          "type": "featured-collection",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": ""
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-7-collection-1",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6a0c19f936954ff4ba2133ae",
+                "limit": 6,
+                "kind": "slider",
+                "image": "",
+                "slider": "new-slider-1787892863171"
+              }
+            },
+            {
+              "id": "29a8c808-98ba-4582-8cd2-fa6ab061d85f",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6a0c19f936954ff4ba2133ae",
+                "limit": 3,
+                "kind": "slider",
+                "image": "",
+                "slider": "new-slider-1787878346153"
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-electronics-10",
+          "type": "promotion-banner",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "slides": [
+              {
+                "id": "slide-mtcsj1bx",
+                "visible": true,
+                "elements": {
+                  "heading": true,
+                  "description": true,
+                  "tagline": false,
+                  "price": false,
+                  "cta": true,
+                  "countdown": false
+                },
+                "texts": {
+                  "tagline": "",
+                  "heading": "MacBook Pro",
+                  "description": "Market-specific assortments balancing contemporary styling, comfort, durability.",
+                  "cta": "Shop Now"
+                },
+                "ctaVariant": "dark",
+                "link": "/products",
+                "productId": "",
+                "productImage": "",
+                "countdownEndsAt": "",
+                "reveal": "fade",
+                "background": {
+                  "type": "image",
+                  "image": "/templates/electronics/banner-macbook.png"
+                },
+                "layout": {
+                  "landscape": {
+                    "h": "left",
+                    "v": "middle",
+                    "gap": 12,
+                    "scale": 100
+                  }
+                },
+                "image": {
+                  "landscape": {
+                    "h": "right",
+                    "v": "middle",
+                    "scale": 40,
+                    "rotation": 0,
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                "alt": ""
+              }
+            ],
+            "transition": "slide",
+            "autoplaySeconds": 5,
+            "fullWidth": false,
+            "image": "/templates/electronics/banner-macbook.png",
+            "heading": "MacBook Pro",
+            "subheading": "Market-specific assortments balancing contemporary styling, comfort, durability.",
+            "ctaLabel": "Shop Now",
+            "link": "/products"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-17",
+          "type": "heading",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Find Products",
+            "variant": "two-tone"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-11",
+          "type": "product-browser",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "source": "all",
+            "limit": 8,
+            "productIds": []
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-12",
+          "type": "coupon-banner",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "Get 20% off",
+            "subheading": "Use coupon code at checkout",
+            "code": "",
+            "ctaLabel": "Shop Now",
+            "link": "/products",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785936992039-pbqkc4/Louis_STOR_COLECTION_Kaos_Oversize_Lengan_Pendek_Tshirt_Motif_Outside_The_Box_Bahan_Cotton-removebg-preview.webp"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-13",
+          "type": "blog-posts",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Top Articles",
+            "limit": 3,
+            "desktopColumns": 3
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-14",
+          "type": "image-gallery",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "From Our Instagram"
+          },
+          "blocks": [
+            {
+              "id": "preset-electronics-14-1",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785935831936-gojq6r/p1-removebg-preview.webp",
+                "link": "/products/nomad-paint-splatter-jacket"
+              }
+            },
+            {
+              "id": "preset-electronics-14-2",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785933512254-ad741v/p2-removebg-preview.webp",
+                "link": "/products/silk-midi-dress"
+              }
+            },
+            {
+              "id": "preset-electronics-14-3",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786024278969-m6lj5g/iPad-Air-M3---2025aa-6321-removebg-preview.webp",
+                "link": "/products/ipad-air-m4-2026"
+              }
+            },
+            {
+              "id": "preset-electronics-14-4",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779101099879-yrzkr5-haier-h55m80fux-55-inch-mini-led-4k-smart-google-tvaaa-9755-removebg-preview.png",
+                "link": "/products/haier-h55m80fux-55-inch-mini-led-4k-smart-google-tv"
+              }
+            },
+            {
+              "id": "preset-electronics-14-5",
+              "type": "image",
+              "visible": true,
+              "settings": {
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779089530697-ygqfca-insta360-go-3s-c-7102.png",
+                "link": "/products/insta360-go-3s"
+              }
+            }
+          ]
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-28T10:11:47.801Z"
+      },
+      "publishedBy": null
+    },
+    "title": "Home",
+    "updatedAt": {
+      "$date": "2026-08-28T10:25:34.727Z"
+    },
+    "key": "template:home:default",
+    "templateType": "home"
+  },
+  {
+    "_id": {
+      "$oid": "6a85892252be40faf85956c8"
+    },
+    "key": "template:product:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T10:44:50.442Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "product-main",
+          "type": "product-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "galleryLayout": "left",
+            "rows": "[{\"id\":\"g1\",\"items\":[{\"key\":\"breadcrumb\",\"on\":true}]},{\"id\":\"g2\",\"items\":[{\"key\":\"brand\",\"on\":true},{\"key\":\"title\",\"on\":true},{\"key\":\"rating\",\"on\":true}]},{\"id\":\"g3\",\"items\":[{\"key\":\"price\",\"on\":true}]},{\"id\":\"g4\",\"items\":[{\"key\":\"variants\",\"on\":true},{\"key\":\"quantity-cart\",\"on\":true}]},{\"id\":\"g5\",\"items\":[{\"key\":\"description\",\"on\":true},{\"key\":\"details\",\"on\":true},{\"key\":\"faq\",\"on\":true}]},{\"id\":\"g6\",\"items\":[{\"key\":\"info-card\",\"on\":true},{\"key\":\"share\",\"on\":true}]}]",
+            "detailStyle": "{\"visibility\":{\"cartButtonAlways\":true,\"discountChip\":true,\"discountChipOnImage\":true,\"itemSold\":true,\"ratingCount\":true,\"ratingMinimized\":false,\"variantCount\":false},\"style\":{\"cardRadius\":12,\"cardPadding\":16,\"cardBackground\":\"\",\"cardBorder\":\"\",\"cardBorderWidth\":1,\"previewBackground\":\"\",\"previewHeight\":0,\"groupGap\":52,\"itemGap\":10,\"typography\":{},\"cartBackground\":\"\",\"cartBorder\":\"\",\"cartBorderWidth\":0,\"cartRadius\":5,\"ratingColor\":\"\",\"stockBackground\":\"\"}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "product-specification",
+          "type": "product-specification",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": ""
+          },
+          "blocks": []
+        },
+        {
+          "id": "product-reviews",
+          "type": "product-reviews",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "product-sponsored",
+          "type": "product-sponsored",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "product-related",
+          "type": "product-related",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "variant": "electronics"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-28T10:04:29.487Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "product-main",
+          "type": "product-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "galleryLayout": "left",
+            "rows": "[{\"id\":\"g1\",\"items\":[{\"key\":\"breadcrumb\",\"on\":true}]},{\"id\":\"g2\",\"items\":[{\"key\":\"brand\",\"on\":true},{\"key\":\"title\",\"on\":true},{\"key\":\"rating\",\"on\":true}]},{\"id\":\"g3\",\"items\":[{\"key\":\"price\",\"on\":true}]},{\"id\":\"g4\",\"items\":[{\"key\":\"variants\",\"on\":true},{\"key\":\"quantity-cart\",\"on\":true}]},{\"id\":\"g5\",\"items\":[{\"key\":\"description\",\"on\":true},{\"key\":\"details\",\"on\":true},{\"key\":\"faq\",\"on\":true}]},{\"id\":\"g6\",\"items\":[{\"key\":\"info-card\",\"on\":true},{\"key\":\"share\",\"on\":true}]}]",
+            "detailStyle": "{\"visibility\":{\"cartButtonAlways\":true,\"discountChip\":true,\"discountChipOnImage\":true,\"itemSold\":true,\"ratingCount\":true,\"ratingMinimized\":false,\"variantCount\":false},\"style\":{\"cardRadius\":12,\"cardPadding\":16,\"cardBackground\":\"\",\"cardBorder\":\"\",\"cardBorderWidth\":1,\"previewBackground\":\"\",\"previewHeight\":0,\"groupGap\":52,\"itemGap\":10,\"typography\":{},\"cartBackground\":\"\",\"cartBorder\":\"\",\"cartBorderWidth\":0,\"cartRadius\":5,\"ratingColor\":\"\",\"stockBackground\":\"\"}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "product-specification",
+          "type": "product-specification",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": ""
+          },
+          "blocks": []
+        },
+        {
+          "id": "product-reviews",
+          "type": "product-reviews",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "product-sponsored",
+          "type": "product-sponsored",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "product-related",
+          "type": "product-related",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "variant": "electronics"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-28T09:53:49.187Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "product",
+    "title": "Product",
+    "updatedAt": {
+      "$date": "2026-08-28T10:04:29.487Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a8591a052be40faf85956d5"
+    },
+    "key": "template:products:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T11:21:03.812Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "products-main",
+          "type": "products-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": ""
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-19T11:21:03.811Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "products-main",
+          "type": "products-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": ""
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-19T11:21:10.029Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "products",
+    "title": "Products",
+    "updatedAt": {
+      "$date": "2026-08-19T11:21:10.029Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a85a90c52be40faf85956f7"
+    },
+    "key": "group:header",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T13:01:00.759Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "preset-electronics-header-1",
+          "type": "announcement-bar",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "text": "Free shipping on orders over $50",
+            "url": "",
+            "backgroundColor": "",
+            "textColor": ""
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-header-2",
+          "type": "header-bar",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-header-3",
+          "type": "top-tags",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": [
+            {
+              "id": "preset-electronics-header-3-tag-1",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Action Cameras",
+                "url": "/categories/action-cameras"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-2",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Baby Clothing",
+                "url": "/categories/baby-clothing"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-3",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Bags & Luggage",
+                "url": "/categories/bags-luggage"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-4",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Bath Accessories",
+                "url": "/categories/bath-accessories"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-5",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Bedding & Bath",
+                "url": "/categories/bedding-bath"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-6",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Beds",
+                "url": "/categories/beds"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-28T06:04:06.083Z"
+      },
+      "updatedBy": null
+    },
+    "group": "header",
+    "history": [],
+    "kind": "group",
+    "published": {
+      "sections": [
+        {
+          "id": "preset-electronics-header-1",
+          "type": "announcement-bar",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "text": "Free shipping on orders over $50",
+            "url": "",
+            "backgroundColor": "",
+            "textColor": ""
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-header-2",
+          "type": "header-bar",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "preset-electronics-header-3",
+          "type": "top-tags",
+          "version": 1,
+          "visible": true,
+          "blocks": [
+            {
+              "id": "preset-electronics-header-3-tag-1",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Action Cameras",
+                "url": "/categories/action-cameras"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-2",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Baby Clothing",
+                "url": "/categories/baby-clothing"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-3",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Bags & Luggage",
+                "url": "/categories/bags-luggage"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-4",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Bath Accessories",
+                "url": "/categories/bath-accessories"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-5",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Bedding & Bath",
+                "url": "/categories/bedding-bath"
+              }
+            },
+            {
+              "id": "preset-electronics-header-3-tag-6",
+              "type": "tag",
+              "visible": true,
+              "settings": {
+                "label": "Beds",
+                "url": "/categories/beds"
+              }
+            }
+          ]
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-28T06:04:06.083Z"
+      },
+      "publishedBy": null
+    },
+    "title": "Header",
+    "updatedAt": {
+      "$date": "2026-08-28T06:04:06.633Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a85c58052be40faf8595715"
+    },
+    "key": "template:category:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T15:02:23.932Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "category-header",
+          "type": "category-header",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        },
+        {
+          "id": "category-main",
+          "type": "category-main",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-19T15:02:23.931Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "category-header",
+          "type": "category-header",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "category-main",
+          "type": "category-main",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-19T15:02:26.979Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "category",
+    "title": "Category",
+    "updatedAt": {
+      "$date": "2026-08-19T15:02:26.979Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a85c58352be40faf8595716"
+    },
+    "key": "template:collection:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T15:02:27.577Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "collection-header",
+          "type": "collection-header",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        },
+        {
+          "id": "collection-main",
+          "type": "collection-main",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-19T15:02:27.576Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "collection-header",
+          "type": "collection-header",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "collection-main",
+          "type": "collection-main",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-19T15:02:28.107Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "collection",
+    "title": "Collection",
+    "updatedAt": {
+      "$date": "2026-08-19T15:02:28.107Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a85c58452be40faf8595717"
+    },
+    "key": "template:cart:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T15:02:28.632Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "cart-main",
+          "type": "cart-main",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-19T15:02:28.632Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "cart-main",
+          "type": "cart-main",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-19T15:02:29.158Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "cart",
+    "title": "Cart",
+    "updatedAt": {
+      "$date": "2026-08-19T15:02:29.158Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a85c59552be40faf8595718"
+    },
+    "key": "group:footer",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-08-19T15:02:45.691Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "preset-electronics-footer-1",
+          "type": "footer-bar",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-08-28T06:04:06.805Z"
+      },
+      "updatedBy": null
+    },
+    "group": "footer",
+    "history": [],
+    "kind": "group",
+    "published": {
+      "sections": [
+        {
+          "id": "preset-electronics-footer-1",
+          "type": "footer-bar",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-08-28T06:04:06.805Z"
+      },
+      "publishedBy": null
+    },
+    "title": "Footer",
+    "updatedAt": {
+      "$date": "2026-08-28T06:04:07.328Z"
+    }
+  }
+]

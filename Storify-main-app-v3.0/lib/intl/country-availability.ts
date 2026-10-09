@@ -1,0 +1,240 @@
+import {
+  COUNTRIES as COUNTRY_OPTIONS,
+  type RegionOption,
+} from "@/lib/intl/country-options";
+import {
+  COUNTRY_AVAILABILITY_MODES,
+  DEFAULT_COUNTRY_AVAILABILITY,
+  type CountryAvailability,
+} from "@/lib/intl/country-availability-policy";
+
+export {
+  COUNTRY_AVAILABILITY_MODES,
+  DEFAULT_COUNTRY_AVAILABILITY,
+  type CountryAvailability,
+};
+
+const COUNTRY_BY_CODE = new Map(
+  COUNTRY_OPTIONS.map((country) => [country.value.toUpperCase(), country]),
+);
+
+function normalizeLookupValue(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim().toLocaleLowerCase("en").replace(/\s+/g, " ")
+    : "";
+}
+
+const COUNTRY_CODE_BY_NAME = new Map(
+  COUNTRY_OPTIONS.map((country) => [
+    normalizeLookupValue(country.label),
+    country.value.toUpperCase(),
+  ]),
+);
+
+// Common persisted/user-entered variants. Canonical picker values still use
+// the labels in country-options.ts; aliases are only for compatibility and
+// authoritative server-side checks.
+const COUNTRY_CODE_ALIASES: Record<string, string> = {
+  "congo, democratic republic of the": "CD",
+  "czechia": "CZ",
+  "democratic republic of congo": "CD",
+  "dr congo": "CD",
+  "cote d'ivoire": "CI",
+  "côte d'ivoire": "CI",
+  "côte d’ivoire": "CI",
+  "ivory coast": "CI",
+  "south korea": "KR",
+  "republic of korea": "KR",
+  "north korea": "KP",
+  "russian federation": "RU",
+  "turkiye": "TR",
+  "u.k.": "GB",
+  "uk": "GB",
+  "united states of america": "US",
+  "u.s.": "US",
+  "usa": "US",
+};
+
+for (const [name, code] of Object.entries(COUNTRY_CODE_ALIASES)) {
+  COUNTRY_CODE_BY_NAME.set(name, code);
+}
+
+export function isKnownCountryCode(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    COUNTRY_BY_CODE.has(value.trim().toUpperCase())
+  );
+}
+
+export function sanitizeCountryCodes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return Array.from(
+    new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim().toUpperCase())
+        .filter((item) => COUNTRY_BY_CODE.has(item)),
+    ),
+  );
+}
+
+/**
+ * Read-tolerant normalization. A corrupt/incomplete `selected` policy falls
+ * back to `all`, keeping checkout usable; the admin write path rejects that
+ * shape before it can be saved.
+ */
+export function normalizeCountryAvailability(
+  value: unknown,
+): CountryAvailability {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ...DEFAULT_COUNTRY_AVAILABILITY };
+  }
+
+  const input = value as Record<string, unknown>;
+  const mode =
+    input.mode === COUNTRY_AVAILABILITY_MODES.SELECTED
+      ? COUNTRY_AVAILABILITY_MODES.SELECTED
+      : COUNTRY_AVAILABILITY_MODES.ALL;
+  const countryCodes = sanitizeCountryCodes(input.countryCodes);
+
+  if (
+    mode === COUNTRY_AVAILABILITY_MODES.SELECTED &&
+    countryCodes.length > 0
+  ) {
+    return { mode, countryCodes };
+  }
+
+  return { ...DEFAULT_COUNTRY_AVAILABILITY };
+}
+
+/** Resolve either an ISO code or a canonical/legacy country name to ISO-2. */
+export function countryCodeForValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const possibleCode = trimmed.toUpperCase();
+  if (COUNTRY_BY_CODE.has(possibleCode)) return possibleCode;
+  return COUNTRY_CODE_BY_NAME.get(normalizeLookupValue(trimmed));
+}
+
+export function countryNameForCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return COUNTRY_BY_CODE.get(value.trim().toUpperCase())?.label;
+}
+
+/**
+ * Compare legacy names, aliases, and ISO codes without treating a harmless
+ * representation change (for example `US` -> `United States`) as a new
+ * country selection. Unknown legacy values still compare case-insensitively.
+ */
+export function areCountryValuesEquivalent(
+  left: unknown,
+  right: unknown,
+): boolean {
+  const leftCode = countryCodeForValue(left);
+  const rightCode = countryCodeForValue(right);
+  if (leftCode || rightCode) {
+    return Boolean(leftCode && rightCode && leftCode === rightCode);
+  }
+
+  return normalizeLookupValue(left) === normalizeLookupValue(right);
+}
+
+export function getAllowedCountryOptions(
+  availability: unknown,
+): RegionOption[] {
+  const normalized = normalizeCountryAvailability(availability);
+  if (normalized.mode === COUNTRY_AVAILABILITY_MODES.ALL) {
+    return COUNTRY_OPTIONS;
+  }
+
+  const allowed = new Set(normalized.countryCodes);
+  return COUNTRY_OPTIONS.filter((country) => allowed.has(country.value));
+}
+
+/**
+ * The one country a store sells into, or undefined when it sells into more
+ * (including "all"). Delivery country pickers lock to this country.
+ */
+export function soleAllowedCountry(
+  availability: unknown,
+): RegionOption | undefined {
+  const options = getAllowedCountryOptions(availability);
+  return options.length === 1 ? options[0] : undefined;
+}
+
+/**
+ * The value a form should load into a delivery country field, plus the saved
+ * country that value displaced, if any.
+ *
+ * With one country on offer, `CountrySelect` locks to it and writes it into
+ * the form whenever the value differs. That write comes after the form has
+ * loaded, so a saved record reads as changed the moment it opens, and a saved
+ * foreign country is replaced without a word. Loading this value instead keeps
+ * the field and the form in step from the first render. `replaced` lets the
+ * form say what saving will change.
+ *
+ * Returns the saved value untouched (and `replaced` empty) when the store
+ * sells into more than one country, or when the saved value already names the
+ * sole country in any spelling ("BD" or "Bangladesh").
+ */
+export function settleCountryForPolicy(
+  saved: unknown,
+  availability: unknown,
+  valueFormat: "name" | "code" = "name",
+): { value: string; replaced: string } {
+  const current = typeof saved === "string" ? saved : "";
+  const sole = soleAllowedCountry(availability);
+  if (!sole) return { value: current, replaced: "" };
+  if (current.trim() && areCountryValuesEquivalent(current, sole.value)) {
+    return { value: current, replaced: "" };
+  }
+  return {
+    value: valueFormat === "code" ? sole.value : sole.label,
+    replaced: current.trim(),
+  };
+}
+
+/**
+ * The country an address form should open on.
+ *
+ * The store's shipping origin first — the country a store operates from is the
+ * one most of its shoppers are in, and for a single-country store it is the
+ * only answer. Failing that the United States, which is what every one of
+ * these forms used to hardcode, and only then the first country on offer:
+ * under `all` that is alphabetical ("Afghanistan"), a worse guess than the
+ * status quo. Returns the country *name*, which is what address forms store.
+ */
+export function defaultCountryForAddressForms(
+  availability: unknown,
+  shippingOriginCountry?: string,
+): string {
+  const options = getAllowedCountryOptions(availability);
+  if (options.length === 0) return "";
+
+  const originCode = countryCodeForValue(shippingOriginCountry);
+  const origin =
+    originCode && options.find((country) => country.value === originCode);
+  if (origin) return origin.label;
+
+  const unitedStates = options.find((country) => country.value === "US");
+  return (unitedStates ?? options[0]).label;
+}
+
+/**
+ * Authoritative check for routes that accept either a country name or ISO code.
+ * `all` deliberately accepts existing free-text values for backwards
+ * compatibility; `selected` only accepts values that resolve to an allowed code.
+ */
+export function isCountryAllowed(
+  value: unknown,
+  availability: unknown,
+): boolean {
+  const normalized = normalizeCountryAvailability(availability);
+  if (normalized.mode === COUNTRY_AVAILABILITY_MODES.ALL) return true;
+
+  const code = countryCodeForValue(value);
+  return Boolean(code && normalized.countryCodes.includes(code));
+}

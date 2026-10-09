@@ -1,0 +1,1419 @@
+[
+  {
+    "_id": {
+      "$oid": "6aa536fd395e02598e5461c3"
+    },
+    "key": "template:home:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-12T11:26:13.719Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "preset-women-fashion-1",
+          "type": "slideshow",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "single",
+            "width": "full",
+            "height": "threeQuarters",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-1-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-copy-1789583804058",
+                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789583715783-73fl19/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "516a0365-0c3a-4ea7-9f23-37d1112bb78d",
+          "type": "heading",
+          "version": 2,
+          "visible": false,
+          "settings": {
+            "title": "Top  ",
+            "accent": "Categories",
+            "align": "center",
+            "size": "medium"
+          },
+          "blocks": []
+        },
+        {
+          "id": "1d0fed65-0405-41de-b460-dd911ebccbb4",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 100
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-2",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "source": "manual",
+            "limit": 5,
+            "categoryIds": [
+              "6aa683b29e1a8ac7a89ff102",
+              "6aa7a031197ff91b01f8635c",
+              "6aa7a304197ff91b01f8635d",
+              "6aa9160afac64f7f6187ed1a",
+              "6aa83f9c788a88577046258f"
+            ],
+            "style": "{\"columns\":5,\"gap\":6,\"roundness\":0,\"tileBackground\":\"\",\"textPosition\":\"below\",\"textSize\":16}",
+            "variant": "overlay",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-3",
+          "type": "product-group",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Best Selling",
+            "limit": 8,
+            "desktopColumns": 4,
+            "variant": "centered",
+            "titleSize": "large"
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-3-1",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "Featured",
+                "source": "featured",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-women-fashion-3-2",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "New In",
+                "source": "discounted",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-women-fashion-3-3",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "On Sale",
+                "source": "discounted",
+                "productIds": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "cd35c2d0-b821-45fc-9854-314ad53d5cd1",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 60
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-4",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "masonry",
+            "width": "fullPadding",
+            "height": "threeQuarters",
+            "gap": 0,
+            "sidePadding": 0,
+            "corners": "theme",
+            "radius": 0
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-4-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789475969581",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-2",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789476504075",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-3",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789476340834",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-4",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789476683406",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-5",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "49d81459-334a-44dd-8578-27fc280f79d5",
+          "type": "heading",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "accent": "Trending",
+            "align": "center",
+            "size": "large"
+          },
+          "blocks": []
+        },
+        {
+          "id": "6b0c668f-f549-4a96-b461-70a12230ef54",
+          "type": "product-grid",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "subtitle": "",
+            "source": "discounted",
+            "limit": 8,
+            "desktopColumns": 4,
+            "productIds": [],
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "1be5a290-a014-4de5-bb35-cbae025d58df",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "single",
+            "width": "fixed",
+            "height": "fourFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "theme",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "4096f4fd-7dff-445c-9615-ee6eb8cbf706",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "e65e8829-25c4-4031-bf92-e939fd7d5849",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "104faf24-8f86-4a37-8e35-9d1c31d90cac",
+          "type": "heading",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "Top ",
+            "accent": "Collections",
+            "align": "center",
+            "size": "large"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-5",
+          "type": "featured-collection",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "gapMode": "custom",
+            "gap": 24,
+            "panelWidth": 0,
+            "panelHeight": 0,
+            "corners": "theme",
+            "panelRadius": 0,
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-5-1",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6aa70068d2a9868b86ffda3b",
+                "limit": 3,
+                "kind": "slider",
+                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329647479-n29ca8/Rectangle_231.webp",
+                "slider": "prada-summer-collection-copy"
+              }
+            },
+            {
+              "id": "preset-women-fashion-5-2",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6aa70081d2a9868b86ffda3c",
+                "limit": 3,
+                "kind": "slider",
+                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329665441-hsv2ci/Group_250.webp",
+                "slider": "handbag-collection-copy"
+              }
+            }
+          ]
+        },
+        {
+          "id": "72c67522-62b6-492a-8414-f4e391e92198",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "7d16a8a8-c79c-44d1-89f2-e42faee4138c",
+          "type": "slideshow",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "duo",
+            "width": "full",
+            "height": "half",
+            "gap": 0,
+            "sidePadding": 0,
+            "corners": "theme",
+            "radius": 0
+          },
+          "blocks": [
+            {
+              "id": "14370df9-8a6b-4a1f-bd0e-191244879063",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789329930693",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "822d949b-2c8a-4f46-bb1f-64e34f3207f4",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789330009241",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-women-fashion-6",
+          "type": "countdown-offer",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "Deals",
+            "subheading": "Today's Featured",
+            "ctaLabel": "View All Deals",
+            "link": "/products",
+            "endsAt": "2026-09-29T19:41:00.000Z",
+            "height": 760,
+            "image": "",
+            "background": {
+              "type": "image",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789328542256-d1g2gp/counter_bg.webp"
+            },
+            "foreground": "#ffffff",
+            "showSavings": true,
+            "showStock": true,
+            "cardGap": 16,
+            "corners": "custom",
+            "panelRadius": 0,
+            "cardRadius": 0,
+            "imageFit": "followProduct",
+            "layout": "featured-2",
+            "productIds": [
+              "6aa697be9e1a8ac7a89ff121",
+              "6aa6962c9e1a8ac7a89ff11d",
+              "6aa696ac9e1a8ac7a89ff11f"
+            ],
+            "variant": "deals-panel",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "8871c249-7913-4620-a4e6-02a05969f54e",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-8",
+          "type": "get-the-look",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "collection": "6aaa982e2f46abe23f278e0e",
+            "title": "Get the Look",
+            "subtitle": "Curated pieces styled together for effortless elegance",
+            "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789564851870-w7bp30/cq5dam.web.hebebed.1000.1000.avif",
+            "imagePosition": "left",
+            "limit": 3,
+            "ctaLabel": "Add All to Cart",
+            "imageWidth": 40,
+            "imageHeight": 650,
+            "gap": 40,
+            "cardsPerRow": 0,
+            "corners": "theme",
+            "imageRadius": 16,
+            "titleSize": "large"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-9",
+          "type": "looks-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "More Looks to Love",
+            "source": "manual",
+            "limit": 8,
+            "columns": 4,
+            "gap": 16,
+            "shape": "portrait",
+            "corners": "theme",
+            "radius": 16,
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "51499bfe-7d36-48a6-aabd-0184077a95c4",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a962f46abe23f278e17"
+              }
+            },
+            {
+              "id": "58eeb4d9-3b7b-4ae7-9f03-b4a6e4b141f3",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a332f46abe23f278e14"
+              }
+            },
+            {
+              "id": "66473007-3b78-48ad-b265-67de21229ad4",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a7e2f46abe23f278e16"
+              }
+            },
+            {
+              "id": "75e1a2a5-6f27-4789-9d4d-86beed55aa6c",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a612f46abe23f278e15"
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-women-fashion-10",
+          "type": "blog-posts",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Top Articles",
+            "limit": 3,
+            "desktopColumns": 3,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-09-16T18:50:42.790Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "preset-women-fashion-1",
+          "type": "slideshow",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "single",
+            "width": "full",
+            "height": "threeQuarters",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-1-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-copy-1789583804058",
+                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789583715783-73fl19/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "516a0365-0c3a-4ea7-9f23-37d1112bb78d",
+          "type": "heading",
+          "version": 2,
+          "visible": false,
+          "settings": {
+            "title": "Top  ",
+            "accent": "Categories",
+            "align": "center",
+            "size": "medium"
+          },
+          "blocks": []
+        },
+        {
+          "id": "1d0fed65-0405-41de-b460-dd911ebccbb4",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 100
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-2",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "source": "manual",
+            "limit": 5,
+            "categoryIds": [
+              "6aa683b29e1a8ac7a89ff102",
+              "6aa7a031197ff91b01f8635c",
+              "6aa7a304197ff91b01f8635d",
+              "6aa9160afac64f7f6187ed1a",
+              "6aa83f9c788a88577046258f"
+            ],
+            "style": "{\"columns\":5,\"gap\":6,\"roundness\":0,\"tileBackground\":\"\",\"textPosition\":\"below\",\"textSize\":16}",
+            "variant": "overlay",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-3",
+          "type": "product-group",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Best Selling",
+            "limit": 8,
+            "desktopColumns": 4,
+            "variant": "centered",
+            "titleSize": "large"
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-3-1",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "Featured",
+                "source": "featured",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-women-fashion-3-2",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "New In",
+                "source": "discounted",
+                "productIds": []
+              }
+            },
+            {
+              "id": "preset-women-fashion-3-3",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "On Sale",
+                "source": "discounted",
+                "productIds": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "cd35c2d0-b821-45fc-9854-314ad53d5cd1",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 60
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-4",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "masonry",
+            "width": "fullPadding",
+            "height": "threeQuarters",
+            "gap": 0,
+            "sidePadding": 0,
+            "corners": "theme",
+            "radius": 0
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-4-1",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789475969581",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-2",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789476504075",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-3",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789476340834",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-4",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789476683406",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "preset-women-fashion-4-5",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "49d81459-334a-44dd-8578-27fc280f79d5",
+          "type": "heading",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "accent": "Trending",
+            "align": "center",
+            "size": "large"
+          },
+          "blocks": []
+        },
+        {
+          "id": "6b0c668f-f549-4a96-b461-70a12230ef54",
+          "type": "product-grid",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "subtitle": "",
+            "source": "discounted",
+            "limit": 8,
+            "desktopColumns": 4,
+            "productIds": [],
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "1be5a290-a014-4de5-bb35-cbae025d58df",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "single",
+            "width": "fixed",
+            "height": "fourFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "theme",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "4096f4fd-7dff-445c-9615-ee6eb8cbf706",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "e65e8829-25c4-4031-bf92-e939fd7d5849",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "104faf24-8f86-4a37-8e35-9d1c31d90cac",
+          "type": "heading",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "Top ",
+            "accent": "Collections",
+            "align": "center",
+            "size": "large"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-5",
+          "type": "featured-collection",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "gapMode": "custom",
+            "gap": 24,
+            "panelWidth": 0,
+            "panelHeight": 0,
+            "corners": "theme",
+            "panelRadius": 0,
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "preset-women-fashion-5-1",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6aa70068d2a9868b86ffda3b",
+                "limit": 3,
+                "kind": "slider",
+                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329647479-n29ca8/Rectangle_231.webp",
+                "slider": "prada-summer-collection-copy"
+              }
+            },
+            {
+              "id": "preset-women-fashion-5-2",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "6aa70081d2a9868b86ffda3c",
+                "limit": 3,
+                "kind": "slider",
+                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329665441-hsv2ci/Group_250.webp",
+                "slider": "handbag-collection-copy"
+              }
+            }
+          ]
+        },
+        {
+          "id": "72c67522-62b6-492a-8414-f4e391e92198",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "7d16a8a8-c79c-44d1-89f2-e42faee4138c",
+          "type": "slideshow",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "duo",
+            "width": "full",
+            "height": "half",
+            "gap": 0,
+            "sidePadding": 0,
+            "corners": "theme",
+            "radius": 0
+          },
+          "blocks": [
+            {
+              "id": "14370df9-8a6b-4a1f-bd0e-191244879063",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789329930693",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "822d949b-2c8a-4f46-bb1f-64e34f3207f4",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1789330009241",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-women-fashion-6",
+          "type": "countdown-offer",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "Deals",
+            "subheading": "Today's Featured",
+            "ctaLabel": "View All Deals",
+            "link": "/products",
+            "endsAt": "2026-09-29T19:41:00.000Z",
+            "height": 760,
+            "image": "",
+            "background": {
+              "type": "image",
+              "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789328542256-d1g2gp/counter_bg.webp"
+            },
+            "foreground": "#ffffff",
+            "showSavings": true,
+            "showStock": true,
+            "cardGap": 16,
+            "corners": "custom",
+            "panelRadius": 0,
+            "cardRadius": 0,
+            "imageFit": "followProduct",
+            "layout": "featured-2",
+            "productIds": [
+              "6aa697be9e1a8ac7a89ff121",
+              "6aa6962c9e1a8ac7a89ff11d",
+              "6aa696ac9e1a8ac7a89ff11f"
+            ],
+            "variant": "deals-panel",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "8871c249-7913-4620-a4e6-02a05969f54e",
+          "type": "gap",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "height": 48
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-8",
+          "type": "get-the-look",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "collection": "6aaa982e2f46abe23f278e0e",
+            "title": "Get the Look",
+            "subtitle": "Curated pieces styled together for effortless elegance",
+            "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789564851870-w7bp30/cq5dam.web.hebebed.1000.1000.avif",
+            "imagePosition": "left",
+            "limit": 3,
+            "ctaLabel": "Add All to Cart",
+            "imageWidth": 40,
+            "imageHeight": 650,
+            "gap": 40,
+            "cardsPerRow": 0,
+            "corners": "theme",
+            "imageRadius": 16,
+            "titleSize": "large"
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-9",
+          "type": "looks-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "More Looks to Love",
+            "source": "manual",
+            "limit": 8,
+            "columns": 4,
+            "gap": 16,
+            "shape": "portrait",
+            "corners": "theme",
+            "radius": 16,
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "51499bfe-7d36-48a6-aabd-0184077a95c4",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a962f46abe23f278e17"
+              }
+            },
+            {
+              "id": "58eeb4d9-3b7b-4ae7-9f03-b4a6e4b141f3",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a332f46abe23f278e14"
+              }
+            },
+            {
+              "id": "66473007-3b78-48ad-b265-67de21229ad4",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a7e2f46abe23f278e16"
+              }
+            },
+            {
+              "id": "75e1a2a5-6f27-4789-9d4d-86beed55aa6c",
+              "type": "look",
+              "visible": true,
+              "settings": {
+                "collection": "6aaa9a612f46abe23f278e15"
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset-women-fashion-10",
+          "type": "blog-posts",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Top Articles",
+            "limit": 3,
+            "desktopColumns": 3,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-09-16T18:50:44.743Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "home",
+    "title": "Home",
+    "updatedAt": {
+      "$date": "2026-09-16T18:50:44.743Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa536fd395e02598e5461c4"
+    },
+    "key": "template:product:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-12T11:26:14.258Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "product-main",
+          "type": "product-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "galleryLayout": "vertical",
+            "rows": "[{\"id\":\"g1\",\"items\":[{\"id\":\"breadcrumb\",\"key\":\"breadcrumb\",\"on\":true},{\"id\":\"be3015c9-0a3e-4a44-96d9-a2628362f241\",\"key\":\"gap\",\"on\":true,\"size\":80},{\"id\":\"brand\",\"key\":\"brand\",\"on\":true},{\"id\":\"title\",\"key\":\"title\",\"on\":true},{\"id\":\"rating\",\"key\":\"rating\",\"on\":false},{\"id\":\"vendor\",\"key\":\"vendor\",\"on\":true},{\"id\":\"f319487c-279f-4e80-928c-107f39c8f0ec\",\"key\":\"gap\",\"on\":true,\"size\":24}]},{\"id\":\"g2\",\"items\":[{\"id\":\"price\",\"key\":\"price\",\"on\":true}]},{\"id\":\"g3\",\"items\":[{\"id\":\"variants\",\"key\":\"variants\",\"on\":true}]},{\"id\":\"g4\",\"items\":[{\"id\":\"quantity-cart\",\"key\":\"quantity-cart\",\"on\":true}]},{\"id\":\"g5\",\"items\":[{\"id\":\"description\",\"key\":\"description\",\"on\":true},{\"id\":\"details\",\"key\":\"details\",\"on\":true},{\"id\":\"faq\",\"key\":\"faq\",\"on\":true}]},{\"id\":\"g6\",\"items\":[{\"id\":\"info-card\",\"key\":\"info-card\",\"on\":true},{\"id\":\"share\",\"key\":\"share\",\"on\":true}]}]",
+            "detailStyle": "{\"visibility\":{\"discountChip\":true,\"discountChipOnImage\":true,\"itemSold\":true,\"ratingCount\":true,\"ratingMinimized\":false,\"variantCount\":false,\"quantity\":true,\"zoom\":true,\"thumbnails\":true,\"accordionOpenFirst\":false},\"style\":{\"cardRadius\":12,\"cardPadding\":16,\"cardBackground\":\"\",\"cardBorder\":\"\",\"cardBorderWidth\":1,\"previewBackground\":\"\",\"previewHeight\":850,\"groupGap\":40,\"itemGap\":10,\"typography\":{\"brand\":{\"weight\":\"\",\"style\":\"\",\"size\":20,\"color\":\"\"}},\"brandLogoHeight\":12,\"brandLogoMaxWidth\":224,\"galleryWidth\":50,\"stickyColumn\":true,\"contentMaxWidth\":0,\"galleryBleedLeft\":true,\"galleryBleedTop\":true,\"imageRadius\":0,\"imageGap\":4,\"imageFit\":\"cover\",\"imagePadding\":-1,\"thumbSize\":0,\"thumbRadius\":0,\"thumbActiveBorder\":\"\",\"actions\":\"cart\",\"buttonHeight\":44,\"buttonLayout\":\"inline\",\"buttonCase\":\"theme\",\"cartLabel\":\"\",\"buyLabel\":\"\",\"cartBackground\":\"\",\"cartBorder\":\"\",\"cartBorderWidth\":0,\"cartRadius\":0,\"buyBackground\":\"\",\"buyBorder\":\"\",\"buyBorderWidth\":0,\"quantityBorder\":\"\",\"ratingColor\":\"\",\"stockBackground\":\"\",\"stockRadius\":0,\"inStockBackground\":\"\",\"inStockColor\":\"\",\"outOfStockBackground\":\"\",\"outOfStockColor\":\"\",\"preorderBackground\":\"\",\"preorderColor\":\"\",\"lowStockColor\":\"\",\"discountBackground\":\"\",\"discountColor\":\"\",\"discountRadius\":999,\"accordionIcon\":\"plus\",\"accordionDivider\":\"\",\"shareSize\":40,\"shareRadius\":0,\"shareBackground\":\"\",\"shareIconColor\":\"\",\"shareNetworks\":{\"facebook\":true,\"twitter\":true,\"whatsapp\":true,\"email\":true,\"copyLink\":true}}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "product-reviews",
+          "type": "product-reviews",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        },
+        {
+          "id": "product-sponsored",
+          "type": "product-sponsored",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        },
+        {
+          "id": "product-related",
+          "type": "product-related",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "variant": "classic",
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-09-13T18:28:16.238Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "product-main",
+          "type": "product-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "galleryLayout": "vertical",
+            "rows": "[{\"id\":\"g1\",\"items\":[{\"id\":\"breadcrumb\",\"key\":\"breadcrumb\",\"on\":true},{\"id\":\"be3015c9-0a3e-4a44-96d9-a2628362f241\",\"key\":\"gap\",\"on\":true,\"size\":80},{\"id\":\"brand\",\"key\":\"brand\",\"on\":true},{\"id\":\"title\",\"key\":\"title\",\"on\":true},{\"id\":\"rating\",\"key\":\"rating\",\"on\":false},{\"id\":\"vendor\",\"key\":\"vendor\",\"on\":true},{\"id\":\"f319487c-279f-4e80-928c-107f39c8f0ec\",\"key\":\"gap\",\"on\":true,\"size\":24}]},{\"id\":\"g2\",\"items\":[{\"id\":\"price\",\"key\":\"price\",\"on\":true}]},{\"id\":\"g3\",\"items\":[{\"id\":\"variants\",\"key\":\"variants\",\"on\":true}]},{\"id\":\"g4\",\"items\":[{\"id\":\"quantity-cart\",\"key\":\"quantity-cart\",\"on\":true}]},{\"id\":\"g5\",\"items\":[{\"id\":\"description\",\"key\":\"description\",\"on\":true},{\"id\":\"details\",\"key\":\"details\",\"on\":true},{\"id\":\"faq\",\"key\":\"faq\",\"on\":true}]},{\"id\":\"g6\",\"items\":[{\"id\":\"info-card\",\"key\":\"info-card\",\"on\":true},{\"id\":\"share\",\"key\":\"share\",\"on\":true}]}]",
+            "detailStyle": "{\"visibility\":{\"discountChip\":true,\"discountChipOnImage\":true,\"itemSold\":true,\"ratingCount\":true,\"ratingMinimized\":false,\"variantCount\":false,\"quantity\":true,\"zoom\":true,\"thumbnails\":true,\"accordionOpenFirst\":false},\"style\":{\"cardRadius\":12,\"cardPadding\":16,\"cardBackground\":\"\",\"cardBorder\":\"\",\"cardBorderWidth\":1,\"previewBackground\":\"\",\"previewHeight\":850,\"groupGap\":40,\"itemGap\":10,\"typography\":{\"brand\":{\"weight\":\"\",\"style\":\"\",\"size\":20,\"color\":\"\"}},\"brandLogoHeight\":12,\"brandLogoMaxWidth\":224,\"galleryWidth\":50,\"stickyColumn\":true,\"contentMaxWidth\":0,\"galleryBleedLeft\":true,\"galleryBleedTop\":true,\"imageRadius\":0,\"imageGap\":4,\"imageFit\":\"cover\",\"imagePadding\":-1,\"thumbSize\":0,\"thumbRadius\":0,\"thumbActiveBorder\":\"\",\"actions\":\"cart\",\"buttonHeight\":44,\"buttonLayout\":\"inline\",\"buttonCase\":\"theme\",\"cartLabel\":\"\",\"buyLabel\":\"\",\"cartBackground\":\"\",\"cartBorder\":\"\",\"cartBorderWidth\":0,\"cartRadius\":0,\"buyBackground\":\"\",\"buyBorder\":\"\",\"buyBorderWidth\":0,\"quantityBorder\":\"\",\"ratingColor\":\"\",\"stockBackground\":\"\",\"stockRadius\":0,\"inStockBackground\":\"\",\"inStockColor\":\"\",\"outOfStockBackground\":\"\",\"outOfStockColor\":\"\",\"preorderBackground\":\"\",\"preorderColor\":\"\",\"lowStockColor\":\"\",\"discountBackground\":\"\",\"discountColor\":\"\",\"discountRadius\":999,\"accordionIcon\":\"plus\",\"accordionDivider\":\"\",\"shareSize\":40,\"shareRadius\":0,\"shareBackground\":\"\",\"shareIconColor\":\"\",\"shareNetworks\":{\"facebook\":true,\"twitter\":true,\"whatsapp\":true,\"email\":true,\"copyLink\":true}}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "product-reviews",
+          "type": "product-reviews",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "product-sponsored",
+          "type": "product-sponsored",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        },
+        {
+          "id": "product-related",
+          "type": "product-related",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "",
+            "variant": "classic",
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-09-13T18:28:20.503Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "product",
+    "title": "Product",
+    "updatedAt": {
+      "$date": "2026-09-13T18:28:20.504Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa536fe395e02598e5461c5"
+    },
+    "key": "group:header",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-12T11:26:14.776Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "preset-women-fashion-header-1",
+          "type": "announcement-bar",
+          "version": 3,
+          "visible": false,
+          "settings": {
+            "text": "Complimentary shipping on all orders over $100",
+            "url": "",
+            "background": {
+              "type": "solid",
+              "color": "#ffffff"
+            },
+            "height": 0,
+            "alignHorizontal": "center",
+            "alignVertical": "center",
+            "textFill": {
+              "type": "solid"
+            },
+            "fontSize": 13,
+            "fontWeight": "500",
+            "letterSpacing": 0,
+            "textTransform": "none",
+            "italic": false,
+            "underline": false
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-header-2",
+          "type": "header-bar",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-09-15T10:50:17.389Z"
+      },
+      "updatedBy": null
+    },
+    "group": "header",
+    "history": [],
+    "kind": "group",
+    "published": {
+      "sections": [
+        {
+          "id": "preset-women-fashion-header-1",
+          "type": "announcement-bar",
+          "version": 3,
+          "visible": false,
+          "settings": {
+            "text": "Complimentary shipping on all orders over $100",
+            "url": "",
+            "background": {
+              "type": "solid",
+              "color": "#ffffff"
+            },
+            "height": 0,
+            "alignHorizontal": "center",
+            "alignVertical": "center",
+            "textFill": {
+              "type": "solid"
+            },
+            "fontSize": 13,
+            "fontWeight": "500",
+            "letterSpacing": 0,
+            "textTransform": "none",
+            "italic": false,
+            "underline": false
+          },
+          "blocks": []
+        },
+        {
+          "id": "preset-women-fashion-header-2",
+          "type": "header-bar",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-09-15T10:50:17.930Z"
+      },
+      "publishedBy": null
+    },
+    "title": "Header",
+    "updatedAt": {
+      "$date": "2026-09-15T10:50:17.930Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa536fe395e02598e5461c6"
+    },
+    "key": "group:footer",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-12T11:26:15.286Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "preset-women-fashion-footer-1",
+          "type": "footer-bar",
+          "version": 1,
+          "visible": true,
+          "settings": {},
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-09-12T20:38:19.998Z"
+      },
+      "updatedBy": null
+    },
+    "group": "footer",
+    "history": [],
+    "kind": "group",
+    "published": {
+      "sections": [
+        {
+          "id": "preset-women-fashion-footer-1",
+          "type": "footer-bar",
+          "version": 1,
+          "visible": true,
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-09-12T20:38:19.998Z"
+      },
+      "publishedBy": null
+    },
+    "title": "Footer",
+    "updatedAt": {
+      "$date": "2026-09-12T20:38:20.527Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aa6f6af395e02598e546483"
+    },
+    "key": "template:products:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-09-13T19:16:24.530Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "products-main",
+          "type": "products-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "",
+            "titleAlign": "center",
+            "filterLayout": "filterBar",
+            "categoryStyle": "cards",
+            "categoryAlign": "center",
+            "categorySource": "topLevel",
+            "categoryLimit": 6,
+            "categoryRadius": 0,
+            "categorySize": 150,
+            "categoryGap": 6,
+            "categoryIds": [],
+            "coverSlider": "",
+            "cover": {
+              "type": "solid"
+            },
+            "coverWidth": "contained",
+            "coverScope": "coverTitleCategories",
+            "coverText": "#ffffff",
+            "coverHeight": 300,
+            "coverRadius": 0,
+            "coverOverlay": 0,
+            "coverBreadcrumb": true,
+            "titleSize": "large"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-09-15T16:11:46.567Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": {
+      "sections": [
+        {
+          "id": "products-main",
+          "type": "products-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "",
+            "titleAlign": "center",
+            "filterLayout": "filterBar",
+            "categoryStyle": "cards",
+            "categoryAlign": "center",
+            "categorySource": "topLevel",
+            "categoryLimit": 6,
+            "categoryRadius": 0,
+            "categorySize": 150,
+            "categoryGap": 6,
+            "categoryIds": [],
+            "coverSlider": "",
+            "cover": {
+              "type": "solid"
+            },
+            "coverWidth": "contained",
+            "coverScope": "coverTitleCategories",
+            "coverText": "#bd6565",
+            "coverHeight": 300,
+            "coverRadius": 0,
+            "coverOverlay": 0,
+            "coverBreadcrumb": true,
+            "titleSize": "large"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-09-15T16:10:53.324Z"
+      },
+      "publishedBy": null
+    },
+    "templateType": "products",
+    "title": "Products",
+    "updatedAt": {
+      "$date": "2026-09-15T16:11:46.567Z"
+    }
+  }
+]

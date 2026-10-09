@@ -1,0 +1,1351 @@
+[
+  {
+    "_id": {
+      "$oid": "6a086b3d4f82afda4ea77ef9"
+    },
+    "isDefault": true,
+    "storeName": "Storify",
+    "slug": "main-store",
+    "description": "Storify is a modern self-hosted eCommerce platform built with Next.js for online stores,\nretail POS businesses, and multi-vendor marketplaces",
+    "banner": "/placeholder-vendor.png",
+    "status": "approved",
+    "commission": 0,
+    "rating": 5,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "create_store_settings",
+      "edit_store_settings",
+      "delete_store_settings",
+      "view_analytics",
+      "view_payouts",
+      "manage_payouts",
+      "create_payouts",
+      "edit_payouts",
+      "delete_payouts",
+      "access_pos",
+      "create_pos",
+      "edit_pos",
+      "delete_pos",
+      "view_boosts",
+      "manage_boosts"
+    ],
+    "address": {
+      "street": "123 demo street",
+      "city": "Dhaka",
+      "postalCode": "1212",
+      "country": "Bangladesh",
+      "coordinates": {
+        "lat": 23.7643863,
+        "lng": 90.3890144,
+        "formatted": "ঢাকা, ঢাকা মহানগর, ঢাকা জেলা, ঢাকা বিভাগ, 1215, বাংলাদেশ",
+        "geocodedAt": "2026-08-24T18:13:12.252Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          90.3890144,
+          23.7643863
+        ]
+      }
+    },
+    "socialLinks": {
+      "website": ""
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 50
+    },
+    "createdAt": {
+      "$date": "2026-05-16T13:03:57.825Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T18:13:12.256Z"
+    },
+    "__v": 0,
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/06/1782487144557-a8d733-group_227.png",
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "storeActive": true,
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "commissionSource": "default",
+    "verified": false
+  },
+  {
+    "_id": {
+      "$oid": "6a094ecedc2b7bb4ca29c34a"
+    },
+    "isDefault": false,
+    "storeName": "Nexora",
+    "slug": "nexora",
+    "description": "New store on Storify",
+    "status": "approved",
+    "commission": 10,
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_boosts",
+      "manage_boosts"
+    ],
+    "address": {
+      "street": "1076, Gulshan, Dhaka",
+      "city": "Dhaka",
+      "state": "DHK",
+      "postalCode": "1212",
+      "country": "BD",
+      "phone": "",
+      "coordinates": {
+        "lat": 23.7921765,
+        "lng": 90.4155528,
+        "formatted": "গুলশান, ঢাকা, ঢাকা মহানগর, ঢাকা জেলা, ঢাকা বিভাগ, বাংলাদেশ",
+        "geocodedAt": "2026-07-27T12:13:34.924Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          90.4155528,
+          23.7921765
+        ]
+      }
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "createdAt": {
+      "$date": "2026-05-17T05:14:54.768Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-13T16:04:36.869Z"
+    },
+    "__v": 0,
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778995128707-0kun7x-rectangle_52__10_.png",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778995125533-w9d0at-ellipse_72__5_.png",
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "storeActive": true,
+    "commissionSource": "default",
+    "shipping": {}
+  },
+  {
+    "_id": {
+      "$oid": "6a09506bdc2b7bb4ca29c354"
+    },
+    "isDefault": false,
+    "storeName": "Storify Vendor Store",
+    "slug": "storify-vendor-store",
+    "description": "Default vendor account seeded for quick login and testing.",
+    "status": "approved",
+    "commission": 10,
+    "rating": 5,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "create_store_settings",
+      "edit_store_settings",
+      "delete_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "create_analytics",
+      "edit_analytics",
+      "delete_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_payouts",
+      "manage_payouts",
+      "create_payouts",
+      "edit_payouts",
+      "delete_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "create_pos",
+      "edit_pos",
+      "delete_pos",
+      "access_ai_studio"
+    ],
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 50
+    },
+    "createdAt": {
+      "$date": "2026-05-17T05:21:47.065Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T06:45:27.991Z"
+    },
+    "__v": 1,
+    "banner": "/placeholder-vendor.png",
+    "logo": "/placeholder-vendor.png",
+    "shipping": {
+      "enabled": true,
+      "weightUnit": "kg",
+      "delivery": {
+        "processingDaysMin": 0,
+        "processingDaysMax": 0,
+        "showEstimatedDelivery": true
+      },
+      "zones": [],
+      "fallbackRate": {
+        "enabled": false,
+        "name": "Standard",
+        "price": 20
+      },
+      "localPickup": {
+        "enabled": false,
+        "pickupAddress": "Uttar Badda"
+      },
+      "zoneRates": [
+        {
+          "zoneId": "91843b25-d99f-4297-ac32-e58c5d2e99f9",
+          "rates": [
+            {
+              "id": "a8bfcc59-b1de-4865-a077-7473fe6de723",
+              "name": "Standard Delivery",
+              "type": "flat",
+              "price": 70,
+              "minDays": 3,
+              "maxDays": 5,
+              "active": true
+            },
+            {
+              "id": "83fc7523-9552-42ba-abea-becaeaab888f",
+              "name": "Express Delivery",
+              "type": "flat",
+              "price": 120,
+              "minDays": 1,
+              "maxDays": 2,
+              "active": true
+            }
+          ]
+        }
+      ],
+      "codCollectedBy": "platform"
+    },
+    "address": {
+      "street": "123 Vendor Lane",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "USA",
+      "phone": "+1 555-0200",
+      "coordinates": {
+        "lat": 40.7127281,
+        "lng": -74.0060152,
+        "formatted": "New York, United States",
+        "geocodedAt": "2026-07-27T12:13:39.347Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -74.0060152,
+          40.7127281
+        ]
+      }
+    },
+    "socialLinks": {
+      "website": "https://storify.com"
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": [
+        {
+          "id": "42d0f8e1-270a-436e-ba00-b1947b0c2568",
+          "label": "messenger",
+          "urlTemplate": "fb-messenger://share?link={url}",
+          "enabled": true
+        }
+      ]
+    },
+    "commissionSource": "manual",
+    "storeActive": true,
+    "verified": false,
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a095622dc2b7bb4ca29c35b"
+    },
+    "isDefault": false,
+    "storeName": "Electronica XR",
+    "slug": "electronica-xr",
+    "description": "Electronics and Gadgets",
+    "status": "approved",
+    "commission": 10,
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "create_store_settings",
+      "edit_store_settings",
+      "delete_store_settings",
+      "view_analytics",
+      "view_payouts",
+      "manage_payouts",
+      "create_payouts",
+      "edit_payouts",
+      "delete_payouts",
+      "access_pos",
+      "create_pos",
+      "edit_pos",
+      "delete_pos",
+      "view_boosts",
+      "manage_boosts"
+    ],
+    "address": {
+      "street": "123 street shenzhen-5124",
+      "city": "Shenzhen",
+      "state": "",
+      "postalCode": "5124",
+      "country": "CN",
+      "phone": "+8699959954247",
+      "coordinates": {
+        "lat": 22.5445741,
+        "lng": 114.0545429,
+        "formatted": "深圳市, 广东省, 中国",
+        "geocodedAt": "2026-07-27T12:13:42.680Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          114.0545429,
+          22.5445741
+        ]
+      }
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "createdAt": {
+      "$date": "2026-05-17T05:46:10.947Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-21T01:09:21.203Z"
+    },
+    "__v": 0,
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997085009-entauw-rectangle_52__12_.png",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997065397-1qp7z4-ellipse_72__7_.png",
+    "commissionSource": "manual",
+    "permissionOverrides": [
+      {
+        "permission": "view_brands",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "create_brands",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "edit_brands",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "view_inbox",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "reply_inbox",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "manage_inbox",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "manage_channels",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "view_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "manage_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "create_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "edit_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "delete_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "view_discounts",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "manage_discounts",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "create_discounts",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "edit_discounts",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "delete_discounts",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-20T22:31:56.176Z"
+        },
+        "expiresAt": null
+      }
+    ],
+    "shipping": {
+      "codCollectedBy": "platform"
+    },
+    "storeActive": true,
+    "verified": false
+  },
+  {
+    "_id": {
+      "$oid": "6a095a2edc2b7bb4ca29c367"
+    },
+    "isDefault": false,
+    "storeName": "Haier Angie",
+    "slug": "haier-angie",
+    "description": "Electronics and Apliances",
+    "status": "approved",
+    "commission": 10,
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "create_store_settings",
+      "edit_store_settings",
+      "delete_store_settings",
+      "view_analytics",
+      "view_payouts",
+      "manage_payouts",
+      "create_payouts",
+      "edit_payouts",
+      "delete_payouts",
+      "access_pos",
+      "create_pos",
+      "edit_pos",
+      "delete_pos",
+      "view_brands",
+      "view_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "create_brands",
+      "edit_brands",
+      "create_analytics",
+      "delete_analytics",
+      "edit_analytics",
+      "view_boosts",
+      "manage_boosts"
+    ],
+    "address": {
+      "street": "550 S Alaska St, Palmer, AK 99645, USA",
+      "city": "Palmer",
+      "state": "AK",
+      "postalCode": "99645",
+      "country": "US",
+      "phone": "+1202555741",
+      "coordinates": {
+        "lat": 61.5995703,
+        "lng": -149.11109,
+        "formatted": "Palmer, Matanuska-Susitna Borough, Alaska, United States",
+        "geocodedAt": "2026-08-13T13:51:17.248Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -149.11109,
+          61.5995703
+        ]
+      }
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "createdAt": {
+      "$date": "2026-05-17T06:03:26.621Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-13T13:51:17.422Z"
+    },
+    "__v": 0,
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997997713-l0djol-rectangle_52__11_.png",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997993289-g31ccu-ellipse_72__6_.png",
+    "socialLinks": {},
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": false,
+      "custom": []
+    },
+    "shipping": {
+      "enabled": true,
+      "weightUnit": "kg",
+      "carriers": {
+        "mode": "platform",
+        "shippo": {
+          "enabled": false,
+          "mode": "test"
+        },
+        "shiprocket": {
+          "enabled": false
+        }
+      },
+      "delivery": {
+        "processingDaysMin": 3,
+        "processingDaysMax": 7,
+        "showEstimatedDelivery": true
+      },
+      "zones": [],
+      "zoneRates": [
+        {
+          "zoneId": "91843b25-d99f-4297-ac32-e58c5d2e99f9",
+          "rates": [
+            {
+              "id": "32716a10-d47e-4bcc-9cd0-9bc96d789169",
+              "name": "Standard Delivery",
+              "type": "flat",
+              "price": 30,
+              "minDays": 3,
+              "maxDays": 5,
+              "active": true
+            },
+            {
+              "id": "5d9ffe57-8629-4619-b5e2-415d99bb220b",
+              "name": "Weight",
+              "type": "weight_range",
+              "price": 100,
+              "minWeight": 1,
+              "maxWeight": 999,
+              "pricePerWeightUnit": 10,
+              "minDays": 12,
+              "maxDays": 14,
+              "active": true
+            }
+          ]
+        }
+      ],
+      "fallbackRate": {
+        "enabled": false,
+        "name": "Standard",
+        "price": 0
+      },
+      "localPickup": {
+        "enabled": false,
+        "locations": [],
+        "weeklyHours": []
+      }
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "commissionSource": "default"
+  },
+  {
+    "_id": {
+      "$oid": "6a0a98ed5d747a63e3255c0b"
+    },
+    "isDefault": false,
+    "storeName": "StyleCraft",
+    "slug": "stylecraft",
+    "description": "Modern fashion, crafted beautifully.",
+    "status": "approved",
+    "commission": 10,
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "create_store_settings",
+      "edit_store_settings",
+      "delete_store_settings",
+      "view_analytics",
+      "view_payouts",
+      "manage_payouts",
+      "create_payouts",
+      "edit_payouts",
+      "delete_payouts",
+      "access_pos",
+      "create_pos",
+      "edit_pos",
+      "delete_pos",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "access_ai_studio",
+      "view_boosts",
+      "manage_boosts"
+    ],
+    "address": {
+      "street": "Seattle 4214, Washington, United States",
+      "city": "Seattle",
+      "state": "WA",
+      "postalCode": "123456",
+      "country": "US",
+      "phone": "+1(212) 555-0198",
+      "coordinates": {
+        "lat": 47.6038321,
+        "lng": -122.330062,
+        "formatted": "Seattle, King County, Washington, United States",
+        "geocodedAt": "2026-07-27T12:13:51.524Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -122.330062,
+          47.6038321
+        ]
+      }
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "createdAt": {
+      "$date": "2026-05-18T04:43:25.507Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T03:54:34.048Z"
+    },
+    "__v": 0,
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779080515914-q4dqjw-chatgpt_image_may_18__2026__11_01_33_am.png",
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779080928307-gwdokj-chatgpt_image_may_18__2026__11_08_38_am.png",
+    "shipping": {
+      "enabled": true,
+      "weightUnit": "kg",
+      "delivery": {
+        "processingDaysMin": 0,
+        "processingDaysMax": 0,
+        "showEstimatedDelivery": true
+      },
+      "zones": [],
+      "fallbackRate": {
+        "enabled": false,
+        "name": "Normal Delivery",
+        "price": 20
+      },
+      "localPickup": {
+        "enabled": false
+      },
+      "zoneRates": [
+        {
+          "zoneId": "91843b25-d99f-4297-ac32-e58c5d2e99f9",
+          "rates": [
+            {
+              "id": "9bb26943-7d80-44d0-92eb-ba9a6d523814",
+              "name": "Standard Delivery",
+              "type": "flat",
+              "price": 30,
+              "minDays": 3,
+              "maxDays": 7,
+              "active": true
+            },
+            {
+              "id": "2449e5d2-ff54-4624-895e-e3b4fd7f93aa",
+              "name": "Express Delivery",
+              "type": "flat",
+              "price": 100,
+              "minDays": 1,
+              "maxDays": 2,
+              "active": true
+            }
+          ]
+        }
+      ],
+      "codCollectedBy": "inherit"
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": true,
+      "pinterest": false,
+      "linkedin": false,
+      "email": false,
+      "custom": []
+    },
+    "commissionSource": "manual",
+    "storeActive": true,
+    "verified": true,
+    "permissionOverrides": [
+      {
+        "permission": "view_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "manage_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "create_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "edit_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "delete_staff",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "manage_discounts",
+        "mode": "revoke",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      },
+      {
+        "permission": "access_ai_studio",
+        "mode": "grant",
+        "reason": "Migrated from the previous permission list",
+        "grantedBy": "6a086b3a4f82afda4ea77ef4",
+        "grantedAt": {
+          "$date": "2026-08-23T03:54:34.042Z"
+        },
+        "expiresAt": null
+      }
+    ]
+  },
+  {
+    "_id": {
+      "$oid": "6a6755d54eb452392a3f40cb"
+    },
+    "isDefault": false,
+    "storeName": "Ahmed Shop",
+    "slug": "ahmed-shop",
+    "description": "Hello welcome to our new shop in storify",
+    "status": "approved",
+    "storeActive": true,
+    "commission": 5,
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "create_store_settings",
+      "edit_store_settings",
+      "delete_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "create_analytics",
+      "edit_analytics",
+      "delete_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_payouts",
+      "manage_payouts",
+      "create_payouts",
+      "edit_payouts",
+      "delete_payouts",
+      "access_pos",
+      "create_pos",
+      "edit_pos",
+      "delete_pos",
+      "access_ai_studio"
+    ],
+    "address": {
+      "street": "Uttar Badda",
+      "city": "Dhaka",
+      "state": "DHK",
+      "postalCode": "1212",
+      "country": "BD",
+      "phone": "+8801444111222",
+      "coordinates": {
+        "lat": 23.7857042,
+        "lng": 90.4256113,
+        "formatted": "Uttar Badda Bus Stop, বীর উত্তম রফিকুল ইসলাম এভিনিউ, গুপিপাড়া, মধ্য বাড্ডা, গুলশান, ঢাকা, ঢাকা মহানগর, ঢাকা জেলা, ঢাকা বিভাগ, 1212, বাংলাদেশ",
+        "geocodedAt": "2026-08-13T15:49:57.051Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          90.4256113,
+          23.7857042
+        ]
+      }
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "full",
+      "showPhone": false
+    },
+    "createdAt": {
+      "$date": "2026-07-27T12:57:57.518Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:53:21.944Z"
+    },
+    "__v": 0,
+    "shipping": {
+      "enabled": true,
+      "weightUnit": "kg",
+      "delivery": {
+        "processingDaysMin": 0,
+        "processingDaysMax": 0,
+        "showEstimatedDelivery": true
+      },
+      "zones": [],
+      "fallbackRate": {
+        "enabled": false,
+        "name": "Standard",
+        "price": 0
+      },
+      "localPickup": {
+        "enabled": true,
+        "locations": [
+          {
+            "id": "main-pickup-location",
+            "name": "Ghulshan Branch",
+            "enabled": true,
+            "pickupArea": "Ghulshan, Dhaka",
+            "pickupAddress": "Ghulshan no-1, street demo 120, demo market place, floor-1, shop:22",
+            "instructions": "Counter 3-এ order number দেখান",
+            "timeZone": "Asia/Dhaka",
+            "weeklyHours": [
+              {
+                "weekday": 0,
+                "enabled": false,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 1,
+                "enabled": true,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 2,
+                "enabled": true,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 3,
+                "enabled": true,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 4,
+                "enabled": true,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 5,
+                "enabled": true,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 6,
+                "enabled": true,
+                "start": "09:00",
+                "end": "17:00"
+              }
+            ]
+          },
+          {
+            "id": "d6f3264b-7534-4625-b1b4-2f4d3dc86ed1",
+            "name": "Dhanmondi Branch",
+            "enabled": true,
+            "pickupArea": "Dhanmondi, Dhaka",
+            "pickupAddress": "Dhanmondi, street demo 125, demo market place, floor-1, shop:25",
+            "instructions": "Counter 1-এ order number দেখান",
+            "timeZone": "Asia/Dhaka",
+            "weeklyHours": [
+              {
+                "weekday": 0,
+                "enabled": true,
+                "start": "10:00",
+                "end": "20:00"
+              },
+              {
+                "weekday": 1,
+                "enabled": true,
+                "start": "10:00",
+                "end": "20:00"
+              },
+              {
+                "weekday": 2,
+                "enabled": true,
+                "start": "10:00",
+                "end": "20:00"
+              },
+              {
+                "weekday": 3,
+                "enabled": true,
+                "start": "10:00",
+                "end": "20:00"
+              },
+              {
+                "weekday": 4,
+                "enabled": true,
+                "start": "10:00",
+                "end": "20:00"
+              },
+              {
+                "weekday": 5,
+                "enabled": false,
+                "start": "09:00",
+                "end": "17:00"
+              },
+              {
+                "weekday": 6,
+                "enabled": true,
+                "start": "09:00",
+                "end": "20:00"
+              }
+            ]
+          }
+        ],
+        "pickupArea": "Dhaka",
+        "pickupAddress": "Uttrar Badda",
+        "timeZone": "Asia/Dhaka",
+        "weeklyHours": [
+          {
+            "weekday": 0,
+            "enabled": false,
+            "start": "09:00",
+            "end": "17:00"
+          },
+          {
+            "weekday": 1,
+            "enabled": true,
+            "start": "09:00",
+            "end": "17:00"
+          },
+          {
+            "weekday": 2,
+            "enabled": true,
+            "start": "09:00",
+            "end": "17:00"
+          },
+          {
+            "weekday": 3,
+            "enabled": true,
+            "start": "09:00",
+            "end": "17:00"
+          },
+          {
+            "weekday": 4,
+            "enabled": true,
+            "start": "09:00",
+            "end": "17:00"
+          },
+          {
+            "weekday": 5,
+            "enabled": true,
+            "start": "09:00",
+            "end": "17:00"
+          },
+          {
+            "weekday": 6,
+            "enabled": false,
+            "start": "09:00",
+            "end": "17:00"
+          }
+        ]
+      },
+      "zoneRates": [
+        {
+          "zoneId": "91843b25-d99f-4297-ac32-e58c5d2e99f9",
+          "rates": [
+            {
+              "id": "7b9bc7c5-3e76-4dfb-a508-b18cb9fa0279",
+              "name": "Standard",
+              "type": "flat",
+              "price": 70,
+              "minDays": 5,
+              "maxDays": 7,
+              "active": true
+            },
+            {
+              "id": "0b009da0-dc0f-42c6-990e-e058d56b5bd1",
+              "name": "Express",
+              "type": "flat",
+              "price": 100,
+              "minDays": 3,
+              "maxDays": 5,
+              "active": true
+            }
+          ]
+        }
+      ],
+      "codCollectedBy": "inherit"
+    },
+    "commissionSource": "manual",
+    "permissionOverrides": [],
+    "verified": true,
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787462069966-648u83/ChatGPT_Image_Aug_23__2026__11_14_13_AM.webp",
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787472164667-r7duvm/ChatGPT_Image_Aug_23__2026__02_01_49_PM.webp"
+  }
+]

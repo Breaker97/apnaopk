@@ -1,0 +1,2627 @@
+[
+  {
+    "_id": {
+      "$oid": "6a8483134ff48f1b8b6ca8d6"
+    },
+    "name": "Action Cameras",
+    "slug": "action-cameras",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787115966926-l69w03/ChatGPT_Image_Aug_19__2026__11_05_50_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:06:43.213Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T09:18:11.741Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8488004ff48f1b8b6ca8f0"
+    },
+    "name": "Baby Clothing",
+    "slug": "baby-clothing",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787385599514-1br6ic/ChatGPT_Image_Aug_22__2026__01_31_17_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8487bc4ff48f1b8b6ca8ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:27:44.066Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T08:00:02.447Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a087f49894b3f639931fd02"
+    },
+    "name": "Bags & Luggage",
+    "slug": "bags-luggage",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787158051900-pq4b9j/ChatGPT_Image_Aug_19__2026__10_47_19_PM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941727441-y3a38x-group_417.png",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-16T14:29:29.967Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-25T21:32:37.931Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Bags",
+      "tags": [
+        "bags",
+        "shopping"
+      ]
+    },
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a86a6935a7e5991bcc735ec"
+    },
+    "name": "Bath Accessories",
+    "slug": "bath-accessories",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787460181403-5xixpr/ChatGPT_Image_Aug_23__2026__10_42_21_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a50f5a7e5991bcc735e8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Bath Accessories"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:02:43.292Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T05:26:40.942Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a50f5a7e5991bcc735e8"
+    },
+    "name": "Bedding & Bath",
+    "slug": "bedding-bath",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787459157849-ji8f9p/ChatGPT_Image_Aug_23__2026__10_25_16_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8589d7afb8e01587f3fb71"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Bedding & Bath"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:56:15.254Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T04:26:03.143Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a869f1c5a7e5991bcc735db"
+    },
+    "name": "Beds",
+    "slug": "beds",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209280394-t5829n/ChatGPT_Image_Aug_20__2026__12_59_36_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:30:52.383Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:01:25.541Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8484794ff48f1b8b6ca8dd"
+    },
+    "name": "Bluetooth Speakers",
+    "slug": "bluetooth-speakers",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153669862-gn8cas/ChatGPT_Image_Aug_19__2026__09_33_51_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf5"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:12:41.079Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:34:41.367Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a0175a7e5991bcc735df"
+    },
+    "name": "Bookshelves",
+    "slug": "bookshelves",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210007164-ybvqrx/ChatGPT_Image_Aug_20__2026__01_11_33_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:35:03.461Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:13:30.134Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8488f44ff48f1b8b6ca8f6"
+    },
+    "name": "Boots",
+    "slug": "boots",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787155567032-td4vsf/ChatGPT_Image_Aug_19__2026__10_05_55_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:31:48.423Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T16:06:10.357Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8487d74ff48f1b8b6ca8ee"
+    },
+    "name": "Boys Clothing",
+    "slug": "boys-clothing",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787385630819-s94k81/ChatGPT_Image_Aug_22__2026__12_50_42_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8487bc4ff48f1b8b6ca8ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:27:03.056Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T08:00:33.745Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84835a4ff48f1b8b6ca8d8"
+    },
+    "name": "Camera Lenses",
+    "slug": "camera-lenses",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787116332659-lcqfrx/ChatGPT_Image_Aug_19__2026__11_12_01_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:07:54.858Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T05:12:20.936Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a7685a7e5991bcc735ef"
+    },
+    "name": "Ceiling Lights",
+    "slug": "ceiling-lights",
+    "description": "",
+    "image": "",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:06:16.120Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:06:16.120Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84530e6c57a6027c4b41dd"
+    },
+    "name": "Chargers & Cables",
+    "slug": "chargers-cables",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787143374782-c62b7n/ChatGPT_Image_Aug_19__2026__06_42_40_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:41:50.108Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T12:43:05.026Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a61e5a7e5991bcc735eb"
+    },
+    "name": "Comforters",
+    "slug": "comforters",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787460775790-m7fdl4/ChatGPT_Image_Aug_23__2026__10_52_13_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a50f5a7e5991bcc735e8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Comforters"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:00:46.874Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T04:53:01.384Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8b00fec803c32272ea57a3"
+    },
+    "name": "Consoles",
+    "slug": "consoles",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787495592968-j0pgjh/ChatGPT_Image_Aug_23__2026__08_32_10_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a869a685a7e5991bcc735d8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Consoles"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-23T14:17:34.892Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T14:33:20.477Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a3745a7e5991bcc735e2"
+    },
+    "name": "Cookware",
+    "slug": "cookware",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787385519576-ynl1gh/ChatGPT_Image_Aug_22__2026__12_41_21_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:49:24.004Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T07:58:43.702Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a5e25a7e5991bcc735ea"
+    },
+    "name": "Curtains",
+    "slug": "curtains",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787461111181-ay0puq/ChatGPT_Image_Aug_23__2026__10_57_47_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a50f5a7e5991bcc735e8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Curtains"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:59:46.767Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T04:58:38.188Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a49e5a7e5991bcc735e6"
+    },
+    "name": "Cutlery",
+    "slug": "cutlery",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787469615966-thfwnm/ChatGPT_Image_Aug_23__2026__01_19_36_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Cutlery"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:54:22.884Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T07:20:21.113Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a087fc0894b3f639931fd04"
+    },
+    "name": "DSLR Cameras",
+    "slug": "dslr-cameras",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787155040090-dgubmn/ChatGPT_Image_Aug_19__2026__09_52_21_PM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941878589-hsnrsk-group_418.png",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "productCount": 4,
+    "createdAt": {
+      "$date": "2026-05-16T14:31:28.325Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:57:24.286Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Camera"
+    },
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "name": "Decor & Lighting",
+    "slug": "decor-lighting",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787376591774-aey9nu/ChatGPT_Image_Aug_22__2026__11_28_42_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8589d7afb8e01587f3fb71"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Decor & Lighting"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:05:16.849Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T05:30:11.573Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8456916c57a6027c4b41e0"
+    },
+    "name": "Desktops",
+    "slug": "desktops",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787122898654-zvec79/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:56:49.702Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T07:01:43.374Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a869f6c5a7e5991bcc735dd"
+    },
+    "name": "Dining Tables",
+    "slug": "dining-tables",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209665114-ap2n4v/ChatGPT_Image_Aug_20__2026__01_07_00_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:32:12.545Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:09:58.688Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a3905a7e5991bcc735e3"
+    },
+    "name": "Dinnerware",
+    "slug": "dinnerware",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787471172149-vrmxjj/ChatGPT_Image_Aug_23__2026__01_45_12_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Dinnerware"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:49:52.941Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T07:46:21.626Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84865d4ff48f1b8b6ca8e8"
+    },
+    "name": "Dresses",
+    "slug": "dresses",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787211052145-6ozudc/ChatGPT_Image_Aug_20__2026__01_26_34_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:20:45.260Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:30:57.315Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8483444ff48f1b8b6ca8d7"
+    },
+    "name": "Drones",
+    "slug": "drones",
+    "description": "Drones offer an exciting way to capture breathtaking aerial shots and experience flying like never before. Whether you're a hobbyist or a professional, our drones selection includes models that are easy to use and full of features. Take your creativity to new heights today!",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787117465000-qywwqb/ChatGPT_Image_Aug_19__2026__11_30_27_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:07:32.576Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T05:33:04.323Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8484664ff48f1b8b6ca8dc"
+    },
+    "name": "Earbuds",
+    "slug": "earbuds",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787154205163-9xdnpq/ChatGPT_Image_Aug_19__2026__09_42_36_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf5"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:12:22.694Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:44:09.775Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8452ae6c57a6027c4b41da"
+    },
+    "name": "Feature Phones",
+    "slug": "feature-phones",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787143828562-xr0d93/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:40:14.878Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:10:25.801Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "name": "Footwear",
+    "slug": "footwear",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787206689627-jqbkmp/ChatGPT_Image_Aug_20__2026__12_17_53_PM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778942066931-8t6801-group_419.png",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf2"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "productCount": 7,
+    "createdAt": {
+      "$date": "2026-05-16T14:34:29.705Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:18:15.737Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Shoes"
+    },
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a8488b04ff48f1b8b6ca8f3"
+    },
+    "name": "Formal Shoes",
+    "slug": "formal-shoes",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787207088476-ca2djf/ChatGPT_Image_Aug_20__2026__12_24_15_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:30:40.379Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T09:19:03.624Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "name": "Furniture",
+    "slug": "furniture",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787157722426-lm9x40/ChatGPT_Image_Aug_19__2026__10_29_54_PM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779254423768-w8ijco-storify_furniture_category_icon_101x101.png",
+    "parentId": {
+      "$oid": "6a8589d7afb8e01587f3fb71"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "productCount": 2,
+    "createdAt": {
+      "$date": "2026-05-19T12:32:15.381Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T16:42:11.649Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Furniture"
+    },
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a8bf45262c3234430066822"
+    },
+    "name": "Games & Credit",
+    "slug": "games-credit",
+    "description": "",
+    "image": "",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a869a685a7e5991bcc735d8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-24T07:35:46.527Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T07:35:46.527Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a869a685a7e5991bcc735d8"
+    },
+    "name": "Gaming",
+    "slug": "gaming",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787208242777-zqlf5g/ChatGPT_Image_Aug_20__2026__12_43_23_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:10:48.873Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:44:36.553Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8b016ac803c32272ea57a4"
+    },
+    "name": "Gaming Gears",
+    "slug": "pc-gaming",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787497151409-frqhjd/ChatGPT_Image_Aug_23__2026__08_57_54_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a869a685a7e5991bcc735d8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "PC Gaming"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-23T14:19:22.456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T14:59:14.707Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8487f14ff48f1b8b6ca8ef"
+    },
+    "name": "Girls Clothing",
+    "slug": "girls-clothing",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787400380440-ki1kh3/ChatGPT_Image_Aug_22__2026__05_53_54_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8487bc4ff48f1b8b6ca8ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:27:29.758Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T12:06:36.315Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a0880a0894b3f639931fd08"
+    },
+    "name": "Headphones",
+    "slug": "headphones",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153824178-ahciw2/ChatGPT_Image_Aug_19__2026__09_36_45_PM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778942107852-hvhkc3-group_420.png",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf5"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-05-16T14:35:12.740Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:37:10.001Z"
+    },
+    "__v": 0,
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a8589d7afb8e01587f3fb71"
+    },
+    "name": "Home & Living",
+    "slug": "home-living",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787208445926-nd2vzv/ChatGPT_Image_Aug_6__2026__06_50_57_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-19T10:47:51.254Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:47:34.607Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a087f90894b3f639931fd03"
+    },
+    "name": "Home Appliances",
+    "slug": "home-appliances",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787205392369-yk1tu6/ChatGPT_Image_Aug_20__2026__11_54_56_AM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/07/1784790262597-7psuet/1784200247001-vh0k6b-ai-category-image_edit-1784200246650.webp",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "productCount": 2,
+    "createdAt": {
+      "$date": "2026-05-16T14:30:40.146Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T05:56:37.818Z"
+    },
+    "__v": 0,
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a84849f4ff48f1b8b6ca8df"
+    },
+    "name": "Home Theatre",
+    "slug": "home-theatre",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787154421016-k2m6di/ChatGPT_Image_Aug_19__2026__09_46_19_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf5"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:13:19.669Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:47:06.497Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a8b55a7e5991bcc735f3"
+    },
+    "name": "Indoor Plants",
+    "slug": "indoor-plants",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787463884232-94k6r4/ChatGPT_Image_Aug_23__2026__11_43_51_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Indoor Plants"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:11:49.791Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T05:44:49.462Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8485c74ff48f1b8b6ca8e6"
+    },
+    "name": "Jackets",
+    "slug": "jackets",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787211005463-yz5i6w/ChatGPT_Image_Aug_20__2026__01_29_57_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:18:15.701Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:30:11.061Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84857f4ff48f1b8b6ca8e4"
+    },
+    "name": "Jeans",
+    "slug": "jeans",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210394400-imeubk/ChatGPT_Image_Aug_20__2026__01_19_33_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:17:03.188Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:19:58.334Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a847b6a4ff48f1b8b6ca8d1"
+    },
+    "name": "Keyboards & Mice",
+    "slug": "keyboards-mice",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787124433860-6tkqke/ChatGPT_Image_Aug_19__2026__01_27_06_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T15:34:02.011Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T07:27:18.476Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8487bc4ff48f1b8b6ca8ed"
+    },
+    "name": "Kids",
+    "slug": "kids",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787475526603-0flwmp/ChatGPT_Image_Aug_23__2026__02_58_08_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf2"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Kids"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:26:36.172Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T08:58:49.543Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8488214ff48f1b8b6ca8f2"
+    },
+    "name": "Kids Accessories",
+    "slug": "kids-accessories",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787469330892-1xusme/ChatGPT_Image_Aug_23__2026__01_14_51_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8487bc4ff48f1b8b6ca8ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Kids Accessories"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:28:17.829Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T07:15:34.518Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8488144ff48f1b8b6ca8f1"
+    },
+    "name": "Kids Footwear",
+    "slug": "kids-footwear",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787458228535-hsj6b0/ChatGPT_Image_Aug_22__2026__06_47_05_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8487bc4ff48f1b8b6ca8ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Kids Footwear"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:28:04.568Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T04:10:34.390Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "name": "Kitchen & Dining",
+    "slug": "kitchen-dining",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787226134051-nirlz0/ChatGPT_Image_Aug_20__2026__05_24_56_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8589d7afb8e01587f3fb71"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Kitchen & Dining"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:46:33.127Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T11:42:18.552Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a3ac5a7e5991bcc735e4"
+    },
+    "name": "Kitchen Storage",
+    "slug": "kitchen-storage",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787471611249-b1hd9w/ChatGPT_Image_Aug_23__2026__01_52_52_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Kitchen Storage"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:50:20.789Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T07:53:34.458Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a4755a7e5991bcc735e5"
+    },
+    "name": "Kitchen Tools",
+    "slug": "kitchen-tools",
+    "description": "",
+    "image": "",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:53:41.211Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:53:41.211Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84534e6c57a6027c4b41df"
+    },
+    "name": "Laptops",
+    "slug": "laptops",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787136606684-0aqofg/ChatGPT_Image_Aug_19__2026__04_49_49_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:42:54.567Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T10:50:13.352Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8488e04ff48f1b8b6ca8f5"
+    },
+    "name": "Loafers",
+    "slug": "loafers",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787460842060-eobw7q/ChatGPT_Image_Aug_23__2026__10_10_48_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Loafers"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:31:28.743Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T04:54:06.640Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "name": "Men",
+    "slug": "men",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787212418899-xs82uv/ChatGPT_Image_Aug_20__2026__01_53_13_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf2"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:14:37.767Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:53:59.794Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8483004ff48f1b8b6ca8d5"
+    },
+    "name": "Mirrorless Cameras",
+    "slug": "mirrorless-cameras",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787118182679-75vin2/ChatGPT_Image_Aug_19__2026__11_42_49_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:06:24.324Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T05:43:13.023Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a78d5a7e5991bcc735f1"
+    },
+    "name": "Mirrors",
+    "slug": "mirrors",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787464222973-dwk9ts/ChatGPT_Image_Aug_23__2026__11_49_37_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Mirrors"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:06:53.612Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T05:50:25.717Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a847b4b4ff48f1b8b6ca8d0"
+    },
+    "name": "Monitors",
+    "slug": "monitors",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787137120198-eyqitv/ChatGPT_Image_Aug_19__2026__04_58_33_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T15:33:31.009Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T10:58:43.830Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a0045a7e5991bcc735de"
+    },
+    "name": "Office Chairs",
+    "slug": "office-chairs",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209957369-y4v29g/ChatGPT_Image_Aug_20__2026__01_12_21_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:34:44.330Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:12:42.408Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84879b4ff48f1b8b6ca8ec"
+    },
+    "name": "Outerwear",
+    "slug": "outerwear",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787385553711-w2nzq4/ChatGPT_Image_Aug_22__2026__12_45_07_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:26:03.029Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T07:59:17.151Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8486324ff48f1b8b6ca8e7"
+    },
+    "name": "Panjabi",
+    "slug": "panjabi",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210710430-7agz0s/ChatGPT_Image_Aug_20__2026__01_24_55_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:20:02.730Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:25:28.166Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8452cb6c57a6027c4b41db"
+    },
+    "name": "Phone Cases",
+    "slug": "phone-cases",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787152845126-j6qrml/ChatGPT_Image_Aug_19__2026__09_18_02_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:40:43.467Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:20:49.130Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a847b994ff48f1b8b6ca8d3"
+    },
+    "name": "Printers",
+    "slug": "printers",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787141042579-55n919/ChatGPT_Image_Aug_19__2026__06_03_45_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T15:34:49.535Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T12:04:15.541Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a86e5a7e5991bcc735f2"
+    },
+    "name": "Rugs",
+    "slug": "rugs",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787468163208-typ2mm/ChatGPT_Image_Aug_23__2026__12_55_14_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Rugs"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:10:38.814Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T06:56:08.627Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84870a4ff48f1b8b6ca8ea"
+    },
+    "name": "Salwar Kameez",
+    "slug": "jackets-2",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787376461320-3jm5n3/ChatGPT_Image_Aug_20__2026__08_43_54_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Salwar Kameez"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:23:38.624Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T05:27:46.405Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8488c04ff48f1b8b6ca8f4"
+    },
+    "name": "Sandals",
+    "slug": "sandals",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787462013291-bq2klq/ChatGPT_Image_Aug_23__2026__11_10_23_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Sandals"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:30:56.694Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T05:13:36.506Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8935284af370d0ab00c723"
+    },
+    "name": "Sarees",
+    "slug": "m",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787377065372-f6kv85/ChatGPT_Image_Aug_22__2026__11_31_48_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-22T05:35:36.838Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T05:37:48.227Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8452fb6c57a6027c4b41dc"
+    },
+    "name": "Screen Protectors",
+    "slug": "screen-protectors",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153353600-w6m228/ChatGPT_Image_Aug_19__2026__09_28_53_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:41:31.936Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:29:19.686Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8485264ff48f1b8b6ca8e2"
+    },
+    "name": "Shirts",
+    "slug": "shirts",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787156070705-cdjkf0/ChatGPT_Image_Aug_19__2026__10_12_11_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:15:34.714Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T16:14:36.994Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84871f4ff48f1b8b6ca8eb"
+    },
+    "name": "Skirts",
+    "slug": "skirts",
+    "description": "",
+    "image": "",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:23:59.942Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-18T16:23:59.942Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84890b4ff48f1b8b6ca8f7"
+    },
+    "name": "Slippers",
+    "slug": "slippers",
+    "description": "",
+    "image": "",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:32:11.461Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-18T16:32:11.461Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8450626c57a6027c4b41d8"
+    },
+    "name": "Smart Phones",
+    "slug": "smart-phones",
+    "description": "Discover the latest Smart Phones featuring cutting-edge technology, sleek designs, and powerful performance. Whether you're looking for top brands or budget-friendly options, find the perfect device to stay connected and productive on the go.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787115689201-eaulm4/ChatGPT_Image_Aug_19__2026__11_01_04_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:30:26.216Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T04:44:34.439Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a858a32afb8e01587f3fb72"
+    },
+    "name": "Sofas",
+    "slug": "sofas",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209064166-a3lfj9/ChatGPT_Image_Aug_20__2026__12_56_26_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-19T10:49:22.440Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:57:51.608Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86994d5a7e5991bcc735d7"
+    },
+    "name": "Sports & Outdoors",
+    "slug": "sports-outdoors",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787207627188-ltd57g/ChatGPT_Image_Aug_20__2026__12_33_36_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:06:06.002Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:33:51.103Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a847b814ff48f1b8b6ca8d2"
+    },
+    "name": "Storage & Drives",
+    "slug": "storage-drives",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787142987675-q2fsf3/ChatGPT_Image_Aug_19__2026__06_36_20_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T15:34:25.867Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T12:36:31.521Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84853c4ff48f1b8b6ca8e3"
+    },
+    "name": "T-Shirts",
+    "slug": "t-shirts",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787156520618-mj4234/ChatGPT_Image_Aug_19__2026__10_21_40_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:15:56.267Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T16:22:08.473Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a77b5a7e5991bcc735f0"
+    },
+    "name": "Table Lamps",
+    "slug": "table-lamps",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787376223633-rh8y2n/ChatGPT_Image_Aug_22__2026__11_20_48_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Table Lamps"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:06:35.899Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-22T05:23:51.193Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8452856c57a6027c4b41d9"
+    },
+    "name": "Tablets",
+    "slug": "tablets",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153392523-7ecqcd/ChatGPT_Image_Aug_19__2026__12_06_24_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T12:39:33.576Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:29:59.414Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8483cd4ff48f1b8b6ca8da"
+    },
+    "name": "Televisions",
+    "slug": "televisions",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787155059829-klcad8/ChatGPT_Image_Aug_19__2026__09_56_38_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf5"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:09:49.167Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T15:57:43.482Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8486764ff48f1b8b6ca8e9"
+    },
+    "name": "Tops",
+    "slug": "tops",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787220079457-fs5idu/ChatGPT_Image_Aug_20__2026__02_40_52_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:21:10.747Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T10:01:23.859Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a5cf5a7e5991bcc735e9"
+    },
+    "name": "Towels",
+    "slug": "towels",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787463252432-2gfouz/ChatGPT_Image_Aug_23__2026__11_33_28_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a50f5a7e5991bcc735e8"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Towels"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:59:27.643Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T05:34:16.293Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8483744ff48f1b8b6ca8d9"
+    },
+    "name": "Tripods & Gimbals",
+    "slug": "tripods-gimbals",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787122123237-fx7unf/ChatGPT_Image_Aug_19__2026__12_40_55_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:08:20.422Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-19T06:48:55.780Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a8485954ff48f1b8b6ca8e5"
+    },
+    "name": "Trousers",
+    "slug": "trousers",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210414654-a8up2t/ChatGPT_Image_Aug_20__2026__01_19_25_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a8484ed4ff48f1b8b6ca8e0"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:17:25.758Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:20:22.027Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a86a74b5a7e5991bcc735ee"
+    },
+    "name": "Wall Art",
+    "slug": "wall-art",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787464505109-up0ulw/ChatGPT_Image_Aug_23__2026__11_54_24_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a72c5a7e5991bcc735ed"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Wall Art"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T07:05:47.732Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T05:55:08.635Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a869f475a7e5991bcc735dc"
+    },
+    "name": "Wardrobes",
+    "slug": "wardrobes",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210032461-losre7/ChatGPT_Image_Aug_20__2026__01_03_25_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a0c584fefa9480c44701cee"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:31:35.619Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:13:56.646Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a088017894b3f639931fd05"
+    },
+    "name": "Watches & Eyewear",
+    "slug": "watches-eyewear",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787207878468-hxk2uu/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941971554-m2w7l0-group_422.png",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "productCount": 3,
+    "createdAt": {
+      "$date": "2026-05-16T14:32:55.592Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:38:05.094Z"
+    },
+    "__v": 0,
+    "options": []
+  },
+  {
+    "_id": {
+      "$oid": "6a86a4ca5a7e5991bcc735e7"
+    },
+    "name": "Water Bottles",
+    "slug": "water-bottles",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787472842496-bsonfi/ChatGPT_Image_Aug_23__2026__02_07_44_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a86a2c95a7e5991bcc735e1"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Water Bottles"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-20T06:55:06.090Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T08:14:05.580Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a84850a4ff48f1b8b6ca8e1"
+    },
+    "name": "Women",
+    "slug": "women",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787211135057-ngkwy5/ChatGPT_Image_Aug_20__2026__01_31_59_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf2"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-18T16:15:06.159Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T07:32:17.958Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a087689894b3f639931fc8b"
+    },
+    "name": "Electronics",
+    "slug": "electronics",
+    "description": "Explore dependable technology for work, play, and connected everyday life.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778939769420-tx4ebx-galaxy-s26-ultra-black-4396.png",
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941251922-enl8ar-group_416.png",
+    "parentId": null,
+    "order": 1,
+    "isActive": true,
+    "featured": true,
+    "productCount": 5,
+    "createdAt": {
+      "$date": "2026-05-16T13:52:09.536Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-07T21:05:07.727Z"
+    },
+    "__v": 0,
+    "seo": {
+      "pageTitle": "Technology for modern routines",
+      "metaDescription": "Shop curated electronics and connected essentials.",
+      "tags": [
+        "electronics",
+        "technology"
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a731340054eb9d5e893edf2"
+    },
+    "name": "Fashion",
+    "slug": "fashion",
+    "description": "Discover practical style, comfortable living, and thoughtful daily essentials.",
+    "parentId": null,
+    "order": 2,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Fashion and living essentials",
+      "metaDescription": "Shop apparel, home, wellness, and digital essentials.",
+      "tags": [
+        "fashion",
+        "living"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:04.034Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-18T12:28:42.514Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785999453515-zo9guu/ChatGPT_Image_Aug_6__2026__12_56_50_PM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731340054eb9d5e893edf3"
+    },
+    "name": "Mobile & Tablets",
+    "slug": "mobile-tablets",
+    "description": "Portable devices and accessories for connected work, travel, and entertainment.",
+    "parentId": {
+      "$oid": "6a087689894b3f639931fc8b"
+    },
+    "order": 10,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Mobile and tablet essentials",
+      "metaDescription": "Browse mobile devices and tablet-ready essentials.",
+      "tags": [
+        "mobile",
+        "tablets"
+      ]
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:04.731Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:10:50.367Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785996090724-hpfur7/ChatGPT_Image_Aug_6__2026__11_59_07_AM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731341054eb9d5e893edf4"
+    },
+    "name": "Computing",
+    "slug": "computing",
+    "description": "Flexible computing gear designed for productive desks, studios, and home offices.",
+    "parentId": {
+      "$oid": "6a087689894b3f639931fc8b"
+    },
+    "order": 11,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Computing essentials",
+      "metaDescription": "Browse capable computing products for focused work.",
+      "tags": [
+        "computing",
+        "technology"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:05.437Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-14T05:41:10.579Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785994247153-b4xq4a/ChatGPT_Image_Aug_6__2026__11_30_14_AM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731342054eb9d5e893edf5"
+    },
+    "name": "TV & Audio",
+    "slug": "tv-audio",
+    "description": "Audio and wearable pieces for movement, listening, and daily routines.",
+    "parentId": {
+      "$oid": "6a087689894b3f639931fc8b"
+    },
+    "order": 12,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Audio and wearable essentials",
+      "metaDescription": "Browse audio and wearable technology for everyday use.",
+      "tags": [
+        "audio",
+        "wearables"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:06.150Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:11:32.922Z"
+    },
+    "__v": 0,
+    "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785928260450-5fwnyw/ChatGPT_Image_Aug_5__2026__05_10_13_PM.webp",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785927707373-slqukt/ChatGPT_Image_Aug_5__2026__05_00_56_PM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731342054eb9d5e893edf6"
+    },
+    "name": "Cameras & Smart Home",
+    "slug": "cameras-smart-home",
+    "description": "Capture ideas and simplify spaces with smart creative technology.",
+    "parentId": {
+      "$oid": "6a087689894b3f639931fc8b"
+    },
+    "order": 13,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Cameras and smart home",
+      "metaDescription": "Browse cameras and smart home essentials.",
+      "tags": [
+        "cameras",
+        "smart-home"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:06.856Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T06:11:09.409Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785928676827-8u72kw/ChatGPT_Image_Aug_5__2026__05_17_21_PM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731343054eb9d5e893edf7"
+    },
+    "name": "Apparel",
+    "slug": "apparel",
+    "description": "Layerable apparel made for comfortable, versatile everyday dressing.",
+    "parentId": {
+      "$oid": "6a731340054eb9d5e893edf2"
+    },
+    "order": 20,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Everyday apparel",
+      "metaDescription": "Browse apparel for comfortable daily wear.",
+      "tags": [
+        "apparel",
+        "clothing"
+      ]
+    },
+    "productCount": 3,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:07.555Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-08T14:04:19.233Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786000241597-cwu94i/ChatGPT_Image_Aug_6__2026__01_10_10_PM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731344054eb9d5e893edf8"
+    },
+    "name": "Sneakers",
+    "slug": "sneakers",
+    "description": "Reliable footwear and bags for commutes, errands, and weekends away.",
+    "parentId": {
+      "$oid": "6a088075894b3f639931fd07"
+    },
+    "order": 21,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Footwear and bags",
+      "metaDescription": "Browse practical footwear and bags.",
+      "tags": [
+        "footwear",
+        "bags"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:08.258Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-23T08:41:59.035Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787474515149-pgq2ve/ChatGPT_Image_Aug_23__2026__02_41_18_PM.webp"
+  },
+  {
+    "_id": {
+      "$oid": "6a731346054eb9d5e893edfb"
+    },
+    "name": "Beauty & Personal Care",
+    "slug": "beauty-personal-care",
+    "description": "Wellness and beauty staples for simple, restorative care rituals.",
+    "parentId": null,
+    "order": 24,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Beauty and wellness",
+      "metaDescription": "Browse beauty and wellness essentials.",
+      "tags": [
+        "beauty",
+        "wellness"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-05T10:41:10.376Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-20T06:14:15.714Z"
+    },
+    "__v": 0,
+    "icon": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786004786113-ef046f/ChatGPT_Image_Aug_6__2026__02_25_23_PM.webp"
+  }
+]

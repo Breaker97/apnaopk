@@ -1,0 +1,497 @@
+"use client";
+
+import Link from "@/components/language/link";
+import { useState } from "react";
+import { ArrowRight, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { NumberInput } from "@/components/ui/number-input";
+import { Button } from "@/components/ui/button";
+import type { Settings } from "@/components/admin/settings/types";
+import { PlatformPaymentMethodsField } from "@/components/admin/settings/fields/platform-payment-methods-field";
+import { SettingsTabHeader } from "./settings-tab-header";
+import { StickySaveFooter } from "./sticky-save-footer";
+import { useTranslations } from "next-intl";
+
+function ToggleRow(props: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{props.label}</p>
+        {props.description ? (
+          <p className="text-sm text-muted-foreground">{props.description}</p>
+        ) : null}
+      </div>
+      <Switch
+        checked={props.checked}
+        disabled={props.disabled}
+        onCheckedChange={props.onChange}
+      />
+    </div>
+  );
+}
+
+/**
+ * A minimum payout for each other currency a store pays sellers in.
+ *
+ * The one minimum above is in the store's own currency. It used to be applied
+ * as it stood to a payout in any currency — fifty meaning fifty shillings or
+ * fifty dinars — so another currency now has no minimum until one is set here.
+ */
+function MinWithdrawalByCurrency(props: {
+  value: Record<string, number>;
+  storeCurrency: string;
+  disabled: boolean;
+  onChange: (next: Record<string, number>) => void;
+}) {
+  const t = useTranslations("admin.settings.vendorConfig.commission");
+  const [code, setCode] = useState("");
+  const entries = Object.entries(props.value).sort(([a], [b]) => a.localeCompare(b));
+  const normalized = code.trim().toUpperCase();
+  const canAdd =
+    /^[A-Z]{3}$/.test(normalized) &&
+    normalized !== props.storeCurrency.toUpperCase() &&
+    !(normalized in props.value);
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <div>
+        <p className="text-sm font-medium">{t("byCurrencyLabel")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("byCurrencyDescription", { currency: props.storeCurrency })}
+        </p>
+      </div>
+      {entries.length > 0 ? (
+        <ul className="space-y-2">
+          {entries.map(([currency, amount]) => (
+            <li key={currency} className="flex items-center justify-between gap-3">
+              <span className="font-mono text-sm">{currency}</span>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  min={0}
+                  className="h-9 w-28"
+                  value={Number(amount ?? 0)}
+                  disabled={props.disabled}
+                  whenEmpty={0}
+                  aria-label={t("byCurrencyAmount", { currency })}
+                  onValueChange={(next) =>
+                    props.onChange({ ...props.value, [currency]: next ?? 0 })
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  disabled={props.disabled}
+                  aria-label={t("byCurrencyRemove", { currency })}
+                  onClick={() => {
+                    const next = { ...props.value };
+                    delete next[currency];
+                    props.onChange(next);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Input
+          value={code}
+          maxLength={3}
+          placeholder="UGX"
+          className="h-9 w-24 font-mono uppercase"
+          disabled={props.disabled}
+          aria-label={t("byCurrencyCode")}
+          onChange={(event) => setCode(event.target.value)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={props.disabled || !canAdd}
+          onClick={() => {
+            props.onChange({ ...props.value, [normalized]: 0 });
+            setCode("");
+          }}
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          {t("byCurrencyAdd")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function VendorConfigSettingsTab(props: {
+  settings: Settings;
+  disabled?: boolean;
+  isSaving: boolean;
+  /** vendorConfig section is dirty */
+  isDirty: boolean;
+  /** surfaced orders.commission section is dirty */
+  commissionDirty: boolean;
+  updateField: (path: string, value: unknown) => void;
+  updateCommissionField: (path: string, value: unknown) => void;
+  /** Saves whichever of vendorConfig / orders is dirty. */
+  onSave: () => void | Promise<unknown>;
+}) {
+  const anyDirty = props.isDirty || props.commissionDirty;
+  const t = useTranslations();
+  const cfg = props.settings.vendorConfig;
+  // Absent on a store saved before offers existed: read as off, with the
+  // model's default limits.
+  const offerConfig = cfg.abandonedOffers ?? {};
+  const commission = props.settings.orders.commission;
+  const disabled = Boolean(props.disabled);
+  const plansOn = Boolean(cfg.plansEnabled);
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <SettingsTabHeader
+          title={t("admin.settings.vendorConfig.title")}
+          description={t("admin.settings.vendorConfig.description")}
+        />
+
+        {disabled ? (
+          <Card>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {t("admin.settings.vendorConfig.marketplaceOff")}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Registration & approval */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.registration.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.allowRegistration.label")}
+              description={t(
+                "admin.settings.vendorConfig.allowRegistration.description",
+              )}
+              checked={Boolean(cfg.allowRegistration)}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.allowRegistration", v)
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Plans & subscriptions */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.plans.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.plansEnabled.label")}
+              description={t(
+                "admin.settings.vendorConfig.plansEnabled.description",
+              )}
+              checked={plansOn}
+              disabled={disabled}
+              onChange={(v) => props.updateField("vendorConfig.plansEnabled", v)}
+            />
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.requirePlanSelection.label")}
+              description={t(
+                "admin.settings.vendorConfig.requirePlanSelection.description",
+              )}
+              checked={Boolean(cfg.requirePlanSelection)}
+              disabled={disabled || !plansOn}
+              onChange={(v) =>
+                props.updateField("vendorConfig.requirePlanSelection", v)
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Subscription payment methods — which gateways may collect plan
+            payments. Stripe keeps native recurring; every other gateway is
+            one-shot pay-per-period with renewal reminders. */}
+        {plansOn ? (
+          <Card>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm font-semibold">
+                  {t("admin.settings.vendorConfig.paymentMethods.title")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t("admin.settings.vendorConfig.paymentMethods.description")}
+                </p>
+              </div>
+              <PlatformPaymentMethodsField
+                settings={props.settings}
+                value={cfg.paymentMethods}
+                onChange={(key, v) =>
+                  props.updateField(`vendorConfig.paymentMethods.${key}`, v)
+                }
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Quotes — what a vendor sees of the shopper asking for a price on
+            one of its products. The vendor can price the quote either way:
+            the store sends the price to the shopper. */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.quotes.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.quotes.showContact.label")}
+              description={t(
+                "admin.settings.vendorConfig.quotes.showContact.description",
+              )}
+              checked={cfg.showQuoteContactToVendors !== false}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.showQuoteContactToVendors", v)
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Abandoned checkouts — whether a vendor sees the baskets that held
+            its products. A vendor only ever sees its own lines and never who
+            the shopper was; the store keeps the contact and the recovery
+            emails either way. */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.abandonedCheckouts.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.abandonedCheckouts.show.label")}
+              description={t(
+                "admin.settings.vendorConfig.abandonedCheckouts.show.description",
+              )}
+              checked={cfg.showAbandonedCheckoutsToVendors !== false}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.showAbandonedCheckoutsToVendors", v)
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Offers on abandoned checkouts — whether a vendor may send its own
+            discount to a shopper who left its goods behind, and the store's
+            limits on it. The store sends every offer; the vendor pays for it
+            and never learns who the shopper is. */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.abandonedOffers.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.abandonedOffers.enabled.label")}
+              description={t(
+                "admin.settings.vendorConfig.abandonedOffers.enabled.description",
+              )}
+              checked={offerConfig.enabled === true}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.abandonedOffers.enabled", v)
+              }
+            />
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.abandonedOffers.automatic.label")}
+              description={t(
+                "admin.settings.vendorConfig.abandonedOffers.automatic.description",
+              )}
+              checked={offerConfig.automatic !== false}
+              disabled={disabled || offerConfig.enabled !== true}
+              onChange={(v) =>
+                props.updateField("vendorConfig.abandonedOffers.automatic", v)
+              }
+            />
+            {(
+              [
+                {
+                  key: "maxPercent",
+                  fallback: 30,
+                  min: 1,
+                  max: 90,
+                  unit: "%",
+                  name: t("admin.settings.vendorConfig.abandonedOffers.maxPercent.label"),
+                  help: t("admin.settings.vendorConfig.abandonedOffers.maxPercent.description"),
+                },
+                {
+                  key: "maxPerVendorPerDay",
+                  fallback: 20,
+                  min: 1,
+                  max: 1000,
+                  unit: null,
+                  name: t("admin.settings.vendorConfig.abandonedOffers.maxPerVendorPerDay.label"),
+                  help: t(
+                    "admin.settings.vendorConfig.abandonedOffers.maxPerVendorPerDay.description",
+                  ),
+                },
+                {
+                  key: "maxValidDays",
+                  fallback: 14,
+                  min: 1,
+                  max: 14,
+                  unit: t("admin.settings.vendorConfig.abandonedOffers.maxValidDays.unit"),
+                  name: t("admin.settings.vendorConfig.abandonedOffers.maxValidDays.label"),
+                  help: t("admin.settings.vendorConfig.abandonedOffers.maxValidDays.description"),
+                },
+              ] as const
+            ).map(({ key, fallback, min, max, unit, name, help }) => (
+              <div key={key} className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{name}</p>
+                  <p className="text-sm text-muted-foreground">{help}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <NumberInput
+                    min={min}
+                    max={max}
+                    className="h-9 w-24"
+                    value={Number(offerConfig[key] ?? fallback)}
+                    disabled={disabled || offerConfig.enabled !== true}
+                    whenEmpty={fallback}
+                    normalize={(value) => Math.round(value)}
+                    onValueChange={(next) =>
+                      props.updateField(
+                        `vendorConfig.abandonedOffers.${key}`,
+                        next ?? fallback,
+                      )
+                    }
+                  />
+                  {unit ? (
+                    <span className="text-sm text-muted-foreground">{unit}</span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Required documents & fields — now owned by the Onboarding Flow
+            builder (single source), so this only points there. */}
+        <Card>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                {t("admin.settings.vendorConfig.documents.title")}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("admin.settings.vendorConfig.documents.movedDescription")}
+              </p>
+            </div>
+            <Button asChild variant="outline" className="shrink-0">
+              <Link href="/admin/vendors/onboarding">
+                {t("admin.settings.vendorConfig.documents.manageLink")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Default commission — surfaced from Order Settings (single source) */}
+      <div className="space-y-4">
+        <SettingsTabHeader
+          title={t("admin.settings.vendorConfig.commission.title")}
+          description={t("admin.settings.vendorConfig.commission.description")}
+        />
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {t("admin.settings.vendorConfig.commission.rateLabel")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t("admin.settings.vendorConfig.commission.rateDescription")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  min={0}
+                  max={100}
+                  className="h-9 w-24"
+                  value={Number(commission.vendorRate ?? 0)}
+                  disabled={disabled}
+                  whenEmpty={0}
+                  onValueChange={(next) =>
+                    props.updateCommissionField(
+                      "orders.commission.vendorRate",
+                      next ?? 0,
+                    )
+                  }
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {t("admin.settings.vendorConfig.commission.minWithdrawalLabel")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    "admin.settings.vendorConfig.commission.minWithdrawalDescription",
+                  )}
+                </p>
+              </div>
+              <NumberInput
+                min={0}
+                className="h-9 w-28"
+                value={Number(commission.minWithdrawalAmount ?? 0)}
+                disabled={disabled}
+                whenEmpty={0}
+                onValueChange={(next) =>
+                  props.updateCommissionField(
+                    "orders.commission.minWithdrawalAmount",
+                    next ?? 0,
+                  )
+                }
+              />
+            </div>
+            <MinWithdrawalByCurrency
+              value={commission.minWithdrawalByCurrency || {}}
+              storeCurrency={String(props.settings.general.defaultCurrency || "USD")}
+              disabled={disabled}
+              onChange={(next) =>
+                props.updateCommissionField(
+                  "orders.commission.minWithdrawalByCurrency",
+                  next,
+                )
+              }
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* One save footer persists whichever section changed. */}
+      <StickySaveFooter
+        label={t("common.save")}
+        isSaving={props.isSaving}
+        isDirty={anyDirty}
+        disabled={props.isSaving || !anyDirty}
+        onSave={props.onSave}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,210 @@
+[
+  {
+    "_id": {
+      "$oid": "6ab7fa2dee336b4da2c7d6b3"
+    },
+    "name": "Antic",
+    "slug": "antic",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790442027959-6smtqy/Rectangle_236.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T17:00:29.677Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-26T17:00:29.677Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7fa13ee336b4da2c7d6b1"
+    },
+    "name": "Bed",
+    "slug": "bed",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790442002071-jbr4vq/Rectangle_242.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 4,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T17:00:03.849Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T12:10:32.594Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7f9feee336b4da2c7d6af"
+    },
+    "name": "Cabinate",
+    "slug": "cabinate",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441980190-i1fa8p/Rectangle_240.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 4,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T16:59:42.193Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T14:14:49.727Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7f99cee336b4da2c7d6ac"
+    },
+    "name": "Chair",
+    "slug": "chair",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441882249-31uv45/Rectangle_237.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 8,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T16:58:04.968Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T14:10:59.436Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7fa1fee336b4da2c7d6b2"
+    },
+    "name": "Decore",
+    "slug": "decore",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790444434217-5tyk8u/Rectangle_243.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Decore"
+    },
+    "productCount": 8,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T17:00:15.533Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T09:48:24.035Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7fa0aee336b4da2c7d6b0"
+    },
+    "name": "Shelves",
+    "slug": "shelves",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441991993-oror3g/Rectangle_241.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T16:59:54.151Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-26T16:59:54.151Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7f9e3ee336b4da2c7d6ad"
+    },
+    "name": "Sofa",
+    "slug": "sofa",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441953253-7vsyl3/Rectangle_238.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 8,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T16:59:15.469Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T14:10:52.551Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab7f9f2ee336b4da2c7d6ae"
+    },
+    "name": "Table",
+    "slug": "table",
+    "description": "",
+    "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790441969236-w5cjho/Rectangle_239.png",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 4,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-26T16:59:30.404Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T14:12:36.482Z"
+    },
+    "__v": 0
+  }
+]

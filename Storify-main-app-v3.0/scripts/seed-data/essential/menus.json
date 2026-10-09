@@ -1,0 +1,760 @@
+[
+  {
+    "_id": {
+      "$oid": "6a086ba12fa684d0f84dbdb5"
+    },
+    "name": "Main Header",
+    "handle": "main-header",
+    "location": "header",
+    "description": "Primary navigation links shown in the store header.",
+    "items": [
+      {
+        "label": "Blog",
+        "url": "/blog",
+        "type": "page",
+        "target": "_self",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-16T13:05:37.756Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-16T13:05:37.756Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a23d20529343f2e3cf08991"
+    },
+    "name": "Mega Menu",
+    "handle": "main-mega-menu",
+    "location": "header-mega",
+    "description": "Layered storefront mega menu shown from the header category menu.",
+    "items": [
+      {
+        "label": "Electronics",
+        "url": "/products?category=electronics",
+        "type": "category",
+        "target": "_self",
+        "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941251922-enl8ar-group_416.png",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786983724723-dt3qwm/_8__Instagram.webp",
+        "description": "Explore dependable technology for work, play, and connected everyday life.",
+        "isFeatured": true,
+        "promoMode": "side",
+        "children": [
+          {
+            "label": "Mobile & Tablets",
+            "url": "/products?category=mobile-tablets",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785996090724-hpfur7/ChatGPT_Image_Aug_6__2026__11_59_07_AM.webp",
+            "description": "Portable devices and accessories for connected work, travel, and entertainment.",
+            "children": [
+              {
+                "label": "Chargers & Cables",
+                "url": "/products?category=chargers-cables",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787143374782-c62b7n/ChatGPT_Image_Aug_19__2026__06_42_40_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Feature Phones",
+                "url": "/products?category=feature-phones",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787143828562-xr0d93/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Phone Cases",
+                "url": "/products?category=phone-cases",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787152845126-j6qrml/ChatGPT_Image_Aug_19__2026__09_18_02_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Screen Protectors",
+                "url": "/products?category=screen-protectors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153353600-w6m228/ChatGPT_Image_Aug_19__2026__09_28_53_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Smart Phones",
+                "url": "/products?category=smart-phones",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787115689201-eaulm4/ChatGPT_Image_Aug_19__2026__11_01_04_AM.webp",
+                "description": "Discover the latest Smart Phones featuring cutting-edge technology, sleek designs, and powerful performance. Whether you're looking for top brands or budget-friendly options, find the perfect device to stay connected and productive on the go.",
+                "children": []
+              },
+              {
+                "label": "Tablets",
+                "url": "/products?category=tablets",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153392523-7ecqcd/ChatGPT_Image_Aug_19__2026__12_06_24_PM.webp",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Computing",
+            "url": "/products?category=computing",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785994247153-b4xq4a/ChatGPT_Image_Aug_6__2026__11_30_14_AM.webp",
+            "description": "Flexible computing gear designed for productive desks, studios, and home offices.",
+            "children": [
+              {
+                "label": "Desktops",
+                "url": "/products?category=desktops",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787122898654-zvec79/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Keyboards & Mice",
+                "url": "/products?category=keyboards-mice",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787124433860-6tkqke/ChatGPT_Image_Aug_19__2026__01_27_06_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Laptops",
+                "url": "/products?category=laptops",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787136606684-0aqofg/ChatGPT_Image_Aug_19__2026__04_49_49_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Monitors",
+                "url": "/products?category=monitors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787137120198-eyqitv/ChatGPT_Image_Aug_19__2026__04_58_33_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Printers",
+                "url": "/products?category=printers",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787141042579-55n919/ChatGPT_Image_Aug_19__2026__06_03_45_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Storage & Drives",
+                "url": "/products?category=storage-drives",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787142987675-q2fsf3/ChatGPT_Image_Aug_19__2026__06_36_20_PM.webp",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "TV & Audio",
+            "url": "/products?category=tv-audio",
+            "type": "category",
+            "target": "_self",
+            "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785928260450-5fwnyw/ChatGPT_Image_Aug_5__2026__05_10_13_PM.webp",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785927707373-slqukt/ChatGPT_Image_Aug_5__2026__05_00_56_PM.webp",
+            "description": "Audio and wearable pieces for movement, listening, and daily routines.",
+            "children": [
+              {
+                "label": "Bluetooth Speakers",
+                "url": "/products?category=bluetooth-speakers",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153669862-gn8cas/ChatGPT_Image_Aug_19__2026__09_33_51_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Earbuds",
+                "url": "/products?category=earbuds",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787154205163-9xdnpq/ChatGPT_Image_Aug_19__2026__09_42_36_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Headphones",
+                "url": "/products?category=headphones",
+                "type": "category",
+                "target": "_self",
+                "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778942107852-hvhkc3-group_420.png",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787153824178-ahciw2/ChatGPT_Image_Aug_19__2026__09_36_45_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Home Theatre",
+                "url": "/products?category=home-theatre",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787154421016-k2m6di/ChatGPT_Image_Aug_19__2026__09_46_19_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Televisions",
+                "url": "/products?category=televisions",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787155059829-klcad8/ChatGPT_Image_Aug_19__2026__09_56_38_PM.webp",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Cameras & Smart Home",
+            "url": "/products?category=cameras-smart-home",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1785928676827-8u72kw/ChatGPT_Image_Aug_5__2026__05_17_21_PM.webp",
+            "description": "Capture ideas and simplify spaces with smart creative technology.",
+            "children": [
+              {
+                "label": "Action Cameras",
+                "url": "/products?category=action-cameras",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787115966926-l69w03/ChatGPT_Image_Aug_19__2026__11_05_50_AM.webp",
+                "children": []
+              },
+              {
+                "label": "Camera Lenses",
+                "url": "/products?category=camera-lenses",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787116332659-lcqfrx/ChatGPT_Image_Aug_19__2026__11_12_01_AM.webp",
+                "children": []
+              },
+              {
+                "label": "DSLR Cameras",
+                "url": "/products?category=dslr-cameras",
+                "type": "category",
+                "target": "_self",
+                "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941878589-hsnrsk-group_418.png",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787155040090-dgubmn/ChatGPT_Image_Aug_19__2026__09_52_21_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Drones",
+                "url": "/products?category=drones",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787117465000-qywwqb/ChatGPT_Image_Aug_19__2026__11_30_27_AM.webp",
+                "description": "Drones offer an exciting way to capture breathtaking aerial shots and experience flying like never before. Whether you're a hobbyist or a professional, our drones selection includes models that are easy to use and full of features. Take your creativity to new heights today!",
+                "children": []
+              },
+              {
+                "label": "Mirrorless Cameras",
+                "url": "/products?category=mirrorless-cameras",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787118182679-75vin2/ChatGPT_Image_Aug_19__2026__11_42_49_AM.webp",
+                "children": []
+              },
+              {
+                "label": "Tripods & Gimbals",
+                "url": "/products?category=tripods-gimbals",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787122123237-fx7unf/ChatGPT_Image_Aug_19__2026__12_40_55_PM.webp",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Home & Living",
+        "url": "/products?category=home-living",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787208445926-nd2vzv/ChatGPT_Image_Aug_6__2026__06_50_57_PM.webp",
+        "promoMode": "bottom",
+        "promoImages": [
+          "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787236983936-a9iyyb/ChatGPT_Image_Aug_20__2026__08_40_45_PM.webp",
+          "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787237151141-lf0q9e/ChatGPT_Image_Aug_20__2026__08_45_36_PM.webp"
+        ],
+        "children": [
+          {
+            "label": "Furniture",
+            "url": "/products?category=furniture",
+            "type": "category",
+            "target": "_self",
+            "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779254423768-w8ijco-storify_furniture_category_icon_101x101.png",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787157722426-lm9x40/ChatGPT_Image_Aug_19__2026__10_29_54_PM.webp",
+            "children": [
+              {
+                "label": "Beds",
+                "url": "/products?category=beds",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209280394-t5829n/ChatGPT_Image_Aug_20__2026__12_59_36_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Bookshelves",
+                "url": "/products?category=bookshelves",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210007164-ybvqrx/ChatGPT_Image_Aug_20__2026__01_11_33_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Dining Tables",
+                "url": "/products?category=dining-tables",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209665114-ap2n4v/ChatGPT_Image_Aug_20__2026__01_07_00_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Office Chairs",
+                "url": "/products?category=office-chairs",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209957369-y4v29g/ChatGPT_Image_Aug_20__2026__01_12_21_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Sofas",
+                "url": "/products?category=sofas",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787209064166-a3lfj9/ChatGPT_Image_Aug_20__2026__12_56_26_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Wardrobes",
+                "url": "/products?category=wardrobes",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210032461-losre7/ChatGPT_Image_Aug_20__2026__01_03_25_PM.webp",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Kitchen & Dining",
+            "url": "/products?category=kitchen-dining",
+            "type": "category",
+            "target": "_self",
+            "children": [
+              {
+                "label": "Cookware",
+                "url": "/products?category=cookware",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Cutlery",
+                "url": "/products?category=cutlery",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Dinnerware",
+                "url": "/products?category=dinnerware",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Kitchen Storage",
+                "url": "/products?category=kitchen-storage",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Kitchen Tools",
+                "url": "/products?category=kitchen-tools",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Water Bottles",
+                "url": "/products?category=water-bottles",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Decor & Lighting",
+            "url": "/products?category=decor-lighting",
+            "type": "category",
+            "target": "_self",
+            "children": [
+              {
+                "label": "Ceiling Lights",
+                "url": "/products?category=ceiling-lights",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Indoor Plants",
+                "url": "/products?category=indoor-plants",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Mirrors",
+                "url": "/products?category=mirrors",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Rugs",
+                "url": "/products?category=rugs",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Table Lamps",
+                "url": "/products?category=table-lamps",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Wall Art",
+                "url": "/products?category=wall-art",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Bedding & Bath",
+            "url": "/products?category=bedding-bath",
+            "type": "category",
+            "target": "_self",
+            "children": [
+              {
+                "label": "Bath Accessories",
+                "url": "/products?category=bath-accessories",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Comforters",
+                "url": "/products?category=comforters",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Curtains",
+                "url": "/products?category=curtains",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Towels",
+                "url": "/products?category=towels",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Fashion",
+        "url": "/products?category=fashion",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787562264288-7e342j/ChatGPT_Image_Aug_24__2026__11_58_17_AM.webp",
+        "description": "Discover practical style, comfortable living, and thoughtful daily essentials.",
+        "promoMode": "side",
+        "children": [
+          {
+            "label": "Men",
+            "url": "/products?category=men",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787212418899-xs82uv/ChatGPT_Image_Aug_20__2026__01_53_13_PM.webp",
+            "children": [
+              {
+                "label": "Jackets",
+                "url": "/products?category=jackets",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787211005463-yz5i6w/ChatGPT_Image_Aug_20__2026__01_29_57_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Jeans",
+                "url": "/products?category=jeans",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210394400-imeubk/ChatGPT_Image_Aug_20__2026__01_19_33_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Panjabi",
+                "url": "/products?category=panjabi",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210710430-7agz0s/ChatGPT_Image_Aug_20__2026__01_24_55_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Shirts",
+                "url": "/products?category=shirts",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787156070705-cdjkf0/ChatGPT_Image_Aug_19__2026__10_12_11_PM.webp",
+                "children": []
+              },
+              {
+                "label": "T-Shirts",
+                "url": "/products?category=t-shirts",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787156520618-mj4234/ChatGPT_Image_Aug_19__2026__10_21_40_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Trousers",
+                "url": "/products?category=trousers",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787210414654-a8up2t/ChatGPT_Image_Aug_20__2026__01_19_25_PM.webp",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Women",
+            "url": "/products?category=women",
+            "type": "category",
+            "target": "_self",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787211135057-ngkwy5/ChatGPT_Image_Aug_20__2026__01_31_59_PM.webp",
+            "children": [
+              {
+                "label": "Dresses",
+                "url": "/products?category=dresses",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787211052145-6ozudc/ChatGPT_Image_Aug_20__2026__01_26_34_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Outerwear",
+                "url": "/products?category=outerwear",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Salwar Kameez",
+                "url": "/products?category=jackets-2",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Skirts",
+                "url": "/products?category=skirts",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Tops",
+                "url": "/products?category=tops",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Footwear",
+            "url": "/products?category=footwear",
+            "type": "category",
+            "target": "_self",
+            "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778942066931-8t6801-group_419.png",
+            "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778942056514-98fyve-cat_shoe.png",
+            "children": [
+              {
+                "label": "Boots",
+                "url": "/products?category=boots",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787155567032-td4vsf/ChatGPT_Image_Aug_19__2026__10_05_55_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Formal Shoes",
+                "url": "/products?category=formal-shoes",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787207088476-ca2djf/ChatGPT_Image_Aug_20__2026__12_24_15_PM.webp",
+                "children": []
+              },
+              {
+                "label": "Loafers",
+                "url": "/products?category=loafers",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Sandals",
+                "url": "/products?category=sandals",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Slippers",
+                "url": "/products?category=slippers",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Sneakers",
+                "url": "/products?category=sneakers",
+                "type": "category",
+                "target": "_self",
+                "description": "Reliable footwear and bags for commutes, errands, and weekends away.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Kids",
+            "url": "/products?category=kids",
+            "type": "category",
+            "target": "_self",
+            "children": [
+              {
+                "label": "Baby Clothing",
+                "url": "/products?category=baby-clothing",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Boys Clothing",
+                "url": "/products?category=boys-clothing",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Girls Clothing",
+                "url": "/products?category=girls-clothing",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Kids Accessories",
+                "url": "/products?category=kids-accessories",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              },
+              {
+                "label": "Kids Footwear",
+                "url": "/products?category=kids-footwear",
+                "type": "category",
+                "target": "_self",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Bags & Luggage",
+        "url": "/products?category=bags-luggage",
+        "type": "category",
+        "target": "_self",
+        "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941727441-y3a38x-group_417.png",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787158051900-pq4b9j/ChatGPT_Image_Aug_19__2026__10_47_19_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Gaming",
+        "url": "/products?category=gaming",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787208242777-zqlf5g/ChatGPT_Image_Aug_20__2026__12_43_23_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Home Appliances",
+        "url": "/products?category=home-appliances",
+        "type": "category",
+        "target": "_self",
+        "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/07/1784790262597-7psuet/1784200247001-vh0k6b-ai-category-image_edit-1784200246650.webp",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787205392369-yk1tu6/ChatGPT_Image_Aug_20__2026__11_54_56_AM.webp",
+        "children": []
+      },
+      {
+        "label": "Sports & Outdoors",
+        "url": "/products?category=sports-outdoors",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787207627188-ltd57g/ChatGPT_Image_Aug_20__2026__12_33_36_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Watches & Eyewear",
+        "url": "/products?category=watches-eyewear",
+        "type": "category",
+        "target": "_self",
+        "icon": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778941971554-m2w7l0-group_422.png",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787207878468-hxk2uu/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
+        "children": []
+      },
+      {
+        "label": "Beauty & Personal Care",
+        "url": "/products?category=beauty-personal-care",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1786004786113-ef046f/ChatGPT_Image_Aug_6__2026__02_25_23_PM.webp",
+        "description": "Wellness and beauty staples for simple, restorative care rituals.",
+        "children": []
+      }
+    ],
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-06T07:53:41.743Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-24T09:05:01.270Z"
+    }
+  }
+]

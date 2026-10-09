@@ -1,0 +1,92 @@
+import * as z from "zod";
+import { NextResponse } from "next/server";
+import { withApi } from "@/lib/api/handler";
+import { utcDay } from "@/lib/boosts/boost-days";
+import { Slider, SliderMetricDaily } from "@/models";
+
+const EventSchema = z.object({
+  /** slider handle */
+  h: z.string().min(1).max(120),
+  /** slide id */
+  s: z.string().min(1).max(64),
+  /** type */
+  t: z.enum(["imp", "clk"]),
+});
+
+const PayloadSchema = z.object({
+  events: z.array(EventSchema).min(1).max(50),
+});
+
+// Obvious automation only: these counts tell a merchant which slide earns
+// its place, and nothing is billed on them.
+const BOT_UA =
+  /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|monitor|pingdom|curl|wget|python-requests/i;
+
+/**
+ * POST /api/track/slider
+ * Impression/click beacon for saved sliders. Fire-and-forget by contract:
+ * always 204, never an error the client would surface. Counts are $inc'd
+ * into one daily bucket per (handle, slide, day) — for slides that exist.
+ * The endpoint is anonymous, and every unknown pair it upserted was a new
+ * row: a script sending made-up handles grew the collection without end.
+ */
+export const POST = withApi(
+  {
+    auth: "optional",
+    rateLimit: { action: "track:slider", preset: "lenient" },
+  },
+  async ({ request }) => {
+    const userAgent = request.headers.get("user-agent") || "";
+    if (!userAgent || BOT_UA.test(userAgent)) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const parsed = PayloadSchema.safeParse(body);
+    if (!parsed.success) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    // Only a slide a saved slider shows right now is counted.
+    const handles = [...new Set(parsed.data.events.map((event) => event.h))];
+    const sliders = await Slider.find({ handle: { $in: handles } })
+      .select("handle slides.id")
+      .lean<Array<{ handle: string; slides?: Array<{ id?: unknown }> }>>();
+    const liveSlides = new Set(
+      sliders.flatMap((slider) =>
+        (Array.isArray(slider.slides) ? slider.slides : []).map(
+          (slide) => `${slider.handle}\0${String(slide?.id)}`,
+        ),
+      ),
+    );
+
+    // Collapse the batch to one $inc per (handle, slide).
+    const counters = new Map<string, { h: string; s: string; imp: number; clk: number }>();
+    for (const event of parsed.data.events) {
+      const key = `${event.h}\0${event.s}`;
+      if (!liveSlides.has(key)) continue;
+      const entry = counters.get(key) ?? { h: event.h, s: event.s, imp: 0, clk: 0 };
+      if (event.t === "imp") entry.imp += 1;
+      else entry.clk += 1;
+      counters.set(key, entry);
+    }
+
+    if (counters.size === 0) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    const date = utcDay(new Date());
+    await SliderMetricDaily.bulkWrite(
+      [...counters.values()].map((entry) => ({
+        updateOne: {
+          filter: { handle: entry.h, slideId: entry.s, date },
+          update: { $inc: { impressions: entry.imp, clicks: entry.clk } },
+          upsert: true,
+        },
+      })),
+      { ordered: false },
+    ).catch(() => undefined);
+
+    return new NextResponse(null, { status: 204 });
+  },
+);

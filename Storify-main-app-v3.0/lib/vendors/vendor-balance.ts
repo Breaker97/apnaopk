@@ -1,0 +1,165 @@
+import { quotePayout } from "@/lib/finance/payout-service";
+import "server-only";
+
+import { Types } from "mongoose";
+import { Order, Payout, getSettings } from "@/models";
+import {
+  PAYABLE_ORDER_PROJECTION,
+  buildPayableOrderFilter,
+  fetchRefundTotalsByOrder,
+  fetchVendorOverpayment,
+  isPastPayoutHold,
+  loadOrderIdsHeldForReturns,
+  orderPayoutHoldCutoff,
+  orderPayoutHoldDays,
+  payableInCurrency,
+  sumVendorPayable,
+} from "@/lib/vendors/vendor-earnings";
+import { sumHeldReserve } from "@/lib/vendors/preorder-reserve";
+import {
+  resolveReturnPolicy,
+  type ReturnTermsLike,
+} from "@/lib/returns/return-policy";
+import { roundMoney } from "@/lib/intl/money";
+import { resolveMinWithdrawal } from "@/lib/orders/order-settings";
+
+/**
+ * What a seller is owed, what is being held back, and what they owe — the same
+ * split the admin's vendor finance screen has always had.
+ *
+ * A seller saw one number: "held for you". Inside it sat sales still inside
+ * the store's return window, deposits whose balance never arrived, and a
+ * rolling reserve — none of it distinguishable, none of it with a date. And
+ * when a shopper returned goods after the seller had already been paid for
+ * them, the debt came off their next payout with nothing anywhere to say why:
+ * the figure simply went down, or went negative, unexplained.
+ *
+ * Everything here is read from the same functions payout creation uses, so
+ * "ready for the next payout" is what a payout made now would actually carry.
+ */
+export interface VendorBalance {
+  currency: string;
+  /** Past the payout hold: what a payout created now would pay. */
+  readyToPay: number;
+  grossEligible?: number;
+  breakdown?: Record<string, number>;
+  eligible?: boolean;
+  hasMore?: boolean;
+  eligibilityReason?: string | null;
+  calculatedAt?: Date;
+  availableCurrencies?: string[];
+  orderCount: number;
+  /** Delivered, unpaid, still inside the return window. */
+  heldInReturnWindow: { amount: number; orderCount: number; windowDays: number };
+  /** A pre-order rolling reserve, and when the earliest part of it is released. */
+  reserveHeld: { amount: number; releaseAt: Date | null };
+  /** Paid already for sales refunded since; recovered from the next payout. */
+  owedBack: number;
+  /** The store's floor for creating a payout at all, in this currency. */
+  minWithdrawal: number;
+}
+
+export async function loadVendorBalance(params: {
+  vendorId: Types.ObjectId | string;
+  currency: string;
+}): Promise<VendorBalance> {
+  const vendorObjectId = new Types.ObjectId(String(params.vendorId));
+  const currency = String(params.currency || "USD").toUpperCase();
+  const settings = await getSettings();
+  const policy = resolveReturnPolicy(settings);
+  const now = new Date();
+
+  const [payableOrders, heldForReturns] = await Promise.all([
+    Order.find(buildPayableOrderFilter(vendorObjectId))
+      .select(PAYABLE_ORDER_PROJECTION)
+      .lean(),
+    loadOrderIdsHeldForReturns(vendorObjectId),
+  ]);
+  // A sale a return is still open on waits with the ones inside the window:
+  // it is what a payout made now would leave out.
+  const returnOpen = new Set(heldForReturns.map(String));
+  // Each sale waits out the window it was sold with, not today's.
+  const waiting = (
+    sub: Parameters<typeof isPastPayoutHold>[0],
+    order: { _id?: unknown; returnTerms?: ReturnTermsLike | null },
+  ) =>
+    !isPastPayoutHold(
+      sub,
+      orderPayoutHoldCutoff(order, settings, now, vendorObjectId),
+    ) ||
+    returnOpen.has(String(order._id));
+  const refundByOrderId = await fetchRefundTotalsByOrder(
+    payableOrders.map((order) => order._id as Types.ObjectId),
+  );
+
+  const isUnpaidDelivered = (sub: { status?: string; payoutStatus?: string }) =>
+    sub.status === "delivered" &&
+    sub.payoutStatus !== "scheduled" &&
+    sub.payoutStatus !== "paid";
+
+  const held = payableInCurrency(
+    sumVendorPayable(
+      payableOrders,
+      vendorObjectId,
+      refundByOrderId,
+      (sub, order) => isUnpaidDelivered(sub) && waiting(sub, order),
+      currency,
+    ),
+    currency,
+  );
+
+  const [owedBack, reserveHeld, nextRelease] = await Promise.all([
+    fetchVendorOverpayment({ vendorId: vendorObjectId, currency }),
+    sumHeldReserve({ vendorId: vendorObjectId, currency }),
+    // The earliest reserve still held, so the answer to "when do I get the
+    // rest?" is a date rather than a shrug — which is what the field exists for.
+    Payout.findOne({
+      vendorId: vendorObjectId,
+      currency,
+      preorderReserveHeld: { $gt: 0 },
+      preorderReserveReleasedAt: null,
+      status: { $nin: ["cancelled", "failed"] },
+    })
+      .sort({ preorderReserveReleaseAt: 1 })
+      .select("preorderReserveReleaseAt")
+      .lean<{ preorderReserveReleaseAt?: Date | null } | null>(),
+  ]);
+
+  // Sales made under different return windows wait different times; the hint
+  // names the longest of those still waiting, the one that pays out last.
+  const heldIds = new Set(held.orderIds.map(String));
+  const heldWindowDays = payableOrders.reduce(
+    (longest, order) =>
+      heldIds.has(String(order._id))
+        ? Math.max(longest, orderPayoutHoldDays(order, settings, vendorObjectId))
+        : longest,
+    0,
+  );
+
+  const quote = await quotePayout({ vendorId: String(params.vendorId), currency, now });
+  return {
+    currency,
+    readyToPay: quote.netAmount,
+    grossEligible: quote.eligibleEarnings,
+    breakdown: quote.breakdown,
+    eligible: quote.eligible,
+    hasMore: quote.hasMore,
+    eligibilityReason: quote.eligibilityReason,
+    calculatedAt: quote.calculatedAt,
+    availableCurrencies: quote.availableCurrencies,
+    orderCount: quote.orderCount,
+    heldInReturnWindow: {
+      amount: roundMoney(held.netAmount),
+      orderCount: held.orderIds.length,
+      // With nothing held, the store's own window — or, with no time limit,
+      // the most a payout waits on it.
+      windowDays: heldWindowDays || (policy.windowDays ?? policy.payoutHoldMaxDays),
+    },
+    reserveHeld: {
+      amount: roundMoney(reserveHeld),
+      releaseAt: nextRelease?.preorderReserveReleaseAt ?? null,
+    },
+    owedBack: roundMoney(owedBack),
+    minWithdrawal: resolveMinWithdrawal(settings, currency),
+  };
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "_id": {
+      "$oid": "6a90791da8a12b22b27a0ca1"
+    },
+    "name": "Accessories",
+    "slug": "accessories",
+    "description": "Tips and reviews for everyday tech accessories",
+    "order": 1,
+    "isActive": true,
+    "postCount": 1,
+    "createdAt": {
+      "$date": "2026-08-27T17:51:25.765Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-27T17:51:26.796Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a90791ea8a12b22b27a0ca2"
+    },
+    "name": "Mobile Phones",
+    "slug": "mobile-phones",
+    "description": "Latest mobile launches and buyer guides",
+    "order": 2,
+    "isActive": true,
+    "postCount": 1,
+    "createdAt": {
+      "$date": "2026-08-27T17:51:26.107Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-27T17:51:27.137Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a90791ea8a12b22b27a0ca3"
+    },
+    "name": "Power & Charging",
+    "slug": "power-charging",
+    "description": "Power banks, chargers, and energy gear",
+    "order": 3,
+    "isActive": true,
+    "postCount": 1,
+    "createdAt": {
+      "$date": "2026-08-27T17:51:26.447Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-27T17:51:27.474Z"
+    },
+    "__v": 0
+  }
+]

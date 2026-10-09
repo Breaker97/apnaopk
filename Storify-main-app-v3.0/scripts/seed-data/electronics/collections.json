@@ -1,0 +1,281 @@
+[
+  {
+    "_id": {
+      "$oid": "6a91215d050bfb18a78dcd5e"
+    },
+    "title": "iPhone Lineup",
+    "slug": "iphone-lineup",
+    "handle": "iphone-lineup",
+    "description": "",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787896140483-tsm9gb/ChatGPT_Image_Aug_28__2026__11_48_47_AM.webp",
+      "alt": "iPhone Lineup"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a911b63050bfb18a78dcd5b"
+      },
+      {
+        "$oid": "6a915bbd050bfb18a78dcdc6"
+      },
+      {
+        "$oid": "6a91634e050bfb18a78dce06"
+      },
+      {
+        "$oid": "6a55dadb9deb890bddd5a0a2"
+      },
+      {
+        "$oid": "6a92737baa34b8f92ac35f92"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "iPhone Lineup",
+      "handle": "iphone-lineup"
+    },
+    "productCount": 5,
+    "createdAt": {
+      "$date": "2026-08-28T05:49:17.479Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T15:41:17.789Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a915ace050bfb18a78dcdc5"
+    },
+    "title": "Premium Tech",
+    "slug": "premium-tech",
+    "handle": "premium-tech",
+    "description": "",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787910852568-hpi18j/ChatGPT_Image_Aug_28__2026__03_53_32_PM.webp",
+      "alt": "Premium Tech"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a9176ebb5c203ac3d0fbbf5"
+      },
+      {
+        "$oid": "6a915bbd050bfb18a78dcdc6"
+      },
+      {
+        "$oid": "6a91634e050bfb18a78dce06"
+      },
+      {
+        "$oid": "6a911b63050bfb18a78dcd5b"
+      },
+      {
+        "$oid": "6a927bbbaa34b8f92ac35fcc"
+      },
+      {
+        "$oid": "6a928383aa34b8f92ac35fe1"
+      },
+      {
+        "$oid": "6a92cd10ad426d112681ae17"
+      },
+      {
+        "$oid": "6a92d719ad426d112681af14"
+      },
+      {
+        "$oid": "6a9529bd58f09f4f86618b01"
+      },
+      {
+        "$oid": "6a957ba158f09f4f86618cc5"
+      },
+      {
+        "$oid": "6a95959058f09f4f86618d36"
+      },
+      {
+        "$oid": "6a96774db6a910818198b815"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "pageTitle": "Premium Tech",
+      "handle": "premium-tech"
+    },
+    "productCount": 12,
+    "createdAt": {
+      "$date": "2026-08-28T09:54:22.369Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T15:41:17.789Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9272b4aa34b8f92ac35f91"
+    },
+    "title": "Headphones & Audio",
+    "slug": "headphones-audio",
+    "handle": "headphones-audio",
+    "description": "",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787982494888-s12nm6/ChatGPT_Image_Aug_29__2026__11_48_03_AM.webp",
+      "alt": "Headphones & Audio"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a928aadaa34b8f92ac36043"
+      },
+      {
+        "$oid": "6a93f18fe43b0a05f712982d"
+      },
+      {
+        "$oid": "6a951a8a53522603e11d60af"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "headphones-audio"
+    },
+    "productCount": 3,
+    "createdAt": {
+      "$date": "2026-08-29T05:48:36.914Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T15:41:17.789Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a93df77e43b0a05f71297e3"
+    },
+    "title": "Smart Watches",
+    "slug": "smart-watches",
+    "handle": "smart-watches",
+    "description": "Discover our premium Smart Watches collection, thoughtfully curated to offer a wide range of features including health monitoring, seamless smartphone integration, customizable watch faces, and durable designs. ",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788075870915-4wcjrf/ChatGPT_Image_Aug_30__2026__01_44_03_PM.webp",
+      "alt": "Smart Watches"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a09b4f56fc0e82b8d6b275d"
+      },
+      {
+        "$oid": "6a0ab9985d747a63e3255cad"
+      },
+      {
+        "$oid": "6a09b8586fc0e82b8d6b2770"
+      },
+      {
+        "$oid": "6a93e600e43b0a05f712980c"
+      },
+      {
+        "$oid": "6a9531ec58f09f4f86618b4d"
+      },
+      {
+        "$oid": "6a9967fcd408cc2ce60e9276"
+      },
+      {
+        "$oid": "6a9992ed8a17b3f75046c347"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "seo": {
+      "handle": "smart-watches"
+    },
+    "productCount": 7,
+    "createdAt": {
+      "$date": "2026-08-30T07:44:55.247Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-06T09:17:10.694Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a93fc3be43b0a05f7129849"
+    },
+    "title": "Desk Setup Essentials",
+    "slug": "desk-setup-essentials",
+    "handle": "desk-setup-essentials",
+    "description": "",
+    "image": {
+      "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788083251035-5nxk5u/ChatGPT_Image_Aug_30__2026__03_45_11_PM.webp",
+      "alt": "Desk Setup Essentials"
+    },
+    "collectionType": "manual",
+    "products": [
+      {
+        "$oid": "6a92d719ad426d112681af14"
+      },
+      {
+        "$oid": "6a928383aa34b8f92ac35fe1"
+      },
+      {
+        "$oid": "6a92c8a7ad426d112681ae07"
+      },
+      {
+        "$oid": "6a9407cde43b0a05f712986e"
+      },
+      {
+        "$oid": "6a96774db6a910818198b815"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "seo": {
+      "pageTitle": "Desk Setup Essentials",
+      "handle": "desk-setup-essentials"
+    },
+    "productCount": 5,
+    "createdAt": {
+      "$date": "2026-08-30T09:47:39.815Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-03T15:41:17.789Z"
+    },
+    "__v": 0
+  }
+]

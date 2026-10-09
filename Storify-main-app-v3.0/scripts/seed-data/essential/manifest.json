@@ -1,0 +1,33 @@
+{
+  "exportedAt": "2026-08-28T11:16:23.244Z",
+  "sourceDb": "storify",
+  "counts": {
+    "vendors.json": 7,
+    "inventory-locations.json": 8,
+    "categories.json": 93,
+    "brands.json": 9,
+    "global-variants.json": 5,
+    "products.json": 27,
+    "collections.json": 19,
+    "menus.json": 2,
+    "sliders.json": 3,
+    "store-pages.json": 8,
+    "coupons.json": 0,
+    "blog-categories.json": 5,
+    "blog-posts.json": 9,
+    "vendor-plans.json": 5
+  },
+  "template": "essential",
+  "repairedAt": "2026-09-07T12:09:17.355Z",
+  "repairs": [
+    "product \"men-s-nike-air-vapormax-plus-running-shoes\": priceRange {\"min\":220,\"max\":250} → {\"min\":220,\"max\":220}",
+    "product \"cmf-by-nothing-watch-pro-2-bt-calling-smart-watch\": priceRange {\"min\":50,\"max\":75} → {\"min\":50,\"max\":50}",
+    "collection \"kid-s-joy\" ↔ product \"haier-h55m80fux-55-inch-mini-led-4k-smart-google-tv\": added missing collectionIds back-reference",
+    "collection \"kid-s-joy\" ↔ product \"iphone-16-pro\": added missing collectionIds back-reference",
+    "collection \"kid-s-joy\" ↔ product \"iphone-17-pro-max\": added missing collectionIds back-reference",
+    "dropped slider \"New Slider\" (new-slider) — no exported page binds it",
+    "settings: onlineStore.activeTheme \"electronics\" → \"essential\"",
+    "dropped inventory location \"Main pickup location\" — no product stocks it",
+    "dropped inventory location \"hjhh\" — no product stocks it"
+  ]
+}

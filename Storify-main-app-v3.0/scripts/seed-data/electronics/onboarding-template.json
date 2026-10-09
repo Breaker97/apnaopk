@@ -1,0 +1,192 @@
+[
+  {
+    "_id": {
+      "$oid": "6a9c5c288a17b3f75046c7b3"
+    },
+    "key": "default",
+    "steps": [
+      {
+        "id": "account",
+        "key": "account",
+        "kind": "account",
+        "enabled": true,
+        "system": true,
+        "fields": [
+          {
+            "id": "name",
+            "key": "name",
+            "widget": "text",
+            "placeholder": "Enter your full name",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "email",
+            "key": "email",
+            "widget": "email",
+            "placeholder": "Enter your email",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "password",
+            "key": "password",
+            "widget": "password",
+            "placeholder": "Enter password",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "confirmPassword",
+            "key": "confirmPassword",
+            "widget": "password",
+            "placeholder": "Confirm password",
+            "required": true,
+            "visible": true,
+            "system": true
+          }
+        ]
+      },
+      {
+        "id": "business",
+        "key": "business",
+        "kind": "business",
+        "enabled": true,
+        "system": true,
+        "fields": [
+          {
+            "id": "storeName",
+            "key": "storeName",
+            "widget": "text",
+            "placeholder": "Enter your store name",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "description",
+            "key": "description",
+            "widget": "textarea",
+            "placeholder": "Tell customers about your store",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "country",
+            "key": "country",
+            "widget": "country",
+            "placeholder": "Select country",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "state",
+            "key": "state",
+            "widget": "state",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "city",
+            "key": "city",
+            "widget": "text",
+            "placeholder": "Enter city",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "address",
+            "key": "address",
+            "widget": "text",
+            "placeholder": "Enter your complete address",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "pincode",
+            "key": "pincode",
+            "widget": "text",
+            "placeholder": "Enter pincode",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "phone",
+            "key": "phone",
+            "widget": "phone",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "businessLicense",
+            "key": "businessLicense",
+            "widget": "document",
+            "required": true,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "taxId",
+            "key": "taxId",
+            "widget": "text",
+            "placeholder": "Enter your tax or VAT number",
+            "required": false,
+            "visible": false,
+            "system": true
+          },
+          {
+            "id": "taxCertificate",
+            "key": "taxCertificate",
+            "widget": "document",
+            "label": "ID Card Photo Fornt",
+            "required": true,
+            "visible": true,
+            "system": true
+          },
+          {
+            "id": "governmentId",
+            "key": "governmentId",
+            "widget": "document",
+            "label": "ID Card Photo Back",
+            "required": true,
+            "visible": true,
+            "system": true
+          }
+        ]
+      },
+      {
+        "id": "subscription",
+        "key": "subscription",
+        "kind": "subscription",
+        "enabled": true,
+        "system": true,
+        "fields": []
+      },
+      {
+        "id": "review",
+        "key": "review",
+        "kind": "review",
+        "enabled": true,
+        "system": true,
+        "fields": []
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-09-05T18:15:04.986Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-05T18:15:04.986Z"
+    },
+    "__v": 0
+  }
+]

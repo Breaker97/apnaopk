@@ -1,0 +1,157 @@
+[
+  {
+    "_id": {
+      "$oid": "6a5f8dfffa702494f22e1c96"
+    },
+    "name": "Starter",
+    "slug": "free",
+    "price": 0,
+    "billingInterval": "none",
+    "commissionRate": 15,
+    "trialDays": 0,
+    "features": [],
+    "limits": {
+      "products": 2,
+      "staff": 0
+    },
+    "isDefault": false,
+    "status": "active",
+    "sortOrder": 0,
+    "createdAt": {
+      "$date": "2026-07-21T15:19:27.730Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-16T00:00:41.163Z"
+    },
+    "__v": 0,
+    "capabilities": {
+      "aiAuthoring": false
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a62087cf67adb896982d296"
+    },
+    "name": "Business Plans",
+    "slug": "business-plans",
+    "price": 20,
+    "billingInterval": "monthly",
+    "commissionRate": 5,
+    "trialDays": 0,
+    "features": [
+      "Unlimited Products",
+      "Priority Support"
+    ],
+    "limits": {
+      "products": null,
+      "staff": 3
+    },
+    "capabilities": {
+      "aiAuthoring": true
+    },
+    "isDefault": true,
+    "status": "active",
+    "sortOrder": 0,
+    "createdAt": {
+      "$date": "2026-07-23T12:26:36.324Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-16T00:01:26.353Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a620b13f67adb896982d299"
+    },
+    "name": "Enterprise plan",
+    "slug": "enterprise-plan",
+    "price": 45,
+    "billingInterval": "monthly",
+    "commissionRate": 2,
+    "trialDays": 0,
+    "features": [
+      "Unlimited Products",
+      "Priority Support"
+    ],
+    "limits": {
+      "products": null,
+      "staff": null
+    },
+    "capabilities": {
+      "aiAuthoring": true
+    },
+    "isDefault": false,
+    "status": "active",
+    "sortOrder": 0,
+    "createdAt": {
+      "$date": "2026-07-23T12:37:39.038Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-16T00:01:43.468Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a620babf67adb896982d29d"
+    },
+    "name": "Team Plan",
+    "slug": "team-plan",
+    "price": 300,
+    "billingInterval": "yearly",
+    "commissionRate": 8,
+    "trialDays": 0,
+    "features": [],
+    "limits": {
+      "products": null,
+      "staff": 100
+    },
+    "capabilities": {
+      "aiAuthoring": true
+    },
+    "isDefault": false,
+    "status": "active",
+    "sortOrder": 0,
+    "createdAt": {
+      "$date": "2026-07-23T12:40:11.031Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-16T12:32:02.681Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a620c39f67adb896982d29f"
+    },
+    "name": "Pro plan",
+    "slug": "pro-plan",
+    "price": 1000,
+    "billingInterval": "yearly",
+    "commissionRate": 5,
+    "trialDays": 0,
+    "features": [
+      "Unlimited Service",
+      "Priority Support",
+      "Installation Support"
+    ],
+    "limits": {
+      "products": null,
+      "staff": null
+    },
+    "capabilities": {
+      "aiAuthoring": true
+    },
+    "isDefault": false,
+    "status": "active",
+    "sortOrder": 0,
+    "createdAt": {
+      "$date": "2026-07-23T12:42:33.271Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-13T00:27:36.839Z"
+    },
+    "__v": 0
+  }
+]

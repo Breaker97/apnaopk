@@ -1,0 +1,404 @@
+[
+  {
+    "_id": {
+      "$oid": "6a9170dd050bfb18a78dce47"
+    },
+    "name": "Accessories",
+    "slug": "accessories",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788002791557-7oqcj0/ChatGPT_Image_Aug_29__2026__05_26_03_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 6,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:28:29.815Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T19:45:27.515Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a917038050bfb18a78dce46"
+    },
+    "name": "Appliances",
+    "slug": "appliances",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916336167-1iyvjw/ChatGPT_Image_Aug_20__2026__11_54_56_AM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 3,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:25:44.842Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T12:21:39.794Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a916ecf050bfb18a78dce42"
+    },
+    "name": "Cameras & Smart Home",
+    "slug": "cameras-smart-home",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915969832-qfjsj8/ChatGPT_Image_Aug_19__2026__11_12_01_AM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 5,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:19:43.681Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T15:54:10.774Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a916f1d050bfb18a78dce44"
+    },
+    "name": "Gaming",
+    "slug": "gaming",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916056736-fqsi5u/ChatGPT_Image_Aug_20__2026__12_43_23_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 4,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:21:01.141Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-31T05:33:32.875Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a910bb4050bfb18a78dcd4f"
+    },
+    "name": "Google",
+    "slug": "google",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890599847-e2h880/ChatGPT_Image_Aug_28__2026__10_13_58_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T04:16:52.046Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T11:03:59.167Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a91013c050bfb18a78dcd4a"
+    },
+    "name": "Iphone",
+    "slug": "iphone",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887922966-vtv546/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 5,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T03:32:12.729Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T06:17:07.304Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a916e40050bfb18a78dce41"
+    },
+    "name": "Laptops. Tablets & PC",
+    "slug": "laptops-tablets-pc",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915882259-rqqaqq/ChatGPT_Image_Aug_19__2026__04_49_49_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Laptops. Tablets & PC"
+    },
+    "productCount": 10,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:17:20.250Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-01T06:59:22.460Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a90ffda050bfb18a78dcd42"
+    },
+    "name": "Mobile Phones",
+    "slug": "mobile-phones",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887860046-pff58a/ChatGPT_Image_Aug_28__2026__08_44_21_AM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Mobile Phones"
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T03:26:18.385Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T04:17:03.267Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a910e1f050bfb18a78dcd52"
+    },
+    "name": "Oneplus",
+    "slug": "oneplus",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787891457789-hv688h/ChatGPT_Image_Aug_28__2026__10_30_45_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Oneplus"
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T04:27:11.339Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T07:20:51.069Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a917179a98471c5da7515b0"
+    },
+    "name": "PC Parts",
+    "slug": "pc-parts",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916660319-f3morw/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "PC Parts"
+    },
+    "productCount": 3,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:31:05.761Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-31T11:26:51.381Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "name": "Phones",
+    "slug": "phones",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889242869-wg429y/ChatGPT_Image_Aug_28__2026__09_53_38_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a90ffda050bfb18a78dcd42"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Phones"
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T03:30:45.985Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-28T22:40:40.229Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9107a3050bfb18a78dcd4b"
+    },
+    "name": "Samsung",
+    "slug": "samsung",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889553331-cgo8ig/ChatGPT_Image_Aug_28__2026__09_59_02_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 3,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T03:59:31.561Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-31T07:14:06.184Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a916f55050bfb18a78dce45"
+    },
+    "name": "TV & Audio",
+    "slug": "tv-audio",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916110749-jhcbm7/ChatGPT_Image_Aug_19__2026__09_56_38_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 3,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:21:57.595Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-30T09:39:00.313Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a91733da98471c5da7515b3"
+    },
+    "name": "Wearable Technology",
+    "slug": "wearable-technology",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917107300-70b8da/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "tags": []
+    },
+    "productCount": 7,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:38:37.748Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-07T10:39:23.187Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a910b8c050bfb18a78dcd4e"
+    },
+    "name": "Xiaomi",
+    "slug": "xiaomi",
+    "description": "",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890671683-gnui5s/ChatGPT_Image_Aug_28__2026__10_17_36_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Xiaomi"
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T04:16:13Z"
+    },
+    "updatedAt": {
+      "$date": "2026-08-29T06:27:07.868Z"
+    },
+    "__v": 0
+  }
+]

@@ -1,0 +1,533 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import Link from "@/components/language/link";
+import { useRouter } from "@/hooks/use-locale-navigation";
+import { useTranslations } from "next-intl";
+import {
+  Circle,
+  Download,
+  Eye,
+  Pencil,
+  Plus,
+  Trash2,
+  UserCheck,
+  UserMinus,
+  ShieldBan,
+} from "lucide-react";
+import {
+  DataTable,
+  DateCell,
+  TextCell,
+  type DataTableAction,
+  type DataTableBulkAction,
+  type DataTableColumn,
+  type DataTableTab,
+} from "@/components/ui/data-table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/components/ui/toast-notification";
+import { useConfirmation } from "@/components/ui/confirmation-dialog";
+import type { StaffPermission } from "@/config/permissions.config";
+import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { useListNavigation } from "@/hooks/use-list-navigation";
+import { apiClient } from "@/lib/api/client";
+import { useAdminPhrase } from "@/hooks/use-admin-phrase";
+import { resolveMemberStatus } from "@/lib/access/staff-member-status";
+
+interface StaffListItem {
+  _id: string;
+  name: string;
+  email: string;
+  image?: string;
+  phone?: string;
+  status?: "active" | "inactive" | "banned";
+  role?: string;
+  /** Owner-designated administrator; protected from every destructive action. */
+  isOwner?: boolean;
+  createdAt: string;
+  staffProfile: {
+    _id: string;
+    permissions: StaffPermission[];
+    department?: string;
+    isActive: boolean;
+    notes?: string;
+    createdAt: string;
+  } | null;
+}
+
+interface StaffDataTableProps {
+  locale: string;
+  area?: "admin" | "vendor";
+  /** Rows for the current query string, fetched by the page. */
+  data: StaffListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+const PERMISSION_LABELS: Record<string, string> = {
+  access_pos: "POS",
+  manage_pos: "Manage POS",
+  create_pos: "POS Create",
+  edit_pos: "POS Edit",
+  delete_pos: "POS Delete",
+  view_orders: "Orders",
+  manage_orders: "Manage Orders",
+  create_orders: "Create Orders",
+  edit_orders: "Edit Orders",
+  delete_orders: "Delete Orders",
+  view_products: "Products",
+  manage_products: "Manage Products",
+  create_products: "Create Products",
+  edit_products: "Edit Products",
+  delete_products: "Delete Products",
+  view_customers: "Customers",
+  manage_customers: "Manage Customers",
+  create_customers: "Create Customers",
+  edit_customers: "Edit Customers",
+  delete_customers: "Delete Customers",
+  view_inventory: "Inventory",
+  manage_inventory: "Manage Inventory",
+  create_inventory: "Create Inventory",
+  edit_inventory: "Edit Inventory",
+  delete_inventory: "Delete Inventory",
+  view_analytics: "Analytics",
+};
+
+/** The Orders list's badge: 12px, soft fill, square corners. */
+const BADGE_CLASS =
+  "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-[12px] font-medium";
+
+const ROLE_STYLES = {
+  owner: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  admin:
+    "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300",
+  staff: "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+};
+
+/** Green and amber as on the stats strip's Active and Inactive cards. */
+const STATUS_STYLES: Record<ReturnType<typeof resolveMemberStatus>, string> = {
+  active:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+  accessOff:
+    "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+  inactive:
+    "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  suspended: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
+};
+
+function getInitials(name?: string) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export function StaffDataTable({
+  locale,
+  area = "admin",
+  data,
+  pagination,
+}: StaffDataTableProps) {
+  const t = useTranslations();
+  const tr = useAdminPhrase();
+  const router = useRouter();
+  const { confirm } = useConfirmation();
+  const apiBasePath = area === "vendor" ? "/api/vendor/staff" : "/api/admin/staff";
+  const staffBasePath = `/${locale}/${area}/staff`;
+
+  const [selectedStaff, setSelectedStaff] = useState<StaffListItem[]>([]);
+
+  const list = useListNavigation<StaffListItem>({
+    items: data,
+    pagination,
+  });
+
+  const handleDelete = useCallback(
+    async (item: StaffListItem) => {
+      const confirmed = await confirm({
+        title: tr("Remove team member", "টিম সদস্য অপসারণ"),
+        description: t("admin.staffDataTable.removeSingleDescription", {
+          name: item.name,
+        }),
+        confirmText: tr("Remove", "অপসারণ"),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+
+      try {
+        await apiClient.delete(`${apiBasePath}/${item._id}`);
+        toast.success(tr("Team member removed successfully", "টিম সদস্য সফলভাবে অপসারণ হয়েছে"));
+        list.refetch();
+      } catch {
+        toast.error(tr("Failed to remove team member", "টিম সদস্য অপসারণে ব্যর্থ"));
+      }
+    },
+    [apiBasePath, confirm, list, t, tr],
+  );
+
+  // The file is the view on screen — this search and this status tab — but all
+  // of it, not the page being shown; the route reads the same two params.
+  const handleExport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (list.search) params.set("search", list.search);
+      if (list.activeTab && list.activeTab !== "all") {
+        params.set("status", list.activeTab);
+      }
+      const res = await fetch(`${apiBasePath}/export?${params.toString()}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `team-members-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success(tr("Team members exported", "টিম সদস্যদের তালিকা এক্সপোর্ট হয়েছে"));
+    } catch {
+      toast.error(tr("Team members could not be exported", "টিম সদস্যদের তালিকা এক্সপোর্ট করা যায়নি"));
+    }
+  }, [apiBasePath, list.activeTab, list.search, tr]);
+
+  const handleBulkDelete = useCallback(
+    async (items: StaffListItem[]) => {
+      const confirmed = await confirm({
+        title: tr("Remove team members", "টিম সদস্যদের অপসারণ"),
+        description: t("admin.staffDataTable.removeBulkDescription", {
+          count: items.length,
+        }),
+        confirmText: tr("Remove all", "সব অপসারণ"),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+
+      try {
+        await Promise.all(
+          items.map((item) => apiClient.delete(`${apiBasePath}/${item._id}`)),
+        );
+        setSelectedStaff([]);
+        toast.success(t("admin.staffDataTable.removeBulkSuccess", { count: items.length }));
+        list.refetch();
+      } catch {
+        toast.error(tr("Failed to remove some team members", "কিছু টিম সদস্য অপসারণে ব্যর্থ"));
+      }
+    },
+    [apiBasePath, confirm, list, t, tr],
+  );
+
+  const handleBulkStatusUpdate = useCallback(
+    async (
+      items: StaffListItem[],
+      status: "active" | "inactive" | "banned",
+    ) => {
+      const confirmed = await confirm({
+        title: tr("Update account status", "অ্যাকাউন্ট স্ট্যাটাস আপডেট"),
+        description: t("admin.staffDataTable.updateStatusDescription", {
+          count: items.length,
+          status,
+        }),
+        variant: status === "banned" ? "destructive" : "default",
+      });
+      if (!confirmed) return;
+
+      const results = await Promise.allSettled(
+        items.map((item) =>
+          apiClient.put(`${apiBasePath}/${item._id}`, { status }),
+        ),
+      );
+
+      const successCount = results.filter(
+        (r) => r.status === "fulfilled",
+      ).length;
+
+      setSelectedStaff([]);
+      list.refetch();
+
+      if (successCount > 0) {
+        toast.success(t("admin.staffDataTable.updateSuccess", { count: successCount }));
+      }
+    },
+    [apiBasePath, confirm, list, t, tr],
+  );
+
+  const columns = useMemo<DataTableColumn<StaffListItem>[]>(
+    () => [
+      {
+        id: "staff",
+        header: tr("Team Member", "টিম সদস্য"),
+        cell: (row) => (
+          <Link
+            href={`${staffBasePath}/${row._id}`}
+            className="block"
+          >
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={row.image} />
+                <AvatarFallback>{getInitials(row.name)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 max-w-[220px]">
+                <p className="font-medium truncate hover:underline">
+                  {row.name || tr("Unknown", "অজানা")}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {row.email}
+                </p>
+              </div>
+            </div>
+          </Link>
+        ),
+        className: "w-[260px]",
+      },
+      // The vendor dashboard manages staff only; a Role column there would
+      // print "Staff" on every row.
+      ...(area === "admin"
+        ? [
+            {
+              id: "role",
+              header: tr("Role", "ভূমিকা"),
+              cell: (row: StaffListItem) =>
+                row.isOwner ? (
+                  <span className={`${BADGE_CLASS} ${ROLE_STYLES.owner}`}>
+                    {tr("Owner", "মালিক")}
+                  </span>
+                ) : row.role === "admin" ? (
+                  <span className={`${BADGE_CLASS} ${ROLE_STYLES.admin}`}>
+                    {tr("Administrator", "প্রশাসক")}
+                  </span>
+                ) : (
+                  <span className={`${BADGE_CLASS} ${ROLE_STYLES.staff}`}>
+                    {tr("Staff", "স্টাফ")}
+                  </span>
+                ),
+              className: "w-[130px]",
+            },
+          ]
+        : []),
+      {
+        id: "status",
+        header: tr("Status", "স্ট্যাটাস"),
+        cell: (row) => {
+          const status = resolveMemberStatus(row);
+          const labels = {
+            active: tr("Active", "সক্রিয়"),
+            accessOff: tr("Access off", "অ্যাক্সেস বন্ধ"),
+            inactive: tr("Inactive", "নিষ্ক্রিয়"),
+            suspended: tr("Suspended", "স্থগিত"),
+          };
+          return (
+            <span className={`${BADGE_CLASS} ${STATUS_STYLES[status]}`}>
+              <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
+              {labels[status]}
+            </span>
+          );
+        },
+        className: "w-[130px]",
+      },
+      {
+        id: "department",
+        header: tr("Department", "বিভাগ"),
+        cell: (row) => (
+          <TextCell
+            value={row.staffProfile?.department || "—"}
+            truncate
+            maxWidth="150px"
+          />
+        ),
+        className: "w-[150px]",
+      },
+      {
+        id: "permissions",
+        header: tr("Permissions", "পারমিশন"),
+        cell: (row) => {
+          if (row.role === "admin") {
+            return (
+              <span className="text-muted-foreground">
+                {tr("Full access", "সম্পূর্ণ অ্যাক্সেস")}
+              </span>
+            );
+          }
+          const perms = row.staffProfile?.permissions || [];
+          if (perms.length === 0) return <span className="text-muted-foreground">{tr("None", "কোনোটি নয়")}</span>;
+          // One line, as the Orders list prints its products: the first two
+          // names, then the rest as a count that is never cut off.
+          const shown = perms
+            .slice(0, 2)
+            .map((p) => PERMISSION_LABELS[p] ? tr(PERMISSION_LABELS[p]) : p)
+            .join(", ");
+          const remaining = perms.length - 2;
+          return (
+            <div className="flex max-w-[200px] items-center gap-1">
+              <span className="truncate" title={shown}>
+                {shown}
+              </span>
+              {remaining > 0 && (
+                <span className="shrink-0 text-muted-foreground">
+                  {t("admin.ordersPage.plusMore", { count: remaining })}
+                </span>
+              )}
+            </div>
+          );
+        },
+        className: "w-[250px]",
+      },
+      {
+        id: "joined",
+        header: tr("Joined", "যোগদানের তারিখ"),
+        cell: (row) => (
+          <DateCell date={row.createdAt} format="relative" />
+        ),
+        className: "w-[130px]",
+      },
+    ],
+    [t, tr, area, staffBasePath],
+  );
+
+  const tabs = useMemo<DataTableTab[]>(
+    () => [
+      { id: "all", label: tr("All", "সব") },
+      { id: "active", label: tr("Active", "সক্রিয়") },
+      { id: "inactive", label: tr("Inactive", "নিষ্ক্রিয়") },
+      { id: "banned", label: tr("Suspended", "স্থগিত") },
+    ],
+    [tr],
+  );
+
+  const tableHeader = useMemo(
+    () =>
+      buildAdminCommerceTableHeader({
+        title: tr("Team Members", "টিম সদস্য"),
+        addAction: {
+          id: "add",
+          label: tr("Add team member", "টিম সদস্য যোগ করুন"),
+          href: `${staffBasePath}/new`,
+          icon: <Plus className="h-4 w-4" />,
+          variant: "default",
+        },
+        // Export only: the team is added one person at a time (each needs a
+        // role and an invitation), so there is no import to hang a menu on.
+        importExportAction: {
+          id: "toolbar-export",
+          label: tr("Export", "এক্সপোর্ট"),
+          icon: <Download className="h-4 w-4" />,
+          variant: "outline",
+          onClick: handleExport,
+        },
+      }),
+    [handleExport, staffBasePath, tr],
+  );
+
+  const bulkActions = useMemo<DataTableBulkAction<StaffListItem>[]>(
+    () => [
+      {
+        id: "set-active",
+        label: tr("Set active", "সক্রিয় করুন"),
+        icon: <UserCheck className="h-4 w-4" />,
+        variant: "outline",
+        onClick: (items) => handleBulkStatusUpdate(items, "active"),
+      },
+      {
+        id: "set-inactive",
+        label: tr("Set inactive", "নিষ্ক্রিয় করুন"),
+        icon: <UserMinus className="h-4 w-4" />,
+        variant: "outline",
+        onClick: (items) => handleBulkStatusUpdate(items, "inactive"),
+      },
+      {
+        id: "set-banned",
+        label: tr("Suspend", "স্থগিত করুন"),
+        icon: <ShieldBan className="h-4 w-4" />,
+        variant: "destructive",
+        onClick: (items) => handleBulkStatusUpdate(items, "banned"),
+      },
+      {
+        id: "delete",
+        label: tr("Remove", "অপসারণ"),
+        icon: <Trash2 className="h-4 w-4" />,
+        variant: "destructive",
+        onClick: handleBulkDelete,
+      },
+    ],
+    [handleBulkDelete, handleBulkStatusUpdate, tr],
+  );
+
+  const rowActions = useCallback(
+    (row: StaffListItem): DataTableAction[] => [
+      {
+        id: "view",
+        label: tr("View details", "বিস্তারিত দেখুন"),
+        icon: <Eye className="h-4 w-4" />,
+        href: `${staffBasePath}/${row._id}`,
+      },
+      {
+        id: "edit",
+        label: tr("Edit", "এডিট"),
+        icon: <Pencil className="h-4 w-4" />,
+        href: `${staffBasePath}/${row._id}`,
+      },
+      // The server refuses owner removal anyway; hiding the action keeps the
+      // refusal from ever being the user's first hint.
+      ...(row.isOwner
+        ? []
+        : [
+            {
+              id: "delete",
+              label: tr("Remove from team", "টিম থেকে অপসারণ"),
+              icon: <Trash2 className="h-4 w-4" />,
+              variant: "destructive" as const,
+              onClick: () => handleDelete(row),
+            },
+          ]),
+    ],
+    [handleDelete, staffBasePath, tr],
+  );
+
+  return (
+    <DataTable
+      data={list.items}
+      columns={columns}
+      keyField="_id"
+      isLoading={list.isLoading}
+      loadingMode="rows"
+      title={tableHeader.title}
+      tabs={tabs}
+      activeTab={list.activeTab}
+      onTabChange={list.handleTabChange}
+      actions={tableHeader.actions}
+      selectable
+      selectedItems={selectedStaff}
+      onSelectionChange={setSelectedStaff}
+      bulkActions={bulkActions}
+      searchable
+      searchPlaceholder={tr("Search by name or email", "নাম বা ইমেইল দিয়ে খুঁজুন")}
+      searchValue={list.search}
+      onSearchChange={list.handleSearchChange}
+      toolbarActions={tableHeader.toolbarActions}
+      toolbarLayout={tableHeader.toolbarLayout}
+      tabsVariant={tableHeader.tabsVariant}
+      filtersVariant={tableHeader.filtersVariant}
+      appearance={tableHeader.appearance}
+      stackedTopControls={tableHeader.stackedTopControls}
+      showToolbarSortButton={tableHeader.showToolbarSortButton}
+      pagination={list.pagination}
+      onPageChange={list.handlePageChange}
+      onPageSizeChange={list.handlePageSizeChange}
+      rowActions={rowActions}
+      rowActionsHeader={tr("Actions", "অ্যাকশন")}
+      rowActionsVariant="dropdown"
+      className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
+      onRowClick={(row) =>
+        router.push(`${staffBasePath}/${row._id}`)
+      }
+      emptyMessage={tr("No team members found", "কোনো টিম সদস্য পাওয়া যায়নি")}
+    />
+  );
+}

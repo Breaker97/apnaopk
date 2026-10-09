@@ -1,0 +1,475 @@
+"use client";
+
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Check, ChevronsUpDown, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { COUNTRIES } from "@/lib/intl/country-options";
+import {
+  areCountryValuesEquivalent,
+  countryNameForCode,
+  getAllowedCountryOptions,
+} from "@/lib/intl/country-availability";
+import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/providers/app-settings-provider";
+
+type CountryValueFormat = "name" | "code";
+
+type CommonProps = {
+  id?: string;
+  /**
+   * Accessible name for the control. Most address forms label this field with
+   * a floating `<span>` overlay rather than a `<label>`, which leaves the
+   * trigger reaching screen readers named only by the country that happens to
+   * be selected — or, when the store sells to one country, not announced at
+   * all. Callers that label the field themselves pass the same text here.
+   */
+  ariaLabel?: string;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  triggerClassName?: string;
+  disabled?: boolean;
+  /** Keep legacy consumers on names; regional settings itself persists ISO-2. */
+  valueFormat?: CountryValueFormat;
+  /** The policy editor needs the full catalog so excluded countries can return. */
+  restrictToAvailableCountries?: boolean;
+  /**
+   * Set inside a Dialog. The list is portaled outside the dialog, whose scroll
+   * lock then swallows the wheel over it — the country list could not be
+   * scrolled. A modal popover takes the lock over for itself.
+   */
+  modal?: boolean;
+};
+
+type ClearableProps = {
+  /**
+   * Offer a way back to "no country" once one is picked. Off by default: most
+   * consumers are address forms where the country is required, and there a
+   * clear button would only let people submit an invalid address.
+   */
+  clearable?: boolean;
+  /** Accessible label for the clear control. */
+  clearLabel?: string;
+};
+
+type CountrySelectSingleProps = CommonProps &
+  ClearableProps & {
+    multiple?: false;
+    value: string;
+    onChange: (value: string) => void;
+    /**
+     * When the field is locked to the store's one country, a line under it
+     * says the store delivers there only, so a fixed field doesn't read as a
+     * broken one. Pass `false` where that would be wrong (a seller's own
+     * address, a billing address) or where the caller explains it itself.
+     */
+    lockedHint?: boolean;
+    /**
+     * The saved country the store's country policy replaced when the record
+     * loaded (see `settleCountryForPolicy`). The field then says what saving
+     * will change, in place of the hint, so a country never changes behind
+     * anyone's back.
+     */
+    replacedCountry?: string;
+  };
+
+type CountrySelectMultiProps = CommonProps & {
+  multiple: true;
+  value: string[];
+  onChange: (value: string[]) => void;
+};
+
+type CountrySelectProps =
+  | CountrySelectSingleProps
+  | CountrySelectMultiProps;
+
+const normalizeCountry = (value: string) => value.trim().toLowerCase();
+
+/**
+ * Up to this many options the list still fits the 18rem cap without scrolling
+ * (36px per row plus the 8px list padding), so the search box is pure noise.
+ * Past it we fall back to search plus the scroller the full catalog needs.
+ */
+const SEARCH_VISIBILITY_THRESHOLD = 7;
+
+export function CountrySelect(props: CountrySelectProps) {
+  const t = useTranslations("common.countryPicker");
+  const {
+    id,
+    ariaLabel,
+    placeholder = t("placeholder"),
+    searchPlaceholder = t("search"),
+    emptyText = t("empty"),
+    triggerClassName,
+    disabled = false,
+    valueFormat = "name",
+    restrictToAvailableCountries = true,
+    modal = false,
+  } = props;
+  const isMulti = props.multiple === true;
+  const clearable = !isMulti && props.clearable === true;
+  const clearLabel = (!isMulti && props.clearLabel) || t("clear");
+  const showLockedHint = !isMulti && props.lockedHint !== false;
+  const replacedCountry = isMulti ? "" : (props.replacedCountry ?? "").trim();
+  const { countryAvailability } = useAppSettings();
+  const noteId = useId();
+
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const selectedCountries = useMemo(() => {
+    if (isMulti) {
+      const value = props.value;
+      return Array.isArray(value) ? value.filter(Boolean) : [];
+    }
+    const value = props.value;
+    return value ? [value] : [];
+  }, [isMulti, props.value]);
+
+  const selectedSet = useMemo(
+    () => new Set(selectedCountries.map(normalizeCountry)),
+    [selectedCountries],
+  );
+
+  const availableCountries = useMemo(() => {
+    const countries = restrictToAvailableCountries
+      ? getAllowedCountryOptions(countryAvailability)
+      : COUNTRIES;
+
+    return countries.map((country) => ({
+      value: valueFormat === "code" ? country.value : country.label,
+      label:
+        valueFormat === "code"
+          ? `${country.label} (${country.value})`
+          : country.label,
+    }));
+  }, [countryAvailability, restrictToAvailableCountries, valueFormat]);
+
+  const showSearch = availableCountries.length > SEARCH_VISIBILITY_THRESHOLD;
+
+  const soleCountry =
+    availableCountries.length === 1 ? availableCountries[0] : null;
+
+  /**
+   * A store that only ships to one country has nothing to choose: drop the
+   * trigger/search entirely and render the country as a read-only field. Multi
+   * pickers keep their popover — the sole country is still a toggle there — and
+   * so does the availability editor itself, which opts out of the restriction.
+   *
+   * A caller-disabled field is left alone. It is a read-only view of a record
+   * that already has a country, and the lock both writes to it (see below) and
+   * displays the sole country in place of whatever the record actually holds —
+   * neither of which a view that cannot be edited should do.
+   */
+  const isLockedToSoleCountry = Boolean(
+    soleCountry && !isMulti && restrictToAvailableCountries && !disabled,
+  );
+
+  const filteredCountries = useMemo(() => {
+    const q = showSearch ? normalizeCountry(query) : "";
+    if (!q) return availableCountries;
+    return availableCountries.filter(
+      (country) =>
+        normalizeCountry(country.label).includes(q) ||
+        normalizeCountry(country.value).includes(q),
+    );
+  }, [availableCountries, query, showSearch]);
+
+  const onChangeRef = useRef(props.onChange);
+  useEffect(() => {
+    onChangeRef.current = props.onChange;
+  });
+
+  const singleValue = isMulti ? "" : props.value;
+
+  // Keep the form in sync with the policy: an empty or no-longer-allowed value
+  // would otherwise contradict the country shown in the locked field.
+  useEffect(() => {
+    if (!isLockedToSoleCountry || !soleCountry) return;
+    if (areCountryValuesEquivalent(singleValue, soleCountry.value)) return;
+    (onChangeRef.current as (value: string) => void)(soleCountry.value);
+  }, [isLockedToSoleCountry, soleCountry, singleValue]);
+
+  const displayValue = (value: string) => {
+    const option = availableCountries.find(
+      (country) => normalizeCountry(country.value) === normalizeCountry(value),
+    );
+    if (option) return option.label;
+    if (valueFormat === "code") {
+      const name = countryNameForCode(value);
+      if (name) return `${name} (${value.toUpperCase()})`;
+    }
+    return value;
+  };
+
+  const handleSelect = (country: string) => {
+    if (!isMulti) {
+      props.onChange(country);
+      setOpen(false);
+      setQuery("");
+      return;
+    }
+
+    const target = normalizeCountry(country);
+    const isAlreadySelected = selectedSet.has(target);
+    if (isAlreadySelected) {
+      props.onChange(
+        selectedCountries.filter(
+          (item) => normalizeCountry(item) !== target,
+        ),
+      );
+      return;
+    }
+    props.onChange([...selectedCountries, country]);
+  };
+
+  const removeCountry = (country: string) => {
+    if (!isMulti) {
+      props.onChange("");
+      return;
+    }
+    const target = normalizeCountry(country);
+    props.onChange(
+      selectedCountries.filter((item) => normalizeCountry(item) !== target),
+    );
+  };
+
+  const selectedLabel = isMulti
+    ? selectedCountries.length === 0
+      ? placeholder
+      : selectedCountries.length === 1
+        ? displayValue(selectedCountries[0])
+        : t("selected", { count: selectedCountries.length })
+    : selectedCountries[0]
+      ? displayValue(selectedCountries[0])
+      : placeholder;
+
+  const isPlaceholder = isMulti
+    ? selectedCountries.length === 0
+    : !props.value;
+
+  // Only worth showing once there is something to clear.
+  const showClear = clearable && !isPlaceholder && !disabled;
+
+  if (isLockedToSoleCountry && soleCountry) {
+    // The plain name: in code format the option label carries the ISO code.
+    const soleName = countryNameForCode(soleCountry.value) ?? soleCountry.label;
+    const replaced =
+      replacedCountry &&
+      !areCountryValuesEquivalent(replacedCountry, soleCountry.value)
+        ? (countryNameForCode(replacedCountry) ?? replacedCountry)
+        : "";
+    const note = replaced
+      ? t("replaced", { previous: replaced, current: soleName })
+      : showLockedHint
+        ? t("lockedHint", { country: soleName })
+        : "";
+
+    return (
+      <div className="space-y-1.5">
+        <button
+          id={id}
+          type="button"
+          /* `aria-disabled` rather than `disabled`: a disabled button is
+             skipped in the tab order and passed over by screen readers, so the
+             one country the store delivers to would never be announced — the
+             shopper would just find a gap where the country field should be.
+             This keeps it reachable and readable while still saying it cannot
+             be changed. */
+          aria-disabled
+          aria-label={
+            ariaLabel ? `${ariaLabel}: ${soleCountry.label}` : soleCountry.label
+          }
+          aria-describedby={note ? noteId : undefined}
+          onClick={(event) => event.preventDefault()}
+          className={cn(
+            "flex h-9 w-full cursor-default items-center rounded-md border bg-muted/50 px-4 py-2 text-left text-sm font-normal shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30",
+            triggerClassName,
+          )}
+        >
+          <span className="min-w-0 truncate text-left">{soleCountry.label}</span>
+        </button>
+        {note ? (
+          <p
+            id={noteId}
+            className={cn(
+              "text-xs",
+              replaced
+                ? "text-amber-600 dark:text-amber-500"
+                : "text-muted-foreground",
+            )}
+          >
+            {note}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Popover
+        open={open}
+        modal={modal}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) setQuery("");
+        }}
+      >
+        {/* The clear control is a sibling overlay rather than a child of the
+            trigger: a button inside a button is invalid and swallows clicks. */}
+        <div className="relative">
+          <PopoverTrigger asChild>
+            <Button
+              id={id}
+              type="button"
+              disabled={disabled}
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              aria-label={ariaLabel ? `${ariaLabel}: ${selectedLabel}` : undefined}
+              className={cn(
+                "w-full justify-between font-normal",
+                isPlaceholder && "text-muted-foreground",
+                showClear && "pr-14",
+                triggerClassName,
+              )}
+            >
+              <span className="min-w-0 truncate text-left">
+                {selectedLabel}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          {showClear ? (
+            <button
+              type="button"
+              aria-label={clearLabel}
+              title={clearLabel}
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onChange("");
+              }}
+              className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground opacity-70 transition-opacity hover:bg-accent hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </div>
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] p-0"
+        >
+          {showSearch ? (
+            <div className="flex items-center gap-2 border-b px-3 py-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                autoFocus
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={searchPlaceholder}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+          ) : null}
+
+          {/* Capped on the viewport, not the root, so the popover shrinks to a
+              handful of countries but still scrolls the full catalog. */}
+          <ScrollArea className="max-h-72" viewportClassName="max-h-72">
+            <div className="p-1">
+              {/* Selecting nothing is a real choice here, so it needs a real
+                  row — the trigger's X is unreachable by keyboard search. */}
+              {showClear ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    props.onChange("");
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="mb-1 flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <X className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{clearLabel}</span>
+                </button>
+              ) : null}
+              {filteredCountries.length === 0 ? (
+                <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  {emptyText}
+                </div>
+              ) : (
+                filteredCountries.map((country) => {
+                  const isSelected = selectedSet.has(
+                    normalizeCountry(country.value),
+                  );
+
+                  return (
+                    <button
+                      key={country.value}
+                      type="button"
+                      onClick={() => handleSelect(country.value)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent",
+                        isSelected && "bg-accent",
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          isSelected ? "opacity-100" : "opacity-0",
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {country.label}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
+
+      {isMulti && selectedCountries.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {selectedCountries.map((country) => (
+            <Badge
+              key={country}
+              variant="secondary"
+              className="max-w-full gap-1 pr-1"
+            >
+              <span className="truncate">{displayValue(country)}</span>
+              <button
+                type="button"
+                onClick={() => removeCountry(country)}
+                className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                aria-label={t("remove", { country: displayValue(country) })}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Backwards-compatible export for existing usages.
+export function CountryMultiSelect(
+  props: CountrySelectMultiProps | (CommonProps & {
+    value: string[];
+    onChange: (value: string[]) => void;
+  }),
+) {
+  return <CountrySelect {...props} multiple />;
+}
